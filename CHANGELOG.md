@@ -9,18 +9,36 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.{shortSha}`.
 
-**The pin moves to upstream release tag `v2.0.22`, and all 140 operations it exposes are usable** —
-138 generated and the two terminal WebSocket transports, none declined.
+## [0.9.0-preview.6] - 2026-10-04
+
+**The pin moves to upstream release tag `v2.0.22`, and all 140 operations it exposes are
+callable — 138 as generated HTTP calls, and the two terminal WebSocket connections through
+hand-written transports.** Stored credentials can
+now be listed and created, a session can be created as a linked child of another, a cancelled form
+can tell the asker why, and a connection reports when it needs signing in again. The refresh
+changes three shapes, so the breaking changes come first. Discovery, Ensure, and Stop now read the
+CLI's service files exactly as the CLI does. `net8.0` and `net9.0` leave the packages in an
+upcoming preview; see the important notes.
 
 ### 💥 Breaking changes
 
 - **`CancelFormAsync` takes an optional `SessionFormCancelRequest` before `requestOptions`.** A call
-  that passed `requestOptions` positionally names it now (`requestOptions: options`).
-- **`ProviderSettings.ChunkTimeout` and `ConfigProviderSettings.ChunkTimeout` are unions, not
-  `double?`.** Upstream accepts a number of milliseconds or `false` (no timeout); read `Kind`, then
-  `Number` or `Boolean`, and build one with `FromNumber` or `FromBoolean`.
-- **`ConfigModel.Capabilities` is a `ConfigModelCapabilities`** (`Input`, `Output`, `Tools`), the
-  shape upstream's config accepts, instead of the catalog's `ModelCapabilities`.
+  that passed `requestOptions` positionally names it now (`requestOptions: options`). The method is
+  virtual, so overrides and mock setups move to the new signature, and an assembly compiled against
+  `0.9.0-preview.5` must be rebuilt. The route helper `OpenCodeRoutes.Sessions.CancelForm` gained
+  the same optional `request`.
+- **`ProviderSettings.ChunkTimeout` and `ConfigProviderSettings.ChunkTimeout` are number-or-`false`
+  unions, not `double?`.** Upstream accepts a number of milliseconds or `false` (no timeout), so a
+  provider configured with `false` now decodes. Read `Kind`, then `Number` or `Boolean`; a value
+  neither arm claims is kept as `Unknown`. `ChunkTimeout = 30000` becomes
+  `ChunkTimeout = ProviderSettingsChunkTimeout.FromNumber(30000)` (`ConfigProviderSettingsChunkTimeout`
+  on the config side), and `FromBoolean(false)` turns the timeout off; upstream refuses `true`.
+- **`ConfigModel.Capabilities` is a `ConfigModelCapabilities`, not the catalog's
+  `ModelCapabilities`.** It is the shape upstream's config accepts, and every member is optional:
+  `Tools` is `bool?`, and `Input` and `Output` may be null. `ModelInfo.Capabilities` is unchanged.
+- **`IConnectionInfo` has a `Status` member.** A type outside the SDK that implements the interface,
+  such as a test fake, adds `ConnectionStatus? Status`; code that only reads connections is
+  unaffected.
 
 ### ✨ Added
 
@@ -28,23 +46,44 @@ Nightly builds of `master` are on
   (`527f0b931d1f9b3ebd34e106c51b31ce5db5b075`), published as `@opencode/cli@2.0.22`; install it
   with `npm install -g @opencode/cli@2.0.22`.
 - **Stored credentials can be listed and created.** `client.Credentials.ListCredentialsAsync()`
-  (`credential.list`) and `CreateCredentialAsync(request)` (`credential.create`) join activate,
-  update, and remove. A credential's API key (`CredentialKey.Key`) and OAuth tokens
-  (`CredentialOAuth.Access`, `Refresh`) are masked in `ToString()`.
+  (`credential.list`) returns every `CredentialEntry` (`Id`, `IntegrationId`, `Label`, `Active`,
+  `Value`), and `CreateCredentialAsync(request)` (`credential.create`) stores one and returns it;
+  an `Id` that already exists answers with the declared 409. They join activate, update, and
+  remove. `Value` is a `CredentialKey` or a `CredentialOAuth`. Upstream returns secrets in clear
+  text, so the API key (`CredentialKey.Key`) and the OAuth tokens (`CredentialOAuth.Access`,
+  `Refresh`) are masked in `ToString()`.
 - **`SessionCreateRequest.ParentId`** creates a linked child session at its parent's location; a
   missing parent answers with the declared 404 `SessionNotFoundError`.
-- **Cancelling a form can tell the asker why** (`SessionFormCancelRequest.Message`), and
-  `FormStateCancelled.Message` carries it back.
-- **`HeaderTimeout`** on `ProviderSettings` and `ConfigProviderSettings` (the same number-or-`false`
-  union), a connection's `Status` (`ConnectionStatus`), and `SessionStructuredError.Response`.
+- **A cancelled form can tell the asker why.** `CancelFormAsync(formId, new SessionFormCancelRequest
+  { Message = "..." })` sends it, and `FormStateCancelled.Message` carries it back.
+- **`HeaderTimeout`** on `ProviderSettings` and `ConfigProviderSettings` bounds the wait for a
+  provider's response headers, as the same number-of-milliseconds-or-`false` union.
+- **A connection reports when it needs attention.** `IConnectionInfo.Status` is a
+  `ConnectionStatus` with the `Status`, a `Message`, and, when set, the `Url` to sign in again at.
+- **`SessionStructuredError.Response`** carries the failed provider response's `Body`.
 
 ### 🐛 Fixes
 
-- **The background-service doors read the service config exactly as the CLI decodes it.** A config
-  whose `disabled` member is not a boolean is no config at all, so its `env` overlay and the legacy
-  migration no longer apply, as in the CLI. A whole-valued `port` such as `8080.0`, and a whole-valued
-  pid in the registration or the info probe, are integers, as they are to the CLI; a handoff sidecar
-  whose pid is any other number is still a sidecar whose source matches no registration.
+- **`OpenCodeServer.DiscoverAsync`, `EnsureAsync`, and `StopAsync` decode the CLI's service files
+  exactly as the CLI does.** A whole-valued number such as `8080.0` is an integer for the service
+  config's `port` and for the pid in the registration and the info probe. Before, such a config was
+  ignored, so `EnsureAsync` lost its `env` overlay, and such a registration was not found. A service
+  config whose `disabled` member is not a boolean is no config at all, so its `env` overlay and the
+  legacy config copy do not apply, as in the CLI. `disabled: true` itself does not stop
+  `EnsureAsync`: only CLI commands read it, never the CLI's service operations.
+
+### 📋 Important Notes
+
+- **`net8.0` and `net9.0` leave the packages, and `net11.0` joins, in an upcoming preview,** ahead of
+  their end of support on 2026-11-10. The packages will then target
+  `netstandard2.0;net472;net10.0;net11.0`. An app on .NET 8 or 9 still installs through the
+  `netstandard2.0` asset, but that asset is a compatibility asset, not a supported runtime: support
+  and testing cover the targeted runtimes only, and .NET 5–7 are not supported. Plan the move to
+  .NET 10.
+- **Upstream's committed OpenAPI document is stale at `v2.0.22`**
+  ([anomalyco/opencode#53105](https://github.com/anomalyco/opencode/issues/53105)). This SDK's
+  snapshot comes from upstream's own pinned generator, so a diff against that committed file shows
+  four more operations here; they are real and the server serves them.
 
 ## [0.9.0-preview.5] - 2026-09-29
 
@@ -770,6 +809,7 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[0.9.0-preview.6]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.6
 [0.9.0-preview.5]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.5
 [0.9.0-preview.4]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.4
 [0.9.0-preview.3]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.3

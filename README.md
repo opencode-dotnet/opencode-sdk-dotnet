@@ -30,10 +30,10 @@ Console.WriteLine($"session {created.Session.Id}");
 
 ## 🎉 Project Status
 
-**Pre-1.0, and the protocol surface is complete.** Every operation in the pinned OpenAPI snapshot
-is callable: **all 138** — 136 generated, and two terminal connections through hand-written
-WebSocket transports. All three connection modes work: a private server the SDK starts, a server
-you already run, and the background service that the opencode CLI registers.
+**Pre-1.0, and the protocol surface is complete.** **All 140 operations** in the pinned OpenAPI
+snapshot are callable — 138 as generated HTTP calls, and the two terminal WebSocket connections
+through hand-written transports. All three connection modes work: a private server the SDK
+starts, a server you already run, and the background service that the opencode CLI registers.
 
 - 🚧 Releases are `0.9.0-preview.N`. A reviewed baseline locks the public surface, but it can still
   change before `1.0.0`. See [CHANGELOG.md](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/CHANGELOG.md).
@@ -54,8 +54,8 @@ you already run, and the background service that the opencode CLI registers.
 - **Errors you can branch on.** A call throws a typed exception by default. With
   `OpenCodeRequestOptions.NoThrow`, it returns the failure as data instead — useful when a 404 is a
   normal answer.
-- **Broad .NET reach.** `netstandard2.0` and `net472` are first-class targets, so the SDK works in
-  .NET Framework hosts, not only in modern apps.
+- **Broad .NET reach.** `net472` is a first-class target, so the SDK works in .NET Framework
+  hosts, not only in modern apps; `netstandard2.0` is a compatibility asset for other runtimes.
 - **No reflection serialization.** `System.Text.Json` source generation throughout. Both packages
   declare `IsAotCompatible` on `net10.0`.
 - **A pinned protocol.** Each refresh to a new upstream release comes with a receipt, so a

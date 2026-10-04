@@ -14,7 +14,9 @@ supports, plus `net472` and `netstandard2.0` (ADR-0002). It is:
 netstandard2.0;net472;net8.0;net9.0;net10.0
 ```
 
-`net8.0` and `net9.0` leave when their support ends on 2026-11-10, and `net11.0` joins at its GA.
+A version joins at its first go-live release candidate and leaves no later than its end of
+support; a non-preview package is built only on a GA SDK. `net11.0` joins on its go-live release
+candidate and `net8.0` and `net9.0` leave with it, ahead of their end of support on 2026-11-10.
 
 `net472` owns .NET Framework-specific compile and runtime behavior. `netstandard2.0` is the broad
 compatibility bridge and has no runtime of its own; net472 legs proxy its downlevel behavior. It is

@@ -16,7 +16,7 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   a release tag, never a live branch, and refreshes are receipt-governed (ADR-0020).
   `../spec/SNAPSHOT.md` owns the exact commit and the refresh procedure.
 - **Coverage** — **138 of 140 operations selected** across 27 client families, none declined, and
-  2 transport-owned that hand-written WebSocket doors cover, so all 138 are usable; `src/OpenCode.Sdk/.generation-incomplete` is
+  2 transport-owned that hand-written WebSocket doors cover, so all 140 are usable; `src/OpenCode.Sdk/.generation-incomplete` is
   the committed marker and names every one. One-shot calls, server-sent event streams (the global
   bus and the per-session log), PTY and persistent-PTY WebSocket sessions, cursor pagination, typed
   errors with `NoThrow`, and the standalone launcher (`OpenCodeServer.StartAsync`) are landed.
