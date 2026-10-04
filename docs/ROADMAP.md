@@ -52,7 +52,7 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 - **Packages** — the two packages publish as `OpenCodeDotNet.Sdk` and
   `OpenCodeDotNet.Sdk.Extensions` (the assemblies stay `OpenCode.Sdk`) and pack at the
   single-sourced `VersionPrefix 0.9.0`. Every `master` push publishes a `0.9.0-nightly.*` build to
-  the organization's GitHub Packages feed, and `0.9.0-preview.5` is on NuGet.org, owned by
+  the organization's GitHub Packages feed, and `0.9.0-preview.6` is on NuGet.org, owned by
   `OpenCode.NET` and pushed through the manual lane over Trusted Publishing. The ids carry
   `OpenCodeDotNet` because nuget.org reserves the `OpenCode.` prefix for an unrelated owner. The
   earlier ids, `OpenCodeAI.Sdk` and `OpenCodeAI.Sdk.Extensions`, receive no further versions.
