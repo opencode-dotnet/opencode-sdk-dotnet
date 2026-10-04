@@ -6,6 +6,12 @@ Canonical current rules for client construction, transport ownership, API errors
 local server launcher. Protocol and generated-model rules live in
 `protocol-and-generation.md`.
 
+Every behaviour in this document that the SDK implements by hand follows upstream's first-party
+behaviour at the pin as a north star, with the Bun build as the reference runtime. A deliberate
+divergence is either the idiomatic .NET form of the same contract, measurably safer or more
+robust, or a superset of upstream's behaviour. Each one is listed, with its reason, in the
+section it concerns (ADR-0031).
+
 ## Construction and transport ownership
 
 - `OpenCodeClient(OpenCodeClientOptions)` is the only public construction path (ADR-0010).
@@ -583,11 +589,22 @@ write all run inside `opencode serve --service` (`server-process.ts`), and the e
 loser's exit 0 the way upstream's does. The CLI's `reconnect` and `restart` have no door of their
 own; a caller composes them from `StopAsync` and `EnsureAsync`.
 
-Where the SDK deliberately differs from the pinned chain, it differs here: the readers are stricter
-than upstream's `JSON.parse` — the registration and service-config readers refuse a repeated member,
-the registration reader a pid that is not a positive 32-bit integer and a URL that is not absolute
-HTTP or HTTPS, and the sidecar reader a pid that is not integral — and a refused document reads as
-absent; Discover and Ensure never hand out a registration without a password, where upstream
-would connect without credentials; the probe's Basic credential is UTF-8, where upstream's probe
-uses Latin-1 `btoa` and its sidecar writer UTF-8; and the probe never routes a loopback request
-through a proxy. Everything else follows the chain at the pin.
+Where the SDK deliberately differs from the pinned chain, it differs here, each for a recorded
+reason (ADR-0031):
+
+- **Stricter readers than upstream's `JSON.parse`.** The registration and service-config readers
+  refuse a repeated member. The registration reader also refuses a pid that is not a positive
+  32-bit integer and a URL that is not absolute HTTP or HTTPS. The sidecar reader refuses a pid
+  that is not integral. A refused document reads as absent. Reason: the repository's fail-closed
+  boundary, which treats malformed state as missing rather than acting on it.
+- **No registration without a password.** Discover and Ensure never hand out such a registration,
+  where upstream would connect without credentials. Reason: the SDK never yields an
+  unauthenticated connection. The pinned daemon always writes a password, so the two only differ
+  for a hand-made file.
+- **UTF-8 Basic credential in the probe.** Upstream's probe uses Latin-1 `btoa`, which throws on
+  any password outside Latin-1, while its sidecar writer, its promise client, and the server all
+  use UTF-8. Reason: the SDK agrees with the rest of upstream, not with the one encoder that fails.
+- **No proxy for a loopback probe.** Reason: an environment proxy without `NO_PROXY` would
+  otherwise hide a live daemon.
+
+Everything else follows the chain at the pin.

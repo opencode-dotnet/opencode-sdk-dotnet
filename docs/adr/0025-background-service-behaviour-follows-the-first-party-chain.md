@@ -26,6 +26,8 @@ connect is no service, never a timeout, which on Windows takes the same no-SYN-r
 socket option the pinned client's runtime sets for loopback. One deliberate divergence is that the
 probe never sends a loopback request through a proxy, where the pinned client would; the full list
 of the SDK's deliberate divergences from the chain lives in `docs/architecture/client-runtime.md`.
+ADR-0031 states the general rule this record applies to the background service: upstream as the
+north star, and every divergence reasoned and recorded.
 
 ## Considered options
 
