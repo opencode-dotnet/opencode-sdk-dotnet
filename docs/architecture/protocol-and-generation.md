@@ -65,7 +65,10 @@ evidence and may contain superseded positions.
   repository's own generator (ADR-0003, ADR-0008).
 - The pinned `Microsoft.OpenApi` reader owns OpenAPI parsing. The generator owns a minimal,
   fail-closed semantic projection into SpecIR; it does not maintain a second OpenAPI parser
-  (ADR-0003).
+  (ADR-0003). The generator's reader runs the library's default validation rule set except the
+  components-key rule, which the generator replaces with an exact equivalent without the library's
+  100 ms wall-clock regex timeout
+  ([microsoft/OpenAPI.NET#3101](https://github.com/microsoft/OpenAPI.NET/issues/3101)).
 - Roslyn syntax trees own emission. The generator is repository tooling under `tools/`; output is
   committed under `src/OpenCode.Sdk`, reviewed as source, and regeneration-verified (ADR-0003).
 - Generated output passes the analyzer wall on merit. The same tool owns deliberate spec refreshes

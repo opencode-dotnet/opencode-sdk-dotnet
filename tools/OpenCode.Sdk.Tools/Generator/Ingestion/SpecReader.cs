@@ -1,5 +1,6 @@
 using System.IO.Abstractions;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Reader;
 
@@ -23,10 +24,7 @@ internal sealed class SpecReader(IFileSystem fileSystem)
         var stream = _fileSystem.File.OpenRead(specPath);
         await using (stream.ConfigureAwait(false))
         {
-            var settings = new OpenApiReaderSettings
-            {
-                LeaveStreamOpen = true,
-            };
+            var settings = CreateReaderSettings();
 
             ReadResult result;
             JsonNode raw;
@@ -39,7 +37,8 @@ internal sealed class SpecReader(IFileSystem fileSystem)
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
-                errors.Add("document", $"the reader failed — {exception.GetType().Name}: {exception.Message}");
+                var pattern = exception is RegexMatchTimeoutException timeout ? $" (pattern '{timeout.Pattern}')" : string.Empty;
+                errors.Add("document", $"the reader failed — {exception.GetType().Name}: {exception.Message}{pattern}");
                 errors.ThrowIfAny();
                 throw;
             }
@@ -64,4 +63,12 @@ internal sealed class SpecReader(IFileSystem fileSystem)
             return new LoadedSpec(document, raw);
         }
     }
+
+    /// <summary>The reader settings every load uses: the stream stays open for the raw re-parse, and the rule set carries the components-key rule without its match timeout.</summary>
+    internal static OpenApiReaderSettings CreateReaderSettings() =>
+        new()
+        {
+            LeaveStreamOpen = true,
+            RuleSet = ComponentKeyRule.CreateReaderRuleSet(),
+        };
 }
