@@ -78,7 +78,7 @@ public sealed record McpRemoteConfigOauth
     }
 
     /// <summary>
-    /// Prints the kind and the active arm; the inactive arms throw by design.
+    /// Prints the kind and the active arm, an unrecognized token masked; the inactive arms throw by design.
     /// </summary>
-    public override string ToString() => StructuralUnionPrinter.Format(nameof(McpRemoteConfigOauth), Kind.ToString(), _value);
+    public override string ToString() => StructuralUnionPrinter.Format(nameof(McpRemoteConfigOauth), Kind.ToString(), Kind is McpRemoteConfigOauthKind.Unknown ? RecordPrinter.Redacted : _value);
 }

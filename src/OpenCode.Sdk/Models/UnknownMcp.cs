@@ -46,4 +46,9 @@ public sealed record UnknownMcp : IMcp
     IMcpTimeout? IMcp.Timeout => null;
 
     McpProtocol? IMcp.Protocol => null;
+
+    /// <summary>
+    /// Prints the marker with the preserved payload masked, since a known arm of this union carries a secret.
+    /// </summary>
+    public override string ToString() => RecordPrinter.Format(nameof(UnknownMcp), ("Type", Type), ("Payload", RecordPrinter.Redact(Payload)));
 }

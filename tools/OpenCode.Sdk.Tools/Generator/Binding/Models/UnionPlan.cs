@@ -85,4 +85,10 @@ internal sealed record UnionPlan
 
     /// <summary>Gets the outer marker this nested union fixes to one value for all its variants.</summary>
     public UnionFixedMarkerPlan? FixedMarker { get; init; }
+
+    /// <summary>
+    /// Gets whether the unknown carrier prints its preserved payload masked: a known arm carries a
+    /// masked member at some depth, so an arm this pin does not know may carry the same secret.
+    /// </summary>
+    public bool MasksUnknownPayload { get; init; }
 }

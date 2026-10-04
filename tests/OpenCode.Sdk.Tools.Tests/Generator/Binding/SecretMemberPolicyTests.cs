@@ -1,7 +1,9 @@
+using System.Text.Json;
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
+using static OpenCode.Sdk.Tools.Tests.Support.UnionHoistPlanData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
@@ -9,7 +11,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 /// The redaction floor is upstream's HTTP-recorder field list matched the way the recorder
 /// matches it; curation rows add or lift a mask; a member whose name carries one of upstream's
 /// secret-marker words refuses the bind until a row decides it; and every row must still mean
-/// something against the bound models (ADR-0028).
+/// something against the bound models (ADR-0028). A union whose known arms reach a masked member
+/// at any depth masks the payload its unknown arm preserves.
 /// </summary>
 public sealed class SecretMemberPolicyTests
 {
@@ -145,6 +148,85 @@ public sealed class SecretMemberPolicyTests
         await Assert.That(marks.Single().IsBindable).IsTrue();
     }
 
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Flag_Only_A_Union_With_A_Masked_Arm()
+    {
+        var result = SecretMemberPolicy.MaskUnknownPayloads(
+            [Masked("VaultKey"), Record("PlainKey", Property("id", Named("string"), isRequired: true))],
+            [Union("IVaultValue", Arm("VaultKey")), Union("IPlainValue", Arm("PlainKey"))]);
+
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"]);
+    }
+
+    /// <summary>The arm holds a list of records, each holding a dictionary of the masked record.</summary>
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Follow_Object_List_And_Dictionary_Members()
+    {
+        var result = SecretMemberPolicy.MaskUnknownPayloads(
+            [
+                Record("VaultShelf", Property("entries", ListOf(Named("VaultDrawer")), isRequired: true)),
+                Record("VaultDrawer", Property("keys", DictionaryOf(Named("VaultKey")), isRequired: true)),
+                Masked("VaultKey"),
+            ],
+            [Union("IVaultValue", Arm("VaultShelf"))]);
+
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"]);
+    }
+
+    /// <summary>The only arm that reaches the masked record is the union's prefix-tagged one.</summary>
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Follow_The_Prefix_Arm()
+    {
+        var result = SecretMemberPolicy.MaskUnknownPayloads(
+            [Masked("VaultKey"), Record("PlainKey", Property("id", Named("string"), isRequired: true))],
+            [Union("IVaultValue", Arm("PlainKey")) with
+            {
+                PrefixVariant = new UnionPrefixVariantPlan { TypeName = "VaultKey", Prefix = "vault:", MarkerWireName = "type" },
+            }]);
+
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"]);
+    }
+
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Follow_A_Nested_Union()
+    {
+        var result = SecretMemberPolicy.MaskUnknownPayloads(
+            [Masked("VaultKey")],
+            [Union("IOuterValue", NestedArm("IInnerValue")), Union("IInnerValue", Arm("VaultKey"))]);
+
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IInnerValue", "IOuterValue"]);
+    }
+
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Flag_A_Structural_Union_And_Follow_It()
+    {
+        var result = SecretMemberPolicy.MaskUnknownPayloads(
+            [
+                Masked("VaultKey"),
+                Structural("VaultSetting", Named("VaultKey")),
+                Structural("PlainSetting", Named("bool")),
+                Record("VaultHolder", Property("setting", Named("VaultSetting"), isRequired: true)),
+            ],
+            [Union("IVaultValue", Arm("VaultHolder"))]);
+
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue", "VaultSetting"]);
+    }
+
+    /// <summary>A record that holds itself settles: the reach stops growing rather than recursing.</summary>
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Settle_On_A_Self_Referential_Schema()
+    {
+        var result = SecretMemberPolicy.MaskUnknownPayloads(
+            [
+                Record("PlainNode", Property("children", ListOf(Named("PlainNode")), isRequired: true)),
+                Record("VaultNode", Property("children", ListOf(Named("VaultNode")), isRequired: true),
+                    Property("secret", Named("string"), isRequired: false) with { IsRedacted = true }),
+            ],
+            [Union("IPlainTree", Arm("PlainNode")), Union("IVaultTree", Arm("VaultNode"))]);
+
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultTree"]);
+    }
+
     private static SpecScenario Scenario(string secretMember) => SpecScenario.Define(spec => spec
         .WithSchema("VaultInfo", schema => schema
             .Type("object")
@@ -177,6 +259,30 @@ public sealed class SecretMemberPolicyTests
     private static ModelPropertyPlan Member(EmitPlan plan, string wireName) =>
         plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "VaultInfo")
             .Properties.Single(property => property.WireName == wireName);
+
+    private static ObjectModelPlan Masked(string typeName) =>
+        Record(typeName, Property("secret", Named("string"), isRequired: true) with { IsRedacted = true });
+
+    private static StructuralUnionModelPlan Structural(string name, TypeReferencePlan armType) =>
+        new()
+        {
+            Name = name,
+            Namespace = "OpenCode.Sdk.Models",
+            KindTypeName = $"{name}Kind",
+            Arms = [new StructuralUnionArmPlan { Name = "Value", Type = armType, Tokens = [JsonTokenType.StartObject] }],
+        };
+
+    private static ListTypeReferencePlan ListOf(TypeReferencePlan elementType) =>
+        new() { ElementType = elementType, IsNullable = false, JsonNullRepresentation = JsonNullRepresentation.ClrNull };
+
+    private static DictionaryTypeReferencePlan DictionaryOf(TypeReferencePlan valueType) =>
+        new() { ValueType = valueType, IsNullable = false, JsonNullRepresentation = JsonNullRepresentation.ClrNull };
+
+    private static string[] Flagged(UnknownPayloadMaskResult result) =>
+    [
+        .. result.Unions.Where(static union => union.MasksUnknownPayload).Select(static union => union.Name),
+        .. result.Models.OfType<StructuralUnionModelPlan>().Where(static union => union.MasksUnknownPayload).Select(static union => union.Name),
+    ];
 
     private static string[] Problems(BindingException exception) =>
         [.. exception.Errors.Select(static error => $"{error.Subject}: {error.Problem}")];

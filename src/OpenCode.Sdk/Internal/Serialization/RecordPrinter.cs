@@ -3,8 +3,8 @@ using System.Text;
 namespace OpenCode.Sdk.Internal.Serialization;
 
 /// <summary>
-/// Formats a generated model that carries a secret member for its record's <c>ToString()</c>
-/// (ADR-0028). The output keeps the compiler-synthesized shape,
+/// Formats a generated model that carries a secret member, and the unknown arm of a union whose
+/// known arms reach one, for its record's <c>ToString()</c> (ADR-0028). The output keeps the compiler-synthesized shape,
 /// <c>McpOAuthConfig { ClientId = app, ClientSecret = [REDACTED], Scope =  }</c>: each member's
 /// own string form, an absent value printed empty. A masked member prints upstream's own marker
 /// when it holds a value and stays empty when it does not, so its presence is still visible.

@@ -1,5 +1,7 @@
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Support;
@@ -9,7 +11,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 /// <summary>
 /// A model with a secret member prints itself (ADR-0028). The override must keep the compiler's
 /// own shape exactly — the same members in the same order, the same spacing, an absent value
-/// empty — so the only difference from the synthesized ToString is the masked value.
+/// empty — so the only difference from the synthesized ToString is the masked value. A union
+/// flagged to mask its unknown payload prints that payload, and only that, as the marker.
 /// </summary>
 public sealed class SecretMemberEmissionTests
 {
@@ -41,6 +44,114 @@ public sealed class SecretMemberEmissionTests
         {
             await Assert.That(plain).Contains(printedSecret);
         }
+    }
+
+    [Test]
+    public async Task Emit_Should_Override_ToString_Only_On_A_Flagged_Unknown_Carrier()
+    {
+        var sources = UnionEmitter.Emit([.. EmitterPlanFixture.CreateUnionSnapshot().Select(static union => MaskUnknown(union, "IExamplePhase"))]);
+
+        await Assert.That(EmitterSnapshot.Content(sources, "Models/UnknownExamplePhase.cs")).Contains(
+            "public override string ToString() => RecordPrinter.Format(nameof(UnknownExamplePhase), (\"Status\", Status), (\"Type\", Type), (\"Payload\", RecordPrinter.Redact(Payload)));");
+        await Assert.That(EmitterSnapshot.Content(sources, "Models/UnknownExampleEvent.cs")).DoesNotContain("ToString");
+    }
+
+    [Test]
+    public async Task Emit_Should_Mask_Only_The_Unknown_Arm_Of_A_Flagged_Structural_Union()
+    {
+        var plan = await EmitterPlanFixture.CreateStructuralUnionPlanAsync();
+
+        var masked = StructuralUnionEmitter.Emit([.. MaskStructural(plan).Models.OfType<StructuralUnionModelPlan>()]);
+        var plain = StructuralUnionEmitter.Emit([.. plan.Models.OfType<StructuralUnionModelPlan>()]);
+
+        await Assert.That(EmitterSnapshot.Content(masked, "Models/StructuralValue.cs")).Contains(
+            "StructuralUnionPrinter.Format(nameof(StructuralValue), Kind.ToString(), Kind is StructuralValueKind.Unknown ? RecordPrinter.Redacted : _value);");
+        await Assert.That(EmitterSnapshot.Content(plain, "Models/StructuralValue.cs")).Contains(
+            "StructuralUnionPrinter.Format(nameof(StructuralValue), Kind.ToString(), _value);");
+    }
+
+    /// <summary>
+    /// The nested carrier is the widest shape: its own marker, the fixed outer marker, the payload,
+    /// and explicitly answered hoisted members the compiler's print never shows.
+    /// </summary>
+    [Test]
+    [ParallelLimiter<RoslynCompilationSlots>]
+    public async Task Emit_Should_Print_The_Compilers_Unknown_Carrier_Shape_With_Only_The_Payload_Masked()
+    {
+        using var payload = JsonDocument.Parse(new FixtureLoader().Load("Serialization.unknown-phase-with-secret.json"));
+        var plan = WithErrorSpine(EmitterPlanFixture.CreateHoistPlan());
+
+        var plain = await PrintUnknownAsync(plan, "UnknownExamplePhase", "paused", payload.RootElement);
+        var masked = await PrintUnknownAsync(plan with { Unions = [.. plan.Unions.Select(static union => MaskUnknown(union, union.Name))] },
+            "UnknownExamplePhase", "paused", payload.RootElement);
+
+        await Assert.That(plain).Contains(payload.RootElement.GetRawText());
+        await Assert.That(masked).IsEqualTo(plain.Replace(payload.RootElement.GetRawText(), "[REDACTED]", StringComparison.Ordinal));
+    }
+
+    [Test]
+    [ParallelLimiter<RoslynCompilationSlots>]
+    [Arguments("Serialization.structural-unknown.json", "StructuralValue { Kind = Unknown, Unknown = [REDACTED] }")]
+    [Arguments("Serialization.structural-string.json", "StructuralValue { Kind = Text, Text = hello }")]
+    public async Task Emit_Should_Print_A_Flagged_Structural_Unions_Unknown_Arm_Masked(string fixture, string printed)
+    {
+        var plan = MaskStructural(await EmitterPlanFixture.CreateStructuralUnionPlanAsync());
+        var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(SourceEmitter.Emit(plan));
+        var valueType = assembly.GetType("OpenCode.Sdk.Models.StructuralValue", throwOnError: true)!;
+
+        var value = JsonSerializer.Deserialize(new FixtureLoader().Load(fixture), TypeInfo(assembly, valueType))
+                    ?? throw new InvalidOperationException($"Fixture '{fixture}' materialized null.");
+
+        await Assert.That(value.ToString()).IsEqualTo(printed);
+    }
+
+    /// <summary>The SDK core the plan compiles against reads the error union, which the hoist plan alone leaves out.</summary>
+    private static EmitPlan WithErrorSpine(EmitPlan plan)
+    {
+        var spine = EmitterPlanFixture.Create();
+        return plan with
+        {
+            Models = [.. plan.Models, .. spine.Models.Where(static model => model.Name == "BadRequestError")],
+            Unions = [.. plan.Unions, .. spine.Unions.Where(static union => union.Name == "IOpenCodeError")],
+            Registry = new RegistryPlan
+            {
+                TypeNames =
+                [
+                    .. plan.Registry.TypeNames.Concat(["BadRequestError", "IOpenCodeError", "UnknownOpenCodeError"]).Order(StringComparer.Ordinal),
+                ],
+            },
+        };
+    }
+
+    private static UnionPlan MaskUnknown(UnionPlan union, string unionName) =>
+        union.Name == unionName ? union with { MasksUnknownPayload = true } : union;
+
+    private static EmitPlan MaskStructural(EmitPlan plan) =>
+        plan with
+        {
+            Models =
+            [
+                .. plan.Models.Select(static model => model is StructuralUnionModelPlan structural
+                    ? structural with { MasksUnknownPayload = true }
+                    : model),
+            ],
+        };
+
+    private static async Task<string> PrintUnknownAsync(EmitPlan plan, string carrierName, string marker, JsonElement payload)
+    {
+        var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(SourceEmitter.Emit(plan));
+        var carrierType = assembly.GetType($"OpenCode.Sdk.Models.{carrierName}", throwOnError: true)!;
+        var carrier = Activator.CreateInstance(carrierType, marker, payload)
+                      ?? throw new InvalidOperationException($"{carrierName} constructed null.");
+        return carrier.ToString()!;
+    }
+
+    private static JsonTypeInfo TypeInfo(Assembly assembly, Type type)
+    {
+        var contextType = assembly.GetType("OpenCode.Sdk.Internal.Serialization.OpenCodeJsonContext", throwOnError: true)!;
+        var context = (JsonSerializerContext)(contextType.GetProperty("Default")?.GetValue(null)
+                                              ?? throw new InvalidOperationException("Generated JSON context has no Default instance."));
+        return context.GetTypeInfo(type) ?? throw new InvalidOperationException($"Generated JSON context has no {type.Name} metadata.");
     }
 
     private static EmitPlan Redact(EmitPlan plan, string modelName, string wireName) =>

@@ -14,6 +14,18 @@ Nightly builds of `master` are on
 - **Both packages declare `IsAotCompatible` on every modern target** (`net8.0` and later), not only
   `net10.0`, so trimming and native AOT analysis cover the `net8.0` and `net9.0` assets too.
 
+### 🔒 Security
+
+- **An unrecognized union value no longer prints a secret.** When a union's known shapes carry a
+  masked member at any depth, its unknown arm — what a newer server's value decodes to — prints its
+  preserved payload as `[REDACTED]` and keeps its marker: `UnknownCredentialValue`, `UnknownMcp`,
+  `UnknownConfigEntry`, and the unknown arm of `McpRemoteConfigOauth`, `ConfigInfoFormatter`,
+  `ConfigInfoLsp`, and `ConfigLspEntry`. `Payload` itself and serialization are unchanged.
+- **Every user-configured header and environment map is masked in `ToString()`**, now including
+  `ConfigProvider.Headers`, `ConfigModel.Headers`, `ConfigModelVariants.Headers`,
+  `ConfigAgentRequest.Headers`, `ConfigFormatterEntry.Environment`, `ConfigLspServer.Env`, and
+  `SessionEnvironmentRequest.Variables`.
+
 ## [0.9.0-preview.6] - 2026-10-04
 
 **The pin moves to upstream release tag `v2.0.22`, and all 140 operations it exposes are

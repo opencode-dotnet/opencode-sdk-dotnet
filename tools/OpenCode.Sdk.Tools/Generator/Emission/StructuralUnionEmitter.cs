@@ -96,23 +96,34 @@ internal static class StructuralUnionEmitter
     /// pass would strip it. The kind enum's member names are the arm names, so Kind.ToString()
     /// names the active arm for the printer.
     /// </summary>
-    private static MethodDeclarationSyntax EmitToString(StructuralUnionModelPlan union) =>
-        SyntaxFactory
-            .MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)), "ToString")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-            .WithParameterList(SyntaxFactory.ParameterList())
-            .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(EmissionSyntax.Invocation(
+    /// <remarks>
+    /// When a known arm carries a secret member, a token this pin does not recognize may carry
+    /// one too, so the Unknown arm prints the redaction marker in place of its preserved text.
+    /// </remarks>
+    private static MethodDeclarationSyntax EmitToString(StructuralUnionModelPlan union)
+    {
+        ExpressionSyntax value = SyntaxFactory.IdentifierName("_value");
+        if (union.MasksUnknownPayload)
+        {
+            value = SyntaxFactory.ConditionalExpression(
+                SyntaxFactory.IsPatternExpression(
+                    SyntaxFactory.IdentifierName("Kind"),
+                    SyntaxFactory.ConstantPattern(KindMember(union, "Unknown"))),
+                RecordPrinterSyntax.Redacted(),
+                value);
+        }
+
+        return RecordPrinterSyntax.ToStringOverride(
+            EmissionSyntax.Invocation(
                 EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("StructuralUnionPrinter"), "Format"),
-                SyntaxFactory.Argument(EmissionSyntax.Invocation(
-                    SyntaxFactory.IdentifierName("nameof"),
-                    SyntaxFactory.Argument(SyntaxFactory.IdentifierName(union.Name)))),
+                SyntaxFactory.Argument(RecordPrinterSyntax.NameOf(union.Name)),
                 SyntaxFactory.Argument(EmissionSyntax.Invocation(
                     EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("Kind"), "ToString"))),
-                SyntaxFactory.Argument(SyntaxFactory.IdentifierName("_value")))))
-            .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Prints the kind and the active arm; the inactive arms throw by design."));
+                SyntaxFactory.Argument(value)),
+            union.MasksUnknownPayload
+                ? "Prints the kind and the active arm, an unrecognized token masked; the inactive arms throw by design."
+                : "Prints the kind and the active arm; the inactive arms throw by design.");
+    }
 
     private static FieldDeclarationSyntax EmitValueField() => SyntaxFactory
         .FieldDeclaration(

@@ -2,6 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using OpenCode.Sdk.Internal.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
@@ -99,4 +100,9 @@ public sealed record ConfigModel
     [JsonPropertyName("limit")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ConfigModelLimit? Limit { get; init; }
+
+    /// <summary>
+    /// Prints the record&apos;s members with its secret members masked.
+    /// </summary>
+    public override string ToString() => RecordPrinter.Format(nameof(ConfigModel), ("ModelId", ModelId), ("Family", Family), ("Name", Name), ("Compatibility", Compatibility), ("Package", Package), ("Settings", Settings), ("Headers", RecordPrinter.Redact(Headers)), ("Body", Body), ("Capabilities", Capabilities), ("Variants", Variants), ("Cost", Cost), ("Disabled", Disabled), ("Limit", Limit));
 }

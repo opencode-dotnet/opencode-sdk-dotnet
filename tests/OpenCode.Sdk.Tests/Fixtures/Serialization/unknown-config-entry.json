@@ -1,0 +1,1 @@
+{"type":"remote","source":"https://config.example.test","provider":{"headers":{"Authorization":"Bearer s3cr3t-config-value"}}}

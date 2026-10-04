@@ -156,7 +156,8 @@ implementation knowledge (ADR-0013).
   when absent), every other member in the compiler's own shape. The floor is upstream's HTTP
   recorder field list with its matching rule; reasoned `redactedMembers` rows add or lift a mask;
   a member whose wire name carries one of upstream's secret-marker words refuses the bind until a
-  `redactedMembers` or `secretLookingNames` row decides it (ADR-0028).
+  `redactedMembers` or `secretLookingNames` row decides it; a union whose known arms reach a masked
+  member at any depth prints its unknown arm's preserved payload as `[REDACTED]` (ADR-0028).
 - Only literals used to dispatch a union become constants or get-only properties. A prefix-tagged
   arm's discriminator is not a literal: it stays a required string property, proven on read to
   carry the prefix. Other fixed values remain ordinary primitives so a representable server value

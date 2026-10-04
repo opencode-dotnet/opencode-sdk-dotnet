@@ -49,10 +49,20 @@ generator's format pass strips it; structural unions override `ToString()` for t
 ## Consequences
 
 - At the pin the floor masks `McpOAuthConfig.ClientSecret`; rows mask the integration key a key
-  authentication method stores (`IntegrationConnectKeyRequest.key`) and the user-configured header
-  and environment maps (MCP, provider, model, and terminal-create members). A record prints a
-  dictionary's type name today, so those map rows change the printed text only from the map's
-  type name to `[REDACTED]`; they keep the value out if printing ever changes.
+  authentication method stores (`IntegrationConnectKeyRequest.key`) and every user-configured
+  header and environment map: the MCP server maps, the provider and model header maps of both the
+  provider catalog and the configuration document, the configuration's agent-request headers and
+  formatter and LSP-server environments, the terminal-create environments, and the session
+  environment. A record prints a dictionary's type name today, so those map rows change the
+  printed text only from the map's type name to `[REDACTED]`; they keep the value out if printing
+  ever changes.
+- A union whose known arms reach a masked member at any depth — through object members, list
+  elements, dictionary values, nested unions, and structural-union arms — prints the payload its
+  unknown arm preserves as `[REDACTED]` and keeps that arm's marker visible, since an arm the pin
+  does not know may carry the same secret. At the pin that is `UnknownCredentialValue`,
+  `UnknownMcp`, and `UnknownConfigEntry` (a configuration document reaches masked maps through its
+  MCP servers, providers, agents, formatters, and LSP servers), and the Unknown arm of the structural unions `McpRemoteConfigOauth`, `ConfigInfoFormatter`,
+  `ConfigInfoLsp`, and `ConfigLspEntry`.
 - Masking is a printing concern only: equality, serialization, and the members' values are
   unchanged.
 - A refresh that adds a secret-shaped member fails generation until a row decides it; the

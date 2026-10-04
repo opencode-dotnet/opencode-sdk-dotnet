@@ -40,4 +40,9 @@ public sealed record UnknownCredentialValue : ICredentialValue
     public JsonElement Payload { get; }
 
     IReadOnlyDictionary<string, JsonElement>? ICredentialValue.Metadata => null;
+
+    /// <summary>
+    /// Prints the marker with the preserved payload masked, since a known arm of this union carries a secret.
+    /// </summary>
+    public override string ToString() => RecordPrinter.Format(nameof(UnknownCredentialValue), ("Type", Type), ("Payload", RecordPrinter.Redact(Payload)));
 }

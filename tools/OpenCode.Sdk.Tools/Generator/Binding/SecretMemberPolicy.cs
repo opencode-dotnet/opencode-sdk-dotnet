@@ -12,6 +12,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// environment-variable name (<c>ENV_SECRET_NAMES</c> in <c>secrets.ts</c>) refuses the bind
 /// until a row decides it, so a new credential-shaped member never prints unexamined. It runs
 /// once every member a model carries is known, so it judges the members as they are emitted.
+/// A union whose known arms reach a masked member also masks the payload its unknown arm
+/// preserves, because an arm the pin does not know may carry the same secret.
 /// </summary>
 internal static class SecretMemberPolicy
 {
@@ -48,6 +50,76 @@ internal static class SecretMemberPolicy
         ];
     }
 
+    /// <summary>
+    /// Flags every union whose known arms reach a masked member at any depth: through an object's
+    /// members, a list's elements, a dictionary's values, a nested union's arms, or a structural
+    /// union's arms. The reach is a least fixpoint over the named-type graph, so a schema that
+    /// refers to itself settles instead of recursing. Run it after <see cref="Apply"/> has decided
+    /// every member's mask.
+    /// </summary>
+    /// <param name="models">The bound models, member masks decided.</param>
+    /// <param name="unions">The bound marked unions.</param>
+    /// <returns>The same plans, each union that reaches a mask flagged to mask its unknown payload.</returns>
+    public static UnknownPayloadMaskResult MaskUnknownPayloads(IReadOnlyList<ModelPlan> models, IReadOnlyList<UnionPlan> unions)
+    {
+        ArgumentNullException.ThrowIfNull(models);
+        ArgumentNullException.ThrowIfNull(unions);
+
+        // Each named type points at the types its printed form prints: an object at its members'
+        // types, a structural union at its arms' types, a marked union at its known arms.
+        var references = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        var reaching = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var model in models)
+        {
+            if (model is ObjectModelPlan objectModel)
+            {
+                references[objectModel.Name] = [.. objectModel.Properties.SelectMany(static property => NamedTypes(property.Type))];
+                if (objectModel.Properties.Any(static property => property.IsRedacted))
+                {
+                    _ = reaching.Add(objectModel.Name);
+                }
+            }
+            else if (model is StructuralUnionModelPlan structural)
+            {
+                references[structural.Name] = [.. structural.Arms.SelectMany(static arm => NamedTypes(arm.Type))];
+            }
+        }
+
+        foreach (var union in unions)
+        {
+            references[union.Name] =
+            [
+                .. union.Variants.Select(static variant => variant.TypeName),
+                .. union.PrefixVariant is { } prefix ? [prefix.TypeName] : Array.Empty<string>(),
+            ];
+        }
+
+        bool grew;
+        do
+        {
+            grew = false;
+            foreach (var (name, targets) in references)
+            {
+                if (!reaching.Contains(name) && targets.Any(reaching.Contains))
+                {
+                    grew = reaching.Add(name) || grew;
+                }
+            }
+        }
+        while (grew);
+
+        return new UnknownPayloadMaskResult
+        {
+            Models =
+            [
+                .. models.Select(model => model is StructuralUnionModelPlan structural && reaching.Contains(structural.Name)
+                    ? structural with { MasksUnknownPayload = true }
+                    : model),
+            ],
+            Unions = [.. unions.Select(union => reaching.Contains(union.Name) ? union with { MasksUnknownPayload = true } : union)],
+        };
+    }
+
     /// <summary>The recorder's <c>normalizeField</c>: every character outside <c>[a-z0-9]</c> (either case) dropped, then lower-cased.</summary>
     /// <param name="wireName">The member's wire name.</param>
     /// <returns>The normalized name.</returns>
@@ -64,6 +136,14 @@ internal static class SecretMemberPolicy
     /// <returns>True when a marker word occurs anywhere in the name, in any case.</returns>
     public static bool LooksSecret(string wireName) =>
         SecretMarkerWords.Any(word => wireName.Contains(word, StringComparison.OrdinalIgnoreCase));
+
+    private static IEnumerable<string> NamedTypes(TypeReferencePlan type) => type switch
+    {
+        NamedTypeReferencePlan named => [named.Name],
+        ListTypeReferencePlan list => NamedTypes(list.ElementType),
+        DictionaryTypeReferencePlan dictionary => NamedTypes(dictionary.ValueType),
+        _ => [],
+    };
 
     private static ModelPropertyPlan Decide(ObjectModelPlan model, ModelPropertyPlan property,
         Dictionary<(string Model, string Property), RedactedMemberCuration> rows, HashSet<string> cleared, BindingErrorCollector errors)
