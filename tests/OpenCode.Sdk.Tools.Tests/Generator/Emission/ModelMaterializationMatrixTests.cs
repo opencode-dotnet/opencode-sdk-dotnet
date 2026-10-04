@@ -512,7 +512,8 @@ public sealed class ModelMaterializationMatrixTests
             .WithOperation("settings.get", path: "/api/settings", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("OpenSettings"))
                 .Response(400, "application/json", schema => schema.Ref("WidgetError")))));
-        var plan = new BindingTestHost().Bind(document, Selection("settings.get"), Curation(Groups("settings", RootGroup())));
+        var plan = new BindingTestHost().Bind(document, Selection("settings.get"),
+            Curation(Groups("settings", RootGroup()), redactedOpenMembers: [OpenMembers("OpenSettings", redact: false)]));
 
         var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(SourceEmitter.Emit(plan));
         var typeInfo = ResolveTypeInfo(assembly, "OpenCode.Sdk.Models.OpenSettings");

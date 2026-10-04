@@ -1,6 +1,8 @@
+using System.Text;
 using System.Text.Json;
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Support;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 using static OpenCode.Sdk.Tools.Tests.Support.UnionHoistPlanData;
@@ -13,7 +15,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 /// secret-marker words refuses the bind until a row decides it; and every row must still mean
 /// something against the bound models (ADR-0028). A union whose known arms reach a masked member
 /// at any depth masks the payload its unknown arm preserves. An open model's extension data has
-/// no wire name, so only a row naming the model masks it, and the row must name an open model.
+/// no wire name, so a row naming the model decides it, an open model no row decides refuses the
+/// bind, and the row must name an open model.
 /// </summary>
 public sealed class SecretMemberPolicyTests
 {
@@ -229,22 +232,61 @@ public sealed class SecretMemberPolicyTests
     }
 
     [Test]
-    public async Task Bind_Should_Mask_The_Open_Members_Of_A_Model_A_Row_Names()
+    public async Task Bind_Should_Mask_The_Open_Members_Of_A_Model_A_Row_Masks()
     {
-        var plan = await BindOpenAsync([OpenRow("VaultSettings")]);
+        var plan = await BindOpenAsync([OpenMembers("VaultSettings", redact: true)]);
 
         await Assert.That(OpenModel(plan, "VaultSettings").RedactsExtensionData).IsTrue();
         await Assert.That(OpenModel(plan, "VaultInfo").RedactsExtensionData).IsFalse();
+        await Assert.That(EmittedModel(plan, "VaultSettings")).Contains("RecordPrinter.RedactEntries(AdditionalProperties)");
     }
 
-    /// <summary>An open bag carries a secret only where upstream reads one from it, so no row means no mask.</summary>
+    /// <summary>A row that states the open members never carry a credential leaves the record printing as the compiler would.</summary>
     [Test]
-    public async Task Bind_Should_Print_The_Open_Members_Of_A_Model_No_Row_Names()
+    public async Task Bind_Should_Print_The_Open_Members_Of_A_Model_A_Row_Clears()
     {
-        var plan = await BindOpenAsync([]);
+        var plan = await BindOpenAsync([OpenMembers("VaultSettings", redact: false)]);
 
         await Assert.That(OpenModel(plan, "VaultSettings").EmitsExtensionData).IsTrue();
         await Assert.That(OpenModel(plan, "VaultSettings").RedactsExtensionData).IsFalse();
+        await Assert.That(EmittedModel(plan, "VaultSettings")).DoesNotContain("ToString");
+    }
+
+    [Test]
+    public async Task Bind_Should_Refuse_An_Open_Model_No_Row_Decides()
+    {
+        var document = await BindingTestHost.IngestAsync(OpenScenario());
+        var curation = Curation(Groups("vault", RootGroup()));
+
+        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection("vault.get"), curation));
+
+        var error = exception.Errors.Single();
+        await Assert.That(error.Subject).IsEqualTo("VaultSettings");
+        await Assert.That(error.Problem).IsEqualTo(SecretMemberPolicy.UndecidedOpenMembersProblem);
+        await Assert.That(error.Problem).Contains("add a redactedOpenMembers row");
+    }
+
+    /// <summary>A missing row is curation, never a shape wall: an operation the open-bag wall alone refuses probes as bindable.</summary>
+    [Test]
+    public async Task Probe_Should_Mark_An_Operation_Only_The_Open_Bag_Wall_Refuses_As_Bindable()
+    {
+        var document = await BindingTestHost.IngestAsync(OpenScenario());
+        var probe = new PendingOperationBindabilityProbe(new BindingTestHost().Binder);
+
+        var marks = probe.Probe(document, ["vault.get"]);
+
+        await Assert.That(marks.Single().IsBindable).IsTrue();
+    }
+
+    /// <summary>A cleared open bag taints nothing: only a masking row makes a union mask its unknown payload.</summary>
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Ignore_An_Open_Bag_A_Row_Clears()
+    {
+        var plan = await BindOpenAsync([OpenMembers("VaultSettings", redact: false)]);
+
+        var result = SecretMemberPolicy.MaskUnknownPayloads(plan.Models, [Union("IVaultValue", Arm("VaultSettings"))]);
+
+        await Assert.That(Flagged(result)).IsEmpty();
     }
 
     [Test]
@@ -253,10 +295,10 @@ public sealed class SecretMemberPolicyTests
         var document = await BindingTestHost.IngestAsync(OpenScenario());
         var curation = Curation(Groups("vault", RootGroup()), redactedOpenMembers:
         [
-            OpenRow("Absent"),
-            OpenRow("VaultInfo"),
-            OpenRow("VaultSettings"),
-            OpenRow("VaultSettings") with { Reason = " " },
+            OpenMembers("Absent", redact: true),
+            OpenMembers("VaultInfo", redact: true),
+            OpenMembers("VaultSettings", redact: true),
+            OpenMembers("VaultSettings", redact: false) with { Reason = " " },
         ]);
 
         var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection("vault.get"), curation));
@@ -304,7 +346,9 @@ public sealed class SecretMemberPolicyTests
             Curation(Groups("vault", RootGroup()), redactedOpenMembers: redactedOpenMembers));
     }
 
-    private static RedactedOpenMembersCuration OpenRow(string model) => new() { Model = model, Reason = Reason };
+    private static string EmittedModel(EmitPlan plan, string name) =>
+        Encoding.UTF8.GetString(SourceEmitter.Emit(plan)
+            .Single(source => source.RelativePath.EndsWith($"/{name}.cs", StringComparison.Ordinal)).Utf8Source.Span);
 
     private static ObjectModelPlan OpenModel(EmitPlan plan, string name) =>
         plan.Models.OfType<ObjectModelPlan>().Single(model => model.Name == name);

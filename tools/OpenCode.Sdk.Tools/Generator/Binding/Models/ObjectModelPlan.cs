@@ -77,8 +77,9 @@ internal sealed record ObjectModelPlan : ModelPlan
     public bool EmitsExtensionData { get; init; }
 
     /// <summary>
-    /// Gets whether the record prints its extension data masked: a curation row records that the
-    /// members the document leaves open carry a secret. Only an open model sets it.
+    /// Gets whether the record prints its extension data masked: the curation row that decides the
+    /// open model records that the members the document leaves open can carry a secret. Only an
+    /// open model sets it.
     /// </summary>
     public bool RedactsExtensionData { get; init; }
 }

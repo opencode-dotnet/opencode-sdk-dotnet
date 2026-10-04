@@ -57,6 +57,15 @@ internal static class BindingScenarioData
             Reason = reason,
         };
 
+    public static RedactedOpenMembersCuration OpenMembers(string model, bool redact,
+        string reason = "The scenario decides its open model's printed extension data explicitly.") =>
+        new()
+        {
+            Model = model,
+            Redact = redact,
+            Reason = reason,
+        };
+
     public static OperationIdentityCuration OperationIdentity(string operationId, string identity,
         string reason = "Upstream leaks the Effect group qualification into the operationId (reported upstream).") =>
         new()

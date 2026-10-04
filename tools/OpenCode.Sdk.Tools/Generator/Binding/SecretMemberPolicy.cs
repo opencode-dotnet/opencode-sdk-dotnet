@@ -12,6 +12,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// environment-variable name (<c>ENV_SECRET_NAMES</c> in <c>secrets.ts</c>) refuses the bind
 /// until a row decides it, so a new credential-shaped member never prints unexamined. It runs
 /// once every member a model carries is known, so it judges the members as they are emitted.
+/// An open model's extension data has no wire name for the floor or the wall to match, so a row
+/// keyed by the model decides it, and an open model no row decides refuses the bind the same way.
 /// A union whose known arms reach a masked member also masks the payload its unknown arm
 /// preserves, because an arm the pin does not know may carry the same secret.
 /// </summary>
@@ -20,6 +22,10 @@ internal static class SecretMemberPolicy
     /// <summary>The secret-name wall's problem text: a missing curation row, never a shape wall, so the pending-operation probe sets it aside.</summary>
     public const string UndecidedSecretProblem =
         "member name looks like a secret and no curation row decides it: add a redactedMembers row, or a secretLookingNames row when the value is never a credential";
+
+    /// <summary>The open-bag wall's problem text: a missing curation row, never a shape wall, so the pending-operation probe sets it aside.</summary>
+    public const string UndecidedOpenMembersProblem =
+        "model leaves members open and no curation row decides them: add a redactedOpenMembers row, redact true when the open members can carry a credential, redact false when they never do";
 
     /// <summary>The recorder's field list, normalized; see <see cref="Normalize"/>.</summary>
     private static readonly HashSet<string> UpstreamRedactedFields = new(
@@ -46,7 +52,7 @@ internal static class SecretMemberPolicy
                 ? objectModel with
                 {
                     Properties = [.. objectModel.Properties.Select(property => Decide(objectModel, property, rows, cleared, errors))],
-                    RedactsExtensionData = openBags.Contains(objectModel.Name),
+                    RedactsExtensionData = openBags.TryGetValue(objectModel.Name, out var redact) && redact,
                 }
                 : model),
         ];
@@ -203,14 +209,14 @@ internal static class SecretMemberPolicy
         return result;
     }
 
-    private static HashSet<string> ValidateOpenMemberRows(ObjectModelPlan[] models, IReadOnlyList<RedactedOpenMembersCuration> rows,
+    private static Dictionary<string, bool> ValidateOpenMemberRows(ObjectModelPlan[] models, IReadOnlyList<RedactedOpenMembersCuration> rows,
         BindingErrorCollector errors)
     {
         var byName = models.ToDictionary(static model => model.Name, StringComparer.Ordinal);
-        var result = new HashSet<string>(StringComparer.Ordinal);
+        var result = new Dictionary<string, bool>(StringComparer.Ordinal);
         foreach (var row in rows)
         {
-            if (!result.Add(row.Model))
+            if (!result.TryAdd(row.Model, row.Redact))
             {
                 errors.Add(BindingErrorCategory.Curation, row.Model, "redacted open members curation is duplicated");
             }
@@ -228,6 +234,11 @@ internal static class SecretMemberPolicy
             {
                 errors.Add(BindingErrorCategory.Curation, row.Model, "redacted open members curation names a model that leaves no member open");
             }
+        }
+
+        foreach (var model in models.Where(model => model.EmitsExtensionData && !result.ContainsKey(model.Name)))
+        {
+            errors.Add(BindingErrorCategory.Curation, model.Name, UndecidedOpenMembersProblem);
         }
 
         return result;

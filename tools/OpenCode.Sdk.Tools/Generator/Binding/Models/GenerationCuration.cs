@@ -119,7 +119,7 @@ internal sealed record GenerationCuration
         }
     } = Array.AsReadOnly(Array.Empty<RedactedMemberCuration>());
 
-    /// <summary>Open models whose extension data prints masked.</summary>
+    /// <summary>Judgements on every open model's printed extension data, one row per open model.</summary>
     [JsonPropertyName("redactedOpenMembers")]
     public required IReadOnlyList<RedactedOpenMembersCuration> RedactedOpenMembers
     {

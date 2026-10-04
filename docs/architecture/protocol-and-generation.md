@@ -155,7 +155,9 @@ implementation knowledge (ADR-0013).
 - A model with a secret member overrides `ToString()` and prints that member as `[REDACTED]` (empty
   when absent), every other member in the compiler's own shape. The floor is upstream's HTTP
   recorder field list with its matching rule; reasoned `redactedMembers` rows add or lift a mask;
-  an open model's `AdditionalProperties` is masked only by a reasoned `redactedOpenMembers` row;
+  every open model's `AdditionalProperties` is decided by a reasoned `redactedOpenMembers` row
+  (`redact: true` masks it, `redact: false` states it carries no credential), and the bind refuses
+  an undecided one;
   a member whose wire name carries one of upstream's secret-marker words refuses the bind until a
   `redactedMembers` or `secretLookingNames` row decides it; a union whose known arms reach a masked
   member at any depth prints its unknown arm's preserved payload as `[REDACTED]` (ADR-0028).

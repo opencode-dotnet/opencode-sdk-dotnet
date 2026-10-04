@@ -16,7 +16,6 @@
   "redactedOpenMembers": [
     {
       "model": "ProviderSettings",
-      "redact": true,
       "reason": "The open members are AI SDK provider options, apiKey among them."
     }
   ],
