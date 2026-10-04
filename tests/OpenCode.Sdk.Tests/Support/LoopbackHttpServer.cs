@@ -90,10 +90,13 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
     private async Task ServeAsync(TcpClient client)
     {
         using (client)
-        using (var stream = client.GetStream())
         {
             try
             {
+                // Taking the stream belongs to the exchange too: the accept loop records the
+                // client before it starts serving it, so a concurrent ReleaseResponses can close
+                // the socket first, and GetStream then refuses the disposed client.
+                using var stream = client.GetStream();
                 var request = await ReadRequestAsync(stream);
                 if (request is null)
                 {
