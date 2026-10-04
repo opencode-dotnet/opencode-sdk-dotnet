@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-09-29
+Date: 2026-10-04
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -64,10 +64,13 @@ live queue. In order:
 1. **Support policy.** The MCP server's repository (ADR-0030), the target-framework policy
    (ADR-0002), and the end of the .NET 5–7 promise
    ([#51](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/51)). **Complete.**
-2. **Target-framework transition.** `net8.0` and `net9.0` leave when their support ends on
-   2026-11-10 and `net11.0` joins at its GA, across packages, tests, CI legs, the public API check,
-   and the docs. Exit: every leg runs `netstandard2.0`, `net472`, `net10.0`, and `net11.0` as its
-   platform allows.
+2. **Target-framework transition.** `net11.0` joins now on its go-live release candidate and
+   `net8.0` and `net9.0` leave now, ahead of their end of support on 2026-11-10, across packages,
+   tests, CI legs, the public API check, and the docs; no non-preview package is built on a
+   pre-GA SDK. A consumer whose target falls back to the `netstandard2.0` asset on an unsupported
+   runtime gets a build warning. It follows an upstream refresh and `0.9.0-preview.6`, and the
+   launcher's .NET 11 pipe fix (Known Gaps) lands first. Exit: every leg runs `netstandard2.0`,
+   `net472`, `net10.0`, and `net11.0` as its platform allows.
 3. **Maintainability review.** A time-boxed, read-only review of the code, the generator, the
    tests, and the canon at current `master`. Each finding goes to one of four places: the API
    review, the 1.0 performance gate, a small fix now, or a parallel track. Exit: one triaged
@@ -145,6 +148,15 @@ These do not block `1.0.0` and run beside the road.
 
 ## Known Gaps
 
+- **On the .NET 11 runtime the launcher's Windows output readers cannot be released early.**
+  .NET 11's `Process` opens a child's stdout and stderr read ends overlapped on Windows
+  (dotnet/runtime#125643). The launcher reads them synchronously on dedicated threads and ends a
+  read that a surviving descendant keeps open with `CancelSynchronousIo`, which cannot cancel a
+  read on an overlapped handle; disposal then returns after its bound with the reader thread still
+  waiting for end-of-stream. This follows from the runtime's source and is not yet observed; it
+  affects any target the SDK was built for once it runs on .NET 11. The fix chooses the reader by
+  the pipe's observed mode and reads asynchronous pipes through one cancellable reader, which also
+  ends the Unix drain's wait on a pool thread while a descendant holds the pipe.
 - **An opencode server on Windows can die inside its native file watcher.** `@parcel/watcher` 2.5.1
   crashes the server process when a directory it watches natively is written to while
   subscriptions to it are being released and re-created, which the server does per location for
