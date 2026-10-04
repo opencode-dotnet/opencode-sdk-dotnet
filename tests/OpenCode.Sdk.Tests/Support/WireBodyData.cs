@@ -13,6 +13,8 @@ internal static class WireBodyData
 
     public const string FormAnsweredState = "{\"status\":\"answered\",\"answer\":{\"q1\":\"blue\"}}";
 
+    public const string FormCancelledState = "{\"status\":\"cancelled\",\"message\":\"stop\"}";
+
     public static string FormDetail(string state) =>
         "{\"id\":\"frm_1\",\"sessionID\":\"ses_100\",\"title\":\"Approve deploy\",\"fields\":[],\"state\":" + state + "}";
 

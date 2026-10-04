@@ -105,7 +105,7 @@ You also need the `opencode` CLI, from the `@opencode/cli` npm scope. Install th
 repository pins — later releases usually work, but they are not what the tests run against:
 
 ```sh
-npm install -g @opencode/cli@2.0.18
+npm install -g @opencode/cli@2.0.22
 ```
 
 You do not have to start it. `OpenCodeServer.StartAsync()` in the [quick start](#-quick-start)

@@ -18,11 +18,18 @@ public sealed record ProviderSettings
     public ProviderSettingsTimeout? Timeout { get; init; }
 
     /// <summary>
+    /// Gets the header timeout value.
+    /// </summary>
+    [JsonPropertyName("headerTimeout")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ProviderSettingsHeaderTimeout? HeaderTimeout { get; init; }
+
+    /// <summary>
     /// Gets the chunk timeout value.
     /// </summary>
     [JsonPropertyName("chunkTimeout")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public double? ChunkTimeout { get; init; }
+    public ProviderSettingsChunkTimeout? ChunkTimeout { get; init; }
 
     /// <summary>
     /// Gets the compaction value.

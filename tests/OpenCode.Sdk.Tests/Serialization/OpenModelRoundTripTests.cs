@@ -20,9 +20,25 @@ public sealed class OpenModelRoundTripTests
 
         var settings = _serializer.Deserialize<ProviderSettings>(json);
 
-        await Assert.That(settings.ChunkTimeout).IsEqualTo(5);
+        await Assert.That(settings.ChunkTimeout!.Kind).IsEqualTo(ProviderSettingsChunkTimeoutKind.Number);
+        await Assert.That(settings.ChunkTimeout.Number).IsEqualTo(5);
         await Assert.That(settings.AdditionalProperties.Keys).IsEquivalentTo(["baseURL", "headers", "retries"]);
         await Assert.That(settings.AdditionalProperties["baseURL"].GetString()).IsEqualTo("https://llm.example.test");
+        await AssertRoundTripAsync(json, _serializer.Serialize(settings));
+    }
+
+    [Test]
+    public async Task ProviderSettings_Should_Read_A_Disabled_Timeout_As_The_Boolean_Arm()
+    {
+        const string json = """{"chunkTimeout":false,"headerTimeout":30000}""";
+
+        var settings = _serializer.Deserialize<ProviderSettings>(json);
+
+        await Assert.That(settings.ChunkTimeout!.Kind).IsEqualTo(ProviderSettingsChunkTimeoutKind.Boolean);
+        await Assert.That(settings.ChunkTimeout.Boolean).IsFalse();
+        await Assert.That(settings.HeaderTimeout!.Kind).IsEqualTo(ProviderSettingsHeaderTimeoutKind.Number);
+        await Assert.That(settings.HeaderTimeout.Number).IsEqualTo(30000);
+        await Assert.That(settings.AdditionalProperties).IsEmpty();
         await AssertRoundTripAsync(json, _serializer.Serialize(settings));
     }
 

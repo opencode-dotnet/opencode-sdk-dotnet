@@ -1,6 +1,6 @@
 # OpenAPI Snapshot
 
-Date: 2026-09-27
+Date: 2026-10-04
 
 `openapi.json` is the accepted snapshot of the upstream opencode OpenAPI 3.1 document
 (ADR-0005). The SDK is built against this snapshot, never against a live branch; the pin is
@@ -13,13 +13,13 @@ their hash-pinned manifests.
 | Fact | Value |
 |---|---|
 | Upstream file | `packages/protocol/openapi.json` |
-| Upstream release tag | `v2.0.18` |
-| Commit | `cd9a14a6b688d4021bee381dfd39d2cef9c0f862` |
-| Upstream product channel | npm `@opencode/cli@latest` (channel `latest`); this tag published as `2.0.18`, installing the `opencode` command (plus the transitional `opencode2` alias) |
+| Upstream release tag | `v2.0.22` |
+| Commit | `527f0b931d1f9b3ebd34e106c51b31ce5db5b075` |
+| Upstream product channel | npm `@opencode/cli@latest` (channel `latest`); this tag published as `2.0.22`, installing the `opencode` command (plus the transitional `opencode2` alias) |
 
 Upstream publishes from the `@opencode/cli` npm scope on the `latest` channel, versioned as
-semver release tags (`v2.0.0`…). This pin is the release tag `v2.0.18`, so
-`npm install -g @opencode/cli@2.0.18` installs a server built from exactly this commit; later
+semver release tags (`v2.0.0`…). This pin is the release tag `v2.0.22`, so
+`npm install -g @opencode/cli@2.0.22` installs a server built from exactly this commit; later
 releases usually work but are not what this repository tests. `beta` and `dev` tags still exist
 upstream but are not the release channel. The former `@opencode-ai/cli` scope is frozen: its
 `next` and `latest` tags stopped at `0.0.0-beta-17823` (published 2026-08-21) and the scope
@@ -38,8 +38,9 @@ The `refresh-spec` synchronizer owns refreshes (ADR-0020):
 
 1. `dotnet run --file tools/opencode-tool.cs -- refresh-spec --ref <commit-ish>` prepares a
    candidate: it resolves the reference once to a full SHA and produces the normalized
-   document — an identity transform when `spec/patches/` is empty, the exact pinned upstream
-   generator over the ordered Restore patches otherwise — writing the receipt and document to
+   document by running the exact pinned upstream generator, over the ordered Restore patches
+   when `spec/patches/` has any — never by copying upstream's committed document, which upstream
+   does not regenerate in CI — writing the receipt and document to
    `.scratchpad/refresh/<sha>/` without touching accepted state. A patch whose repair
    predicate raw upstream already satisfies refuses, forcing an empty-patch retirement
    refresh.

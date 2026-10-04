@@ -9,9 +9,11 @@ namespace OpenCode.Sdk.Internal;
 /// per-call <see cref="PipelineMessage.PerCallLocation"/> merges over that snapshot: a set
 /// directory wins, an unset one inherits the ambient value, and there is no way to clear the
 /// ambient directory for one call. The directory rides the header channel — this is uniform
-/// injection, not the query-string per-request channel some operations declare; session routes
-/// resolve location from the session and ignore the header server-side, so sending it there is a
-/// harmless no-op. The message may also carry
+/// injection, not the query-string per-request channel some operations declare. Routes under a
+/// session ID resolve location from that session and ignore the header server-side, so sending it
+/// there is a harmless no-op; the one exception is the session form routes under the reserved
+/// session ID <c>global</c>, which have no session to resolve and take the location from the
+/// request, so there the header selects it. The message may also carry
 /// <see cref="PipelineMessage.DeclaredHeaders"/> — headers the pinned document declares as
 /// parameters of one operation. Those are applied uniformly, entry by entry: this policy never
 /// learns which family or header name it is writing, so no operation's knowledge leaks here.

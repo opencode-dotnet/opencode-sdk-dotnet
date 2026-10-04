@@ -38,4 +38,6 @@ public sealed record UnknownConnectionInfo : IConnectionInfo
     /// Gets the preserved raw JSON payload.
     /// </summary>
     public JsonElement Payload { get; }
+
+    ConnectionStatus? IConnectionInfo.Status => null;
 }

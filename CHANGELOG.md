@@ -9,6 +9,35 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.{shortSha}`.
 
+**The pin moves to upstream release tag `v2.0.22`, and all 140 operations it exposes are usable** —
+138 generated and the two terminal WebSocket transports, none declined.
+
+### 💥 Breaking changes
+
+- **`CancelFormAsync` takes an optional `SessionFormCancelRequest` before `requestOptions`.** A call
+  that passed `requestOptions` positionally names it now (`requestOptions: options`).
+- **`ProviderSettings.ChunkTimeout` and `ConfigProviderSettings.ChunkTimeout` are unions, not
+  `double?`.** Upstream accepts a number of milliseconds or `false` (no timeout); read `Kind`, then
+  `Number` or `Boolean`, and build one with `FromNumber` or `FromBoolean`.
+- **`ConfigModel.Capabilities` is a `ConfigModelCapabilities`** (`Input`, `Output`, `Tools`), the
+  shape upstream's config accepts, instead of the catalog's `ModelCapabilities`.
+
+### ✨ Added
+
+- **The accepted snapshot moved to upstream release tag `v2.0.22`**
+  (`527f0b931d1f9b3ebd34e106c51b31ce5db5b075`), published as `@opencode/cli@2.0.22`; install it
+  with `npm install -g @opencode/cli@2.0.22`.
+- **Stored credentials can be listed and created.** `client.Credentials.ListCredentialsAsync()`
+  (`credential.list`) and `CreateCredentialAsync(request)` (`credential.create`) join activate,
+  update, and remove. A credential's API key (`CredentialKey.Key`) and OAuth tokens
+  (`CredentialOAuth.Access`, `Refresh`) are masked in `ToString()`.
+- **`SessionCreateRequest.ParentId`** creates a linked child session at its parent's location; a
+  missing parent answers with the declared 404 `SessionNotFoundError`.
+- **Cancelling a form can tell the asker why** (`SessionFormCancelRequest.Message`), and
+  `FormStateCancelled.Message` carries it back.
+- **`HeaderTimeout`** on `ProviderSettings` and `ConfigProviderSettings` (the same number-or-`false`
+  union), a connection's `Status` (`ConnectionStatus`), and `SessionStructuredError.Response`.
+
 ## [0.9.0-preview.5] - 2026-09-29
 
 **The packages are now `OpenCodeDotNet.Sdk` and `OpenCodeDotNet.Sdk.Extensions`, and the

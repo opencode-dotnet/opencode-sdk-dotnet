@@ -255,6 +255,48 @@ public sealed class SessionsClientContractTests
     }
 
     [Test]
+    public async Task CreateSessionAsync_Should_Send_The_Parent_Id()
+    {
+        var payload = new FixtureLoader().LoadJson("Serialization.known-session.json");
+        using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.Envelope(payload));
+
+        _ = await scenario.Client.Sessions.CreateSessionAsync(new SessionCreateRequest
+        {
+            ParentId = "ses_parent",
+        });
+
+        await Assert.That(scenario.Requests.Single().Body).IsEqualTo("{\"parentID\":\"ses_parent\"}");
+    }
+
+    [Test]
+    public async Task CreateSessionAsync_Should_Return_The_Declared_404_Error_On_The_NoThrow_Spine()
+    {
+        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.SessionNotFoundError);
+
+        var response = await scenario.Client.Sessions.CreateSessionAsync(
+            new SessionCreateRequest { ParentId = "ses_9" },
+            OpenCodeRequestOptions.NoThrow);
+
+        await Assert.That(response.IsError).IsTrue();
+        await Assert.That(response.Status).IsEqualTo(404);
+        await Assert.That(response.Error).IsTypeOf<SessionNotFoundError>();
+        await Assert.That((response.Error as SessionNotFoundError)?.SessionId).IsEqualTo("ses_9");
+    }
+
+    [Test]
+    public async Task CreateSessionAsync_Should_Throw_The_Declared_404_Error()
+    {
+        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.SessionNotFoundError);
+
+        var exception = await Assert
+            .That(async () => _ = await scenario.Client.Sessions.CreateSessionAsync(new SessionCreateRequest { ParentId = "ses_9" }))
+            .Throws<OpenCodeApiException>();
+
+        await Assert.That(exception!.Status).IsEqualTo(404);
+        await Assert.That(exception.Error).IsTypeOf<SessionNotFoundError>();
+    }
+
+    [Test]
     public async Task GetActiveAsync_Should_Return_The_Typed_Active_Sessions()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.Envelope("{\"ses_100\":{\"type\":\"running\"}}"));

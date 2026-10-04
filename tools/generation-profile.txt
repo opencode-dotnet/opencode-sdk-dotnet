@@ -4,6 +4,8 @@ command.list
 config.get
 config.shells
 credential.activate
+credential.create
+credential.list
 credential.remove
 credential.update
 debug.location.evict

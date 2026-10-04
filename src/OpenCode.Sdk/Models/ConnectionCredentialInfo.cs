@@ -31,4 +31,11 @@ public sealed record ConnectionCredentialInfo : IConnectionInfo
     /// </summary>
     [JsonPropertyName("method")]
     public required ConnectionCredentialInfoMethod Method { get; init; }
+
+    /// <summary>
+    /// Gets the status value.
+    /// </summary>
+    [JsonPropertyName("status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ConnectionStatus? Status { get; init; }
 }

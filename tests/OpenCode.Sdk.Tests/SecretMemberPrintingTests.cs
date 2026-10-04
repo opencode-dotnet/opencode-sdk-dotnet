@@ -59,4 +59,39 @@ public sealed class SecretMemberPrintingTests
         await Assert.That(remote.ToString()).DoesNotContain(Secret);
         await Assert.That(remote.ToString()).Contains("Headers = [REDACTED]");
     }
+
+    [Test]
+    public async Task A_Credential_Key_Should_Be_Masked()
+    {
+        var key = new CredentialKey { Key = Secret };
+
+        await Assert.That(key.ToString()).DoesNotContain(Secret);
+        await Assert.That(key.ToString()).Contains("Key = [REDACTED]");
+    }
+
+    [Test]
+    public async Task Credential_OAuth_Tokens_Should_Be_Masked()
+    {
+        var oauth = new CredentialOAuth { MethodId = "device", Access = Secret, Refresh = Secret + "-refresh", Expires = 1 };
+
+        await Assert.That(oauth.ToString()).DoesNotContain(Secret);
+        await Assert.That(oauth.ToString()).Contains("Refresh = [REDACTED], Access = [REDACTED]");
+        await Assert.That(oauth.ToString()).Contains("MethodId = device");
+    }
+
+    [Test]
+    public async Task A_Credential_Entry_Should_Print_Its_Value_Masked()
+    {
+        var entry = new CredentialEntry
+        {
+            Id = "cred_1",
+            IntegrationId = "openai",
+            Label = "work",
+            Active = true,
+            Value = new CredentialKey { Key = Secret },
+        };
+
+        await Assert.That(entry.ToString()).DoesNotContain(Secret);
+        await Assert.That(entry.ToString()).Contains("Key = [REDACTED]");
+    }
 }

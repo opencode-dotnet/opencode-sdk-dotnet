@@ -26,4 +26,11 @@ public sealed record SessionStructuredError
     [JsonPropertyName("status")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? Status { get; init; }
+
+    /// <summary>
+    /// Gets the response value.
+    /// </summary>
+    [JsonPropertyName("response")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SessionStructuredErrorResponse? Response { get; init; }
 }

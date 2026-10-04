@@ -12,6 +12,7 @@ public sealed class SessionFormLiveTests(SimulatedDriveServerFixture server)
     private const string AnswerTitle = "SDK live answer";
     private const string CancelTitle = "SDK live cancel";
     private const string AnswerText = "accepted";
+    private const string CancelMessage = "cancelled by the SDK live test";
     private static readonly TimeSpan CleanupTimeout = TimeSpan.FromSeconds(15);
 
     [Test]
@@ -102,7 +103,7 @@ public sealed class SessionFormLiveTests(SimulatedDriveServerFixture server)
 
     [Test]
     [Timeout(180_000)]
-    public async Task PostFormCancelAsync_Should_Persist_Cancelled_State_And_Report_Settled_And_Missing_Forms(
+    public async Task CancelFormAsync_Should_Persist_Cancelled_State_And_Report_Settled_And_Missing_Forms(
         CancellationToken cancellationToken)
     {
         using var workspace = server.CreateWorkspace();
@@ -143,13 +144,17 @@ public sealed class SessionFormLiveTests(SimulatedDriveServerFixture server)
             await Assert.That(created.Form.Fields).Count().IsEqualTo(1);
             await Assert.That(created.Form.Fields[0]).IsTypeOf<FormStringField>();
 
-            var cancelled = await session.CancelFormAsync(formId, cancellationToken: cancellationToken);
+            var cancelled = await session.CancelFormAsync(
+                formId,
+                new SessionFormCancelRequest { Message = CancelMessage },
+                cancellationToken: cancellationToken);
             await Assert.That(cancelled.Status).IsEqualTo(204);
             var terminal = await session.GetFormAsync(formId, cancellationToken: cancellationToken);
             await Assert.That(terminal.Form.State).IsTypeOf<FormStateCancelled>();
+            await Assert.That((terminal.Form.State as FormStateCancelled)?.Message).IsEqualTo(CancelMessage);
 
             var repeated = await session.CancelFormAsync(
-                formId, OpenCodeRequestOptions.NoThrow, cancellationToken);
+                formId, requestOptions: OpenCodeRequestOptions.NoThrow, cancellationToken: cancellationToken);
             await Assert.That(repeated.Status).IsEqualTo(409);
             await Assert.That(repeated.Error).IsTypeOf<FormAlreadySettledError>();
             await Assert.That((repeated.Error as FormAlreadySettledError)?.Id).IsEqualTo(formId);
@@ -187,7 +192,7 @@ public sealed class SessionFormLiveTests(SimulatedDriveServerFixture server)
         CancellationToken cancellationToken)
     {
         var response = await session.CancelFormAsync(
-            formId, OpenCodeRequestOptions.NoThrow, cancellationToken);
+            formId, requestOptions: OpenCodeRequestOptions.NoThrow, cancellationToken: cancellationToken);
         if (response.Status is not (204 or 404 or 409))
         {
             throw new InvalidOperationException(

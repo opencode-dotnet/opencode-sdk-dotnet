@@ -70,7 +70,7 @@ public sealed record ConfigModel
     /// </summary>
     [JsonPropertyName("capabilities")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ModelCapabilities? Capabilities { get; init; }
+    public ConfigModelCapabilities? Capabilities { get; init; }
 
     /// <summary>
     /// Gets the variants value.
