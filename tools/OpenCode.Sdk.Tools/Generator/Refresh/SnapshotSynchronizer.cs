@@ -9,15 +9,17 @@ using OpenCode.Sdk.Tools.Serialization;
 namespace OpenCode.Sdk.Tools.Generator.Refresh;
 
 /// <summary>
-/// The receipt-governed snapshot synchronizer (ADR-0020). Prepare resolves a moving reference
-/// once, produces the normalized document (an identity transform when the patch list is empty;
-/// the exact pinned upstream generator over Restore patches otherwise), and writes only scratch
-/// artifacts. Verify reproduces the accepted identity observationally. Apply is a human act over
-/// one reviewed receipt: it refuses time-of-check/time-of-use drift, updates only the accepted
-/// snapshot paths and the submodule checkout, and never stages, commits, or pushes. Every form
-/// also carries the source watch — the upstream files the hand-written doors read as inputs —
-/// as a review trigger beside the document: prepare observes it, verify checks the pins, apply
-/// re-pins over the reviewed receipt. It never feeds generation (ADR-0013).
+/// The receipt-governed snapshot synchronizer. Prepare resolves a moving reference once, produces
+/// the normalized document by running the exact pinned upstream generator (over the ordered
+/// Restore patches when there are any), and writes only scratch artifacts. Upstream's committed
+/// artifact is read only to record whether it matches its own generator: upstream does not
+/// regenerate it in CI, so it can lag the source it claims to describe. Verify reproduces the
+/// accepted identity observationally. Apply is a human act over one reviewed receipt: it refuses
+/// time-of-check/time-of-use drift, updates only the accepted snapshot paths and the submodule
+/// checkout, and never stages, commits, or pushes. Every form also carries the source watch — the
+/// upstream files the hand-written doors read as inputs — as a review trigger beside the
+/// document: prepare observes it, verify checks the pins, apply re-pins over the reviewed receipt.
+/// It never feeds generation.
 /// </summary>
 internal sealed partial class SnapshotSynchronizer(
     IFileSystem fileSystem,
@@ -59,26 +61,12 @@ internal sealed partial class SnapshotSynchronizer(
             .ConfigureAwait(false);
         var rawBytes = raw.StandardOutput;
         var patches = await _patchSetLoader.LoadAsync(cancellationToken).ConfigureAwait(false);
-        CheckRepairPredicates(rawBytes, patches);
         var watch = await _sourceWatchLoader.LoadAsync(cancellationToken).ConfigureAwait(false);
         var watchedSources = await _watchedSourceReader.ObserveAsync(commit, watch.Sources, cancellationToken).ConfigureAwait(false);
 
         var scratchDirectory = _fileSystem.Path.Combine(SnapshotPaths.ScratchRoot, commit);
-        string? baselineSha = null;
-        byte[] normalizedBytes;
-        IReadOnlyList<ReceiptPatch> receiptPatches;
-        if (patches.Count is 0)
-        {
-            // Normal mode is an identity transform: upstream generation is never run merely to
-            // copy the committed document.
-            normalizedBytes = rawBytes;
-            receiptPatches = [];
-        }
-        else
-        {
-            (normalizedBytes, baselineSha, receiptPatches) =
-                await RepairAsync(commit, scratchDirectory, patches, cancellationToken).ConfigureAwait(false);
-        }
+        var (normalizedBytes, baselineSha, receiptPatches) =
+            await GenerateAsync(commit, scratchDirectory, patches, cancellationToken).ConfigureAwait(false);
 
         return await WriteScratchArtifactsAsync(
                 new PreparedCandidate
@@ -165,6 +153,12 @@ internal sealed partial class SnapshotSynchronizer(
             throw new SnapshotRefreshException($"receipt upstream commit '{receipt.UpstreamCommit}' is not a full SHA");
         }
 
+        if (string.IsNullOrEmpty(receipt.GeneratedBaselineSha256))
+        {
+            throw new SnapshotRefreshException(
+                "the receipt records no generator baseline, so its document may be upstream's committed copy; re-run prepare");
+        }
+
         if (receipt.NormalizedDocumentPath is null || !_fileSystem.File.Exists(receipt.NormalizedDocumentPath))
         {
             throw new SnapshotRefreshException("the receipt carries no prepared document; re-run prepare");
@@ -214,27 +208,43 @@ internal sealed partial class SnapshotSynchronizer(
         return committedReceipt;
     }
 
-    private static void CheckRepairPredicates(byte[] rawBytes, IReadOnlyList<LoadedPatch> patches)
+    private static void CheckRepairPredicates(byte[] baselineBytes, IReadOnlyList<LoadedPatch> patches)
     {
         foreach (var patch in patches)
         {
             var predicate = patch.Manifest.RepairPredicate;
             foreach (var component in predicate.Components)
             {
-                switch (DocumentInspector.CheckComponentKeyword(rawBytes, component, predicate.Keyword))
+                switch (DocumentInspector.CheckComponentKeyword(baselineBytes, component, predicate.Keyword))
                 {
                     case KeywordPresence.Carries:
                         throw new SnapshotRefreshException(
-                            $"raw upstream already satisfies patch '{patch.ManifestName}' (component '{component}' carries "
-                            + $"'{predicate.Keyword}'); retire the patch with an empty-patch refresh");
+                            $"upstream's generator already satisfies patch '{patch.ManifestName}' (component '{component}' "
+                            + $"carries '{predicate.Keyword}'); retire the patch with an empty-patch refresh");
                     case KeywordPresence.ComponentMissing:
                         throw new SnapshotRefreshException(
-                            $"component '{component}' named by patch '{patch.ManifestName}' is absent from the raw document; "
-                            + "the patch needs human review");
+                            $"component '{component}' named by patch '{patch.ManifestName}' is absent from the generated "
+                            + "baseline; the patch needs human review");
                     case KeywordPresence.Lacks:
                     default:
                         break;
                 }
+            }
+        }
+    }
+
+    private static void CheckRepairs(byte[] normalizedBytes, IReadOnlyList<LoadedPatch> patches)
+    {
+        foreach (var patch in patches)
+        {
+            var predicate = patch.Manifest.RepairPredicate;
+            var unrepaired = predicate.Components.FirstOrDefault(component =>
+                DocumentInspector.CheckComponentKeyword(normalizedBytes, component, predicate.Keyword) is not KeywordPresence.Carries);
+            if (unrepaired is not null)
+            {
+                throw new SnapshotRefreshException(
+                    $"patch '{patch.ManifestName}' did not repair component '{unrepaired}' (it still lacks "
+                    + $"'{predicate.Keyword}' after the patched generator run); the patch needs human review");
             }
         }
     }
@@ -262,7 +272,7 @@ internal sealed partial class SnapshotSynchronizer(
         }
     }
 
-    private async Task<(byte[] NormalizedBytes, string BaselineSha, IReadOnlyList<ReceiptPatch> Patches)> RepairAsync(
+    private async Task<(byte[] NormalizedBytes, string BaselineSha, IReadOnlyList<ReceiptPatch> Patches)> GenerateAsync(
         string commit, string scratchDirectory, IReadOnlyList<LoadedPatch> patches, CancellationToken cancellationToken)
     {
         var worktree = _fileSystem.Path.GetFullPath(_fileSystem.Path.Combine(scratchDirectory, "worktree"));
@@ -278,11 +288,10 @@ internal sealed partial class SnapshotSynchronizer(
         }
 
         _ = await RunCheckedAsync(
-                "git", ["worktree", "add", "--detach", worktree, commit], submodule, "adding the repair worktree", cancellationToken)
+                "git", ["worktree", "add", "--detach", worktree, commit], submodule, "adding the generation worktree", cancellationToken)
             .ConfigureAwait(false);
         try
         {
-            var receiptPatches = await HashPreimagesAsync(worktree, patches, cancellationToken).ConfigureAwait(false);
             _ = await RunCheckedAsync(
                     "bun", ["install", "--frozen-lockfile", "--ignore-scripts"], worktree, "installing upstream packages",
                     cancellationToken)
@@ -290,9 +299,18 @@ internal sealed partial class SnapshotSynchronizer(
 
             var protocolDirectory = _fileSystem.Path.Combine(worktree, SnapshotPaths.UpstreamProtocolPackage);
             var artifactPath = _fileSystem.Path.Combine(worktree, SnapshotPaths.UpstreamArtifact);
-            _ = await RunCheckedAsync("bun", ["run", "generate"], protocolDirectory, "running the baseline generator", cancellationToken)
+            var baselineBytes = await RunGeneratorAsync(protocolDirectory, artifactPath, "baseline", cancellationToken)
                 .ConfigureAwait(false);
-            var baselineBytes = await _fileSystem.File.ReadAllBytesAsync(artifactPath, cancellationToken).ConfigureAwait(false);
+            var baselineSha = DocumentInspector.Sha256Hex(baselineBytes);
+
+            // The retirement verdict comes before the preimages: upstream's own fix may move or
+            // delete a file a patch touches, and then the verdict is the one worth reporting.
+            CheckRepairPredicates(baselineBytes, patches);
+            var receiptPatches = await HashPreimagesAsync(worktree, patches, cancellationToken).ConfigureAwait(false);
+            if (patches.Count is 0)
+            {
+                return (baselineBytes, baselineSha, receiptPatches);
+            }
 
             foreach (var patch in patches)
             {
@@ -302,10 +320,10 @@ internal sealed partial class SnapshotSynchronizer(
                     .ConfigureAwait(false);
             }
 
-            _ = await RunCheckedAsync("bun", ["run", "generate"], protocolDirectory, "running the patched generator", cancellationToken)
+            var normalizedBytes = await RunGeneratorAsync(protocolDirectory, artifactPath, "patched", cancellationToken)
                 .ConfigureAwait(false);
-            var normalizedBytes = await _fileSystem.File.ReadAllBytesAsync(artifactPath, cancellationToken).ConfigureAwait(false);
-            return (normalizedBytes, DocumentInspector.Sha256Hex(baselineBytes), receiptPatches);
+            CheckRepairs(normalizedBytes, patches);
+            return (normalizedBytes, baselineSha, receiptPatches);
         }
         finally
         {
@@ -314,6 +332,26 @@ internal sealed partial class SnapshotSynchronizer(
                 .RunAsync("git", ["worktree", "remove", "--force", worktree], submodule, CancellationToken.None)
                 .ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    /// Runs the protocol package's generator and reads what it wrote. The worktree checks out
+    /// upstream's committed artifact at the same path, so it is deleted first: a generator that
+    /// exits cleanly without writing must refuse, never pass the committed copy through.
+    /// </summary>
+    private async Task<byte[]> RunGeneratorAsync(string protocolDirectory, string artifactPath, string run,
+        CancellationToken cancellationToken)
+    {
+        _fileSystem.File.Delete(artifactPath);
+        _ = await RunCheckedAsync("bun", ["run", "generate"], protocolDirectory, $"running the {run} generator", cancellationToken)
+            .ConfigureAwait(false);
+        if (!_fileSystem.File.Exists(artifactPath))
+        {
+            throw new SnapshotRefreshException(
+                $"the {run} generator run exited cleanly but wrote no '{SnapshotPaths.UpstreamArtifact}'");
+        }
+
+        return await _fileSystem.File.ReadAllBytesAsync(artifactPath, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<IReadOnlyList<ReceiptPatch>> HashPreimagesAsync(string worktree, IReadOnlyList<LoadedPatch> patches,

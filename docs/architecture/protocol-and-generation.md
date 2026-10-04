@@ -40,12 +40,16 @@ evidence and may contain superseded positions.
   act over one reviewed receipt that refuses time-of-check/time-of-use drift, updates only
   `spec/openapi.json`, `spec/SNAPSHOT.md`, `spec/receipt.json`, `spec/source-watch.json`
   (re-pinned hashes only), and the submodule checkout, and never stages, commits, or pushes.
-- With an empty patch list, production is an identity transform over upstream's committed
-  artifact; upstream generation is never run merely to copy the document. Restore patches —
+- Production always runs the exact pinned upstream generator in a scratch worktree of the
+  candidate commit (`bun install --frozen-lockfile --ignore-scripts`, then the protocol package's
+  `generate`); with an empty patch list its output is the normalized document. Upstream's
+  committed artifact is never consumed: the receipt records its hash beside the generator's
+  (`rawDocumentSha256`, `generatedBaselineSha256`), so a stale upstream copy is visible at every
+  refresh. Restore patches —
   ordered and hash-pinned under `spec/patches/` with a manifest carrying the upstream report,
   touched files, repair predicate, and retirement condition — run through the exact pinned
-  upstream generator, and prepare refuses a patch whose repair predicate raw upstream already
-  satisfies, forcing an empty-patch retirement refresh.
+  upstream generator after the unpatched baseline run, and prepare refuses a patch whose repair
+  predicate that baseline already satisfies, forcing an empty-patch retirement refresh.
 - The committed receipt records the exact inputs, hashes, patch preimages, operation-set digest,
   and operation delta of the accepted snapshot; `refresh-spec --verify` is its standing check.
 - The source watch (`spec/source-watch.json`) pins, by path, SHA-256 and one content anchor, the

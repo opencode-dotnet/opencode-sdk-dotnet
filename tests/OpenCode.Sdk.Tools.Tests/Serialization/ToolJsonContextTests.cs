@@ -50,7 +50,7 @@ public sealed class ToolJsonContextTests
             SchemaVersion = 1,
             UpstreamCommit = "0123456789abcdef0123456789abcdef01234567",
             RawDocumentSha256 = "aa",
-            GeneratedBaselineSha256 = null,
+            GeneratedBaselineSha256 = "aa",
             Patches = [],
             NormalizedDocumentSha256 = "bb",
             NormalizedDocumentPath = null,

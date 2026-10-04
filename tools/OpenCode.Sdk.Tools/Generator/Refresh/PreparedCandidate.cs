@@ -16,8 +16,8 @@ internal sealed record PreparedCandidate
     /// <summary>Gets upstream's committed artifact at the candidate commit.</summary>
     public required byte[] RawBytes { get; init; }
 
-    /// <summary>Gets the SHA-256 of the unpatched generator run; null in identity mode.</summary>
-    public required string? BaselineSha { get; init; }
+    /// <summary>Gets the SHA-256 of the unpatched generator run.</summary>
+    public required string BaselineSha { get; init; }
 
     /// <summary>Gets the document apply would install as the accepted snapshot.</summary>
     public required byte[] NormalizedBytes { get; init; }
