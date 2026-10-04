@@ -2,6 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using OpenCode.Sdk.Internal.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
@@ -64,4 +65,9 @@ public sealed record ConfigProvider
     [JsonPropertyName("models")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyDictionary<string, ConfigModel>? Models { get; init; }
+
+    /// <summary>
+    /// Prints the record&apos;s members with its secret members masked.
+    /// </summary>
+    public override string ToString() => RecordPrinter.Format(nameof(ConfigProvider), ("Canonical", Canonical), ("Name", Name), ("Env", Env), ("Package", Package), ("Settings", Settings), ("Headers", RecordPrinter.Redact(Headers)), ("Body", Body), ("Models", Models));
 }

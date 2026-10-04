@@ -26,6 +26,7 @@
   "hoistedMemberNames": [],
   "transportOwned": [],
   "redactedMembers": [],
+  "redactedOpenMembers": [],
   "secretLookingNames": [],
   "declined": []
 }

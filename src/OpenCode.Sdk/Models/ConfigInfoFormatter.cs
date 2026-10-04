@@ -78,7 +78,7 @@ public sealed record ConfigInfoFormatter
     }
 
     /// <summary>
-    /// Prints the kind and the active arm; the inactive arms throw by design.
+    /// Prints the kind and the active arm, an unrecognized token masked; the inactive arms throw by design.
     /// </summary>
-    public override string ToString() => StructuralUnionPrinter.Format(nameof(ConfigInfoFormatter), Kind.ToString(), _value);
+    public override string ToString() => StructuralUnionPrinter.Format(nameof(ConfigInfoFormatter), Kind.ToString(), Kind is ConfigInfoFormatterKind.Unknown ? RecordPrinter.Redacted : _value);
 }

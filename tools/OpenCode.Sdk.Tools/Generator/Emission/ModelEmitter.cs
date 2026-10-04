@@ -302,64 +302,53 @@ internal static class ModelEmitter
     /// through <c>RecordPrinter.Redact</c>. It overrides ToString rather than declaring
     /// PrintMembers, which a sealed record with no record base may only declare private (CS8879),
     /// where IDE0051 cannot see the synthesized caller and the writer's format pass would strip it.
+    /// An open model whose extension data a curation row masks prints the public view through
+    /// <c>RecordPrinter.RedactEntries</c>, so an empty view still prints empty.
     /// </summary>
     private static IEnumerable<MemberDeclarationSyntax> EmitRedactingToString(ObjectModelPlan model, IReadOnlyList<ChainMarker> markers)
     {
-        if (!model.Properties.Any(static property => property.IsRedacted))
+        if (model.RedactsExtensionData && !model.EmitsExtensionData)
+        {
+            throw new InvalidOperationException($"Model '{model.Name}' masks extension data it does not carry.");
+        }
+
+        if (!model.RedactsExtensionData && !model.Properties.Any(static property => property.IsRedacted))
         {
             yield break;
         }
 
         var members = model.Properties
             .Select(property => PrintedMember(property, CarriedMarker(markers, property)?.MemberName ?? property.Name))
-            .Concat(model.RequestQueryProperties.Select(static property => PrintedMember(property.PropertyName)))
-            .Concat(model.EmitsExtensionData ? [PrintedMember(ObjectModelPlan.ExtensionDataMemberName)] : []);
-        yield return SyntaxFactory
-            .MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)), "ToString")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-            .WithParameterList(SyntaxFactory.ParameterList())
-            .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(EmissionSyntax.Invocation(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("RecordPrinter"), "Format"),
-                [
-                    SyntaxFactory.Argument(EmissionSyntax.Invocation(
-                        SyntaxFactory.IdentifierName("nameof"),
-                        SyntaxFactory.Argument(SyntaxFactory.IdentifierName(model.Name)))),
-                    .. members,
-                ])))
-            .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Prints the record's members with its secret members masked."));
+            .Concat(model.RequestQueryProperties.Select(static property => RecordPrinterSyntax.Member(property.PropertyName)))
+            .Concat(model.EmitsExtensionData ? [PrintedExtensionData(model.RedactsExtensionData)] : []);
+        yield return RecordPrinterSyntax.ToStringOverride(
+            RecordPrinterSyntax.Format(model.Name, members),
+            "Prints the record's members with its secret members masked.");
     }
+
+    /// <summary><c>("AdditionalProperties", AdditionalProperties)</c>, or <c>("AdditionalProperties", RecordPrinter.RedactEntries(AdditionalProperties))</c> for a masked bag.</summary>
+    private static ArgumentSyntax PrintedExtensionData(bool redacts) =>
+        RecordPrinterSyntax.Member(
+            ObjectModelPlan.ExtensionDataMemberName,
+            redacts ? RecordPrinterSyntax.RedactEntries(SyntaxFactory.IdentifierName(ObjectModelPlan.ExtensionDataMemberName)) : null);
 
     /// <summary><c>("Name", Name)</c>, or <c>("Name", RecordPrinter.Redact(Name))</c> for a secret member; an unset tri-state member prints empty.</summary>
     private static ArgumentSyntax PrintedMember(ModelPropertyPlan property, string memberName)
     {
         if (!property.IsRedacted)
         {
-            return PrintedMember(memberName);
+            return RecordPrinterSyntax.Member(memberName);
         }
 
         var member = SyntaxFactory.IdentifierName(memberName);
         ExpressionSyntax masked = property.EmitsOptionalWrapper
             ? SyntaxFactory.ConditionalExpression(
                 EmissionSyntax.MemberAccess(member, "IsSet"),
-                Redact(EmissionSyntax.MemberAccess(member, "Value")),
+                RecordPrinterSyntax.Redact(EmissionSyntax.MemberAccess(member, "Value")),
                 SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))
-            : Redact(member);
-        return PrintedMember(memberName, masked);
-
-        static InvocationExpressionSyntax Redact(ExpressionSyntax value) => EmissionSyntax.Invocation(
-            EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("RecordPrinter"), "Redact"),
-            SyntaxFactory.Argument(value));
+            : RecordPrinterSyntax.Redact(member);
+        return RecordPrinterSyntax.Member(memberName, masked);
     }
-
-    private static ArgumentSyntax PrintedMember(string memberName, ExpressionSyntax? value = null) =>
-        SyntaxFactory.Argument(SyntaxFactory.TupleExpression(SyntaxFactory.SeparatedList(
-        [
-            SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(memberName))),
-            SyntaxFactory.Argument(value ?? SyntaxFactory.IdentifierName(memberName)),
-        ])));
 
     /// <summary><c>static pair => pair.&lt;member&gt;</c> for the copy the public init accessor takes.</summary>
     private static SimpleLambdaExpressionSyntax PairSelector(string member) =>
@@ -452,7 +441,7 @@ internal static class ModelEmitter
         }
 
         // A model with a secret member prints through the runtime's record printer.
-        if (model.Properties.Any(static property => property.IsRedacted))
+        if (model.RedactsExtensionData || model.Properties.Any(static property => property.IsRedacted))
         {
             _ = result.Add("OpenCode.Sdk.Internal.Serialization");
         }

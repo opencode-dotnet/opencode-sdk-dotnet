@@ -65,4 +65,9 @@ public sealed record ProviderSettings
     [JsonExtensionData]
     [JsonInclude]
     internal Dictionary<string, JsonElement>? OpenMembers { get; set; }
+
+    /// <summary>
+    /// Prints the record&apos;s members with its secret members masked.
+    /// </summary>
+    public override string ToString() => RecordPrinter.Format(nameof(ProviderSettings), ("Timeout", Timeout), ("HeaderTimeout", HeaderTimeout), ("ChunkTimeout", ChunkTimeout), ("Compaction", Compaction), ("Transport", Transport), ("AdditionalProperties", RecordPrinter.RedactEntries(AdditionalProperties)));
 }

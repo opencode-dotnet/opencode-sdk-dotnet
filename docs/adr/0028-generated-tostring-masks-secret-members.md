@@ -24,9 +24,13 @@ member whose wire name contains one of the words upstream's recorder reads as a 
 an environment-variable name (`ENV_SECRET_NAMES` in `secrets.ts`: API, AUTH, BEARER, CREDENTIAL,
 KEY, PASSWORD, SECRET, TOKEN, case-insensitive, anywhere) refuses the bind until a row decides it
 — a `redactedMembers` row, or a `secretLookingNames` row keyed by wire name that states the value
-is never a credential. Every row must still decide something against the bound models, or the
-bind refuses it, as every other curation row does. Both upstream files are source-watched, so a
-change to the list, the rule, or the marker words is reviewed at refresh.
+is never a credential. A model's open `AdditionalProperties` bag has no wire name for the floor or
+the wall to match, so every open bag is decided by a `redactedOpenMembers` row keyed by model, with
+a reason: `redact: true` masks the bag, `redact: false` states its open members never carry a
+credential. The bind refuses an open bag no row decides, as the secret-name wall does. Every row
+must still decide something against the bound models, or the bind refuses it, as every other
+curation row does. Both upstream files are source-watched, so a change to the list, the rule, or
+the marker words is reviewed at refresh.
 
 A model with a masked member overrides `ToString()` and prints through the runtime's
 `RecordPrinter` in the compiler's own shape — every public member in declaration order, the same
@@ -49,10 +53,29 @@ generator's format pass strips it; structural unions override `ToString()` for t
 ## Consequences
 
 - At the pin the floor masks `McpOAuthConfig.ClientSecret`; rows mask the integration key a key
-  authentication method stores (`IntegrationConnectKeyRequest.key`) and the user-configured header
-  and environment maps (MCP, provider, model, and terminal-create members). A record prints a
-  dictionary's type name today, so those map rows change the printed text only from the map's
-  type name to `[REDACTED]`; they keep the value out if printing ever changes.
+  authentication method stores (`IntegrationConnectKeyRequest.key`) and every user-configured
+  header and environment map: the MCP server maps, the provider and model header maps of both the
+  provider catalog and the configuration document, the configuration's agent-request headers and
+  formatter and LSP-server environments, the terminal-create environments, and the session
+  environment. A record prints a dictionary's type name today, so those map rows change the
+  printed text only from the map's type name to `[REDACTED]`; they keep the value out if printing
+  ever changes.
+- Every open `AdditionalProperties` bag must be decided by a `redactedOpenMembers` row, and the bind
+  refuses an undecided one, as the secret-name wall refuses an undecided member; an open bag has no
+  wire name for the floor or the wall to match. At the pin the open models are `ProviderSettings`,
+  `ConfigProviderSettings`, `ModelSettings`, and `ConfigModelSettings`, and each row is
+  `redact: true`, because upstream reads those rest keys as AI SDK provider options that carry
+  credentials (`apiKey`, `bearerToken`, AWS access keys). A masked bag prints `[REDACTED]` while it
+  holds an open member and empty while it holds none; a `redact: false` bag prints as the compiler
+  would. A record printed the bag's type name before, so the masking rows, like the map rows, keep
+  the value out if printing ever changes.
+- A union whose known arms reach a masked member at any depth — through object members, list
+  elements, dictionary values, nested unions, and structural-union arms — prints the payload its
+  unknown arm preserves as `[REDACTED]` and keeps that arm's marker visible, since an arm the pin
+  does not know may carry the same secret. At the pin that is `UnknownCredentialValue`,
+  `UnknownMcp`, and `UnknownConfigEntry` (a configuration document reaches masked maps through its
+  MCP servers, providers, agents, formatters, and LSP servers), and the Unknown arm of the structural unions `McpRemoteConfigOauth`, `ConfigInfoFormatter`,
+  `ConfigInfoLsp`, and `ConfigLspEntry`.
 - Masking is a printing concern only: equality, serialization, and the members' values are
   unchanged.
 - A refresh that adds a secret-shaped member fails generation until a row decides it; the

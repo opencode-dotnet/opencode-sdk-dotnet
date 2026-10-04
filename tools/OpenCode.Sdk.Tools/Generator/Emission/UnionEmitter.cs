@@ -163,6 +163,10 @@ internal static class UnionEmitter
         // A hoisted member is answered explicitly, so the carrier's own public surface stays the
         // preserved marker and payload and System.Text.Json still sees nothing else on it.
         members.AddRange(chain.Select(EmitUnknownHoistedMember));
+        if (union.MasksUnknownPayload)
+        {
+            members.Add(EmitMaskingToString(union));
+        }
 
         // The concrete-type converter keeps consumer serialization of the carrier itself
         // reproducing the preserved document; without it, source-generated metadata would
@@ -190,6 +194,26 @@ internal static class UnionEmitter
             HoistedUsings(chain.Select(static entry => entry.Member), usingNames),
             [declaration]);
         return EmissionSyntax.CreateSource($"Models/{union.UnknownTypeName}.cs", unit);
+    }
+
+    /// <summary>
+    /// A known arm of this union carries a secret member, so the payload of an arm the pin does
+    /// not know may carry one too. The carrier prints itself instead of taking the compiler's
+    /// ToString: the same public members in the same order and shape, only the payload masked, so
+    /// the marker that names the unrecognized arm stays readable.
+    /// </summary>
+    private static MethodDeclarationSyntax EmitMaskingToString(UnionPlan union)
+    {
+        var members = new List<ArgumentSyntax> { RecordPrinterSyntax.Member(union.MarkerName) };
+        if (union.FixedMarker is { } fixedMarker)
+        {
+            members.Add(RecordPrinterSyntax.Member(fixedMarker.Name));
+        }
+
+        members.Add(RecordPrinterSyntax.Member("Payload", RecordPrinterSyntax.Redact(SyntaxFactory.IdentifierName("Payload"))));
+        return RecordPrinterSyntax.ToStringOverride(
+            RecordPrinterSyntax.Format(union.UnknownTypeName, members),
+            "Prints the marker with the preserved payload masked, since a known arm of this union carries a secret.");
     }
 
     private static PropertyDeclarationSyntax EmitUnknownHoistedMember(HoistedChainMember entry) =>

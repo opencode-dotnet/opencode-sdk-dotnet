@@ -49,7 +49,7 @@ public sealed class DedicatedThreadOutputPumpTests
         }
         finally
         {
-            process.Kill(entireProcessTree: true);
+            _ = ProcessTreeTerminator.TryKill(process);
             await process.WaitForExitAsync(CancellationToken.None);
         }
     }

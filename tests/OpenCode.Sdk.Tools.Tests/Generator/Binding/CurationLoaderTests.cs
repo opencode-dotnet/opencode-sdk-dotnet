@@ -49,6 +49,19 @@ public sealed class CurationLoaderTests
     }
 
     [Test]
+    public async Task LoadAsync_Should_Read_Reasoned_Redacted_Open_Members_Rows()
+    {
+        var fileSystem = CreateFileSystem("Binding.redacted-open-members-curation.json");
+
+        var curation = await new CurationLoader(fileSystem).LoadAsync(CurationPath, CancellationToken.None);
+
+        var row = curation.RedactedOpenMembers.Single();
+        await Assert.That(row.Model).IsEqualTo("ProviderSettings");
+        await Assert.That(row.Redact).IsTrue();
+        await Assert.That(row.Reason).Contains("provider options");
+    }
+
+    [Test]
     public async Task GenerationCuration_Should_Expose_Only_Allowed_Curation_Sections()
     {
         var sections = typeof(GenerationCuration)
@@ -61,7 +74,7 @@ public sealed class CurationLoaderTests
             .That(sections)
             .IsEquivalentTo([
                 "declined", "enumMemberNames", "envelopePayloadNames", "groups", "hoistedMemberNames", "operationIdentities",
-                "operationNames", "redactedMembers", "schemaAliases", "schemaNames", "secretLookingNames", "transportOwned"
+                "operationNames", "redactedMembers", "redactedOpenMembers", "schemaAliases", "schemaNames", "secretLookingNames", "transportOwned"
             ]);
     }
 
@@ -130,6 +143,20 @@ public sealed class CurationLoaderTests
 
         await Assert.That(exception!.Errors.Single().Category).IsEqualTo(BindingErrorCategory.Curation);
         await Assert.That(exception.Errors.Single().Problem).Contains("emission");
+    }
+
+    /// <summary>An open bag's row must say which way it decides; a row without the verdict decides nothing.</summary>
+    [Test]
+    public async Task LoadAsync_Should_Refuse_A_Redacted_Open_Members_Row_Without_A_Verdict()
+    {
+        var fileSystem = CreateFileSystem("Binding.redacted-open-members-missing-redact-curation.json");
+
+        var exception = await Assert
+            .That(async () => _ = await new CurationLoader(fileSystem).LoadAsync(CurationPath, CancellationToken.None))
+            .Throws<BindingException>();
+
+        await Assert.That(exception!.Errors.Single().Category).IsEqualTo(BindingErrorCategory.Curation);
+        await Assert.That(exception.Errors.Single().Problem).Contains("redact");
     }
 
     [Test]

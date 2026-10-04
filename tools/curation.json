@@ -673,6 +673,42 @@
       "reason": "The OAuth arm of a stored credential carries the refresh token; upstream's recorder masks refresh_token, but the credential store names the field refresh, which its rule does not match."
     },
     {
+      "model": "ConfigAgentRequest",
+      "property": "headers",
+      "redact": true,
+      "reason": "Upstream's recorder has no field for it, but a request-header map carries whatever the user configured, an Authorization or API-key header included; a record prints a dictionary's type name today, and the mask keeps the value out of the printed form if that ever changes."
+    },
+    {
+      "model": "ConfigFormatterEntry",
+      "property": "environment",
+      "redact": true,
+      "reason": "Upstream's recorder has no field for it, but an environment map carries whatever the user configured, API keys included; a record prints a dictionary's type name today, and the mask keeps the value out of the printed form if that ever changes."
+    },
+    {
+      "model": "ConfigLspServer",
+      "property": "env",
+      "redact": true,
+      "reason": "Upstream's recorder has no field for it, but an environment map carries whatever the user configured, API keys included; a record prints a dictionary's type name today, and the mask keeps the value out of the printed form if that ever changes."
+    },
+    {
+      "model": "ConfigModel",
+      "property": "headers",
+      "redact": true,
+      "reason": "Upstream's recorder has no field for it, but a request-header map carries whatever the user configured, an Authorization or API-key header included; a record prints a dictionary's type name today, and the mask keeps the value out of the printed form if that ever changes."
+    },
+    {
+      "model": "ConfigModelVariants",
+      "property": "headers",
+      "redact": true,
+      "reason": "Upstream's recorder has no field for it, but a request-header map carries whatever the user configured, an Authorization or API-key header included; a record prints a dictionary's type name today, and the mask keeps the value out of the printed form if that ever changes."
+    },
+    {
+      "model": "ConfigProvider",
+      "property": "headers",
+      "redact": true,
+      "reason": "Upstream's recorder has no field for it, but a request-header map carries whatever the user configured, an Authorization or API-key header included; a record prints a dictionary's type name today, and the mask keeps the value out of the printed form if that ever changes."
+    },
+    {
       "model": "McpLocalConfig",
       "property": "environment",
       "redact": true,
@@ -719,6 +755,34 @@
       "property": "env",
       "redact": true,
       "reason": "Upstream's recorder has no field for it, but an environment map carries whatever the user configured, API keys included; a record prints a dictionary's type name today, and the mask keeps the value out of the printed form if that ever changes."
+    },
+    {
+      "model": "SessionEnvironmentRequest",
+      "property": "variables",
+      "redact": true,
+      "reason": "Upstream's recorder has no field for it, but an environment map carries whatever the user configured, API keys included; a record prints a dictionary's type name today, and the mask keeps the value out of the printed form if that ever changes."
+    }
+  ],
+  "redactedOpenMembers": [
+    {
+      "model": "ConfigModelSettings",
+      "redact": true,
+      "reason": "The members a configured model or variant leaves open are AI SDK provider options: upstream merges them into the model's settings (config/plugin/provider.ts), and the model resolver reads apiKey, authToken, and accessToken there and hands the rest to the provider package, so a user's API key can sit in the bag; a record prints a dictionary's type name today, and the mask keeps the value out of the printed form if that ever changes."
+    },
+    {
+      "model": "ConfigProviderSettings",
+      "redact": true,
+      "reason": "The members a configured provider leaves open are AI SDK provider options: upstream merges them into the provider's settings (config/plugin/provider.ts) and reads apiKey, bearerToken, accessKeyId, secretAccessKey, sessionToken, and credentials there (aisdk-native.ts), so a user's credentials can sit in the bag; a record prints a dictionary's type name today, and the mask keeps the value out of the printed form if that ever changes."
+    },
+    {
+      "model": "ModelSettings",
+      "redact": true,
+      "reason": "The members a model leaves open are AI SDK provider options: upstream folds the provider's settings, less its timeout and transport keys, into every model's settings (model.ts), and the model resolver reads apiKey, authToken, and accessToken there, so a provider's API key can sit in the bag; a record prints a dictionary's type name today, and the mask keeps the value out of the printed form if that ever changes."
+    },
+    {
+      "model": "ProviderSettings",
+      "redact": true,
+      "reason": "The members a provider leaves open are AI SDK provider options: upstream reads apiKey, bearerToken, accessKeyId, secretAccessKey, sessionToken, and credentials there (aisdk-native.ts), and a configured provider's own options merge into them (config/plugin/provider.ts), so a user's credentials can sit in the bag; a record prints a dictionary's type name today, and the mask keeps the value out of the printed form if that ever changes."
     }
   ],
   "secretLookingNames": [

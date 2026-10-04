@@ -38,4 +38,9 @@ public sealed record UnknownConfigEntry : IConfigEntry
     /// Gets the preserved raw JSON payload.
     /// </summary>
     public JsonElement Payload { get; }
+
+    /// <summary>
+    /// Prints the marker with the preserved payload masked, since a known arm of this union carries a secret.
+    /// </summary>
+    public override string ToString() => RecordPrinter.Format(nameof(UnknownConfigEntry), ("Type", Type), ("Payload", RecordPrinter.Redact(Payload)));
 }

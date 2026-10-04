@@ -486,7 +486,7 @@ internal sealed class EventLogger(EventsClient events, ILogger<EventLogger> logg
 > and `[RequiresUnreferencedCode]`, because configuration binding reflects over the options type —
 > so a trimmed or AOT publish reports **IL3050** and **IL2026** at that call. Nothing is wrong with
 > your code; the annotation is doing its job. Switch to the configure-action overload there, which
-> needs no reflection at all. Both packages declare `IsAotCompatible` on `net10.0`.
+> needs no reflection at all. Both packages declare `IsAotCompatible` on every modern target.
 
 The configure-action overload, with a `SessionsClient` worker doing a paged read, is the worked
 example in the root README's [dependency-injection quickstart](../../README.md#dependency-injection)

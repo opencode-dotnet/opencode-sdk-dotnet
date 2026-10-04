@@ -3,11 +3,12 @@ using System.Text;
 namespace OpenCode.Sdk.Internal.Serialization;
 
 /// <summary>
-/// Formats a generated model that carries a secret member for its record's <c>ToString()</c>
-/// (ADR-0028). The output keeps the compiler-synthesized shape,
+/// Formats a generated model that carries a secret member, and the unknown arm of a union whose
+/// known arms reach one, for its record's <c>ToString()</c> (ADR-0028). The output keeps the compiler-synthesized shape,
 /// <c>McpOAuthConfig { ClientId = app, ClientSecret = [REDACTED], Scope =  }</c>: each member's
 /// own string form, an absent value printed empty. A masked member prints upstream's own marker
-/// when it holds a value and stays empty when it does not, so its presence is still visible.
+/// when it holds a value and stays empty when it does not, so its presence is still visible; a
+/// masked extension-data view holds a value when it holds an open member.
 /// </summary>
 internal static class RecordPrinter
 {
@@ -19,6 +20,15 @@ internal static class RecordPrinter
     /// <param name="value">The member's value.</param>
     /// <returns><see cref="Redacted"/>, or null when there is no value.</returns>
     public static string? Redact<T>(T value) => value is null ? null : Redacted;
+
+    /// <summary>
+    /// Masks a collection that holds an entry. A model's extension data is never null, only empty
+    /// when the body carried no open member, so emptiness is what absence looks like there.
+    /// </summary>
+    /// <typeparam name="T">The collection's entry type.</typeparam>
+    /// <param name="entries">The member's value.</param>
+    /// <returns><see cref="Redacted"/>, or null when the collection is null or empty.</returns>
+    public static string? RedactEntries<T>(IReadOnlyCollection<T>? entries) => entries is null || entries.Count == 0 ? null : Redacted;
 
     /// <summary>Renders <c>&lt;typeName&gt; { &lt;name&gt; = &lt;value&gt;, ... }</c>.</summary>
     /// <param name="typeName">The record's type name.</param>

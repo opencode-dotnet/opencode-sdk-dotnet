@@ -7,6 +7,7 @@ internal sealed class SpecDocumentBuilder
     private readonly FixtureLoader _fixtureLoader;
     private readonly JsonObject _paths = [];
     private readonly JsonObject _schemas = [];
+    private readonly JsonObject _components;
     private readonly JsonObject _root;
 
     public SpecDocumentBuilder()
@@ -19,6 +20,10 @@ internal sealed class SpecDocumentBuilder
         ArgumentNullException.ThrowIfNull(fixtureLoader);
 
         _fixtureLoader = fixtureLoader;
+        _components = new JsonObject
+        {
+            ["schemas"] = _schemas,
+        };
         _root = new JsonObject
         {
             ["openapi"] = "3.1.0",
@@ -28,10 +33,7 @@ internal sealed class SpecDocumentBuilder
                 ["version"] = "1.0.0",
             },
             ["paths"] = _paths,
-            ["components"] = new JsonObject
-            {
-                ["schemas"] = _schemas,
-            },
+            ["components"] = _components,
         };
     }
 
@@ -60,6 +62,39 @@ internal sealed class SpecDocumentBuilder
         var schema = new SchemaBuilder();
         configure(schema);
         _schemas[name] = schema.Build();
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an empty schema under <paramref name="name"/> verbatim, so the name may be any text a
+    /// JSON key can hold.
+    /// </summary>
+    public SpecDocumentBuilder WithEmptySchema(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        _schemas[name] = new JsonObject();
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a reusable response under <paramref name="name"/> verbatim, so the name may be any text
+    /// a JSON key can hold.
+    /// </summary>
+    public SpecDocumentBuilder WithResponseComponent(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        if (_components["responses"] is not JsonObject responses)
+        {
+            responses = [];
+            _components["responses"] = responses;
+        }
+
+        responses[name] = new JsonObject
+        {
+            ["description"] = "Response",
+        };
         return this;
     }
 

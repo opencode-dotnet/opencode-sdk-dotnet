@@ -82,14 +82,14 @@ internal sealed class SpecBinder(
             .ToArray();
 
         var models = AttachRequestQueryProperties(schemaResult.Models, clients, errors);
-        models = SecretMemberPolicy.Apply(models, curation, errors);
+        var masked = SecretMemberPolicy.MaskUnknownPayloads(SecretMemberPolicy.Apply(models, curation, errors), schemaResult.Unions);
         CheckDtoNameCollisions(schemaResult.Registry, clients, errors);
         errors.ThrowIfAny();
         return new EmitPlan
         {
             SelectedOperationIds = selection.OperationIds,
-            Models = models,
-            Unions = schemaResult.Unions,
+            Models = masked.Models,
+            Unions = masked.Unions,
             HoistedInterfaces = schemaResult.HoistedInterfaces,
             Registry = ComposeRegistry(schemaResult.Registry, clients),
             Clients = clients,

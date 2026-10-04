@@ -21,7 +21,8 @@ internal static class BindingScenarioData
         IReadOnlyList<HoistedMemberNameCuration>? hoistedMemberNames = null,
         IReadOnlyList<EnumMemberNameCuration>? enumMemberNames = null,
         IReadOnlyList<RedactedMemberCuration>? redactedMembers = null,
-        IReadOnlyList<SecretLookingNameCuration>? secretLookingNames = null) =>
+        IReadOnlyList<SecretLookingNameCuration>? secretLookingNames = null,
+        IReadOnlyList<RedactedOpenMembersCuration>? redactedOpenMembers = null) =>
         new()
         {
             Groups = groups,
@@ -35,6 +36,7 @@ internal static class BindingScenarioData
             HoistedMemberNames = hoistedMemberNames ?? [],
             EnumMemberNames = enumMemberNames ?? [],
             RedactedMembers = redactedMembers ?? [],
+            RedactedOpenMembers = redactedOpenMembers ?? [],
             SecretLookingNames = secretLookingNames ?? [],
         };
 
@@ -52,6 +54,15 @@ internal static class BindingScenarioData
         {
             OperationId = operationId,
             SubtreeSha256 = subtreeSha256,
+            Reason = reason,
+        };
+
+    public static RedactedOpenMembersCuration OpenMembers(string model, bool redact,
+        string reason = "The scenario decides its open model's printed extension data explicitly.") =>
+        new()
+        {
+            Model = model,
+            Redact = redact,
             Reason = reason,
         };
 

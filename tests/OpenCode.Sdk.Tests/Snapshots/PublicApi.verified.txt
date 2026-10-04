@@ -2216,6 +2216,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("headers")]
         public System.Collections.Generic.IReadOnlyDictionary<string, string>? Headers { get; init; }
+        public override string ToString() { }
     }
     public sealed class ConfigCommand : System.IEquatable<OpenCode.Sdk.Models.ConfigCommand>
     {
@@ -2272,6 +2273,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("extensions")]
         public System.Collections.Generic.IReadOnlyList<string>? Extensions { get; init; }
+        public override string ToString() { }
     }
     public sealed class ConfigInfo : System.IEquatable<OpenCode.Sdk.Models.ConfigInfo>
     {
@@ -2641,6 +2643,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("initialization")]
         public System.Collections.Generic.IReadOnlyDictionary<string, System.Text.Json.JsonElement>? Initialization { get; init; }
+        public override string ToString() { }
     }
     public sealed class ConfigModel : System.IEquatable<OpenCode.Sdk.Models.ConfigModel>
     {
@@ -2684,6 +2687,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("variants")]
         public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.ConfigModelVariants>? Variants { get; init; }
+        public override string ToString() { }
     }
     public sealed class ConfigModelCapabilities : System.IEquatable<OpenCode.Sdk.Models.ConfigModelCapabilities>
     {
@@ -2798,6 +2802,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("compaction")]
         public OpenCode.Sdk.Models.IProviderCompaction? Compaction { get; init; }
+        public override string ToString() { }
     }
     public sealed class ConfigModelVariants : System.IEquatable<OpenCode.Sdk.Models.ConfigModelVariants>
     {
@@ -2813,6 +2818,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("settings")]
         public OpenCode.Sdk.Models.ConfigModelSettings? Settings { get; init; }
+        public override string ToString() { }
     }
     public sealed class ConfigPluginEntry : System.IEquatable<OpenCode.Sdk.Models.ConfigPluginEntry>
     {
@@ -2850,6 +2856,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("settings")]
         public OpenCode.Sdk.Models.ConfigProviderSettings? Settings { get; init; }
+        public override string ToString() { }
     }
     public sealed class ConfigProviderSettings : System.IEquatable<OpenCode.Sdk.Models.ConfigProviderSettings>
     {
@@ -2871,6 +2878,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("transport")]
         public OpenCode.Sdk.Models.ProviderTransport? Transport { get; init; }
+        public override string ToString() { }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.ConfigProviderSettingsChunkTimeoutJsonConverter))]
     public sealed class ConfigProviderSettingsChunkTimeout : System.IEquatable<OpenCode.Sdk.Models.ConfigProviderSettingsChunkTimeout>
@@ -5184,6 +5192,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("compaction")]
         public OpenCode.Sdk.Models.IProviderCompaction? Compaction { get; init; }
+        public override string ToString() { }
     }
     public sealed class ModelUpdated : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.ModelUpdated>
     {
@@ -6055,6 +6064,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("transport")]
         public OpenCode.Sdk.Models.ProviderTransport? Transport { get; init; }
+        public override string ToString() { }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.ProviderSettingsChunkTimeoutJsonConverter))]
     public sealed class ProviderSettingsChunkTimeout : System.IEquatable<OpenCode.Sdk.Models.ProviderSettingsChunkTimeout>
@@ -6886,6 +6896,7 @@ namespace OpenCode.Sdk.Models
         public SessionEnvironmentRequest() { }
         [System.Text.Json.Serialization.JsonPropertyName("variables")]
         public required System.Collections.Generic.IReadOnlyDictionary<string, string> Variables { get; init; }
+        public override string ToString() { }
     }
     public sealed class SessionExecutionFailed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionExecutionFailed>
     {
@@ -10559,6 +10570,7 @@ namespace OpenCode.Sdk.Models
         public System.Text.Json.JsonElement Payload { get; }
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
+        public override string ToString() { }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.UnknownConnectionInfoJsonConverter))]
     public sealed class UnknownConnectionInfo : OpenCode.Sdk.Models.IConnectionInfo, System.IEquatable<OpenCode.Sdk.Models.UnknownConnectionInfo>
@@ -10577,6 +10589,7 @@ namespace OpenCode.Sdk.Models
         public System.Text.Json.JsonElement Payload { get; }
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
+        public override string ToString() { }
     }
     public sealed class UnknownError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.UnknownError>
     {
@@ -10651,6 +10664,7 @@ namespace OpenCode.Sdk.Models
         public System.Text.Json.JsonElement Payload { get; }
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
+        public override string ToString() { }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.UnknownMcpStatusJsonConverter))]
     public sealed class UnknownMcpStatus : OpenCode.Sdk.Models.IMcpStatus, System.IEquatable<OpenCode.Sdk.Models.UnknownMcpStatus>

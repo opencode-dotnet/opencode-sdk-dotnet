@@ -8,18 +8,18 @@
   "operationNames": [],
   "schemaNames": [],
   "envelopePayloadNames": {},
-  "schemaAliases": [
-    {
-      "schema": "InvalidRequestError1",
-      "aliasOf": "InvalidRequestError",
-      "reason": "Upstream spec-gen emits a structurally identical duplicate carrying the same _tag."
-    }
-  ],
+  "schemaAliases": [],
   "enumMemberNames": [],
   "hoistedMemberNames": [],
   "transportOwned": [],
   "redactedMembers": [],
-  "redactedOpenMembers": [],
+  "redactedOpenMembers": [
+    {
+      "model": "ProviderSettings",
+      "redact": true,
+      "reason": "The open members are AI SDK provider options, apiKey among them."
+    }
+  ],
   "secretLookingNames": [],
   "declined": []
 }

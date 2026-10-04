@@ -17,13 +17,13 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// operation-name row, which together answer "would this operation bind if it only needed its
 /// curation rows?" without asserting what those rows should actually look like — a name is
 /// curation, never a shape wall, so an operation the naming policy refuses to name mechanically
-/// (ADR-0008) still probes by its shape. The secret-name wall (ADR-0028) is the same kind of
-/// missing row, so a bind it alone refuses probes as bindable. Binding collects every wall before throwing (no first-error stop), so a
-/// refused mark carries every independent <see cref="BindingError.Problem"/> the bind produced,
-/// in binder order and deduplicated by problem text — never only the first. A probe that fails
-/// for any reason other than the deliberate <see cref="BindingException"/> wall still yields a
-/// refused mark instead of failing generation of the already-selected surface over an operation
-/// nobody has selected yet.
+/// (ADR-0008) still probes by its shape. The secret-name wall (ADR-0028) and the open-bag wall
+/// beside it are the same kind of missing row, so a bind only they refuse probes as bindable.
+/// Binding collects every wall before throwing (no first-error stop), so a refused mark carries
+/// every independent <see cref="BindingError.Problem"/> the bind produced, in binder order and
+/// deduplicated by problem text — never only the first. A probe that fails for any reason other
+/// than the deliberate <see cref="BindingException"/> wall still yields a refused mark instead of
+/// failing generation of the already-selected surface over an operation nobody has selected yet.
 /// </summary>
 internal sealed class PendingOperationBindabilityProbe(ISpecBinder binder)
 {
@@ -31,6 +31,11 @@ internal sealed class PendingOperationBindabilityProbe(ISpecBinder binder)
         "Synthetic single-operation probe curation for the pending-operation bindability telltale; never a real curation row.";
 
     private const string SyntheticMethodName = "ProbeAsync";
+
+    /// <summary>Problems a missing curation row raises, never a shape wall: a bind only they refuse still probes as bindable.</summary>
+    private static readonly HashSet<string> MissingRowProblems = new(
+        [SecretMemberPolicy.UndecidedSecretProblem, SecretMemberPolicy.UndecidedOpenMembersProblem],
+        StringComparer.Ordinal);
 
     private readonly ISpecBinder _binder = binder ?? throw new ArgumentNullException(nameof(binder));
 
@@ -62,7 +67,7 @@ internal sealed class PendingOperationBindabilityProbe(ISpecBinder binder)
         catch (BindingException exception)
         {
             var walls = exception.Errors
-                .Where(static error => !string.Equals(error.Problem, SecretMemberPolicy.UndecidedSecretProblem, StringComparison.Ordinal))
+                .Where(static error => !MissingRowProblems.Contains(error.Problem))
                 .ToArray();
             return exception.Errors.Count > 0 && walls.Length is 0
                 ? new PendingOperationMark { OperationId = operation.OperationId, IsBindable = true }
@@ -128,6 +133,7 @@ internal sealed class PendingOperationBindabilityProbe(ISpecBinder binder)
             HoistedMemberNames = [],
             EnumMemberNames = [],
             RedactedMembers = [],
+            RedactedOpenMembers = [],
             SecretLookingNames = [],
         };
 }

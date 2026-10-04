@@ -119,6 +119,18 @@ internal sealed record GenerationCuration
         }
     } = Array.AsReadOnly(Array.Empty<RedactedMemberCuration>());
 
+    /// <summary>Judgements on every open model's printed extension data, one row per open model.</summary>
+    [JsonPropertyName("redactedOpenMembers")]
+    public required IReadOnlyList<RedactedOpenMembersCuration> RedactedOpenMembers
+    {
+        get;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = Array.AsReadOnly([.. value]);
+        }
+    } = Array.AsReadOnly(Array.Empty<RedactedOpenMembersCuration>());
+
     /// <summary>Wire names the secret-name wall stops that carry no credential (ADR-0028).</summary>
     [JsonPropertyName("secretLookingNames")]
     public required IReadOnlyList<SecretLookingNameCuration> SecretLookingNames

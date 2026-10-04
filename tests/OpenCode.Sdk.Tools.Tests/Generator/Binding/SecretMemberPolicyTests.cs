@@ -1,7 +1,11 @@
+using System.Text;
+using System.Text.Json;
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Support;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
+using static OpenCode.Sdk.Tools.Tests.Support.UnionHoistPlanData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
@@ -9,7 +13,10 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 /// The redaction floor is upstream's HTTP-recorder field list matched the way the recorder
 /// matches it; curation rows add or lift a mask; a member whose name carries one of upstream's
 /// secret-marker words refuses the bind until a row decides it; and every row must still mean
-/// something against the bound models (ADR-0028).
+/// something against the bound models (ADR-0028). A union whose known arms reach a masked member
+/// at any depth masks the payload its unknown arm preserves. An open model's extension data has
+/// no wire name, so a row naming the model decides it, an open model no row decides refuses the
+/// bind, and the row must name an open model.
 /// </summary>
 public sealed class SecretMemberPolicyTests
 {
@@ -145,6 +152,207 @@ public sealed class SecretMemberPolicyTests
         await Assert.That(marks.Single().IsBindable).IsTrue();
     }
 
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Flag_Only_A_Union_With_A_Masked_Arm()
+    {
+        var result = SecretMemberPolicy.MaskUnknownPayloads(
+            [Masked("VaultKey"), Record("PlainKey", Property("id", Named("string"), isRequired: true))],
+            [Union("IVaultValue", Arm("VaultKey")), Union("IPlainValue", Arm("PlainKey"))]);
+
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"]);
+    }
+
+    /// <summary>The arm holds a list of records, each holding a dictionary of the masked record.</summary>
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Follow_Object_List_And_Dictionary_Members()
+    {
+        var result = SecretMemberPolicy.MaskUnknownPayloads(
+            [
+                Record("VaultShelf", Property("entries", ListOf(Named("VaultDrawer")), isRequired: true)),
+                Record("VaultDrawer", Property("keys", DictionaryOf(Named("VaultKey")), isRequired: true)),
+                Masked("VaultKey"),
+            ],
+            [Union("IVaultValue", Arm("VaultShelf"))]);
+
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"]);
+    }
+
+    /// <summary>The only arm that reaches the masked record is the union's prefix-tagged one.</summary>
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Follow_The_Prefix_Arm()
+    {
+        var result = SecretMemberPolicy.MaskUnknownPayloads(
+            [Masked("VaultKey"), Record("PlainKey", Property("id", Named("string"), isRequired: true))],
+            [Union("IVaultValue", Arm("PlainKey")) with
+            {
+                PrefixVariant = new UnionPrefixVariantPlan { TypeName = "VaultKey", Prefix = "vault:", MarkerWireName = "type" },
+            }]);
+
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"]);
+    }
+
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Follow_A_Nested_Union()
+    {
+        var result = SecretMemberPolicy.MaskUnknownPayloads(
+            [Masked("VaultKey")],
+            [Union("IOuterValue", NestedArm("IInnerValue")), Union("IInnerValue", Arm("VaultKey"))]);
+
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IInnerValue", "IOuterValue"]);
+    }
+
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Flag_A_Structural_Union_And_Follow_It()
+    {
+        var result = SecretMemberPolicy.MaskUnknownPayloads(
+            [
+                Masked("VaultKey"),
+                Structural("VaultSetting", Named("VaultKey")),
+                Structural("PlainSetting", Named("bool")),
+                Record("VaultHolder", Property("setting", Named("VaultSetting"), isRequired: true)),
+            ],
+            [Union("IVaultValue", Arm("VaultHolder"))]);
+
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue", "VaultSetting"]);
+    }
+
+    /// <summary>A record that holds itself settles: the reach stops growing rather than recursing.</summary>
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Settle_On_A_Self_Referential_Schema()
+    {
+        var result = SecretMemberPolicy.MaskUnknownPayloads(
+            [
+                Record("PlainNode", Property("children", ListOf(Named("PlainNode")), isRequired: true)),
+                Record("VaultNode", Property("children", ListOf(Named("VaultNode")), isRequired: true),
+                    Property("secret", Named("string"), isRequired: false) with { IsRedacted = true }),
+            ],
+            [Union("IPlainTree", Arm("PlainNode")), Union("IVaultTree", Arm("VaultNode"))]);
+
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultTree"]);
+    }
+
+    [Test]
+    public async Task Bind_Should_Mask_The_Open_Members_Of_A_Model_A_Row_Masks()
+    {
+        var plan = await BindOpenAsync([OpenMembers("VaultSettings", redact: true)]);
+
+        await Assert.That(OpenModel(plan, "VaultSettings").RedactsExtensionData).IsTrue();
+        await Assert.That(OpenModel(plan, "VaultInfo").RedactsExtensionData).IsFalse();
+        await Assert.That(EmittedModel(plan, "VaultSettings")).Contains("RecordPrinter.RedactEntries(AdditionalProperties)");
+    }
+
+    /// <summary>A row that states the open members never carry a credential leaves the record printing as the compiler would.</summary>
+    [Test]
+    public async Task Bind_Should_Print_The_Open_Members_Of_A_Model_A_Row_Clears()
+    {
+        var plan = await BindOpenAsync([OpenMembers("VaultSettings", redact: false)]);
+
+        await Assert.That(OpenModel(plan, "VaultSettings").EmitsExtensionData).IsTrue();
+        await Assert.That(OpenModel(plan, "VaultSettings").RedactsExtensionData).IsFalse();
+        await Assert.That(EmittedModel(plan, "VaultSettings")).DoesNotContain("ToString");
+    }
+
+    [Test]
+    public async Task Bind_Should_Refuse_An_Open_Model_No_Row_Decides()
+    {
+        var document = await BindingTestHost.IngestAsync(OpenScenario());
+        var curation = Curation(Groups("vault", RootGroup()));
+
+        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection("vault.get"), curation));
+
+        var error = exception.Errors.Single();
+        await Assert.That(error.Subject).IsEqualTo("VaultSettings");
+        await Assert.That(error.Problem).IsEqualTo(SecretMemberPolicy.UndecidedOpenMembersProblem);
+        await Assert.That(error.Problem).Contains("add a redactedOpenMembers row");
+    }
+
+    /// <summary>A missing row is curation, never a shape wall: an operation the open-bag wall alone refuses probes as bindable.</summary>
+    [Test]
+    public async Task Probe_Should_Mark_An_Operation_Only_The_Open_Bag_Wall_Refuses_As_Bindable()
+    {
+        var document = await BindingTestHost.IngestAsync(OpenScenario());
+        var probe = new PendingOperationBindabilityProbe(new BindingTestHost().Binder);
+
+        var marks = probe.Probe(document, ["vault.get"]);
+
+        await Assert.That(marks.Single().IsBindable).IsTrue();
+    }
+
+    /// <summary>A cleared open bag taints nothing: only a masking row makes a union mask its unknown payload.</summary>
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Ignore_An_Open_Bag_A_Row_Clears()
+    {
+        var plan = await BindOpenAsync([OpenMembers("VaultSettings", redact: false)]);
+
+        var result = SecretMemberPolicy.MaskUnknownPayloads(plan.Models, [Union("IVaultValue", Arm("VaultSettings"))]);
+
+        await Assert.That(Flagged(result)).IsEmpty();
+    }
+
+    [Test]
+    public async Task Bind_Should_Refuse_Open_Member_Rows_That_Decide_Nothing()
+    {
+        var document = await BindingTestHost.IngestAsync(OpenScenario());
+        var curation = Curation(Groups("vault", RootGroup()), redactedOpenMembers:
+        [
+            OpenMembers("Absent", redact: true),
+            OpenMembers("VaultInfo", redact: true),
+            OpenMembers("VaultSettings", redact: true),
+            OpenMembers("VaultSettings", redact: false) with { Reason = " " },
+        ]);
+
+        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection("vault.get"), curation));
+
+        await Assert.That(Problems(exception)).IsEquivalentTo(
+        [
+            "Absent: redacted open members curation names no generated model",
+            "VaultInfo: redacted open members curation names a model that leaves no member open",
+            "VaultSettings: redacted open members curation is duplicated",
+            "VaultSettings: redacted open members curation must declare a reason",
+        ]);
+    }
+
+    /// <summary>A masked open bag taints a union the way a masked member does: an unknown arm may carry the same options.</summary>
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Flag_A_Union_Whose_Arm_Masks_Its_Open_Members()
+    {
+        var result = SecretMemberPolicy.MaskUnknownPayloads(
+            [
+                Record("VaultSettings", Property("id", Named("string"), isRequired: true)) with { EmitsExtensionData = true, RedactsExtensionData = true },
+                Record("PlainSettings", Property("id", Named("string"), isRequired: true)) with { EmitsExtensionData = true },
+            ],
+            [Union("IVaultValue", Arm("VaultSettings")), Union("IPlainValue", Arm("PlainSettings"))]);
+
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"]);
+    }
+
+    /// <summary>The settings record leaves its remaining members open; the info record holding it does not.</summary>
+    private static SpecScenario OpenScenario() => SpecScenario.Define(spec => spec
+        .WithSchema("VaultSettings", schema => schema
+            .Type("object")
+            .Property("timeout", property => property.Type("number"), required: false)
+            .AllOf(rest => rest.Type("object").AdditionalProperties(static value => _ = value.Unrestricted())))
+        .WithSchema("VaultInfo", schema => schema
+            .Type("object")
+            .Property("id", property => property.Type("string"), required: true)
+            .Property("settings", property => property.Ref("VaultSettings"), required: false))
+        .WithOperation("vault.get", path: "/api/vault", configure: operation => operation
+            .Response(200, "application/json", schema => schema.Ref("VaultInfo"))));
+
+    private static async Task<EmitPlan> BindOpenAsync(IReadOnlyList<RedactedOpenMembersCuration> redactedOpenMembers)
+    {
+        var document = await BindingTestHost.IngestAsync(OpenScenario());
+        return new BindingTestHost().Bind(document, Selection("vault.get"),
+            Curation(Groups("vault", RootGroup()), redactedOpenMembers: redactedOpenMembers));
+    }
+
+    private static string EmittedModel(EmitPlan plan, string name) =>
+        Encoding.UTF8.GetString(SourceEmitter.Emit(plan)
+            .Single(source => source.RelativePath.EndsWith($"/{name}.cs", StringComparison.Ordinal)).Utf8Source.Span);
+
+    private static ObjectModelPlan OpenModel(EmitPlan plan, string name) =>
+        plan.Models.OfType<ObjectModelPlan>().Single(model => model.Name == name);
+
     private static SpecScenario Scenario(string secretMember) => SpecScenario.Define(spec => spec
         .WithSchema("VaultInfo", schema => schema
             .Type("object")
@@ -177,6 +385,30 @@ public sealed class SecretMemberPolicyTests
     private static ModelPropertyPlan Member(EmitPlan plan, string wireName) =>
         plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "VaultInfo")
             .Properties.Single(property => property.WireName == wireName);
+
+    private static ObjectModelPlan Masked(string typeName) =>
+        Record(typeName, Property("secret", Named("string"), isRequired: true) with { IsRedacted = true });
+
+    private static StructuralUnionModelPlan Structural(string name, TypeReferencePlan armType) =>
+        new()
+        {
+            Name = name,
+            Namespace = "OpenCode.Sdk.Models",
+            KindTypeName = $"{name}Kind",
+            Arms = [new StructuralUnionArmPlan { Name = "Value", Type = armType, Tokens = [JsonTokenType.StartObject] }],
+        };
+
+    private static ListTypeReferencePlan ListOf(TypeReferencePlan elementType) =>
+        new() { ElementType = elementType, IsNullable = false, JsonNullRepresentation = JsonNullRepresentation.ClrNull };
+
+    private static DictionaryTypeReferencePlan DictionaryOf(TypeReferencePlan valueType) =>
+        new() { ValueType = valueType, IsNullable = false, JsonNullRepresentation = JsonNullRepresentation.ClrNull };
+
+    private static string[] Flagged(UnknownPayloadMaskResult result) =>
+    [
+        .. result.Unions.Where(static union => union.MasksUnknownPayload).Select(static union => union.Name),
+        .. result.Models.OfType<StructuralUnionModelPlan>().Where(static union => union.MasksUnknownPayload).Select(static union => union.Name),
+    ];
 
     private static string[] Problems(BindingException exception) =>
         [.. exception.Errors.Select(static error => $"{error.Subject}: {error.Problem}")];

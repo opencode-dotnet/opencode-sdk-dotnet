@@ -65,7 +65,10 @@ evidence and may contain superseded positions.
   repository's own generator (ADR-0003, ADR-0008).
 - The pinned `Microsoft.OpenApi` reader owns OpenAPI parsing. The generator owns a minimal,
   fail-closed semantic projection into SpecIR; it does not maintain a second OpenAPI parser
-  (ADR-0003).
+  (ADR-0003). The generator's reader runs the library's default validation rule set except the
+  components-key rule, which the generator replaces with an exact equivalent without the library's
+  100 ms wall-clock regex timeout
+  ([microsoft/OpenAPI.NET#3101](https://github.com/microsoft/OpenAPI.NET/issues/3101)).
 - Roslyn syntax trees own emission. The generator is repository tooling under `tools/`; output is
   committed under `src/OpenCode.Sdk`, reviewed as source, and regeneration-verified (ADR-0003).
 - Generated output passes the analyzer wall on merit. The same tool owns deliberate spec refreshes
@@ -155,8 +158,12 @@ implementation knowledge (ADR-0013).
 - A model with a secret member overrides `ToString()` and prints that member as `[REDACTED]` (empty
   when absent), every other member in the compiler's own shape. The floor is upstream's HTTP
   recorder field list with its matching rule; reasoned `redactedMembers` rows add or lift a mask;
+  every open model's `AdditionalProperties` is decided by a reasoned `redactedOpenMembers` row
+  (`redact: true` masks it, `redact: false` states it carries no credential), and the bind refuses
+  an undecided one;
   a member whose wire name carries one of upstream's secret-marker words refuses the bind until a
-  `redactedMembers` or `secretLookingNames` row decides it (ADR-0028).
+  `redactedMembers` or `secretLookingNames` row decides it; a union whose known arms reach a masked
+  member at any depth prints its unknown arm's preserved payload as `[REDACTED]` (ADR-0028).
 - Only literals used to dispatch a union become constants or get-only properties. A prefix-tagged
   arm's discriminator is not a literal: it stays a required string property, proven on read to
   carry the prefix. Other fixed values remain ordinary primitives so a representable server value
@@ -306,4 +313,5 @@ dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).
 
 System.Text.Json source generation is mandatory. The generator emits the single serializer
 registry used by product code; reflection fallback is not a product path. `IsAotCompatible` is
-enabled on net10 and later targets where the platform supports that contract (ADR-0003).
+enabled on every modern target the packages build (`net8.0` and later), where the platform supports
+that contract, as a target-framework range rather than a named target (ADR-0003).

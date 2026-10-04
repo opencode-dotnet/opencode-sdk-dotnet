@@ -1,4 +1,8 @@
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
+using OpenCode.Sdk.Internal.Serialization;
 using OpenCode.Sdk.Models;
+using OpenCode.Sdk.TestSupport;
 
 namespace OpenCode.Sdk.Tests;
 
@@ -6,11 +10,16 @@ namespace OpenCode.Sdk.Tests;
 /// A generated model whose member upstream's HTTP recorder redacts, or a curation row marks,
 /// prints that member as upstream's own marker (ADR-0028): logging a configuration, a request, or
 /// a union holding one never writes the secret. Presence stays visible; everything else prints as
-/// the compiler would print it.
+/// the compiler would print it. A union whose known arms carry such a member prints the payload
+/// of an arm this pin does not know as the marker too, since it may carry the same secret. A
+/// settings record whose open members are provider options prints them as the marker while it
+/// holds any, and empty while it holds none.
 /// </summary>
 public sealed class SecretMemberPrintingTests
 {
     private const string Secret = "s3cr3t-client-value";
+
+    private readonly FixtureLoader _fixtures = new();
 
     [Test]
     public async Task McpOAuthConfig_Should_Mask_The_Client_Secret()
@@ -94,4 +103,188 @@ public sealed class SecretMemberPrintingTests
         await Assert.That(entry.ToString()).DoesNotContain(Secret);
         await Assert.That(entry.ToString()).Contains("Key = [REDACTED]");
     }
+
+    [Test]
+    public async Task A_Curated_Config_Provider_Header_Map_Should_Be_Masked()
+    {
+        var provider = new ConfigProvider
+        {
+            Headers = new Dictionary<string, string>(StringComparer.Ordinal) { ["Authorization"] = "Bearer " + Secret },
+        };
+
+        await Assert.That(provider.ToString()).Contains("Headers = [REDACTED]");
+    }
+
+    [Test]
+    public async Task A_Curated_Session_Environment_Map_Should_Be_Masked()
+    {
+        var request = new SessionEnvironmentRequest
+        {
+            Variables = new Dictionary<string, string>(StringComparer.Ordinal) { ["OPENAI_API_KEY"] = Secret },
+        };
+
+        await Assert.That(request.ToString()).IsEqualTo("SessionEnvironmentRequest { Variables = [REDACTED] }");
+    }
+
+    [Test]
+    public async Task UnknownCredentialValue_Should_Print_Its_Marker_With_The_Payload_Masked()
+    {
+        var value = Deserialize("Serialization.unknown-credential-value.json", OpenCodeJsonContext.Default.ICredentialValue);
+
+        await Assert.That(value).IsTypeOf<UnknownCredentialValue>();
+        await Assert.That(value.ToString()).IsEqualTo("UnknownCredentialValue { Type = jwt, Payload = [REDACTED] }");
+    }
+
+    [Test]
+    public async Task UnknownMcp_Should_Print_Its_Marker_With_The_Payload_Masked()
+    {
+        var value = Deserialize("Serialization.unknown-mcp.json", OpenCodeJsonContext.Default.IMcp);
+
+        await Assert.That(value).IsTypeOf<UnknownMcp>();
+        await Assert.That(value.ToString()).IsEqualTo("UnknownMcp { Type = sse, Payload = [REDACTED] }");
+    }
+
+    /// <summary>A config entry reaches masked members through the document it holds (MCP servers, providers, agents, formatters, and LSP servers).</summary>
+    [Test]
+    public async Task UnknownConfigEntry_Should_Print_Its_Marker_With_The_Payload_Masked()
+    {
+        var value = Deserialize("Serialization.unknown-config-entry.json", OpenCodeJsonContext.Default.IConfigEntry);
+
+        await Assert.That(value).IsTypeOf<UnknownConfigEntry>();
+        await Assert.That(value.ToString()).IsEqualTo("UnknownConfigEntry { Type = remote, Payload = [REDACTED] }");
+    }
+
+    [Test]
+    public async Task McpRemoteConfigOauth_Should_Print_An_Unknown_Token_Masked()
+    {
+        using var document = JsonDocument.Parse(_fixtures.LoadJson("Serialization.unknown-mcp-oauth-token.json"));
+
+        var oauth = McpRemoteConfigOauth.FromUnknown(document.RootElement);
+
+        await Assert.That(oauth.ToString()).IsEqualTo("McpRemoteConfigOauth { Kind = Unknown, Unknown = [REDACTED] }");
+    }
+
+    [Test]
+    public async Task A_Credential_Entry_Should_Not_Print_The_Payload_Of_An_Unknown_Value()
+    {
+        var value = (UnknownCredentialValue)Deserialize("Serialization.unknown-credential-value.json", OpenCodeJsonContext.Default.ICredentialValue);
+        var entry = new CredentialEntry { Id = "cred_1", IntegrationId = "vault", Label = "work", Active = true, Value = value };
+
+        await Assert.That(entry.ToString()).DoesNotContain(value.Payload.GetProperty("token").GetString()!);
+        await Assert.That(entry.ToString()).Contains("Value = UnknownCredentialValue { Type = jwt, Payload = [REDACTED] }");
+    }
+
+    /// <summary>Masking is the printed form only: the carrier still writes back the document it preserved.</summary>
+    [Test]
+    public async Task UnknownCredentialValue_Should_Still_Serialize_Its_Payload()
+    {
+        var json = _fixtures.LoadJson("Serialization.unknown-credential-value.json");
+        var value = JsonSerializer.Deserialize(json, OpenCodeJsonContext.Default.ICredentialValue)!;
+
+        using var expected = JsonDocument.Parse(json);
+        using var actual = JsonDocument.Parse(JsonSerializer.Serialize(value, OpenCodeJsonContext.Default.ICredentialValue));
+        await Assert.That(JsonElement.DeepEquals(expected.RootElement, actual.RootElement)).IsTrue();
+    }
+
+    /// <summary>No known MCP status arm carries a secret, so its unknown carrier keeps the compiler's print, payload included.</summary>
+    [Test]
+    public async Task UnknownMcpStatus_Should_Still_Print_Its_Payload()
+    {
+        var value = (UnknownMcpStatus)Deserialize("Serialization.unknown-mcp-status.json", OpenCodeJsonContext.Default.IMcpStatus);
+
+        await Assert.That(value.ToString()).IsEqualTo($"UnknownMcpStatus {{ Status = throttled, Payload = {value.Payload.GetRawText()} }}");
+    }
+
+    /// <summary>The members provider settings leave open are AI SDK provider options, the API key among them.</summary>
+    [Test]
+    public async Task ProviderSettings_Should_Mask_Open_Members_That_Carry_An_Api_Key()
+    {
+        var settings = JsonSerializer.Deserialize($$"""{"apiKey":"{{Secret}}"}""", OpenCodeJsonContext.Default.ProviderSettings)!;
+
+        await Assert.That(settings.ToString()).IsEqualTo(
+            "ProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Transport = , AdditionalProperties = [REDACTED] }");
+    }
+
+    [Test]
+    public async Task ProviderSettings_Should_Print_An_Empty_Open_Bag_Empty()
+    {
+        var settings = new ProviderSettings();
+
+        await Assert.That(settings.ToString()).IsEqualTo(
+            "ProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Transport = , AdditionalProperties =  }");
+    }
+
+    /// <summary>Masking is the printed form only: the open members still go back on the wire.</summary>
+    [Test]
+    public async Task ProviderSettings_Should_Still_Serialize_Its_Open_Members()
+    {
+        using var key = JsonDocument.Parse($"\"{Secret}\"");
+        var settings = new ProviderSettings
+        {
+            AdditionalProperties = new Dictionary<string, JsonElement>(StringComparer.Ordinal) { ["apiKey"] = key.RootElement.Clone() },
+        };
+
+        using var written = JsonDocument.Parse(JsonSerializer.Serialize(settings, OpenCodeJsonContext.Default.ProviderSettings));
+
+        await Assert.That(written.RootElement.GetProperty("apiKey").GetString()).IsEqualTo(Secret);
+    }
+
+    [Test]
+    public async Task A_Provider_Request_Should_Print_Its_Settings_Open_Members_Masked()
+    {
+        var options = new ProviderRequestOptions
+        {
+            Settings = JsonSerializer.Deserialize($$"""{"apiKey":"{{Secret}}"}""", OpenCodeJsonContext.Default.ProviderSettings)!,
+            Headers = new Dictionary<string, string>(StringComparer.Ordinal),
+            Body = new Dictionary<string, JsonElement>(StringComparer.Ordinal),
+        };
+
+        await Assert.That(options.ToString()).DoesNotContain(Secret);
+        await Assert.That(options.ToString()).Contains("AdditionalProperties = [REDACTED]");
+    }
+
+    [Test]
+    public async Task ConfigProviderSettings_Should_Mask_Open_Members()
+    {
+        var settings = JsonSerializer.Deserialize($$"""{"bearerToken":"{{Secret}}"}""", OpenCodeJsonContext.Default.ConfigProviderSettings)!;
+
+        await Assert.That(settings.ToString()).IsEqualTo(
+            "ConfigProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Transport = , AdditionalProperties = [REDACTED] }");
+    }
+
+    [Test]
+    public async Task ModelSettings_Should_Mask_Open_Members()
+    {
+        var settings = JsonSerializer.Deserialize($$"""{"apiKey":"{{Secret}}"}""", OpenCodeJsonContext.Default.ModelSettings)!;
+
+        await Assert.That(settings.ToString()).IsEqualTo("ModelSettings { Compaction = , AdditionalProperties = [REDACTED] }");
+    }
+
+    [Test]
+    public async Task ConfigModelSettings_Should_Mask_Open_Members()
+    {
+        var settings = JsonSerializer.Deserialize($$"""{"apiKey":"{{Secret}}"}""", OpenCodeJsonContext.Default.ConfigModelSettings)!;
+
+        await Assert.That(settings.ToString()).IsEqualTo("ConfigModelSettings { Compaction = , AdditionalProperties = [REDACTED] }");
+        await Assert.That(new ConfigModelSettings().ToString()).IsEqualTo("ConfigModelSettings { Compaction = , AdditionalProperties =  }");
+    }
+
+    [Test]
+    [Arguments(false, null)]
+    [Arguments(true, RecordPrinter.Redacted)]
+    public async Task RedactEntries_Should_Mark_Only_A_Collection_Holding_An_Entry(bool holdsEntry, string? expected)
+    {
+        var entries = new Dictionary<string, int>(StringComparer.Ordinal);
+        if (holdsEntry)
+        {
+            entries["apiKey"] = 1;
+        }
+
+        await Assert.That(RecordPrinter.RedactEntries(entries)).IsEqualTo(expected);
+        await Assert.That(RecordPrinter.RedactEntries<int>(null)).IsNull();
+    }
+
+    private T Deserialize<T>(string fixture, JsonTypeInfo<T> typeInfo) =>
+        JsonSerializer.Deserialize(_fixtures.LoadJson(fixture), typeInfo)
+        ?? throw new InvalidOperationException($"Fixture '{fixture}' materialized null.");
 }

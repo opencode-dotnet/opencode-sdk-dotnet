@@ -694,7 +694,8 @@ public sealed class SpecBinderTests
             .WithOperation("health.get", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("HybridInfo")))));
 
-        var plan = new BindingTestHost().Bind(document, Selection("health.get"), Curation(Groups("health", RootGroup())));
+        var plan = new BindingTestHost().Bind(document, Selection("health.get"),
+            Curation(Groups("health", RootGroup()), redactedOpenMembers: [OpenMembers("HybridInfo", redact: false)]));
 
         var hybrid = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "HybridInfo");
         await Assert.That(hybrid.EmitsExtensionData).IsTrue();
