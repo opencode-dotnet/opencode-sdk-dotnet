@@ -38,6 +38,7 @@ internal static class SecretMemberPolicy
         var objects = models.OfType<ObjectModelPlan>().ToArray();
         var rows = ValidateMemberRows(objects, curation.RedactedMembers, errors);
         var cleared = ValidateNameRows(objects, curation.SecretLookingNames, errors);
+        var openBags = ValidateOpenMemberRows(objects, curation.RedactedOpenMembers, errors);
 
         return
         [
@@ -45,6 +46,7 @@ internal static class SecretMemberPolicy
                 ? objectModel with
                 {
                     Properties = [.. objectModel.Properties.Select(property => Decide(objectModel, property, rows, cleared, errors))],
+                    RedactsExtensionData = openBags.Contains(objectModel.Name),
                 }
                 : model),
         ];
@@ -74,7 +76,7 @@ internal static class SecretMemberPolicy
             if (model is ObjectModelPlan objectModel)
             {
                 references[objectModel.Name] = [.. objectModel.Properties.SelectMany(static property => NamedTypes(property.Type))];
-                if (objectModel.Properties.Any(static property => property.IsRedacted))
+                if (objectModel.RedactsExtensionData || objectModel.Properties.Any(static property => property.IsRedacted))
                 {
                     _ = reaching.Add(objectModel.Name);
                 }
@@ -195,6 +197,36 @@ internal static class SecretMemberPolicy
             else if (!row.Redact && !floor)
             {
                 errors.Add(BindingErrorCategory.Curation, subject, "redacted member curation lifts a mask the upstream redaction list never applies");
+            }
+        }
+
+        return result;
+    }
+
+    private static HashSet<string> ValidateOpenMemberRows(ObjectModelPlan[] models, IReadOnlyList<RedactedOpenMembersCuration> rows,
+        BindingErrorCollector errors)
+    {
+        var byName = models.ToDictionary(static model => model.Name, StringComparer.Ordinal);
+        var result = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var row in rows)
+        {
+            if (!result.Add(row.Model))
+            {
+                errors.Add(BindingErrorCategory.Curation, row.Model, "redacted open members curation is duplicated");
+            }
+
+            if (string.IsNullOrWhiteSpace(row.Reason))
+            {
+                errors.Add(BindingErrorCategory.Curation, row.Model, "redacted open members curation must declare a reason");
+            }
+
+            if (!byName.TryGetValue(row.Model, out var model))
+            {
+                errors.Add(BindingErrorCategory.Curation, row.Model, "redacted open members curation names no generated model");
+            }
+            else if (!model.EmitsExtensionData)
+            {
+                errors.Add(BindingErrorCategory.Curation, row.Model, "redacted open members curation names a model that leaves no member open");
             }
         }
 

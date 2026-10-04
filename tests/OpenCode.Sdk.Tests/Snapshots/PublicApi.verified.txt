@@ -2802,6 +2802,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("compaction")]
         public OpenCode.Sdk.Models.IProviderCompaction? Compaction { get; init; }
+        public override string ToString() { }
     }
     public sealed class ConfigModelVariants : System.IEquatable<OpenCode.Sdk.Models.ConfigModelVariants>
     {
@@ -2877,6 +2878,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("transport")]
         public OpenCode.Sdk.Models.ProviderTransport? Transport { get; init; }
+        public override string ToString() { }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.ConfigProviderSettingsChunkTimeoutJsonConverter))]
     public sealed class ConfigProviderSettingsChunkTimeout : System.IEquatable<OpenCode.Sdk.Models.ConfigProviderSettingsChunkTimeout>
@@ -5190,6 +5192,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("compaction")]
         public OpenCode.Sdk.Models.IProviderCompaction? Compaction { get; init; }
+        public override string ToString() { }
     }
     public sealed class ModelUpdated : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.ModelUpdated>
     {
@@ -6061,6 +6064,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("transport")]
         public OpenCode.Sdk.Models.ProviderTransport? Transport { get; init; }
+        public override string ToString() { }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.ProviderSettingsChunkTimeoutJsonConverter))]
     public sealed class ProviderSettingsChunkTimeout : System.IEquatable<OpenCode.Sdk.Models.ProviderSettingsChunkTimeout>

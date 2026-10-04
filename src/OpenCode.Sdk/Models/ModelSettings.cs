@@ -37,4 +37,9 @@ public sealed record ModelSettings
     [JsonExtensionData]
     [JsonInclude]
     internal Dictionary<string, JsonElement>? OpenMembers { get; set; }
+
+    /// <summary>
+    /// Prints the record&apos;s members with its secret members masked.
+    /// </summary>
+    public override string ToString() => RecordPrinter.Format(nameof(ModelSettings), ("Compaction", Compaction), ("AdditionalProperties", RecordPrinter.RedactEntries(AdditionalProperties)));
 }

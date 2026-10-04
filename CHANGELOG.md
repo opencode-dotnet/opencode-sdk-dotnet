@@ -25,6 +25,12 @@ Nightly builds of `master` are on
   `ConfigProvider.Headers`, `ConfigModel.Headers`, `ConfigModelVariants.Headers`,
   `ConfigAgentRequest.Headers`, `ConfigFormatterEntry.Environment`, `ConfigLspServer.Env`, and
   `SessionEnvironmentRequest.Variables`.
+- **The open provider options are masked in `ToString()`.** `ProviderSettings`,
+  `ConfigProviderSettings`, `ModelSettings`, and `ConfigModelSettings` keep upstream's provider
+  options, `apiKey` among them, in `AdditionalProperties`. A record printed that dictionary's type
+  name, so no key was printed; it now prints `[REDACTED]` while the dictionary holds any member and
+  empty while it holds none, so the value stays out if printing ever changes. The dictionary and
+  serialization are unchanged.
 
 ## [0.9.0-preview.6] - 2026-10-04
 

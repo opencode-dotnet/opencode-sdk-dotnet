@@ -11,7 +11,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 /// <summary>
 /// A model with a secret member prints itself (ADR-0028). The override must keep the compiler's
 /// own shape exactly — the same members in the same order, the same spacing, an absent value
-/// empty — so the only difference from the synthesized ToString is the masked value. A union
+/// empty — so the only difference from the synthesized ToString is the masked value; a masked
+/// open bag prints the marker only while it holds an open member. A union
 /// flagged to mask its unknown payload prints that payload, and only that, as the marker.
 /// </summary>
 public sealed class SecretMemberEmissionTests
@@ -44,6 +45,47 @@ public sealed class SecretMemberEmissionTests
         {
             await Assert.That(plain).Contains(printedSecret);
         }
+    }
+
+    [Test]
+    public async Task Emit_Should_Print_The_Open_Members_Through_RedactEntries_On_A_Flagged_Open_Model()
+    {
+        var sources = ModelEmitter.Emit(RedactOpen(EmitterPlanFixture.CreateModelSnapshot(), "OpenSettings"));
+
+        await Assert.That(EmitterSnapshot.Content(sources, "Models/OpenSettings.cs")).Contains(
+            "public override string ToString() => RecordPrinter.Format(nameof(OpenSettings), (\"Timeout\", Timeout), (\"AdditionalProperties\", RecordPrinter.RedactEntries(AdditionalProperties)));");
+    }
+
+    [Test]
+    public async Task Emit_Should_Refuse_A_Model_That_Masks_Extension_Data_It_Does_Not_Carry()
+    {
+        var plan = RedactOpen(EmitterPlanFixture.CreateModelSnapshot(), "ExampleItem");
+
+        var exception = Assert.Throws<InvalidOperationException>(() => _ = ModelEmitter.Emit(plan));
+
+        await Assert.That(exception.Message).IsEqualTo("Model 'ExampleItem' masks extension data it does not carry.");
+    }
+
+    /// <summary>
+    /// The compiler prints the view's type name; the override prints the marker for a bag holding
+    /// an open member and nothing for an empty one, and every other member as the compiler does.
+    /// </summary>
+    [Test]
+    [ParallelLimiter<RoslynCompilationSlots>]
+    [Arguments("""{"timeout":5,"apiKey":"hunter2"}""", "[REDACTED]")]
+    [Arguments("""{"timeout":5}""", "")]
+    public async Task Emit_Should_Print_The_Compilers_Shape_With_Only_The_Open_Members_Masked(string payload, string printedBag)
+    {
+        var plain = await PrintAsync(EmitterPlanFixture.Create(), "OpenSettings", payload);
+        var masked = await PrintAsync(RedactOpen(EmitterPlanFixture.Create(), "OpenSettings"), "OpenSettings", payload);
+
+        // The bag is the record's last member, so its printed value runs up to the closing brace.
+        const string label = "AdditionalProperties = ";
+        var start = plain.IndexOf(label, StringComparison.Ordinal) + label.Length;
+        var end = plain.LastIndexOf(" }", StringComparison.Ordinal);
+        await Assert.That(plain).StartsWith("OpenSettings { Timeout = 5, AdditionalProperties = ");
+        await Assert.That(masked).IsEqualTo(plain[..start] + printedBag + plain[end..]);
+        await Assert.That(masked).DoesNotContain("hunter2");
     }
 
     [Test]
@@ -167,6 +209,17 @@ public sealed class SecretMemberEmissionTests
                             .. objectModel.Properties.Select(property => property.WireName == wireName ? property with { IsRedacted = true } : property),
                         ],
                     }
+                    : model),
+            ],
+        };
+
+    private static EmitPlan RedactOpen(EmitPlan plan, string modelName) =>
+        plan with
+        {
+            Models =
+            [
+                .. plan.Models.Select(model => model is ObjectModelPlan objectModel && objectModel.Name == modelName
+                    ? objectModel with { RedactsExtensionData = true }
                     : model),
             ],
         };

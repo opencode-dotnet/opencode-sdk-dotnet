@@ -54,6 +54,13 @@ internal static class RecordPrinterSyntax
         EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("RecordPrinter"), "Redact"),
         SyntaxFactory.Argument(value));
 
+    /// <summary><c>RecordPrinter.RedactEntries(&lt;value&gt;)</c>: the marker for a collection holding an entry, nothing for an empty one.</summary>
+    /// <param name="value">The masked collection.</param>
+    /// <returns>The redact call.</returns>
+    public static InvocationExpressionSyntax RedactEntries(ExpressionSyntax value) => EmissionSyntax.Invocation(
+        EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("RecordPrinter"), "RedactEntries"),
+        SyntaxFactory.Argument(value));
+
     /// <summary><c>RecordPrinter.Redacted</c>, the marker itself.</summary>
     /// <returns>The marker access.</returns>
     public static MemberAccessExpressionSyntax Redacted() =>

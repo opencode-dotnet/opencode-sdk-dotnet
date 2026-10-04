@@ -75,4 +75,10 @@ internal sealed record ObjectModelPlan : ModelPlan
     /// document leaves open lands there by name instead of being dropped.
     /// </summary>
     public bool EmitsExtensionData { get; init; }
+
+    /// <summary>
+    /// Gets whether the record prints its extension data masked: a curation row records that the
+    /// members the document leaves open carry a secret. Only an open model sets it.
+    /// </summary>
+    public bool RedactsExtensionData { get; init; }
 }

@@ -49,6 +49,18 @@ public sealed class CurationLoaderTests
     }
 
     [Test]
+    public async Task LoadAsync_Should_Read_Reasoned_Redacted_Open_Members_Rows()
+    {
+        var fileSystem = CreateFileSystem("Binding.redacted-open-members-curation.json");
+
+        var curation = await new CurationLoader(fileSystem).LoadAsync(CurationPath, CancellationToken.None);
+
+        var row = curation.RedactedOpenMembers.Single();
+        await Assert.That(row.Model).IsEqualTo("ProviderSettings");
+        await Assert.That(row.Reason).Contains("provider options");
+    }
+
+    [Test]
     public async Task GenerationCuration_Should_Expose_Only_Allowed_Curation_Sections()
     {
         var sections = typeof(GenerationCuration)
@@ -61,7 +73,7 @@ public sealed class CurationLoaderTests
             .That(sections)
             .IsEquivalentTo([
                 "declined", "enumMemberNames", "envelopePayloadNames", "groups", "hoistedMemberNames", "operationIdentities",
-                "operationNames", "redactedMembers", "schemaAliases", "schemaNames", "secretLookingNames", "transportOwned"
+                "operationNames", "redactedMembers", "redactedOpenMembers", "schemaAliases", "schemaNames", "secretLookingNames", "transportOwned"
             ]);
     }
 

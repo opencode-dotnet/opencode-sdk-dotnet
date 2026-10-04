@@ -12,7 +12,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 /// matches it; curation rows add or lift a mask; a member whose name carries one of upstream's
 /// secret-marker words refuses the bind until a row decides it; and every row must still mean
 /// something against the bound models (ADR-0028). A union whose known arms reach a masked member
-/// at any depth masks the payload its unknown arm preserves.
+/// at any depth masks the payload its unknown arm preserves. An open model's extension data has
+/// no wire name, so only a row naming the model masks it, and the row must name an open model.
 /// </summary>
 public sealed class SecretMemberPolicyTests
 {
@@ -226,6 +227,87 @@ public sealed class SecretMemberPolicyTests
 
         await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultTree"]);
     }
+
+    [Test]
+    public async Task Bind_Should_Mask_The_Open_Members_Of_A_Model_A_Row_Names()
+    {
+        var plan = await BindOpenAsync([OpenRow("VaultSettings")]);
+
+        await Assert.That(OpenModel(plan, "VaultSettings").RedactsExtensionData).IsTrue();
+        await Assert.That(OpenModel(plan, "VaultInfo").RedactsExtensionData).IsFalse();
+    }
+
+    /// <summary>An open bag carries a secret only where upstream reads one from it, so no row means no mask.</summary>
+    [Test]
+    public async Task Bind_Should_Print_The_Open_Members_Of_A_Model_No_Row_Names()
+    {
+        var plan = await BindOpenAsync([]);
+
+        await Assert.That(OpenModel(plan, "VaultSettings").EmitsExtensionData).IsTrue();
+        await Assert.That(OpenModel(plan, "VaultSettings").RedactsExtensionData).IsFalse();
+    }
+
+    [Test]
+    public async Task Bind_Should_Refuse_Open_Member_Rows_That_Decide_Nothing()
+    {
+        var document = await BindingTestHost.IngestAsync(OpenScenario());
+        var curation = Curation(Groups("vault", RootGroup()), redactedOpenMembers:
+        [
+            OpenRow("Absent"),
+            OpenRow("VaultInfo"),
+            OpenRow("VaultSettings"),
+            OpenRow("VaultSettings") with { Reason = " " },
+        ]);
+
+        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection("vault.get"), curation));
+
+        await Assert.That(Problems(exception)).IsEquivalentTo(
+        [
+            "Absent: redacted open members curation names no generated model",
+            "VaultInfo: redacted open members curation names a model that leaves no member open",
+            "VaultSettings: redacted open members curation is duplicated",
+            "VaultSettings: redacted open members curation must declare a reason",
+        ]);
+    }
+
+    /// <summary>A masked open bag taints a union the way a masked member does: an unknown arm may carry the same options.</summary>
+    [Test]
+    public async Task MaskUnknownPayloads_Should_Flag_A_Union_Whose_Arm_Masks_Its_Open_Members()
+    {
+        var result = SecretMemberPolicy.MaskUnknownPayloads(
+            [
+                Record("VaultSettings", Property("id", Named("string"), isRequired: true)) with { EmitsExtensionData = true, RedactsExtensionData = true },
+                Record("PlainSettings", Property("id", Named("string"), isRequired: true)) with { EmitsExtensionData = true },
+            ],
+            [Union("IVaultValue", Arm("VaultSettings")), Union("IPlainValue", Arm("PlainSettings"))]);
+
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"]);
+    }
+
+    /// <summary>The settings record leaves its remaining members open; the info record holding it does not.</summary>
+    private static SpecScenario OpenScenario() => SpecScenario.Define(spec => spec
+        .WithSchema("VaultSettings", schema => schema
+            .Type("object")
+            .Property("timeout", property => property.Type("number"), required: false)
+            .AllOf(rest => rest.Type("object").AdditionalProperties(static value => _ = value.Unrestricted())))
+        .WithSchema("VaultInfo", schema => schema
+            .Type("object")
+            .Property("id", property => property.Type("string"), required: true)
+            .Property("settings", property => property.Ref("VaultSettings"), required: false))
+        .WithOperation("vault.get", path: "/api/vault", configure: operation => operation
+            .Response(200, "application/json", schema => schema.Ref("VaultInfo"))));
+
+    private static async Task<EmitPlan> BindOpenAsync(IReadOnlyList<RedactedOpenMembersCuration> redactedOpenMembers)
+    {
+        var document = await BindingTestHost.IngestAsync(OpenScenario());
+        return new BindingTestHost().Bind(document, Selection("vault.get"),
+            Curation(Groups("vault", RootGroup()), redactedOpenMembers: redactedOpenMembers));
+    }
+
+    private static RedactedOpenMembersCuration OpenRow(string model) => new() { Model = model, Reason = Reason };
+
+    private static ObjectModelPlan OpenModel(EmitPlan plan, string name) =>
+        plan.Models.OfType<ObjectModelPlan>().Single(model => model.Name == name);
 
     private static SpecScenario Scenario(string secretMember) => SpecScenario.Define(spec => spec
         .WithSchema("VaultInfo", schema => schema

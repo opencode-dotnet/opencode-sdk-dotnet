@@ -302,10 +302,17 @@ internal static class ModelEmitter
     /// through <c>RecordPrinter.Redact</c>. It overrides ToString rather than declaring
     /// PrintMembers, which a sealed record with no record base may only declare private (CS8879),
     /// where IDE0051 cannot see the synthesized caller and the writer's format pass would strip it.
+    /// An open model whose extension data a curation row masks prints the public view through
+    /// <c>RecordPrinter.RedactEntries</c>, so an empty view still prints empty.
     /// </summary>
     private static IEnumerable<MemberDeclarationSyntax> EmitRedactingToString(ObjectModelPlan model, IReadOnlyList<ChainMarker> markers)
     {
-        if (!model.Properties.Any(static property => property.IsRedacted))
+        if (model.RedactsExtensionData && !model.EmitsExtensionData)
+        {
+            throw new InvalidOperationException($"Model '{model.Name}' masks extension data it does not carry.");
+        }
+
+        if (!model.RedactsExtensionData && !model.Properties.Any(static property => property.IsRedacted))
         {
             yield break;
         }
@@ -313,11 +320,17 @@ internal static class ModelEmitter
         var members = model.Properties
             .Select(property => PrintedMember(property, CarriedMarker(markers, property)?.MemberName ?? property.Name))
             .Concat(model.RequestQueryProperties.Select(static property => RecordPrinterSyntax.Member(property.PropertyName)))
-            .Concat(model.EmitsExtensionData ? [RecordPrinterSyntax.Member(ObjectModelPlan.ExtensionDataMemberName)] : []);
+            .Concat(model.EmitsExtensionData ? [PrintedExtensionData(model.RedactsExtensionData)] : []);
         yield return RecordPrinterSyntax.ToStringOverride(
             RecordPrinterSyntax.Format(model.Name, members),
             "Prints the record's members with its secret members masked.");
     }
+
+    /// <summary><c>("AdditionalProperties", AdditionalProperties)</c>, or <c>("AdditionalProperties", RecordPrinter.RedactEntries(AdditionalProperties))</c> for a masked bag.</summary>
+    private static ArgumentSyntax PrintedExtensionData(bool redacts) =>
+        RecordPrinterSyntax.Member(
+            ObjectModelPlan.ExtensionDataMemberName,
+            redacts ? RecordPrinterSyntax.RedactEntries(SyntaxFactory.IdentifierName(ObjectModelPlan.ExtensionDataMemberName)) : null);
 
     /// <summary><c>("Name", Name)</c>, or <c>("Name", RecordPrinter.Redact(Name))</c> for a secret member; an unset tri-state member prints empty.</summary>
     private static ArgumentSyntax PrintedMember(ModelPropertyPlan property, string memberName)
@@ -428,7 +441,7 @@ internal static class ModelEmitter
         }
 
         // A model with a secret member prints through the runtime's record printer.
-        if (model.Properties.Any(static property => property.IsRedacted))
+        if (model.RedactsExtensionData || model.Properties.Any(static property => property.IsRedacted))
         {
             _ = result.Add("OpenCode.Sdk.Internal.Serialization");
         }
