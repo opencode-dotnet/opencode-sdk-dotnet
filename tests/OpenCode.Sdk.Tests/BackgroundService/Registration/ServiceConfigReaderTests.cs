@@ -5,7 +5,7 @@ using OpenCode.Sdk.TestSupport;
 namespace OpenCode.Sdk.Tests.BackgroundService.Registration;
 
 /// <summary>
-/// The strict boundary over the CLI's service config: the five declared members are validated, the
+/// The strict boundary over the CLI's service config: the six declared members are validated, the
 /// persisted password is accepted and never surfaced, and only the environment map comes out.
 /// </summary>
 public sealed class ServiceConfigReaderTests
@@ -25,6 +25,9 @@ public sealed class ServiceConfigReaderTests
     [Test]
     [Arguments(ServiceConfigData.Empty)]
     [Arguments(ServiceConfigData.HostnameOnly)]
+    [Arguments(ServiceConfigData.DisabledTrue)]
+    [Arguments(ServiceConfigData.DisabledFalse)]
+    [Arguments(ServiceConfigData.DisabledAsTheCliWritesIt)]
     [Arguments(ServiceConfigData.PortAtLowerBound)]
     [Arguments(ServiceConfigData.PortAtUpperBound)]
     public async Task TryReadEnvironment_Should_Accept_A_Valid_Config_Without_Environment_As_Empty(string json)
@@ -44,15 +47,38 @@ public sealed class ServiceConfigReaderTests
         await Assert.That(environment["A"]).IsEqualTo("1");
     }
 
+    /// <summary>
+    /// The CLI's schema reads <c>port</c> as <c>Number.isSafeInteger</c> over the value <c>JSON.parse</c>
+    /// produced, so the notation an integer is written in does not matter, and <c>disabled</c> never
+    /// gates the environment.
+    /// </summary>
+    [Test]
+    [Arguments(ServiceConfigData.PortWithZeroFraction)]
+    [Arguments(ServiceConfigData.PortInExponentNotation)]
+    [Arguments(ServiceConfigData.DisabledWithEnvironment)]
+    public async Task TryReadEnvironment_Should_Return_The_Environment_Of_A_Config_The_Cli_Accepts(string json)
+    {
+        var environment = ServiceConfigReader.TryReadEnvironment(Bytes(json));
+
+        await Assert.That(environment).IsNotNull();
+        await Assert.That(environment.Count).IsEqualTo(1);
+        await Assert.That(environment["A"]).IsEqualTo("1");
+    }
+
     [Test]
     [Arguments(ServiceConfigData.PortZero)]
     [Arguments(ServiceConfigData.PortAboveRange)]
+    [Arguments(ServiceConfigData.PortWithFraction)]
+    [Arguments(ServiceConfigData.PortPastSafeInteger)]
     [Arguments(ServiceConfigData.PortAsString)]
     [Arguments(ServiceConfigData.CorsNotAnArray)]
     [Arguments(ServiceConfigData.CorsWithNonString)]
     [Arguments(ServiceConfigData.EnvWithNonStringValue)]
     [Arguments(ServiceConfigData.EnvNotAnObject)]
     [Arguments(ServiceConfigData.HostnameNotAString)]
+    [Arguments(ServiceConfigData.DisabledAsString)]
+    [Arguments(ServiceConfigData.DisabledNull)]
+    [Arguments(ServiceConfigData.DisabledAsNumber)]
     [Arguments(ServiceConfigData.ArrayRoot)]
     [Arguments(ServiceConfigData.Malformed)]
     public async Task TryReadEnvironment_Should_Treat_An_Invalid_Config_As_Absent(string json)

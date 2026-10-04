@@ -37,7 +37,7 @@ internal static class MechanismActionsWalkthrough
 
         Console.WriteLine($"instructions-remove: status={entryRemove.Status} isError={entryRemove.IsError}");
 
-        var formCancel = await handle.CancelFormAsync("frm_missing", OpenCodeRequestOptions.NoThrow).ConfigureAwait(false);
+        var formCancel = await handle.CancelFormAsync("frm_missing", requestOptions: OpenCodeRequestOptions.NoThrow).ConfigureAwait(false);
 
         Console.WriteLine(formCancel.IsError
             ? $"form-cancel: status={formCancel.Status} error={ErrorName(formCancel)}"

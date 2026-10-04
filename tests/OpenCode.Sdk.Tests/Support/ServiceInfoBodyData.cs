@@ -32,6 +32,15 @@ internal static class ServiceInfoBodyData
     /// <summary>The literal the server reports when the app carries no version; compared as an ordinary string.</summary>
     public const string UnknownVersion = "{\"version\":\"unknown\",\"pid\":42," + Urls + "}";
 
+    /// <summary>The daemon's pid written with a zero fraction: <c>JSON.parse</c> reads 42, a safe integer.</summary>
+    public const string PidWithZeroFraction = "{\"version\":\"0.0.0-test\",\"pid\":42.0," + Urls + "}";
+
+    /// <summary>The daemon's pid written in exponent notation: <c>JSON.parse</c> reads 42, a safe integer.</summary>
+    public const string PidInExponentNotation = "{\"version\":\"0.0.0-test\",\"pid\":4.2e1," + Urls + "}";
+
+    /// <summary>A fraction that truncates to the daemon's pid: not an integer, so not this daemon.</summary>
+    public const string FractionalPid = "{\"version\":\"0.0.0-test\",\"pid\":42.5," + Urls + "}";
+
     /// <summary>Exceeds the process identity range.</summary>
     public const string PidAboveInt32 = "{\"version\":\"0.0.0-test\",\"pid\":2147483648," + Urls + "}";
 

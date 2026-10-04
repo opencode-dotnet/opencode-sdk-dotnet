@@ -19,6 +19,14 @@ public sealed record SessionCreateRequest
     public Optional<string?> Id { get; init; }
 
     /// <summary>
+    /// Gets the parent id value.
+    /// </summary>
+    [JsonPropertyName("parentID")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonConverter(typeof(OptionalOfStringJsonConverter))]
+    public Optional<string?> ParentId { get; init; }
+
+    /// <summary>
     /// Gets the title value.
     /// </summary>
     [JsonPropertyName("title")]

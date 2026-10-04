@@ -19,4 +19,11 @@ public sealed record ConnectionEnvInfo : IConnectionInfo
     /// </summary>
     [JsonPropertyName("name")]
     public required string Name { get; init; }
+
+    /// <summary>
+    /// Gets the status value.
+    /// </summary>
+    [JsonPropertyName("status")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ConnectionStatus? Status { get; init; }
 }

@@ -5,7 +5,7 @@ namespace OpenCode.Sdk.TestSupport;
 /// <summary>
 /// What the pinned server would load into every owned server from above a run root. Configuration
 /// discovery walks from each location to the drive root with no stop
-/// (<c>packages/core/src/config/discovery.ts:36</c> over <c>packages/util/src/fs-util.ts:162-179</c>
+/// (<c>packages/core/src/config/discovery.ts:36</c> over <c>packages/util/src/fs-util.ts:164-187</c>
 /// at the pin), so an ancestor's project configuration, and the skills directories it watches
 /// natively, belong to every workspace beneath it - whatever the environment redirects. Project
 /// resolution walks the same way: a workspace inside a repository belongs to that repository's

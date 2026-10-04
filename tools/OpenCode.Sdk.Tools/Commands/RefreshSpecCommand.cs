@@ -102,8 +102,11 @@ internal sealed partial class RefreshSpecCommand : AsyncCommand<RefreshSpecComma
         _console.MarkupLine($"[grey]Components:[/] {receipt.ComponentCount.ToString(CultureInfo.InvariantCulture)}; "
                             + $"[grey]contentSchema occurrences:[/] {receipt.ContentSchemaCount.ToString(CultureInfo.InvariantCulture)}");
         _console.MarkupLine(receipt.Patches.Count is 0
-            ? "[grey]Patch list:[/] empty (identity transform)"
+            ? "[grey]Patch list:[/] empty (the pinned generator's own output)"
             : $"[yellow]Patch list:[/] {receipt.Patches.Count.ToString(CultureInfo.InvariantCulture)} Restore patch(es) applied");
+        _console.MarkupLine(string.Equals(receipt.RawDocumentSha256, receipt.GeneratedBaselineSha256, StringComparison.Ordinal)
+            ? "[grey]Upstream's committed document:[/] matches its generator"
+            : "[yellow]Upstream's committed document:[/] differs from its generator (stale upstream artifact; not consumed)");
         WriteWatchedSourceSummary(receipt);
     }
 

@@ -153,6 +153,14 @@ public static class OpenCodeRoutes
         }
 
         /// <summary>
+        /// The &apos;POST /api/credential&apos; route.
+        /// </summary>
+        public const string CreateCredential = "/api/credential";
+        /// <summary>
+        /// The &apos;GET /api/credential&apos; route.
+        /// </summary>
+        public const string ListCredentials = "/api/credential";
+        /// <summary>
         /// The &apos;DELETE /api/credential/{credentialID}&apos; route template.
         /// </summary>
         public const string RemoveCredentialTemplate = "/api/credential/{credentialID}";
@@ -1854,8 +1862,9 @@ public static class OpenCodeRoutes
         /// </summary>
         /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>
         /// <param name = "formId">The &apos;formID&apos; route value.</param>
+        /// <param name = "request">The request shaping the query.</param>
         /// <returns>The escaped route.</returns>
-        public static string CancelForm(string sessionId, string formId)
+        public static string CancelForm(string sessionId, string formId, SessionFormCancelRequest? request = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
             if (sessionId is "." or "..")
@@ -1869,7 +1878,15 @@ public static class OpenCodeRoutes
                 throw new ArgumentException("Route values must not be dot segments.", nameof(formId));
             }
 
-            return "/api/session/" + RouteValuePolicy.Escape(sessionId, nameof(sessionId)) + "/form/" + RouteValuePolicy.Escape(formId, nameof(formId));
+            var path = "/api/session/" + RouteValuePolicy.Escape(sessionId, nameof(sessionId)) + "/form/" + RouteValuePolicy.Escape(formId, nameof(formId));
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddText("message", request.Message);
+            return path + query.Value;
         }
 
         /// <summary>

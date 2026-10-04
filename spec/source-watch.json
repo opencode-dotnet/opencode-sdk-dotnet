@@ -11,12 +11,30 @@
       }
     },
     {
+      "path": "packages/server/src/handlers/pty-socket.ts",
+      "sha256": "a480a11ce1b8e12ecfd0609eea82eaa1d9c422f55ac72234f58d9d98e25b7314",
+      "behavior": "runPtySocket races the PTY output drain against the WebSocket input loop with Effect.raceFirst, so whichever side ends first ends both PTY doors\u0027 connections, and runs detach on every exit path.",
+      "anchor": {
+        "type": "contains",
+        "text": "Effect.raceFirst(drain, socket).pipe(Effect.ensuring(Effect.sync(detach)))"
+      }
+    },
+    {
       "path": "packages/server/src/middleware/authorization.ts",
       "sha256": "61e1cb8df3e9f61803acbf25f4056349ad67ed8109f9bb63a7e474fc7c1cb0ef",
       "behavior": "A non-empty ticket query on a PTY connect, and a pairing link under /auth/connect/, skip the credential check, so the hand-written door authenticates the WebSocket upgrade with the ticket alone and a pairing code is redeemed with no other credential.",
       "anchor": {
         "type": "contains",
         "text": "hasPtyConnectTicketURL(url) || hasPersistentPtyConnectTicketURL(url)"
+      }
+    },
+    {
+      "path": "packages/server/src/cors.ts",
+      "sha256": "80fd8c8962c7fe641e4aa24f7d6522d1d7cd8db5a46f43f2244e6aac0377c333",
+      "behavior": "A request with no Origin header is allowed before any other origin rule (then a same-host origin, the localhost, 127.0.0.1, oc://renderer, Tauri, and opencode.ai origins, and the configured cors list); the SDK sends no Origin on its PTY WebSocket upgrades and relies on that first rule.",
+      "anchor": {
+        "type": "contains",
+        "text": "if (!input) return true"
       }
     },
     {
@@ -39,7 +57,7 @@
     },
     {
       "path": "packages/core/src/pty/ticket.ts",
-      "sha256": "e9415c803919c69800c3d0555781be795df91b9cf0d01c7776ac5091bb49c116",
+      "sha256": "5e310342ddbb8ceb8bc819d44a4a3712c8b19a10b76e82b405d9646c1747b071",
       "behavior": "PTY connect tickets are single-use and live 60 seconds.",
       "anchor": {
         "type": "contains",
@@ -48,7 +66,7 @@
     },
     {
       "path": "packages/core/src/pty.ts",
-      "sha256": "86ff2b792f1829b3f82badccffc1f63a95f98c7230f268c31d0f83c6f7340e6a",
+      "sha256": "ee4f45b418e0a34994c67f2e9f7fad45a3dc3452411482be85b7a0e09fbc26e4",
       "behavior": "The retained replay buffer is capped, exited sessions stay observable until they are removed, and attach replays from the requested cursor.",
       "anchor": {
         "type": "contains",
@@ -138,7 +156,7 @@
     },
     {
       "path": "packages/cli/package.json",
-      "sha256": "899bacadbbf480264163f05b9c222e79f44074ca85d88aca0117fff4a990df04",
+      "sha256": "b29352b1488ab64d41d2d6e22dada243395d35751bd335ad45b8952014e6c9ad",
       "behavior": "The CLI package bin map names \u0022opencode\u0022 as the installed command and keeps \u0022opencode2\u0022 as a transitional alias of the same launcher, so the shipped launcher default resolves \u0022opencode\u0022 from PATH.",
       "anchor": {
         "type": "contains",
@@ -147,7 +165,7 @@
     },
     {
       "path": "packages/core/package.json",
-      "sha256": "cca5224ae1a17d4a9991da955ac12a4c09697d58111f7edf20806b0c47b8b332",
+      "sha256": "f691dfb1f3ba86a15b3c7a51b57c55d77c04f2112d0b4c5431076664ee164130",
       "behavior": "The opencode-pty daemon dependency is pinned at 0.1.13, which fixes the daemon protocol the persistent-PTY door speaks.",
       "anchor": {
         "type": "contains",
@@ -201,11 +219,29 @@
     },
     {
       "path": "packages/cli/src/services/standalone.ts",
-      "sha256": "05b425f5b096770f9aa9c0fea938ce91e7ffdd368f19b3d6440a592dec3113ca",
-      "behavior": "The standalone service decodes one JSON readiness object from the child\u0027s stdout, requiring only a string url member, and ends the server by closing its stdin, which is the contract the SDK\u0027s launcher is a parity port of.",
+      "sha256": "28e02e9510d9ad94f95b48834a2b6ededb603a39d0fe5ea28559687840291a9d",
+      "behavior": "The standalone service decodes one JSON readiness object from the child\u0027s stdout, requiring only a string url member, and ends the server by closing its stdin, which is the contract the SDK\u0027s launcher is a parity port of. The endpoint it returns carries the child\u0027s pid and an exited effect (proc.exitCode) that yields the exit code, or fails with the terminating signal when a signal ended the child.",
       "anchor": {
         "type": "contains",
         "text": "const Ready = Schema.Struct({ url: Schema.String })"
+      }
+    },
+    {
+      "path": "packages/util/src/cross-spawn-spawner.ts",
+      "sha256": "9986d9c858933ea11e9c326b59af36a90922cdf3743c1e424fe94cf0eed35444",
+      "behavior": "The spawner the standalone service starts its child through merges the command env over the parent environment when extendEnv is set, starts the child in its own process group off Windows, and ends it by killing the tree (taskkill /pid \u003Cpid\u003E /T /F on Windows, process.kill(-pid, signal) elsewhere, falling back to the child alone) with killSignal, SIGTERM by default, escalating to SIGKILL once forceKillAfter elapses; after the child exits, its stdout and stderr share one 1-second deadline to close before they are discarded.",
+      "anchor": {
+        "type": "contains",
+        "text": "taskkill /pid ${proc.pid} /T /F"
+      }
+    },
+    {
+      "path": "packages/cli/bin/opencode.cjs",
+      "sha256": "db1934c5cd09ecb643a88687b5965a85446dfa85ae757a1629aecdf59a42825d",
+      "behavior": "The npm launcher resolves the platform binary (OPENCODE_BIN_PATH, a cached copy, or the node_modules package walk), spawns it with stdio inherit, forwards SIGINT, SIGTERM, and SIGHUP (plus SIGUSR1 off Windows) to it, and mirrors its exit: it re-raises the child\u0027s terminating signal on itself or exits with the child\u0027s code (0 when there is none). An npm-installed opencode command is therefore a node process whose child is the real server.",
+      "anchor": {
+        "type": "contains",
+        "text": "const child = childProcess.spawn(target, process.argv.slice(2), { stdio: \u0022inherit\u0022 })"
       }
     },
     {
@@ -236,6 +272,24 @@
       }
     },
     {
+      "path": "packages/server/src/middleware/session-location.ts",
+      "sha256": "4f801f945232709f63a7f67e682ebc2ae78bdc4b1eb89e191807a3b7b073c9a7",
+      "behavior": "Session-scoped routes take their location from the session row that the sessionID route parameter names, so the request\u0027s location[directory] query and x-opencode-directory header do not select the location there; an invalid session ID is InvalidRequestError and a missing session is SessionNotFoundError.",
+      "anchor": {
+        "type": "contains",
+        "text": "const session = yield* sessionInfo(sessions, route.params.sessionID)"
+      }
+    },
+    {
+      "path": "packages/server/src/middleware/form-location.ts",
+      "sha256": "c3328ac0159881adf03ff033c3da76048d9136a03a22bc36571125bd88809766",
+      "behavior": "Session form routes take their location from the session row like other session routes, except that the sessionID \u0022global\u0022 skips the session lookup and takes the location from the request (location[directory] query, then the x-opencode-directory header, then the server working directory).",
+      "anchor": {
+        "type": "contains",
+        "text": "if (route.params.sessionID === \u0022global\u0022) {"
+      }
+    },
+    {
       "path": "packages/server/src/handlers/event.ts",
       "sha256": "539b073446be0c6bda3b6f4311cc65e54a1e30ac733cb5428c341adaff3b92f5",
       "behavior": "The global event stream sends server.connected as its first frame and a heartbeat every 15 seconds, which the SSE door\u0027s first-frame handling and idle expectations depend on.",
@@ -254,6 +308,15 @@
       }
     },
     {
+      "path": "packages/client/src/solid/connection.ts",
+      "sha256": "3b93c8ba83bd7b77bfb6901fa27d062f90e65007a8db0694731c0eab21c19d32",
+      "behavior": "The first-party client\u0027s event connection aborts an attempt that has not delivered server.connected within 2 seconds, aborts a connected stream that stays silent for the idle timeout (45 seconds by default), waits 1 second before reconnecting unless a resync forced the reconnect or the first failed attempt\u0027s reconnect hook resolved a new server, and resubscribes without a Last-Event-ID, so it never asks the server to replay missed events.",
+      "anchor": {
+        "type": "contains",
+        "text": "const reconnectDelay = 1_000"
+      }
+    },
+    {
       "path": "packages/core/src/bus.ts",
       "sha256": "1bf5e97b3c3618a79487d75adcfddc602d2068c7759d2018eb9ad7d08f4b57f9",
       "behavior": "Event persistence is off unless the host enables it, a durable replay yields events strictly after the requested sequence, and log.synced marks the replay boundary, which the session-log replay contract and the CLI-profile live test depend on.",
@@ -264,7 +327,7 @@
     },
     {
       "path": "packages/protocol/src/groups/session.ts",
-      "sha256": "a6e4e55eaa7583948ac699dce5044c167ab827bfeaa72bcac7eeeef2fbce142b",
+      "sha256": "190c5ffe34c1b15bd836a58679842d8ac2ec0a9e05b2680745838bbdfead2504",
       "behavior": "The session list declares limit, order and cursor, where order applies to the first page only and the opaque cursor carries the continuation, which the cursor-list spine and CursorSequence depend on; the file is also the Restore patch preimage for the SSE payloads.",
       "anchor": {
         "type": "contains",
@@ -354,8 +417,8 @@
     },
     {
       "path": "packages/cli/src/services/service-config.ts",
-      "sha256": "9fc7e6cf6541b030846db5f3a215ff320835dcae107deea8236e0f7f1f7dc2be",
-      "behavior": "The release channels latest, dev, beta, and next share service.json; every other channel is sanitized into service-\u003Cchannel\u003E.json; a legacy SHA-1 filename exists for every channel except latest and local; versionBelongsToChannel admits the exact installed version or the 0.0.0-\u003Cchannel\u003E-N[.M] spelling; migration copies a donor exclusively with mode 0600 and ignores write failures.",
+      "sha256": "29009f55d8990aaba6c12e06d20720415482d052588a54fc35b5250799c39c84",
+      "behavior": "The release channels latest, dev, beta, and next share service.json; every other channel is sanitized into service-\u003Cchannel\u003E.json; a legacy SHA-1 filename exists for every channel except latest and local; versionBelongsToChannel admits the exact installed version or the 0.0.0-\u003Cchannel\u003E-N[.M] spelling; migration copies a donor exclusively with mode 0600 and ignores write failures. Info declares an optional boolean disabled key beside hostname, port, password, cors, and env, and read turns any decode failure into an empty config, so an invalid document is absent config.",
       "anchor": {
         "type": "contains",
         "text": "export function filename(channel = OPENCODE_CHANNEL)"
@@ -435,7 +498,7 @@
     },
     {
       "path": "packages/cli/test/service.test.ts",
-      "sha256": "c0e75e0b96e271e6a9c62307cf6ef8812fec83873eff11e4129d2ef724bf1cd6",
+      "sha256": "30b072a84211e7e4dcbfe8bfceacf9c2dfaaa00c473fa56383eb1ed1b435d3d8",
       "behavior": "Upstream\u0027s own filename and channel expectations: the release channels share service.json, custom channels are sanitized, and version-to-channel membership follows the pre-release spelling; ServicePathResolverTests and ServiceMigrationTests re-prove them.",
       "anchor": {
         "type": "contains",
@@ -444,7 +507,7 @@
     },
     {
       "path": "packages/cli/test/server-connection.test.ts",
-      "sha256": "dac9a74bb273fba1a129910a38fe4b17f5960884359311126f66497021a63262",
+      "sha256": "84dbdbb32f030e5db89c81ff6be9b36048852a95de46a3383825b7ff198e1647",
       "behavior": "The version gate is opt-in: service options only require a matching version when the caller asks for the check, which is why ExpectedVersion is null by default; ServiceSelectionTests and ServiceVersionPolicyTests re-prove it.",
       "anchor": {
         "type": "contains",
@@ -462,11 +525,20 @@
     },
     {
       "path": "packages/cli/src/services/server-connection.ts",
-      "sha256": "cca1a3679d28168e1bec35af8d177cd4854a1e1d54dd9abb2e975cf336a944b5",
-      "behavior": "resolve routes the default CLI connection through ServiceConfig.options, which performs legacy registration migration before discovery or ensure and enables the version gate only when mismatch is not ignore. An explicit --server connection uses server.info with a five-second bound and warns on a version mismatch. shutdownPersistentPty discovers with no version filter and, when a service answers, calls persistentPty.shutdown with no request bound; the managed restart stops with a handoff and ensures again.",
+      "sha256": "9ab1863048e60f427d5e27daff8536fb888b8c261d2e89d9bfb937f60b785dd7",
+      "behavior": "resolve routes the default CLI connection to Standalone.start when args.standalone is set or the service config\u0027s disabled is true, before any managed-service path; otherwise it goes through ServiceConfig.options, which performs legacy registration migration before discovery or ensure and enables the version gate only when mismatch is not ignore. An explicit --server connection uses server.info with a five-second bound and warns on a version mismatch. shutdownPersistentPty discovers with no version filter and, when a service answers, calls persistentPty.shutdown with no request bound; the managed restart stops with a handoff and ensures again.",
       "anchor": {
         "type": "contains",
         "text": "ServiceConfig.options({ checkVersion: mismatch !== \u0022ignore\u0022 })"
+      }
+    },
+    {
+      "path": "packages/cli/src/env.ts",
+      "sha256": "04055e533068daff42c6373266042de7b30831e367e5617837c474828fac53db",
+      "behavior": "The CLI reads the server password from OPENCODE_PASSWORD and falls back to the legacy OPENCODE_SERVER_PASSWORD; the session environment it hands on omits both.",
+      "anchor": {
+        "type": "contains",
+        "text": "Config.orElse(() =\u003E Config.redacted(\u0022OPENCODE_SERVER_PASSWORD\u0022))"
       }
     },
     {
@@ -480,7 +552,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "7fe109a01d61a86a998e6dd2cc2f1419924a65c07ecde2e4dbe5c4e7a4ea9935",
+      "sha256": "c2884f5e786d20c1db4712787e6408764745045ff59fd520ba860c17859d36ad",
       "behavior": "The workspace catalog pins the Effect release the protocol document is generated with, whose JSON Schema encoding of StructWithRest (a struct\u0027s properties beside a single-element allOf carrying only the rest\u0027s additionalProperties) the projector admits as an open object, and whose union decode (SchemaAST Union.getParser: literal sentinels, then the first member in declaration order that decodes) the structural union first-match arm mirrors, as tools/oracles/first-match-union.ts proves; an Effect bump is reviewed against both, and the oracle re-run, before the snapshot moves.",
       "anchor": {
         "type": "contains",
@@ -516,7 +588,7 @@
     },
     {
       "path": "packages/cli/src/index.ts",
-      "sha256": "945f05e141557b7f178dc7e5a0887129201e933bd385e91147adc39267b91964",
+      "sha256": "631610e6862fdd27c13192551845333187aa694c061683314f90ff26045ed8e3",
       "behavior": "The CLI\u0027s entry runs every command through NodeRuntime.runMain with its error reporting off, writes a fatal cause to stderr itself, and exits with process.exitCode (0 when unset): the stderr tail and exit status a contender\u0027s failure report carries, and the exit 0 the Ensure election reads as a loser that stood down.",
       "anchor": {
         "type": "contains",

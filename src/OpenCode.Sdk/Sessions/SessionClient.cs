@@ -60,9 +60,10 @@ public class SessionClient
     }
 
     /// <summary>
-    /// Cancel form. Cancel a pending form.
+    /// Cancel form. Cancel a pending form, optionally telling the asker why it was not answered.
     /// </summary>
     /// <param name = "formId">The &apos;formID&apos; route value.</param>
+    /// <param name = "request">The request shaping the query.</param>
     /// <param name = "requestOptions">The per-call options.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;SessionFormCancelResponse&apos; envelope.</returns>
@@ -71,10 +72,10 @@ public class SessionClient
     /// <remarks>
     /// Operation <c>session.form.cancel</c>: <c>DELETE /api/session/{sessionID}/form/{formID}</c>.
     /// </remarks>
-    public virtual Task<SessionFormCancelResponse> CancelFormAsync(string formId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    public virtual Task<SessionFormCancelResponse> CancelFormAsync(string formId, SessionFormCancelRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(formId);
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Sessions.CancelForm(SessionId, formId), SessionFormCancelResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Sessions.CancelForm(SessionId, formId, request), SessionFormCancelResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>

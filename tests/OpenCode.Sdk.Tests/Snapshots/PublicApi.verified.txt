@@ -74,6 +74,18 @@ namespace OpenCode.Sdk
     {
         public CredentialActivateResponse() { }
     }
+    public sealed class CredentialCreateResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.CredentialCreateResponse>
+    {
+        public CredentialCreateResponse() { }
+        public required OpenCode.Sdk.Models.CredentialEntry Credential { get; init; }
+        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
+    public sealed class CredentialListResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.CredentialListResponse>
+    {
+        public CredentialListResponse() { }
+        public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.CredentialEntry> Credentials { get; init; }
+        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
     public sealed class CredentialRemoveResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.CredentialRemoveResponse>
     {
         public CredentialRemoveResponse() { }
@@ -86,6 +98,8 @@ namespace OpenCode.Sdk
     {
         protected CredentialsClient() { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.CredentialActivateResponse> ActivateCredentialAsync(string credentialId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.CredentialCreateResponse> CreateCredentialAsync(OpenCode.Sdk.Models.CredentialCreateRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.CredentialListResponse> ListCredentialsAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.CredentialRemoveResponse> RemoveCredentialAsync(string credentialId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.CredentialUpdateResponse> UpdateCredentialAsync(string credentialId, OpenCode.Sdk.Models.CredentialUpdateRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
@@ -643,6 +657,8 @@ namespace OpenCode.Sdk
         public static class Credentials
         {
             public const string ActivateCredentialTemplate = "/api/credential/{credentialID}/activate";
+            public const string CreateCredential = "/api/credential";
+            public const string ListCredentials = "/api/credential";
             public const string RemoveCredentialTemplate = "/api/credential/{credentialID}";
             public const string UpdateCredentialTemplate = "/api/credential/{credentialID}";
             public static string ActivateCredential(string credentialId) { }
@@ -876,7 +892,7 @@ namespace OpenCode.Sdk
             public const string UpdateInboxTemplate = "/api/session/{sessionID}/inbox/{inboxID}";
             public const string UpdateTemplate = "/api/session/{sessionID}";
             public static string AddSyntheticMessage(string sessionId) { }
-            public static string CancelForm(string sessionId, string formId) { }
+            public static string CancelForm(string sessionId, string formId, OpenCode.Sdk.SessionFormCancelRequest? request = null) { }
             public static string CancelInbox(string sessionId, string inboxId) { }
             public static string ClearRevert(string sessionId) { }
             public static string CommitRevert(string sessionId) { }
@@ -1530,7 +1546,7 @@ namespace OpenCode.Sdk
     {
         protected SessionClient() { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionSyntheticResponse> AddSyntheticMessageAsync(OpenCode.Sdk.Models.SessionSyntheticRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
-        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionFormCancelResponse> CancelFormAsync(string formId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionFormCancelResponse> CancelFormAsync(string formId, OpenCode.Sdk.SessionFormCancelRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionInboxCancelResponse> CancelInboxAsync(string inboxId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionRevertClearResponse> ClearRevertAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionRevertCommitResponse> CommitRevertAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
@@ -1612,6 +1628,11 @@ namespace OpenCode.Sdk
         public SessionForkResponse() { }
         public required OpenCode.Sdk.Models.SessionInfo Fork { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
+    public sealed class SessionFormCancelRequest : System.IEquatable<OpenCode.Sdk.SessionFormCancelRequest>
+    {
+        public SessionFormCancelRequest() { }
+        public string? Message { get; init; }
     }
     public sealed class SessionFormCancelResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.SessionFormCancelResponse>
     {
@@ -2629,7 +2650,7 @@ namespace OpenCode.Sdk.Models
         public System.Collections.Generic.IReadOnlyDictionary<string, System.Text.Json.JsonElement>? Body { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("capabilities")]
-        public OpenCode.Sdk.Models.ModelCapabilities? Capabilities { get; init; }
+        public OpenCode.Sdk.Models.ConfigModelCapabilities? Capabilities { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("compatibility")]
         public OpenCode.Sdk.Models.ModelCompatibility? Compatibility { get; init; }
@@ -2663,6 +2684,19 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("variants")]
         public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.ConfigModelVariants>? Variants { get; init; }
+    }
+    public sealed class ConfigModelCapabilities : System.IEquatable<OpenCode.Sdk.Models.ConfigModelCapabilities>
+    {
+        public ConfigModelCapabilities() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("input")]
+        public System.Collections.Generic.IReadOnlyList<string>? Input { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("output")]
+        public System.Collections.Generic.IReadOnlyList<string>? Output { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("tools")]
+        public bool? Tools { get; init; }
     }
     public sealed class ConfigModelCost : System.IEquatable<OpenCode.Sdk.Models.ConfigModelCost>
     {
@@ -2824,16 +2858,55 @@ namespace OpenCode.Sdk.Models
         public System.Collections.Generic.IReadOnlyDictionary<string, System.Text.Json.JsonElement> AdditionalProperties { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("chunkTimeout")]
-        public double? ChunkTimeout { get; init; }
+        public OpenCode.Sdk.Models.ConfigProviderSettingsChunkTimeout? ChunkTimeout { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("compaction")]
         public OpenCode.Sdk.Models.IProviderCompaction? Compaction { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("headerTimeout")]
+        public OpenCode.Sdk.Models.ConfigProviderSettingsHeaderTimeout? HeaderTimeout { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("timeout")]
         public OpenCode.Sdk.Models.ConfigProviderSettingsTimeout? Timeout { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("transport")]
         public OpenCode.Sdk.Models.ProviderTransport? Transport { get; init; }
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.ConfigProviderSettingsChunkTimeoutJsonConverter))]
+    public sealed class ConfigProviderSettingsChunkTimeout : System.IEquatable<OpenCode.Sdk.Models.ConfigProviderSettingsChunkTimeout>
+    {
+        public bool Boolean { get; }
+        public OpenCode.Sdk.Models.ConfigProviderSettingsChunkTimeoutKind Kind { get; }
+        public double Number { get; }
+        public System.Text.Json.JsonElement Unknown { get; }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ConfigProviderSettingsChunkTimeout FromBoolean(bool value) { }
+        public static OpenCode.Sdk.Models.ConfigProviderSettingsChunkTimeout FromNumber(double value) { }
+        public static OpenCode.Sdk.Models.ConfigProviderSettingsChunkTimeout FromUnknown(System.Text.Json.JsonElement value) { }
+    }
+    public enum ConfigProviderSettingsChunkTimeoutKind
+    {
+        Number = 0,
+        Boolean = 1,
+        Unknown = 2,
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.ConfigProviderSettingsHeaderTimeoutJsonConverter))]
+    public sealed class ConfigProviderSettingsHeaderTimeout : System.IEquatable<OpenCode.Sdk.Models.ConfigProviderSettingsHeaderTimeout>
+    {
+        public bool Boolean { get; }
+        public OpenCode.Sdk.Models.ConfigProviderSettingsHeaderTimeoutKind Kind { get; }
+        public double Number { get; }
+        public System.Text.Json.JsonElement Unknown { get; }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ConfigProviderSettingsHeaderTimeout FromBoolean(bool value) { }
+        public static OpenCode.Sdk.Models.ConfigProviderSettingsHeaderTimeout FromNumber(double value) { }
+        public static OpenCode.Sdk.Models.ConfigProviderSettingsHeaderTimeout FromUnknown(System.Text.Json.JsonElement value) { }
+    }
+    public enum ConfigProviderSettingsHeaderTimeoutKind
+    {
+        Number = 0,
+        Boolean = 1,
+        Unknown = 2,
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.ConfigProviderSettingsTimeoutJsonConverter))]
     public sealed class ConfigProviderSettingsTimeout : System.IEquatable<OpenCode.Sdk.Models.ConfigProviderSettingsTimeout>
@@ -2974,6 +3047,9 @@ namespace OpenCode.Sdk.Models
         public required string Label { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("method")]
         public required OpenCode.Sdk.Models.ConnectionCredentialInfoMethod Method { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public OpenCode.Sdk.Models.ConnectionStatus? Status { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
@@ -2990,8 +3066,86 @@ namespace OpenCode.Sdk.Models
         public ConnectionEnvInfo() { }
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         public required string Name { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public OpenCode.Sdk.Models.ConnectionStatus? Status { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
+    }
+    public sealed class ConnectionStatus : System.IEquatable<OpenCode.Sdk.Models.ConnectionStatus>
+    {
+        public ConnectionStatus() { }
+        [System.Text.Json.Serialization.JsonPropertyName("message")]
+        public required string Message { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        public required string Status { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("url")]
+        public string? Url { get; init; }
+    }
+    public sealed class CredentialCreateRequest : System.IEquatable<OpenCode.Sdk.Models.CredentialCreateRequest>
+    {
+        public CredentialCreateRequest() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("activate")]
+        public bool? Activate { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string? Id { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("integrationID")]
+        public required string IntegrationId { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        public string? Label { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public required OpenCode.Sdk.Models.ICredentialValue Value { get; init; }
+    }
+    public sealed class CredentialEntry : System.IEquatable<OpenCode.Sdk.Models.CredentialEntry>
+    {
+        public CredentialEntry() { }
+        [System.Text.Json.Serialization.JsonPropertyName("active")]
+        public required bool Active { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public required string Id { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("integrationID")]
+        public required string IntegrationId { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        public required string Label { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public required OpenCode.Sdk.Models.ICredentialValue Value { get; init; }
+    }
+    public sealed class CredentialKey : OpenCode.Sdk.Models.ICredentialValue, System.IEquatable<OpenCode.Sdk.Models.CredentialKey>
+    {
+        public CredentialKey() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("configuration")]
+        public System.Collections.Generic.IReadOnlyDictionary<string, OpenCode.Sdk.Models.FormValue>? Configuration { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public required string Key { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("metadata")]
+        public System.Collections.Generic.IReadOnlyDictionary<string, System.Text.Json.JsonElement>? Metadata { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+        public override string ToString() { }
+    }
+    public sealed class CredentialOAuth : OpenCode.Sdk.Models.ICredentialValue, System.IEquatable<OpenCode.Sdk.Models.CredentialOAuth>
+    {
+        public CredentialOAuth() { }
+        [System.Text.Json.Serialization.JsonPropertyName("access")]
+        public required string Access { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("expires")]
+        public required long Expires { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("metadata")]
+        public System.Collections.Generic.IReadOnlyDictionary<string, System.Text.Json.JsonElement>? Metadata { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("methodID")]
+        public required string MethodId { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("refresh")]
+        public required string Refresh { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+        public override string ToString() { }
     }
     public sealed class CredentialSwitched : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.CredentialSwitched>
     {
@@ -3637,6 +3791,9 @@ namespace OpenCode.Sdk.Models
     public sealed class FormStateCancelled : OpenCode.Sdk.Models.IFormState, System.IEquatable<OpenCode.Sdk.Models.FormStateCancelled>
     {
         public FormStateCancelled() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("message")]
+        public string? Message { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public string Status { get; }
     }
@@ -3785,6 +3942,16 @@ namespace OpenCode.Sdk.Models
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.ConnectionInfoJsonConverter))]
     public interface IConnectionInfo
     {
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        OpenCode.Sdk.Models.ConnectionStatus? Status { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        string Type { get; }
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.CredentialValueJsonConverter))]
+    public interface ICredentialValue
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("metadata")]
+        System.Collections.Generic.IReadOnlyDictionary<string, System.Text.Json.JsonElement>? Metadata { get; }
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         string Type { get; }
     }
@@ -5875,16 +6042,55 @@ namespace OpenCode.Sdk.Models
         public System.Collections.Generic.IReadOnlyDictionary<string, System.Text.Json.JsonElement> AdditionalProperties { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("chunkTimeout")]
-        public double? ChunkTimeout { get; init; }
+        public OpenCode.Sdk.Models.ProviderSettingsChunkTimeout? ChunkTimeout { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("compaction")]
         public OpenCode.Sdk.Models.IProviderCompaction? Compaction { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("headerTimeout")]
+        public OpenCode.Sdk.Models.ProviderSettingsHeaderTimeout? HeaderTimeout { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("timeout")]
         public OpenCode.Sdk.Models.ProviderSettingsTimeout? Timeout { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("transport")]
         public OpenCode.Sdk.Models.ProviderTransport? Transport { get; init; }
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.ProviderSettingsChunkTimeoutJsonConverter))]
+    public sealed class ProviderSettingsChunkTimeout : System.IEquatable<OpenCode.Sdk.Models.ProviderSettingsChunkTimeout>
+    {
+        public bool Boolean { get; }
+        public OpenCode.Sdk.Models.ProviderSettingsChunkTimeoutKind Kind { get; }
+        public double Number { get; }
+        public System.Text.Json.JsonElement Unknown { get; }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ProviderSettingsChunkTimeout FromBoolean(bool value) { }
+        public static OpenCode.Sdk.Models.ProviderSettingsChunkTimeout FromNumber(double value) { }
+        public static OpenCode.Sdk.Models.ProviderSettingsChunkTimeout FromUnknown(System.Text.Json.JsonElement value) { }
+    }
+    public enum ProviderSettingsChunkTimeoutKind
+    {
+        Number = 0,
+        Boolean = 1,
+        Unknown = 2,
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.ProviderSettingsHeaderTimeoutJsonConverter))]
+    public sealed class ProviderSettingsHeaderTimeout : System.IEquatable<OpenCode.Sdk.Models.ProviderSettingsHeaderTimeout>
+    {
+        public bool Boolean { get; }
+        public OpenCode.Sdk.Models.ProviderSettingsHeaderTimeoutKind Kind { get; }
+        public double Number { get; }
+        public System.Text.Json.JsonElement Unknown { get; }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ProviderSettingsHeaderTimeout FromBoolean(bool value) { }
+        public static OpenCode.Sdk.Models.ProviderSettingsHeaderTimeout FromNumber(double value) { }
+        public static OpenCode.Sdk.Models.ProviderSettingsHeaderTimeout FromUnknown(System.Text.Json.JsonElement value) { }
+    }
+    public enum ProviderSettingsHeaderTimeoutKind
+    {
+        Number = 0,
+        Boolean = 1,
+        Unknown = 2,
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.ProviderSettingsTimeoutJsonConverter))]
     public sealed class ProviderSettingsTimeout : System.IEquatable<OpenCode.Sdk.Models.ProviderSettingsTimeout>
@@ -6561,6 +6767,10 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
         [System.Text.Json.Serialization.JsonPropertyName("model")]
         public OpenCode.Sdk.Optional<OpenCode.Sdk.Models.ModelRef?> Model { get; init; }
+        [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.OptionalOfStringJsonConverter))]
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+        [System.Text.Json.Serialization.JsonPropertyName("parentID")]
+        public OpenCode.Sdk.Optional<string?> ParentId { get; init; }
         [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.OptionalOfPermissionRuleListJsonConverter))]
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
         [System.Text.Json.Serialization.JsonPropertyName("permissions")]
@@ -9285,10 +9495,19 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("message")]
         public required string Message { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("response")]
+        public OpenCode.Sdk.Models.SessionStructuredErrorResponse? Response { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public long? Status { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public required string Type { get; init; }
+    }
+    public sealed class SessionStructuredErrorResponse : System.IEquatable<OpenCode.Sdk.Models.SessionStructuredErrorResponse>
+    {
+        public SessionStructuredErrorResponse() { }
+        [System.Text.Json.Serialization.JsonPropertyName("body")]
+        public required string Body { get; init; }
     }
     public sealed class SessionSwitchAgentRequest : System.IEquatable<OpenCode.Sdk.Models.SessionSwitchAgentRequest>
     {
@@ -10346,6 +10565,15 @@ namespace OpenCode.Sdk.Models
     {
         [System.Text.Json.Serialization.JsonConstructor]
         public UnknownConnectionInfo(string type, System.Text.Json.JsonElement payload) { }
+        public System.Text.Json.JsonElement Payload { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.UnknownCredentialValueJsonConverter))]
+    public sealed class UnknownCredentialValue : OpenCode.Sdk.Models.ICredentialValue, System.IEquatable<OpenCode.Sdk.Models.UnknownCredentialValue>
+    {
+        [System.Text.Json.Serialization.JsonConstructor]
+        public UnknownCredentialValue(string type, System.Text.Json.JsonElement payload) { }
         public System.Text.Json.JsonElement Payload { get; }
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }

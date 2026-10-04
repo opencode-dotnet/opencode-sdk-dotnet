@@ -432,7 +432,7 @@ public sealed class SessionClientContractTests
     }
 
     [Test]
-    public async Task PostFormCancelAsync_Should_Throw_The_Declared_409_Error()
+    public async Task CancelFormAsync_Should_Throw_The_Declared_409_Error()
     {
         using var scenario = ContractScenario.Responding(
             HttpStatusCode.Conflict,
@@ -449,6 +449,49 @@ public sealed class SessionClientContractTests
         await Assert.That(request.RequestUri)
             .IsEqualTo(new Uri("http://localhost:4096/api/session/ses_100/form/frm_1"));
         await Assert.That(request.Body).IsNull();
+    }
+
+    [Test]
+    public async Task CancelFormAsync_Should_Send_The_Message_As_An_Escaped_Query_Value()
+    {
+        using var scenario = ContractScenario.Responding(HttpStatusCode.NoContent, string.Empty);
+
+        var response = await scenario.Client.Sessions.GetSessionClient("ses_100").CancelFormAsync(
+            "frm_1",
+            new SessionFormCancelRequest { Message = "no longer needed & done" });
+
+        await Assert.That(response.Status).IsEqualTo(204);
+        var request = scenario.Requests.Single();
+        await Assert.That(request.Method).IsEqualTo(HttpMethod.Delete);
+        await Assert.That(request.RequestUri!.AbsoluteUri)
+            .IsEqualTo("http://localhost:4096/api/session/ses_100/form/frm_1?message=no%20longer%20needed%20%26%20done");
+        await Assert.That(request.Body).IsNull();
+    }
+
+    [Test]
+    public async Task CancelFormAsync_Should_Omit_The_Query_When_The_Message_Is_Unset()
+    {
+        using var scenario = ContractScenario.Responding(HttpStatusCode.NoContent, string.Empty);
+
+        _ = await scenario.Client.Sessions.GetSessionClient("ses_100").CancelFormAsync(
+            "frm_1",
+            new SessionFormCancelRequest());
+
+        await Assert.That(scenario.Requests.Single().RequestUri!.AbsoluteUri)
+            .IsEqualTo("http://localhost:4096/api/session/ses_100/form/frm_1");
+    }
+
+    [Test]
+    public async Task GetFormAsync_Should_Read_The_Cancellation_Message()
+    {
+        using var scenario = ContractScenario.Responding(
+            HttpStatusCode.OK,
+            WireBodyData.Envelope(WireBodyData.FormDetail(WireBodyData.FormCancelledState)));
+
+        var response = await scenario.Client.Sessions.GetSessionClient("ses_100").GetFormAsync("frm_1");
+
+        await Assert.That(response.Form.State).IsTypeOf<FormStateCancelled>();
+        await Assert.That(((FormStateCancelled)response.Form.State).Message).IsEqualTo("stop");
     }
 
     [Test]

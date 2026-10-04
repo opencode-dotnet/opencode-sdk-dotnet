@@ -174,7 +174,7 @@ public sealed class SimulatedSessionWorkflowTests(SimulatedDriveServerFixture se
         // acquireRelease/close finalizer that removes the invocation from state.pending
         // (run-coordinator.ts:57-61: the "settled" callback runs for every exit, including
         // interruption, "after the final drain and before the execution settles"; execution.ts:
-        // 110-128: that same settled callback is what publishes Execution.Interrupted;
+        // 119-135: that same settled callback is what publishes Execution.Interrupted;
         // session-event.ts:233-238: the wire shape this SDK generates as
         // SessionExecutionInterrupted). So once this event for this session id arrives, the
         // removal has already happened server-side, and a single post-event read suffices -
@@ -224,9 +224,10 @@ public sealed class SimulatedSessionWorkflowTests(SimulatedDriveServerFixture se
     /// backend answers only the chat route this provider claims, so the explicit
     /// <see cref="ModelRef"/> is what makes every prompt in the suite deterministic rather than
     /// dependent on whichever catalog model the server would otherwise default to. The location is
-    /// named in the body because session creation takes it from there alone: without one the server
-    /// binds the session to its own working directory (<c>packages/server/src/handlers/session.ts:136</c>
-    /// at the pin), whatever the client's location header says.
+    /// named in the body because session creation without a parent takes it from there alone: without
+    /// one the server binds the session to its own working directory
+    /// (<c>packages/server/src/handlers/session.ts:136-138</c> at the pin), whatever the client's
+    /// location header says.
     /// </summary>
     private static async Task<string> CreateSimulatedSessionAsync(
         OpenCodeClient client, string directory, string title, CancellationToken cancellationToken)

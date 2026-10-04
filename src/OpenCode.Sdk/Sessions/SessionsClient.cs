@@ -46,13 +46,13 @@ public class SessionsClient
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("SessionsClient", "Pipeline");
 
     /// <summary>
-    /// Create session. Create a session at the requested location.
+    /// Create session. Create a session at the requested location. A parentID creates a linked child session at its parent&apos;s location.
     /// </summary>
     /// <param name = "request">The request body; an empty body is sent when omitted.</param>
     /// <param name = "requestOptions">The per-call options.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;SessionCreateResponse&apos; envelope.</returns>
-    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404) and NoThrow was not selected.</exception>
     /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
     /// Operation <c>session.create</c>: <c>POST /api/session</c>.

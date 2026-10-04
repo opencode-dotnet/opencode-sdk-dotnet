@@ -497,6 +497,14 @@ contract is not in the OpenAPI document; the SDK ports the accepted-pin first-pa
 pins every file it reads in `spec/source-watch.json` (ADR-0025). The null channel reads the shared
 release registration `service.json` with no legacy migration; a named channel follows the CLI's
 filename, sanitization, and legacy-migration rules; a direct registration path bypasses all three.
+The channel's service config is read the CLI's way: a document whose members do not decode —
+`disabled` must be a boolean when present — is no config at all, so its `env` overlay and the
+legacy migration it gates do not apply. Its `disabled` key is read only by CLI commands: the
+connection-mode selector (`resolve` starts a standalone server instead of reaching the service when
+it is true) and the pairing command's guard (`opencode pair` needs the service); the pinned
+client's `Service.discover`, `ensure`, and `stop` do not read it, and neither do
+`DiscoverAsync`, `EnsureAsync`, and `StopAsync` — a caller that honors a disabled service chooses
+`StartAsync`, as `resolve` does.
 The registration and service-config files are read the way libuv opens files, sharing read, write,
 and delete, so a poll never makes the daemon's remove-on-exit fail on Windows, and a UTF-8
 byte-order mark is skipped as the CLI's decoder skips it. A daemon bound to every interface

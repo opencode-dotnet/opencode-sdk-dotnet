@@ -49,8 +49,7 @@ internal static class ServiceProbeResponseClassifier
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object
                 || !root.TryGetProperty("pid", out var pid)
-                || pid.ValueKind != JsonValueKind.Number
-                || !pid.TryGetInt32(out var processId)
+                || !StrictJson.TryGetProcessId(pid, out var processId)
                 || processId < 0
                 || !root.TryGetProperty("version", out var version)
                 || version.ValueKind != JsonValueKind.String)

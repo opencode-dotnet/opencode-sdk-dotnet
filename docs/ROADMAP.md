@@ -15,7 +15,7 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 - **Protocol pin** — generation reads an accepted snapshot of upstream's OpenAPI document taken at
   a release tag, never a live branch, and refreshes are receipt-governed (ADR-0020).
   `../spec/SNAPSHOT.md` owns the exact commit and the refresh procedure.
-- **Coverage** — **136 of 138 operations selected** across 27 client families, none declined, and
+- **Coverage** — **138 of 140 operations selected** across 27 client families, none declined, and
   2 transport-owned that hand-written WebSocket doors cover, so all 138 are usable; `src/OpenCode.Sdk/.generation-incomplete` is
   the committed marker and names every one. One-shot calls, server-sent event streams (the global
   bus and the per-session log), PTY and persistent-PTY WebSocket sessions, cursor pagination, typed
@@ -28,15 +28,19 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   targets. Linux and macOS live verification also passed on net8/net9/net10, including the persistent daemon
   round trip and normal PTY reuse after read cancellation. `architecture/client-runtime.md` and
   ADR-0023 own the contract.
-- **2.0.18 refresh** — the accepted pin follows upstream's release tags, now `v2.0.18`,
-  with no compatibility layer between them. 2.0.18 adds two operations, both generated: pairing
-  (`Server.CreatePairingCodeAsync`, `Server.RedeemPairingCodeAsync`), whose session token the server
-  accepts anywhere the password is; and `ShellInfo` gains the `Signal` a killed command reports. A
-  refused credential now answers with the declared `UnauthorizedError` JSON body, so the typed error
-  arrives on a 401. The hand-written doors' upstream inputs moved only where those changes pass
-  through (the authorization middleware, the process layer's 401, the credential check), all
-  reviewed; the launcher, discovery, Ensure, and Stop inputs, Effect's release, and the
-  trailing-wildcard codegen rule are unchanged, and both oracles reproduce their verdicts. Each
+- **2.0.22 refresh** — the accepted pin follows upstream's release tags, now `v2.0.22`, with no
+  compatibility layer between them. 2.0.22 adds two operations, both generated: listing and
+  creating stored credentials (`Credentials.ListCredentialsAsync`, `CreateCredentialAsync`), whose
+  key and OAuth tokens are masked when printed. `session.create` gains `ParentId` and a declared 404,
+  and cancelling a form can carry a `Message`. The service config's new `disabled` key is read only by
+  CLI commands (its connection-mode selector and pairing guard), never by the background-service
+  doors; the strict reader
+  validates it as upstream decodes it. Upstream's committed OpenAPI document is stale against its
+  own generator at this tag (four operations missing, a query parameter under the wrong
+  operation; [anomalyco/opencode#53105](https://github.com/anomalyco/opencode/issues/53105)), so
+  the snapshot is always produced by upstream's pinned generator, never copied (ADR-0020). Every
+  watched input under the hand-written doors was reviewed: the PTY changes are type renames, and
+  the launcher's inputs are unchanged apart from the standalone endpoint's new `exited`. Each
   refresh's CI run qualifies every leg at its pin: Windows on `net472`, `net8.0`, `net9.0`, and
   `net10.0`, Linux and macOS on `net8.0`, `net9.0`, and `net10.0`, with regeneration and receipt
   verification passing.
@@ -69,7 +73,11 @@ live queue. In order:
    tests, CI legs, the public API check, and the docs; no non-preview package is built on a
    pre-GA SDK. A consumer whose target falls back to the `netstandard2.0` asset on an unsupported
    runtime gets a build warning. It follows an upstream refresh and `0.9.0-preview.6`, and the
-   launcher's .NET 11 pipe fix (Known Gaps) lands first. Exit: every leg runs `netstandard2.0`,
+   launcher's .NET 11 pipe fix (Known Gaps) lands first. Launcher parity work rides the same
+   workstream: the disposal ladder first matches upstream's scope close (a SIGTERM to the process
+   group before the forced kill, and the Windows kill's exit code), and after the pipe fix and
+   `net11.0`, `OpenCodeServer.Exited` reports how a standalone server ended — exit code or signal,
+   as upstream's `exited` does — on every target and OS. Exit: every leg runs `netstandard2.0`,
    `net472`, `net10.0`, and `net11.0` as its platform allows.
 3. **Maintainability review.** A time-boxed, read-only review of the code, the generator, the
    tests, and the canon at current `master`. Each finding goes to one of four places: the API

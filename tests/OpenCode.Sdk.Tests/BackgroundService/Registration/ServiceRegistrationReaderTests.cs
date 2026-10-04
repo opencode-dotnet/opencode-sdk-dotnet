@@ -69,6 +69,21 @@ public sealed class ServiceRegistrationReaderTests
         await Assert.That(registration.ProcessId).IsEqualTo(48213);
     }
 
+    /// <summary>
+    /// The CLI's schema reads <c>pid</c> as <c>Number.isSafeInteger</c> over the value <c>JSON.parse</c>
+    /// produced, so the notation an integer is written in does not matter.
+    /// </summary>
+    [Test]
+    [Arguments(ServiceRegistrationData.PidWithZeroFraction)]
+    [Arguments(ServiceRegistrationData.PidInExponentNotation)]
+    public async Task TryRead_Should_Accept_An_Integral_Pid_In_Any_Number_Notation(string json)
+    {
+        var registration = ServiceRegistrationReader.TryRead(Bytes(json));
+
+        await Assert.That(registration).IsNotNull();
+        await Assert.That(registration.ProcessId).IsEqualTo(1234);
+    }
+
     [Test]
     [Arguments(ServiceRegistrationData.ArrayRoot)]
     [Arguments(ServiceRegistrationData.MissingUrl)]
@@ -79,6 +94,7 @@ public sealed class ServiceRegistrationReaderTests
     [Arguments(ServiceRegistrationData.NegativePid)]
     [Arguments(ServiceRegistrationData.PidAboveInt32)]
     [Arguments(ServiceRegistrationData.FractionalPid)]
+    [Arguments(ServiceRegistrationData.FractionalPidAboveOne)]
     [Arguments(ServiceRegistrationData.StringPid)]
     [Arguments(ServiceRegistrationData.NumericUrl)]
     [Arguments(ServiceRegistrationData.ObjectVersion)]

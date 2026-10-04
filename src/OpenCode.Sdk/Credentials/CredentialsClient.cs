@@ -46,6 +46,40 @@ public class CredentialsClient
     }
 
     /// <summary>
+    /// Create credential. Store an integration credential. It becomes the integration&apos;s active credential unless activate is false and the integration already has one. Fails with a conflict when the requested ID already exists.
+    /// </summary>
+    /// <param name = "request">The request body.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;CredentialCreateResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 409) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>credential.create</c>: <c>POST /api/credential</c>.
+    /// </remarks>
+    public virtual Task<CredentialCreateResponse> CreateCredentialAsync(CredentialCreateRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Credentials.CreateCredential, request, OpenCodeJsonContext.Default.CredentialCreateRequest, CredentialCreateResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// List credentials. List every stored integration credential, including its secret value.
+    /// </summary>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;CredentialListResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>credential.list</c>: <c>GET /api/credential</c>.
+    /// </remarks>
+    public virtual Task<CredentialListResponse> ListCredentialsAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Credentials.ListCredentials, CredentialListResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
     /// Remove credential. Remove a stored integration credential.
     /// </summary>
     /// <param name = "credentialId">The &apos;credentialID&apos; route value.</param>

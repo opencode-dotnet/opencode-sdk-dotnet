@@ -125,7 +125,7 @@ selects a registered strategy for creation; removal uses the recorded strategy. 
 strategy list or choose server defaults.
 
 **Workspace**:
-An upstream core addressing concept retained in some event/log contracts. The 2.0.18 public HTTP
+An upstream core addressing concept retained in some event/log contracts. The pinned public HTTP
 API exposes neither workspace lifecycle operations nor workspace request targeting.
 
 **Instance**:
@@ -189,7 +189,7 @@ every input or control message carries the viewport it was typed at.
 
 **Protocol surface** (historically "modern surface" in dated research docs):
 The pinned protocol API document — the surface this SDK generates (ADR-0005). Operation IDs
-are prefixless in 2.0.18; public names carry no protocol-version prefix.
+are prefixless at the pin; public names carry no protocol-version prefix.
 _Avoid_: v2, V2 (in public naming); legacy (the retired 1.x dual-surface vocabulary)
 
 **Launcher**:
@@ -238,8 +238,9 @@ matching submodule gitlink. Provenance in `spec/SNAPSHOT.md`.
 _Avoid_: spec pin (retired term)
 
 **Snapshot recipe**:
-The ordered procedure producing the accepted document from the exact upstream commit; its patch
-list is normally empty, making production an identity transform.
+The ordered procedure producing the accepted document from the exact upstream commit: upstream's
+own pinned generator, run over a patch list that is normally empty. Upstream's committed document
+is never the input.
 
 **Snapshot receipt**:
 The immutable record of one prepared snapshot candidate — inputs, hashes, patches, invariants —
@@ -348,7 +349,7 @@ union's prefix-tagged arm at runtime (tag string + raw payload).
 
 **Plugin activation**:
 The asynchronous per-Location settling of a server's plugins, during which Providers register, the
-model catalog fills, and the VCS summary learns its provider. The 2.0.18 HTTP API has no activation
+model catalog fills, and the VCS summary learns its provider. The pinned HTTP API has no activation
 barrier. An info answer proves process liveness only; a catalog read can observe an empty or
 partial registry, and a VCS summary without a provider has not settled yet. Consumers that require
 a particular registration wait for that identity under a bounded cancellation token.

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -222,6 +223,33 @@ public sealed class ServicePtyHandoffTests
         var overlay = await Handoff().EnvironmentAsync(RegistrationPath(), Caller(), CancellationToken.None);
 
         await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsNull();
+    }
+
+    /// <summary>
+    /// A fractional source pid (<c>typeof pid === "number"</c> admits it) is never the registration's
+    /// integer pid, so <c>same</c> fails even where truncation would land on the registered pid.
+    /// </summary>
+    [Test]
+    public async Task EnvironmentAsync_Should_Remove_The_Variable_When_The_Source_Pid_Is_Fractional_And_A_Registration_Is_Current()
+    {
+        Seed(RegistrationPath(), ServiceRegistrationData.Passwordless);
+        Seed(SidecarPath(), FractionalSourceSidecar());
+
+        var overlay = await Handoff().EnvironmentAsync(RegistrationPath(), Caller(), CancellationToken.None);
+
+        await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsNull();
+        await Assert.That(overlay["KEEP"]).IsEqualTo("1");
+    }
+
+    /// <summary><c>current === undefined</c> adopts whatever source the sidecar names, a fractional pid included.</summary>
+    [Test]
+    public async Task EnvironmentAsync_Should_Adopt_A_Fractional_Source_Pid_When_No_Registration_Is_Readable()
+    {
+        Seed(SidecarPath(), FractionalSourceSidecar());
+
+        var overlay = await Handoff().EnvironmentAsync(RegistrationPath(), callerEnvironment: null, CancellationToken.None);
+
+        await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsEqualTo(Ticket.GetRawText());
     }
 
     [Test]
@@ -522,6 +550,11 @@ public sealed class ServicePtyHandoffTests
             Handoff = handoff,
             ExpiresAt = expiresAt,
         };
+
+    /// <summary>A fresh ticket-bearing sidecar naming <see cref="FixedRegistration"/>'s source with pid 48213.5.</summary>
+    private static string FractionalSourceSidecar() =>
+        "{\"source\":{\"id\":\"" + SourceId + "\",\"pid\":48213.5,\"url\":\"" + FixedUrl + "\"},\"handoff\":"
+        + Ticket.GetRawText() + ",\"expiresAt\":" + (NowMilliseconds + 60_000).ToString(CultureInfo.InvariantCulture) + "}";
 
     private static Dictionary<string, string> Caller() =>
         new(StringComparer.Ordinal) { ["KEEP"] = "1" };

@@ -274,11 +274,11 @@ public sealed class PinnedOpenCodeServerFixture : IAsyncInitializer, IAsyncDispo
     public TestWorkspace CreateWorkspace() => new(_fileSystem, RunRoot.Path);
 
     /// <summary>
-    /// The body location for a session whose test names no workspace. Session creation takes its
-    /// location from the body alone and otherwise binds the session to the server's own working
-    /// directory (<c>packages/server/src/handlers/session.ts:136</c> at the pin), whatever the
-    /// location header says. Absent for an external endpoint, which may not share this machine's
-    /// filesystem.
+    /// The body location for a session whose test names no workspace. Session creation without a
+    /// parent takes its location from the body alone and otherwise binds the session to the server's
+    /// own working directory (<c>packages/server/src/handlers/session.ts:136-138</c> at the pin),
+    /// whatever the location header says. Absent for an external endpoint, which may not share this
+    /// machine's filesystem.
     /// </summary>
     internal Optional<LocationPublicRef?> DefaultSessionLocation
     {

@@ -16,8 +16,12 @@ internal sealed record SnapshotReceipt
     /// <summary>Gets the SHA-256 of upstream's committed artifact at that commit.</summary>
     [JsonPropertyName("rawDocumentSha256")] public required string RawDocumentSha256 { get; init; }
 
-    /// <summary>Gets the SHA-256 of the unpatched generator run's document; null in identity mode.</summary>
-    [JsonPropertyName("generatedBaselineSha256")] public string? GeneratedBaselineSha256 { get; init; }
+    /// <summary>
+    /// Gets the SHA-256 of the document the pinned upstream generator produces at that commit with no
+    /// patch applied. It differs from <see cref="RawDocumentSha256"/> when upstream committed a stale
+    /// artifact; the accepted snapshot never consumes the committed artifact.
+    /// </summary>
+    [JsonPropertyName("generatedBaselineSha256")] public required string GeneratedBaselineSha256 { get; init; }
 
     [JsonPropertyName("patches")]
     public required IReadOnlyList<ReceiptPatch> Patches

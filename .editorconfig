@@ -868,7 +868,7 @@ dotnet_diagnostic.CA1724.severity = none
 # The pinned OpenAPI schemas declare these wire members as plain strings without
 # format: uri. Winner: the sole protocol input's declared type; CA1056's name
 # inference remains enabled for every other property.
-[src/OpenCode.Sdk/Models/{ConfigInfoEnterprise,ExperimentalIntegrationWellknownAddRequest,FormExternalField,IntegrationAttempt,McpOAuthConfig,McpRemoteConfig,McpResource,McpResourceTemplate,ProjectIcon,PromptFileSourceUri,PromptInputFileAttachment,ToolFileContent,WebSearchResult}.cs]
+[src/OpenCode.Sdk/Models/{ConfigInfoEnterprise,ConnectionStatus,ExperimentalIntegrationWellknownAddRequest,FormExternalField,IntegrationAttempt,McpOAuthConfig,McpRemoteConfig,McpResource,McpResourceTemplate,ProjectIcon,PromptFileSourceUri,PromptInputFileAttachment,ToolFileContent,WebSearchResult}.cs]
 dotnet_diagnostic.CA1056.severity = none
 
 # The shipped SDK slices by client family with flat public namespaces:

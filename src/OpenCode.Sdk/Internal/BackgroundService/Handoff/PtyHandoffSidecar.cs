@@ -1,4 +1,5 @@
 using System.Text.Json;
+using OpenCode.Sdk.Internal.BackgroundService.Registration;
 
 namespace OpenCode.Sdk.Internal.BackgroundService.Handoff;
 
@@ -17,8 +18,12 @@ internal sealed class PtyHandoffSidecar
     /// <summary>Gets the daemon's instance id, when the source published one.</summary>
     public required string? SourceId { get; init; }
 
-    /// <summary>Gets the source pid; the reader admits only an integral JSON number.</summary>
-    public required int SourcePid { get; init; }
+    /// <summary>
+    /// Gets the source pid, or <see langword="null"/> for a JSON number no process can have. The pinned
+    /// client's guard admits any number here (<c>typeof pid === "number"</c>), so such a sidecar is
+    /// still a sidecar; its source simply never matches a registration, whose pid is an integer.
+    /// </summary>
+    public required int? SourcePid { get; init; }
 
     /// <summary>Gets the source url exactly as a JSON string.</summary>
     public required string SourceUrl { get; init; }
@@ -98,7 +103,7 @@ internal sealed class PtyHandoffSidecar
                 writer.WriteString("id", id);
             }
 
-            writer.WriteNumber("pid", SourcePid);
+            writer.WriteNumber("pid", SourcePid ?? throw new InvalidOperationException("Only a sidecar built from a registration is published."));
             writer.WriteString("url", SourceUrl);
             writer.WriteEndObject();
             writer.WritePropertyName("handoff");
@@ -123,7 +128,7 @@ internal sealed class PtyHandoffSidecar
     {
         if (root.ValueKind != JsonValueKind.Object ||
             !root.TryGetProperty("source", out var source) || source.ValueKind != JsonValueKind.Object ||
-            !source.TryGetProperty("pid", out var pid) || pid.ValueKind != JsonValueKind.Number || !pid.TryGetInt32(out var sourcePid) ||
+            !source.TryGetProperty("pid", out var pid) || pid.ValueKind != JsonValueKind.Number ||
             !source.TryGetProperty("url", out var url) || url.ValueKind != JsonValueKind.String ||
             !root.TryGetProperty("handoff", out var handoff) ||
             !TryGetFinite(root, "expiresAt", out var expiresAt))
@@ -150,7 +155,7 @@ internal sealed class PtyHandoffSidecar
         return new PtyHandoffSidecar
         {
             SourceId = sourceId,
-            SourcePid = sourcePid,
+            SourcePid = StrictJson.TryGetProcessId(pid, out var sourcePid) ? sourcePid : null,
             SourceUrl = url.GetString()!,
             Handoff = handoff.ValueKind == JsonValueKind.Null ? null : handoff.Clone(),
             ExpiresAt = expiresAt,

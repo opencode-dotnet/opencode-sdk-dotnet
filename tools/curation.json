@@ -655,6 +655,24 @@
       "reason": "integration.connect.key sends the API key a key authentication method stores as the integration's credential (\"Run a key authentication method and store the resulting credential\"); the secretLookingNames row for 'key' clears every other model's key, so this one is decided here."
     },
     {
+      "model": "CredentialKey",
+      "property": "key",
+      "redact": true,
+      "reason": "The key arm of a stored credential is the API key itself: credential.create sends it and credential.list returns it; the secretLookingNames row for 'key' clears every other model's key, so this one is decided here."
+    },
+    {
+      "model": "CredentialOAuth",
+      "property": "access",
+      "redact": true,
+      "reason": "The OAuth arm of a stored credential carries the access token; upstream's recorder masks access_token, but the credential store names the field access, which its rule does not match."
+    },
+    {
+      "model": "CredentialOAuth",
+      "property": "refresh",
+      "redact": true,
+      "reason": "The OAuth arm of a stored credential carries the refresh token; upstream's recorder masks refresh_token, but the credential store names the field refresh, which its rule does not match."
+    },
+    {
       "model": "McpLocalConfig",
       "property": "environment",
       "redact": true,
@@ -714,7 +732,7 @@
     },
     {
       "property": "key",
-      "reason": "A form field's, form condition's, or instruction entry's identifier; the one key that is a credential (IntegrationConnectKeyRequest) has its own redactedMembers row."
+      "reason": "A form field's, form condition's, or instruction entry's identifier; the two keys that are credentials (IntegrationConnectKeyRequest, CredentialKey) have their own redactedMembers rows."
     },
     {
       "property": "maxTokensField",

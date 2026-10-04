@@ -13,4 +13,11 @@ public sealed record FormStateCancelled : IFormState
     /// </summary>
     [JsonPropertyName("status")]
     public string Status => "cancelled";
+
+    /// <summary>
+    /// Gets the message value.
+    /// </summary>
+    [JsonPropertyName("message")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Message { get; init; }
 }
