@@ -43,6 +43,15 @@ internal static class ServiceRegistrationData
 
     public const string FractionalPid = "{\"url\":\"http://127.0.0.1:49374\",\"pid\":48213.5}";
 
+    /// <summary>A fraction that truncates to a valid pid: refused as a whole, never rounded down to 1.</summary>
+    public const string FractionalPidAboveOne = "{\"url\":\"http://127.0.0.1:49374\",\"pid\":1.5}";
+
+    /// <summary>An integral pid written with a zero fraction: <c>JSON.parse</c> reads 1234, a safe integer.</summary>
+    public const string PidWithZeroFraction = "{\"url\":\"http://127.0.0.1:49374\",\"pid\":1234.0}";
+
+    /// <summary>An integral pid written in exponent notation: <c>JSON.parse</c> reads 1234, a safe integer.</summary>
+    public const string PidInExponentNotation = "{\"url\":\"http://127.0.0.1:49374\",\"pid\":1.234e3}";
+
     public const string StringPid = "{\"url\":\"http://127.0.0.1:49374\",\"pid\":\"48213\"}";
 
     public const string NumericUrl = "{\"url\":49374,\"pid\":48213}";

@@ -102,6 +102,7 @@ public sealed class ServiceInfoProbeTests
     [Arguments(ServiceInfoBodyData.OtherVersion)]
     [Arguments(ServiceInfoBodyData.PidAboveInt32)]
     [Arguments(ServiceInfoBodyData.PidAboveInt64)]
+    [Arguments(ServiceInfoBodyData.FractionalPid)]
     [Arguments(ServiceInfoBodyData.Malformed)]
     [Arguments(ServiceInfoBodyData.InvalidVersionUnicode)]
     [Arguments(ServiceInfoBodyData.ArrayRoot)]
@@ -114,6 +115,23 @@ public sealed class ServiceInfoProbeTests
 
         await Assert.That(result.IsService).IsFalse();
         await Assert.That(result.TimedOut).IsFalse();
+    }
+
+    /// <summary>
+    /// The pinned client decodes <c>pid</c> as a schema integer, <c>Number.isSafeInteger</c> over the
+    /// value <c>JSON.parse</c> produced, so the notation the daemon's pid is written in does not matter.
+    /// </summary>
+    [Test]
+    [Arguments(ServiceInfoBodyData.PidWithZeroFraction)]
+    [Arguments(ServiceInfoBodyData.PidInExponentNotation)]
+    public async Task ProbeAsync_Should_Accept_An_Integral_Pid_In_Any_Number_Notation(string body)
+    {
+        await using var server = LoopbackHttpServer.Start(_ => Json(HttpStatusCode.OK, body));
+
+        var result = await Probe().ProbeAsync(Registration(server.Endpoint), CancellationToken.None);
+
+        await Assert.That(result.State).IsEqualTo(ServiceState.Ready);
+        await Assert.That(result.Version).IsEqualTo(ServiceInfoBodyData.Version);
     }
 
     [Test]

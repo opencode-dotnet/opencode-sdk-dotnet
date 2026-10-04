@@ -38,6 +38,14 @@ Nightly builds of `master` are on
 - **`HeaderTimeout`** on `ProviderSettings` and `ConfigProviderSettings` (the same number-or-`false`
   union), a connection's `Status` (`ConnectionStatus`), and `SessionStructuredError.Response`.
 
+### 🐛 Fixes
+
+- **The background-service doors read the service config exactly as the CLI decodes it.** A config
+  whose `disabled` member is not a boolean is no config at all, so its `env` overlay and the legacy
+  migration no longer apply, as in the CLI. A whole-valued `port` such as `8080.0`, and a whole-valued
+  pid in the registration or the info probe, are integers, as they are to the CLI; a handoff sidecar
+  whose pid is any other number is still a sidecar whose source matches no registration.
+
 ## [0.9.0-preview.5] - 2026-09-29
 
 **The packages are now `OpenCodeDotNet.Sdk` and `OpenCodeDotNet.Sdk.Extensions`, and the

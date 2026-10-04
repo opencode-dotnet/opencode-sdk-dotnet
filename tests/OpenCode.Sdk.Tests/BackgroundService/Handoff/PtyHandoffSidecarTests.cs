@@ -57,15 +57,38 @@ public sealed class PtyHandoffSidecarTests
     }
 
     /// <summary>
-    /// Every shape the pinned client's <c>read</c> refuses, plus one it admits: a fractional pid.
-    /// Upstream checks only <c>typeof pid === "number"</c>; the SDK requires an integral one, the
-    /// only kind any writer publishes, so a hand-made fractional sidecar reads as absent here where
-    /// upstream would adopt its ticket when no registration exists. A deliberate strictness.
+    /// The pinned client's <c>read</c> checks only <c>typeof pid === "number"</c>, so a pid no process can
+    /// have still makes a sidecar; it reads with no source pid, which no registration matches.
     /// </summary>
+    [Test]
+    public async Task TryRead_Should_Admit_A_Fractional_Pid_Without_A_Source_Pid()
+    {
+        var sidecar = Decode("BackgroundService.pty-handoff-fractional-pid.json");
+
+        await Assert.That(sidecar).IsNotNull();
+        await Assert.That(sidecar!.SourcePid).IsNull();
+        await Assert.That(sidecar.SourceId).IsEqualTo("srv_1");
+        await Assert.That(sidecar.SourceUrl).IsEqualTo("http://127.0.0.1:49374");
+    }
+
+    [Test]
+    [Arguments("1.5")]
+    [Arguments("2147483648")]
+    [Arguments("9007199254740992")]
+    [Arguments("1e300")]
+    public async Task TryRead_Should_Read_Any_Number_That_Is_Not_A_Process_Id_As_No_Source_Pid(string pid)
+    {
+        var sidecar = DecodeBytes(Encoding.UTF8.GetBytes(
+            "{\"source\":{\"pid\":" + pid + ",\"url\":\"http://127.0.0.1:49374\"},\"handoff\":null,\"expiresAt\":1700000060000}"));
+
+        await Assert.That(sidecar).IsNotNull();
+        await Assert.That(sidecar!.SourcePid).IsNull();
+    }
+
+    /// <summary>Every shape the pinned client's <c>read</c> refuses.</summary>
     [Test]
     [Arguments("BackgroundService.pty-handoff-invalid-handoff.json")]
     [Arguments("BackgroundService.pty-handoff-string-pid.json")]
-    [Arguments("BackgroundService.pty-handoff-fractional-pid.json")]
     [Arguments("BackgroundService.pty-handoff-missing-source.json")]
     [Arguments("BackgroundService.pty-handoff-missing-expiry.json")]
     [Arguments("BackgroundService.pty-handoff-nonfinite-expiry.json")]
@@ -107,6 +130,15 @@ public sealed class PtyHandoffSidecarTests
         var bytes = withoutId.ToUtf8Json();
 
         await Assert.That(DecodeBytes(bytes)!.SourceId).IsNull();
+    }
+
+    /// <summary>Only a sidecar built from a registration is published, and a registration always has a pid.</summary>
+    [Test]
+    public async Task ToUtf8Json_Should_Refuse_A_Sidecar_Without_A_Source_Pid()
+    {
+        var sidecar = Decode("BackgroundService.pty-handoff-fractional-pid.json")!;
+
+        _ = await Assert.That(sidecar.ToUtf8Json).Throws<InvalidOperationException>();
     }
 
     [Test]

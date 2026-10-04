@@ -41,8 +41,7 @@ internal static class ServiceRegistrationReader
             || !StrictJson.TryGetOptionalString(root, "url", out var url)
             || url is null
             || !root.TryGetProperty("pid", out var pid)
-            || pid.ValueKind != JsonValueKind.Number
-            || !pid.TryGetInt32(out var processId)
+            || !StrictJson.TryGetProcessId(pid, out var processId)
             || processId <= 0
             || !Uri.TryCreate(url, UriKind.Absolute, out var endpoint)
             || !IsHttp(endpoint))
