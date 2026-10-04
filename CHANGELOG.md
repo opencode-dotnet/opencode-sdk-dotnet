@@ -9,6 +9,11 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.{shortSha}`.
 
+### 🔧 Changes
+
+- **Both packages declare `IsAotCompatible` on every modern target** (`net8.0` and later), not only
+  `net10.0`, so trimming and native AOT analysis cover the `net8.0` and `net9.0` assets too.
+
 ## [0.9.0-preview.6] - 2026-10-04
 
 **The pin moves to upstream release tag `v2.0.22`, and all 140 operations it exposes are

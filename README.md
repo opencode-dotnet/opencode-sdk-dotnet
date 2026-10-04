@@ -57,7 +57,7 @@ starts, a server you already run, and the background service that the opencode C
 - **Broad .NET reach.** `net472` is a first-class target, so the SDK works in .NET Framework
   hosts, not only in modern apps; `netstandard2.0` is a compatibility asset for other runtimes.
 - **No reflection serialization.** `System.Text.Json` source generation throughout. Both packages
-  declare `IsAotCompatible` on `net10.0`.
+  declare `IsAotCompatible` on every modern target.
 - **A pinned protocol.** Each refresh to a new upstream release comes with a receipt, so a
   regeneration is a diff that you can review.
 

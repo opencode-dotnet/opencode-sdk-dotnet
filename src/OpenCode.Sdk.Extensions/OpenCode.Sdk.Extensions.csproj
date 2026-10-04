@@ -6,7 +6,7 @@
     <PackageId>OpenCodeDotNet.Sdk.Extensions</PackageId>
     <Description>Dependency injection integration for the unofficial OpenCode .NET SDK, a typed client for the OpenCode 2.x server HTTP API (OpenCode 1.x servers are not supported): registers one singleton client and every sub-client from it. The package id is $(PackageId); the assembly and every namespace are OpenCode.Sdk.</Description>
     <PackageTags>opencode;sdk;dependency-injection;di;options;hosting;dotnet;csharp</PackageTags>
-    <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0'">true</IsAotCompatible>
+    <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
   </PropertyGroup>
 
   <ItemGroup>

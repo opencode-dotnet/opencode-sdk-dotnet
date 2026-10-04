@@ -8,7 +8,7 @@
     <PackageId>OpenCodeDotNet.Sdk</PackageId>
     <Description>Unofficial .NET SDK for OpenCode: a typed client for the OpenCode 2.x server HTTP API (OpenCode 1.x servers are not supported), with server-sent event streams, PTY and persistent-PTY terminals over WebSockets, cursor pagination, typed errors, and a local server launcher. The package id is $(PackageId); the assembly and every namespace are OpenCode.Sdk.</Description>
     <PackageTags>opencode;sdk;client;http-client;openapi;ai;agent;llm;sse;streaming;pty;terminal;dotnet;csharp</PackageTags>
-    <IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0'">true</IsAotCompatible>
+    <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
     <!-- The LibraryImport generator emits its P/Invoke stubs as unsafe code and refuses to run
          without this switch (SYSLIB1062). It exists for that generated stub alone: the SDK's
          hand-written code carries no unsafe block, and the switch reaches no consumer — it is a
