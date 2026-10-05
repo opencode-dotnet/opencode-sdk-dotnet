@@ -47,16 +47,21 @@ Each seam has an implementation per target framework, `LibraryImport` on the mod
 
 ## The ladder
 
-The ladder follows upstream, rung for rung.
+The ladder follows upstream's rungs. Where the two end in a different place, the difference is
+listed under the recorded divergences.
 
 - **POSIX.**
   1. Stop collecting output.
-  2. If the root has already exited with a non-zero code and no signal, end the group's survivors
-     the same way; otherwise stop here.
+  2. If the root has already exited, decide by its status:
+     - a non-zero code and no signal: end the group's survivors the same way;
+     - an unknown status: probe the group with `kill(-pgid, 0)` and end any survivors the same way;
+     - otherwise stop here.
+     Signalling the group cannot reach an unrelated process while the group still has members,
+     because its id cannot be reused until then.
   3. SIGTERM to the group, falling back to the pid. If both fail, end with no escalation.
   4. Within `GracefulShutdownTimeout`, wait for the root's exit, then for the group to empty
-     (`kill(-pgid, 0)` until ESRCH). Upstream reaches the same point by waiting for its output pipes
-     to close; probing the group gets the same effect without depending on those pipes.
+     (`kill(-pgid, 0)` until ESRCH). Upstream instead waits for the root's own output pipes to close.
+     The two differ only at the edges recorded below.
   5. SIGKILL to the group if members remain.
   6. Close stdin and release the handles.
   A failed start runs the same ladder with the configured grace, as upstream's scope close does.
@@ -76,7 +81,7 @@ The ladder follows upstream, rung for rung.
 | Windows exit code | Bun truncates it to 8 bits | Reports the full 32-bit code | The value the operating system gives. |
 | Stderr | Discards it | Drains it into a bounded tail for startup diagnostics, and also honours upstream's `OPENCODE_PRINT_LOGS=1` inherit mode | A superset of upstream's behaviour. |
 | Signals to the owner | Closes the scope on SIGINT and SIGTERM | Installs no process-wide signal handler | A library does not take over its host's signal handling; the host ends the server through `DisposeAsync`. |
-| Waiting for the group | Waits for the output pipes to close | Waits for the root's exit, then probes the group until it is empty | Same effect, with no dependency on who holds the pipes. |
+| Waiting for the group | Waits for the root's own output pipes to close | Waits for the root's exit, then probes the group until it is empty | No dependency on who holds the pipes. There are three consequences, all recorded here. A same-group member that ignores SIGTERM but holds none of the root's pipes is ended by SIGKILL; upstream leaves it running. A detached descendant that holds the root's stdout does not delay the close; upstream waits the full grace and then SIGKILLs the group. A root that exits 0 while its stdout is still open leaves the group untouched; upstream SIGTERMs it within its 1 s output deadline. |
 
 ## Target frameworks
 
