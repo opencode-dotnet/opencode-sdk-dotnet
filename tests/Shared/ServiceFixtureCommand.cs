@@ -107,7 +107,7 @@ internal sealed class ServiceFixtureCommand
         }
         catch (OperationCanceledException)
         {
-            _ = ProcessTreeTerminator.TryKill(process);
+            _ = ProcessTreeTerminator.Platform.TryKill(process);
             throw;
         }
 

@@ -3,4 +3,4 @@ P:System.DateTime.Now;Use System.DateTime.UtcNow instead
 P:System.DateTimeOffset.Now;Use System.DateTimeOffset.UtcNow instead
 P:System.DateTimeOffset.DateTime;Use System.DateTimeOffset.UtcDateTime instead
 M:Polyfills.Polyfill.CancelAsync(System.Threading.CancellationTokenSource);Spins a worker until a queued Cancel starts and stalls the pool under concurrency; use OpenCode.Sdk.Internal.CancellationTokenSourceExtensions.CancelOnWorkerAsync
-M:Polyfills.Polyfill.Kill(System.Diagnostics.Process,System.Boolean);Polyfill maps Kill(entireProcessTree) to a plain Kill() that leaves the descendants running; use OpenCode.Sdk.Internal.ProcessTreeTerminator.TryKill
+M:Polyfills.Polyfill.Kill(System.Diagnostics.Process,System.Boolean);Polyfill maps Kill(entireProcessTree) to a plain Kill() that leaves the descendants running; use OpenCode.Sdk.Internal.ProcessTreeTerminator.Platform.TryKill

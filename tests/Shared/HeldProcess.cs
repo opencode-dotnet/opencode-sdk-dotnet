@@ -95,7 +95,7 @@ internal sealed class HeldProcess : IDisposable
         {
             foreach (var process in held)
             {
-                _ = ProcessTreeTerminator.TryKill(process._process);
+                _ = ProcessTreeTerminator.Platform.TryKill(process._process);
             }
 
             var finished = true;
