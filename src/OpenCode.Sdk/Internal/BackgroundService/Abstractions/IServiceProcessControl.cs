@@ -1,4 +1,5 @@
 using OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
+using OpenCode.Sdk.Internal.Posix;
 namespace OpenCode.Sdk.Internal.BackgroundService.Abstractions;
 
 /// <summary>

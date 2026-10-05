@@ -1,32 +1,35 @@
 using System.Collections;
 using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
 using OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
+using OpenCode.Sdk.Internal.Posix.Abstractions;
 using static OpenCode.Sdk.Internal.BackgroundService.ProcessControl.BackgroundServiceInterop;
 
 namespace OpenCode.Sdk.Internal.BackgroundService.Contender;
 
 /// <summary>
-/// The shipped <see cref="IServiceContenderSpawner"/> on the platform's own spawn primitives
-/// (ADR-0027), bound in <see cref="BackgroundServiceInterop"/>, with the stderr pipe taken from the
-/// BCL. This file holds what both platforms share; the <c>.Windows</c> and <c>.Unix</c> files hold
-/// one arm each.
+/// The shipped <see cref="IServiceContenderSpawner"/> on the platform's own spawn primitives:
+/// <c>CreateProcessW</c> bound in <see cref="BackgroundServiceInterop"/>, and the SDK's shared
+/// <see cref="Posix.PosixSpawn"/>, with the stderr pipe taken from the BCL. This file holds what
+/// both platforms share; the <c>.Windows</c> and <c>.Unix</c> files hold one arm each.
 /// </summary>
-internal sealed partial class ServiceContenderSpawner : IServiceContenderSpawner
+/// <param name="posixSpawn">The POSIX spawn the Unix arm starts contenders through.</param>
+internal sealed partial class ServiceContenderSpawner(IPosixSpawn posixSpawn) : IServiceContenderSpawner
 {
     /// <summary>The PTY-handoff variable whose value is secret-bearing: removed when empty, redacted from diagnostics when present.</summary>
     private const string HandoffVariable = "OPENCODE_PTY_HANDOFF";
+
+    private readonly IPosixSpawn _posixSpawn = posixSpawn;
 
     /// <inheritdoc />
     public IServiceContender Spawn(IServiceContenderSpawner.ContenderStartInfo startInfo) => Start(startInfo);
 
     /// <summary>
-    /// Starts one detached contender. The spawn needs no instance state, so the seam's member
-    /// forwards here, and the concrete contender — whose retained stderr text the spawner's own
-    /// tests read — stays reachable without a cast.
+    /// Starts one detached contender. The seam's member forwards here, so the concrete contender —
+    /// whose retained stderr text the spawner's own tests read — stays reachable without a cast.
     /// </summary>
     /// <param name="startInfo">What to spawn.</param>
     /// <returns>The contender.</returns>
-    public static ServiceContender Start(IServiceContenderSpawner.ContenderStartInfo startInfo)
+    public ServiceContender Start(IServiceContenderSpawner.ContenderStartInfo startInfo)
     {
         ArgumentNullException.ThrowIfNull(startInfo);
 

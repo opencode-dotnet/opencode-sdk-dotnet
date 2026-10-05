@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
 using OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
+using OpenCode.Sdk.Internal.Posix;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;

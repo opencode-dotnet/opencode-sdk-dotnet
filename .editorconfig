@@ -1062,15 +1062,19 @@ dotnet_diagnostic.S4790.severity = none
 [src/OpenCode.Sdk/Internal/BackgroundService/ServiceFileSystem.cs]
 dotnet_diagnostic.MA0045.severity = none
 
-# ServiceContenderSpawner's two OS arms hand the stderr pipe's child end to the native spawn as a raw
-# value: the Windows handle list is an array of raw HANDLEs (the named pipe's write end, opened by
-# CreateFileW), and posix_spawn_file_actions_adddup2 takes an int descriptor, so no SafeHandle
-# marshalling can carry either (S3869). The pipe object stays alive and undisposed across the call,
-# and the raw value is never stored past it. The spawn
-# is synchronous by contract (a spawn failure throws from Spawn itself, ADR-0027), so the pipe's
-# cleanup on a failed spawn is a synchronous Dispose in a finally (MA0045). Winner: the synchronous
-# native-spawn contract; S3869 and MA0045 remain enabled for every other file.
-[src/OpenCode.Sdk/Internal/BackgroundService/Contender/ServiceContenderSpawner.{Windows,Unix}.cs]
+# The two native spawns hand a pipe's child end to the platform as a raw value: the contender's
+# Windows handle list is an array of raw HANDLEs (the named pipe's write end, opened by
+# CreateFileW), and PosixSpawn's posix_spawn_file_actions_adddup2 takes an int descriptor, so no
+# SafeHandle marshalling can carry either (S3869). The pipe object stays alive and undisposed across
+# the call, and the raw value is never stored past it. The spawn is synchronous by contract (a spawn
+# failure throws from Spawn itself), so the pipes' cleanup on a failed spawn is a
+# synchronous Dispose in a finally (MA0045). Winner: the synchronous native-spawn contract; S3869
+# and MA0045 remain enabled for every other file.
+[src/OpenCode.Sdk/Internal/BackgroundService/Contender/ServiceContenderSpawner.Windows.cs]
+dotnet_diagnostic.S3869.severity = none
+dotnet_diagnostic.MA0045.severity = none
+
+[src/OpenCode.Sdk/Internal/Posix/PosixSpawn.cs]
 dotnet_diagnostic.S3869.severity = none
 dotnet_diagnostic.MA0045.severity = none
 
@@ -1206,3 +1210,37 @@ dotnet_diagnostic.MA0045.severity = none
 [src/OpenCode.Sdk/Optional.cs]
 dotnet_diagnostic.CA1000.severity = none
 dotnet_diagnostic.CA2225.severity = none
+
+# The standalone launcher awaits the tasks of its own child: the exit watch's completion, which a
+# thread of the watch completes, and the line readers' loops, which the pump started. Every await
+# inside them declines context capture, so no foreign synchronization context is involved, and
+# BoundedWait takes exactly those owned tasks. Winner: owned child observation; VSTHRD003 remains
+# enabled for every other file. Each entry names one file.
+[src/OpenCode.Sdk/Internal/Launcher/BoundedWait.cs]
+dotnet_diagnostic.VSTHRD003.severity = none
+
+[src/OpenCode.Sdk/Internal/Launcher/PipeOutputPump.cs]
+dotnet_diagnostic.VSTHRD003.severity = none
+
+[src/OpenCode.Sdk/Internal/Launcher/PosixServerChild.cs]
+dotnet_diagnostic.VSTHRD003.severity = none
+
+[src/OpenCode.Sdk/Internal/Launcher/PosixServerLadder.cs]
+dotnet_diagnostic.VSTHRD003.severity = none
+
+[src/OpenCode.Sdk/Internal/Launcher/ProcessServerChild.cs]
+dotnet_diagnostic.VSTHRD003.severity = none
+
+# The POSIX exit watch is a dedicated background thread that blocks in waitid by design: a
+# blocking wait on its own thread holds no pool thread, and no async form of waitid exists. When
+# the kernel reaps the child itself, the same thread sleeps between probes, which is the bounded
+# fallback the watch documents. Winner: the dedicated exit-watch thread; MA0045 remains enabled
+# for every other file.
+[src/OpenCode.Sdk/Internal/Posix/PosixChildExitWatch.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# ChildExitObservation is the one bounded await on a launched child's exit watch, whose task a
+# thread of the watch completes; every launcher proof observes the exit through it. Winner: owned
+# exit observation; VSTHRD003 remains enabled for every other file.
+[tests/OpenCode.Sdk.Tests/Support/ChildExitObservation.cs]
+dotnet_diagnostic.VSTHRD003.severity = none

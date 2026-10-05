@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO.Abstractions;
 using Microsoft.Win32.SafeHandles;
-using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.TestSupport;
@@ -95,7 +94,7 @@ internal sealed class HeldProcess : IDisposable
         {
             foreach (var process in held)
             {
-                _ = ProcessTreeTerminator.Platform.TryKill(process._process);
+                _ = TestProcessTreeKill.TryKill(process._process);
             }
 
             var finished = true;

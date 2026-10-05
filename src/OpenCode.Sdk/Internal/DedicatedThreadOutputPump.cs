@@ -3,13 +3,15 @@ using System.Diagnostics;
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// The Windows pump: one <see cref="ChildOutputReader"/> thread per stream, so the synchronous
-/// pipe reads hold no thread-pool thread. Each reader thread closes its pipe's read handle as it
+/// Reads a Windows child's redirected stdout and stderr continuously and releases the readers:
+/// one <see cref="ChildOutputReader"/> thread per stream, because <see cref="Process"/>'s pipes
+/// there are synchronous before .NET 11 and its event readers would hold two thread-pool threads
+/// for the server's whole life. Each reader thread closes its pipe's read handle as it
 /// ends, because <see cref="Process"/> leaves a synchronously read stream open. The .NET 11
 /// <see cref="Process"/> opens the parent's read ends overlapped instead (dotnet/runtime#125643),
 /// which no current target of this SDK has.
 /// </summary>
-internal sealed class DedicatedThreadOutputPump : ChildOutputPump
+internal sealed class DedicatedThreadOutputPump
 {
     /// <summary>How often a release repeats the cancel while a reader is still blocked.</summary>
     private static readonly TimeSpan CancelRetryInterval = TimeSpan.FromMilliseconds(10);
@@ -40,11 +42,21 @@ internal sealed class DedicatedThreadOutputPump : ChildOutputPump
             ChildOutputReader.Start(process.StandardOutput, onStandardOutput, "opencode-server-stdout"),
             ChildOutputReader.Start(process.StandardError, onStandardError, "opencode-server-stderr"));
 
-    /// <inheritdoc />
-    public override Task ReadersEnded => Task.WhenAll(_standardOutput.Completion, _standardError.Completion);
+    /// <summary>
+    /// Gets a task that completes once no reader of this pump holds a thread any more; what
+    /// disposal's release guarantees, and what a test observes to prove it.
+    /// </summary>
+    public Task ReadersEnded => Task.WhenAll(_standardOutput.Completion, _standardError.Completion);
 
-    /// <inheritdoc />
-    public override async Task<bool> DrainAsync(TimeSpan bound)
+    /// <summary>
+    /// Waits, inside <paramref name="bound"/>, for both streams to reach end-of-stream, so every
+    /// line the child wrote has been delivered. End-of-stream arrives only when every process
+    /// holding a write end has closed it, which a surviving descendant can prevent: the bound is
+    /// the guarantee, and an expired bound is reported rather than raised.
+    /// </summary>
+    /// <param name="bound">How long the caller waits for end-of-stream.</param>
+    /// <returns>True when both streams reached end-of-stream inside the bound.</returns>
+    public async Task<bool> DrainAsync(TimeSpan bound)
     {
         try
         {
@@ -60,8 +72,12 @@ internal sealed class DedicatedThreadOutputPump : ChildOutputPump
         }
     }
 
-    /// <inheritdoc />
-    public override async Task ReleaseAsync()
+    /// <summary>
+    /// Ends every reader this pump started, whether or not its stream reached end-of-stream.
+    /// After it completes no reader holds a thread; the process is disposed only after this.
+    /// </summary>
+    /// <returns>A task that completes once the readers are released.</returns>
+    public async Task ReleaseAsync()
     {
         var ended = ReadersEnded;
         var elapsed = Stopwatch.StartNew();

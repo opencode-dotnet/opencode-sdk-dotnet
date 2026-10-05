@@ -6,6 +6,7 @@ using OpenCode.Sdk.Internal.BackgroundService.Discovery;
 using OpenCode.Sdk.Internal.BackgroundService.Ensure;
 using OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
 using OpenCode.Sdk.Internal.BackgroundService.Registration;
+using OpenCode.Sdk.Internal.Posix;
 using OpenCode.Sdk.Tests.BackgroundService.Registration;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;

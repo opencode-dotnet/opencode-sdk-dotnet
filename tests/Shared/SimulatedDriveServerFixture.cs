@@ -165,8 +165,7 @@ public sealed class SimulatedDriveServerFixture : IAsyncInitializer, IAsyncDispo
         {
             teardown.Own("simulated server teardown", async _ => await _server.DisposeAsync());
 
-            // Runs after the teardown above has settled, so the collector is final: the stdin-EOF
-            // milestone is written only once the lease is released.
+            // Runs after the teardown above has settled, so the collector is final.
             teardown.Own("simulated server diagnostic contract", _ =>
             {
                 EnsureDiagnosticContract(_server, _output);
@@ -212,27 +211,30 @@ public sealed class SimulatedDriveServerFixture : IAsyncInitializer, IAsyncDispo
         Environment.GetEnvironmentVariable("OPENCODE_SDK_TESTS_KEEP_LOGS"), "1", StringComparison.Ordinal);
 
     /// <summary>
-    /// The shared instance proves the one milestone its final snapshot can still hold: the host
-    /// logs "stdin closed" only once the launcher releases the lease, so it is the last stderr
-    /// line and survives the collector's bound. The earlier "starting"/"ready" milestones are
-    /// evicted over a chatty session (INFO logging retains the newest 500 lines); they are proven
-    /// per lifecycle by <c>PersistentSimulationHostTests</c>, which starts its own short-lived
-    /// host and reads a snapshot that lost nothing. This is the explicit migration reduction from
-    /// the retired adapter's push-based startup capture, not a claim about every shared instance.
+    /// The shared instance proves what its final snapshot can still hold. On Windows the host logs
+    /// "stdin closed" once the launcher releases the lease, before the collection closes, so it is
+    /// the last stderr line and survives the collector's bound. On Linux and macOS <c>SIGTERM</c>
+    /// ends the host and the lease is released last, so the host writes no "stdin closed" line,
+    /// and the proof is that the host's diagnostics reached stderr at all: a line carrying its
+    /// severity. The earlier "starting"/"ready" milestones are evicted over a chatty session (INFO
+    /// logging retains the newest 500 lines); they are proven per lifecycle by
+    /// <c>PersistentSimulationHostTests</c>, which starts its own short-lived host and reads a
+    /// snapshot that lost nothing. This is the explicit migration reduction from the retired
+    /// adapter's push-based startup capture, not a claim about every shared instance.
     /// </summary>
     private static void EnsureDiagnosticContract(OpenCodeServer server, OpenCodeServerOutput output)
     {
         var snapshot = output.GetSnapshot();
-        const string milestone = "persistent simulation host stdin closed";
+        var milestone = OperatingSystem.IsWindows() ? "persistent simulation host stdin closed" : "level=";
         if (!snapshot.StandardError.Any(line => line.Contains(milestone, StringComparison.Ordinal)))
         {
             throw new InvalidOperationException(
-                "The persistent simulation host did not retain the stdin-EOF diagnostic '" + milestone +
+                "The persistent simulation host did not retain the diagnostic '" + milestone +
                 "' (stderr truncated: " + snapshot.StandardErrorTruncated + ").");
         }
 
         Console.WriteLine(
-            "Persistent simulation host retained the stdin-EOF diagnostic for process " +
+            "Persistent simulation host retained the diagnostic '" + milestone + "' for process " +
             server.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture) +
             " (stderr truncated: " + snapshot.StandardErrorTruncated + ").");
     }

@@ -40,9 +40,13 @@ internal sealed class ExecutableResolver
     {
         // A caller who wrote a path has already made the choice: no search, and no existence
         // probe either — the spawn itself reports a wrong path better than a guess here could.
+        // On Unix a relative path is made absolute here, against this process's directory: the
+        // child may start in another directory, and a relative path would then name a file there.
         if (CarriesItsOwnPath(command))
         {
-            return Describe(command, command);
+            return Describe(
+                command,
+                _environment.IsWindows || IsRooted(command) ? command : Combine(_environment.CurrentDirectory, command));
         }
 
         var directories = SearchDirectories();

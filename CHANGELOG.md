@@ -13,6 +13,46 @@ Nightly builds of `master` are on
 
 - **Both packages declare `IsAotCompatible` on every modern target** (`net8.0` and later), not only
   `net10.0`, so trimming and native AOT analysis cover the `net8.0` and `net9.0` assets too.
+- **On Linux and macOS a standalone server runs in a session of its own, so a Ctrl+C or a hangup
+  sent to the host's terminal no longer reaches it.** Behaviour change: the server used to stay in
+  the host's process group, so a Ctrl+C the host itself handled still ended the server. It now
+  ends through `DisposeAsync`, or, when the host dies without disposing, on the end-of-stream of
+  its stdin lease.
+- **Disposing a standalone server on Linux and macOS sends `SIGTERM` to the server's process group,
+  and `SIGKILL` to whatever is left of the group after `GracefulShutdownTimeout`**, as upstream's own
+  launcher does. Behaviour changes:
+  - The pinned server answers the `SIGTERM` by exiting with code 130, where the stdin end-of-stream
+    used to end it with code 0. Stdin now closes last.
+  - Children the server started in its own process group end with it. Descendants that moved into a
+    session of their own (the persistent-terminal daemon, PTY shells) are left to the server, as
+    upstream leaves them; the forced tree kill used to end them too.
+  - A server that already exited on its own with a non-zero code has the survivors of its group
+    ended, and so does one whose exit status nobody could read (the host ignores `SIGCHLD` on
+    Linux, or runs as pid 1); one that exited with code 0 or on a signal leaves them alone, as
+    before.
+- **A failed `StartAsync` on Linux and macOS ends the server the same way, with the configured
+  grace**, so a canceled or timed-out start can take up to that grace plus 16 seconds to throw: at
+  most 10 for the server's exit after `SIGKILL`, 1 for draining its output, and 5 for releasing the
+  output readers. Behaviour change: it used to kill the server at once.
+- **`StartAsync` on Linux and macOS sees the server's own exit without waiting for its output, and
+  fails at once when the server closes its stdout before readiness.** A server that exits before
+  readiness while a process it started still holds its stdout now fails the start within about a
+  second instead of at the readiness timeout. Behaviour change in the message: a server ended by a
+  signal before readiness reads "terminated on signal N", where it read "exited with code 128+N".
+- **`OpenCodeServerOptions.WorkingDirectory` works on Linux with a C library older than glibc 2.29**
+  (RHEL 8, Debian 10, Ubuntu 18.04): the server starts there through `/usr/bin/env -C`, which keeps
+  it the same process. A blank `WorkingDirectory` counts as none.
+- **A standalone server's relative command path on Linux and macOS is resolved against the
+  caller's current directory**, never against `WorkingDirectory`. Behaviour change: `Process`
+  tried it against the application's own directory first, so a relative path that named a file
+  there started that file even when the current directory held another.
+- **`OPENCODE_PRINT_LOGS=1` in the host's environment hands the server the host's own stderr on
+  Linux and macOS**, as upstream's launcher does; no stderr is then collected or quoted in a startup
+  failure.
+- **POSIX systems other than Linux and macOS, FreeBSD among them, are refused with
+  `OpenCodeServerException` before anything is spawned.** Behaviour change: they used to start
+  through `Process`. On Linux and macOS a NUL in a command entry or an environment entry is now
+  refused with `ArgumentException`, because the C string it is passed as would end there.
 
 ### 🐛 Fixes
 
@@ -20,7 +60,17 @@ Nightly builds of `master` are on
   process the server started keeps its output open.** On .NET 8 and later the shutdown waits also
   waited for the server's redirected output to end, so a server that exited at once on stdin EOF
   still ran out the 3-second grace and the 10-second forced-exit wait. Disposal now waits for the
-  server process's own exit, and the output drain keeps its own bound.
+  server's own exit and then for its process group; only an `OpenCodeServerOutput` collector waits
+  for the output, for at most one second.
+- **A standalone server on Linux and macOS starts with every signal at its default disposition and
+  an empty signal mask**, as upstream's launcher starts it. It used to inherit a signal its host
+  ignores (the .NET runtime ignores `SIGPIPE`, and a host started under `nohup` ignores `SIGINT`
+  and `SIGHUP`).
+- **Servers and background-service contenders started at the same time on macOS no longer receive
+  each other's pipe ends.** macOS marks a new pipe close-on-exec only after creating it, so a spawn
+  on another thread in between could inherit a server's stdin lease and keep it open after the host
+  died. The SDK's spawns now take one lock around pipe creation and spawn, and on macOS the child
+  receives no descriptor beyond its own three.
 - **`OpenCodeServer.DisposeAsync` no longer throws when the forced tree kill is incomplete.** The
   runtime raises `AggregateException` when a process of the tree refuses the kill. That exception
   escaped disposal and skipped the rest of it: the bounded output drain, the release of the output

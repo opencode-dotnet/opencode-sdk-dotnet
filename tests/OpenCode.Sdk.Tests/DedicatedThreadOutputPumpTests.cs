@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Win32.SafeHandles;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.TestSupport;
 using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests;
@@ -52,7 +53,7 @@ public sealed class DedicatedThreadOutputPumpTests
         }
         finally
         {
-            _ = ProcessTreeTerminator.Platform.TryKill(process);
+            _ = TestProcessTreeKill.TryKill(process);
             await process.WaitForExitAsync(CancellationToken.None);
         }
     }
@@ -89,7 +90,7 @@ public sealed class DedicatedThreadOutputPumpTests
         }
         finally
         {
-            _ = ProcessTreeTerminator.Platform.TryKill(process);
+            _ = TestProcessTreeKill.TryKill(process);
             await process.WaitForExitAsync(CancellationToken.None);
             if (pump is not null)
             {
@@ -130,7 +131,7 @@ public sealed class DedicatedThreadOutputPumpTests
         finally
         {
             // The child exits on its own; this ends it when an assertion or the wait failed first.
-            _ = ProcessTreeTerminator.Platform.TryKill(process);
+            _ = TestProcessTreeKill.TryKill(process);
             await process.WaitForExitAsync(CancellationToken.None);
             if (pump is not null)
             {

@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.TestSupport;
 
 namespace OpenCode.Sdk.Tests.Support;
 
@@ -66,7 +66,7 @@ internal static class ProcessObservation
         try
         {
             using var process = Process.GetProcessById(processId);
-            _ = ProcessTreeTerminator.Platform.TryKill(process);
+            _ = TestProcessTreeKill.TryKill(process);
         }
         catch (ArgumentException)
         {
