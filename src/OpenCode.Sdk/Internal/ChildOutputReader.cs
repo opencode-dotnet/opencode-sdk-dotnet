@@ -42,7 +42,7 @@ internal sealed class ChildOutputReader
     internal static int LiveReaders => Volatile.Read(ref s_liveReaders);
 
     /// <summary>Starts a background thread that delivers every line of <paramref name="reader"/> to <paramref name="onLine"/>.</summary>
-    /// <param name="reader">The redirected stream's reader; the reader's owner disposes it.</param>
+    /// <param name="reader">The redirected stream's reader; the reading thread disposes it when it ends.</param>
     /// <param name="onLine">Receives each line, on the reading thread.</param>
     /// <param name="threadName">The thread's name, so a dump names what the thread reads.</param>
     /// <returns>The started reader.</returns>
@@ -104,6 +104,10 @@ internal sealed class ChildOutputReader
         }
         finally
         {
+            // The thread that read the stream is its only user, so it releases it: on Windows the
+            // pipe's read handle. Process.Dispose never closes a redirected stream read
+            // synchronously, so nothing else would before the finalizer.
+            _reader.Dispose();
             CloseOwnThreadHandle();
 
             // Counted down before completion is signaled, so an owner that awaited Completion

@@ -39,6 +39,12 @@
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 
+  <!-- The downlevel taskkill tests read process parentage and command lines through WMI, which
+       .NET Framework ships in this framework assembly. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Management" />
+  </ItemGroup>
+
   <!-- Implicit usings apply only on net6.0+; the net472 leg needs these globally too. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Using Include="System.Linq" />

@@ -4,8 +4,10 @@ namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The Windows pump: one <see cref="ChildOutputReader"/> thread per stream, so the synchronous
-/// pipe reads hold no thread-pool thread. The .NET 11 <see cref="Process"/> opens the parent's
-/// read ends overlapped instead (dotnet/runtime#125643), which no current target of this SDK has.
+/// pipe reads hold no thread-pool thread. Each reader thread closes its pipe's read handle as it
+/// ends, because <see cref="Process"/> leaves a synchronously read stream open. The .NET 11
+/// <see cref="Process"/> opens the parent's read ends overlapped instead (dotnet/runtime#125643),
+/// which no current target of this SDK has.
 /// </summary>
 internal sealed class DedicatedThreadOutputPump : ChildOutputPump
 {

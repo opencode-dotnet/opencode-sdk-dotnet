@@ -14,6 +14,27 @@ Nightly builds of `master` are on
 - **Both packages declare `IsAotCompatible` on every modern target** (`net8.0` and later), not only
   `net10.0`, so trimming and native AOT analysis cover the `net8.0` and `net9.0` assets too.
 
+### 🐛 Fixes
+
+- **Disposing a standalone server on Linux and macOS no longer waits about 13 seconds when a
+  process the server started keeps its output open.** On .NET 8 and later the shutdown waits also
+  waited for the server's redirected output to end, so a server that exited at once on stdin EOF
+  still ran out the 3-second grace and the 10-second forced-exit wait. Disposal now waits for the
+  server process's own exit, and the output drain keeps its own bound.
+- **`OpenCodeServer.DisposeAsync` no longer throws when the forced tree kill is incomplete.** The
+  runtime raises `AggregateException` when a process of the tree refuses the kill. That exception
+  escaped disposal and skipped the rest of it: the bounded output drain, the release of the output
+  readers (on Windows, a reader blocked on a pipe that a descendant still held was never
+  cancelled), and the completion of the `OpenCodeServerOutput` collector. A failed `StartAsync`
+  whose tree kill was incomplete threw that `AggregateException` instead of
+  `OpenCodeServerException` or `OperationCanceledException`. Disposal and a failed start now
+  continue past an incomplete kill and release everything.
+- **A standalone server's stdout and stderr pipe handles are closed at disposal on Windows.**
+  `Process` never closes a redirected stream that was read synchronously, so the handles waited for
+  the finalizer; each output reader now closes its pipe as it ends, after a failed start too.
+- **The `net472` and `netstandard2.0` Windows tree kill no longer leaves taskkill running.** A
+  taskkill still running at its 10-second bound is now ended instead of left running.
+
 ### 🔒 Security
 
 - **An unrecognized union value no longer prints a secret.** When a union's known shapes carry a

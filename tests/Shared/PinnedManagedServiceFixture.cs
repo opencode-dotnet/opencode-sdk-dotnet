@@ -276,7 +276,7 @@ public sealed class PinnedManagedServiceFixture : IAsyncInitializer, IAsyncDispo
         {
             if (!process.HasExited)
             {
-                _ = ProcessTreeTerminator.TryKill(process);
+                _ = ProcessTreeTerminator.Platform.TryKill(process);
                 using var exit = new CancellationTokenSource(ExitTimeout);
                 await process.WaitForExitAsync(exit.Token).ConfigureAwait(false);
             }

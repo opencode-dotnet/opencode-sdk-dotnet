@@ -383,9 +383,11 @@ its pool. The launcher therefore reads each stream on a dedicated background thr
 asynchronous and hold no thread. Every reader ends before the process is released: disposal and a
 failed start wait for end-of-stream inside the drain bound, then cancel any read still blocked —
 a descendant can keep a write end open — with `CancelSynchronousIo`, so no reader outlives its
-owner. .NET 11's `Process` opens the parent's read ends overlapped (dotnet/runtime#125643); a
-future .NET 11 target can read asynchronously on that runtime without a dedicated thread. The
-contender spawn creates its own overlapped stderr pipe instead (ADR-0027).
+owner. Each Windows reader thread closes its pipe's read handle as it ends, because `Process`
+never closes a redirected stream that was read synchronously. .NET 11's `Process` opens the
+parent's read ends overlapped (dotnet/runtime#125643); a future .NET 11 target can read
+asynchronously on that runtime without a dedicated thread. The contender spawn creates its own
+overlapped stderr pipe instead (ADR-0027).
 
 `Command[0]` is resolved once per start, before the process is created, the way a shell resolves
 it, and the resolved path is what the process starts and what a failure names. A command carrying
@@ -402,7 +404,7 @@ that matches nothing fails before anything is spawned, naming the command, the n
 directories searched, and the extensions tried.
 
 A resolved Windows batch target (`.cmd`/`.bat`) is launched explicitly through the system
-`cmd.exe` — located the way `ProcessTreeTerminator` locates taskkill — with `/d /s /c` and a
+`cmd.exe` — located the way the downlevel tree kill locates taskkill — with `/d /s /c` and a
 command line whose script path and every argument are double-quoted inside one outer quote pair,
 which is the single documented `/s` parse. Determinism is the reason: `CreateProcess` will run a
 batch file implicitly, but through a rule nothing in the SDK controls. Because `cmd.exe` re-parses
@@ -415,8 +417,9 @@ installs. The batch line is composed as one string on every target, because `cmd
 follow the MSVCRT rules `ArgumentList` applies; the non-batch case is unchanged (`ArgumentList` on
 modern targets, `ProcessArgumentComposer` downlevel). The stdin ownership lease and the stdout
 readiness line pass through the interpreter to the child unchanged, and `ProcessId` reports the
-launcher-owned root — for a batch shim, the `cmd.exe` host rather than the server process. Bounded
-tree termination already covers the grandchild, and launcher acceptance proves it.
+launcher-owned root — for a batch shim, the `cmd.exe` host rather than the server process. The
+forced tree kill reaches the grandchild whenever it runs; when the server and its `cmd.exe` host
+exit inside the disposal grace, no tree kill runs (see the disposal ladder below).
 
 An optional caller-created `OpenCodeServerOutput` collector, supplied through the start options,
 retains a bounded tail of both streams, including the first stdout line, for pull snapshots. It
@@ -429,17 +432,32 @@ Disposal is a ladder, bounded at every step so it never hangs the caller: stdin 
 release) first, then the configured grace (`GracefulShutdownTimeout`, default 3 seconds — the
 reference client's own force-kill window), then a forced whole-tree kill
 (`Process.Kill(entireProcessTree: true)` on modern TFMs, `taskkill /pid … /T /F` on downlevel
-Windows, plain `Kill()` on downlevel non-Windows once the stdin-EOF lease has already released any
-children), then a final bounded forced-exit wait. Ownership is structural: the returned
-`OpenCodeServer` is the only owner of its child, disposal ends exactly that child, and the
-operating system closes the lease even when the owner crashes before disposal runs — coexistence
-with any other running server is safe by construction, since a started door never discovers or
-attaches to one.
+Windows, and a plain `Kill()` of the root alone on downlevel non-Windows), then a final bounded
+forced-exit wait. Both waits observe the owned process's own exit (the `Process.Exited`
+notification), not end-of-stream on its redirected output. On .NET 8 and later,
+`WaitForExitAsync` also waits for end-of-stream on a redirected stream that `Process`'s own event
+readers read — the non-Windows pump reads that way; the Windows reader threads do not — and a
+descendant holding stdout postpones that end-of-stream for as long as it lives. Waiting on the
+exit itself releases a server that exits promptly on stdin EOF at once, on every platform, even
+while a descendant keeps the pipe open. The output drain keeps its own bound. A tree kill that does
+not complete is a result the ladder continues from, never an exception out of disposal: the
+runtime's `AggregateException` when a process of the tree refuses the kill, a non-zero taskkill
+exit (128 when the root has already exited, so its descendants were not reached), or a taskkill
+still running at its 10-second bound, which is then ended so it does not outlive disposal. Every
+release step after the kill runs either way.
+
+Stdin EOF ends the server and nothing else: it releases no descendant, and a descendant that does
+not watch its own stdin keeps running. The tree kill runs only when the grace expires, and on a
+failed start; when the server exits inside the grace — the normal close — disposal ends there
+and does not touch its descendants. Ownership is structural: the returned `OpenCodeServer` is the
+only owner of its child, disposal ends exactly that child, and the operating system closes the
+lease even when the owner crashes before disposal runs — coexistence with any other running server
+is safe by construction, since a started door never discovers or attaches to one.
 
 The forced-exit wait observes the directly owned process. A whole-tree kill is asynchronous: the
 direct process exiting does not guarantee that every descendant has finished exiting at that
-instant. Launcher acceptance separately proves bounded descendant termination before any test
-fallback cleanup.
+instant. Launcher acceptance separately proves bounded descendant termination after a failed
+start, before any test fallback cleanup.
 
 `CreateClient(Action<OpenCodeClientOptions>?)` pins the connection identity fail-closed: the
 delegate receives a fresh identity-unset options instance, and setting `Endpoint`, `Username`, or

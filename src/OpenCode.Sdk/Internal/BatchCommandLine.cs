@@ -27,8 +27,8 @@ internal static class BatchCommandLine
 
     /// <summary>
     /// Gets the absolute path to the system cmd.exe, rather than a bare "cmd" resolved through
-    /// PATH: the interpreter is pinned to its well-known system location, the same way
-    /// <see cref="ProcessTreeTerminator"/> pins taskkill.
+    /// PATH: the interpreter is pinned to its well-known system location, the same way the
+    /// downlevel Windows tree kill pins taskkill.
     /// </summary>
     public static string InterpreterPath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe");

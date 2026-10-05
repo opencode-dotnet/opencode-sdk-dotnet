@@ -49,6 +49,7 @@ public class OpenCodeServer : IAsyncDisposable
 
     private readonly Process? _process;
     private readonly ChildOutputPump? _pump;
+    private readonly ProcessTreeTerminator? _terminator;
     private readonly Uri? _endpoint;
     private readonly string? _password;
     private readonly TimeSpan _gracefulShutdownTimeout;
@@ -59,6 +60,7 @@ public class OpenCodeServer : IAsyncDisposable
     private OpenCodeServer(
         Process process,
         ChildOutputPump pump,
+        ProcessTreeTerminator terminator,
         Uri endpoint,
         string password,
         TimeSpan gracefulShutdownTimeout,
@@ -66,6 +68,7 @@ public class OpenCodeServer : IAsyncDisposable
     {
         _process = process;
         _pump = pump;
+        _terminator = terminator;
         _endpoint = endpoint;
         _password = password;
         _gracefulShutdownTimeout = gracefulShutdownTimeout;
@@ -291,10 +294,27 @@ public class OpenCodeServer : IAsyncDisposable
     /// <returns>The started server, disposed by the caller.</returns>
     /// <exception cref="ArgumentException">The options are unusable: an empty command, a blank command entry, a non-positive readiness timeout, a negative grace, or an output collector an earlier start already bound.</exception>
     /// <exception cref="OpenCodeServerException">The command did not resolve on PATH, a leading argument was refused for a Windows batch shim, or the process could not start, exited before readiness, timed out, or broke the readiness contract.</exception>
-    public static async Task<OpenCodeServer> StartAsync(
+    public static Task<OpenCodeServer> StartAsync(
         OpenCodeServerOptions? options = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        StartWithSeamsAsync(options, ProcessTreeTerminator.Platform, cancellationToken);
+
+    /// <summary>
+    /// The seam-injected start the tests use, the way <see cref="EnsureWithSeamsAsync"/> keeps its
+    /// seams off the public options: a live proof substitutes the whole-tree kill to script a kill
+    /// the platform reports incomplete. The public door passes the platform terminator.
+    /// </summary>
+    /// <param name="options">The launch options; null uses the defaults.</param>
+    /// <param name="terminator">The forced rung's tree kill, for this start and the server's disposal.</param>
+    /// <param name="cancellationToken">The cancellation token ending the wait for readiness.</param>
+    /// <returns>The started server, disposed by the caller.</returns>
+    internal static async Task<OpenCodeServer> StartWithSeamsAsync(
+        OpenCodeServerOptions? options,
+        ProcessTreeTerminator terminator,
+        CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(terminator);
+
         options ??= new OpenCodeServerOptions();
         var command = SnapshotCommand(options);
         ValidateTimeouts(options);
@@ -324,15 +344,15 @@ public class OpenCodeServer : IAsyncDisposable
             pump = StartChildProcess(process, executable, onStandardOutput, onStandardError);
 
             var line = await WaitForReadyLineAsync(
-                process, pump, readyLine, readinessTimeout, stderrGate, stderrTail, cancellationToken).ConfigureAwait(false);
+                process, pump, terminator, readyLine, readinessTimeout, stderrGate, stderrTail, cancellationToken).ConfigureAwait(false);
             if (!ServerReadyLine.TryParse(line, out var endpoint))
             {
-                _ = await EndStartupFailureAsync(process, pump).ConfigureAwait(false);
+                _ = await EndStartupFailureAsync(process, pump, terminator).ConfigureAwait(false);
                 throw new OpenCodeServerException(
                     $"The server's first stdout line is not the JSON readiness contract: '{line}'.{DescribeStderr(stderrGate, stderrTail)}");
             }
 
-            var started = new OpenCodeServer(process, pump, endpoint, password, gracefulShutdownTimeout, output);
+            var started = new OpenCodeServer(process, pump, terminator, endpoint, password, gracefulShutdownTimeout, output);
             process = null;
             pump = null;
             return started;
@@ -406,31 +426,37 @@ public class OpenCodeServer : IAsyncDisposable
         }
 
         GC.SuppressFinalize(this);
-        if (_process is null || _pump is null)
+        if (_process is null || _pump is null || _terminator is null)
         {
             return;
         }
 
         try
         {
-            await EndOwnedChildAsync(_process, _gracefulShutdownTimeout).ConfigureAwait(false);
-            if (_output is not null)
-            {
-                // The collector's promise is a final snapshot once disposal returns. The bounded
-                // drain lets the redirected readers reach end-of-stream (or its bound) before the
-                // collection closes; the child was ended above, and a drain that cannot finish
-                // inside its bound leaves an honest, possibly incomplete, tail.
-                _ = await _pump.DrainAsync(DrainTimeout).ConfigureAwait(false);
-            }
-
-            // Every reader ends before the process is released, collector or not: a read still
-            // waiting for end-of-stream (a descendant holding the pipe) is canceled here.
-            await _pump.ReleaseAsync().ConfigureAwait(false);
-            _output?.Complete();
+            await EndOwnedChildAsync(_process, _gracefulShutdownTimeout, _terminator).ConfigureAwait(false);
         }
         finally
         {
-            _process.Dispose();
+            try
+            {
+                if (_output is not null)
+                {
+                    // The collector's promise is a final snapshot once disposal returns. The
+                    // bounded drain lets the redirected readers reach end-of-stream (or its bound)
+                    // before the collection closes; the child was ended above, and a drain that
+                    // cannot finish inside its bound leaves an honest, possibly incomplete, tail.
+                    _ = await _pump.DrainAsync(DrainTimeout).ConfigureAwait(false);
+                }
+
+                // Every reader ends before the process is released, collector or not: a read
+                // still waiting for end-of-stream (a descendant holding the pipe) is canceled here.
+                await _pump.ReleaseAsync().ConfigureAwait(false);
+                _output?.Complete();
+            }
+            finally
+            {
+                _process.Dispose();
+            }
         }
     }
 
@@ -519,6 +545,7 @@ public class OpenCodeServer : IAsyncDisposable
     private static async Task<string> WaitForReadyLineAsync(
         Process process,
         ChildOutputPump pump,
+        ProcessTreeTerminator terminator,
         TaskCompletionSource<string> readyLine,
         TimeSpan readinessTimeout,
         object stderrGate,
@@ -534,7 +561,7 @@ public class OpenCodeServer : IAsyncDisposable
         }
         catch (OperationCanceledException exception)
         {
-            _ = await EndStartupFailureAsync(process, pump).ConfigureAwait(false);
+            _ = await EndStartupFailureAsync(process, pump, terminator).ConfigureAwait(false);
             if (cancellationToken.IsCancellationRequested)
             {
                 throw new OperationCanceledException("The server start was canceled.", exception, cancellationToken);
@@ -557,15 +584,15 @@ public class OpenCodeServer : IAsyncDisposable
         // Killing the tree first closes that gap before the bounded drain runs; whether there was
         // still a tree to end, and whether the drain reached EOF inside its bound, change nothing
         // about what this failure reports.
-        _ = ProcessTreeTerminator.TryKill(process);
+        _ = terminator.TryKill(process);
         _ = await pump.DrainAsync(DrainTimeout).ConfigureAwait(false);
         throw new OpenCodeServerException(
             $"The server exited with code {exitCode.ToString(CultureInfo.InvariantCulture)} before reporting readiness.{DescribeStderr(stderrGate, stderrTail)}");
     }
 
-    private static async Task EndOwnedChildAsync(Process process, TimeSpan grace)
+    private static async Task EndOwnedChildAsync(Process process, TimeSpan grace, ProcessTreeTerminator terminator)
     {
-        if (HasExited(process))
+        if (ProcessRootExit.HasExited(process))
         {
             return;
         }
@@ -575,16 +602,20 @@ public class OpenCodeServer : IAsyncDisposable
         // is already leaving, so the bounded wait below covers both outcomes.
         ReleaseStdinLease(process);
 
-        if (await WaitForExitWithinAsync(process, grace).ConfigureAwait(false))
+        // The child's own exit, not its output's end-of-stream: a descendant still holding the
+        // pipe must not hold the grace open. The drain has its own bound.
+        if (await ProcessRootExit.WaitWithinAsync(process, grace).ConfigureAwait(false))
         {
             return;
         }
 
-        _ = ProcessTreeTerminator.TryKill(process);
+        // An incomplete kill (some process of the tree refused it) still ended what it could
+        // reach; the ladder continues the same way, and every release step after it runs.
+        _ = terminator.TryKill(process);
 
         // Bounded on purpose: the kill was issued, and a disposal never hangs the caller, so a
         // child the operating system has not reaped inside this window is left to it.
-        _ = await WaitForExitWithinAsync(process, ForcedExitTimeout).ConfigureAwait(false);
+        _ = await ProcessRootExit.WaitWithinAsync(process, ForcedExitTimeout).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -607,45 +638,6 @@ public class OpenCodeServer : IAsyncDisposable
     }
 
     /// <summary>
-    /// Waits for the child inside a window of its own, so no wait on a launched process is ever
-    /// unbounded.
-    /// </summary>
-    /// <returns>
-    /// True when the child exited inside the window; false when the window expired with the child
-    /// still running, which is what every caller escalates on.
-    /// </returns>
-    private static async Task<bool> WaitForExitWithinAsync(Process process, TimeSpan window)
-    {
-        using var bound = new CancellationTokenSource(window);
-        try
-        {
-            await process.WaitForExitAsync(bound.Token).ConfigureAwait(false);
-            return true;
-        }
-        catch (OperationCanceledException)
-        {
-            // The window expired with the child still alive; the caller decides what follows.
-            return false;
-        }
-    }
-
-    private static bool HasExited(Process process)
-    {
-        try
-        {
-            return process.HasExited;
-        }
-        catch (InvalidOperationException)
-        {
-            return true;
-        }
-        catch (Win32Exception)
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
     /// Ends a child that failed to reach readiness and drains its redirected output, so the stderr
     /// tail the caller is about to quote is as complete as the bound allows.
     /// </summary>
@@ -655,12 +647,12 @@ public class OpenCodeServer : IAsyncDisposable
     /// which is why every call site discards this: an incomplete tail is still the best evidence
     /// available, and there is no second attempt worth making on a process being abandoned.
     /// </returns>
-    private static async Task<bool> EndStartupFailureAsync(Process process, ChildOutputPump pump)
+    private static async Task<bool> EndStartupFailureAsync(Process process, ChildOutputPump pump, ProcessTreeTerminator terminator)
     {
-        _ = ProcessTreeTerminator.TryKill(process);
+        _ = terminator.TryKill(process);
         try
         {
-            if (!await WaitForExitWithinAsync(process, ForcedExitTimeout).ConfigureAwait(false))
+            if (!await ProcessRootExit.WaitWithinAsync(process, ForcedExitTimeout).ConfigureAwait(false))
             {
                 // The bounded exit wait expired without the process ending; skip the drain rather
                 // than wait on a process that may still be alive and writing.

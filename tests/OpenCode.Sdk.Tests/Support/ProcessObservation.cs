@@ -66,7 +66,7 @@ internal static class ProcessObservation
         try
         {
             using var process = Process.GetProcessById(processId);
-            _ = ProcessTreeTerminator.TryKill(process);
+            _ = ProcessTreeTerminator.Platform.TryKill(process);
         }
         catch (ArgumentException)
         {

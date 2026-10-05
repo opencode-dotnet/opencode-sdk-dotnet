@@ -1,4 +1,10 @@
+using System.ComponentModel;
+using System.Diagnostics;
+using System.Globalization;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Internal.Abstractions;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;
@@ -10,6 +16,12 @@ namespace OpenCode.Sdk.Tests;
 public sealed class OpenCodeServerLifecycleTests
 {
     private static readonly RealFileSystem FileSystem = new();
+
+    /// <summary>How long the test's own cleanup waits for the stdout holder it ended.</summary>
+    private static readonly TimeSpan HolderExitBound = TimeSpan.FromSeconds(10);
+
+    /// <summary>How long a test waits for a child it observes to write, or to exit after it was ended.</summary>
+    private static readonly TimeSpan ChildObservationBound = TimeSpan.FromSeconds(10);
 
     private static async Task<(OpenCodeServer Server, TestRunRoot Root)> StartPinnedAsync(
         TimeSpan? gracefulShutdownTimeout = null,
@@ -316,6 +328,207 @@ public sealed class OpenCodeServerLifecycleTests
         await Assert.That(server.OutputReadersEnded.IsCompleted).IsTrue();
     }
 
+    /// <summary>
+    /// A tree kill the platform reports incomplete — the runtime raises it when any process of the
+    /// tree refuses the kill — is a result disposal continues from: the ladder still waits for the
+    /// child, and every release step after it runs: the output drain, the reader release, and the
+    /// collector's completion. The substitute waits until the child has written its last lines,
+    /// then issues the real kill, so the child is ended as it would be when only a descendant
+    /// refused.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    public async Task DisposeAsync_Should_Release_The_Readers_When_The_Tree_Kill_Is_Incomplete(CancellationToken cancellationToken)
+    {
+        const string readyLine = "{\"url\":\"http://127.0.0.1:1\"}";
+        using var runRoot = new TestRunRoot(FileSystem);
+        const string markerName = "final-written";
+        var marker = FileSystem.Path.Combine(runRoot.Path, markerName);
+        using var markerCreated = new ManualResetEventSlim();
+        using var markerWatcher = FileSystem.FileSystemWatcher.New(runRoot.Path, markerName);
+        markerWatcher.Created += (_, _) => markerCreated.Set();
+        markerWatcher.EnableRaisingEvents = true;
+        var finalWritten = false;
+        var platformKill = new PlatformProcessTreeKill();
+        var incompleteKill = Substitute.For<IProcessTreeKill>();
+        _ = incompleteKill.Kill(Arg.Do<Process>(root =>
+            {
+                try
+                {
+                    finalWritten = markerCreated.Wait(ChildObservationBound, cancellationToken) || FileSystem.File.Exists(marker);
+                }
+                finally
+                {
+                    _ = platformKill.Kill(root);
+                }
+            }))
+            .Throws(new AggregateException(new Win32Exception()));
+        var output = new OpenCodeServerOutput();
+        var server = await OpenCodeServer.StartWithSeamsAsync(
+            new OpenCodeServerOptions
+            {
+                // The child writes its last lines once the stdin lease is released, records that
+                // both writes were flushed, and keeps running until the forced rung ends it.
+                Command =
+                [
+                    "bun", "-e",
+                    "const marker = process.env.OPENCODE_SDK_TEST_FINAL_MARKER; console.log('" + readyLine + "'); process.stdin.resume(); "
+                    + "process.stdin.on('end', () => process.stdout.write('FINAL-STDOUT\\n', () => process.stderr.write('FINAL-STDERR\\n', () => require('node:fs').writeFileSync(marker, '')))); "
+                    + "setTimeout(() => {}, 120000);",
+                ],
+                Environment = new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["OPENCODE_SDK_TEST_FINAL_MARKER"] = marker,
+                },
+                GracefulShutdownTimeout = TimeSpan.Zero,
+                Output = output,
+            },
+            new ProcessTreeTerminator(incompleteKill),
+            cancellationToken);
+        var processId = server.ProcessId;
+
+        await server.DisposeAsync();
+
+        _ = incompleteKill.Received(1).Kill(Arg.Any<Process>());
+        await Assert.That(finalWritten).IsTrue();
+        await Assert.That(server.OutputReadersEnded.IsCompleted).IsTrue();
+        await Assert.That(ProcessObservation.IsRunning(processId)).IsFalse();
+
+        // The lines the child wrote just before the kill are in the snapshot: the drain ran
+        // before the collection closed. A line arriving after disposal is ignored: it closed.
+        output.AppendStandardOutput("after-disposal");
+        var snapshot = output.GetSnapshot();
+        await Assert.That(snapshot.StandardOutput).IsEquivalentTo([readyLine, "FINAL-STDOUT"], CollectionOrdering.Matching);
+        await Assert.That(snapshot.StandardError).IsEquivalentTo(["FINAL-STDERR"], CollectionOrdering.Matching);
+    }
+
+    /// <summary>
+    /// A failed start whose tree kill the platform reports incomplete fails as the start failure
+    /// it is, never as the kill's <see cref="AggregateException"/>, and still ends and releases
+    /// everything: the child is gone, the stderr the drain collected is quoted, and the collector
+    /// is closed. The substitute holds its own handle on the child, so the test's cleanup ends
+    /// exactly that process.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    public async Task StartAsync_Should_Report_The_Start_Failure_When_The_Tree_Kill_Is_Incomplete(CancellationToken cancellationToken)
+    {
+        Process? child = null;
+        var platformKill = new PlatformProcessTreeKill();
+        var incompleteKill = Substitute.For<IProcessTreeKill>();
+        _ = incompleteKill.Kill(Arg.Do<Process>(root =>
+            {
+                child = Process.GetProcessById(root.Id);
+
+                // Hold a handle while the launcher's still pins the pid, so later checks and the
+                // cleanup cannot reach an unrelated process that reused it.
+                _ = child.Handle;
+                _ = platformKill.Kill(root);
+            }))
+            .Throws(new AggregateException(new Win32Exception()));
+        var output = new OpenCodeServerOutput();
+        try
+        {
+            var failure = await Assert.That(async () => await OpenCodeServer.StartWithSeamsAsync(
+                new OpenCodeServerOptions
+                {
+                    Command = ["bun", "-e", "console.error('starting'); setTimeout(() => {}, 120000)"],
+                    ReadinessTimeout = TimeSpan.FromSeconds(5),
+                    Output = output,
+                },
+                new ProcessTreeTerminator(incompleteKill),
+                cancellationToken)).Throws<OpenCodeServerException>();
+
+            await Assert.That(failure!.Message).Contains("did not report readiness");
+            await Assert.That(failure.Message).Contains("starting");
+            _ = incompleteKill.Received(1).Kill(Arg.Any<Process>());
+            await Assert.That(child).IsNotNull();
+            await Assert.That(child!.HasExited).IsTrue();
+
+            output.AppendStandardError("after-failure");
+            await Assert.That(output.GetSnapshot().StandardError).IsEquivalentTo(["starting"], CollectionOrdering.Matching);
+        }
+        finally
+        {
+            if (child is not null)
+            {
+                using (child)
+                {
+                    if (!child.HasExited)
+                    {
+                        _ = ProcessTreeTerminator.Platform.TryKill(child);
+                    }
+
+                    _ = await ProcessObservation.ObserveExitWithinAsync(child, ChildObservationBound, CancellationToken.None);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The normal close waits for the child's own exit, not for its output to reach end-of-stream:
+    /// a descendant still holding stdout does not hold disposal open past the child's prompt exit
+    /// on stdin EOF. The holder is the test's to end, by the pid it recorded.
+    /// </summary>
+    /// <remarks>
+    /// The long grace keeps the bound far from both outcomes. A close that waits for end-of-stream
+    /// runs out the whole grace and then the 10-second forced-exit wait, about 40 seconds; the
+    /// prompt close takes well under a second. A 10-second bound leaves room for a loaded machine
+    /// and still fails the waiting close by 30 seconds.
+    /// </remarks>
+    [Test]
+    [Timeout(120_000)]
+    public async Task DisposeAsync_Should_Return_Promptly_When_A_Descendant_Holds_Stdout(CancellationToken cancellationToken)
+    {
+        using var runRoot = new TestRunRoot(FileSystem);
+        var pidFile = FileSystem.Path.Combine(runRoot.Path, "holder.pid");
+        OpenCodeServer? server = null;
+        int? holderId = null;
+        var holderRunningAtClose = false;
+        var holderEnded = false;
+        TimeSpan elapsed;
+        try
+        {
+            server = await OpenCodeServer.StartAsync(
+                new OpenCodeServerOptions
+                {
+                    Command = ["bun", "-e", new FixtureLoader().LoadText("Server.stdout-holder.js")],
+                    Environment = new Dictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        ["OPENCODE_SDK_TEST_HOLDER_PID_FILE"] = pidFile,
+                    },
+                    GracefulShutdownTimeout = TimeSpan.FromSeconds(30),
+                },
+                cancellationToken);
+            holderId = await ReadProcessIdAsync(pidFile, cancellationToken);
+            holderRunningAtClose = ProcessObservation.IsRunning(holderId.Value);
+            var disposal = Stopwatch.StartNew();
+            await server.DisposeAsync();
+            elapsed = disposal.Elapsed;
+        }
+        finally
+        {
+            if (server is not null)
+            {
+                // A no-op after the measured disposal; it ends the child when the arrangement failed.
+                await server.DisposeAsync();
+            }
+
+            // The fixture records the holder before it reports readiness, so a start or a pid read
+            // that failed can still have left a holder running.
+            holderId ??= await TryReadProcessIdAsync(pidFile);
+            if (holderId is { } id)
+            {
+                ProcessObservation.KillIfRunning(id);
+                holderEnded = await ProcessObservation.ObserveExitWithinAsync(id, HolderExitBound, CancellationToken.None);
+            }
+        }
+
+        await Assert.That(holderRunningAtClose).IsTrue();
+        await Assert.That(elapsed).IsLessThan(TimeSpan.FromSeconds(10));
+        await Assert.That(holderEnded).IsTrue();
+    }
+
     [Test]
     [Timeout(120_000)]
     public async Task StartAsync_Should_Leave_The_Collector_Readable_After_A_Failed_Start(CancellationToken cancellationToken)
@@ -417,5 +630,31 @@ public sealed class OpenCodeServerLifecycleTests
         _ = await Assert.That(
             async () => _ = await scenario.WaitForStartupAsync(cancellationToken)).Throws<OperationCanceledException>();
         await AssertFailedStartEndedTheTreeAsync(scenario, cancellationToken);
+    }
+
+    private static async Task<int> ReadProcessIdAsync(string path, CancellationToken cancellationToken)
+    {
+#if NET
+        var text = await FileSystem.File.ReadAllTextAsync(path, cancellationToken);
+#else
+        var text = await Task.FromResult(FileSystem.File.ReadAllText(path)).WaitAsync(cancellationToken);
+#endif
+        return int.Parse(text, CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Reads a recorded pid for cleanup; null when none was recorded.</summary>
+    private static async Task<int?> TryReadProcessIdAsync(string path)
+    {
+        if (!FileSystem.File.Exists(path))
+        {
+            return null;
+        }
+
+#if NET
+        var text = await FileSystem.File.ReadAllTextAsync(path, CancellationToken.None);
+#else
+        var text = await Task.FromResult(FileSystem.File.ReadAllText(path));
+#endif
+        return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) ? id : null;
     }
 }
