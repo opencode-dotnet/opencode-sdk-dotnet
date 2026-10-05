@@ -19,7 +19,17 @@ primitives, one seam per primitive:
 
 - **POSIX spawn.** `posix_spawnp` with `POSIX_SPAWN_SETSID`, every signal reset to its default and an
   empty mask (libuv's child state, which `Process` does not reset for an ignored signal), and the
-  standard streams wired by file actions. This generalizes the contender spawn (ADR-0027).
+  standard streams wired by file actions.
+  - On macOS it adds `POSIX_SPAWN_CLOEXEC_DEFAULT`, as libuv does. The platform has no atomic
+    close-on-exec pipe, so this is what keeps one server's pipe ends out of another child.
+  - Pipe creation and spawn share one SDK-wide lock.
+  - A working directory uses `posix_spawn_file_actions_addchdir_np`. Where the C library predates it
+    (glibc before 2.29), the child is started through `/usr/bin/env -C <dir>`, which keeps the pid
+    across `exec` and leaves the signal state alone.
+  - POSIX systems other than Linux and macOS are refused.
+  - Every binding has a fixed, non-variadic C signature, because a variadic function's arguments are
+    passed differently on Apple arm64.
+  - This generalizes the contender spawn (ADR-0027), and the contender uses the same spawn.
 - **Group signal.** `kill(-pgid, signal)` through the `kill(2)` binding of ADR-0026.
 - **Windows job.** One lazily created, never-closed job per process with libuv's four limits. Each
   server is assigned to it right after creation; an assignment refused with ACCESS_DENIED is ignored,
@@ -27,8 +37,10 @@ primitives, one seam per primitive:
   the host's own crash behaviour.
 - **Windows spawn.** `CreateProcessW` with an explicit inherited-handle list, so the server receives
   only its own standard handles.
-- **Exit status.** On POSIX the launcher reaps its own child and decodes the wait status into an exit
-  code or a terminating signal. On Windows it reads the exit code from the process handle.
+- **Exit status.** On POSIX, a background thread per child blocks in `waitid` without reaping, then
+  reaps the child under the lock the pid fallback takes and decodes the wait status into an exit code
+  or a terminating signal. There is no polling and no process-wide signal handler. On Windows the
+  launcher reads the exit code from the process handle.
 
 Each seam has an implementation per target framework, `LibraryImport` on the modern targets and
 `DllImport` on the downlevel assets.
@@ -42,9 +54,12 @@ The ladder follows upstream, rung for rung.
   2. If the root has already exited with a non-zero code and no signal, end the group's survivors
      the same way; otherwise stop here.
   3. SIGTERM to the group, falling back to the pid. If both fail, end with no escalation.
-  4. Wait for the root's exit (never for pipe end-of-stream) for `GracefulShutdownTimeout`.
-  5. SIGKILL to the group.
+  4. Within `GracefulShutdownTimeout`, wait for the root's exit, then for the group to empty
+     (`kill(-pgid, 0)` until ESRCH). Upstream reaches the same point by waiting for its output pipes
+     to close; probing the group gets the same effect without depending on those pipes.
+  5. SIGKILL to the group if members remain.
   6. Close stdin and release the handles.
+  A failed start runs the same ladder with the configured grace, as upstream's scope close does.
 - **Windows.**
   1. `taskkill /pid N /T /F` at once. If it exits non-zero, `TerminateProcess(handle, 1)`.
   2. If the root is still alive after `GracefulShutdownTimeout`, the same pair again.
@@ -61,6 +76,7 @@ The ladder follows upstream, rung for rung.
 | Windows exit code | Bun truncates it to 8 bits | Reports the full 32-bit code | The value the operating system gives. |
 | Stderr | Discards it | Drains it into a bounded tail for startup diagnostics, and also honours upstream's `OPENCODE_PRINT_LOGS=1` inherit mode | A superset of upstream's behaviour. |
 | Signals to the owner | Closes the scope on SIGINT and SIGTERM | Installs no process-wide signal handler | A library does not take over its host's signal handling; the host ends the server through `DisposeAsync`. |
+| Waiting for the group | Waits for the output pipes to close | Waits for the root's exit, then probes the group until it is empty | Same effect, with no dependency on who holds the pipes. |
 
 ## Target frameworks
 
@@ -101,8 +117,12 @@ What .NET 11 gives, per primitive:
 - The exit status the seams decode is the source of the launcher's public exit outcome.
 - The launcher's acceptance stays real-process on Windows, Linux, and macOS. Every test releases
   every process it starts.
-- A host running as PID 1, or with SIGCHLD ignored, has the runtime reap every child. The launcher
-  then cannot read its server's wait status, and reports the exit with an unknown status rather
-  than inventing one.
+- In some hosts something else reaps the server first:
+  - On a host running as PID 1, the runtime reaps every child once a SIGCHLD handler exists.
+  - On Linux with SIGCHLD ignored, the kernel reaps.
+  - On macOS with SIGCHLD ignored in-process, the exit is not reported to a waiting parent at all.
+
+  The launcher detects an ignored SIGCHLD at start and falls back to a bounded probe. In every one of
+  these cases it reports the exit with an unknown status rather than inventing one.
 - Reversal: upstream changes `Standalone`'s placement or ladder, or a .NET primitive becomes
   equivalent on every supported target.
