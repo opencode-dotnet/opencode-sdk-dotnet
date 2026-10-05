@@ -238,12 +238,14 @@ public sealed class OpenCodeServerLifecycleTests
         var server = await OpenCodeServer.StartAsync(
             new OpenCodeServerOptions
             {
-                // A stand-in child: the readiness contract first, then an empty stdout line, a
-                // later stdout line, and one stderr line, held open until the launcher ends it.
+                // A stand-in child: one stderr line, then the readiness contract, an empty stdout
+                // line, and a later stdout line in one write, held open until the launcher ends it.
+                // Nothing is written after readiness, so a SIGTERM sent on disposal cannot pre-empt
+                // a line the snapshot expects.
                 Command =
                 [
                     "bun", "-e",
-                    "console.log('" + readyLine + "'); console.log(''); console.log('later'); console.error('warn-1'); setTimeout(() => {}, 120000)",
+                    "console.error('warn-1'); process.stdout.write('" + readyLine + "' + '\\n\\nlater\\n'); setTimeout(() => {}, 120000)",
                 ],
                 GracefulShutdownTimeout = TimeSpan.Zero,
                 Output = output,
