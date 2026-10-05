@@ -4,6 +4,7 @@ using OpenCode.Sdk.Internal.BackgroundService.Ensure;
 using OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
 using OpenCode.Sdk.Internal.BackgroundService.Registration;
 using OpenCode.Sdk.Internal.Diagnostics;
+using OpenCode.Sdk.Internal.Posix;
 
 namespace OpenCode.Sdk.Internal.BackgroundService.Stop;
 

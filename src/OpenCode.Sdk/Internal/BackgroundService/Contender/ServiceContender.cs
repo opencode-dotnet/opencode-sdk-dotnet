@@ -3,9 +3,10 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
 using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
+using OpenCode.Sdk.Internal.Posix;
 using static OpenCode.Sdk.Internal.BackgroundService.ProcessControl.BackgroundServiceInterop;
 using static OpenCode.Sdk.Internal.BackgroundService.ProcessControl.BackgroundServiceInterop.Kernel32;
-using static OpenCode.Sdk.Internal.BackgroundService.ProcessControl.BackgroundServiceInterop.Libc;
+using static OpenCode.Sdk.Internal.Posix.PosixInterop;
 
 namespace OpenCode.Sdk.Internal.BackgroundService.Contender;
 
@@ -54,10 +55,10 @@ internal sealed class ServiceContender : IServiceContender
     private bool _released;
     private bool _endOfStderr;
     private bool _disposed;
-    private bool _reaped;
     private Exception? _error;
-    private int? _exitCode;
-    private int? _signal;
+
+    /// <summary>How the process ended, once a poll learned it; unknown when another reaper took the pid first.</summary>
+    private ChildExitStatus? _exit;
 
     public ServiceContender(int processId, Stream stderr, SafeProcessHandle? process, string? redact)
     {
@@ -97,7 +98,7 @@ internal sealed class ServiceContender : IServiceContender
             lock (_gate)
             {
                 PollExitLocked();
-                return _exitCode == 0;
+                return _exit?.ExitCode == 0;
             }
         }
     }
@@ -142,16 +143,10 @@ internal sealed class ServiceContender : IServiceContender
             }
 
             PollExitLocked();
-            if (_signal is { } signal)
+            if (_exit is { } exit && (exit.Signal is not null || exit.ExitCode is not (null or 0)))
             {
                 return new OpenCodeServerException(WithStderrLocked(
-                    $"The background service contender (pid {ProcessId.ToString(CultureInfo.InvariantCulture)}) terminated on signal {signal.ToString(CultureInfo.InvariantCulture)}."));
-            }
-
-            if (_exitCode is { } code && code != 0)
-            {
-                return new OpenCodeServerException(WithStderrLocked(
-                    $"The background service contender (pid {ProcessId.ToString(CultureInfo.InvariantCulture)}) exited with code {code.ToString(CultureInfo.InvariantCulture)}."));
+                    $"The background service contender (pid {ProcessId.ToString(CultureInfo.InvariantCulture)}) {exit.Describe()}."));
             }
 
             return null;
@@ -260,7 +255,7 @@ internal sealed class ServiceContender : IServiceContender
     }
 
     /// <summary>Whether a poll has learned how the process ended, or learned that another reaper took it.</summary>
-    private bool ExitObservedLocked() => _exitCode is not null || _signal is not null || _reaped;
+    private bool ExitObservedLocked() => _exit is not null;
 
     /// <summary>
     /// The one non-blocking exit look every observation shares. Windows reads the process handle
@@ -272,18 +267,18 @@ internal sealed class ServiceContender : IServiceContender
     {
         if (IsWindows)
         {
-            if (_exitCode is null &&
+            if (_exit is null &&
                 _process is { IsInvalid: false, IsClosed: false } handle &&
                 GetExitCodeProcess(handle, out var code) &&
                 code != StillActive)
             {
-                _exitCode = (int)code;
+                _exit = new ChildExitStatus { ExitCode = (int)code };
             }
 
             return;
         }
 
-        if (_reaped)
+        if (_exit is not null)
         {
             return;
         }
@@ -291,23 +286,11 @@ internal sealed class ServiceContender : IServiceContender
         var waited = WaitPid(ProcessId, out var status, WaitNoHang);
         if (waited == ProcessId)
         {
-            _reaped = true;
-
-            // The wait-status macros inlined: no children stop under this poll (no WUNTRACED),
-            // so zero low bits are an exit and anything but the stop sentinel is a signal.
-            var nature = status & 0x7f;
-            if (nature == 0)
-            {
-                _exitCode = (status >> 8) & 0xff;
-            }
-            else if (nature != 0x7f)
-            {
-                _signal = nature;
-            }
+            _exit = ChildExitStatus.FromWaitStatus(status);
         }
         else if (waited < 0 && Marshal.GetLastWin32Error() == NoChild)
         {
-            _reaped = true;
+            _exit = ChildExitStatus.Unknown;
         }
     }
 

@@ -1062,15 +1062,19 @@ dotnet_diagnostic.S4790.severity = none
 [src/OpenCode.Sdk/Internal/BackgroundService/ServiceFileSystem.cs]
 dotnet_diagnostic.MA0045.severity = none
 
-# ServiceContenderSpawner's two OS arms hand the stderr pipe's child end to the native spawn as a raw
-# value: the Windows handle list is an array of raw HANDLEs (the named pipe's write end, opened by
-# CreateFileW), and posix_spawn_file_actions_adddup2 takes an int descriptor, so no SafeHandle
-# marshalling can carry either (S3869). The pipe object stays alive and undisposed across the call,
-# and the raw value is never stored past it. The spawn
-# is synchronous by contract (a spawn failure throws from Spawn itself, ADR-0027), so the pipe's
-# cleanup on a failed spawn is a synchronous Dispose in a finally (MA0045). Winner: the synchronous
-# native-spawn contract; S3869 and MA0045 remain enabled for every other file.
-[src/OpenCode.Sdk/Internal/BackgroundService/Contender/ServiceContenderSpawner.{Windows,Unix}.cs]
+# The two native spawns hand a pipe's child end to the platform as a raw value: the contender's
+# Windows handle list is an array of raw HANDLEs (the named pipe's write end, opened by
+# CreateFileW), and PosixSpawn's posix_spawn_file_actions_adddup2 takes an int descriptor, so no
+# SafeHandle marshalling can carry either (S3869). The pipe object stays alive and undisposed across
+# the call, and the raw value is never stored past it. The spawn is synchronous by contract (a spawn
+# failure throws from Spawn itself), so the pipes' cleanup on a failed spawn is a
+# synchronous Dispose in a finally (MA0045). Winner: the synchronous native-spawn contract; S3869
+# and MA0045 remain enabled for every other file.
+[src/OpenCode.Sdk/Internal/BackgroundService/Contender/ServiceContenderSpawner.Windows.cs]
+dotnet_diagnostic.S3869.severity = none
+dotnet_diagnostic.MA0045.severity = none
+
+[src/OpenCode.Sdk/Internal/Posix/PosixSpawn.cs]
 dotnet_diagnostic.S3869.severity = none
 dotnet_diagnostic.MA0045.severity = none
 

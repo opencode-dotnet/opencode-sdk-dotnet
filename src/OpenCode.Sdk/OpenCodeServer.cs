@@ -14,6 +14,7 @@ using OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
 using OpenCode.Sdk.Internal.BackgroundService.Registration;
 using OpenCode.Sdk.Internal.BackgroundService.Stop;
 using OpenCode.Sdk.Internal.Diagnostics;
+using OpenCode.Sdk.Internal.Posix;
 
 namespace OpenCode.Sdk;
 
@@ -243,7 +244,7 @@ public class OpenCodeServer : IAsyncDisposable
     public static Task<OpenCodeServer> EnsureAsync(
         OpenCodeServerEnsureOptions? options = null,
         CancellationToken cancellationToken = default) =>
-        EnsureWithSeamsAsync(options, ServiceTiming.Default, new ServiceContenderSpawner(), cancellationToken);
+        EnsureWithSeamsAsync(options, ServiceTiming.Default, new ServiceContenderSpawner(new PosixSpawn()), cancellationToken);
 
     /// <summary>
     /// The seam-injected Ensure the tests use, kept out of the public option types the way upstream's

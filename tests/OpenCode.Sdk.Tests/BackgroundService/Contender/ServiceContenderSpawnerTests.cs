@@ -7,6 +7,7 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
 using OpenCode.Sdk.Internal.BackgroundService.Contender;
 using OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
+using OpenCode.Sdk.Internal.Posix;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;
@@ -54,11 +55,14 @@ public sealed class ServiceContenderSpawnerTests
     private static readonly TimeSpan SurvivalBound = TimeSpan.FromSeconds(1);
     private static readonly RealFileSystem FileSystem = new();
 
+    /// <summary>The shipped spawner over the shipped POSIX spawn; it holds no per-spawn state.</summary>
+    private static readonly ServiceContenderSpawner Spawner = new(new PosixSpawn());
+
     [Test]
     [Timeout(120_000)]
     public async Task Spawn_Should_Return_A_Live_Process_Whose_Ready_Line_Names_The_Same_Pid(CancellationToken cancellationToken)
     {
-        using var contender = ServiceContenderSpawner.Start(FixtureProbe("contender-probe", "daemon-sleep"));
+        using var contender = Spawner.Start(FixtureProbe("contender-probe", "daemon-sleep"));
         try
         {
             await Assert.That(contender.ProcessId).IsGreaterThan(0);
@@ -95,7 +99,7 @@ public sealed class ServiceContenderSpawnerTests
         // The action is synchronous on purpose: the failure must throw from Spawn itself, the way
         // the launcher's start does, not surface later on the returned contender.
         var exception = await Assert
-            .That(() => ServiceContenderSpawner.Start(new IServiceContenderSpawner.ContenderStartInfo(
+            .That(() => Spawner.Start(new IServiceContenderSpawner.ContenderStartInfo(
                 new ResolvedExecutable(missing, missing, IsBatchScript: false),
                 [],
                 new Dictionary<string, string?>(StringComparer.Ordinal))))
@@ -138,7 +142,7 @@ public sealed class ServiceContenderSpawnerTests
             [removedName] = null,
         };
         var command = FixtureCommand();
-        using var contender = ServiceContenderSpawner.Start(new IServiceContenderSpawner.ContenderStartInfo(
+        using var contender = Spawner.Start(new IServiceContenderSpawner.ContenderStartInfo(
             new ResolvedExecutable("dotnet", command[0], IsBatchScript: false),
             [command[1], "contender-probe", "echo-argv-env", .. probeArguments],
             overlay));
@@ -175,7 +179,7 @@ public sealed class ServiceContenderSpawnerTests
         try
         {
             var command = FixtureCommand();
-            using var contender = ServiceContenderSpawner.Start(new IServiceContenderSpawner.ContenderStartInfo(
+            using var contender = Spawner.Start(new IServiceContenderSpawner.ContenderStartInfo(
                 new ResolvedExecutable("dotnet", command[0], IsBatchScript: false),
                 [command[1], "contender-probe", "echo-argv-env", hostName, overlayName],
                 new Dictionary<string, string?>(StringComparer.Ordinal) { [overlayName] = "overlay" }));
@@ -220,12 +224,12 @@ public sealed class ServiceContenderSpawnerTests
             if (!OperatingSystem.IsWindows())
             {
                 // cmd.exe exists only on Windows: the seam refuses rather than improvises.
-                _ = await Assert.That(() => ServiceContenderSpawner.Start(startInfo)).Throws<OpenCodeServerException>();
+                _ = await Assert.That(() => Spawner.Start(startInfo)).Throws<OpenCodeServerException>();
                 Console.WriteLine("branch: Unix — the batch shim '" + script + "' is refused before anything spawns");
                 return;
             }
 
-            using var contender = ServiceContenderSpawner.Start(startInfo);
+            using var contender = Spawner.Start(startInfo);
             try
             {
                 await Assert.That(await WaitForTheProbeAsync(contender, "the batch shim to finish", cancellationToken)).IsTrue()
@@ -256,7 +260,7 @@ public sealed class ServiceContenderSpawnerTests
         // ignored-signal column: that arm reads the mask.
         if (OperatingSystem.IsWindows())
         {
-            using var windows = ServiceContenderSpawner.Start(new IServiceContenderSpawner.ContenderStartInfo(
+            using var windows = Spawner.Start(new IServiceContenderSpawner.ContenderStartInfo(
                 new ResolvedExecutable("cmd", SystemCommand(), IsBatchScript: false),
                 ["/c", "exit", "0"],
                 new Dictionary<string, string?>(StringComparer.Ordinal)));
@@ -269,7 +273,7 @@ public sealed class ServiceContenderSpawnerTests
         var report = OperatingSystem.IsLinux()
             ? "exec grep -E '^Sig(Ign|Blk):' /proc/self/status 1>&2"
             : "exec ps -o sigmask= -p $$ 1>&2";
-        using var contender = ServiceContenderSpawner.Start(new IServiceContenderSpawner.ContenderStartInfo(
+        using var contender = Spawner.Start(new IServiceContenderSpawner.ContenderStartInfo(
             new ResolvedExecutable("sh", "/bin/sh", IsBatchScript: false),
             ["-c", report],
             new Dictionary<string, string?>(StringComparer.Ordinal)));
@@ -303,7 +307,7 @@ public sealed class ServiceContenderSpawnerTests
     [Timeout(120_000)]
     public async Task Spawned_Contender_Should_Lead_Its_Own_Session_On_Unix(CancellationToken cancellationToken)
     {
-        using var contender = ServiceContenderSpawner.Start(FixtureProbe("contender-probe", "daemon-sleep"));
+        using var contender = Spawner.Start(FixtureProbe("contender-probe", "daemon-sleep"));
         try
         {
             if (OperatingSystem.IsWindows())
@@ -331,7 +335,7 @@ public sealed class ServiceContenderSpawnerTests
     [Timeout(120_000)]
     public async Task Spawn_Should_Give_The_Child_Nul_Standard_Streams(CancellationToken cancellationToken)
     {
-        using var contender = ServiceContenderSpawner.Start(FixtureProbe("contender-probe", "echo-argv-env"));
+        using var contender = Spawner.Start(FixtureProbe("contender-probe", "echo-argv-env"));
         try
         {
             // The probe floods stdout before its report: a child whose stdout is a pipe nobody
@@ -399,7 +403,7 @@ public sealed class ServiceContenderSpawnerTests
     [Timeout(120_000)]
     public async Task Spawn_Should_Keep_Only_The_Final_Eight_Kib_Of_Standard_Error(CancellationToken cancellationToken)
     {
-        using var contender = ServiceContenderSpawner.Start(FixtureProbe("contender-probe", "stderr-fill", DefaultFillBytes.ToString(CultureInfo.InvariantCulture)));
+        using var contender = Spawner.Start(FixtureProbe("contender-probe", "stderr-fill", DefaultFillBytes.ToString(CultureInfo.InvariantCulture)));
         try
         {
             await Assert.That(await WaitForTheProbeAsync(contender, "the stderr-fill probe to finish", cancellationToken)).IsTrue()
@@ -418,7 +422,7 @@ public sealed class ServiceContenderSpawnerTests
     [Timeout(120_000)]
     public async Task Release_Should_Keep_Draining_Standard_Error_So_The_Contender_Finishes(CancellationToken cancellationToken)
     {
-        using var contender = ServiceContenderSpawner.Start(FixtureProbe("contender-probe", "stderr-fill", DrainFillBytes.ToString(CultureInfo.InvariantCulture)));
+        using var contender = Spawner.Start(FixtureProbe("contender-probe", "stderr-fill", DrainFillBytes.ToString(CultureInfo.InvariantCulture)));
         try
         {
             _ = await LiveReadiness.WaitAsync(
@@ -449,7 +453,7 @@ public sealed class ServiceContenderSpawnerTests
         // The upstream contenderFailure oracle: a contender that exits nonzero is reported with its
         // code and its stderr tail, the one diagnostic a caller gets for a failed start. Finished
         // must mean the exit was observed, the way Node's close event does, or the code is lost.
-        using var contender = ServiceContenderSpawner.Start(FixtureProbe("contender-probe", "no-such-mode"));
+        using var contender = Spawner.Start(FixtureProbe("contender-probe", "no-such-mode"));
         try
         {
             await Assert.That(await WaitForTheProbeAsync(contender, "the usage exit", cancellationToken)).IsTrue();
@@ -469,7 +473,7 @@ public sealed class ServiceContenderSpawnerTests
     [Timeout(120_000)]
     public async Task TryGetFailure_Should_Report_A_Signal_Death_On_Unix(CancellationToken cancellationToken)
     {
-        using var contender = ServiceContenderSpawner.Start(FixtureProbe("contender-probe", "daemon-sleep"));
+        using var contender = Spawner.Start(FixtureProbe("contender-probe", "daemon-sleep"));
         try
         {
             _ = await LiveReadiness.WaitAsync(
@@ -510,7 +514,7 @@ public sealed class ServiceContenderSpawnerTests
         // Release is how the election hands the winner back: nothing polls the contender again. The
         // host that spawned it is the only one that can reap it on Unix, so the contender must do it
         // itself when its process ends, or the pid lingers as a zombie for the host's lifetime.
-        using var contender = ServiceContenderSpawner.Start(FixtureProbe("contender-probe", "daemon-sleep"));
+        using var contender = Spawner.Start(FixtureProbe("contender-probe", "daemon-sleep"));
         try
         {
             _ = await LiveReadiness.WaitAsync(
@@ -539,7 +543,7 @@ public sealed class ServiceContenderSpawnerTests
     public async Task Spawned_Contender_Should_Survive_Its_Parents_Exit(CancellationToken cancellationToken)
     {
         int? daemonPid = null;
-        using var contender = ServiceContenderSpawner.Start(ShortLivedParent());
+        using var contender = Spawner.Start(ShortLivedParent());
         try
         {
             // The parent is the shell the spawner detached; the daemon-sleep it launches
