@@ -386,7 +386,8 @@ released: on Windows, disposal and a failed start wait for end-of-stream inside 
 then cancel any read still blocked — a descendant can keep a write end open — with
 `CancelSynchronousIo`, so no reader outlives its owner; each Windows reader thread closes its
 pipe's read handle as it ends, because `Process` never closes a redirected stream that was read
-synchronously. On Linux and macOS the release cancels the pending reads and closes the pipes. .NET
+synchronously. On Linux and macOS disposal with a collector and a failed start drain for at most
+one second, and the release then cancels the pending reads and closes the pipes. .NET
 11's `Process` opens the parent's read ends overlapped (dotnet/runtime#125643); a future .NET 11
 target can read asynchronously on that runtime without a dedicated thread. The contender spawn
 creates its own overlapped stderr pipe instead (ADR-0027).
@@ -473,10 +474,10 @@ retains a bounded tail of both streams, including the first stdout line, for pul
 invokes no caller code on the process readers and survives a failed start. Each snapshot reports
 whether either stream was truncated; the launcher's startup exception tail remains independent.
 Output finalization is best effort under the existing bounded diagnostic drain and never extends
-process ownership. On Linux and macOS the collection closes when disposal starts, before the server
-is asked to stop, so the snapshot is final from that moment and what the server writes while it
-shuts down is not collected; the readers keep draining into nothing, so a server writing during its
-shutdown never blocks on a full pipe.
+process ownership. Disposal keeps collecting while it ends the server, so a server writing during
+its shutdown never blocks on a full pipe, then drains the output inside its bound before the
+collection closes: the final snapshot holds what the server wrote until it ended. On Linux and
+macOS that drain is at most one second, after the ladder.
 
 The readiness wait ends at the first stdout line, at the caller's cancellation, at the configured
 timeout, or when the child shows it never will be ready. On Windows that is the root's exit; the
@@ -490,7 +491,9 @@ Disposal is a ladder, bounded at every step so it never hangs the caller. On Win
 (the lease release) first, then the configured grace (`GracefulShutdownTimeout`, default 3 seconds
 — the reference client's own force-kill window), then a forced whole-tree kill
 (`Process.Kill(entireProcessTree: true)` on modern TFMs, `taskkill /pid … /T /F` on downlevel
-Windows), then a final bounded forced-exit wait. Both waits observe the owned process's own exit
+Windows, run from its absolute System32 path rather than resolved through `PATH` as upstream
+resolves it, so a writable `PATH` entry cannot substitute the executable), then a final bounded
+forced-exit wait. Both waits observe the owned process's own exit
 (the `Process.Exited` notification), not end-of-stream on its redirected output; waiting on the
 exit itself releases a server that exits promptly on stdin EOF at once, even while a descendant
 keeps the pipe open. The output drain keeps its own bound. A tree kill that does not complete is a
@@ -512,20 +515,20 @@ attaches to one.
 On Linux and macOS the ladder follows upstream's rungs; where the two end in a different place, the
 difference is one of the recorded divergences below.
 
-1. The collection closes.
-2. A root that already exited on its own decides by its status. With a non-zero code and no
+1. A root that already exited on its own decides by its status. With a non-zero code and no
    signal, its group's survivors are ended by the rungs below, as a live root's group is. With an
    unknown status, the group is probed with `kill(-group, 0)`, and any member left is ended the
    same way. With code 0 or on a signal, the ladder stops and the group is left alone. Signalling
    the group cannot reach an unrelated process while the group still has members, because its id
    cannot be reused until then.
-3. `SIGTERM` to the server's process group, falling back to the root's pid while the root is not
+2. `SIGTERM` to the server's process group, falling back to the root's pid while the root is not
    yet reaped. When both fail, nothing is escalated.
-4. Within `GracefulShutdownTimeout`, the root's exit, then the group's end: `kill(-group, 0)` until
+3. Within `GracefulShutdownTimeout`, the root's exit, then the group's end: `kill(-group, 0)` until
    no member is left. A descendant that moved into a session of its own (the persistent-terminal
    daemon, PTY shells) is not a member and is left to the server, as upstream leaves it.
-5. `SIGKILL` to the group (with the same pid fallback) when a member is left, then a bounded wait
+4. `SIGKILL` to the group (with the same pid fallback) when a member is left, then a bounded wait
    of 10 seconds for the root.
+5. With a collector, the output drains for at most one second, and the collection closes.
 6. Stdin closes, the readers are released, and the pipes close.
 
 The pinned server answers the `SIGTERM` the way its own runtime answers an interrupt: it shuts down
@@ -533,9 +536,10 @@ and exits with code 130. A failed start — timeout, cancellation, an early exit
 non-contract first line — runs the same ladder with the configured grace, as upstream's scope close
 does. A canceled or timed-out start can therefore take up to that grace plus 16 seconds to throw:
 at most 10 for the root's exit after `SIGKILL`, 1 for draining the output, and 5 for releasing the
-readers. The ladder runs once per server, and releasing a server's handles runs it first when
-nothing has yet, so a start that an unexpected failure ended still ends its server. A server whose
-readers or exit watch cannot start is killed with its group at once and reaped by the failing start
+readers. Disposal is bounded the same way, its drain running only with a collector. The ladder
+runs once per server, and releasing a server's handles runs it first when nothing has yet, so a
+start that an unexpected failure ended still ends its server. A server whose readers or exit watch
+cannot start is killed with its group at once and reaped by the failing start
 itself, which asks `waitpid` without hanging for at most 10 seconds and then leaves the asking to a
 background loop that holds no thread; the watch, once it started, is the child's only reaper. Stdin is
 the ownership lease on Linux and macOS too, and it is the only channel left when the owner dies
@@ -550,7 +554,7 @@ The launcher's recorded divergences from upstream on Linux and macOS (ADR-0031, 
 | Forced-exit wait | Waits on the root's exit alone after `SIGKILL` | Bounds it at 10 seconds | Disposal never hangs on a process the kernel cannot end. |
 | Stderr | Discards it | Drains it into a bounded tail for startup diagnostics, and honours `OPENCODE_PRINT_LOGS=1` by handing over the host's stderr | A superset of upstream's behaviour. |
 | Signals to the owner | Closes the scope on `SIGINT` and `SIGTERM` | Installs no process-wide signal handler | A library does not take over its host's signal handling; the host ends the server through `DisposeAsync`. |
-| Waiting for the group | Waits for the root's own output pipes to close | Waits for the root's exit, then probes the group until it is empty | No dependency on who holds the pipes. Three consequences at the edges: a same-group member that ignores `SIGTERM` but holds none of the root's pipes is ended by `SIGKILL`, where upstream leaves it running; a detached descendant that holds the root's stdout does not delay the close, where upstream waits the full grace and then sends `SIGKILL` to the group; a root that exits with code 0 while its stdout is still open leaves the group untouched, where upstream sends `SIGTERM` to it within its one-second output deadline. |
+| Waiting for the group | Waits for the root's own output pipes to close | Waits for the root's exit, then probes the group until it is empty | No dependency on who holds the pipes. Three consequences at the edges: a same-group member that ignores `SIGTERM` but holds none of the root's pipes is ended by `SIGKILL`, where upstream leaves it running; a detached descendant that holds the root's stdout does not delay the close beyond a collector's one-second drain, where upstream waits the full grace and then sends `SIGKILL` to the group; a root that exits with code 0 while its stdout is still open leaves the group untouched, where upstream sends `SIGTERM` to it within its one-second output deadline. |
 
 The forced-exit wait observes the directly owned process. A whole-tree kill is asynchronous: the
 direct process exiting does not guarantee that every descendant has finished exiting at that

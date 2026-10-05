@@ -414,13 +414,15 @@ public class OpenCodeServer : IAsyncDisposable
     /// <summary>
     /// Ends the owned child, bounded at every step, quiet for a child that is already gone, and
     /// idempotent. On Windows: closes stdin (the ownership lease), waits the configured grace,
-    /// then escalates to a forced tree kill. On Linux and macOS: closes the collection, sends
-    /// <c>SIGTERM</c> to the server's process group, waits the configured grace for the server and
-    /// then for the rest of its group to end, sends <c>SIGKILL</c> to the group when anything of it
-    /// is left, and closes stdin last. A child that moved into a session of its own is left to the
-    /// server, and a server that already exited on its own with code 0 or on a signal leaves its
-    /// group alone. A handle that owns no process (<see cref="OwnsProcess"/> false) has nothing to
-    /// end: disposing a discovered service never stops it.
+    /// then escalates to a forced tree kill. On Linux and macOS: sends <c>SIGTERM</c> to the
+    /// server's process group, waits the configured grace for the server and then for the rest of
+    /// its group to end, sends <c>SIGKILL</c> to the group when anything of it is left, and closes
+    /// stdin last. A child that moved into a session of its own is left to the server, and a server
+    /// that already exited on its own with code 0 or on a signal leaves its group alone. An
+    /// <see cref="OpenCodeServerOptions.Output"/> collector keeps collecting while the server is
+    /// ended, and its output is drained within a bound (at most one second on Linux and macOS)
+    /// before the collection closes. A handle that owns no process (<see cref="OwnsProcess"/>
+    /// false) has nothing to end: disposing a discovered service never stops it.
     /// </summary>
     /// <returns>A task that completes once any owned child is ended and released.</returns>
     public virtual async ValueTask DisposeAsync()

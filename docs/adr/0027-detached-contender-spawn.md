@@ -26,10 +26,9 @@ modern targets, `DllImport` on the `netstandard2.0` asset where that generator i
 The executable is the one the shipped launcher resolution produced, launched through `cmd.exe`
 on the launcher's own `BatchCommandLine` line when it is a batch shim. The seam refuses when the platform cannot provide the session-detach
 flag; it never falls back to `Process.Start`, a shell, or a managed `fork()`. This is the spawn
-counterpart of ADR-0026's `kill(2)`, the second platform interop in the shipped SDK, and
-ADR-0001's "no process library" stands: it binds functions of the C library and the Windows
-process API every process already has loaded. The standalone launcher keeps `Process.Start`
-because its owned stdin/stdout pipe contract is deliberately different. Two spawn-failure
+counterpart of ADR-0026's `kill(2)`, and ADR-0001's "no process library" stands: it binds
+functions of the C library and the Windows process API every process already has loaded. ADR-0032
+extends the same POSIX spawn to the standalone launcher. Two spawn-failure
 classes exist at the pin (`packages/client/src/effect/service.ts:67-77`): a synchronous throw
 from `spawnServiceContender` fails Ensure immediately (`Effect.try`), while the child's
 asynchronous `error` event is deferred through `contenderFailure` and discarded while another

@@ -265,9 +265,8 @@ public sealed class OpenCodeServerLifecycleTests
     /// <summary>
     /// What the collector holds of a graceful close. On Windows disposal closes the stdin lease and
     /// drains before the collection closes, so the lines the child writes on the way out are in the
-    /// final snapshot. On Linux and macOS the collection closes when disposal starts and stdin closes
-    /// last, after <c>SIGTERM</c> ended the child, so those lines never exist and the snapshot is the
-    /// one taken as disposal began.
+    /// final snapshot. On Linux and macOS stdin closes last, after <c>SIGTERM</c> ended the child,
+    /// so those lines never exist and the final snapshot holds only what the child wrote while it ran.
     /// </summary>
     [Test]
     [Timeout(120_000)]
@@ -304,7 +303,7 @@ public sealed class OpenCodeServerLifecycleTests
 
         await Assert.That(snapshot.StandardOutput).IsEquivalentTo([readyLine], CollectionOrdering.Matching);
         await Assert.That(snapshot.StandardError).IsEmpty();
-        Console.WriteLine("branch: POSIX — the collection closed as disposal started, before SIGTERM ended the child: " + string.Join(" | ", snapshot.StandardOutput));
+        Console.WriteLine("branch: POSIX — SIGTERM ended the child before stdin closed, so it wrote no shutdown lines: " + string.Join(" | ", snapshot.StandardOutput));
     }
 
     [Test]

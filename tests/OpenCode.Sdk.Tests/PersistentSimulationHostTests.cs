@@ -9,8 +9,9 @@ namespace OpenCode.Sdk.Tests;
 /// lifecycle through the SDK's own launcher and collector: the readiness line is the only thing
 /// on stdout, and the lifecycle milestones reach stderr with their severity, in order. On Windows
 /// disposal releases the stdin lease first and drains, so the third milestone, written only once
-/// the lease is released, is collected too. On Linux and macOS the collection closes as disposal
-/// starts and the lease is released last, so the final collection ends at "ready". The shared
+/// the lease is released, is collected too. On Linux and macOS <c>SIGTERM</c> ends the host and the
+/// lease is released last, so the host never writes the third milestone and the final collection
+/// ends at "ready". The shared
 /// <see cref="SimulatedDriveServerFixture"/> rechecks only the stdin-EOF milestone at its own
 /// teardown (the earlier two are evicted over a chatty session); this test is where the
 /// profile's routing is proven on its own. No drive controller is attached here: the milestones
@@ -60,7 +61,7 @@ public sealed class PersistentSimulationHostTests
         {
             await Assert.That(snapshot.StandardError.Any(static line => line.Contains(StdinClosed, StringComparison.Ordinal))).IsFalse();
             Console.WriteLine(
-                "persistent-host-diagnostics (POSIX, collection closed before the lease): " + snapshot.StandardError[starting] +
+                "persistent-host-diagnostics (POSIX, SIGTERM ended the host before the lease closed): " + snapshot.StandardError[starting] +
                 " | " + snapshot.StandardError[ready]);
             return;
         }

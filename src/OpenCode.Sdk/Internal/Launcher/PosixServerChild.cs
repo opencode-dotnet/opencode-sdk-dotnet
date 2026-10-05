@@ -25,9 +25,9 @@ internal sealed class PosixServerChild : ServerChild
 
     /// <summary>
     /// How long a failed start waits for the child's output to end after the child exited or
-    /// closed its stdout, and how long the failed-start drain waits at most. The readiness line was
-    /// written before the exit, so it is already in the pipe; a descendant that holds the pipe open
-    /// costs this bound and no more.
+    /// closed its stdout, and how long the failed-start and disposal drains wait at most. The
+    /// readiness line was written before the exit, so it is already in the pipe; a descendant that
+    /// holds the pipe open costs this bound and no more.
     /// </summary>
     private static readonly TimeSpan EarlyEndBound = TimeSpan.FromSeconds(1);
 
@@ -120,6 +120,9 @@ internal sealed class PosixServerChild : ServerChild
         _ = await BoundedWait.CompletesWithinAsync(Task.WhenAll(_pump.ReadersEnded, _watch.Exited), EarlyEndBound).ConfigureAwait(false);
         if (readyLine.IsCompleted)
         {
+            // Ready after all. A server that has not exited lives on, so the drain at its end is
+            // still to come; one that has exited was drained after its end just now.
+            _drained = _watch.Exited.IsCompleted;
             return ReadinessOutcome.Ready(await readyLine.ConfigureAwait(false));
         }
 
@@ -138,30 +141,35 @@ internal sealed class PosixServerChild : ServerChild
     public override async Task EndFailedStartAsync()
     {
         await EndOnceAsync().ConfigureAwait(false);
-        if (!_drained)
-        {
-            _drained = true;
-            _ = await _pump.DrainAsync(EarlyEndBound).ConfigureAwait(false);
-        }
+        await DrainOnceAsync().ConfigureAwait(false);
     }
 
     /// <summary>
-    /// The disposal ladder. The collection closes first, so the snapshot is final the moment
-    /// disposal starts; the readers keep draining into nothing, so a server writing while it shuts
-    /// down never blocks on a full pipe.
+    /// The disposal ladder; then, with a collector, one drain of at most
+    /// <see cref="EarlyEndBound"/>, after which the collection closes. The readers keep delivering
+    /// while the ladder runs, so a server writing while it shuts down never blocks on a full pipe,
+    /// and a line the server wrote before it ended reaches the collector even when its reader had
+    /// not delivered it yet.
     /// </summary>
     /// <inheritdoc />
     public override async Task EndAsync()
     {
-        _output?.Complete();
-        await EndOnceAsync().ConfigureAwait(false);
+        try
+        {
+            await EndOnceAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            await CompleteOutputAsync().ConfigureAwait(false);
+        }
     }
 
     /// <summary>
     /// Runs the ladder first when no path has run it yet (a start that an unexpected failure left
-    /// before any ending), so no release leaves the server running; then closes stdin and releases
-    /// the readers and the collector. The exit watch is left running: it ends, and reaps the child,
-    /// whenever the kernel ends the child, which the ladder has asked for.
+    /// before any ending), so no release leaves the server running; then, with a collector, drains
+    /// once as <see cref="EndAsync"/> does; then closes stdin, releases the readers, and closes the
+    /// collection. The exit watch is left running: it ends, and reaps the child, whenever the
+    /// kernel ends the child, which the ladder has asked for.
     /// </summary>
     /// <inheritdoc />
     public override async ValueTask DisposeAsync()
@@ -174,6 +182,11 @@ internal sealed class PosixServerChild : ServerChild
             }
             finally
             {
+                if (_output is not null)
+                {
+                    await DrainOnceAsync().ConfigureAwait(false);
+                }
+
                 await DisposeStreamAsync(_spawned.StandardInput).ConfigureAwait(false);
                 await _pump.ReleaseAsync().ConfigureAwait(false);
             }
@@ -295,4 +308,35 @@ internal sealed class PosixServerChild : ServerChild
 
     /// <summary>The ladder, run at most once, by whichever path ends the child first.</summary>
     private Task EndOnceAsync() => _ending ??= _ladder.RunAsync(_grace);
+
+    /// <summary>
+    /// With a collector, drains once and then closes the collection. Without one nobody reads the
+    /// lines the ended server left in its pipes, so nothing waits for them.
+    /// </summary>
+    private async Task CompleteOutputAsync()
+    {
+        if (_output is null)
+        {
+            return;
+        }
+
+        await DrainOnceAsync().ConfigureAwait(false);
+        _output.Complete();
+    }
+
+    /// <summary>
+    /// Waits, inside <see cref="EarlyEndBound"/>, for the readers to deliver what the ended server
+    /// wrote, unless a path already drained. A descendant left holding a pipe costs that bound and
+    /// no more.
+    /// </summary>
+    private async Task DrainOnceAsync()
+    {
+        if (_drained)
+        {
+            return;
+        }
+
+        _drained = true;
+        _ = await _pump.DrainAsync(EarlyEndBound).ConfigureAwait(false);
+    }
 }

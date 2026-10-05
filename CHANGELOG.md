@@ -30,8 +30,6 @@ Nightly builds of `master` are on
     ended, and so does one whose exit status nobody could read (the host ignores `SIGCHLD` on
     Linux, or runs as pid 1); one that exited with code 0 or on a signal leaves them alone, as
     before.
-  - The `OpenCodeServerOutput` collection closes when disposal starts, so lines the server writes
-    while it shuts down are no longer in the final snapshot.
 - **A failed `StartAsync` on Linux and macOS ends the server the same way, with the configured
   grace**, so a canceled or timed-out start can take up to that grace plus 16 seconds to throw: at
   most 10 for the server's exit after `SIGKILL`, 1 for draining its output, and 5 for releasing the
@@ -62,7 +60,8 @@ Nightly builds of `master` are on
   process the server started keeps its output open.** On .NET 8 and later the shutdown waits also
   waited for the server's redirected output to end, so a server that exited at once on stdin EOF
   still ran out the 3-second grace and the 10-second forced-exit wait. Disposal now waits for the
-  server's own exit and then for its process group, never for its output.
+  server's own exit and then for its process group; only an `OpenCodeServerOutput` collector waits
+  for the output, for at most one second.
 - **A standalone server on Linux and macOS starts with every signal at its default disposition and
   an empty signal mask**, as upstream's launcher starts it. It used to inherit a signal its host
   ignores (the .NET runtime ignores `SIGPIPE`, and a host started under `nohup` ignores `SIGINT`

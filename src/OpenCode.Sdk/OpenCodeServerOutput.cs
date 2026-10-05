@@ -10,11 +10,11 @@ namespace OpenCode.Sdk;
 /// the process readers. One collector binds to exactly one start attempt, before the child is
 /// spawned; it stays readable after a failed start, and it needs no disposal. Once the owning
 /// server has been disposed (or the start has failed) the collection is closed and later
-/// arrivals are ignored, so a snapshot taken then is final. On Linux and macOS the collection
-/// closes when disposal starts, before the server is asked to stop, so what the server writes while
-/// it shuts down is not collected; on Windows disposal drains the output, within a bound, before
-/// the collection closes. On Linux and macOS, with <c>OPENCODE_PRINT_LOGS=1</c> in the host's
-/// environment, the server writes its stderr to the host's own stderr, and no stderr is collected.
+/// arrivals are ignored, so a snapshot taken then is final. Disposal keeps collecting while it ends
+/// the server, then drains the output within a bound before the collection closes, so the final
+/// snapshot holds what the server wrote before it ended. On Linux and macOS, with
+/// <c>OPENCODE_PRINT_LOGS=1</c> in the host's environment, the server writes its stderr to the
+/// host's own stderr, and no stderr is collected.
 /// </summary>
 public sealed class OpenCodeServerOutput
 {

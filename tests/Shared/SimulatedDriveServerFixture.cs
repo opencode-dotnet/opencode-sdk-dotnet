@@ -213,8 +213,8 @@ public sealed class SimulatedDriveServerFixture : IAsyncInitializer, IAsyncDispo
     /// <summary>
     /// The shared instance proves what its final snapshot can still hold. On Windows the host logs
     /// "stdin closed" once the launcher releases the lease, before the collection closes, so it is
-    /// the last stderr line and survives the collector's bound. On Linux and macOS the collection
-    /// closes as disposal starts and the lease is released last, so no shutdown line is collected,
+    /// the last stderr line and survives the collector's bound. On Linux and macOS <c>SIGTERM</c>
+    /// ends the host and the lease is released last, so the host writes no "stdin closed" line,
     /// and the proof is that the host's diagnostics reached stderr at all: a line carrying its
     /// severity. The earlier "starting"/"ready" milestones are evicted over a chatty session (INFO
     /// logging retains the newest 500 lines); they are proven per lifecycle by

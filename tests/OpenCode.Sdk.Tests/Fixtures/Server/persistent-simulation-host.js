@@ -63,8 +63,8 @@ const application = Effect.scoped(
       },
     });
     const url = HttpServer.formatAddress(server.address);
-    console.log(JSON.stringify({ url }));
     yield* Effect.logWarning("persistent simulation host ready", { url });
+    console.log(JSON.stringify({ url }));
     yield* waitForStdinClose;
     yield* Effect.logInfo("persistent simulation host stdin closed");
   }),
