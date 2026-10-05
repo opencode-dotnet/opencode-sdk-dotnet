@@ -10,7 +10,7 @@ internal sealed class IntegrationCommandConnectResponseAdapter : ResponseAdapter
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["IntegrationMethodNotFoundError", "IntegrationNotFoundError"];
+    private static readonly string[] Status404Tags = ["IntegrationMethodNotFoundError", "IntegrationNotFoundError", "LocationNotFoundError"];
     private IntegrationCommandConnectResponseAdapter()
     {
     }

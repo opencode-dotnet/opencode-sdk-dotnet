@@ -434,9 +434,9 @@ internal sealed class OperationPlanBinder
             var tags = new List<ErrorTagPlan>(targets.Count);
             foreach (var (key, node) in targets)
             {
-                if (ErrorMarkerPolicy.Resolve(node, out _) is not { } marker)
+                if (ErrorMarkerPolicy.Resolve(node, out var problem) is not { } marker)
                 {
-                    return RefuseNullTags("error responses must reference tagged error schemas");
+                    return RefuseNullTags($"error responses must reference tagged error schemas: '{key}': {problem}");
                 }
 
                 if (!_context.TypeNames.TryGetValue(key, out var typeName))

@@ -179,18 +179,21 @@ public class OpenCodeServer : IAsyncDisposable
     /// Stops the registered background service the way <c>opencode service stop</c> does: resolves
     /// the registration the options name (channel rules and legacy migration included), asks a
     /// ready and compatible daemon to shut its persistent terminals down, clears the handoff
-    /// sidecar, then ends the registered process — a request to stop first, a hard kill when it
-    /// survives — and removes the registration once the process is gone. Every step re-reads the
-    /// registration and compares the process's identity (pid and start time), so a service that
-    /// re-registered or a pid the operating system reused is never signalled. A missing or corrupt
-    /// registration completes successfully; the shared service is shared, and this call is the one
-    /// deliberate way to end it — disposing a discovered handle never does.
+    /// sidecar as far as it can, then ends the registered process — a request to stop first, a
+    /// hard kill when it survives — and removes the registration once the process is gone. The
+    /// registration is re-read before the first signal and before the removal, so a service that
+    /// re-registered before the stop began is never signalled and a successor's registration is
+    /// never removed; the hard kill follows the signalled process alone. Every signal compares the
+    /// process's identity (pid and start time), so a pid the operating system reused is never
+    /// signalled. A missing or corrupt registration completes successfully; the shared service is
+    /// shared, and this call is the one deliberate way to end it — disposing a discovered handle
+    /// never does.
     /// </summary>
     /// <param name="options">The stop options; null stops the shared release registration.</param>
     /// <param name="cancellationToken">The caller's token. Cancellation before the first signal prevents it; after a signal it ends the bounded wait and leaves the registration in place.</param>
     /// <returns>A task that completes when the registered process is gone or there was none to stop.</returns>
     /// <exception cref="ArgumentException">An option is blank, the registration path is relative, or the options contradict one another.</exception>
-    /// <exception cref="OpenCodeServerException">No user home directory resolves for an XDG fallback, the handoff sidecar could not be removed, or the registered process is still running after the hard kill.</exception>
+    /// <exception cref="OpenCodeServerException">No user home directory resolves for an XDG fallback, or the registered process is still running after the hard kill.</exception>
     public static Task StopAsync(
         OpenCodeServerStopOptions? options = null,
         CancellationToken cancellationToken = default)
@@ -222,7 +225,7 @@ public class OpenCodeServer : IAsyncDisposable
     /// <param name="cancellationToken">The caller's token; its cancellation propagates.</param>
     /// <returns>A non-owning handle over the ready service.</returns>
     /// <exception cref="ArgumentException">An option is blank, the registration path is relative, the command is empty, or the options contradict one another.</exception>
-    /// <exception cref="OpenCodeServerException">No user home directory resolves, the election timed out, the service failed to start, a version mismatch was refused, or a spawned command could not be resolved.</exception>
+    /// <exception cref="OpenCodeServerException">No user home directory resolves, the election timed out, a contender or the registered service failed to start, the registered service speaks an incompatible health protocol at a version the call accepts, a version mismatch was refused, or a spawned command could not be resolved.</exception>
     public static Task<OpenCodeServer> EnsureAsync(
         OpenCodeServerEnsureOptions? options = null,
         CancellationToken cancellationToken = default) =>

@@ -9,15 +9,17 @@ using OpenCode.Sdk.Internal.Posix;
 namespace OpenCode.Sdk.Internal.BackgroundService.Stop;
 
 /// <summary>
-/// The pinned client's <c>terminate</c> (<c>effect/service.ts</c>): send the terminate
-/// rung, poll for the process to leave, send the kill rung when it is still there, poll again, and
-/// remove the registration once the process is gone — re-reading the registration before every
-/// signal and before the removal, so a record another service replaced is never acted on. The poll
-/// is the pinned client's own schedule (<c>stopPollInterval</c> × <c>stopPollAttempts</c>, 50 ms and
-/// 100 at the pin), and the SDK's addition is what it looks at: the process identity, so the pid is
-/// signalled only while the process under it is the one first seen, and a pid that was reused reads
-/// as the registered process being gone. The one failure is a process still running after the
-/// kill rung; the registration then stays.
+/// The pinned client's <c>terminate</c> (<c>effect/service.ts</c>): read the registration and act
+/// only while it is still this one, send the terminate rung, poll for the process to leave, send the
+/// kill rung when it is still there, poll again, and remove the registration once the process is
+/// gone and the record is still this one. Between the rungs the registration is not read again: it
+/// can disappear or change hands before the signalled process exits, and only that process tells
+/// whether it stopped, so the escalation follows it, while a successor's record is never removed.
+/// The poll is the pinned client's own schedule (<c>stopPollInterval</c> × <c>stopPollAttempts</c>,
+/// 50 ms and 100 at the pin), and the SDK's addition is what it looks at: the process identity, so
+/// the pid is signalled only while the process under it is the one first seen, and a pid that was
+/// reused reads as the registered process being gone. The one failure is a process still running
+/// after the kill rung; the registration then stays.
 /// </summary>
 internal sealed class ServiceTerminator(IServiceFileSystem fileSystem, IServiceProcessControl processControl, ServiceTiming timing)
 {
@@ -25,7 +27,7 @@ internal sealed class ServiceTerminator(IServiceFileSystem fileSystem, IServiceP
     /// <param name="registration">The registration as it was read.</param>
     /// <param name="registrationFile">The file it was read from.</param>
     /// <param name="cancellationToken">The caller's token: before a signal it prevents the signal; after one it ends the poll.</param>
-    /// <returns>A task that completes when the process is gone, or when the registration stopped being this one.</returns>
+    /// <returns>A task that completes when the process is gone, or at once when the registration was no longer this one.</returns>
     /// <exception cref="OpenCodeServerException">The process is still running after the kill rung.</exception>
     public async Task TerminateAsync(ServiceRegistration registration, string registrationFile, CancellationToken cancellationToken)
     {
@@ -38,12 +40,9 @@ internal sealed class ServiceTerminator(IServiceFileSystem fileSystem, IServiceP
             return;
         }
 
-        if (processControl.TrySnapshot(registration.ProcessId) is { } target &&
-            !await EndAsync(target, registrationFile, expected, cancellationToken).ConfigureAwait(false))
+        if (processControl.TrySnapshot(registration.ProcessId) is { } target)
         {
-            // The registration changed while the process was still there: whatever registered is
-            // not this stop's to end, and the record is not this stop's to remove.
-            return;
+            await EndAsync(target, registrationFile, cancellationToken).ConfigureAwait(false);
         }
 
         if (await StillRegisteredAsync(registrationFile, expected, cancellationToken).ConfigureAwait(false))
@@ -53,29 +52,22 @@ internal sealed class ServiceTerminator(IServiceFileSystem fileSystem, IServiceP
     }
 
     /// <summary>
-    /// Both rungs. True when the process is gone; false when the registration changed between them
-    /// and the ladder stopped.
+    /// Both rungs, escalating by the signalled process alone. Completes when the process is gone.
     /// </summary>
-    private async Task<bool> EndAsync(
-        ProcessIdentity target, string registrationFile, ServiceRegistrationIdentity expected, CancellationToken cancellationToken)
+    private async Task EndAsync(ProcessIdentity target, string registrationFile, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         _ = processControl.TrySignal(target, ProcessSignal.Terminate);
         if (await WaitForExitAsync(target, cancellationToken).ConfigureAwait(false))
         {
-            return true;
-        }
-
-        if (!await StillRegisteredAsync(registrationFile, expected, cancellationToken).ConfigureAwait(false))
-        {
-            return false;
+            return;
         }
 
         cancellationToken.ThrowIfCancellationRequested();
         _ = processControl.TrySignal(target, ProcessSignal.Kill);
         if (await WaitForExitAsync(target, cancellationToken).ConfigureAwait(false))
         {
-            return true;
+            return;
         }
 
         throw new OpenCodeServerException(

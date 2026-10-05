@@ -129,6 +129,7 @@ vcs.base
 vcs.branch.list
 vcs.diff
 vcs.get
+vcs.init
 vcs.status
 websearch.providers
 websearch.query

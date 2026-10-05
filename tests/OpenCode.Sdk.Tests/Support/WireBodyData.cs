@@ -57,9 +57,9 @@ internal static class WireBodyData
 
     public const string ShellNotFoundError = "{\"_tag\":\"ShellNotFoundError\",\"id\":\"sh_9\",\"message\":\"gone\"}";
 
-    /// <summary>The pinned {name, data} error dialect, which tags itself under 'name' instead of '_tag'.</summary>
+    /// <summary>The worktree error: tagged under '_tag' like every pinned error, with its payload nested under 'data' beside a 'name'.</summary>
     public const string WorktreeError =
-        "{\"name\":\"WorktreeError\",\"data\":{\"message\":\"the worktree has uncommitted changes\",\"forceRequired\":true}}";
+        "{\"_tag\":\"WorktreeError\",\"name\":\"WorktreeError\",\"data\":{\"message\":\"the worktree has uncommitted changes\",\"forceRequired\":true}}";
 
     public const string Worktree = "{\"directory\":\"/repo/feature\"}";
 

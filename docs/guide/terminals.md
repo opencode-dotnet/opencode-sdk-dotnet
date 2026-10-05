@@ -279,7 +279,9 @@ size coherent with its place in the send order.
 ## 🪟 The Windows platform note
 
 **Persistent PTYs do not work on Windows hosts.** At the pinned snapshot, upstream's `opencode-pty`
-daemon ships `darwin` and `linux` platform packages only — that is the whole root cause.
+daemon ships `darwin` and `linux` platform packages only — that is the whole root cause. The
+server says so up front: `Server.GetInfoAsync()` reports `Capabilities.PersistentPty` as `false` on
+a Windows host and `true` elsewhere; a server that predates the flag leaves `Capabilities` null.
 
 `create` is the one route that starts the daemon, so on Windows it answers the API's declared
 **HTTP 503** with a `ServiceUnavailableError` whose `Service` is `opencode-pty`. Every other route

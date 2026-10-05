@@ -15,8 +15,8 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 - **Protocol pin** — generation reads an accepted snapshot of upstream's OpenAPI document taken at
   a release tag, never a live branch, and refreshes are receipt-governed (ADR-0020).
   `../spec/SNAPSHOT.md` owns the exact commit and the refresh procedure.
-- **Coverage** — **138 of 140 operations selected** across 27 client families, none declined, and
-  2 transport-owned that hand-written WebSocket doors cover, so all 140 are usable; `src/OpenCode.Sdk/.generation-incomplete` is
+- **Coverage** — **139 of 141 operations selected** across 27 client families, none declined, and
+  2 transport-owned that hand-written WebSocket doors cover, so all 141 are usable; `src/OpenCode.Sdk/.generation-incomplete` is
   the committed marker and names every one. One-shot calls, server-sent event streams (the global
   bus and the per-session log), PTY and persistent-PTY WebSocket sessions, cursor pagination, typed
   errors with `NoThrow`, and the standalone launcher (`OpenCodeServer.StartAsync`) are landed.
@@ -28,22 +28,26 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   targets. Linux and macOS live verification also passed on net8/net9/net10, including the persistent daemon
   round trip and normal PTY reuse after read cancellation. `architecture/client-runtime.md` and
   ADR-0023 own the contract.
-- **2.0.22 refresh** — the accepted pin follows upstream's release tags, now `v2.0.22`, with no
-  compatibility layer between them. 2.0.22 adds two operations, both generated: listing and
-  creating stored credentials (`Credentials.ListCredentialsAsync`, `CreateCredentialAsync`), whose
-  key and OAuth tokens are masked when printed. `session.create` gains `ParentId` and a declared 404,
-  and cancelling a form can carry a `Message`. The service config's new `disabled` key is read only by
-  CLI commands (its connection-mode selector and pairing guard), never by the background-service
-  doors; the strict reader
-  validates it as upstream decodes it. Upstream's committed OpenAPI document is stale against its
-  own generator at this tag (four operations missing, a query parameter under the wrong
-  operation; [anomalyco/opencode#53105](https://github.com/anomalyco/opencode/issues/53105)), so
-  the snapshot is always produced by upstream's pinned generator, never copied (ADR-0020). Every
-  watched input under the hand-written doors was reviewed: the PTY changes are type renames, and
-  the launcher's inputs are unchanged apart from the standalone endpoint's new `exited`. Each
-  refresh's CI run qualifies every leg at its pin: Windows on `net472`, `net8.0`, `net9.0`, and
-  `net10.0`, Linux and macOS on `net8.0`, `net9.0`, and `net10.0`, with regeneration and receipt
-  verification passing.
+- **2.0.23 refresh** — the accepted pin follows upstream's release tags, now `v2.0.23`, with no
+  compatibility layer between them. 2.0.23 adds one operation, generated:
+  `Vcs.InitializeRepositoryAsync` (`vcs.init`). A location whose directory does not exist answers a
+  typed 404 `LocationNotFoundError` on every location- and session-scoped route, `pty.connect`
+  included; `ServerInfo.Capabilities.PersistentPty` says whether the server can run the
+  persistent-terminal daemon; and `WorktreeError` is a tagged error. The service config's
+  `disabled` key is read only by CLI commands (its connection-mode selector and pairing guard),
+  never by the background-service doors; the strict reader validates it as upstream decodes it.
+  The background-service doors follow the 2.0.23 client: Ensure fails on an incompatible health
+  protocol rather than replacing it, holds the first contender failure, and treats the
+  persistent-terminal handoff and the sidecar clear as best-effort; Stop escalates to the hard
+  kill by pid without re-reading the registration between the two signals. Upstream's committed OpenAPI
+  document is stale against its own generator at this tag as at the previous ones (it lacks
+  `LocationNotFoundError`;
+  [anomalyco/opencode#53105](https://github.com/anomalyco/opencode/issues/53105)), so the snapshot is
+  always produced by upstream's pinned generator, never copied (ADR-0020). Every watched input
+  under the hand-written doors was reviewed; the launcher's inputs are unchanged. Each refresh's CI
+  run qualifies every leg at its pin: Windows on `net472`, `net8.0`, `net9.0`, and `net10.0`, Linux
+  and macOS on `net8.0`, `net9.0`, and `net10.0`, with regeneration and receipt verification
+  passing.
 - **Upstream 2.x** — the upstream team launched the 2.x line publicly on 2026-09-26. It ships as
   the `@opencode/cli` npm package, the one this SDK pins and its guides install; the 1.x line
   continues beside it as `opencode-ai` (`1.18.33` on 2026-09-28), and upstream's GitHub Releases page
@@ -189,6 +193,11 @@ These do not block `1.0.0` and run beside the road.
   (`net472` is Windows-only), and no CI leg runs the combination, so it is recorded rather than
   tested; the README's Known Issues carries the consumer-facing sentence. Reopens if a supported
   target ever needs that arm or if Polyfill quotes the path.
+- **The Windows Ensure contender does not yet follow upstream's spawn flags.** Upstream 2.0.23
+  spawns contenders hidden (`windowsHide`), which the SDK's Windows spawn does not request
+  (`STARTF_USESHOWWINDOW` with `SW_HIDE`), and the creation flag the spawn names `DetachedProcess`
+  carries `CREATE_NO_WINDOW` (`0x08000000`) where ADR-0027 names `DETACHED_PROCESS` (`0x8`). Held
+  for a maintainer decision, because the flag choice departs from an accepted ADR.
 - **A pid reused before `StopAsync` runs is indistinguishable from a wedged daemon.** The
   registration names a pid and no process start time, so a daemon that died and whose pid the
   operating system handed to an unrelated process before a stop ran looks, to the file, like the

@@ -434,6 +434,186 @@ public sealed class ServiceEnsurerTests
     }
 
     [Test]
+    public async Task EnsureAsync_Should_Throw_On_An_Incompatible_Health_Protocol_Whose_Version_Matches()
+    {
+        // service-reconnect.test.ts: a registered owner whose health endpoint disappeared is neither
+        // signalled, handed off, nor replaced while no unmet version requirement says otherwise.
+        SeedRegistered();
+        AnswerRegistered(Ready with { Compatible = false });
+
+        var exception = await Assert
+            .That(async () => _ = await Ensurer().EnsureAsync(Announcing(), CancellationToken.None))
+            .Throws<OpenCodeServerException>();
+
+        await Assert.That(exception!.Message).IsEqualTo(ServiceEnsurer.IncompatibleProtocolMessage);
+        await Assert.That(_starts).IsEmpty();
+        await Assert.That(_signalled).IsEmpty();
+        await Assert.That(_announced).IsEmpty();
+        _ = _handoff.DidNotReceiveWithAnyArgs().PrepareAsync(default!, default!, default, default);
+        _ = _handoff.DidNotReceiveWithAnyArgs().ClearAsync(default!, default);
+    }
+
+    [Test]
+    public async Task EnsureAsync_Should_Replace_An_Incompatible_Health_Protocol_When_The_Version_Requirement_Is_Unmet()
+    {
+        SeedRegistered();
+        AnswerRegistered(Ready with { Compatible = false });
+        ElectOnSpawn("2.0.4");
+
+        var registration = await Ensurer().EnsureAsync(
+            Announcing(new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace }),
+            CancellationToken.None);
+
+        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.VersionMismatch, (string?)Version)]);
+        await Assert.That(_signalled).Contains(RegisteredPid);
+    }
+
+    [Test]
+    public async Task EnsureAsync_Should_Terminate_A_Mismatched_Service_Even_When_The_Handoff_Fails()
+    {
+        // The client's stop only warns when the handoff fails; the old service is ended either way.
+        SeedRegistered();
+        AnswerRegistered(Ready);
+        ElectOnSpawn("2.0.4");
+        _handoff.PrepareAsync(Arg.Any<string>(), Arg.Any<ServiceRegistration>(), Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(new OpenCodeServerException("The sidecar could not be published.")));
+
+        var registration = await Ensurer().EnsureAsync(
+            new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
+            CancellationToken.None);
+
+        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+        await Assert.That(_signalled).Contains(RegisteredPid);
+    }
+
+    [Test]
+    public async Task EnsureAsync_Should_Terminate_A_Mismatched_Service_That_Is_Not_Ready_Even_When_The_Clear_Fails()
+    {
+        // A service that is not ready has no terminals to hand off, so the stop clears the sidecar
+        // instead; the client only warns when that fails, and the old service is ended either way.
+        SeedRegistered();
+        AnswerRegistered(Waiting);
+        ElectOnSpawn("2.0.4");
+        _handoff.ClearAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(new OpenCodeServerException("The sidecar could not be removed.")));
+
+        var registration = await Ensurer().EnsureAsync(
+            new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
+            CancellationToken.None);
+
+        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+        _ = _handoff.Received(1).ClearAsync(SharedRegistrationPath(), Arg.Any<CancellationToken>());
+        _ = _handoff.DidNotReceiveWithAnyArgs().PrepareAsync(default!, default!, default, default);
+        await Assert.That(_signalled).Contains(RegisteredPid);
+    }
+
+    [Test]
+    public async Task EnsureAsync_Should_Release_The_Replaced_Contender_And_Drop_A_Held_Failure_After_A_Version_Mismatch()
+    {
+        // The first contender stays live, the second fails and its failure is held; then the first
+        // registers at the old version. The replacement ends it, releases it, drops the held
+        // failure, and recruits the winner.
+        const int replacedPid = 9000;
+        var failure = new OpenCodeServerException("The background service contender (pid 9001) exited with code 23.");
+        _probe.ProbeAsync(WithPid(replacedPid), Arg.Any<CancellationToken>()).Returns(Ready);
+        _probe.ProbeAsync(WithPid(ElectedPid), Arg.Any<CancellationToken>())
+            .Returns(new ServiceProbeResult(ServiceState.Ready, "2.0.4", TimedOut: false, Compatible: true));
+        var spawns = 0;
+        _spawner.Spawn(Arg.Any<IServiceContenderSpawner.ContenderStartInfo>()).Returns(call =>
+        {
+            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>()!);
+            switch (++spawns)
+            {
+                case 1:
+                    return LiveContender();
+                case 2:
+                    var failing = LiveContender();
+                    failing.Finished.Returns(true);
+                    failing.TryGetFailure().Returns(_ =>
+                    {
+                        // The harvest that holds this failure is when the first contender registers.
+                        Seed(SharedRegistrationPath(), ServiceRegistrationDocument.Compose("srv_old", Version, ElectedEndpoint, replacedPid, "old-p455"));
+                        return failure;
+                    });
+                    return failing;
+                default:
+                    Seed(SharedRegistrationPath(), ServiceRegistrationDocument.Compose("srv_elected", "2.0.4", ElectedEndpoint, ElectedPid, "elected-p455"));
+                    return LiveContender();
+            }
+        });
+
+        var registration = await Ensurer().EnsureAsync(
+            new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
+            CancellationToken.None);
+
+        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+        await Assert.That(_starts.Count).IsEqualTo(3);
+        await Assert.That(_signalled).Contains(replacedPid);
+        _spawned[0].Received(1).Release();
+        _spawned[0].Received(1).Dispose();
+    }
+
+    [Test]
+    public async Task EnsureAsync_Should_Hold_A_Contender_Failure_Without_Recruiting_Replacements_Until_The_Bound()
+    {
+        // service.test.ts "retains a contender failure until the deadline while its survivor
+        // stalls": the first contender stays live, the second fails; no third is recruited, and the
+        // bound expires with the failure rather than with the timeout.
+        var failure = new OpenCodeServerException("The background service contender (pid 9001) exited with code 23.");
+        var spawns = 0;
+        _spawner.Spawn(Arg.Any<IServiceContenderSpawner.ContenderStartInfo>()).Returns(call =>
+        {
+            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>()!);
+            return ++spawns == 2 ? FinishedContender(failure) : LiveContender();
+        });
+        DeadlineAfter(clockReads: 200);
+
+        var exception = await Assert
+            .That(async () => _ = await Ensurer().EnsureAsync(options: null, CancellationToken.None))
+            .Throws<OpenCodeServerException>();
+
+        await Assert.That(exception).IsSameReferenceAs(failure);
+        await Assert.That(_starts.Count).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task EnsureAsync_Should_Release_The_Evicted_Contender_And_Drop_A_Held_Failure_After_Recovery()
+    {
+        // service.test.ts "recovers when an unresponsive contender is evicted after a prior
+        // failure": the first contender registers and stops answering, the second fails; the
+        // recovery ends the first, releases it, drops the held failure, and recruits a winner.
+        const int stalledPid = 9000;
+        var failure = new OpenCodeServerException("The background service contender (pid 9001) exited with code 23.");
+        _probe.ProbeAsync(WithPid(stalledPid), Arg.Any<CancellationToken>()).Returns(TimedOut);
+        _probe.ProbeAsync(WithPid(ElectedPid), Arg.Any<CancellationToken>()).Returns(Ready);
+        var spawns = 0;
+        _spawner.Spawn(Arg.Any<IServiceContenderSpawner.ContenderStartInfo>()).Returns(call =>
+        {
+            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>()!);
+            switch (++spawns)
+            {
+                case 1:
+                    Seed(SharedRegistrationPath(), ServiceRegistrationDocument.Compose("srv_stalled", Version, ElectedEndpoint, stalledPid, "stalled-p455"));
+                    return LiveContender();
+                case 2:
+                    return FinishedContender(failure);
+                default:
+                    Seed(SharedRegistrationPath(), ServiceRegistrationDocument.Compose("srv_elected", Version, ElectedEndpoint, ElectedPid, "elected-p455"));
+                    return LiveContender();
+            }
+        });
+
+        var registration = await Ensurer().EnsureAsync(options: null, CancellationToken.None);
+
+        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+        await Assert.That(_starts.Count).IsEqualTo(3);
+        await Assert.That(_signalled).Contains(stalledPid);
+        _spawned[0].Received(1).Release();
+        _spawned[0].Received(1).Dispose();
+    }
+
+    [Test]
     public async Task EnsureAsync_Should_Refuse_Contradictory_Options_Before_Touching_Anything()
     {
         var exception = await Assert

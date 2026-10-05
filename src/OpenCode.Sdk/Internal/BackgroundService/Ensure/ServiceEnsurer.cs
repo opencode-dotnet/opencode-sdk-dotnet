@@ -25,6 +25,8 @@ internal sealed class ServiceEnsurer(
     internal const string TimeoutMessage = "Timed out waiting for the background service to start.";
     internal const string FailedMessage = "The background service failed to start.";
     internal const string MismatchMessage = "The background server version does not match this client.";
+    internal const string IncompatibleProtocolMessage =
+        "The background service uses an incompatible health protocol. Update this client or explicitly restart the service.";
 
     /// <summary>Ensures a healthy compatible service is running and returns its registration.</summary>
     /// <param name="options">The caller's options; null means every default.</param>
@@ -32,7 +34,7 @@ internal sealed class ServiceEnsurer(
     /// <returns>The ready service's registration, which always carries a password.</returns>
     /// <exception cref="ArgumentException">The options are blank, contradictory, or missing a value their policy needs.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The version policy is not a defined value.</exception>
-    /// <exception cref="OpenCodeServerException">No user home resolves, the election timed out, the service failed, a contender failed, or a version mismatch was refused.</exception>
+    /// <exception cref="OpenCodeServerException">No user home resolves, the election timed out, the service failed, its health protocol is incompatible, a contender failed, or a version mismatch was refused.</exception>
     public async Task<ServiceRegistration> EnsureAsync(OpenCodeServerEnsureOptions? options, CancellationToken cancellationToken)
     {
         var request = EnsureRequest.Snapshot(options);

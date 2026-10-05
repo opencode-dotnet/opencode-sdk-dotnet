@@ -11,8 +11,14 @@ public sealed record WorktreeError : IOpenCodeError
     /// <summary>
     /// Gets the tag value.
     /// </summary>
-    [JsonPropertyName("name")]
+    [JsonPropertyName("_tag")]
     public string Tag => "WorktreeError";
+
+    /// <summary>
+    /// Gets the name value.
+    /// </summary>
+    [JsonPropertyName("name")]
+    public required string Name { get; init; }
 
     /// <summary>
     /// Gets the data value.

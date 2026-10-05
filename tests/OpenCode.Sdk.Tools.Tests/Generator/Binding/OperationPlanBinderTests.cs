@@ -175,10 +175,11 @@ public sealed class OperationPlanBinderTests
         await Assert
             .That(location
                 .ErrorMap.Statuses.Select(static status => status.StatusCode)
-                .SequenceEqual([400, 401]))
+                .SequenceEqual([400, 401, 404]))
             .IsTrue();
         await Assert.That(location.ErrorMap.Statuses[0].Tags.Single().Tag).IsEqualTo("InvalidRequestError");
         await Assert.That(location.ErrorMap.Statuses[1].Tags.Single().Tag).IsEqualTo("UnauthorizedError");
+        await Assert.That(location.ErrorMap.Statuses[2].Tags.Single().Tag).IsEqualTo("LocationNotFoundError");
 
         await Assert.That(root.Operations.Count).IsEqualTo(2);
         await Assert.That(root.ContainerName).IsNull();

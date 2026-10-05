@@ -8,7 +8,7 @@ internal sealed class ExperimentalMcpRemoveResponseAdapter : ResponseAdapter<Exp
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["McpServerNotFoundError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError", "McpServerNotFoundError"];
     private ExperimentalMcpRemoveResponseAdapter()
     {
     }

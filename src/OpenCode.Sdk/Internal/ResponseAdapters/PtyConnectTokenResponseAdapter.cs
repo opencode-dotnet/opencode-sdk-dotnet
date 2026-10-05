@@ -11,7 +11,7 @@ internal sealed class PtyConnectTokenResponseAdapter : ResponseAdapter<PtyConnec
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
     private static readonly string[] Status403Tags = ["ForbiddenError"];
-    private static readonly string[] Status404Tags = ["PtyNotFoundError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError", "PtyNotFoundError"];
     private PtyConnectTokenResponseAdapter()
     {
     }

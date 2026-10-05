@@ -19,8 +19,8 @@ it carries a named projection in the design and never a hidden default.
 The probe is the pinned client's: an authenticated `GET /api/info` decoded for `pid` and
 `version` alone, independently of the generated public info model and its required `urls`.
 An authenticated 404 is read before any body and identifies the registered daemon as present
-but incompatible — the pinned client routes such a daemon to replacement — so discovery reports
-no service for it. The request bound and the owned non-redirecting transport are the SDK's own,
+but incompatible — the pinned client's ensure fails on such a daemon, and replaces it only when a
+version requirement is unmet — so discovery reports no service for it. The request bound and the owned non-redirecting transport are the SDK's own,
 and the transport keeps the pinned client's classification on every host: a refused loopback
 connect is no service, never a timeout, which on Windows takes the same no-SYN-retransmission
 socket option the pinned client's runtime sets for loopback. One deliberate divergence is that the

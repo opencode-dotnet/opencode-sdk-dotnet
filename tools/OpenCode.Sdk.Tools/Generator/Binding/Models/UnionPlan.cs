@@ -20,20 +20,6 @@ internal sealed record UnionPlan
 
     public required LiteralKind MarkerKind { get; init; }
 
-    /// <summary>
-    /// Gets the further marker properties this union dispatches on, scanned after
-    /// <see cref="MarkerWireName"/>. A union whose variants all share one marker leaves this empty.
-    /// </summary>
-    public IReadOnlyList<string> AlternateMarkerWireNames
-    {
-        get;
-        init
-        {
-            ArgumentNullException.ThrowIfNull(value);
-            field = Array.AsReadOnly([.. value]);
-        }
-    } = Array.AsReadOnly(Array.Empty<string>());
-
     public required IReadOnlyList<UnionVariantPlan> Variants
     {
         get;

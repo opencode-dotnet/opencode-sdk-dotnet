@@ -10,6 +10,7 @@ internal sealed class WebsearchProvidersResponseAdapter : ResponseAdapter<Websea
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError"];
     private static readonly string[] Status503Tags = ["ServiceUnavailableError"];
     private WebsearchProvidersResponseAdapter()
     {
@@ -29,6 +30,7 @@ internal sealed class WebsearchProvidersResponseAdapter : ResponseAdapter<Websea
         >= 200 and < 300 => StatusVerdict.UndeclaredSuccess,
         400 => StatusVerdict.DeclaredError,
         401 => StatusVerdict.DeclaredError,
+        404 => StatusVerdict.DeclaredError,
         503 => StatusVerdict.DeclaredError,
         _ => StatusVerdict.UndeclaredError
     };
@@ -48,6 +50,7 @@ internal sealed class WebsearchProvidersResponseAdapter : ResponseAdapter<Websea
             >= 200 and < 300 => throw StatusVerdictFailures.UndeclaredSuccess(status),
             400 => new WebsearchProvidersResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
             401 => new WebsearchProvidersResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
+            404 => new WebsearchProvidersResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
             503 => new WebsearchProvidersResponse(status, ReadTolerantError(rawBody, Status503Tags), rawBody),
             _ => new WebsearchProvidersResponse(status, ReadTolerantError(rawBody, null), rawBody)
         };

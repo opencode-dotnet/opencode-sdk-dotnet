@@ -8,7 +8,7 @@ internal sealed class IntegrationConnectKeyResponseAdapter : ResponseAdapter<Int
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["IntegrationNotFoundError"];
+    private static readonly string[] Status404Tags = ["IntegrationNotFoundError", "LocationNotFoundError"];
     private IntegrationConnectKeyResponseAdapter()
     {
     }

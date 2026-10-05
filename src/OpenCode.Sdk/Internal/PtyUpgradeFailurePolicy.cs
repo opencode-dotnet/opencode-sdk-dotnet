@@ -4,10 +4,11 @@ using System.Net.WebSockets;
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// Names why a PTY WebSocket upgrade never completed. The server answers a missing PTY with a
-/// plain HTTP 404 and a refused credential or origin with 401/403 <em>before</em> upgrading, so
-/// there is no response spine for the failure to ride and no envelope for ADR-0007's machinery to
-/// materialize: the transport plane is the honest channel. On targets whose
+/// Names why a PTY WebSocket upgrade never completed. The server answers a missing PTY, or a
+/// requested location whose directory does not exist, with a plain HTTP 404 and a refused
+/// credential or origin with 401/403 <em>before</em> upgrading, so there is no response spine for
+/// the failure to ride and no envelope for the typed-error machinery to materialize: the transport
+/// plane is the honest channel. On targets whose
 /// <see cref="ClientWebSocket"/> cannot report the response status the failure still names the
 /// connect context it does know.
 /// </summary>
@@ -36,7 +37,7 @@ internal sealed class PtyUpgradeFailurePolicy : ITerminalUpgradeFailurePolicy
         return status switch
         {
             404 => new OpenCodeTransportException(
-                $"The opencode server answered the PTY '{terminalId}' WebSocket upgrade with HTTP {code}; the PTY session does not exist.",
+                $"The opencode server answered the PTY '{terminalId}' WebSocket upgrade with HTTP {code}; the PTY session or the requested location does not exist.",
                 exception),
             401 or 403 => new OpenCodeTransportException(
                 $"The opencode server refused the PTY '{terminalId}' WebSocket upgrade with HTTP {code}; the request's credential was rejected.",

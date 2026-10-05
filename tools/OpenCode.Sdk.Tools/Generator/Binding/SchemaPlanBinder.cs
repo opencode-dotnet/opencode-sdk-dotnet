@@ -585,22 +585,15 @@ internal sealed class SchemaPlanBinder(
             return null;
         }
 
-        // The union's own marker is the first dialect the closure actually uses; the rest ride
-        // as alternates so the emitted converter scans them in the same declared order.
-        var markerWireNames = ErrorMarkerPolicy
-            .ScanOrder
-            .Where(wireName => variants.Any(variant => string.Equals(variant.MarkerWireName, wireName, StringComparison.Ordinal)))
-            .ToArray();
         return new UnionPlan
         {
             Name = CSharpNamePolicy.ToUnionInterfaceName("OpenCodeError"),
             ConceptName = "OpenCodeError",
             Namespace = GeneratedNamespace.Models,
             UnknownTypeName = "UnknownOpenCodeError",
-            MarkerWireName = markerWireNames[0],
+            MarkerWireName = ErrorMarkerPolicy.WireName,
             MarkerName = "Tag",
             MarkerKind = LiteralKind.String,
-            AlternateMarkerWireNames = markerWireNames[1..],
             Variants = [.. variants.OrderBy(static variant => variant.TypeName, StringComparer.Ordinal)],
             Description = "Represents a typed error returned by the opencode API.",
         };
@@ -608,8 +601,8 @@ internal sealed class SchemaPlanBinder(
 
     /// <summary>
     /// One tag owned by two closure types would poison the converter's dispatch map at its
-    /// first use, and the reader's per-status filter reads the same one member on either
-    /// dialect, so a collision refuses naming its owners; structurally identical duplicates
+    /// first use, and the reader's per-status filter reads the same one member, so a collision
+    /// refuses naming its owners; structurally identical duplicates
     /// have the schema-alias escape. Returns whether the tags are unique - the caller reads it
     /// as the go-ahead, so the name says what true means.
     /// </summary>

@@ -8,7 +8,4 @@ public enum ErrorStyle
 
     /// <summary>The object uses a required literal <c>_tag</c> property.</summary>
     EffectTag = 1,
-
-    /// <summary>The object uses required literal <c>name</c> and required <c>data</c> properties.</summary>
-    NameData = 2,
 }

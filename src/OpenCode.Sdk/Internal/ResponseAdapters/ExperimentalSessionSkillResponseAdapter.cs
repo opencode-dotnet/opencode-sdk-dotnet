@@ -8,7 +8,7 @@ internal sealed class ExperimentalSessionSkillResponseAdapter : ResponseAdapter<
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["SessionNotFoundError", "SkillNotFoundError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError", "SessionNotFoundError", "SkillNotFoundError"];
     private ExperimentalSessionSkillResponseAdapter()
     {
     }

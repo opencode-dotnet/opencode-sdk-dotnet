@@ -3,8 +3,8 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
 /// <summary>
-/// Names every wire property a union's dispatch reads: its own marker, the further dialects it
-/// scans, a nested union's marker, and an outer marker it fixes. A shared literal that
+/// Names every wire property a union's dispatch reads: its own marker, a nested union's marker,
+/// and an outer marker it fixes. A shared literal that
 /// discriminates is never a hoisted member — the interface already promises it as the marker,
 /// and the dispatch path owns it.
 /// </summary>
@@ -36,7 +36,6 @@ internal static class UnionDispatchPropertyPolicy
         }
 
         _ = result.Add(union.MarkerWireName);
-        result.UnionWith(union.AlternateMarkerWireNames);
         foreach (var variant in union.Variants)
         {
             _ = result.Add(variant.MarkerWireName);

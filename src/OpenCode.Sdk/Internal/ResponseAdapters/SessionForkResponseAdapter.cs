@@ -10,7 +10,7 @@ internal sealed class SessionForkResponseAdapter : ResponseAdapter<SessionForkRe
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["MessageNotFoundError", "SessionNotFoundError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError", "MessageNotFoundError", "SessionNotFoundError"];
     private SessionForkResponseAdapter()
     {
     }
