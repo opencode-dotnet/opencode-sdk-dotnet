@@ -74,11 +74,13 @@ live queue. In order:
    pre-GA SDK. A consumer whose target falls back to the `netstandard2.0` asset on an unsupported
    runtime gets a build warning. It follows an upstream refresh and `0.9.0-preview.6`, and the
    launcher's .NET 11 pipe fix (Known Gaps) lands first. Launcher parity work rides the same
-   workstream: the disposal ladder first matches upstream's scope close (a SIGTERM to the process
-   group before the forced kill, and the Windows kill's exit code), and after the pipe fix and
-   `net11.0`, `OpenCodeServer.Exited` reports how a standalone server ended — exit code or signal,
-   as upstream's `exited` does — on every target and OS. Exit: every leg runs `netstandard2.0`,
-   `net472`, `net10.0`, and `net11.0` as its platform allows.
+   workstream (ADR-0032): on Linux and macOS the launcher already places its server in a session
+   of its own and ends it on upstream's ladder (a SIGTERM to the process group before the SIGKILL);
+   the Windows strategy (the job object, the explicit inherited-handle list, and the taskkill
+   ladder with its exit code) is next. After the pipe fix and `net11.0`, `OpenCodeServer.Exited`
+   reports how a standalone server ended — exit code or signal, as upstream's `exited` does — on
+   every target and OS. Exit: every leg runs `netstandard2.0`, `net472`, `net10.0`, and `net11.0`
+   as its platform allows.
 3. **Maintainability review.** A time-boxed, read-only review of the code, the generator, the
    tests, and the canon at current `master`. Each finding goes to one of four places: the API
    review, the 1.0 performance gate, a small fix now, or a parallel track. Exit: one triaged
@@ -254,9 +256,9 @@ These do not block `1.0.0` and run beside the road.
   net472 test targets, and opencode's assets use the same `windows` name.
 - **The launcher's descendant-termination proof has a platform boundary.** The startup-tree tests
   prove the direct child exits immediately and the grandchild terminates inside a ten-second bound
-  on the modern target frameworks (all three OSes) and on `net472` Windows (`taskkill /T`). The
-  downlevel non-Windows arm of the tree kill (a plain `Kill()`) is not exercised by any test project,
-  and the Linux/macOS behavior is established only by the three-OS CI run, never by a Windows-local
-  suite. On Unix the observed grandchild is not a child of the test process, so its exit is visible
-  only once the adopting parent reaps it: an environment without a reaping PID 1 fails that bound
-  with the process still recorded as a zombie.
+  on the modern target frameworks (all three OSes) and on `net472` Windows (`taskkill /T`). On Linux
+  and macOS a failed start ends the server's process group rather than its tree (ADR-0032), and
+  that behavior is established only by the three-OS CI run, never by a Windows-local suite. On
+  Unix the observed grandchild is not a child of the test process, so its exit is visible only
+  once the adopting parent reaps it: an environment without a reaping PID 1 fails that bound with
+  the process still recorded as a zombie.

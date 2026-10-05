@@ -49,7 +49,7 @@ public sealed class PinnedOpenCodeServerFixtureFailureTests
                 await Assert.That(metadata).DoesNotContain("lifecycle:");
             }
 
-            await Assert.That(await scenario.ReadLogAsync(fixture, "stdout.log")).Contains("FINAL-STDOUT");
+            await Assert.That(await scenario.ReadLogAsync(fixture, "stdout.log")).Contains(ServerDiagnosticScenario.FinalStandardOutput);
         }
         finally
         {
@@ -70,7 +70,7 @@ public sealed class PinnedOpenCodeServerFixtureFailureTests
             var observed = await Assert.That(async () => await fixture.DisposeAsync()).Throws<IOException>();
 
             await Assert.That(observed).IsSameReferenceAs(failure);
-            await Assert.That(await scenario.ReadLogAsync(fixture, "stdout.log")).Contains("FINAL-STDOUT");
+            await Assert.That(await scenario.ReadLogAsync(fixture, "stdout.log")).Contains(ServerDiagnosticScenario.FinalStandardOutput);
             var metadata = await scenario.ReadMetadataAsync(fixture);
             await Assert.That(metadata).Contains("test=fixture disposal");
             await Assert.That(metadata).Contains("framework=");
@@ -106,7 +106,7 @@ public sealed class PinnedOpenCodeServerFixtureFailureTests
 
             var observed = await Assert.That(async () => await completion).Throws<InvalidOperationException>();
             await Assert.That(observed).IsSameReferenceAs(primary);
-            await Assert.That(await scenario.ReadLogAsync(fixture, "stdout.log")).Contains("FINAL-STDOUT");
+            await Assert.That(await scenario.ReadLogAsync(fixture, "stdout.log")).Contains(ServerDiagnosticScenario.FinalStandardOutput);
             await Assert.That(await scenario.ReadMetadataAsync(fixture)).Contains("pinned server stderr capture");
             barrier.Release();
             await scenario.Deadlines.DrainAsync(completion);
@@ -147,7 +147,7 @@ public sealed class PinnedOpenCodeServerFixtureFailureTests
             await Assert.That(observed!.Message).Contains("pinned server teardown");
             await Assert.That(observed.InnerException).IsSameReferenceAs(teardown.Failure);
             await fixture.DrainDiagnosticsAsync(cancellationToken);
-            await Assert.That(await scenario.ReadLogAsync(fixture, "stderr.log")).Contains("FINAL-STDERR");
+            await Assert.That(await scenario.ReadLogAsync(fixture, "stderr.log")).Contains(ServerDiagnosticScenario.FinalStandardError);
             await Assert.That(await scenario.ReadMetadataAsync(fixture)).Contains("pinned server teardown");
         }
         finally
@@ -171,8 +171,8 @@ public sealed class PinnedOpenCodeServerFixtureFailureTests
 
             await Assert.That(observed).IsSameReferenceAs(primary);
             await Assert.That(primary.Data[OwnedCleanup.FailuresKey]).IsNull();
-            await Assert.That(await scenario.ReadLogAsync(fixture, "stdout.log")).Contains("FINAL-STDOUT");
-            await Assert.That(await scenario.ReadLogAsync(fixture, "stderr.log")).Contains("FINAL-STDERR");
+            await Assert.That(await scenario.ReadLogAsync(fixture, "stdout.log")).Contains(ServerDiagnosticScenario.FinalStandardOutput);
+            await Assert.That(await scenario.ReadLogAsync(fixture, "stderr.log")).Contains(ServerDiagnosticScenario.FinalStandardError);
             var metadata = await scenario.ReadMetadataAsync(fixture);
             await Assert.That(metadata).Contains("controlled body");
             await Assert.That(metadata).Contains("framework=");
@@ -213,7 +213,7 @@ public sealed class PinnedOpenCodeServerFixtureFailureTests
             var failures = primary.Data[OwnedCleanup.FailuresKey] as AggregateException;
             await Assert.That(failures!.InnerExceptions).Contains(captureFailure);
             await Assert.That(failures.InnerExceptions.OfType<TimeoutException>().Any()).IsTrue();
-            await Assert.That(await scenario.ReadLogAsync(fixture, "stdout.log")).Contains("FINAL-STDOUT");
+            await Assert.That(await scenario.ReadLogAsync(fixture, "stdout.log")).Contains(ServerDiagnosticScenario.FinalStandardOutput);
             await Assert.That(await scenario.ReadMetadataAsync(fixture)).Contains("Deliberate live body failure");
         }
         finally

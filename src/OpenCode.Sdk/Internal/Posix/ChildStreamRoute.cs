@@ -8,4 +8,7 @@ internal enum ChildStreamRoute
 
     /// <summary>A pipe whose other end the parent holds: it writes the child's standard input, or reads one of its outputs.</summary>
     Pipe,
+
+    /// <summary>The parent's own descriptor of the same number, unchanged: the child writes where the parent does.</summary>
+    Inherit,
 }

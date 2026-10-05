@@ -96,7 +96,7 @@ internal sealed class ServiceFixtureProcess : IAsyncDisposable
         {
             if (!_process.HasExited)
             {
-                _ = ProcessTreeTerminator.Platform.TryKill(_process);
+                _ = TestProcessTreeKill.TryKill(_process);
                 _ = await ObserveExitWithinAsync(DisposalBound, CancellationToken.None);
             }
         }

@@ -99,7 +99,7 @@ public sealed class TaskkillTreeKillTests
     {
         if (!process.HasExited)
         {
-            _ = ProcessTreeTerminator.Platform.TryKill(process);
+            _ = TestProcessTreeKill.TryKill(process);
             _ = await ProcessObservation.ObserveExitWithinAsync(process, Bound, CancellationToken.None);
         }
     }

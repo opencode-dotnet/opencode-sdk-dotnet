@@ -365,43 +365,47 @@ section it concerns (ADR-0031).
 ## Launcher
 
 `OpenCodeServer.StartAsync(OpenCodeServerOptions?, CancellationToken)` is the standalone door
-(upstream `Standalone.start` parity), hand-written over `System.Diagnostics.Process` with no
-process-management dependency (ADR-0001). Every call is always a fresh private server on port
-zero: the caller's `Command` — `opencode serve` by default, the command the `@opencode/cli`
-package installs (the package also installs a transitional `opencode2` alias pointing at the same
-executable) — plus `--stdio --port 0` is the argv, and a freshly generated lease
-credential is injected into the child environment as `OPENCODE_PASSWORD`, after any caller-supplied
-`Environment` entries so it can never be shadowed. Readiness is the single JSON stdout line the
-child prints once fully booted; stdin stays open as the ownership lease for as long as the server
-runs, and every later stdout line plus all of stderr is drained continuously (stderr into a bounded
-tail kept for failure diagnostics) so a chatty child can never wedge the pipes. On Windows,
-`Process` creates those pipes synchronous before .NET 11 (dotnet/runtime#81896), so a pending read
-blocks the thread it runs on; `Process`'s own event readers would run those reads on thread-pool
-threads, two per standalone server for its whole life, and a host with several servers starves
-its pool. The launcher therefore reads each stream on a dedicated background thread on Windows
-(`ChildOutputReader`) and uses `Process`'s event readers elsewhere, where the reads are
-asynchronous and hold no thread. Every reader ends before the process is released: disposal and a
-failed start wait for end-of-stream inside the drain bound, then cancel any read still blocked —
-a descendant can keep a write end open — with `CancelSynchronousIo`, so no reader outlives its
-owner. Each Windows reader thread closes its pipe's read handle as it ends, because `Process`
-never closes a redirected stream that was read synchronously. .NET 11's `Process` opens the
-parent's read ends overlapped (dotnet/runtime#125643); a future .NET 11 target can read
-asynchronously on that runtime without a dedicated thread. The contender spawn creates its own
-overlapped stderr pipe instead (ADR-0027).
+(upstream `Standalone.start` parity), hand-written with no process-management dependency
+(ADR-0001): over `System.Diagnostics.Process` on Windows, and over the SDK's own spawn, group
+signal, and exit-status seams on Linux and macOS (ADR-0032). Every call is always a fresh private
+server on port zero: the caller's `Command` — `opencode serve` by default, the command the
+`@opencode/cli` package installs (the package also installs a transitional `opencode2` alias
+pointing at the same executable) — plus `--stdio --port 0` is the argv, and a freshly generated
+lease credential is injected into the child environment as `OPENCODE_PASSWORD`, after any
+caller-supplied `Environment` entries so it can never be shadowed. Readiness is the single JSON
+stdout line the child prints once fully booted; stdin stays open as the ownership lease for as long
+as the server runs, and every later stdout line plus all of stderr is drained continuously (stderr
+into a bounded tail kept for failure diagnostics) so a chatty child can never wedge the pipes. On
+Windows, `Process` creates those pipes synchronous before .NET 11 (dotnet/runtime#81896), so a
+pending read blocks the thread it runs on; `Process`'s own event readers would run those reads on
+thread-pool threads, two per standalone server for its whole life, and a host with several servers
+starves its pool. The launcher therefore reads each stream on a dedicated background thread on
+Windows (`ChildOutputReader`). On Linux and macOS the launcher creates the pipes itself, and their
+reads are asynchronous and hold no thread. Every reader ends before the child's handles are
+released: on Windows, disposal and a failed start wait for end-of-stream inside the drain bound,
+then cancel any read still blocked — a descendant can keep a write end open — with
+`CancelSynchronousIo`, so no reader outlives its owner; each Windows reader thread closes its
+pipe's read handle as it ends, because `Process` never closes a redirected stream that was read
+synchronously. On Linux and macOS the release cancels the pending reads and closes the pipes. .NET
+11's `Process` opens the parent's read ends overlapped (dotnet/runtime#125643); a future .NET 11
+target can read asynchronously on that runtime without a dedicated thread. The contender spawn
+creates its own overlapped stderr pipe instead (ADR-0027).
 
 `Command[0]` is resolved once per start, before the process is created, the way a shell resolves
 it, and the resolved path is what the process starts and what a failure names. A command carrying
-a directory separator or a rooted path is used as written; a bare name is searched through the
-PATH entries in order, skipping empty entries and resolving relative entries against the current
-directory. On Windows a bare name with no extension is tried with each PATHEXT extension in
-PATHEXT order — falling back to the conventional `.COM;.EXE;.BAT;.CMD` when PATHEXT is absent —
-and a name already carrying an extension is tried as written; on Unix the name itself is probed
-for existence and the operating system still decides executability at spawn. `CreateProcess` with
-`UseShellExecute=false` appends only `.exe` and never consults PATHEXT, while an npm install on
-Windows writes shim files (`opencode`, `opencode.cmd`, `opencode.ps1`) and keeps the binary
-inside `node_modules`, so the shell-style search is what lets a bare name start there. A bare name
-that matches nothing fails before anything is spawned, naming the command, the number of
-directories searched, and the extensions tried.
+a directory separator or a rooted path is used as written, except that on Linux and macOS a
+relative path is made absolute against the caller's current directory, because the child may start
+in another `WorkingDirectory`; a bare name is searched through the PATH entries in order, skipping
+empty entries and resolving relative entries against the current directory. On Windows a bare
+name with no extension is tried with each PATHEXT extension in PATHEXT order — falling back to the
+conventional `.COM;.EXE;.BAT;.CMD` when PATHEXT is absent — and a name already carrying an
+extension is tried as written; on Unix the name itself is probed for existence and the operating
+system still decides executability at spawn. `CreateProcess` with `UseShellExecute=false` appends
+only `.exe` and never consults PATHEXT, while an npm install on Windows writes shim files
+(`opencode`, `opencode.cmd`, `opencode.ps1`) and keeps the binary inside `node_modules`, so the
+shell-style search is what lets a bare name start there. A bare name that matches nothing fails
+before anything is spawned, naming the command, the number of directories searched, and the
+extensions tried.
 
 A resolved Windows batch target (`.cmd`/`.bat`) is launched explicitly through the system
 `cmd.exe` — located the way the downlevel tree kill locates taskkill — with `/d /s /c` and a
@@ -421,38 +425,132 @@ launcher-owned root — for a batch shim, the `cmd.exe` host rather than the ser
 forced tree kill reaches the grandchild whenever it runs; when the server and its `cmd.exe` host
 exit inside the disposal grace, no tree kill runs (see the disposal ladder below).
 
+On Linux and macOS the server is placed the way upstream places it: `posix_spawnp` with
+`POSIX_SPAWN_SETSID`, so it leads a session and a process group of its own, out of reach of a
+Ctrl+C or a hangup aimed at the host's terminal, and its pid names a group the launcher can signal
+whole. Every signal starts at its default disposition with an empty mask, libuv's child state,
+which `posix_spawn` alone and `Process` do not give a signal the host ignores (the .NET runtime
+ignores `SIGPIPE`). Standard input, output, and error are pipes wired by file actions. The pipe ends
+are close-on-exec from their creation on Linux; macOS has no atomic close-on-exec pipe, so the
+spawn adds `POSIX_SPAWN_CLOEXEC_DEFAULT`, as libuv does, and the child receives no descriptor its
+file actions do not name. Pipe creation and spawn share one SDK-wide lock for the launcher and the
+background-service contender, so two SDK spawns never overlap; a `Process.Start` on another thread
+that forks inside a macOS pipe's creation can still inherit its ends, and nothing in managed code
+can prevent that. A `WorkingDirectory` is applied by `posix_spawn_file_actions_addchdir_np`;
+where the C library predates it (glibc before 2.29, so RHEL 8 among supported hosts), the child is
+started through `/usr/bin/env -C <dir> <absolute command> <args>`, which keeps the pid across
+`exec` and leaves the signal state alone, and a missing directory then fails the start as an exit
+with code 125 whose stderr names the directory. A blank `WorkingDirectory` counts as none, as it
+does for `Process`. A spawn failure in a working directory names the directory, because a missing
+directory and a missing executable fail with the same errno. POSIX systems other than Linux and
+macOS are refused before anything is spawned. Every binding has a fixed, non-variadic signature,
+because a variadic function's arguments are passed differently on Apple arm64. With
+`OPENCODE_PRINT_LOGS=1` in the host's environment (read from the host, as upstream reads it, not
+from the child's entries), the server's stderr is the host's own stderr instead of a pipe, so no
+stderr is collected or quoted.
+
+The server's exit, on Linux and macOS, is observed by one background thread per child that blocks
+in `waitid` without reaping, then reaps the child under the lock the pid fallback of the ladder
+takes and decodes the wait status into an exit code or a terminating signal. Under the same lock,
+the pid fallback first asks `waitpid` without hanging whether the pid is still an unreaped child:
+it signals only a child that has not exited, keeps the status of one it reaps there instead, and
+sends nothing to a pid that is no child any more because something else reaped it. A signal sent to
+the pid therefore cannot reach a process that reused it, unless a reaper outside the launcher takes
+the child between that check and the signal, as the .NET runtime does when it runs as pid 1. Apart
+from the probe described next, nothing polls, and no process-wide signal handler is installed. An exception on that thread reports the exit as unknown rather than
+ending the host. When the host ignores `SIGCHLD`, or its
+action carries `SA_NOCLDWAIT`, the kernel reaps children itself and a blocked wait could sleep until
+every child of the host is gone (macOS); the launcher reads the disposition at start and then
+probes for the exit instead, at most 100 ms apart, with `kill(pid, 0)` and a `waitpid` that does
+not hang. On Linux, and on macOS when the host set the ignore itself, something other than the
+launcher reaps the child, and the exit is reported with an unknown status. On macOS an ignore the
+host inherited across `exec` still leaves a zombie; the probe reaps it and reports its real status.
+A runtime that reaps every child first (the .NET runtime does when it runs as pid 1) leaves no
+status to read either, and that exit is also reported as unknown rather than invented.
+
 An optional caller-created `OpenCodeServerOutput` collector, supplied through the start options,
 retains a bounded tail of both streams, including the first stdout line, for pull snapshots. It
 invokes no caller code on the process readers and survives a failed start. Each snapshot reports
 whether either stream was truncated; the launcher's startup exception tail remains independent.
 Output finalization is best effort under the existing bounded diagnostic drain and never extends
-process ownership.
+process ownership. On Linux and macOS the collection closes when disposal starts, before the server
+is asked to stop, so the snapshot is final from that moment and what the server writes while it
+shuts down is not collected; the readers keep draining into nothing, so a server writing during its
+shutdown never blocks on a full pipe.
 
-Disposal is a ladder, bounded at every step so it never hangs the caller: stdin EOF (the lease
-release) first, then the configured grace (`GracefulShutdownTimeout`, default 3 seconds — the
-reference client's own force-kill window), then a forced whole-tree kill
+The readiness wait ends at the first stdout line, at the caller's cancellation, at the configured
+timeout, or when the child shows it never will be ready. On Windows that is the root's exit; the
+tree is then killed and the output drained inside its bound. On Linux and macOS it is the root's
+exit, observed by the exit watch rather than by end-of-stream, or stdout reaching end-of-stream
+while the server keeps running, which upstream also fails at once. The output is then drained once,
+for at most one second — a descendant holding stdout open costs that second and no more — and a
+readiness line already in the pipe still wins, because the first line wins whatever follows it.
+
+Disposal is a ladder, bounded at every step so it never hangs the caller. On Windows: stdin EOF
+(the lease release) first, then the configured grace (`GracefulShutdownTimeout`, default 3 seconds
+— the reference client's own force-kill window), then a forced whole-tree kill
 (`Process.Kill(entireProcessTree: true)` on modern TFMs, `taskkill /pid … /T /F` on downlevel
-Windows, and a plain `Kill()` of the root alone on downlevel non-Windows), then a final bounded
-forced-exit wait. Both waits observe the owned process's own exit (the `Process.Exited`
-notification), not end-of-stream on its redirected output. On .NET 8 and later,
-`WaitForExitAsync` also waits for end-of-stream on a redirected stream that `Process`'s own event
-readers read — the non-Windows pump reads that way; the Windows reader threads do not — and a
-descendant holding stdout postpones that end-of-stream for as long as it lives. Waiting on the
-exit itself releases a server that exits promptly on stdin EOF at once, on every platform, even
-while a descendant keeps the pipe open. The output drain keeps its own bound. A tree kill that does
-not complete is a result the ladder continues from, never an exception out of disposal: the
-runtime's `AggregateException` when a process of the tree refuses the kill, a non-zero taskkill
-exit (128 when the root has already exited, so its descendants were not reached), or a taskkill
-still running at its 10-second bound, which is then ended so it does not outlive disposal. Every
-release step after the kill runs either way.
+Windows), then a final bounded forced-exit wait. Both waits observe the owned process's own exit
+(the `Process.Exited` notification), not end-of-stream on its redirected output; waiting on the
+exit itself releases a server that exits promptly on stdin EOF at once, even while a descendant
+keeps the pipe open. The output drain keeps its own bound. A tree kill that does not complete is a
+result the ladder continues from, never an exception out of disposal: the runtime's
+`AggregateException` when a process of the tree refuses the kill, a non-zero taskkill exit (128 when
+the root has already exited, so its descendants were not reached), or a taskkill still running at
+its 10-second bound, which is then ended so it does not outlive disposal. Every release step after
+the kill runs either way.
 
-Stdin EOF ends the server and nothing else: it releases no descendant, and a descendant that does
-not watch its own stdin keeps running. The tree kill runs only when the grace expires, and on a
-failed start; when the server exits inside the grace — the normal close — disposal ends there
-and does not touch its descendants. Ownership is structural: the returned `OpenCodeServer` is the
-only owner of its child, disposal ends exactly that child, and the operating system closes the
-lease even when the owner crashes before disposal runs — coexistence with any other running server
-is safe by construction, since a started door never discovers or attaches to one.
+On Windows, stdin EOF ends the server and nothing else: it releases no descendant, and a
+descendant that does not watch its own stdin keeps running. The tree kill runs only when the grace
+expires, and on a failed start; when the server exits inside the grace — the normal close —
+disposal ends there and does not touch its descendants. Ownership is structural: the returned
+`OpenCodeServer` is the only owner of its child, disposal ends exactly that child, and the
+operating system closes the lease even when the owner crashes before disposal runs — coexistence
+with any other running server is safe by construction, since a started door never discovers or
+attaches to one.
+
+On Linux and macOS the ladder follows upstream's rungs; where the two end in a different place, the
+difference is one of the recorded divergences below.
+
+1. The collection closes.
+2. A root that already exited on its own decides by its status. With a non-zero code and no
+   signal, its group's survivors are ended by the rungs below, as a live root's group is. With an
+   unknown status, the group is probed with `kill(-group, 0)`, and any member left is ended the
+   same way. With code 0 or on a signal, the ladder stops and the group is left alone. Signalling
+   the group cannot reach an unrelated process while the group still has members, because its id
+   cannot be reused until then.
+3. `SIGTERM` to the server's process group, falling back to the root's pid while the root is not
+   yet reaped. When both fail, nothing is escalated.
+4. Within `GracefulShutdownTimeout`, the root's exit, then the group's end: `kill(-group, 0)` until
+   no member is left. A descendant that moved into a session of its own (the persistent-terminal
+   daemon, PTY shells) is not a member and is left to the server, as upstream leaves it.
+5. `SIGKILL` to the group (with the same pid fallback) when a member is left, then a bounded wait
+   of 10 seconds for the root.
+6. Stdin closes, the readers are released, and the pipes close.
+
+The pinned server answers the `SIGTERM` the way its own runtime answers an interrupt: it shuts down
+and exits with code 130. A failed start — timeout, cancellation, an early exit, closed stdout, or a
+non-contract first line — runs the same ladder with the configured grace, as upstream's scope close
+does. A canceled or timed-out start can therefore take up to that grace plus 16 seconds to throw:
+at most 10 for the root's exit after `SIGKILL`, 1 for draining the output, and 5 for releasing the
+readers. The ladder runs once per server, and releasing a server's handles runs it first when
+nothing has yet, so a start that an unexpected failure ended still ends its server. A server whose
+readers or exit watch cannot start is killed with its group at once and reaped by the failing start
+itself, which asks `waitpid` without hanging for at most 10 seconds and then leaves the asking to a
+background loop that holds no thread; the watch, once it started, is the child's only reaper. Stdin is
+the ownership lease on Linux and macOS too, and it is the only channel left when the owner dies
+without disposing: the session the server leads takes the hangup and interrupt paths away, so the
+server exits on the lease's end-of-stream.
+
+The launcher's recorded divergences from upstream on Linux and macOS (ADR-0031, ADR-0032):
+
+| Divergence | Upstream | Launcher | Reason |
+|---|---|---|---|
+| Exit report | Reports an exit up to a second late when a descendant holds stdout | Reports the root's exit as soon as it is observed, after one drain of at most a second | Earlier and exact. |
+| Forced-exit wait | Waits on the root's exit alone after `SIGKILL` | Bounds it at 10 seconds | Disposal never hangs on a process the kernel cannot end. |
+| Stderr | Discards it | Drains it into a bounded tail for startup diagnostics, and honours `OPENCODE_PRINT_LOGS=1` by handing over the host's stderr | A superset of upstream's behaviour. |
+| Signals to the owner | Closes the scope on `SIGINT` and `SIGTERM` | Installs no process-wide signal handler | A library does not take over its host's signal handling; the host ends the server through `DisposeAsync`. |
+| Waiting for the group | Waits for the root's own output pipes to close | Waits for the root's exit, then probes the group until it is empty | No dependency on who holds the pipes. Three consequences at the edges: a same-group member that ignores `SIGTERM` but holds none of the root's pipes is ended by `SIGKILL`, where upstream leaves it running; a detached descendant that holds the root's stdout does not delay the close, where upstream waits the full grace and then sends `SIGKILL` to the group; a root that exits with code 0 while its stdout is still open leaves the group untouched, where upstream sends `SIGTERM` to it within its one-second output deadline. |
 
 The forced-exit wait observes the directly owned process. A whole-tree kill is asynchronous: the
 direct process exiting does not guarantee that every descendant has finished exiting at that
@@ -470,14 +568,17 @@ disposes.
 
 The failure plane of every local-server door, standalone start and background-service discovery
 alike, is `OpenCodeServerException : OpenCodeException`. A bounded stderr tail rides every startup
-failure that reaches a running child: an exit before readiness (naming the exit
-code), a readiness timeout (naming the configured bound), and a non-contract first stdout line
-(quoting it) all carry it. The three pre-spawn failures carry none, because nothing ran: an
-unresolvable command (naming the command, the directories searched, and the extensions tried), a
-refused batch argument (naming the argument and the shim), and a spawn failure (wrapping the
-underlying `Win32Exception`, naming the caller's spelling and, when they differ, the resolved
-path). Caller cancellation during the readiness wait stays `OperationCanceledException` rather
-than being folded into the exception type, after the child is torn down.
+failure that reaches a running child: an exit before readiness (naming the exit code, or on Linux
+and macOS the terminating signal), on Linux and macOS a stdout that closed before readiness, a
+readiness timeout (naming the configured bound), and a non-contract first stdout line (quoting it)
+all carry it. The pre-spawn failures carry none, because nothing ran: an unresolvable command
+(naming the command, the directories searched, and the extensions tried), a refused batch argument
+(naming the argument and the shim), an unsupported POSIX platform, and a spawn failure (wrapping the
+underlying `Win32Exception`, naming the caller's spelling and, when they differ, the resolved path,
+and on Linux and macOS the working directory when one was set). On Linux and macOS a NUL in a
+command entry or an environment entry is refused with `ArgumentException`, because a C string would
+silently end there. Caller cancellation during the readiness wait stays `OperationCanceledException`
+rather than being folded into the exception type, after the child is torn down.
 
 Launcher acceptance is real-process and three-OS. Platform-specific behavior is tested on the
 platform it represents; a successful compile is not a lifecycle proof.

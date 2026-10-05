@@ -17,6 +17,13 @@ internal sealed record PosixSpawnRequest
     /// <summary>Gets the child's complete environment.</summary>
     public required IReadOnlyDictionary<string, string> Environment { get; init; }
 
+    /// <summary>
+    /// Gets the directory the child starts in; null keeps the parent's. A relative
+    /// <see cref="ExecutablePath"/> would be resolved against this directory, so a caller that
+    /// names one passes an absolute executable path.
+    /// </summary>
+    public string? WorkingDirectory { get; init; }
+
     /// <summary>Gets where descriptor 0 leads.</summary>
     public required ChildStreamRoute StandardInput { get; init; }
 

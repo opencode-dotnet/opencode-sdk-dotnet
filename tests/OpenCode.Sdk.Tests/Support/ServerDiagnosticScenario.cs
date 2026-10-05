@@ -32,6 +32,17 @@ internal sealed class ServerDiagnosticScenario
         });
     }
 
+    /// <summary>
+    /// Gets the last stdout line the diagnostic peer's final collection holds. On Windows disposal
+    /// closes the stdin lease and then drains, so the lines the peer writes on its way out are
+    /// collected. On Linux and macOS the collection closes as disposal starts and stdin closes last,
+    /// so the final collection ends with what the peer wrote while it ran.
+    /// </summary>
+    public static string FinalStandardOutput => OperatingSystem.IsWindows() ? "FINAL-STDOUT" : "BODY-STDOUT";
+
+    /// <summary>Gets the last stderr line the diagnostic peer's final collection holds; see <see cref="FinalStandardOutput"/>.</summary>
+    public static string FinalStandardError => OperatingSystem.IsWindows() ? "FINAL-STDERR" : "BODY-STDERR";
+
     public Exception? CaptureFailure { get; set; }
 
     public DiagnosticWriteBarrier? CaptureBarrier { get; set; }

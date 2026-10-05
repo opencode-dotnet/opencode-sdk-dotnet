@@ -1,8 +1,5 @@
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography;
-using System.Text;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Internal.BackgroundService;
 using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
@@ -13,7 +10,7 @@ using OpenCode.Sdk.Internal.BackgroundService.Handoff;
 using OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
 using OpenCode.Sdk.Internal.BackgroundService.Registration;
 using OpenCode.Sdk.Internal.BackgroundService.Stop;
-using OpenCode.Sdk.Internal.Diagnostics;
+using OpenCode.Sdk.Internal.Launcher;
 using OpenCode.Sdk.Internal.Posix;
 
 namespace OpenCode.Sdk;
@@ -22,9 +19,12 @@ namespace OpenCode.Sdk;
 /// A local opencode server reached through one of its process-backed modes, with the ownership
 /// the mode implies visible through <see cref="OwnsProcess"/>. <see cref="StartAsync"/> returns
 /// an owned standalone server: started on port zero with its own generated lease credential, held
-/// through an open stdin pipe, and ended by disposal — stdin EOF first, then a bounded grace, then
-/// a forced tree kill; disposal ends exactly its own child, and the operating system closes the
-/// lease even when the owner crashes before disposal runs. <see cref="DiscoverAsync"/> returns a
+/// through an open stdin pipe, and ended by disposal within bounds. On Windows disposal closes
+/// stdin first, then waits a grace, then kills the tree. On Linux and macOS the server runs in a
+/// session of its own, out of reach of the host terminal's Ctrl+C and hangup, and disposal sends
+/// <c>SIGTERM</c> to its process group, waits a grace, then sends <c>SIGKILL</c> to what is left of
+/// the group. The operating system closes the lease even when the owner crashes before disposal
+/// runs, and the server exits on that end-of-stream. <see cref="DiscoverAsync"/> returns a
 /// shared registered background service the first-party CLI runs for every client on the machine:
 /// nothing here owns it, and disposing the handle is a no-op; <see cref="EnsureAsync"/> reuses or
 /// starts that shared service and returns the same non-owning handle; the static
@@ -38,46 +38,21 @@ public class OpenCodeServer : IAsyncDisposable
     /// <summary>The reference client's exact standalone argv tail, appended to every command.</summary>
     private static readonly string[] LauncherArguments = ["--stdio", "--port", "0"];
 
-    private static readonly TimeSpan ForcedExitTimeout = TimeSpan.FromSeconds(10);
-
-    /// <summary>
-    /// Bounds every wait for the child's redirected output to reach end-of-stream. End-of-stream
-    /// arrives only when every process holding a write end closes it, and a surviving descendant
-    /// can hold one open, so a caller always regains control within this window regardless of
-    /// what the child (or anything the child spawned) is still holding open.
-    /// </summary>
-    private static readonly TimeSpan DrainTimeout = TimeSpan.FromSeconds(2);
-
-    private readonly Process? _process;
-    private readonly ChildOutputPump? _pump;
-    private readonly ProcessTreeTerminator? _terminator;
+    private readonly ServerChild? _child;
     private readonly Uri? _endpoint;
     private readonly string? _password;
-    private readonly TimeSpan _gracefulShutdownTimeout;
-    private readonly OpenCodeServerOutput? _output;
     private readonly int? _processId;
     private int _disposed;
 
-    private OpenCodeServer(
-        Process process,
-        ChildOutputPump pump,
-        ProcessTreeTerminator terminator,
-        Uri endpoint,
-        string password,
-        TimeSpan gracefulShutdownTimeout,
-        OpenCodeServerOutput? output)
+    private OpenCodeServer(ServerChild child, Uri endpoint, string password)
     {
-        _process = process;
-        _pump = pump;
-        _terminator = terminator;
+        _child = child;
         _endpoint = endpoint;
         _password = password;
-        _gracefulShutdownTimeout = gracefulShutdownTimeout;
-        _output = output;
 
-        // Captured while the handle is live: the identity stays readable for diagnostics after
+        // Captured while the child is live: the identity stays readable for diagnostics after
         // disposal has released the process handle.
-        _processId = process.Id;
+        _processId = child.ProcessId;
     }
 
     /// <summary>
@@ -115,13 +90,20 @@ public class OpenCodeServer : IAsyncDisposable
     /// no-op because other clients share it. A bare mock reports false unless it overrides this
     /// member.
     /// </summary>
-    public virtual bool OwnsProcess => _process is not null;
+    public virtual bool OwnsProcess => _child is not null;
 
     /// <summary>
     /// Gets a task that completes once the owned child's output readers hold no thread any more;
     /// friend-assembly test seam for the release disposal guarantees.
     /// </summary>
-    internal Task OutputReadersEnded => _pump?.ReadersEnded ?? Task.CompletedTask;
+    internal Task OutputReadersEnded => _child?.ReadersEnded ?? Task.CompletedTask;
+
+    /// <summary>
+    /// Gets the owned child's own exit, as the launcher observed it; friend-assembly test seam for
+    /// how the disposal ladder ended the server.
+    /// </summary>
+    internal Task<ChildExitStatus> ChildExited =>
+        _child?.Exited ?? throw new InvalidOperationException("This handle owns no process.");
 
     /// <summary>Gets the endpoint: the port-zero binding of a started server, or the URL a registration published.</summary>
     public virtual Uri Endpoint => _endpoint ?? throw MockSeam.CreateError("OpenCodeServer", "Endpoint");
@@ -288,92 +270,109 @@ public class OpenCodeServer : IAsyncDisposable
     /// Starts a fresh private standalone server: resolves the command the way a shell would,
     /// spawns it with <c>--stdio --port 0</c> appended and the generated lease credential in the
     /// child environment, then waits for the JSON readiness line. On any failure that reached a
-    /// child, the tree is ended before the method throws.
+    /// child, the child is ended before the method throws. On Linux and macOS the server is spawned
+    /// in a session of its own, and a failed start ends it the way disposal does: <c>SIGTERM</c> to
+    /// its process group, <see cref="OpenCodeServerOptions.GracefulShutdownTimeout"/>, then
+    /// <c>SIGKILL</c>. A canceled or timed-out start can therefore take up to that grace plus 16
+    /// seconds to throw: at most 10 for the server's exit after <c>SIGKILL</c>, 1 for draining its
+    /// output, and 5 for releasing the output readers.
     /// </summary>
     /// <param name="options">The launch options; null uses the defaults.</param>
     /// <param name="cancellationToken">The cancellation token ending the wait for readiness.</param>
     /// <returns>The started server, disposed by the caller.</returns>
-    /// <exception cref="ArgumentException">The options are unusable: an empty command, a blank command entry, a non-positive readiness timeout, a negative grace, or an output collector an earlier start already bound.</exception>
-    /// <exception cref="OpenCodeServerException">The command did not resolve on PATH, a leading argument was refused for a Windows batch shim, or the process could not start, exited before readiness, timed out, or broke the readiness contract.</exception>
+    /// <exception cref="ArgumentException">The options are unusable: an empty command, a blank command entry, a non-positive readiness timeout, a negative grace, an output collector an earlier start already bound, or (on Linux and macOS) a NUL in a command entry or an environment entry.</exception>
+    /// <exception cref="OpenCodeServerException">The command did not resolve on PATH, a leading argument was refused for a Windows batch shim, the platform is neither Windows, Linux, nor macOS, or the process could not start, exited or closed its stdout before readiness, timed out, or broke the readiness contract.</exception>
     public static Task<OpenCodeServer> StartAsync(
         OpenCodeServerOptions? options = null,
         CancellationToken cancellationToken = default) =>
-        StartWithSeamsAsync(options, ProcessTreeTerminator.Platform, cancellationToken);
+        StartWithSeamsAsync(options, LauncherSeams.ForCurrentProcess(), cancellationToken);
 
     /// <summary>
     /// The seam-injected start the tests use, the way <see cref="EnsureWithSeamsAsync"/> keeps its
-    /// seams off the public options: a live proof substitutes the whole-tree kill to script a kill
-    /// the platform reports incomplete. The public door passes the platform terminator.
+    /// seams off the public options: a live proof substitutes the Windows tree kill, a POSIX seam,
+    /// or the host environment. The public door passes the platform's own.
     /// </summary>
     /// <param name="options">The launch options; null uses the defaults.</param>
-    /// <param name="terminator">The forced rung's tree kill, for this start and the server's disposal.</param>
+    /// <param name="seams">The seams for this start and the server's disposal.</param>
     /// <param name="cancellationToken">The cancellation token ending the wait for readiness.</param>
     /// <returns>The started server, disposed by the caller.</returns>
     internal static async Task<OpenCodeServer> StartWithSeamsAsync(
         OpenCodeServerOptions? options,
-        ProcessTreeTerminator terminator,
+        LauncherSeams seams,
         CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(terminator);
+        ArgumentNullException.ThrowIfNull(seams);
 
         options ??= new OpenCodeServerOptions();
         var command = SnapshotCommand(options);
         ValidateTimeouts(options);
         var readinessTimeout = options.ReadinessTimeout;
-        var gracefulShutdownTimeout = options.GracefulShutdownTimeout;
         var output = BindOutput(options);
 
         var password = GeneratePassword();
 
         // Ownership stays local until the very end: every failure path throws through this
-        // try, and the finally is the single place that disposes the child on that path. The
-        // local is nulled only once the new OpenCodeServer has taken ownership on success
+        // try, and the finally is the single place that releases the child on that path. The
+        // flag is set only once the new OpenCodeServer has taken ownership on success
         // (TransportPolicy.CreateOwnedHttpClient's handler-ownership idiom, mirrored here).
-        Process? process = null;
-        ChildOutputPump? pump = null;
+        ServerChild? child = null;
+        var started = false;
         try
         {
             // Once per start, before anything is spawned: what the process starts, and what a
             // failure names, is the resolved target rather than the bare name the caller wrote.
             var executable = new ExecutableResolver(ExecutableSearchEnvironment.ForCurrentProcess())
                 .Resolve(command[0]);
-            process = CreateProcess(executable, command, options, password);
             var stderrGate = new object();
             var stderrTail = new Queue<string>(StderrRetainedLines);
             var readyLine = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             var (onStandardOutput, onStandardError) = CreateOutputHandlers(readyLine, stderrGate, stderrTail, output);
-            pump = StartChildProcess(process, executable, onStandardOutput, onStandardError);
+            child = await ServerChild.LaunchAsync(
+                new ServerChildStart
+                {
+                    Executable = executable,
+                    SuppliedArguments = [.. command.Skip(1)],
+                    LauncherArguments = LauncherArguments,
+                    Environment = options.Environment,
+                    Password = password,
+                    WorkingDirectory = options.WorkingDirectory,
+                    GracefulShutdownTimeout = options.GracefulShutdownTimeout,
+                    Output = output,
+                    OnStandardOutput = onStandardOutput,
+                    OnStandardError = onStandardError,
+                },
+                seams).ConfigureAwait(false);
 
             var line = await WaitForReadyLineAsync(
-                process, pump, terminator, readyLine, readinessTimeout, stderrGate, stderrTail, cancellationToken).ConfigureAwait(false);
+                child, readyLine, readinessTimeout, stderrGate, stderrTail, cancellationToken).ConfigureAwait(false);
             if (!ServerReadyLine.TryParse(line, out var endpoint))
             {
-                _ = await EndStartupFailureAsync(process, pump, terminator).ConfigureAwait(false);
+                await child.EndFailedStartAsync().ConfigureAwait(false);
                 throw new OpenCodeServerException(
                     $"The server's first stdout line is not the JSON readiness contract: '{line}'.{DescribeStderr(stderrGate, stderrTail)}");
             }
 
-            var started = new OpenCodeServer(process, pump, terminator, endpoint, password, gracefulShutdownTimeout, output);
-            process = null;
-            pump = null;
-            return started;
+            var server = new OpenCodeServer(child, endpoint, password);
+            started = true;
+            return server;
         }
         finally
         {
-            if (process is not null)
+            if (!started)
             {
                 // A failed start: the child was ended and its output drained (as far as the
-                // bound allowed) on the way here. Releasing the readers ends any read still
+                // bound allowed) on the way here. When an unexpected failure skipped that, the
+                // POSIX release ends the child first. Releasing the readers ends any read still
                 // waiting, so no reader outlives the start and what the collector holds is final.
-                if (pump is not null)
+                if (child is not null)
                 {
-                    await pump.ReleaseAsync().ConfigureAwait(false);
+                    await child.DisposeAsync().ConfigureAwait(false);
                 }
-
-                output?.Complete();
+                else
+                {
+                    output?.Complete();
+                }
             }
-
-            process?.Dispose();
         }
     }
 
@@ -413,10 +412,15 @@ public class OpenCodeServer : IAsyncDisposable
     }
 
     /// <summary>
-    /// Ends the owned child: closes stdin (the ownership lease), waits the configured grace,
-    /// then escalates to a forced tree kill. Idempotent, bounded, and quiet for a child that is
-    /// already gone. A handle that owns no process (<see cref="OwnsProcess"/> false) has nothing
-    /// to end: disposing a discovered service never stops it.
+    /// Ends the owned child, bounded at every step, quiet for a child that is already gone, and
+    /// idempotent. On Windows: closes stdin (the ownership lease), waits the configured grace,
+    /// then escalates to a forced tree kill. On Linux and macOS: closes the collection, sends
+    /// <c>SIGTERM</c> to the server's process group, waits the configured grace for the server and
+    /// then for the rest of its group to end, sends <c>SIGKILL</c> to the group when anything of it
+    /// is left, and closes stdin last. A child that moved into a session of its own is left to the
+    /// server, and a server that already exited on its own with code 0 or on a signal leaves its
+    /// group alone. A handle that owns no process (<see cref="OwnsProcess"/> false) has nothing to
+    /// end: disposing a discovered service never stops it.
     /// </summary>
     /// <returns>A task that completes once any owned child is ended and released.</returns>
     public virtual async ValueTask DisposeAsync()
@@ -427,37 +431,18 @@ public class OpenCodeServer : IAsyncDisposable
         }
 
         GC.SuppressFinalize(this);
-        if (_process is null || _pump is null || _terminator is null)
+        if (_child is null)
         {
             return;
         }
 
         try
         {
-            await EndOwnedChildAsync(_process, _gracefulShutdownTimeout, _terminator).ConfigureAwait(false);
+            await _child.EndAsync().ConfigureAwait(false);
         }
         finally
         {
-            try
-            {
-                if (_output is not null)
-                {
-                    // The collector's promise is a final snapshot once disposal returns. The
-                    // bounded drain lets the redirected readers reach end-of-stream (or its bound)
-                    // before the collection closes; the child was ended above, and a drain that
-                    // cannot finish inside its bound leaves an honest, possibly incomplete, tail.
-                    _ = await _pump.DrainAsync(DrainTimeout).ConfigureAwait(false);
-                }
-
-                // Every reader ends before the process is released, collector or not: a read
-                // still waiting for end-of-stream (a descendant holding the pipe) is canceled here.
-                await _pump.ReleaseAsync().ConfigureAwait(false);
-                _output?.Complete();
-            }
-            finally
-            {
-                _process.Dispose();
-            }
+            await _child.DisposeAsync().ConfigureAwait(false);
         }
     }
 
@@ -523,46 +508,24 @@ public class OpenCodeServer : IAsyncDisposable
         return (OnStandardOutput, OnStandardError);
     }
 
-    private static ChildOutputPump StartChildProcess(
-        Process process,
-        ResolvedExecutable executable,
-        Action<string> onStandardOutput,
-        Action<string> onStandardError)
-    {
-        try
-        {
-            _ = process.Start();
-        }
-        catch (Win32Exception exception)
-        {
-            throw new OpenCodeServerException(
-                $"Failed to start the server command '{executable.Command}'{DescribeResolution(executable)}.",
-                exception);
-        }
-
-        return ChildOutputPump.Start(process, onStandardOutput, onStandardError);
-    }
-
     private static async Task<string> WaitForReadyLineAsync(
-        Process process,
-        ChildOutputPump pump,
-        ProcessTreeTerminator terminator,
+        ServerChild child,
         TaskCompletionSource<string> readyLine,
         TimeSpan readinessTimeout,
         object stderrGate,
         Queue<string> stderrTail,
         CancellationToken cancellationToken)
     {
-        var exit = process.WaitForExitAsync(CancellationToken.None);
         using var readiness = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         readiness.CancelAfter(readinessTimeout);
+        ReadinessOutcome outcome;
         try
         {
-            _ = await Task.WhenAny(readyLine.Task, exit).WaitAsync(readiness.Token).ConfigureAwait(false);
+            outcome = await child.WaitForReadinessAsync(readyLine.Task, readiness.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException exception)
         {
-            _ = await EndStartupFailureAsync(process, pump, terminator).ConfigureAwait(false);
+            await child.EndFailedStartAsync().ConfigureAwait(false);
             if (cancellationToken.IsCancellationRequested)
             {
                 throw new OperationCanceledException("The server start was canceled.", exception, cancellationToken);
@@ -572,107 +535,14 @@ public class OpenCodeServer : IAsyncDisposable
                 $"The server did not report readiness within {readinessTimeout.TotalSeconds.ToString("F0", CultureInfo.InvariantCulture)}s.{DescribeStderr(stderrGate, stderrTail)}");
         }
 
-        if (readyLine.Task.IsCompleted)
+        if (outcome.ReadyLine is { } line)
         {
-            return await readyLine.Task.ConfigureAwait(false);
+            return line;
         }
 
-        var exitCode = process.ExitCode;
-
-        // The root already exited on its own, but a launcher shim (a .cmd/bun wrapper that
-        // spawns the real server and exits) can leave live grandchildren holding the redirected
-        // pipe handles open — which would make the drain below wait for an EOF that never comes.
-        // Killing the tree first closes that gap before the bounded drain runs; whether there was
-        // still a tree to end, and whether the drain reached EOF inside its bound, change nothing
-        // about what this failure reports.
-        _ = terminator.TryKill(process);
-        _ = await pump.DrainAsync(DrainTimeout).ConfigureAwait(false);
+        var ending = outcome.Exit is { } exit ? exit.Describe() : "closed its standard output";
         throw new OpenCodeServerException(
-            $"The server exited with code {exitCode.ToString(CultureInfo.InvariantCulture)} before reporting readiness.{DescribeStderr(stderrGate, stderrTail)}");
-    }
-
-    private static async Task EndOwnedChildAsync(Process process, TimeSpan grace, ProcessTreeTerminator terminator)
-    {
-        if (ProcessRootExit.HasExited(process))
-        {
-            return;
-        }
-
-        // Stdin EOF ends the scoped server lifetime (server-process.ts); closing the
-        // redirected writer is the lease release. A lease that was already gone means the child
-        // is already leaving, so the bounded wait below covers both outcomes.
-        ReleaseStdinLease(process);
-
-        // The child's own exit, not its output's end-of-stream: a descendant still holding the
-        // pipe must not hold the grace open. The drain has its own bound.
-        if (await ProcessRootExit.WaitWithinAsync(process, grace).ConfigureAwait(false))
-        {
-            return;
-        }
-
-        // An incomplete kill (some process of the tree refused it) still ended what it could
-        // reach; the ladder continues the same way, and every release step after it runs.
-        _ = terminator.TryKill(process);
-
-        // Bounded on purpose: the kill was issued, and a disposal never hangs the caller, so a
-        // child the operating system has not reaped inside this window is left to it.
-        _ = await ProcessRootExit.WaitWithinAsync(process, ForcedExitTimeout).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Releases the ownership lease by closing the redirected stdin writer; a pipe that is already
-    /// gone reports the child leaving rather than a failure to end it.
-    /// </summary>
-    [SlopwatchSuppress(
-        "SW003",
-        "Closing the lease is the release itself: a writer that went with the process, or a broken pipe, reports that the child is already leaving, which is what the release asks for.")]
-    private static void ReleaseStdinLease(Process process)
-    {
-        try
-        {
-            process.StandardInput.Close();
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or IOException)
-        {
-            // The lease is released either way: the child is already leaving.
-        }
-    }
-
-    /// <summary>
-    /// Ends a child that failed to reach readiness and drains its redirected output, so the stderr
-    /// tail the caller is about to quote is as complete as the bound allows.
-    /// </summary>
-    /// <returns>
-    /// True when the drain ran to completion; false when it could not run at all. Either way the
-    /// startup failure reaches the caller as its own exception rather than as a teardown fault,
-    /// which is why every call site discards this: an incomplete tail is still the best evidence
-    /// available, and there is no second attempt worth making on a process being abandoned.
-    /// </returns>
-    private static async Task<bool> EndStartupFailureAsync(Process process, ChildOutputPump pump, ProcessTreeTerminator terminator)
-    {
-        _ = terminator.TryKill(process);
-        try
-        {
-            if (!await ProcessRootExit.WaitWithinAsync(process, ForcedExitTimeout).ConfigureAwait(false))
-            {
-                // The bounded exit wait expired without the process ending; skip the drain rather
-                // than wait on a process that may still be alive and writing.
-                return false;
-            }
-
-            return await pump.DrainAsync(DrainTimeout).ConfigureAwait(false);
-        }
-        catch (InvalidOperationException)
-        {
-            // No process is associated with the object any more: there is nothing left to wait
-            // for, and nothing left holding the redirected pipes open either.
-            return false;
-        }
-        catch (Win32Exception)
-        {
-            // The handle is gone or inaccessible; the outer disposal releases what remains.
-            return false;
-        }
+            $"The server {ending} before reporting readiness.{DescribeStderr(stderrGate, stderrTail)}");
     }
 
     private static string[] SnapshotCommand(OpenCodeServerOptions options)
@@ -698,81 +568,6 @@ public class OpenCodeServer : IAsyncDisposable
 
         return snapshot;
     }
-
-    private static Process CreateProcess(
-        ResolvedExecutable executable, string[] command, OpenCodeServerOptions options, string password)
-    {
-        var process = new Process();
-        var startInfo = process.StartInfo;
-        startInfo.UseShellExecute = false;
-        startInfo.CreateNoWindow = true;
-        startInfo.RedirectStandardInput = true;
-        startInfo.RedirectStandardOutput = true;
-        startInfo.RedirectStandardError = true;
-        startInfo.StandardOutputEncoding = Encoding.UTF8;
-        startInfo.StandardErrorEncoding = Encoding.UTF8;
-        if (options.WorkingDirectory is not null)
-        {
-            startInfo.WorkingDirectory = options.WorkingDirectory;
-        }
-
-        ConfigureCommandLine(startInfo, executable, [.. command.Skip(1)]);
-        if (options.Environment is not null)
-        {
-            foreach (var entry in options.Environment)
-            {
-                startInfo.Environment[entry.Key] = entry.Value;
-            }
-        }
-
-        // The explicit entry wins over anything inherited or supplied: the child's lease
-        // credential is always this start's own (upstream standalone.ts command's posture; stdio
-        // mode scrubs it from the env the server hands to tools, server-process.ts).
-        startInfo.Environment["OPENCODE_PASSWORD"] = password;
-        process.EnableRaisingEvents = true;
-        return process;
-    }
-
-    /// <summary>
-    /// Points the start info at what actually runs and composes its command line. A batch shim
-    /// never becomes the FileName: cmd.exe does, with the script as its first quoted token, so the
-    /// launch is one documented parse instead of CreateProcess's implicit batch handling. The
-    /// consequences are real and deliberate — the redirected stdin lease and the stdout readiness
-    /// line pass through the interpreter to the child, and the owned root this launcher reports as
-    /// <see cref="ProcessId"/> is that interpreter, whose descendants the bounded tree kill covers.
-    /// </summary>
-    private static void ConfigureCommandLine(
-        ProcessStartInfo startInfo, ResolvedExecutable executable, IReadOnlyList<string> suppliedArguments)
-    {
-        if (executable.IsBatchScript)
-        {
-            startInfo.FileName = BatchCommandLine.InterpreterPath;
-
-            // One composed string on every target: cmd.exe does not follow the MSVCRT rules
-            // ArgumentList applies, so the batch case never routes through that door.
-            startInfo.Arguments = BatchCommandLine.Compose(
-                executable.Path, suppliedArguments, LauncherArguments);
-            return;
-        }
-
-        startInfo.FileName = executable.Path;
-        var arguments = suppliedArguments.Concat(LauncherArguments);
-#if NET
-        foreach (var argument in arguments)
-        {
-            startInfo.ArgumentList.Add(argument);
-        }
-#else
-        // ArgumentList does not exist downlevel; the composed string follows the MSVCRT rules.
-        startInfo.Arguments = ProcessArgumentComposer.Compose(arguments);
-#endif
-    }
-
-    /// <summary>Names the resolved target alongside the caller's spelling, when they differ.</summary>
-    private static string DescribeResolution(ResolvedExecutable executable) =>
-        string.Equals(executable.Command, executable.Path, StringComparison.Ordinal)
-            ? string.Empty
-            : $" (resolved to '{executable.Path}')";
 
     private static string GeneratePassword()
     {

@@ -28,13 +28,39 @@ public sealed class ExecutableResolverTests
     }
 
     [Test]
-    public async Task Resolve_Should_Use_A_Command_With_A_Directory_Separator_As_Given()
+    public async Task Resolve_Should_Use_A_Command_With_A_Directory_Separator_As_Given_On_Windows()
+    {
+        var resolver = new ExecutableResolver(Windows(FirstDirectory, extensions: null));
+
+        var resolved = resolver.Resolve(@".\bin\opencode.exe");
+
+        await Assert.That(resolved.Path).IsEqualTo(@".\bin\opencode.exe");
+    }
+
+    /// <summary>
+    /// On Unix a relative path is made absolute against this process's directory, once: the child
+    /// can start in another working directory, where the same relative path would name another
+    /// file, and the directory trampoline needs an absolute command.
+    /// </summary>
+    [Test]
+    public async Task Resolve_Should_Anchor_A_Relative_Command_Path_At_The_Current_Directory_On_Unix()
     {
         var resolver = new ExecutableResolver(Unix(UnixFirstDirectory));
 
         var resolved = resolver.Resolve("./bin/opencode");
 
-        await Assert.That(resolved.Path).IsEqualTo("./bin/opencode");
+        await Assert.That(resolved.Path).IsEqualTo("/work/./bin/opencode");
+        await Assert.That(resolved.Command).IsEqualTo("./bin/opencode");
+    }
+
+    [Test]
+    public async Task Resolve_Should_Use_An_Absolute_Command_Path_As_Given_On_Unix()
+    {
+        var resolver = new ExecutableResolver(Unix(UnixFirstDirectory));
+
+        var resolved = resolver.Resolve("/opt/opencode/bin/opencode");
+
+        await Assert.That(resolved.Path).IsEqualTo("/opt/opencode/bin/opencode");
     }
 
     [Test]

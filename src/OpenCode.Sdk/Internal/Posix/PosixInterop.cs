@@ -4,7 +4,7 @@ namespace OpenCode.Sdk.Internal.Posix;
 
 /// <summary>
 /// Every C library function the SDK binds, in one place: the spawn, signal-set, signal, and wait
-/// calls that Linux and macOS share. The modern targets take <c>LibraryImport</c>, the
+/// calls that Linux and macOS share, plus the two spawn file actions only one of them has. The modern targets take <c>LibraryImport</c>, the
 /// compile-time stub .NET recommends (its generator is what needs the project's unsafe-code
 /// switch); the <c>netstandard2.0</c> asset, where that generator is unavailable, takes the
 /// equivalent <c>DllImport</c>. "libc" is the portable spelling: <c>libSystem.Native</c>'s loader
@@ -76,12 +76,40 @@ internal static partial class PosixInterop
     internal static partial int WaitPid(int pid, out int status, int options);
 
     /// <summary>
-    /// <c>kill(2)</c>: two blittable integers and no <c>SetLastError</c>, so there is no marshalling
-    /// for the generator to emit and the stub is a plain forwarder on either form.
+    /// <c>kill(2)</c>. The errno is kept, because the launcher tells a target that is gone
+    /// (<c>ESRCH</c>) from one it may not signal; keeping it makes the generator emit a small stub
+    /// rather than a plain forwarder.
     /// </summary>
-    [LibraryImport("libc", EntryPoint = "kill")]
+    [LibraryImport("libc", EntryPoint = "kill", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     internal static partial int Kill(int processId, int signal);
+
+    /// <summary>
+    /// <c>waitid(2)</c>. The id type and the options are plain integers on both kernels, and the
+    /// <c>siginfo_t</c> it fills is a caller buffer the launcher never parses.
+    /// </summary>
+    [LibraryImport("libc", EntryPoint = "waitid", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
+    internal static partial int WaitId(int idType, int id, IntPtr info, int options);
+
+    /// <summary>
+    /// <c>posix_spawn_file_actions_addchdir_np</c>: glibc 2.29 and later, musl, and macOS 10.15 and
+    /// later. An older C library lacks the export, and the call then throws
+    /// <see cref="EntryPointNotFoundException"/>.
+    /// </summary>
+    [LibraryImport("libc", EntryPoint = "posix_spawn_file_actions_addchdir_np", StringMarshalling = StringMarshalling.Utf8)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
+    internal static partial int AddChangeDirectoryAction(IntPtr actions, string path);
+
+    /// <summary><c>posix_spawn_file_actions_addinherit_np</c>, macOS only: keeps one descriptor open across a close-on-exec-by-default spawn.</summary>
+    [LibraryImport("libc", EntryPoint = "posix_spawn_file_actions_addinherit_np")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
+    internal static partial int AddInheritAction(IntPtr actions, int descriptor);
+
+    /// <summary><c>sigaction(2)</c>, called with a null new action only, to read a disposition.</summary>
+    [LibraryImport("libc", EntryPoint = "sigaction", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
+    internal static partial int QuerySignalAction(int signal, IntPtr action, IntPtr previousAction);
 #else
     [DllImport("libc", EntryPoint = "sigfillset", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
@@ -141,8 +169,24 @@ internal static partial class PosixInterop
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     internal static extern int WaitPid(int pid, out int status, int options);
 
-    [DllImport("libc", EntryPoint = "kill")]
+    [DllImport("libc", EntryPoint = "kill", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     internal static extern int Kill(int processId, int signal);
+
+    [DllImport("libc", EntryPoint = "waitid", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
+    internal static extern int WaitId(int idType, int id, IntPtr info, int options);
+
+    [DllImport("libc", EntryPoint = "posix_spawn_file_actions_addchdir_np", CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
+    internal static extern int AddChangeDirectoryAction(IntPtr actions, [MarshalAs(UnmanagedType.LPStr)] string path);
+
+    [DllImport("libc", EntryPoint = "posix_spawn_file_actions_addinherit_np")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
+    internal static extern int AddInheritAction(IntPtr actions, int descriptor);
+
+    [DllImport("libc", EntryPoint = "sigaction", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
+    internal static extern int QuerySignalAction(int signal, IntPtr action, IntPtr previousAction);
 #endif
 }

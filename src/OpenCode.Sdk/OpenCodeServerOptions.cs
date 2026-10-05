@@ -26,7 +26,14 @@ public sealed class OpenCodeServerOptions
     /// </summary>
     public IReadOnlyList<string> Command { get; set; } = ["opencode", "serve"];
 
-    /// <summary>Gets or sets the child's working directory; null inherits the caller's.</summary>
+    /// <summary>
+    /// Gets or sets the child's working directory; null inherits the caller's. On Linux and macOS a
+    /// blank value counts as null, and a relative command path is resolved against the caller's
+    /// directory, not this one. Where the C library cannot change a spawned child's directory
+    /// itself (glibc before 2.29), the child is started through <c>/usr/bin/env -C</c>, which keeps
+    /// the same process; a directory that does not exist then fails the start as an exit with code
+    /// 125, naming the directory in the stderr tail.
+    /// </summary>
     public string? WorkingDirectory { get; set; }
 
     /// <summary>
@@ -44,9 +51,11 @@ public sealed class OpenCodeServerOptions
     public TimeSpan ReadinessTimeout { get; set; } = TimeSpan.FromSeconds(60);
 
     /// <summary>
-    /// Gets or sets the grace between the stdin-EOF lease release and the forced tree kill;
-    /// zero means immediate escalation. The default mirrors the reference client's 3-second
-    /// force-kill window.
+    /// Gets or sets the grace before the forced end; zero means immediate escalation. On Windows it
+    /// runs from the stdin-EOF lease release to the forced tree kill. On Linux and macOS it runs
+    /// from <c>SIGTERM</c> to the server's process group to <c>SIGKILL</c> to the group: within it
+    /// the server has to exit, and then every other member of its group. A failed start uses the
+    /// same grace. The default mirrors the reference client's 3-second force-kill window.
     /// </summary>
     public TimeSpan GracefulShutdownTimeout { get; set; } = TimeSpan.FromSeconds(3);
 

@@ -1210,3 +1210,37 @@ dotnet_diagnostic.MA0045.severity = none
 [src/OpenCode.Sdk/Optional.cs]
 dotnet_diagnostic.CA1000.severity = none
 dotnet_diagnostic.CA2225.severity = none
+
+# The standalone launcher awaits the tasks of its own child: the exit watch's completion, which a
+# thread of the watch completes, and the line readers' loops, which the pump started. Every await
+# inside them declines context capture, so no foreign synchronization context is involved, and
+# BoundedWait takes exactly those owned tasks. Winner: owned child observation; VSTHRD003 remains
+# enabled for every other file. Each entry names one file.
+[src/OpenCode.Sdk/Internal/Launcher/BoundedWait.cs]
+dotnet_diagnostic.VSTHRD003.severity = none
+
+[src/OpenCode.Sdk/Internal/Launcher/PipeOutputPump.cs]
+dotnet_diagnostic.VSTHRD003.severity = none
+
+[src/OpenCode.Sdk/Internal/Launcher/PosixServerChild.cs]
+dotnet_diagnostic.VSTHRD003.severity = none
+
+[src/OpenCode.Sdk/Internal/Launcher/PosixServerLadder.cs]
+dotnet_diagnostic.VSTHRD003.severity = none
+
+[src/OpenCode.Sdk/Internal/Launcher/ProcessServerChild.cs]
+dotnet_diagnostic.VSTHRD003.severity = none
+
+# The POSIX exit watch is a dedicated background thread that blocks in waitid by design: a
+# blocking wait on its own thread holds no pool thread, and no async form of waitid exists. When
+# the kernel reaps the child itself, the same thread sleeps between probes, which is the bounded
+# fallback the watch documents. Winner: the dedicated exit-watch thread; MA0045 remains enabled
+# for every other file.
+[src/OpenCode.Sdk/Internal/Posix/PosixChildExitWatch.cs]
+dotnet_diagnostic.MA0045.severity = none
+
+# ChildExitObservation is the one bounded await on a launched child's exit watch, whose task a
+# thread of the watch completes; every launcher proof observes the exit through it. Winner: owned
+# exit observation; VSTHRD003 remains enabled for every other file.
+[tests/OpenCode.Sdk.Tests/Support/ChildExitObservation.cs]
+dotnet_diagnostic.VSTHRD003.severity = none

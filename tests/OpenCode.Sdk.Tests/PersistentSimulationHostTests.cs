@@ -7,8 +7,10 @@ namespace OpenCode.Sdk.Tests;
 /// <summary>
 /// The persistent simulation host's diagnostic contract, proven over one dedicated real
 /// lifecycle through the SDK's own launcher and collector: the readiness line is the only thing
-/// on stdout, and the three lifecycle milestones reach stderr with their severity, in order,
-/// the last one written only once the stdin lease is released. The shared
+/// on stdout, and the lifecycle milestones reach stderr with their severity, in order. On Windows
+/// disposal releases the stdin lease first and drains, so the third milestone, written only once
+/// the lease is released, is collected too. On Linux and macOS the collection closes as disposal
+/// starts and the lease is released last, so the final collection ends at "ready". The shared
 /// <see cref="SimulatedDriveServerFixture"/> rechecks only the stdin-EOF milestone at its own
 /// teardown (the earlier two are evicted over a chatty session); this test is where the
 /// profile's routing is proven on its own. No drive controller is attached here: the milestones
@@ -25,6 +27,8 @@ public sealed class PersistentSimulationHostTests
     /// (10 s), plus a margin. The test checks the ordering against the live values first.
     /// </summary>
     private const int TimeoutMilliseconds = 20 * 60 * 1000;
+
+    private const string StdinClosed = "persistent simulation host stdin closed";
 
     private static readonly RealFileSystem FileSystem = new();
 
@@ -49,11 +53,20 @@ public sealed class PersistentSimulationHostTests
 
         var starting = RequireIndex(snapshot, "persistent simulation host starting");
         var ready = RequireIndex(snapshot, "persistent simulation host ready");
-        var closed = RequireIndex(snapshot, "persistent simulation host stdin closed");
         await Assert.That(starting).IsLessThan(ready);
-        await Assert.That(ready).IsLessThan(closed);
         await Assert.That(snapshot.StandardError[starting]).Contains("level=INFO");
         await Assert.That(snapshot.StandardError[ready]).Contains("level=WARN");
+        if (!OperatingSystem.IsWindows())
+        {
+            await Assert.That(snapshot.StandardError.Any(static line => line.Contains(StdinClosed, StringComparison.Ordinal))).IsFalse();
+            Console.WriteLine(
+                "persistent-host-diagnostics (POSIX, collection closed before the lease): " + snapshot.StandardError[starting] +
+                " | " + snapshot.StandardError[ready]);
+            return;
+        }
+
+        var closed = RequireIndex(snapshot, StdinClosed);
+        await Assert.That(ready).IsLessThan(closed);
         await Assert.That(snapshot.StandardError[closed]).Contains("level=INFO");
 
         Console.WriteLine(
