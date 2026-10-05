@@ -12,7 +12,7 @@ target the packages ship today.
 | POSIX placement | A new session (setsid). A Ctrl+C or SIGHUP from the owner's terminal never reaches the server, and the owner can signal the whole group the server leads. | Leaves the child in the owner's process group. A Ctrl+C reaches the server even when the host cancels it. |
 | POSIX close | Rung 1 is SIGTERM to that group. After a grace period, rung 2 is SIGKILL to the group. | Can signal only one pid. |
 | POSIX descendants | Descendants that detached into a session of their own (the persistent-terminal daemon, PTY shells) are left to the server. | `Kill(entireProcessTree: true)` walks parent pids and kills them too. |
-| Windows | The child joins a process-wide job object that ends it when its owner exits, while the server's own children stay outside the job. Close is a forced tree kill (`taskkill /T /F`). | Has no job. Hands the host's own inheritable standard handles to the child, so a parent capturing the host's output never sees end-of-stream while the server lives. |
+| Windows | The child joins a process-wide job object that ends it when its owner exits. The server's detached descendants stay outside the job; its other children end with it. Close is a forced tree kill (`taskkill /T /F`). | Has no job. Hands the host's own inheritable standard handles to the child, so a parent capturing the host's output never sees end-of-stream while the server lives. |
 
 The launcher therefore owns the child's creation and ending through internal seams over platform
 primitives, one seam per primitive:
@@ -21,8 +21,8 @@ primitives, one seam per primitive:
   empty mask (libuv's child state, which `Process` does not reset for an ignored signal). This
   generalizes the contender spawn (ADR-0027), and the contender uses the same spawn.
 - **Group signal.** `kill(-pgid, signal)` through the `kill(2)` binding of ADR-0026.
-- **Windows job.** One process-wide job: the server dies with its owner, and its own children stay
-  outside the job. The host itself is not added: the server cannot observe that, and it would
+- **Windows job.** One process-wide job: the server dies with its owner, and the descendants it
+  detaches stay outside the job. The host itself is not added: the server cannot observe that, and it would
   change the host's own crash behaviour.
 - **Windows spawn.** `CreateProcessW` with an explicit inherited-handle list, so the server receives
   only its own standard handles.
@@ -42,7 +42,7 @@ a different place from upstream, the difference is a recorded divergence.
 
 | Divergence | Upstream | Launcher | Reason |
 |---|---|---|---|
-| Already-exited root on Windows | Can run `taskkill` on the dead pid while it waits for the output deadline | Does not | That pid can already belong to an unrelated process. |
+| Already-exited root on Windows | Can run `taskkill` on the dead pid while it waits for the output deadline | Does not | `taskkill` cannot reach a process that has exited, so the run only costs time. |
 | Exit report | Reports an exit late when a descendant holds stdout | Reports the root's exit as soon as it is observed | Earlier and exact. |
 | Stderr | Discards it | Drains it into a bounded tail for startup diagnostics, and also honours upstream's `OPENCODE_PRINT_LOGS=1` inherit mode | A superset of upstream's behaviour. |
 | Signals to the owner | Closes the scope on SIGINT and SIGTERM | Installs no process-wide signal handler | A library does not take over its host's signal handling; the host ends the server through `DisposeAsync`. |
@@ -62,8 +62,8 @@ On .NET 11 the inherited-handle list and the exit status are equivalent. These a
 
 - `StartDetached` starts the new session, but keeps the child's ignored signals ignored.
 - `Process.Signal` signals a single pid only.
-- The `KillOnParentExit` job does not let the server's children stay outside it, so they would die
-  with the owner.
+- The `KillOnParentExit` job lacks the silent-breakaway limit libuv sets, so the descendants the
+  server detaches would die with the owner.
 
 ## Considered options
 
