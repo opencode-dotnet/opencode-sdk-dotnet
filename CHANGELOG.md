@@ -9,8 +9,21 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.{shortSha}`.
 
-**The pin moves to upstream release tag `v2.0.23`, and all 141 operations it exposes are usable** —
-139 generated and the two terminal WebSocket transports, none declined.
+## [0.9.0-preview.7] - 2026-10-06
+
+**The pin moves to upstream release tag `v2.0.23`, and all 141 operations it exposes are
+callable — 139 as generated HTTP calls, and the two terminal WebSocket connections through
+hand-written transports.** A repository can now be initialized, a location whose directory does
+not exist answers a typed 404, and the server says whether it can run persistent terminals.
+2.0.23 tags every error, so `WorktreeError` changes shape and an error body marked only by `name`
+no longer decodes, and `EnsureAsync` no longer replaces a service whose health protocol is
+incompatible; the breaking changes come first. On Linux and macOS a standalone server now runs in
+a session of its own and is ended as upstream's launcher ends it, a `SIGTERM` to its process group
+before the `SIGKILL`; Windows keeps its earlier path. The background-service doors follow the
+2.0.23 client, the generated `ToString()` masks every configured header and environment map, the
+open provider options, and unrecognized union values that can carry a secret, and both packages
+declare `IsAotCompatible` on `net8.0` and `net9.0` too. `net8.0` and `net9.0` still leave in an
+upcoming preview; see the important notes.
 
 ### 💥 Breaking changes
 
@@ -29,6 +42,10 @@ Nightly builds of `master` are on
   `/api/info` with an authenticated 404 is left running and the call throws, unless the call's
   version requirement is unmet, which still replaces it. Stop it explicitly with `StopAsync` to
   replace it.
+- **`OpenCodeServer.StartAsync` refuses POSIX systems other than Linux and macOS, FreeBSD among
+  them,** with `OpenCodeServerException` before anything is spawned; they used to start through
+  `Process`. On Linux and macOS a NUL in a command entry or an environment entry is now refused
+  with `ArgumentException`, because the C string it is passed as would end there.
 
 ### ✨ Added
 
@@ -37,35 +54,20 @@ Nightly builds of `master` are on
   with `npm install -g @opencode/cli@2.0.23`.
 - **A repository can be initialized in a project that has none.**
   `client.Vcs.InitializeRepositoryAsync(request)` (`vcs.init`) takes an optional `Provider` (git by
-  default); a provider without initialization answers 501 `VcsInitNotSupportedError`.
+  default); a provider without initialization answers 501 `VcsInitNotSupportedError`. The route
+  helper is `OpenCodeRoutes.Vcs.InitializeRepository`.
 - **A missing directory is a typed 404.** Every location- and session-scoped route, and
   `experimental.generate.text`, `session.diff`, and `session.permission.list` by name, now declare
   `LocationNotFoundError` (`Location`, `Message`) for a location whose directory does not exist;
-  before 2.0.23 the server failed such a request instead of answering it.
+  before 2.0.23 the server failed such a request instead of answering it. A PTY connect refused
+  with HTTP 404 carries no error body, so its `OpenCodeTransportException` now names both causes:
+  the PTY session or the requested location does not exist.
 - **`ServerInfo.Capabilities.PersistentPty`** says whether the server can run the
-  persistent-terminal daemon: `false` on Windows, where `opencode-pty` ships no binaries.
+  persistent-terminal daemon: `false` on Windows, where `opencode-pty` ships no binaries. A server
+  older than 2.0.23 leaves `Capabilities` null.
 
 ### 🔧 Changes
 
-- **`EnsureAsync` reports the first contender failure without recruiting replacements.** While a
-  failed contender's error stands, no further contender starts; the call throws it once no contender
-  is live, and at the 120-second bound it throws that failure rather than the timeout. A recovery or
-  replacement that ends the registered service clears it and releases the contenders it made moot.
-  Behaviour change: a call that a recruited replacement contender used to rescue now throws the
-  first contender's failure.
-- **Persistent-terminal handoff and the sidecar clear are best-effort.** Preparing the handoff for
-  a replacement never fails it: a failed or unusable ticket shuts the daemon's terminals down and
-  publishes no ticket, and a sidecar that cannot be written leaves the replacement without one.
-  `StopAsync` and the Ensure replacement end the service even when the sidecar cannot be removed.
-- **`StopAsync` escalates to the hard kill by the signalled process alone.** When the process
-  survives the request to stop, the hard kill follows it even if its registration disappeared or
-  another service registered meanwhile, as upstream's client does; a successor's registration is
-  still never removed. Behaviour change: the stop used to end without the hard kill when the
-  registration changed between the two signals.
-- **A PTY connect refused with HTTP 404 names both causes**: the PTY session or the requested
-  location does not exist.
-- **Both packages declare `IsAotCompatible` on every modern target** (`net8.0` and later), not only
-  `net10.0`, so trimming and native AOT analysis cover the `net8.0` and `net9.0` assets too.
 - **On Linux and macOS a standalone server runs in a session of its own, so a Ctrl+C or a hangup
   sent to the host's terminal no longer reaches it.** Behaviour change: the server used to stay in
   the host's process group, so a Ctrl+C the host itself handled still ended the server. It now
@@ -94,7 +96,8 @@ Nightly builds of `master` are on
   signal before readiness reads "terminated on signal N", where it read "exited with code 128+N".
 - **`OpenCodeServerOptions.WorkingDirectory` works on Linux with a C library older than glibc 2.29**
   (RHEL 8, Debian 10, Ubuntu 18.04): the server starts there through `/usr/bin/env -C`, which keeps
-  it the same process. A blank `WorkingDirectory` counts as none.
+  it the same process, and a directory that does not exist fails the start as an exit with code
+  125 whose stderr names it. A blank `WorkingDirectory` counts as none.
 - **A standalone server's relative command path on Linux and macOS is resolved against the
   caller's current directory**, never against `WorkingDirectory`. Behaviour change: `Process`
   tried it against the application's own directory first, so a relative path that named a file
@@ -102,19 +105,52 @@ Nightly builds of `master` are on
 - **`OPENCODE_PRINT_LOGS=1` in the host's environment hands the server the host's own stderr on
   Linux and macOS**, as upstream's launcher does; no stderr is then collected or quoted in a startup
   failure.
-- **POSIX systems other than Linux and macOS, FreeBSD among them, are refused with
-  `OpenCodeServerException` before anything is spawned.** Behaviour change: they used to start
-  through `Process`. On Linux and macOS a NUL in a command entry or an environment entry is now
-  refused with `ArgumentException`, because the C string it is passed as would end there.
+- **`EnsureAsync` reports the first contender failure without recruiting replacements.** While a
+  failed contender's error stands, no further contender starts; the call throws it once no contender
+  is live, and at the 120-second bound it throws that failure rather than the timeout. A recovery or
+  replacement that ends the registered service clears it and releases the contenders it made moot.
+  Behaviour change: a call that a recruited replacement contender used to rescue now throws the
+  first contender's failure.
+- **Persistent-terminal handoff and the sidecar clear are best-effort.** Preparing the handoff for
+  a replacement never fails it: a failed or unusable ticket shuts the daemon's terminals down and
+  publishes no ticket, and a sidecar that cannot be written leaves the replacement without one.
+  `StopAsync` and the Ensure replacement end the service even when the sidecar cannot be removed.
+  Behaviour change: `StopAsync` used to throw `OpenCodeServerException` when it could not remove
+  the sidecar.
+- **`StopAsync` escalates to the hard kill by the signalled process alone.** When the process
+  survives the request to stop, the hard kill follows it even if its registration disappeared or
+  another service registered meanwhile, as upstream's client does; a successor's registration is
+  still never removed. Behaviour change: the stop used to end without the hard kill when the
+  registration changed between the two signals.
+- **Both packages declare `IsAotCompatible` on every modern target** (`net8.0` and later), not only
+  `net10.0`, so trimming and native AOT analysis cover the `net8.0` and `net9.0` assets too.
+
+### 🔒 Security
+
+- **An unrecognized union value no longer prints a secret.** When a union's known shapes carry a
+  masked member at any depth, its unknown arm — what a newer server's value decodes to — prints its
+  preserved payload as `[REDACTED]` and keeps its marker: `UnknownCredentialValue`, `UnknownMcp`,
+  `UnknownConfigEntry`, and the unknown arm of `McpRemoteConfigOauth`, `ConfigInfoFormatter`,
+  `ConfigInfoLsp`, and `ConfigLspEntry`. `Payload` itself and serialization are unchanged.
+- **Every user-configured header and environment map is masked in `ToString()`**, now including
+  `ConfigProvider.Headers`, `ConfigModel.Headers`, `ConfigModelVariants.Headers`,
+  `ConfigAgentRequest.Headers`, `ConfigFormatterEntry.Environment`, `ConfigLspServer.Env`, and
+  `SessionEnvironmentRequest.Variables`.
+- **The open provider options are masked in `ToString()`.** `ProviderSettings`,
+  `ConfigProviderSettings`, `ModelSettings`, and `ConfigModelSettings` keep upstream's provider
+  options, `apiKey` among them, in `AdditionalProperties`. A record printed that dictionary's type
+  name, so no key was printed; it now prints `[REDACTED]` while the dictionary holds any member and
+  empty while it holds none, so the value stays out if printing ever changes. The dictionary and
+  serialization are unchanged.
 
 ### 🐛 Fixes
 
 - **Disposing a standalone server on Linux and macOS no longer waits about 13 seconds when a
-  process the server started keeps its output open.** On .NET 8 and later the shutdown waits also
-  waited for the server's redirected output to end, so a server that exited at once on stdin EOF
-  still ran out the 3-second grace and the 10-second forced-exit wait. Disposal now waits for the
-  server's own exit and then for its process group; only an `OpenCodeServerOutput` collector waits
-  for the output, for at most one second.
+  process the server started keeps its output open.** The shutdown waits also waited for the
+  server's redirected output to end, so a server that exited at once still ran out the 3-second
+  grace and the 10-second forced-exit wait. Disposal now waits for the server's own exit and then
+  for its process group; only an `OpenCodeServerOutput` collector waits for the output, for at most
+  one second.
 - **A standalone server on Linux and macOS starts with every signal at its default disposition and
   an empty signal mask**, as upstream's launcher starts it. It used to inherit a signal its host
   ignores (the .NET runtime ignores `SIGPIPE`, and a host started under `nohup` ignores `SIGINT`
@@ -138,26 +174,19 @@ Nightly builds of `master` are on
 - **The `net472` and `netstandard2.0` Windows tree kill no longer leaves taskkill running.** A
   taskkill still running at its 10-second bound is now ended instead of left running.
 
-### 🔒 Security
-
-- **An unrecognized union value no longer prints a secret.** When a union's known shapes carry a
-  masked member at any depth, its unknown arm — what a newer server's value decodes to — prints its
-  preserved payload as `[REDACTED]` and keeps its marker: `UnknownCredentialValue`, `UnknownMcp`,
-  `UnknownConfigEntry`, and the unknown arm of `McpRemoteConfigOauth`, `ConfigInfoFormatter`,
-  `ConfigInfoLsp`, and `ConfigLspEntry`. `Payload` itself and serialization are unchanged.
-- **Every user-configured header and environment map is masked in `ToString()`**, now including
-  `ConfigProvider.Headers`, `ConfigModel.Headers`, `ConfigModelVariants.Headers`,
-  `ConfigAgentRequest.Headers`, `ConfigFormatterEntry.Environment`, `ConfigLspServer.Env`, and
-  `SessionEnvironmentRequest.Variables`.
-- **The open provider options are masked in `ToString()`.** `ProviderSettings`,
-  `ConfigProviderSettings`, `ModelSettings`, and `ConfigModelSettings` keep upstream's provider
-  options, `apiKey` among them, in `AdditionalProperties`. A record printed that dictionary's type
-  name, so no key was printed; it now prints `[REDACTED]` while the dictionary holds any member and
-  empty while it holds none, so the value stays out if printing ever changes. The dictionary and
-  serialization are unchanged.
-
 ### 📋 Important Notes
 
+- **On Windows a standalone server is still started and ended through `Process`.** The session
+  placement and the `SIGTERM`-then-`SIGKILL` ladder above apply to Linux and macOS only. On
+  Windows, disposal closes the server's stdin, waits up to `GracefulShutdownTimeout`, and only then
+  kills the server's process tree; a server that exits inside the grace leaves its descendants
+  running.
+- **`net8.0` and `net9.0` leave the packages, and `net11.0` joins, in an upcoming preview,** ahead of
+  their end of support on 2026-11-10; this release still ships them. The packages will then target
+  `netstandard2.0;net472;net10.0;net11.0`. An app on .NET 8 or 9 still installs through the
+  `netstandard2.0` asset, but that asset is a compatibility asset, not a supported runtime: support
+  and testing cover the targeted runtimes only, and .NET 5–7 are not supported. Plan the move to
+  .NET 10.
 - **Upstream's committed OpenAPI document is still stale at `v2.0.23`**
   ([anomalyco/opencode#53105](https://github.com/anomalyco/opencode/issues/53105)). It lacks
   `LocationNotFoundError`, and with it the 404 that 95 operations declare or widen for a missing
@@ -964,6 +993,7 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[0.9.0-preview.7]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.7
 [0.9.0-preview.6]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.6
 [0.9.0-preview.5]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.5
 [0.9.0-preview.4]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.4
