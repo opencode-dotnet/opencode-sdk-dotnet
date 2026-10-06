@@ -257,20 +257,47 @@ public sealed class ServiceStopperTests
     }
 
     [Test]
-    public async Task StopAsync_Should_Not_Kill_When_The_Registration_Changed_After_The_Terminate_Signal()
+    public async Task StopAsync_Should_Escalate_By_Pid_When_The_Registration_Disappears_After_The_Terminate_Signal()
     {
+        // Only the signalled process tells whether it stopped: a vanished record does not end the
+        // ladder.
         SeedModern();
-        ProcessNeverLeaves();
+        ProcessLeavesOn(ProcessSignal.Kill);
         _processControl.TrySignal(Live, ProcessSignal.Terminate).Returns(_ =>
         {
+            _fileSystem.File.Delete(SharedRegistrationPath());
+            return true;
+        });
+
+        await Stopper().StopAsync(options: null, CancellationToken.None);
+
+        Received.InOrder(() =>
+        {
+            _ = _processControl.TrySignal(Live, ProcessSignal.Terminate);
+            _ = _processControl.TrySignal(Live, ProcessSignal.Kill);
+        });
+        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
+    }
+
+    [Test]
+    public async Task StopAsync_Should_Escalate_By_Pid_And_Keep_A_Successor_Registered_After_The_Terminate_Signal()
+    {
+        SeedModern();
+        ProcessLeavesOn(ProcessSignal.Kill);
+        _processControl.TrySignal(Live, ProcessSignal.Terminate).Returns(_ =>
+        {
+            // Another service registered under the same file while the old process lingered.
             Seed(SharedRegistrationPath(), ServiceRegistrationData.Minimal);
             return true;
         });
 
         await Stopper().StopAsync(options: null, CancellationToken.None);
 
-        _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
-        _ = _processControl.DidNotReceive().TrySignal(Arg.Any<ProcessIdentity>(), ProcessSignal.Kill);
+        Received.InOrder(() =>
+        {
+            _ = _processControl.TrySignal(Live, ProcessSignal.Terminate);
+            _ = _processControl.TrySignal(Live, ProcessSignal.Kill);
+        });
         await Assert.That(ReadText(SharedRegistrationPath())).IsEqualTo(ServiceRegistrationData.Minimal);
     }
 
@@ -322,12 +349,15 @@ public sealed class ServiceStopperTests
     }
 
     [Test]
-    public async Task StopAsync_Should_Report_A_Sidecar_That_Cannot_Be_Removed_Before_Signalling()
+    public async Task StopAsync_Should_Still_Terminate_When_The_Sidecar_Cannot_Be_Removed()
     {
+        // The client's stop only warns when the clear fails: terminal handoff is best-effort and
+        // must never keep the old service running.
         var fileSystem = Substitute.For<IServiceFileSystem>();
         fileSystem.TryReadAllBytesAsync(SharedRegistrationPath(), Arg.Any<CancellationToken>())
             .Returns(Encoding.UTF8.GetBytes(ServiceRegistrationData.Passwordless));
         fileSystem.TryDelete(Sidecar()).Throws(new UnauthorizedAccessException("The sidecar is locked."));
+        fileSystem.TryDelete(SharedRegistrationPath()).Returns(true);
         var stopper = new ServiceStopper(
             _environment,
             fileSystem,
@@ -337,12 +367,10 @@ public sealed class ServiceStopperTests
             _processControl,
             Timing);
 
-        var exception = await Assert
-            .That(async () => await stopper.StopAsync(options: null, CancellationToken.None))
-            .Throws<OpenCodeServerException>();
+        await stopper.StopAsync(options: null, CancellationToken.None);
 
-        await Assert.That(exception!.InnerException).IsTypeOf<UnauthorizedAccessException>();
-        _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
+        _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
+        _ = fileSystem.Received(1).TryDelete(SharedRegistrationPath());
     }
 
     [Test]

@@ -10,7 +10,7 @@ internal sealed class ProjectUpdateResponseAdapter : ResponseAdapter<ProjectUpda
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["ProjectNotFoundError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError", "ProjectNotFoundError"];
     private ProjectUpdateResponseAdapter()
     {
     }

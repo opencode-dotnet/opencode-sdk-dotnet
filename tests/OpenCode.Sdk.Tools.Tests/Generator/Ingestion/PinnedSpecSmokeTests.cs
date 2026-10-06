@@ -116,11 +116,13 @@ public sealed class PinnedSpecSmokeTests
     }
 
     [Test]
-    public async Task Ingest_Should_Classify_Both_Error_Styles()
+    public async Task Ingest_Should_Classify_A_Tagged_Error_That_Also_Carries_A_Name_As_Effect_Tagged()
     {
+        // WorktreeError is a tagged error whose fields keep the former name/data shape, so it
+        // carries both markers; the _tag marker decides.
         var document = await IngestPinnedSpecAsync();
 
-        await Assert.That(((ObjectNode)document.Schemas["WorktreeErrorEncoded"]).ErrorStyle).IsEqualTo(ErrorStyle.NameData);
+        await Assert.That(((ObjectNode)document.Schemas["WorktreeErrorEncoded"]).ErrorStyle).IsEqualTo(ErrorStyle.EffectTag);
         await Assert.That(((ObjectNode)document.Schemas["UnauthorizedErrorEncoded"]).ErrorStyle).IsEqualTo(ErrorStyle.EffectTag);
     }
 

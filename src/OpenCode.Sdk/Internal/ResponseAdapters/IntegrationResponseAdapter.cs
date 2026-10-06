@@ -10,7 +10,7 @@ internal sealed class IntegrationResponseAdapter : ResponseAdapter<IntegrationRe
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["IntegrationNotFoundError"];
+    private static readonly string[] Status404Tags = ["IntegrationNotFoundError", "LocationNotFoundError"];
     private IntegrationResponseAdapter()
     {
     }

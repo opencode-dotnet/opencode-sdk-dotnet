@@ -10,7 +10,7 @@ internal sealed class ShellOutputResponseAdapter : ResponseAdapter<ShellOutputRe
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["ShellNotFoundError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError", "ShellNotFoundError"];
     private ShellOutputResponseAdapter()
     {
     }

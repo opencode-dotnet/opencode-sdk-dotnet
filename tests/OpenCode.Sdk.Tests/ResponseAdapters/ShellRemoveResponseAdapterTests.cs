@@ -14,7 +14,7 @@ public sealed class ShellRemoveResponseAdapterTests
         await Assert.That(adapter.Classify(200)).IsEqualTo(StatusVerdict.UndeclaredSuccess);
         await Assert.That(adapter.Classify(400)).IsEqualTo(StatusVerdict.DeclaredError);
         await Assert.That(adapter.Classify(401)).IsEqualTo(StatusVerdict.DeclaredError);
-        await Assert.That(adapter.Classify(404)).IsEqualTo(StatusVerdict.UndeclaredError);
+        await Assert.That(adapter.Classify(404)).IsEqualTo(StatusVerdict.DeclaredError);
         await Assert.That(adapter.Classify(500)).IsEqualTo(StatusVerdict.UndeclaredError);
     }
 }

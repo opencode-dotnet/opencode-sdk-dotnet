@@ -8,7 +8,7 @@ internal sealed class SessionFormCancelResponseAdapter : ResponseAdapter<Session
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["FormNotFoundError", "SessionNotFoundError"];
+    private static readonly string[] Status404Tags = ["FormNotFoundError", "LocationNotFoundError", "SessionNotFoundError"];
     private static readonly string[] Status409Tags = ["FormAlreadySettledError"];
     private SessionFormCancelResponseAdapter()
     {

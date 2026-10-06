@@ -10,6 +10,7 @@ internal sealed class RpcCallResponseAdapter : ResponseAdapter<RpcCallResponse>
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError", "RpcError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError"];
     private static readonly string[] Status500Tags = ["RpcInternalError"];
     private RpcCallResponseAdapter()
     {
@@ -29,6 +30,7 @@ internal sealed class RpcCallResponseAdapter : ResponseAdapter<RpcCallResponse>
         >= 200 and < 300 => StatusVerdict.UndeclaredSuccess,
         400 => StatusVerdict.DeclaredError,
         401 => StatusVerdict.DeclaredError,
+        404 => StatusVerdict.DeclaredError,
         500 => StatusVerdict.DeclaredError,
         _ => StatusVerdict.UndeclaredError
     };
@@ -56,6 +58,7 @@ internal sealed class RpcCallResponseAdapter : ResponseAdapter<RpcCallResponse>
             >= 200 and < 300 => throw StatusVerdictFailures.UndeclaredSuccess(status),
             400 => new RpcCallResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
             401 => new RpcCallResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
+            404 => new RpcCallResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
             500 => new RpcCallResponse(status, ReadTolerantError(rawBody, Status500Tags), rawBody),
             _ => new RpcCallResponse(status, ReadTolerantError(rawBody, null), rawBody)
         };

@@ -31,4 +31,11 @@ public sealed record ServerInfo
     /// </summary>
     [JsonPropertyName("paths")]
     public required ServerInfoPaths Paths { get; init; }
+
+    /// <summary>
+    /// Gets the capabilities value.
+    /// </summary>
+    [JsonPropertyName("capabilities")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ServerInfoCapabilities? Capabilities { get; init; }
 }

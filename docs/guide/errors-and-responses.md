@@ -129,20 +129,22 @@ There are roughly two dozen of them — `SessionNotFoundError`, `MessageNotFound
 (`SessionNotFoundError.SessionId`, `InvalidRequestError.Field` and `.Kind`,
 `ServiceUnavailableError.Service`).
 
-### Two wire dialects, one interface
+### One discriminator, two payload shapes
 
-Upstream spells its errors two different ways, and the SDK represents both faithfully rather than
-flattening them:
+Every typed error upstream declares carries its discriminator in a `_tag` property, and `Tag`
+reads it. The payload around it comes in two shapes, and the SDK represents both faithfully rather
+than flattening them:
 
-- **The `_tag` dialect** — the common one. The discriminator rides a `_tag` property and the error's
-  data sits alongside it: `SessionNotFoundError` has `Message` and `SessionId` directly on the type.
-- **The `{name, data}` dialect** — used by the worktree family. The discriminator rides `name` and
-  the payload is nested under `data`, so `WorktreeError` has a `Data` object:
-  `worktree.Data.Message`, `worktree.Data.ForceRequired`.
+- **Flat** — the common one. The error's data sits beside `_tag`: `SessionNotFoundError` has
+  `Message` and `SessionId` directly on the type.
+- **Nested** — used by the worktree family. The payload sits under `data`, beside a `name`, so
+  `WorktreeError` has a `Name` and a `Data` object: `worktree.Data.Message`,
+  `worktree.Data.ForceRequired`.
 
-Both implement `IOpenCodeError` and both expose the discriminator as `Tag`, so a `switch` on the
-type never has to care which dialect produced it. Only the *shape inside* differs, and it differs
-because the server's does.
+Both implement `IOpenCodeError`, so a `switch` on the type never has to care which shape produced
+it. Only the *shape inside* differs, and it differs because the server's does. A body that carries
+no `_tag` — a `name` alone, as a worktree failure from a server older than 2.0.23 sends — does not
+decode to a typed error: `Error` is null and `RawBody` keeps the body.
 
 ### The unknown-error carrier
 
@@ -293,13 +295,13 @@ roots cannot be located. Every ordinary way a background service can be absent o
 registration, an undecodable or passwordless one, a daemon still starting or failed, a probe that
 timed out, a version other than the one you expected — is **not** an exception: `DiscoverAsync`
 answers null, and blank or contradictory options throw `ArgumentException` before anything is read.
-Stop shares the roots cause and adds two of its own: the persistent-terminal handoff sidecar beside
-the registration could not be removed, and the registered process is still running after the hard
-kill — the registration is then left in place, and the message names the pid and the file. A stop
-with nothing to stop is not an exception either. Ensure shares the roots cause and adds the ways an
-election can end without a service: the command cannot be resolved, a contender or the registered
-service failed to start, `VersionPolicy.Error` met a service at another version, or the 120-second
-bound expired. The
+Stop shares the roots cause and adds one of its own: the registered process is still running after
+the hard kill — the registration is then left in place, and the message names the pid and the file.
+A persistent-terminal handoff sidecar that cannot be removed is not an exception, and neither is a
+stop with nothing to stop. Ensure shares the roots cause and adds the ways an election can end
+without a service: the command cannot be resolved, a contender or the registered service failed to
+start, the registered service speaks an incompatible health protocol at a version the call accepts,
+`VersionPolicy.Error` met a service at another version, or the 120-second bound expired. The
 [connection guide](connection-modes.md#️-discovering-the-background-service) lists the full table.
 
 The launcher has more to say, because a child process ran:

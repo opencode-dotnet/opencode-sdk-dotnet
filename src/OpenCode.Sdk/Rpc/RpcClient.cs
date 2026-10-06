@@ -37,7 +37,7 @@ public class RpcClient
     /// <param name = "requestOptions">The per-call options.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;RpcCallResponse&apos; envelope.</returns>
-    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 500) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 500) and NoThrow was not selected.</exception>
     /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
     /// Operation <c>rpc.call</c>: <c>POST /api/rpc/{rpcID}/{method}</c>.

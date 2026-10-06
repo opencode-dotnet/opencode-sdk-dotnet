@@ -136,7 +136,7 @@ internal static class ModelEmitter
 
     /// <summary>
     /// A discriminator is emitted under the marker member its union promises rather than under
-    /// the property's own derived name, so a variant tagged by a second dialect's wire property
+    /// the property's own derived name, so a variant whose wire property derives another name
     /// still satisfies the one interface member. The wire name it serializes as is untouched.
     /// A literal tag is a constant; the prefix-tagged arm's marker is a required string whose
     /// initializer refuses any value outside the prefix.
@@ -498,8 +498,7 @@ internal static class ModelEmitter
     /// chain, paired with the member name that union promises for it and, when the schema is
     /// that union's prefix-tagged arm, the prefix its value must carry. Two unions may name
     /// different markers, and the schema then carries both; the same name is one property
-    /// serving both contracts. A union that dispatches on more than one wire property reads
-    /// this schema's own variant entry, so each variant answers under the union's one member.
+    /// serving both contracts.
     /// </summary>
     private static List<ChainMarker> GetChainMarkers(string modelName,
         IReadOnlyList<UnionPlan> implemented, IReadOnlyDictionary<string, UnionPlan> unions)

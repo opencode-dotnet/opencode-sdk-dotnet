@@ -17,11 +17,11 @@ using Testably.Abstractions.Testing;
 namespace OpenCode.Sdk.Tests.BackgroundService.Handoff;
 
 /// <summary>
-/// The pinned client's sidecar orchestration (<c>pty-handoff.ts:13-97</c>) over the Testably
+/// The pinned client's sidecar orchestration (<c>pty-handoff.ts</c>) over the Testably
 /// filesystem double and a real loopback HTTP daemon double: publication through a temporary plus
-/// rename, the skip-when-current fast path, the 404 shutdown fallback, invalid and expired throws,
-/// the concurrent-prepare recheck, the environment adoption matrix, completion by source, and the
-/// idempotent clear.
+/// rename, the skip-when-current fast path, the best-effort shutdown fallback that every failed or
+/// refused ticket takes, the concurrent-prepare recheck, the environment adoption matrix,
+/// completion by source, and the idempotent clear.
 /// </summary>
 public sealed class ServicePtyHandoffTests
 {
@@ -101,53 +101,43 @@ public sealed class ServicePtyHandoffTests
     }
 
     [Test]
-    public async Task PrepareAsync_Should_Throw_When_The_Handoff_Is_Already_Expired()
+    [Arguments("BackgroundService.pty-handoff-response-expired.json")]
+    [Arguments("BackgroundService.pty-handoff-response-invalid.json")]
+    [Arguments("BackgroundService.pty-handoff-response-missing.json")]
+    public async Task PrepareAsync_Should_Shut_The_Daemon_Down_And_Publish_A_Null_Sidecar_For_An_Answer_Without_A_Usable_Ticket(string fixture)
     {
-        await using var server = LoopbackHttpServer.Start(static _ =>
-            Json(HttpStatusCode.OK, Fixtures.LoadJson("BackgroundService.pty-handoff-response-expired.json")));
+        // An expired ticket, a ticket missing a member the pin knows, and an answer without a handoff
+        // member are refused, and a refusal takes the same best-effort fallback a failed request does.
+        EnsureSidecarDirectory();
+        await using var server = LoopbackHttpServer.Start(path => path == ShutdownPath
+            ? NoContent()
+            : Json(HttpStatusCode.OK, Fixtures.LoadJson(fixture)));
 
-        var exception = await Assert
-            .That(async () => await PrepareAsync(server.Endpoint))
-            .Throws<OpenCodeServerException>();
+        await PrepareAsync(server.Endpoint);
 
-        await Assert.That(exception!.Message).IsEqualTo(ServicePtyHandoff.InvalidHandoffMessage);
-        await Assert.That(ReadSidecar()).IsNull();
+        var sidecar = ReadSidecar();
+        await Assert.That(sidecar).IsNotNull();
+        await Assert.That(sidecar!.Handoff).IsNull();
+        await Assert.That(sidecar.ExpiresAt).IsEqualTo(NowMilliseconds + 30_000d);
+        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath, ShutdownPath]);
     }
 
     [Test]
-    [Arguments("BackgroundService.pty-handoff-response-invalid.json", ServicePtyHandoff.InvalidHandoffMessage)]
-    [Arguments("BackgroundService.pty-handoff-response-missing.json", ServicePtyHandoff.InvalidResponseMessage)]
-    public async Task PrepareAsync_Should_Refuse_An_Answer_Without_A_Usable_Ticket(string fixture, string message)
+    public async Task PrepareAsync_Should_Shut_The_Daemon_Down_And_Publish_A_Null_Sidecar_When_The_Daemon_Answers_An_Error()
     {
-        // pty-handoff.ts:52-60: no handoff member and a ticket missing a member the pin knows are two
-        // refusals with their own messages, neither re-checked against a concurrent sidecar.
-        await using var server = LoopbackHttpServer.Start(_ =>
-            Json(HttpStatusCode.OK, Fixtures.LoadJson(fixture)));
+        EnsureSidecarDirectory();
+        await using var server = LoopbackHttpServer.Start(static path => path == ShutdownPath
+            ? NoContent()
+            : Json(HttpStatusCode.InternalServerError, "{}"));
 
-        var exception = await Assert
-            .That(async () => await PrepareAsync(server.Endpoint))
-            .Throws<OpenCodeServerException>();
+        await PrepareAsync(server.Endpoint);
 
-        await Assert.That(exception!.Message).IsEqualTo(message);
-        await Assert.That(ReadSidecar()).IsNull();
+        await Assert.That(ReadSidecar()!.Handoff).IsNull();
+        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath, ShutdownPath]);
     }
 
     [Test]
-    public async Task PrepareAsync_Should_Throw_When_The_Daemon_Answers_An_Error_And_No_Concurrent_Sidecar_Exists()
-    {
-        await using var server = LoopbackHttpServer.Start(static _ =>
-            Json(HttpStatusCode.InternalServerError, "{}"));
-
-        var exception = await Assert
-            .That(async () => await PrepareAsync(server.Endpoint))
-            .Throws<OpenCodeServerException>();
-
-        await Assert.That(exception!.Message).IsEqualTo(ServicePtyHandoff.PrepareFailedMessage);
-        await Assert.That(ReadSidecar()).IsNull();
-    }
-
-    [Test]
-    public async Task PrepareAsync_Should_Report_A_Publish_Failure_As_A_Server_Failure()
+    public async Task PrepareAsync_Should_Complete_Without_A_Sidecar_When_The_Publish_Fails()
     {
         await using var server = LoopbackHttpServer.Start(static _ =>
             Json(HttpStatusCode.OK, Fixtures.LoadJson("BackgroundService.pty-handoff-response-ticket.json")));
@@ -156,12 +146,11 @@ public sealed class ServicePtyHandoffTests
         fileSystem.TryCreateExclusiveAsync(Arg.Any<string>(), Arg.Any<ReadOnlyMemory<byte>>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new IOException("The sidecar directory vanished."));
 
-        var exception = await Assert
-            .That(async () => await new ServicePtyHandoff(fileSystem, _clock, new ServicePtyShutdown()).PrepareAsync(
-                RegistrationPath(), Registration(server.Endpoint), RequestTimeout, CancellationToken.None))
-            .Throws<OpenCodeServerException>();
+        await new ServicePtyHandoff(fileSystem, _clock, new ServicePtyShutdown()).PrepareAsync(
+            RegistrationPath(), Registration(server.Endpoint), RequestTimeout, CancellationToken.None);
 
-        await Assert.That(exception!.InnerException).IsTypeOf<IOException>();
+        _ = fileSystem.Received(1).TryCreateExclusiveAsync(Arg.Any<string>(), Arg.Any<ReadOnlyMemory<byte>>(), Arg.Any<CancellationToken>());
+        fileSystem.DidNotReceiveWithAnyArgs().Rename(default!, default!);
     }
 
     [Test]
@@ -358,7 +347,7 @@ public sealed class ServicePtyHandoffTests
             caught = exception;
         }
 
-        // Cancellation, never the preparation failure a daemon error becomes.
+        // Cancellation, never the fallback a daemon error takes.
         await Assert.That(caught).IsNotNull();
         server.ReleaseResponses();
     }
@@ -377,30 +366,18 @@ public sealed class ServicePtyHandoffTests
     }
 
     [Test]
-    public async Task PrepareAsync_Should_Keep_The_Daemon_Failure_As_The_Cause()
+    public async Task PrepareAsync_Should_Take_The_Fallback_When_The_Request_Bound_Expires()
     {
-        await using var server = LoopbackHttpServer.Start(static _ => Json(HttpStatusCode.InternalServerError, "{}"));
-
-        var exception = await Assert
-            .That(async () => await PrepareAsync(server.Endpoint))
-            .Throws<OpenCodeServerException>();
-
-        await Assert.That(exception!.Message).IsEqualTo(ServicePtyHandoff.PrepareFailedMessage);
-        await Assert.That(exception.InnerException).IsTypeOf<OpenCodeApiException>();
-    }
-
-    [Test]
-    public async Task PrepareAsync_Should_Keep_The_Request_Bound_As_The_Cause()
-    {
+        // The ticket request and the shutdown both outlive their bound; neither expiry is the
+        // caller's cancellation, so both are failures the best-effort path absorbs.
+        EnsureSidecarDirectory();
         await using var server = LoopbackHttpServer.Start(static _ => Hold(HttpStatusCode.OK, "{}"));
 
-        var exception = await Assert
-            .That(async () => await Handoff().PrepareAsync(
-                RegistrationPath(), Registration(server.Endpoint), TimeSpan.FromMilliseconds(200), CancellationToken.None))
-            .Throws<OpenCodeServerException>();
+        await Handoff().PrepareAsync(
+            RegistrationPath(), Registration(server.Endpoint), TimeSpan.FromMilliseconds(200), CancellationToken.None);
 
-        await Assert.That(exception!.Message).IsEqualTo(ServicePtyHandoff.PrepareFailedMessage);
-        await Assert.That(exception.InnerException).IsAssignableTo<OperationCanceledException>();
+        await Assert.That(ReadSidecar()!.Handoff).IsNull();
+        await Assert.That(server.RequestPaths).Contains(ShutdownPath);
         server.ReleaseResponses();
     }
 
@@ -447,19 +424,17 @@ public sealed class ServicePtyHandoffTests
     }
 
     [Test]
-    public async Task PrepareAsync_Should_Report_A_Shutdown_That_Fails_After_The_Route_Is_Absent()
+    public async Task PrepareAsync_Should_Publish_A_Null_Sidecar_When_The_Shutdown_Fails()
     {
+        EnsureSidecarDirectory();
         await using var server = LoopbackHttpServer.Start(static path => path == ShutdownPath
             ? Json(HttpStatusCode.InternalServerError, "{}")
             : Json(HttpStatusCode.NotFound, "{}"));
 
-        var exception = await Assert
-            .That(async () => await PrepareAsync(server.Endpoint))
-            .Throws<OpenCodeServerException>();
+        await PrepareAsync(server.Endpoint);
 
-        await Assert.That(exception!.Message).IsEqualTo(ServicePtyHandoff.ShutdownFailedMessage);
-        await Assert.That(exception.InnerException).IsTypeOf<OpenCodeApiException>();
-        await Assert.That(ReadSidecar()).IsNull();
+        await Assert.That(ReadSidecar()!.Handoff).IsNull();
+        await Assert.That(server.RequestPaths).Contains(ShutdownPath);
     }
 
     [Test]
@@ -474,11 +449,11 @@ public sealed class ServicePtyHandoffTests
     }
 
     [Test]
-    public async Task PrepareAsync_Should_Recheck_For_A_Concurrent_Sidecar_Before_Treating_A_404_As_An_Older_Daemon()
+    public async Task PrepareAsync_Should_Recheck_For_A_Concurrent_Sidecar_Before_Shutting_The_Daemon_Down()
     {
-        // pty-handoff.ts:36-39: any failure re-checks first; a caller that already prepared and
-        // stopped this daemon leaves a fresh sidecar, and a 404 then means "gone", not "old". The
-        // concurrent caller's sidecar lands while the handoff request is in flight.
+        // pty-handoff.ts: any failure re-checks first; a caller that already prepared and stopped
+        // this daemon leaves a fresh sidecar, and the failure then means "gone", not "unable to
+        // hand off". The concurrent caller's sidecar lands while the handoff request is in flight.
         ServiceRegistration? registration = null;
         await using var server = LoopbackHttpServer.Start(path =>
         {

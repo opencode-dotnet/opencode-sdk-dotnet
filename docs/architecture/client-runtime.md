@@ -113,13 +113,14 @@ section it concerns (ADR-0031).
   above zero resumes from that absolute output cursor. The server accepts only JavaScript safe
   integers at or above `-1` and silently coerces anything else to omitted, so `PtyConnectOptions`
   refuses an out-of-range value rather than letting a resume become a full replay.
-- **Failed upgrade.** A missing PTY answers plain HTTP 404 before upgrading; a rejected credential
-  or origin answers 401/403. A failed upgrade has no response spine, so it cannot ride ADR-0007's
-  envelope machinery: the transport plane is the honest channel and every case throws
-  `OpenCodeTransportException` naming the PTY and the cause. Modern targets read the status from
-  `ClientWebSocket.HttpStatusCode` (enabled by `CollectHttpResponseDetails`); `net472` and
-  `netstandard2.0` cannot report it, so the failure names the connect context instead of guessing
-  a status. `platform-and-packaging.md` owns the target-framework detail.
+- **Failed upgrade.** A missing PTY, or a `Location` naming a directory that does not exist, answers
+  plain HTTP 404 before upgrading; a rejected credential or origin answers 401/403. A failed upgrade
+  has no response spine, so it cannot ride ADR-0007's envelope machinery: the transport plane is the
+  honest channel and every case throws `OpenCodeTransportException` naming the PTY and the cause.
+  Modern targets read the status from `ClientWebSocket.HttpStatusCode` (enabled by
+  `CollectHttpResponseDetails`); `net472` and `netstandard2.0` cannot report it, so the failure
+  names the connect context instead of guessing a status. `platform-and-packaging.md` owns the
+  target-framework detail.
 - **Frames.** Server output rides text frames and decodes as `PtyOutputFrame`. The one binary
   control frame is a `0x00` marker byte followed by UTF-8 JSON `{"cursor": n}`, sent once after
   replay, and decodes as `PtyCursorFrame`; a control body that is not a JSON object carrying an
@@ -662,49 +663,60 @@ unresolvable user home (`OpenCodeServerException`).
 discovery does (channel rules, legacy migration, or a direct file) and reads it once; asks a ready
 and compatible daemon to shut its persistent terminals down through the generated
 `PersistentPtys.ShutdownAsync` door, ignoring a refused or failed answer the way the CLI does;
-removes the handoff sidecar the CLI keeps beside the registration (`<file>.pty-handoff`); then
-ends the registered process the way the pinned client's `terminate` does — `SIGTERM`, the pin's
-own poll for the process to leave (every 50 ms, up to 100 times), `SIGKILL` when it is still
-there, the same poll again. On Windows both rungs are a hard kill, which is what the pinned
-client's runtime does with a `SIGTERM` there. The registration is re-read and its `id`, `version`,
-`url`, and `pid` compared before every signal and before the removal, so a record another service
-replaced is never acted on; and the process is identified as (pid, start time), compared
-immediately before every send and at every look of the poll, so a pid the operating system reuses
-during the stop is never signalled and reads as the registered process being gone (ADR-0026); a
-reuse before the stop runs is the Known Gap the roadmap records. A zombie — exited,
-not yet reaped by its parent — reads as gone too. A missing or corrupt registration completes successfully; a sidecar
-that cannot be removed and a process still running after the kill rung throw
-`OpenCodeServerException`, the registration then left in place; cancellation before a signal
-prevents it and after one ends the wait. Stop targets exactly one pid, never a tree, is never
-implied by disposal or host shutdown, and may end a service other clients share.
+removes the handoff sidecar the CLI keeps beside the registration (`<file>.pty-handoff`); then ends
+the registered process the way the pinned client's `terminate` does — `SIGTERM`, the pin's own poll
+for the process to leave (every 50 ms, up to 100 times), `SIGKILL` when it is still there, the same
+poll again. On Windows both rungs are a hard kill, which is what the pinned client's runtime does
+with a `SIGTERM` there. The registration is re-read and its `id`, `version`, `url`, and `pid`
+compared before the first signal and before the removal, so a record another service replaced is
+never signalled or removed; between the rungs it is not read, because it can disappear or change
+hands before the signalled process exits, so the kill rung follows that process alone, as the pinned
+client's does. The process is identified as (pid, start time), compared immediately before every
+send and at every look of the poll, so a pid the operating system reuses during the stop is never
+signalled and reads as the registered process being gone (ADR-0026); a reuse before the stop runs is
+the Known Gap the roadmap records. A zombie — exited, not yet reaped by its parent — reads as gone
+too. A missing or corrupt registration completes successfully; a sidecar that cannot be removed is
+ignored, as the pinned client's `stop` ignores it, so the process is still ended; a process still
+running after the kill rung throws `OpenCodeServerException`, the registration then left in place;
+cancellation before a signal prevents it and after one ends the wait. Stop targets exactly one pid,
+never a tree, is never implied by disposal or host shutdown, and may end a service other clients
+share.
 
 `OpenCodeServer.EnsureAsync` is the CLI's managed-service election (`Service.ensure`). Its options
 are validated and copied before any I/O; `Replace` and `Error` need `ExpectedVersion`. It reuses a
 ready compatible daemon, replaces a version-mismatched one according to
-`OpenCodeServerEnsureOptions.VersionPolicy` (Ignore strips the expected version, Replace keeps it
-in the loop, Error discovers twice and throws on a ready mismatch without entering the loop), and
+`OpenCodeServerEnsureOptions.VersionPolicy` (Ignore strips the expected version, Replace keeps it in
+the loop, Error discovers twice and throws on a ready mismatch without entering the loop), and
 otherwise spawns at most two detached contenders (`opencode serve --service` by default) until a
-service registers or the 120-second wall-clock bound expires. A registration without a password
-never wins. Three consecutive probe timeouts on one registered daemon end it through the stop
-ladder — like Stop, Ensure may end a service other clients share — after which a contender starts
-at once. The replacement stop acts on the registration it probed, so a record that changed since is
-never touched; its failures do not end the election, and the last one becomes the timeout's inner
-exception. The spawned command registers where its own compiled channel and environment say, so
-`Channel`, `Command`, and `Environment` must agree with the registration the call reads, or the call
-waits out the bound. Contenders are reaped by the SDK as they exit. `OnStart` fires at most once.
-The returned handle is the same non-owning shape discovery returns. Persistent-terminal sidecar I/O is behind
-`IServicePtyHandoff`: `prepare` requests the handoff ticket under the request bound through the
-SDK's own request pipeline and keeps it raw, so it reaches the replacement exactly as the route
-answered it — the receiving daemon decodes it with its own schema — and publishes it beside the
-registration through an owner-only temporary file and a replace-on-success rename (`File.Replace`
-on the downlevel targets). It reuses a fresh matching sidecar and, whenever the request fails,
-first re-checks for one a concurrent caller published; when the daemon answers 404 it shuts its
-terminals down — a shutdown failure other than 404 fails the preparation, as upstream's does — and
-publishes a null sidecar with a 30-second expiry. A failure keeps its cause as the inner exception;
-`environment` adopts an unexpired sidecar whose source still matches the current registration (or
-whose registration is gone) as `OPENCODE_PTY_HANDOFF` and removes the variable otherwise;
-`complete` clears only a sidecar a different source wrote, with no expiry check; and `clear`
-removes it idempotently, the same seam Stop's sidecar clear routes through.
+service registers or the 120-second wall-clock bound expires. A daemon whose health protocol is
+incompatible (an authenticated 404 on `/api/info`) fails the call while its version satisfies the
+loop's requirement; only an unmet version requirement replaces it. A registration without a password
+never wins. The first contender failure is held: while it stands no further contender is recruited,
+the call throws it once no contender is left live, and the bound expires with it rather than with
+the timeout. Three consecutive probe timeouts on one registered daemon end it through the stop
+ladder — like Stop, Ensure may end a service other clients share — after which a contender starts at
+once. The replacement stop acts on the registration it probed, so a record that changed since is
+never touched; its handoff or sidecar clear is best-effort and never skips the terminate, its
+failures do not end the election, and when no contender failure is held the last one becomes the
+timeout's inner exception. After a recovery or a replacement stop, contenders that are the stopped
+process or have finished are released and a held failure is dropped. The spawned command registers
+where its own compiled channel and environment say, so `Channel`, `Command`, and `Environment` must
+agree with the registration the call reads, or the call waits out the bound. Contenders are reaped
+by the SDK as they exit. `OnStart` fires at most once. The returned handle is the same non-owning
+shape discovery returns. Persistent-terminal sidecar I/O is behind `IServicePtyHandoff`: `prepare`
+requests the handoff ticket under the request bound through the SDK's own request pipeline and keeps
+it raw, so it reaches the replacement exactly as the route answered it — the receiving daemon
+decodes it with its own schema — and publishes it beside the registration through an owner-only
+temporary file and a replace-on-success rename (`File.Replace` on the downlevel targets). It reuses
+a fresh matching sidecar and never fails the replacement, only the caller's cancellation propagates:
+whenever the request fails or answers no usable ticket (no `handoff` member, a ticket missing a
+member the pin knows, or an expired one), it first re-checks for a sidecar a concurrent caller
+published, then shuts the daemon's terminals down, ignoring any failure, and publishes a null
+sidecar with a 30-second expiry; a sidecar that cannot be published leaves the replacement without a
+handoff. `environment` adopts an unexpired sidecar whose source still matches the current
+registration (or whose registration is gone) as `OPENCODE_PTY_HANDOFF` and removes the variable
+otherwise; `complete` clears only a sidecar a different source wrote, with no expiry check; and
+`clear` removes it idempotently, the same seam Stop's sidecar clear routes through.
 
 The daemon side of the lifecycle is the spawned CLI's, not the SDK's: the incumbent check, the
 exit-0 loser on a port another daemon holds, the `chdir` into the user home, and the registration

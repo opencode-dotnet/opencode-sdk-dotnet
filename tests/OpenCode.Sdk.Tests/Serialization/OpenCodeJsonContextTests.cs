@@ -269,7 +269,7 @@ public sealed class OpenCodeJsonContextTests
     }
 
     [Test]
-    public async Task Deserialize_Should_Create_The_Name_Tagged_Error_Variant()
+    public async Task Deserialize_Should_Create_The_Tagged_Worktree_Error_With_Its_Name()
     {
         var json = _fixtures.LoadJson("Serialization.known-worktree-error.json");
 
@@ -278,6 +278,7 @@ public sealed class OpenCodeJsonContextTests
         await Assert.That(result).IsTypeOf<WorktreeError>();
         var worktree = (WorktreeError)result;
         await Assert.That(worktree.Tag).IsEqualTo("WorktreeError");
+        await Assert.That(worktree.Name).IsEqualTo("WorktreeError");
         await Assert.That(worktree.Data.Message).IsEqualTo("the worktree has uncommitted changes");
         await Assert.That(worktree.Data.ForceRequired).IsTrue();
         await Assert.That(_serializer.Serialize(result)).IsEqualTo(json);
@@ -337,15 +338,12 @@ public sealed class OpenCodeJsonContextTests
     }
 
     [Test]
-    public async Task Deserialize_Should_Carry_An_Unknown_Name_Marker_On_The_Error_Carrier()
+    public async Task Deserialize_Should_Refuse_An_Error_Payload_Carrying_Only_A_Name_Marker()
     {
+        // Every error the pinned contract declares is tagged, so a name is no longer a marker.
         var json = _fixtures.LoadJson("Serialization.unknown-name-tagged-error.json");
 
-        var result = _serializer.Deserialize<IOpenCodeError>(json);
-
-        await Assert.That(result).IsTypeOf<UnknownOpenCodeError>();
-        await Assert.That(result.Tag).IsEqualTo("BrandNewNamedError");
-        await Assert.That(_serializer.Serialize(result)).IsEqualTo(json);
+        _ = await Assert.That(() => _serializer.Deserialize<IOpenCodeError>(json)).Throws<JsonException>();
     }
 
     [Test]
@@ -357,15 +355,14 @@ public sealed class OpenCodeJsonContextTests
     }
 
     [Test]
-    public async Task Carrier_Constructor_Should_Accept_A_Payload_Whose_Name_Marker_Agrees()
+    public async Task Carrier_Constructor_Should_Refuse_A_Payload_Whose_Only_Marker_Is_A_Name()
     {
-        var json = _fixtures.LoadJson("Serialization.unknown-name-tagged-error.json");
-        using var document = JsonDocument.Parse(json);
+        using var document = JsonDocument.Parse(_fixtures.LoadJson("Serialization.unknown-name-tagged-error.json"));
 
-        var unknown = new UnknownOpenCodeError("BrandNewNamedError", document.RootElement);
+        var exception = Assert.Throws<ArgumentException>(() =>
+            _ = new UnknownOpenCodeError("BrandNewNamedError", document.RootElement));
 
-        await Assert.That(unknown.Tag).IsEqualTo("BrandNewNamedError");
-        await Assert.That(_serializer.Serialize<IOpenCodeError>(unknown)).IsEqualTo(json);
+        await Assert.That(exception.ParamName).IsEqualTo("payload");
     }
 
     [Test]

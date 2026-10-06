@@ -216,12 +216,11 @@ dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).
   payload's discriminator (and any fixed outer marker) to agree with the exposed marker properties;
   serialization remains payload-only replay (ADR-0009). Dispatch order is fixed: declared literal
   tags, then the single prefix-tagged arm, then the unknown carrier.
-- A union whose branches are tagged by more than one wire dialect declares those marker properties
-  in a fixed scan order; a payload dispatches on the first of them it carries, one property is
-  scanned per attempt with no JSON DOM for known arms, and a payload carrying none of them is a
-  protocol failure. Its unknown carrier agrees with a payload when any one declared marker
-  property carries the carrier's marker. The error union is the only such union today: `_tag` then
-  `name` (ADR-0007, ADR-0009).
+- Every tagged union dispatches on one marker property. The error union's is `_tag`, which every
+  error the pinned contract declares carries. An error response that references a schema without
+  exactly one required `_tag` literal refuses by name; one that carries a required `name` literal
+  instead is the `{name, data}` error dialect, which the generator does not admit, and refuses as
+  that dialect (ADR-0007, ADR-0009).
 - A tagged union may carry at most one prefix-tagged arm: a direct component object branch whose
   discriminator property is a string constrained by exactly Effect's TemplateLiteral projection
   `^<prefix>[\s\S]*?$`. The arm is the branch whose prefix marker sits on the union's
@@ -229,9 +228,8 @@ dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).
   beside a literal tag — is inert, and that branch stays a literal variant. The literal-tagged
   branches fix the discriminator, so a marked union needs at least one; a union of prefix arms
   alone refuses as sharing no discriminating marker property. No literal tag of the union may
-  start with the prefix, and the arm may not sit inside a nested union, join a multi-dialect
-  union, or be uninhabited; every other shape refuses by name. The live event union's `rpc.` arm
-  is the only such arm today.
+  start with the prefix, and the arm may not sit inside a nested union or be uninhabited; every
+  other shape refuses by name. The live event union's `rpc.` arm is the only such arm today.
 - A marked union is emitted as an interface declaring its discriminator and every property its
   members already agree on. One wire schema remains one sealed record implementing every marked
   union to which it belongs (ADR-0011).

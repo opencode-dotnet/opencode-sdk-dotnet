@@ -11,7 +11,9 @@ namespace OpenCode.Sdk.Internal.BackgroundService.Stop;
 /// shut its persistent terminals down, clear the handoff sidecar through the shared
 /// <see cref="IServicePtyHandoff"/> seam, then hand the registration to the terminator. A missing
 /// or corrupt registration is nothing to stop; a shutdown the daemon refuses is ignored the way the
-/// CLI ignores it; the caller's cancellation is the one thing that is not.
+/// CLI ignores it, and a sidecar that cannot be cleared is ignored the way the client's
+/// <c>stop</c> ignores it, so the terminate always runs; the caller's cancellation is the one
+/// thing that is not ignored.
 /// </summary>
 internal sealed class ServiceStopper(
     IServiceEnvironment environment,
@@ -27,7 +29,7 @@ internal sealed class ServiceStopper(
     /// <param name="cancellationToken">The caller's token.</param>
     /// <returns>A task that completes when the registered process is gone or there was none to stop.</returns>
     /// <exception cref="ArgumentException">The options are blank or contradictory.</exception>
-    /// <exception cref="OpenCodeServerException">No user home resolves for an XDG fallback, the sidecar could not be removed, or the process survived the kill rung.</exception>
+    /// <exception cref="OpenCodeServerException">No user home resolves for an XDG fallback, or the process survived the kill rung.</exception>
     public async Task StopAsync(OpenCodeServerStopOptions? options, CancellationToken cancellationToken)
     {
         var selection = ServiceSelection.Snapshot(options);
@@ -44,12 +46,31 @@ internal sealed class ServiceStopper(
             await ShutdownPersistentTerminalsAsync(registration, cancellationToken).ConfigureAwait(false);
         }
 
-        await ptyHandoff.ClearAsync(paths.RegistrationFile, cancellationToken).ConfigureAwait(false);
+        await ClearSidecarAsync(paths.RegistrationFile, cancellationToken).ConfigureAwait(false);
         if (registration is not null)
         {
             await new ServiceTerminator(fileSystem, processControl, timing)
                 .TerminateAsync(registration, paths.RegistrationFile, cancellationToken)
                 .ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// <c>Service.stop</c>'s clear: best-effort, so a sidecar that cannot be removed never keeps
+    /// the old service running. The caller's cancellation propagates.
+    /// </summary>
+    [SlopwatchSuppress(
+        "SW003",
+        "The pinned client's stop catches a failed clear and only warns (service.ts): terminal handoff is best-effort and must never keep the old service running.")]
+    private async Task ClearSidecarAsync(string registrationFile, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await ptyHandoff.ClearAsync(registrationFile, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OpenCodeServerException)
+        {
+            // Best-effort: the terminate runs next either way.
         }
     }
 

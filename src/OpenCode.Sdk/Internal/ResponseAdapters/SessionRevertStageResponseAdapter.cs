@@ -10,7 +10,7 @@ internal sealed class SessionRevertStageResponseAdapter : ResponseAdapter<Sessio
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["MessageNotFoundError", "SessionNotFoundError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError", "MessageNotFoundError", "SessionNotFoundError"];
     private static readonly string[] Status409Tags = ["SessionBusyError"];
     private static readonly string[] Status500Tags = ["UnknownError"];
     private SessionRevertStageResponseAdapter()

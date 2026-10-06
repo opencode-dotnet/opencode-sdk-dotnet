@@ -10,7 +10,7 @@ internal sealed class AgentResponseAdapter : ResponseAdapter<AgentResponse>
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["AgentNotFoundError"];
+    private static readonly string[] Status404Tags = ["AgentNotFoundError", "LocationNotFoundError"];
     private AgentResponseAdapter()
     {
     }

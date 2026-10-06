@@ -11,7 +11,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(UnknownOpenCodeErrorJsonConverter))]
 public sealed record UnknownOpenCodeError : IOpenCodeError
 {
-    private static readonly string[] MarkerWireNames = ["_tag", "name"];
     private readonly string _marker;
     /// <summary>
     /// Initializes an unknown union value from its marker and raw payload.
@@ -25,13 +24,13 @@ public sealed record UnknownOpenCodeError : IOpenCodeError
             throw new ArgumentException("The payload must be a parsed JSON element.", nameof(payload));
         }
 
-        UnionPayloadGuard.Instance.RequireStringAmong(payload, MarkerWireNames, tag);
+        UnionPayloadGuard.Instance.RequireString(payload, "_tag", tag);
         _marker = tag;
         Payload = payload.Clone();
     }
 
     /// <summary>
-    /// Gets the unrecognized &apos;_tag&apos; or &apos;name&apos; marker.
+    /// Gets the unrecognized &apos;_tag&apos; marker.
     /// </summary>
     [JsonPropertyName("_tag")]
     public string Tag => _marker;

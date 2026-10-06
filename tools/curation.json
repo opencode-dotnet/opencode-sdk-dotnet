@@ -529,6 +529,11 @@
       "operationId": "pty.connect.token",
       "methodName": "CreateConnectTokenAsync",
       "reason": "Upstream summary 'Create PTY WebSocket token': the operation creates a short-lived single-use ticket; the hand-written public door carries the same name (ADR-0021)."
+    },
+    {
+      "operationId": "vcs.init",
+      "methodName": "InitializeRepositoryAsync",
+      "reason": "Upstream summary 'Initialize VCS repository': the operation initializes a repository with the selected provider in a markerless project's directory; 'init' is not a naming verb."
     }
   ],
   "schemaNames": [
@@ -583,6 +588,11 @@
       "reason": "Name the previous-location object by its domain role; the nullable anyOf branch ordinal is a schema pointer detail."
     },
     {
+      "schema": "ServerInfo#/properties/capabilities/anyOf/0",
+      "dotnetName": "ServerInfoCapabilities",
+      "reason": "Name the optional server capabilities object by its domain role; the nullable anyOf branch ordinal is a schema pointer detail."
+    },
+    {
       "schema": "Session.Inbox.MovePayload_1",
       "dotnetName": "SessionInboxMoveEventPayload",
       "reason": "Inbox events and the session log carry Location.Ref with optional workspaceID; the inbox-list MovePayload uses directory-only Location.PublicRef. Preserve these non-equivalent contracts under distinct semantic names."
@@ -632,7 +642,7 @@
   "transportOwned": [
     {
       "operationId": "pty.connect",
-      "subtreeSha256": "3dd5553b9d0c54d4954475fd394a1cb6601bec4630c37484e60ead650c0dafdc",
+      "subtreeSha256": "4c5d5fb7192d17e113e3aeaae4ddf57f3e3522eba39466d1873a602f520b7d44",
       "reason": "The WebSocket session door is hand-written over its own URL/query construction (ADR-0021 Task 5); the operation is never selected into the generation profile, so this fingerprint is the only generation-time check that a spec refresh reshaping method, path, parameters, the x-websocket marker, or declared responses fails loudly instead of drifting silently under the hand-written door."
     },
     {

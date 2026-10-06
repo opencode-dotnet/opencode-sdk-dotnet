@@ -8,7 +8,7 @@ internal sealed class SessionCommandResponseAdapter : ResponseAdapter<SessionCom
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["CommandNotFoundError", "SessionNotFoundError"];
+    private static readonly string[] Status404Tags = ["CommandNotFoundError", "LocationNotFoundError", "SessionNotFoundError"];
     private static readonly string[] Status500Tags = ["CommandExecutionError"];
     private SessionCommandResponseAdapter()
     {

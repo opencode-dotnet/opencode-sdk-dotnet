@@ -8,7 +8,7 @@ internal sealed class SessionRevertCommitResponseAdapter : ResponseAdapter<Sessi
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["SessionNotFoundError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError", "SessionNotFoundError"];
     private static readonly string[] Status409Tags = ["SessionBusyError"];
     private SessionRevertCommitResponseAdapter()
     {

@@ -9,8 +9,61 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.{shortSha}`.
 
+**The pin moves to upstream release tag `v2.0.23`, and all 141 operations it exposes are usable** —
+139 generated and the two terminal WebSocket transports, none declined.
+
+### 💥 Breaking changes
+
+- **`WorktreeError` is a tagged error.** Upstream 2.0.23 declares it with `_tag` beside its `name`
+  and `data`, so `Tag` reads `_tag` and a new required `Name` carries `name`. A body without `_tag`,
+  from a server older than 2.0.23, no longer decodes to a typed error: `Error` is null and
+  `RawBody` keeps the body.
+- **`_tag` is the only error marker.** Every error the 2.0.23 contract declares is tagged, so a
+  `name` is no longer read as an error's marker:
+  - Any error body whose only marker is `name`, not just a worktree failure, no longer decodes to
+    `UnknownOpenCodeError`: `Error` is null and `RawBody` keeps the body.
+  - The public `UnknownOpenCodeError(tag, payload)` constructor throws `ArgumentException` for a
+    payload whose only marker is `name`; the payload must carry the tag under `_tag`.
+- **`OpenCodeServer.EnsureAsync` throws `OpenCodeServerException` on a service whose health
+  protocol is incompatible, where it used to replace it.** A registered daemon that answers
+  `/api/info` with an authenticated 404 is left running and the call throws, unless the call's
+  version requirement is unmet, which still replaces it. Stop it explicitly with `StopAsync` to
+  replace it.
+
+### ✨ Added
+
+- **The accepted snapshot moved to upstream release tag `v2.0.23`**
+  (`0fd7e2829449b052abf0078666669302923d77af`), published as `@opencode/cli@2.0.23`; install it
+  with `npm install -g @opencode/cli@2.0.23`.
+- **A repository can be initialized in a project that has none.**
+  `client.Vcs.InitializeRepositoryAsync(request)` (`vcs.init`) takes an optional `Provider` (git by
+  default); a provider without initialization answers 501 `VcsInitNotSupportedError`.
+- **A missing directory is a typed 404.** Every location- and session-scoped route, and
+  `experimental.generate.text`, `session.diff`, and `session.permission.list` by name, now declare
+  `LocationNotFoundError` (`Location`, `Message`) for a location whose directory does not exist;
+  before 2.0.23 the server failed such a request instead of answering it.
+- **`ServerInfo.Capabilities.PersistentPty`** says whether the server can run the
+  persistent-terminal daemon: `false` on Windows, where `opencode-pty` ships no binaries.
+
 ### 🔧 Changes
 
+- **`EnsureAsync` reports the first contender failure without recruiting replacements.** While a
+  failed contender's error stands, no further contender starts; the call throws it once no contender
+  is live, and at the 120-second bound it throws that failure rather than the timeout. A recovery or
+  replacement that ends the registered service clears it and releases the contenders it made moot.
+  Behaviour change: a call that a recruited replacement contender used to rescue now throws the
+  first contender's failure.
+- **Persistent-terminal handoff and the sidecar clear are best-effort.** Preparing the handoff for
+  a replacement never fails it: a failed or unusable ticket shuts the daemon's terminals down and
+  publishes no ticket, and a sidecar that cannot be written leaves the replacement without one.
+  `StopAsync` and the Ensure replacement end the service even when the sidecar cannot be removed.
+- **`StopAsync` escalates to the hard kill by the signalled process alone.** When the process
+  survives the request to stop, the hard kill follows it even if its registration disappeared or
+  another service registered meanwhile, as upstream's client does; a successor's registration is
+  still never removed. Behaviour change: the stop used to end without the hard kill when the
+  registration changed between the two signals.
+- **A PTY connect refused with HTTP 404 names both causes**: the PTY session or the requested
+  location does not exist.
 - **Both packages declare `IsAotCompatible` on every modern target** (`net8.0` and later), not only
   `net10.0`, so trimming and native AOT analysis cover the `net8.0` and `net9.0` assets too.
 - **On Linux and macOS a standalone server runs in a session of its own, so a Ctrl+C or a hangup
@@ -102,6 +155,14 @@ Nightly builds of `master` are on
   name, so no key was printed; it now prints `[REDACTED]` while the dictionary holds any member and
   empty while it holds none, so the value stays out if printing ever changes. The dictionary and
   serialization are unchanged.
+
+### 📋 Important Notes
+
+- **Upstream's committed OpenAPI document is still stale at `v2.0.23`**
+  ([anomalyco/opencode#53105](https://github.com/anomalyco/opencode/issues/53105)). It lacks
+  `LocationNotFoundError`, and with it the 404 that 95 operations declare or widen for a missing
+  location. This SDK's snapshot comes from upstream's own pinned generator, so a diff against that
+  committed file shows them here; they are real and the server answers them.
 
 ## [0.9.0-preview.6] - 2026-10-04
 

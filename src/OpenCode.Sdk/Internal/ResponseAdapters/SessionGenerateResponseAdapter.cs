@@ -10,7 +10,7 @@ internal sealed class SessionGenerateResponseAdapter : ResponseAdapter<SessionGe
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["SessionNotFoundError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError", "SessionNotFoundError"];
     private static readonly string[] Status503Tags = ["ServiceUnavailableError"];
     private SessionGenerateResponseAdapter()
     {

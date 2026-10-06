@@ -8,7 +8,7 @@ internal sealed class ExperimentalSessionInstructionsEntryResponseAdapter : Resp
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["SessionNotFoundError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError", "SessionNotFoundError"];
     private static readonly string[] Status413Tags = ["InstructionEntryValueTooLargeError"];
     private ExperimentalSessionInstructionsEntryResponseAdapter()
     {

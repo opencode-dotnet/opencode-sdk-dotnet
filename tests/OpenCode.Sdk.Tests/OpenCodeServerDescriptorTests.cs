@@ -224,8 +224,11 @@ public sealed class OpenCodeServerDescriptorTests
     /// <summary>
     /// Every path a start can take leaves none of the pipes it created open in the host: the pipes
     /// new since a snapshot taken before the start are counted after the path ends. The normal close
-    /// also counts them while the server runs, the positive control that shows the snapshot sees a
-    /// start's pipes at all.
+    /// also counts, while the server runs, how many of the server's standard descriptors are pipes
+    /// whose other end the host holds: the positive control that shows a host snapshot sees a start's
+    /// pipes at all. It matches the server's ends to the host's rather than diffing two snapshots,
+    /// because macOS names a pipe end by its kernel address, which a pipe closed after the first
+    /// snapshot can hand on to a new one.
     /// </summary>
     [Test]
     [Timeout(120_000)]
@@ -246,7 +249,7 @@ public sealed class OpenCodeServerDescriptorTests
         var whileRunning = 0;
         try
         {
-            whileRunning = await RunPathAsync(path, runRoot, pidFile, output, before, cancellationToken);
+            whileRunning = await RunPathAsync(path, runRoot, pidFile, output, cancellationToken);
         }
         finally
         {
@@ -265,10 +268,10 @@ public sealed class OpenCodeServerDescriptorTests
         await Assert.That(leaked).IsEmpty();
         if (string.Equals(path, "normal close", StringComparison.Ordinal))
         {
-            await Assert.That(whileRunning).IsGreaterThanOrEqualTo(3);
+            await Assert.That(whileRunning).IsEqualTo(3);
         }
 
-        Console.WriteLine("branch: POSIX — the " + path + " path left no pipe open (" + whileRunning.ToString(CultureInfo.InvariantCulture) + " new while running)");
+        Console.WriteLine("branch: POSIX — the " + path + " path left no pipe open (" + whileRunning.ToString(CultureInfo.InvariantCulture) + " held while running)");
     }
 
     private static async Task<int> RunPathAsync(
@@ -276,7 +279,6 @@ public sealed class OpenCodeServerDescriptorTests
         TestRunRoot runRoot,
         string pidFile,
         OpenCodeServerOutput output,
-        IReadOnlyDictionary<int, OpenDescriptor> before,
         CancellationToken cancellationToken)
     {
         // The stand-in writes its pid before anything else, so the cleanup can end it by its pid
@@ -293,7 +295,7 @@ public sealed class OpenCodeServerDescriptorTests
         {
             case "normal close":
                 var server = await OpenCodeServer.StartAsync(LadderTree.Options(output, TimeSpan.FromSeconds(5)), cancellationToken);
-                var running = OperatingSystem.IsWindows() ? 0 : NewPipes(before, await HostDescriptors.PipesAsync()).Count;
+                var running = OperatingSystem.IsWindows() ? 0 : await HeldStandardPipesAsync(server.ProcessId);
                 await server.DisposeAsync();
                 return running;
             case "readiness timeout":
@@ -369,6 +371,15 @@ public sealed class OpenCodeServerDescriptorTests
 
         ProcessObservation.KillIfRunning(pid);
         _ = await ProcessObservation.ObserveExitWithinAsync(pid, ObservationBound, CancellationToken.None);
+    }
+
+    /// <summary>Counts the child's standard descriptors that are pipes whose other end this host holds.</summary>
+    private static async Task<int> HeldStandardPipesAsync(int processId)
+    {
+        var child = await HostDescriptors.DescriptorsOfAsync(processId);
+        var host = await HostDescriptors.PipesAsync();
+        return Enumerable.Range(0, 3).Count(standard =>
+            child.TryGetValue(standard, out var end) && end.IsPipe && host.Values.Any(held => held.SharesPipeWith(end)));
     }
 
     private static List<string> NewPipes(IReadOnlyDictionary<int, OpenDescriptor> before, IReadOnlyDictionary<int, OpenDescriptor> after) =>

@@ -56,8 +56,8 @@ Mechanical over the pinned document, with no per-union curation and no admission
   reach the bound plan and are ignored by construction. A union with fewer than two members shares
   nothing across arms and hoists nothing.
 - **Dispatch stays dispatch.** The discriminator is never hoisted, and neither is any property a
-  union in the chain reads to dispatch: an alternate dialect's marker, a nested union's marker, or
-  an outer marker a nested union fixes. Discriminator scan order and dispatch are untouched, and a
+  union in the chain reads to dispatch: a nested union's marker, or an outer marker a nested union
+  fixes. Discriminator scan order and dispatch are untouched, and a
   prefix-tagged arm is an ordinary member for its non-discriminator properties.
 - **Inheritance.** A nested union inherits what its outer union promises and does not redeclare it.
 - **Carriers.** When every member promotes its own record for one identical shape, the generator

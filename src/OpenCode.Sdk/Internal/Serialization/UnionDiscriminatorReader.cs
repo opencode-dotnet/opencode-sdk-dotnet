@@ -34,34 +34,6 @@ internal sealed class UnionDiscriminatorReader
         return Dispatch(ref markerReader, propertyName, typesByTag, out type, out marker);
     }
 
-    /// <summary>
-    /// The multi-dialect twin of <see cref="TryFindKnown{TValue}(ref Utf8JsonReader, string, string, FrozenDictionary{string, TValue}, out TValue, out string)"/>:
-    /// the first declared marker property the payload carries decides the dispatch, so a union
-    /// tagged by two wire dialects reads either without a second pass or a JSON DOM. A payload
-    /// carrying none of them is malformed under this union's contract.
-    /// </summary>
-    public bool TryFindKnown<TValue>(
-        ref Utf8JsonReader reader,
-        string conceptName,
-        UnionMarkerTable<TValue>[] markerTables,
-        [MaybeNullWhen(false)] out TValue type,
-        [NotNullWhen(false)] out string? marker)
-    {
-        ArgumentNullException.ThrowIfNull(markerTables);
-
-        foreach (var table in markerTables)
-        {
-            if (!TryFind(ref reader, table.PropertyName, conceptName, out var candidate))
-            {
-                continue;
-            }
-
-            return Dispatch(ref candidate, table.PropertyName, table.Types, out type, out marker);
-        }
-
-        throw new JsonException($"The {conceptName} payload must contain {DescribeMarkers(markerTables)}.");
-    }
-
     public bool ReadBoolean(ref Utf8JsonReader reader, string propertyName, string conceptName)
     {
         var marker = Find(ref reader, propertyName, conceptName);
@@ -89,17 +61,6 @@ internal sealed class UnionDiscriminatorReader
         {
             throw new JsonException($"The '{propertyName}' marker must be '{expected}'.");
         }
-    }
-
-    private static string DescribeMarkers<TValue>(UnionMarkerTable<TValue>[] markerTables)
-    {
-        var names = new string[markerTables.Length];
-        for (var index = 0; index < markerTables.Length; index++)
-        {
-            names[index] = $"'{markerTables[index].PropertyName}'";
-        }
-
-        return string.Join(" or ", names);
     }
 
     private static bool Dispatch<TValue>(
@@ -154,17 +115,12 @@ internal sealed class UnionDiscriminatorReader
         return false;
     }
 
-    private Utf8JsonReader Find(ref Utf8JsonReader reader, string propertyName, string conceptName) =>
-        TryFind(ref reader, propertyName, conceptName, out var marker)
-            ? marker
-            : throw new JsonException($"The {conceptName} payload must contain '{propertyName}'.");
-
     /// <summary>
-    /// Scans for one marker property without judging its absence: a union dispatching on more
-    /// than one dialect asks for each in turn, and only the last absence is a malformed payload.
-    /// A payload that is not a well-formed object still throws here, on the first ask.
+    /// Scans a copy of the reader for the last top-level occurrence of the marker property and
+    /// returns a reader positioned on its value. A payload that is not a well-formed object, or
+    /// that does not carry the property, is malformed under the union's contract.
     /// </summary>
-    private bool TryFind(ref Utf8JsonReader reader, string propertyName, string conceptName, out Utf8JsonReader value)
+    private Utf8JsonReader Find(ref Utf8JsonReader reader, string propertyName, string conceptName)
     {
         if (reader.TokenType != _objectToken)
         {
@@ -199,7 +155,8 @@ internal sealed class UnionDiscriminatorReader
             }
         }
 
-        value = marker;
-        return found;
+        return found
+            ? marker
+            : throw new JsonException($"The {conceptName} payload must contain '{propertyName}'.");
     }
 }

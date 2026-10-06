@@ -8,7 +8,7 @@ internal sealed class SessionPermissionReplyResponseAdapter : ResponseAdapter<Se
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["PermissionNotFoundError", "SessionNotFoundError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError", "PermissionNotFoundError", "SessionNotFoundError"];
     private SessionPermissionReplyResponseAdapter()
     {
     }

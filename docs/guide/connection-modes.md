@@ -352,10 +352,13 @@ What it does, in order:
    hard kill, because another process cannot be signalled there.
 5. Removes the registration once the process is gone.
 
-Before every signal and before the removal it re-reads the registration and checks that it still
-names the same service (`id`, `version`, `url`, `pid`), and it identifies the process by pid *and*
-start time — before every signal and at every look while it waits — so a service that re-registered
-under the file, or a pid the operating system handed to an unrelated process, is never signalled.
+Before the first signal and before the removal it re-reads the registration and checks that it
+still names the same service (`id`, `version`, `url`, `pid`), so a service that re-registered under
+the file before the stop began is never signalled and a successor's registration is never removed.
+Once the first signal is sent, the hard kill follows that process alone, even when its registration
+disappears or changes hands meanwhile. It identifies the process by pid *and* start time — before
+every signal and at every look while it waits — so a pid the operating system handed to an
+unrelated process is never signalled.
 
 `OpenCodeServerStopOptions` has three optional members; leave the whole thing out to stop the
 shared release registration.
@@ -368,10 +371,10 @@ shared release registration.
 
 The call completes successfully when there is nothing to stop: no registration, or one that does
 not decode. It throws `ArgumentException` for blank or contradictory options;
-`OpenCodeServerException` when the registration roots cannot be located, when the sidecar cannot be
-removed, or when the process is still running after the hard kill — the registration is then left
-in place; and `OperationCanceledException` for your own token, where cancelling before a signal
-prevents it and cancelling after one ends the wait without undoing the signal.
+`OpenCodeServerException` when the registration roots cannot be located, or when the process is
+still running after the hard kill — the registration is then left in place; and
+`OperationCanceledException` for your own token, where cancelling before a signal prevents it and
+cancelling after one ends the wait without undoing the signal.
 
 ### 🟢 Ensuring the background service
 
@@ -419,9 +422,11 @@ for a registration that appears somewhere else.
 
 It throws `ArgumentException` for blank or contradictory options, an empty command, or `Replace`
 and `Error` without `ExpectedVersion`; `OpenCodeServerException` when the roots cannot be located,
-the command cannot be resolved, a contender or the registered service failed to start, `Error` met a service at another
-version, or the 120-second bound expired (with the last failed replacement as the inner exception,
-when there was one); and `OperationCanceledException` for your own token.
+the command cannot be resolved, a contender or the registered service failed to start, the registered
+service speaks an incompatible health protocol at a version the call accepts, `Error` met a service
+at another version, or the 120-second bound expired (a contender's failure when one failed, and
+otherwise the timeout with the last failed replacement as the inner exception, when there was one);
+and `OperationCanceledException` for your own token.
 
 ## 🧩 Registering with dependency injection
 

@@ -10,6 +10,7 @@ internal sealed class ShellListResponseAdapter : ResponseAdapter<ShellListRespon
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError"];
     private ShellListResponseAdapter()
     {
     }
@@ -28,6 +29,7 @@ internal sealed class ShellListResponseAdapter : ResponseAdapter<ShellListRespon
         >= 200 and < 300 => StatusVerdict.UndeclaredSuccess,
         400 => StatusVerdict.DeclaredError,
         401 => StatusVerdict.DeclaredError,
+        404 => StatusVerdict.DeclaredError,
         _ => StatusVerdict.UndeclaredError
     };
     /// <summary>
@@ -46,6 +48,7 @@ internal sealed class ShellListResponseAdapter : ResponseAdapter<ShellListRespon
             >= 200 and < 300 => throw StatusVerdictFailures.UndeclaredSuccess(status),
             400 => new ShellListResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
             401 => new ShellListResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
+            404 => new ShellListResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
             _ => new ShellListResponse(status, ReadTolerantError(rawBody, null), rawBody)
         };
     }

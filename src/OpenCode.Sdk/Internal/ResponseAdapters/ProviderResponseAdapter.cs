@@ -10,7 +10,7 @@ internal sealed class ProviderResponseAdapter : ResponseAdapter<ProviderResponse
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["ProviderNotFoundError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError", "ProviderNotFoundError"];
     private static readonly string[] Status503Tags = ["ServiceUnavailableError"];
     private ProviderResponseAdapter()
     {

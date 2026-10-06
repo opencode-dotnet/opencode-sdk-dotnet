@@ -954,11 +954,13 @@ namespace OpenCode.Sdk
             public const string GetDiffTemplate = "/api/vcs/diff";
             public const string GetStatusTemplate = "/api/vcs/status";
             public const string GetVcsTemplate = "/api/vcs";
+            public const string InitializeRepositoryTemplate = "/api/vcs/init";
             public const string ListBranchesTemplate = "/api/vcs/branch";
             public static string GetBase(OpenCode.Sdk.VcsBaseRequest? request = null) { }
             public static string GetDiff(OpenCode.Sdk.VcsDiffRequest request) { }
             public static string GetStatus(OpenCode.Sdk.VcsStatusRequest? request = null) { }
             public static string GetVcs(OpenCode.Sdk.VcsRequest? request = null) { }
+            public static string InitializeRepository(OpenCode.Sdk.VcsInitRequest? request = null) { }
             public static string ListBranches(OpenCode.Sdk.VcsBranchListRequest? request = null) { }
         }
         public static class Websearch
@@ -1945,6 +1947,7 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.VcsDiffResponse> GetDiffAsync(OpenCode.Sdk.VcsDiffRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.VcsStatusResponse> GetStatusAsync(OpenCode.Sdk.VcsStatusRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.VcsResponse> GetVcsAsync(OpenCode.Sdk.VcsRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.VcsInitResponse> InitializeRepositoryAsync(OpenCode.Sdk.VcsInitRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.VcsBranchListResponse> ListBranchesAsync(OpenCode.Sdk.VcsBranchListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
     public sealed class VcsDiffRequest : System.IEquatable<OpenCode.Sdk.VcsDiffRequest>
@@ -1961,6 +1964,16 @@ namespace OpenCode.Sdk
         public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.FileDiffInfo> Diffs { get; init; }
         public required OpenCode.Sdk.Models.LocationPublicRef Location { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
+    public sealed class VcsInitRequest : System.IEquatable<OpenCode.Sdk.VcsInitRequest>
+    {
+        public VcsInitRequest() { }
+        public OpenCode.Sdk.LocationSelector? Location { get; init; }
+        public string? Provider { get; init; }
+    }
+    public sealed class VcsInitResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.VcsInitResponse>
+    {
+        public VcsInitResponse() { }
     }
     public sealed class VcsRequest : System.IEquatable<OpenCode.Sdk.VcsRequest>
     {
@@ -4690,6 +4703,16 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("_tag")]
         public string Tag { get; }
     }
+    public sealed class LocationNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.LocationNotFoundError>
+    {
+        public LocationNotFoundError() { }
+        [System.Text.Json.Serialization.JsonPropertyName("location")]
+        public required OpenCode.Sdk.Models.LocationPublicRef Location { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("message")]
+        public required string Message { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("_tag")]
+        public string Tag { get; }
+    }
     public sealed class LocationPublicInfo : System.IEquatable<OpenCode.Sdk.Models.LocationPublicInfo>
     {
         public LocationPublicInfo() { }
@@ -6439,6 +6462,9 @@ namespace OpenCode.Sdk.Models
     public sealed class ServerInfo : System.IEquatable<OpenCode.Sdk.Models.ServerInfo>
     {
         public ServerInfo() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("capabilities")]
+        public OpenCode.Sdk.Models.ServerInfoCapabilities? Capabilities { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("paths")]
         public required OpenCode.Sdk.Models.ServerInfoPaths Paths { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("pid")]
@@ -6447,6 +6473,13 @@ namespace OpenCode.Sdk.Models
         public required System.Collections.Generic.IReadOnlyList<string> Urls { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required string Version { get; init; }
+    }
+    public sealed class ServerInfoCapabilities : System.IEquatable<OpenCode.Sdk.Models.ServerInfoCapabilities>
+    {
+        public ServerInfoCapabilities() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("persistentPty")]
+        public bool? PersistentPty { get; init; }
     }
     public sealed class ServerInfoPaths : System.IEquatable<OpenCode.Sdk.Models.ServerInfoPaths>
     {
@@ -10941,6 +10974,16 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("provider")]
         public string? Provider { get; init; }
     }
+    public sealed class VcsInitNotSupportedError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.VcsInitNotSupportedError>
+    {
+        public VcsInitNotSupportedError() { }
+        [System.Text.Json.Serialization.JsonPropertyName("message")]
+        public required string Message { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("providerID")]
+        public required string ProviderId { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("_tag")]
+        public string Tag { get; }
+    }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.VcsMode>))]
     public enum VcsMode
     {
@@ -11050,6 +11093,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("data")]
         public required OpenCode.Sdk.Models.WorktreeErrorData Data { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public required string Name { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("_tag")]
         public string Tag { get; }
     }
     public sealed class WorktreeErrorData : System.IEquatable<OpenCode.Sdk.Models.WorktreeErrorData>

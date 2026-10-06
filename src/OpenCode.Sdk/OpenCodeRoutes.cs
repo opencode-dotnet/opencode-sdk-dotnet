@@ -2978,6 +2978,29 @@ public static class OpenCodeRoutes
         }
 
         /// <summary>
+        /// The &apos;POST /api/vcs/init&apos; route template.
+        /// </summary>
+        public const string InitializeRepositoryTemplate = "/api/vcs/init";
+        /// <summary>
+        /// Builds the &apos;/api/vcs/init&apos; route.
+        /// </summary>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string InitializeRepository(VcsInitRequest? request = null)
+        {
+            var path = "/api/vcs/init";
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddLocation("location", request.Location);
+            query.AddText("provider", request.Provider);
+            return path + query.Value;
+        }
+
+        /// <summary>
         /// The &apos;GET /api/vcs/branch&apos; route template.
         /// </summary>
         public const string ListBranchesTemplate = "/api/vcs/branch";

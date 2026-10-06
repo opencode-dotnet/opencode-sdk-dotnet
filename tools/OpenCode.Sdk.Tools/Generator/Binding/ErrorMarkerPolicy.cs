@@ -1,64 +1,44 @@
-using System.Diagnostics.CodeAnalysis;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
 /// <summary>
-/// Owns the one rule that maps an error dialect to the wire property carrying its tag, so the
-/// error-union binder, the per-status error map, and the emitted converter never spell the
-/// marker names themselves. The order is the order the generated converter scans the payload:
-/// an Effect <c>_tag</c> first, then the <c>{name, data}</c> dialect. A dialect absent from this
-/// table has no marker and is refused by name (ADR-0007 admits tagged payloads, not untagged ones).
-/// The same two names are spelled once more in <c>Ingestion/Projection/ErrorStyleClassifier</c>,
-/// which recognizes the dialect from a schema's properties; the two layers must agree, so a
-/// dialect added there needs a row here.
+/// Owns the one rule that names the wire property carrying an error's tag, so the error-union
+/// binder, the per-status error map, and the emitted converter never spell it themselves: every
+/// typed error is tagged by a required literal <c>_tag</c>. A schema without one is refused by
+/// name, and a schema that carries a required literal <c>name</c> instead is refused as the
+/// <c>{name, data}</c> error dialect, which the generator does not admit. The same marker is
+/// spelled once more in <c>Ingestion/Projection/ErrorStyleClassifier</c>, which recognizes it
+/// from a schema's properties; the two must agree.
 /// </summary>
 internal static class ErrorMarkerPolicy
 {
-    private static readonly (ErrorStyle Style, string WireName)[] Dialects =
-    [
-        (ErrorStyle.EffectTag, "_tag"),
-        (ErrorStyle.NameData, "name"),
-    ];
+    /// <summary>The wire property every typed error carries its tag under.</summary>
+    public const string WireName = "_tag";
 
-    /// <summary>Gets every admitted marker property, in the order a payload is scanned for one.</summary>
-    public static IReadOnlyList<string> ScanOrder { get; } =
-        Array.AsReadOnly([.. Dialects.Select(static dialect => dialect.WireName)]);
-
-    public static bool TryGetWireName(ErrorStyle style, [NotNullWhen(true)] out string? wireName)
-    {
-        foreach (var (candidate, name) in Dialects)
-        {
-            if (candidate == style)
-            {
-                wireName = name;
-                return true;
-            }
-        }
-
-        wireName = null;
-        return false;
-    }
+    private const string NameDialectWireName = "name";
 
     /// <summary>
-    /// Resolves the single literal marker an error schema dispatches on. A schema whose dialect
-    /// has no marker property, or that does not carry exactly one required literal under it,
-    /// resolves to <see langword="null"/> and states why.
+    /// Resolves the single literal marker an error schema dispatches on. A schema that does not
+    /// carry exactly one required <c>_tag</c> literal resolves to <see langword="null"/> and
+    /// states why.
     /// </summary>
     public static LiteralMarker? Resolve(ObjectNode node, out string problem)
     {
         ArgumentNullException.ThrowIfNull(node);
 
-        if (!TryGetWireName(node.ErrorStyle, out var wireName))
+        if (node.ErrorStyle is not ErrorStyle.EffectTag)
         {
-            problem = $"error style '{node.ErrorStyle}' declares no tag marker property";
+            problem = node.LiteralMarkers.Any(static marker => string.Equals(marker.PropertyName, NameDialectWireName, StringComparison.Ordinal))
+                ? $"the error carries a required '{NameDialectWireName}' literal and no '{WireName}' literal: the {{name, data}} error dialect is not admitted, so every typed error must be tagged by '{WireName}'"
+                : $"error style '{node.ErrorStyle}' declares no tag marker property";
             return null;
         }
 
-        var markers = node.LiteralMarkers.Where(marker => string.Equals(marker.PropertyName, wireName, StringComparison.Ordinal)).ToArray();
+        var markers = node.LiteralMarkers.Where(static marker => string.Equals(marker.PropertyName, WireName, StringComparison.Ordinal)).ToArray();
         if (markers is not [var marker])
         {
-            problem = $"a tagged error must declare exactly one required '{wireName}' literal";
+            problem = $"a tagged error must declare exactly one required '{WireName}' literal";
             return null;
         }
 

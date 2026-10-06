@@ -8,7 +8,7 @@ internal sealed class IntegrationOauthCompleteResponseAdapter : ResponseAdapter<
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["IntegrationAttemptNotFoundError", "IntegrationNotFoundError"];
+    private static readonly string[] Status404Tags = ["IntegrationAttemptNotFoundError", "IntegrationNotFoundError", "LocationNotFoundError"];
     private IntegrationOauthCompleteResponseAdapter()
     {
     }

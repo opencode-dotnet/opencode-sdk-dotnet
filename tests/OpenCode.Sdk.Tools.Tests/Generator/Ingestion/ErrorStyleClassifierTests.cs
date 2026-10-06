@@ -20,7 +20,7 @@ public sealed class ErrorStyleClassifierTests
     }
 
     [Test]
-    public async Task Project_Should_Classify_NameData_Error_Style()
+    public async Task Project_Should_Classify_A_Name_Data_Schema_As_No_Error()
     {
         var host = new SchemaProjectionTestHost();
         var scenario = SpecScenario.Define(spec => spec.WithSchema("NamedError", schema => schema
@@ -30,20 +30,6 @@ public sealed class ErrorStyleClassifierTests
 
         var result = await host.ProjectAsync(scenario);
 
-        await Assert.That(((ObjectNode)result.Schemas["NamedError"]).ErrorStyle).IsEqualTo(ErrorStyle.NameData);
-    }
-
-    [Test]
-    public async Task Project_Should_Classify_None_When_NameData_Requirements_Are_Not_Met()
-    {
-        var host = new SchemaProjectionTestHost();
-        var scenario = SpecScenario.Define(spec => spec.WithSchema("NotAnError", schema => schema
-            .Type("object")
-            .Property("name", property => property.Type("string").Enum("NotAnError"), required: true)
-            .Property("data", property => property.Type("object"))));
-
-        var result = await host.ProjectAsync(scenario);
-
-        await Assert.That(((ObjectNode)result.Schemas["NotAnError"]).ErrorStyle).IsEqualTo(ErrorStyle.None);
+        await Assert.That(((ObjectNode)result.Schemas["NamedError"]).ErrorStyle).IsEqualTo(ErrorStyle.None);
     }
 }

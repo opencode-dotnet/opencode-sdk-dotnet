@@ -219,4 +219,56 @@ public sealed class VcsClientContractTests
         await Assert.That(response.Status).IsEqualTo(401);
         await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
     }
+
+    [Test]
+    public async Task InitializeRepositoryAsync_Should_Post_The_Provider_And_Location_And_Accept_No_Content()
+    {
+        using var scenario = ContractScenario.Responding(HttpStatusCode.NoContent, string.Empty);
+
+        var response = await scenario.Client.Vcs.InitializeRepositoryAsync(new VcsInitRequest
+        {
+            Location = new LocationSelector { Directory = "/repo" },
+            Provider = "hg",
+        });
+
+        await Assert.That(response.IsError).IsFalse();
+        await Assert.That(response.Status).IsEqualTo(204);
+        var recorded = scenario.Requests.Single();
+        await Assert.That(recorded.Method.Method).IsEqualTo("POST");
+        await Assert.That(recorded.RequestUri!.AbsoluteUri)
+            .IsEqualTo("http://localhost:4096/api/vcs/init?location[directory]=%2Frepo&provider=hg");
+    }
+
+    [Test]
+    public async Task InitializeRepositoryAsync_Should_Throw_The_Declared_501_Error()
+    {
+        using var scenario = ContractScenario.Responding(
+            HttpStatusCode.NotImplemented,
+            "{\"_tag\":\"VcsInitNotSupportedError\",\"providerID\":\"svn\",\"message\":\"svn cannot initialize\"}");
+
+        var exception = await Assert
+            .That(async () => _ = await scenario.Client.Vcs.InitializeRepositoryAsync(new VcsInitRequest { Provider = "svn" }))
+            .Throws<OpenCodeApiException>();
+
+        await Assert.That(exception!.Status).IsEqualTo(501);
+        await Assert.That(exception.Error).IsTypeOf<VcsInitNotSupportedError>();
+        await Assert.That(((VcsInitNotSupportedError)exception.Error!).ProviderId).IsEqualTo("svn");
+    }
+
+    [Test]
+    public async Task GetStatusAsync_Should_Return_The_404_Missing_Location_On_The_NoThrow_Spine()
+    {
+        using var scenario = ContractScenario.Responding(
+            HttpStatusCode.NotFound,
+            "{\"_tag\":\"LocationNotFoundError\",\"location\":{\"directory\":\"/gone\"},\"message\":\"Location not found: /gone\"}");
+
+        var response = await scenario.Client.Vcs.GetStatusAsync(
+            new VcsStatusRequest { Location = new LocationSelector { Directory = "/gone" } },
+            OpenCodeRequestOptions.NoThrow);
+
+        await Assert.That(response.IsError).IsTrue();
+        await Assert.That(response.Status).IsEqualTo(404);
+        await Assert.That(response.Error).IsTypeOf<LocationNotFoundError>();
+        await Assert.That(((LocationNotFoundError)response.Error!).Location.Directory).IsEqualTo("/gone");
+    }
 }

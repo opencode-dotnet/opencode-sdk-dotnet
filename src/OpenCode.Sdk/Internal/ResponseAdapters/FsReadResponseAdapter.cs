@@ -8,7 +8,7 @@ internal sealed class FsReadResponseAdapter : ResponseAdapter<FsReadResponse>
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["FileNotFoundError"];
+    private static readonly string[] Status404Tags = ["FileNotFoundError", "LocationNotFoundError"];
     private FsReadResponseAdapter()
     {
     }
