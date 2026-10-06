@@ -369,15 +369,21 @@ public sealed class ServicePtyHandoffTests
     public async Task PrepareAsync_Should_Take_The_Fallback_When_The_Request_Bound_Expires()
     {
         // The ticket request and the shutdown both outlive their bound; neither expiry is the
-        // caller's cancellation, so both are failures the best-effort path absorbs.
+        // caller's cancellation, so both are failures the best-effort path absorbs. The shutdown
+        // seam records the call and holds it until its own bound cancels it, so the proof rests on
+        // the two timers alone, not on how fast a loaded host delivers a request.
         EnsureSidecarDirectory();
         await using var server = LoopbackHttpServer.Start(static _ => Hold(HttpStatusCode.OK, "{}"));
+        var shutdown = new BoundOutlivingShutdown();
+        var registration = Registration(server.Endpoint);
 
-        await Handoff().PrepareAsync(
-            RegistrationPath(), Registration(server.Endpoint), TimeSpan.FromMilliseconds(200), CancellationToken.None);
+        await new ServicePtyHandoff(new TestablyServiceFileSystem(_fileSystem), _clock, shutdown).PrepareAsync(
+            RegistrationPath(), registration, TimeSpan.FromMilliseconds(200), CancellationToken.None);
 
         await Assert.That(ReadSidecar()!.Handoff).IsNull();
-        await Assert.That(server.RequestPaths).Contains(ShutdownPath);
+        await Assert.That(shutdown.Calls).IsEqualTo(1);
+        await Assert.That(shutdown.Received).IsSameReferenceAs(registration);
+        await Assert.That(shutdown.EndedByItsBound).IsTrue();
         server.ReleaseResponses();
     }
 
@@ -544,6 +550,35 @@ public sealed class ServicePtyHandoffTests
             Body = "{}",
             KeepOpen = true,
         };
+    }
+
+    /// <summary>A shutdown seam that records its call and answers only when its token is cancelled.</summary>
+    private sealed class BoundOutlivingShutdown : IServicePtyShutdown
+    {
+        public int Calls { get; private set; }
+
+        public ServiceRegistration? Received { get; private set; }
+
+        public bool EndedByItsBound { get; private set; }
+
+        public async Task ShutdownAsync(ServiceRegistration registration, CancellationToken cancellationToken)
+        {
+            Calls++;
+            Received = registration;
+            var held = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(() => held.TrySetCanceled(cancellationToken)))
+            {
+                try
+                {
+                    _ = await held.Task.ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    EndedByItsBound = true;
+                    throw;
+                }
+            }
+        }
     }
 
     /// <summary>An answer the server sends only after <see cref="LoopbackHttpServer.ReleaseResponses"/>.</summary>
