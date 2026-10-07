@@ -193,11 +193,6 @@ These do not block `1.0.0` and run beside the road.
   (`net472` is Windows-only), and no CI leg runs the combination, so it is recorded rather than
   tested; the README's Known Issues carries the consumer-facing sentence. Reopens if a supported
   target ever needs that arm or if Polyfill quotes the path.
-- **The Windows Ensure contender does not yet follow upstream's spawn flags.** Upstream 2.0.23
-  spawns contenders hidden (`windowsHide`), which the SDK's Windows spawn does not request
-  (`STARTF_USESHOWWINDOW` with `SW_HIDE`), and the creation flag the spawn names `DetachedProcess`
-  carries `CREATE_NO_WINDOW` (`0x08000000`) where ADR-0027 names `DETACHED_PROCESS` (`0x8`). Held
-  for a maintainer decision, because the flag choice departs from an accepted ADR.
 - **A pid reused before `StopAsync` runs is indistinguishable from a wedged daemon.** The
   registration names a pid and no process start time, so a daemon that died and whose pid the
   operating system handed to an unrelated process before a stop ran looks, to the file, like the

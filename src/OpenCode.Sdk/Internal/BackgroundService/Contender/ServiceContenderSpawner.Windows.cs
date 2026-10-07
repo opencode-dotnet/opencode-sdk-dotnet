@@ -7,14 +7,28 @@ using static OpenCode.Sdk.Internal.BackgroundService.ProcessControl.BackgroundSe
 
 namespace OpenCode.Sdk.Internal.BackgroundService.Contender;
 
-/// <summary>The Windows arm: <c>CreateProcessW</c> with <c>DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP</c>, NUL stdin and stdout, the stderr pipe, and an explicit inherited-handle list.</summary>
+/// <summary>
+/// The Windows arm: <c>CreateProcessW</c> with the creation flags and show state libuv's
+/// <c>uv_spawn</c> gives a child Node spawns <c>detached</c> and <c>windowsHide</c> with no
+/// standard stream inherited (<c>DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW</c>,
+/// <c>STARTF_USESHOWWINDOW</c> with <c>SW_HIDE</c>), NUL stdin and stdout, the stderr pipe, and an
+/// explicit inherited-handle list.
+/// </summary>
 internal sealed partial class ServiceContenderSpawner
 {
-    /// <summary><c>DETACHED_PROCESS</c>: no console, and the parent's console control events never reach the contender.</summary>
-    private const uint DetachedProcess = 0x08000000;
+    /// <summary><c>DETACHED_PROCESS</c>: the contender gets no console, so the console control events of the console the host runs in never reach it.</summary>
+    private const uint DetachedProcess = 0x00000008;
 
-    /// <summary><c>CREATE_NEW_PROCESS_GROUP</c>: the contender roots its own group, Ctrl+C included.</summary>
+    /// <summary><c>CREATE_NEW_PROCESS_GROUP</c>: the contender roots its own process group and starts with Ctrl+C ignored, an attribute its own children inherit.</summary>
     private const uint NewProcessGroup = 0x00000200;
+
+    /// <summary>
+    /// <c>CREATE_NO_WINDOW</c>: no window for a console of the contender's own. Windows ignores it
+    /// beside <c>DETACHED_PROCESS</c>, which already leaves the contender without a console;
+    /// libuv sets it for a hidden spawn whenever no standard stream is inherited, which is this
+    /// spawn's shape, so the flag word is the one a hidden detached Node child gets.
+    /// </summary>
+    private const uint NoWindow = 0x08000000;
 
     /// <summary><c>CREATE_UNICODE_ENVIRONMENT</c>: the environment block below is UTF-16.</summary>
     private const uint UnicodeEnvironment = 0x00000400;
@@ -24,6 +38,12 @@ internal sealed partial class ServiceContenderSpawner
 
     /// <summary><c>STARTF_USESTDHANDLES</c>: the three standard handles come from the startup info.</summary>
     private const uint UseStandardHandles = 0x00000100;
+
+    /// <summary><c>STARTF_USESHOWWINDOW</c>: the first window the contender shows takes the startup info's show state.</summary>
+    private const uint UseShowWindow = 0x00000001;
+
+    /// <summary><c>SW_HIDE</c>: that window starts hidden, so a contender that opens one never flashes it on the desktop.</summary>
+    private const short HideWindow = 0;
 
     private const uint GenericRead = 0x80000000;
     private const uint GenericWrite = 0x40000000;
@@ -250,7 +270,8 @@ internal sealed partial class ServiceContenderSpawner
             Startup = new StartupInfo
             {
                 StructureSize = (uint)Marshal.SizeOf<StartupInfoEx>(),
-                Flags = UseStandardHandles,
+                Flags = UseStandardHandles | UseShowWindow,
+                ShowWindow = HideWindow,
                 StandardInput = inherited[0],
                 StandardOutput = inherited[0],
                 StandardError = inherited[1],
@@ -263,7 +284,7 @@ internal sealed partial class ServiceContenderSpawner
                 IntPtr.Zero,
                 IntPtr.Zero,
                 inheritHandles: true,
-                DetachedProcess | NewProcessGroup | UnicodeEnvironment | ExtendedStartupInfo,
+                DetachedProcess | NewProcessGroup | NoWindow | UnicodeEnvironment | ExtendedStartupInfo,
                 environmentBlock,
                 null,
                 ref startup,

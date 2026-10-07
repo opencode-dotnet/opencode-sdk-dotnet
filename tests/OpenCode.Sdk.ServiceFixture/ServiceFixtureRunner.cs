@@ -39,7 +39,7 @@ internal static class ServiceFixtureRunner
     private static async Task<int> UsageAsync()
     {
         await Console.Error
-            .WriteLineAsync("Usage: discover-default | discover-channel <channel> | ensure-channel <channel> <ledger> | stop-channel <channel> | idle | ignore-sigterm | contender-probe echo-argv-env [name …] | stderr-fill [bytes] | daemon-sleep | stall | stale | launcher-host <command …>")
+            .WriteLineAsync("Usage: discover-default | discover-channel <channel> | ensure-channel <channel> <ledger> | stop-channel <channel> | idle | ignore-sigterm | contender-probe echo-argv-env [name …] | stderr-fill [bytes] | daemon-sleep | stall | stale | console-report | group-report | group-member | launcher-host <command …>")
             .ConfigureAwait(false);
         return 2;
     }

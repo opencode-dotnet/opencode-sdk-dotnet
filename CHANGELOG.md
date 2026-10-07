@@ -9,6 +9,15 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.{shortSha}`.
 
+### 🐛 Fixes
+
+- **`OpenCodeServer.EnsureAsync` starts the background service on Windows the way upstream's
+  client does: detached, with no console, and hidden.** The service it started had a windowless
+  console of its own instead, and no hidden show state for a window it might open. It now starts
+  with no console at all, in a process group of its own, and with any window it opens starting
+  hidden. Behaviour change: the background service an Ensure call starts on Windows no longer has
+  a console.
+
 ## [0.9.0-preview.7] - 2026-10-06
 
 **The pin moves to upstream release tag `v2.0.23`, and all 141 operations it exposes are
