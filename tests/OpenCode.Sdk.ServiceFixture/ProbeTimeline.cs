@@ -17,16 +17,30 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// </summary>
 /// <remarks>
 /// The lines are diagnostics, with one exception: the stale-registration test reads the socket's
-/// refused-connect event as the witness of the refusal. No line contains the verdict text
-/// <c>probe timedOut=</c> the tests read. Every line starts with <c>timeline</c>.
+/// refused-connect event as the witness of the refusal, and the stamps of that event and of the
+/// connect start before it as the refused connect's duration. Each event is stamped the moment the
+/// listener receives it, before its payload is rendered. Rendering runs synchronously on the
+/// connecting thread, so it can only lengthen that duration, never shorten it, and the connect
+/// start's rendering is its source and event name alone. No line contains the verdict text <c>probe timedOut=</c> the tests read.
+/// Every line starts with <c>timeline</c>.
 /// </remarks>
 internal sealed class ProbeTimeline : EventListener
 {
-    private const string RequestFailedDetailed = "RequestFailedDetailed";
+    private const string HttpSourceName = "System.Net.Http";
+
+    /// <summary>
+    /// Every keyword except <c>System.Net.Http</c>'s keyword 1, the one that gates
+    /// <c>RequestFailedDetailed</c>. That event's payload is the failure's full <c>ToString()</c>, which
+    /// <c>HttpClient</c> renders inside its own failure path, after the refusal and before the
+    /// exception reaches the probe. On a starved process the rendering took hundreds of milliseconds
+    /// to over a second, enough to carry a refusal that arrived inside the probe's bound past it.
+    /// Events without keywords, which are all the others this timeline reads, stay enabled.
+    /// </summary>
+    private const EventKeywords AllButRequestFailedDetailed = (EventKeywords)~1L;
 
     private const string AddressPayload = "address";
 
-    private static readonly string[] SourceNames = ["System.Net.Http", "System.Net.Sockets", "System.Net.NameResolution"];
+    private static readonly string[] SourceNames = [HttpSourceName, "System.Net.Sockets", "System.Net.NameResolution"];
 
     /// <summary>
     /// The moment the mode started. Like <see cref="_lines"/> it is a field initializer, which runs
@@ -42,7 +56,7 @@ internal sealed class ProbeTimeline : EventListener
 
     /// <summary>Records a named moment of the discovery mode itself.</summary>
     /// <param name="text">What happened.</param>
-    public void Mark(string text) => _lines.Enqueue(Line(text));
+    public void Mark(string text) => _lines.Enqueue(Line(Stopwatch.GetElapsedTime(_origin), text));
 
     /// <summary>Renders every recorded line, then the process's startup and CPU time.</summary>
     /// <returns>The timeline, one line per event.</returns>
@@ -73,20 +87,15 @@ internal sealed class ProbeTimeline : EventListener
         ArgumentNullException.ThrowIfNull(eventSource);
         if (Array.IndexOf(SourceNames, eventSource.Name) >= 0)
         {
-            EnableEvents(eventSource, EventLevel.Informational);
+            var keywords = eventSource.Name == HttpSourceName ? AllButRequestFailedDetailed : EventKeywords.None;
+            EnableEvents(eventSource, EventLevel.Informational, keywords);
         }
     }
 
     protected override void OnEventWritten(EventWrittenEventArgs eventData)
     {
         ArgumentNullException.ThrowIfNull(eventData);
-
-        // RequestFailedDetailed carries the failed request's full stack trace, which repeats the
-        // failure RequestFailed already names and buries the timeline under it.
-        if (eventData.EventName == RequestFailedDetailed)
-        {
-            return;
-        }
+        var stamp = Stopwatch.GetElapsedTime(_origin);
 
         var text = new StringBuilder()
             .Append(eventData.EventSource.Name)
@@ -111,7 +120,7 @@ internal sealed class ProbeTimeline : EventListener
             }
         }
 
-        _lines.Enqueue(Line(text.ToString()));
+        _lines.Enqueue(Line(stamp, text.ToString()));
     }
 
     /// <summary>The wall-clock gap between the process's creation and now: the process start time is a wall-clock value, so no monotonic clock can measure it.</summary>
@@ -124,6 +133,6 @@ internal sealed class ProbeTimeline : EventListener
     private static string Milliseconds(TimeSpan span) =>
         span.TotalMilliseconds.ToString("F1", CultureInfo.InvariantCulture);
 
-    private string Line(string text) =>
-        "timeline +" + Milliseconds(Stopwatch.GetElapsedTime(_origin)) + " ms " + text;
+    private static string Line(TimeSpan stamp, string text) =>
+        "timeline +" + Milliseconds(stamp) + " ms " + text;
 }

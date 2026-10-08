@@ -12,11 +12,16 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// <c>found owns=&lt;true|false&gt; pid=&lt;pid&gt; endpoint=&lt;url&gt;</c> or <c>missing</c>.
 /// On stderr it prints the probe's verdict — <c>probe timedOut=&lt;true|false&gt;</c>, or
 /// <c>probe none</c> when discovery never reached a registered endpoint — the elapsed time, and the
-/// <see cref="ProbeTimeline"/> of the network events behind the verdict.
+/// <see cref="ProbeTimeline"/> of the network events behind the verdict. The probe runs under the
+/// pinned request bound unless the launching test names another.
 /// </summary>
 internal static class DiscoveryMode
 {
-    public static async Task<int> RunAsync(OpenCodeServerDiscoverOptions? options)
+    /// <summary>Runs discovery once and reports it.</summary>
+    /// <param name="options">The discovery options, or null for every default.</param>
+    /// <param name="requestTimeout">The probe's request bound, or null for the pinned one.</param>
+    /// <returns>The process exit code.</returns>
+    public static async Task<int> RunAsync(OpenCodeServerDiscoverOptions? options, TimeSpan? requestTimeout = null)
     {
         using var timeline = new ProbeTimeline();
         try
@@ -24,7 +29,8 @@ internal static class DiscoveryMode
             // Discovery answers "missing" alike for no service and for a probe whose bound expired,
             // so the verdict goes to stderr beside the elapsed time, never into the stdout contract:
             // a test reads the verdict, the time and the timeline are only diagnostics.
-            var probe = new RecordingProbe(new ServiceInfoProbe(ServiceTiming.Default), timeline);
+            var timing = requestTimeout is { } bound ? ServiceTiming.Default with { RequestTimeout = bound } : ServiceTiming.Default;
+            var probe = new RecordingProbe(new ServiceInfoProbe(timing), timeline);
             var stopwatch = Stopwatch.StartNew();
             var server = await OpenCodeServer.DiscoverWithSeamsAsync(options, probe, CancellationToken.None).ConfigureAwait(false);
             await Console.Error
