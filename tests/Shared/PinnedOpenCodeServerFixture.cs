@@ -198,17 +198,7 @@ public sealed class PinnedOpenCodeServerFixture : IAsyncInitializer, IAsyncDispo
                 ? "owned (pinned source)"
                 : "owned (OPENCODE_SDK_TESTS_SERVER_COMMAND)";
             RpcPlugin = new TestRpcPlugin(_fileSystem, pinnedCommand.RepositoryRoot);
-
-            // Bun's workspace/tsconfig discovery for the pinned monorepo's JSX packages walks
-            // from the process's working directory, not from the absolute entry-file path (Task
-            // 2's confirmed repro, OpenCodeServerLifecycleTests.StartPinnedAsync): a scratch
-            // directory outside the checkout leaves that discovery unable to find the workspace
-            // root, and the source-run server fails before readiness with "Cannot find module
-            // 'react/jsx-dev-runtime'". Anchoring at the CLI package is what upstream's own "dev"
-            // script does; state/data/cache/config stay isolated through the environment below
-            // regardless of this directory.
-            workingDirectory = _fileSystem.Path.Combine(
-                pinnedCommand.RepositoryRoot, "external", "opencode", "packages", "cli");
+            workingDirectory = pinnedCommand.WorkingDirectory;
             startsOpenCode = true;
         }
 

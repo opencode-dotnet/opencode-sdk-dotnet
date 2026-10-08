@@ -24,32 +24,46 @@ internal sealed class PinnedServerLaunch
     public IReadOnlyList<string> Command => _command.Resolve();
 
     /// <summary>
-    /// Gets the child's working directory. Bun's own workspace/tsconfig discovery for the pinned
-    /// monorepo's JSX packages (the TUI's solid-js tree) walks from the process's working
-    /// directory, not from the absolute entry-file path. A working directory outside the checkout
-    /// (the original design of an isolated per-run scratch "cwd") leaves that discovery unable to
-    /// find the workspace root, and the source-run server fails before readiness with "Cannot find
-    /// module 'react/jsx-dev-runtime'" — confirmed by direct repro. Anchoring at the CLI package
-    /// (this repo's own historical smoke-test convention) is what upstream's own "dev" script does;
-    /// state/data/cache/config stay isolated through the environment regardless of this directory.
+    /// Starts the pinned server over its own run root and hands it out only once it has opened its
+    /// state there: a server that did not is ended rather than returned.
     /// </summary>
-    public string WorkingDirectory =>
-        _fileSystem.Path.Combine(_command.RepositoryRoot, "external", "opencode", "packages", "cli");
-
-    /// <summary>Builds the launch options, optionally against a command that stands in for the pinned one.</summary>
     /// <param name="runRoot">The per-run root every global state directory is redirected into.</param>
-    /// <param name="command">A stand-in command; null launches the pinned one directly.</param>
-    /// <returns>Fresh options, safe for the caller to shape further.</returns>
-    public OpenCodeServerOptions Options(TestRunRoot runRoot, IReadOnlyList<string>? command = null)
+    /// <param name="command">A stand-in command that still ends in the pinned server; null launches the pinned one directly.</param>
+    /// <param name="gracefulShutdownTimeout">The launcher's graceful shutdown bound; null keeps its default.</param>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>The started server.</returns>
+    public async Task<OpenCodeServer> StartAsync(
+        TestRunRoot runRoot,
+        IReadOnlyList<string>? command = null,
+        TimeSpan? gracefulShutdownTimeout = null,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(runRoot);
 
-        return new OpenCodeServerOptions
+        var isolation = ServerIsolation.For(_fileSystem, runRoot.Path);
+        var options = new OpenCodeServerOptions
         {
             Command = command ?? Command,
-            WorkingDirectory = WorkingDirectory,
-            Environment = ServerIsolation.For(_fileSystem, runRoot.Path).Environment,
+            WorkingDirectory = _command.WorkingDirectory,
+            Environment = isolation.Environment,
             ReadinessTimeout = TimeSpan.FromMinutes(3),
         };
+        if (gracefulShutdownTimeout is { } grace)
+        {
+            options.GracefulShutdownTimeout = grace;
+        }
+
+        var server = await OpenCodeServer.StartAsync(options, cancellationToken).ConfigureAwait(false);
+        try
+        {
+            isolation.ConfirmHonored("The pinned launcher test's server");
+            return server;
+        }
+        catch (Exception)
+        {
+            // Whatever the check threw, the caller never receives the server, so nothing else would end it.
+            await server.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
     }
 }

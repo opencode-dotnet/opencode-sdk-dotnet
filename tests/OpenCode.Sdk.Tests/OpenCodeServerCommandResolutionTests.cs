@@ -57,8 +57,7 @@ public sealed class OpenCodeServerCommandResolutionTests
         var forwarded = launch.Command.Take(launch.Command.Count - 1);
         using var shim = PathCommandShim.ForwardingTo(FileSystem, ShimName + ".cmd", forwarded);
         using var runRoot = new TestRunRoot(FileSystem);
-        var server = await OpenCodeServer.StartAsync(
-            launch.Options(runRoot, [ShimName, "serve"]), cancellationToken);
+        var server = await launch.StartAsync(runRoot, [ShimName, "serve"], cancellationToken: cancellationToken);
 
         int serverPid;
         try

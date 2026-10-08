@@ -20,6 +20,9 @@ internal sealed class PersistentSimulationServerCommand
 
     public string RepositoryRoot => _pinned.RepositoryRoot;
 
+    /// <summary>Gets the pinned server's working directory, which this host shares for the same reason.</summary>
+    public string WorkingDirectory => _pinned.WorkingDirectory;
+
     public IReadOnlyList<string> Resolve()
     {
         // Retain the standard resolver's fail-fast checks for the exact-pin source and install.

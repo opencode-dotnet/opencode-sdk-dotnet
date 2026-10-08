@@ -31,8 +31,7 @@ internal sealed class IsolationBoundary
     /// <exception cref="InvalidOperationException">The server opened no database under the run root.</exception>
     public void ConfirmHonored(string server)
     {
-        if (_fileSystem.Directory.Exists(_dataRoot)
-            && _fileSystem.Directory.EnumerateFiles(_dataRoot, "opencode.db", SearchOption.AllDirectories).Any())
+        if (FindDatabase() is not null)
         {
             return;
         }
@@ -42,4 +41,11 @@ internal sealed class IsolationBoundary
             + "': it is not honouring OPENCODE_DB or XDG_DATA_HOME and may be reading and writing the "
             + "developer's own opencode profile. No test runs against it.");
     }
+
+    /// <summary>Finds a database a server opened under the isolated data root.</summary>
+    /// <returns>The database's path, or null when there is none.</returns>
+    public string? FindDatabase() =>
+        _fileSystem.Directory.Exists(_dataRoot)
+            ? _fileSystem.Directory.EnumerateFiles(_dataRoot, "opencode.db", SearchOption.AllDirectories).FirstOrDefault()
+            : null;
 }

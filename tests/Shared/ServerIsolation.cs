@@ -79,6 +79,17 @@ internal static class ServerIsolation
             // os.homedir() reads USERPROFILE on Windows; upstream's own suite redirects it there
             // too (packages/core/script/test.ts:34).
             environment["USERPROFILE"] = home;
+
+            // The per-user stores Windows tools keep outside the home variables: the gcloud
+            // configuration Vertex's Google auth library takes application default credentials
+            // from, and every other tool's roaming and local profile data. They sit where Windows
+            // puts them in a profile, and exist, because a tool may refuse a store that does not.
+            var roaming = fileSystem.Path.Combine(home, "AppData", "Roaming");
+            var local = fileSystem.Path.Combine(home, "AppData", "Local");
+            _ = fileSystem.Directory.CreateDirectory(roaming);
+            _ = fileSystem.Directory.CreateDirectory(local);
+            environment["APPDATA"] = roaming;
+            environment["LOCALAPPDATA"] = local;
         }
 
         return new IsolationBoundary(fileSystem, environment);
