@@ -15,18 +15,20 @@ namespace OpenCode.Sdk.Tests.BackgroundService.Discovery;
 /// registration.
 /// </summary>
 /// <remarks>
-/// Keyless <c>[NotInParallel]</c>, the rule research log Q157 sets for a test whose assertion
-/// depends on a wall-clock bound the host can miss under load: the child's probe is bounded at the
-/// pinned two seconds, and the server it probes lives in this process, so a test host busy with
-/// the rest of the suite can starve the loopback server past that bound. Two CI runs on the
-/// Windows leg showed exactly that (children of 3 to 7 seconds answering "missing") while the
-/// sibling that probes the real daemon in another process never did. Running these alone after
-/// every other test keeps the host quiet while the child probes.
+/// Every child probes under the patient bound of <see cref="ServiceTimingData"/>, because these
+/// tests are about the answer each environment leads to: a child starved of CPU on a loaded runner
+/// can report a timeout under the pinned two seconds although its socket was refused well inside
+/// them, since the probe counts a failure as timed out whenever its bound has expired by the time
+/// the failure reaches it. The class is keyless <c>[NotInParallel]</c> because the
+/// stale-registration test reads a wall-clock interval inside its child and the daemon the other
+/// two probe lives in this process: running these alone after every other test keeps the host,
+/// and the children it starts, as quiet as the run allows.
 /// </remarks>
 [NotInParallel]
 public sealed class OpenCodeServerDiscoveryIsolatedProcessTests
 {
     private const string IsolatedPassword = "isolated-p455";
+
     private static readonly RealFileSystem FileSystem = new();
 
     [Test]
@@ -44,7 +46,8 @@ public sealed class OpenCodeServerDiscoveryIsolatedProcessTests
             ["OPENCODE_CONFIG_DIR"] = null,
         };
 
-        var result = await new ServiceFixtureCommand(FileSystem).RunAsync(["discover-default"], environment, cancellationToken);
+        var result = await new ServiceFixtureCommand(FileSystem)
+            .RunAsync(["discover-default", ServiceTimingData.PatientRequestTimeoutMilliseconds], environment, cancellationToken);
 
         await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
         await Assert.That(result.StandardOutput.Trim())
@@ -72,7 +75,8 @@ public sealed class OpenCodeServerDiscoveryIsolatedProcessTests
             ["USERPROFILE"] = home,
         };
 
-        var result = await new ServiceFixtureCommand(FileSystem).RunAsync(["discover-default"], environment, cancellationToken);
+        var result = await new ServiceFixtureCommand(FileSystem)
+            .RunAsync(["discover-default", ServiceTimingData.PatientRequestTimeoutMilliseconds], environment, cancellationToken);
 
         await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
         await Assert.That(result.StandardOutput.Trim())
@@ -83,12 +87,16 @@ public sealed class OpenCodeServerDiscoveryIsolatedProcessTests
 
     /// <summary>
     /// A registration whose daemon is gone (the port is closed) answers "missing" because the probe
-    /// classified the refusal, not because its two-second bound expired: a refused loopback connect
-    /// must classify as no service on every host, including Windows, where the default connect
-    /// retransmits the SYN for about two seconds. The witness is the probe's own verdict, which the
-    /// child prints, not the elapsed time: a loaded runner stretches the time, never the verdict.
-    /// The child's timeline also witnesses the refusal itself, the socket's own connect failure.
-    /// The child is the real SDK, so this proves the probe's transport end to end.
+    /// classified the refusal, without waiting for its bound. Every witness comes from the child, the
+    /// real SDK and its probe transport: its verdict, under a bound so patient that only a probe
+    /// that waits its bound out on a refused connect reports a timeout; its timeline's
+    /// refused-connect event, the socket's own failure; and, on Windows, how long that connect took
+    /// on the child's own clock. That interval stays under
+    /// <see cref="ServiceTimingData.RefusalWithoutRetransmission"/> only when the transport disabled
+    /// the SYN retransmissions that otherwise hold a refused loopback connect for about two seconds.
+    /// It starts when the socket starts connecting, so the child's startup and any wait for a thread
+    /// before the connect stay outside it. Linux and macOS refuse a closed loopback port within
+    /// milliseconds with no option at all, so there the interval guards nothing and stays unchecked.
     /// </summary>
     [Test]
     [Timeout(120_000)]
@@ -110,7 +118,8 @@ public sealed class OpenCodeServerDiscoveryIsolatedProcessTests
             ["OPENCODE_CONFIG_DIR"] = null,
         };
 
-        var result = await new ServiceFixtureCommand(FileSystem).RunAsync(["discover-default"], environment, cancellationToken);
+        var result = await new ServiceFixtureCommand(FileSystem)
+            .RunAsync(["discover-default", ServiceTimingData.PatientRequestTimeoutMilliseconds], environment, cancellationToken);
 
         await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
         await Assert.That(result.StandardOutput.Trim()).IsEqualTo("missing").Because(result.StandardError);
@@ -118,6 +127,13 @@ public sealed class OpenCodeServerDiscoveryIsolatedProcessTests
             .Because(result.StandardError);
         await Assert.That(ServiceFixtureOutput.ConnectRefused(result.StandardError)).IsTrue()
             .Because(result.StandardError);
+        if (OperatingSystem.IsWindows())
+        {
+            var refusal = ServiceFixtureOutput.ConnectRefusalTime(result.StandardError);
+            await Assert.That(refusal).IsNotNull().Because(result.StandardError);
+            await Assert.That(refusal!.Value).IsLessThan(ServiceTimingData.RefusalWithoutRetransmission)
+                .Because(result.StandardError);
+        }
     }
 
     private static LoopbackHttpResponse ReadyHealth() =>

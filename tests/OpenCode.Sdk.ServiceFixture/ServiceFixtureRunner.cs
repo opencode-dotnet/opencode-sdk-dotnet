@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace OpenCode.Sdk.ServiceFixture;
 
 /// <summary>
@@ -7,7 +9,8 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// gates, the way the sandbox does; each mode's body lives in its own class.
 /// </summary>
 /// <remarks>
-/// Modes: <c>discover-default</c> reads the shared release registration through every default;
+/// Modes: <c>discover-default [request-timeout-ms]</c> reads the shared release registration
+/// through every default, probing under the pinned request bound or the one named;
 /// <c>discover-channel &lt;channel&gt;</c> names a service channel; <c>ensure-channel
 /// &lt;channel&gt; &lt;ledger&gt;</c> ensures the channel's service with the default <c>opencode serve
 /// --service</c> command resolved from this process's PATH, recording every contender in the
@@ -27,6 +30,7 @@ internal static class ServiceFixtureRunner
         args switch
         {
             ["discover-default"] => DiscoveryMode.RunAsync(options: null),
+            ["discover-default", var bound] when TryReadMilliseconds(bound) is { } requestTimeout => DiscoveryMode.RunAsync(options: null, requestTimeout),
             ["discover-channel", var channel] => DiscoveryMode.RunAsync(new OpenCodeServerDiscoverOptions { Channel = channel }),
             ["ensure-channel", var channel, var ledger] => EnsureMode.RunAsync(channel, ledger),
             ["stop-channel", var channel] => StopMode.RunAsync(channel),
@@ -38,10 +42,15 @@ internal static class ServiceFixtureRunner
             _ => UsageAsync(),
         };
 
+    private static TimeSpan? TryReadMilliseconds(string text) =>
+        int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var milliseconds) && milliseconds > 0
+            ? TimeSpan.FromMilliseconds(milliseconds)
+            : null;
+
     private static async Task<int> UsageAsync()
     {
         await Console.Error
-            .WriteLineAsync("Usage: discover-default | discover-channel <channel> | ensure-channel <channel> <ledger> | stop-channel <channel> | idle | ignore-sigterm | tree-root | contender-probe echo-argv-env [name …] | stderr-fill [bytes] | daemon-sleep | stall | stale | console-report | group-report | group-member | launcher-host <command …>")
+            .WriteLineAsync("Usage: discover-default [request-timeout-ms] | discover-channel <channel> | ensure-channel <channel> <ledger> | stop-channel <channel> | idle | ignore-sigterm | tree-root | contender-probe echo-argv-env [name …] | stderr-fill [bytes] | daemon-sleep | stall | stale | console-report | group-report | group-member | launcher-host <command …>")
             .ConfigureAwait(false);
         return 2;
     }

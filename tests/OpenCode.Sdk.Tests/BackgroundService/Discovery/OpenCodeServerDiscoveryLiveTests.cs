@@ -1,6 +1,5 @@
 using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
 using OpenCode.Sdk.Internal.BackgroundService.Discovery;
-using OpenCode.Sdk.Internal.BackgroundService.Ensure;
 using OpenCode.Sdk.Internal.BackgroundService.Registration;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
@@ -30,8 +29,6 @@ namespace OpenCode.Sdk.Tests.BackgroundService.Discovery;
 public sealed class OpenCodeServerDiscoveryLiveTests(PinnedManagedServiceFixture service)
 {
     private static readonly RealFileSystem FileSystem = new();
-
-    private static readonly ServiceTiming PatientTiming = ServiceTiming.Default with { RequestTimeout = TimeSpan.FromSeconds(30) };
 
     [Test]
     [Timeout(120_000)]
@@ -112,7 +109,7 @@ public sealed class OpenCodeServerDiscoveryLiveTests(PinnedManagedServiceFixture
             new OpenCodeServerDiscoverOptions { RegistrationFilePath = service.RegistrationFile, ExpectedVersion = service.Version },
             cancellationToken);
         await using var _ = matching;
-        var probe = new RecordingProbe(new ServiceInfoProbe(PatientTiming));
+        var probe = new RecordingProbe(new ServiceInfoProbe(ServiceTimingData.Patient));
         var mismatching = await OpenCodeServer.DiscoverWithSeamsAsync(
             new OpenCodeServerDiscoverOptions { RegistrationFilePath = service.RegistrationFile, ExpectedVersion = "0.0.0-never-1" },
             probe,
