@@ -562,7 +562,7 @@
     {
       "path": "packages/client/src/service-contender.ts",
       "sha256": "9e290534bbf9535535a9d88832b9b28e3af35f6bee80712974b8ec8acad27bf5",
-      "behavior": "A contender is spawned detached and hidden (windowsHide) with stdin and stdout ignored, stderr piped, and the parent environment overlaid; stderr is retained as an 8 KiB tail, error and close are observed, the child is unref\u0027d, and release drops the listener without signalling. The Ensure door\u0027s spawn seam ports that contract except windowsHide, which it does not apply.",
+      "behavior": "A contender is spawned detached and hidden (windowsHide) with stdin and stdout ignored, stderr piped, and the parent environment overlaid; stderr is retained as an 8 KiB tail, error and close are observed, the child is unref\u0027d, and release drops the listener without signalling. The Ensure door\u0027s spawn seam ports that contract, windowsHide included.",
       "anchor": {
         "type": "contains",
         "text": "detached: true,"

@@ -21,7 +21,8 @@ namespace OpenCode.Sdk.Tests.BackgroundService.Contender;
 /// <c>packages/client/src/service-contender.ts</c>). One test per parity claim: the returned pid
 /// is a live process whose ready line names the same pid; a missing executable throws
 /// synchronously; argv and the environment overlay cross byte for byte, Unicode included; the
-/// contender leads its own session on Unix; stdin and stdout are NUL; the retained tail is the
+/// contender leads its own session on Unix; on Windows it has no console, starts hidden, and roots
+/// its own process group; stdin and stdout are NUL; the retained tail is the
 /// final 8 KiB of stderr; <see cref="ServiceContender.Release"/> drops the retention without
 /// killing and keeps the pipe draining; and a contender survives its parent's exit. Every test
 /// starts a real process. Keyless <c>[NotInParallel]</c> rather than the server-process key:
@@ -43,6 +44,12 @@ public sealed class ServiceContenderSpawnerTests
 
     /// <summary>The fixture's stdout flood; the seam must give the contender NUL stdout for the flood to complete.</summary>
     private const int StdoutFloodBytes = 80 * 1024;
+
+    /// <summary><c>STARTF_USESHOWWINDOW</c>: the startup info's show state applies.</summary>
+    private const uint UseShowWindow = 0x00000001;
+
+    /// <summary><c>SW_HIDE</c>.</summary>
+    private const short HideWindow = 0;
 
     /// <summary>Signals 1 through 31 in a <c>/proc</c> mask, where bit n-1 is signal n.</summary>
     private const ulong StandardSignals = 0x7FFF_FFFF;
@@ -331,6 +338,116 @@ public sealed class ServiceContenderSpawnerTests
         }
     }
 
+    /// <summary>
+    /// Upstream spawns the contender detached, which libuv makes <c>DETACHED_PROCESS</c> on
+    /// Windows: the contender has no console at all, so no console control event can reach it.
+    /// A spawn without that flag gives a console application a console of its own, windowless
+    /// under <c>CREATE_NO_WINDOW</c> but attached all the same, which the probe reads as a console
+    /// process list with itself in it.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    public async Task Spawned_Contender_Should_Have_No_Console_On_Windows(CancellationToken cancellationToken)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Console.WriteLine("branch: Unix (" + RuntimeInformation.OSDescription + ") — no console to detach from; the session test proves the Unix detach");
+            return;
+        }
+
+        using var contender = Spawner.Start(FixtureProbe("contender-probe", "console-report"));
+        try
+        {
+            await Assert.That(await WaitForTheProbeAsync(contender, "the console report", cancellationToken)).IsTrue()
+                .Because(contender.Stderr);
+            await Assert.That(contender.TryGetFailure()).IsNull();
+            var report = ParseConsoleReport(contender.Stderr);
+
+            await Assert.That(report.Attached).IsFalse().Because(contender.Stderr);
+            await Assert.That(report.Window).IsFalse().Because(contender.Stderr);
+            Console.WriteLine("branch: Windows — contender pid " + contender.ProcessId.ToString(CultureInfo.InvariantCulture) + " reported " + contender.Stderr.Trim());
+        }
+        finally
+        {
+            ProcessObservation.KillIfRunning(contender.ProcessId);
+        }
+    }
+
+    /// <summary>
+    /// Upstream spawns the contender with <c>windowsHide</c>, which libuv makes
+    /// <c>STARTF_USESHOWWINDOW</c> with <c>SW_HIDE</c>: the first window the contender opens
+    /// starts hidden. The contender reads its own startup info back.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    public async Task Spawned_Contender_Should_Start_Hidden_On_Windows(CancellationToken cancellationToken)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Console.WriteLine("branch: Unix (" + RuntimeInformation.OSDescription + ") — windowsHide has no Unix meaning, and libuv ignores it there");
+            return;
+        }
+
+        using var contender = Spawner.Start(FixtureProbe("contender-probe", "console-report"));
+        try
+        {
+            await Assert.That(await WaitForTheProbeAsync(contender, "the console report", cancellationToken)).IsTrue()
+                .Because(contender.Stderr);
+            await Assert.That(contender.TryGetFailure()).IsNull();
+            var report = ParseConsoleReport(contender.Stderr);
+
+            await Assert.That(report.StartupFlags & UseShowWindow).IsEqualTo(UseShowWindow).Because(contender.Stderr);
+            await Assert.That(report.ShowWindow).IsEqualTo(HideWindow).Because(contender.Stderr);
+            Console.WriteLine("branch: Windows — contender pid " + contender.ProcessId.ToString(CultureInfo.InvariantCulture) + " reported " + contender.Stderr.Trim());
+        }
+        finally
+        {
+            ProcessObservation.KillIfRunning(contender.ProcessId);
+        }
+    }
+
+    /// <summary>
+    /// libuv pairs <c>DETACHED_PROCESS</c> with <c>CREATE_NEW_PROCESS_GROUP</c>: the contender
+    /// roots its own process group, so a console control event for the group of whichever
+    /// process launched it never names it, should it ever share a console. The probe asks a
+    /// console of its own making: a <c>CTRL_BREAK_EVENT</c> for the group its pid names must reach
+    /// it and must not reach its member in another group.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    public async Task Spawned_Contender_Should_Root_Its_Own_Process_Group_On_Windows(CancellationToken cancellationToken)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Console.WriteLine("branch: Unix (" + RuntimeInformation.OSDescription + ") — no Windows process group; the session test proves the contender leads its own session and group");
+            return;
+        }
+
+        int? memberPid = null;
+        using var contender = Spawner.Start(FixtureProbe("contender-probe", "group-report"));
+        try
+        {
+            await Assert.That(await WaitForTheProbeAsync(contender, "the group report", cancellationToken)).IsTrue()
+                .Because(contender.Stderr);
+            await Assert.That(contender.TryGetFailure()).IsNull();
+            using var document = JsonDocument.Parse(contender.Stderr);
+            var root = document.RootElement;
+            memberPid = root.GetProperty("memberPid").GetInt32();
+
+            await Assert.That(root.GetProperty("rootHeard").GetBoolean()).IsTrue().Because(contender.Stderr);
+            await Assert.That(root.GetProperty("memberHeard").GetBoolean()).IsFalse().Because(contender.Stderr);
+            Console.WriteLine("branch: Windows — contender pid " + contender.ProcessId.ToString(CultureInfo.InvariantCulture) + " reported " + contender.Stderr.Trim());
+        }
+        finally
+        {
+            ProcessObservation.KillIfRunning(contender.ProcessId);
+            if (memberPid is { } member)
+            {
+                ProcessObservation.KillIfRunning(member);
+            }
+        }
+    }
+
     [Test]
     [Timeout(120_000)]
     public async Task Spawn_Should_Give_The_Child_Nul_Standard_Streams(CancellationToken cancellationToken)
@@ -546,8 +663,8 @@ public sealed class ServiceContenderSpawnerTests
         using var contender = Spawner.Start(ShortLivedParent());
         try
         {
-            // The parent is the shell the spawner detached; the daemon-sleep it launches
-            // inherits the shell's stderr pipe, so its ready line names the pid to observe.
+            // The parent is the process the spawner detached; the daemon-sleep it launches
+            // inherits the parent's stderr pipe, so its ready line names the pid to observe.
             var stderr = await LiveReadiness.WaitAsync(
                 _ => Task.FromResult(contender.Stderr),
                 static tail => ReadyPid(tail) is not null,
@@ -576,7 +693,7 @@ public sealed class ServiceContenderSpawnerTests
         finally
         {
             ProcessObservation.KillIfRunning(contender.ProcessId);
-            if (daemonPid is { } orphan)
+            if ((daemonPid ?? PidAfter(contender.Stderr, "spawned pid=")) is { } orphan)
             {
                 ProcessObservation.KillIfRunning(orphan);
             }
@@ -594,22 +711,21 @@ public sealed class ServiceContenderSpawnerTests
     }
 
     /// <summary>
-    /// The short-lived parent: a shell that starts the fixture's daemon-sleep and exits at once.
-    /// Windows runs cmd with <c>start /b</c> — the empty title lets the quoted command paths
-    /// through, and the child inherits cmd's stderr pipe. Unix runs sh with a backgrounded
-    /// command, whose child keeps the pipe and is reparented to init.
+    /// The short-lived parent, which starts the fixture's daemon-sleep and exits at once. Windows
+    /// runs the fixture's daemon-parent, which hands the daemon its own stderr pipe and names the
+    /// daemon's pid before it exits, so a daemon whose ready line never arrives is still released;
+    /// a shell cannot stand in there, because a detached cmd has no console for <c>start /b</c> to
+    /// share and the daemon would take a console of its own in place of the pipe. Unix runs sh
+    /// with a backgrounded command, whose child keeps the pipe and is reparented to init.
     /// </summary>
     private static IServiceContenderSpawner.ContenderStartInfo ShortLivedParent()
     {
-        var command = FixtureCommand();
         if (OperatingSystem.IsWindows())
         {
-            return new IServiceContenderSpawner.ContenderStartInfo(
-                new ResolvedExecutable("cmd", SystemCommand(), IsBatchScript: false),
-                ["/c", "start", "/b", "", command[0], command[1], "contender-probe", "daemon-sleep"],
-                new Dictionary<string, string?>(StringComparer.Ordinal));
+            return FixtureProbe("contender-probe", "daemon-parent");
         }
 
+        var command = FixtureCommand();
         return new IServiceContenderSpawner.ContenderStartInfo(
             new ResolvedExecutable("sh", "/bin/sh", IsBatchScript: false),
             ["-c", ShQuote(command[0]) + " " + ShQuote(command[1]) + " contender-probe daemon-sleep &"],
@@ -650,9 +766,11 @@ public sealed class ServiceContenderSpawnerTests
             cancellationToken);
 
     /// <summary>Reads the <c>ready pid=&lt;pid&gt;</c> line the daemon-sleep probe prints; null until the line arrives.</summary>
-    private static int? ReadyPid(string standardError)
+    private static int? ReadyPid(string standardError) => PidAfter(standardError, "ready pid=");
+
+    /// <summary>Reads the pid after the first <paramref name="prefix"/>; null until a line carrying it arrives.</summary>
+    private static int? PidAfter(string standardError, string prefix)
     {
-        const string prefix = "ready pid=";
         var start = standardError.IndexOf(prefix, StringComparison.Ordinal);
         if (start < 0)
         {
@@ -712,6 +830,17 @@ public sealed class ServiceContenderSpawnerTests
             root.GetProperty("stdoutFlushed").GetInt32());
     }
 
+    private static ConsoleReport ParseConsoleReport(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+        return new ConsoleReport(
+            root.GetProperty("attached").GetBoolean(),
+            root.GetProperty("window").GetBoolean(),
+            root.GetProperty("startupFlags").GetUInt32(),
+            root.GetProperty("showWindow").GetInt16());
+    }
+
     /// <summary>The final 8 KiB of the fixture's default fill: blocks 128 through 255 of 256.</summary>
     private static string ExpectedTail() => string.Concat(
         Enumerable.Range(128, 128).Select(static block => block.ToString("D10", CultureInfo.InvariantCulture) + BlockFiller));
@@ -749,6 +878,8 @@ public sealed class ServiceContenderSpawnerTests
     [DllImport("libc", EntryPoint = "getsid", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.SafeDirectories)]
     private static extern int GetSessionId(int processId);
+
+    private sealed record ConsoleReport(bool Attached, bool Window, uint StartupFlags, short ShowWindow);
 
     private sealed record EchoReport(
         string[] Argv,

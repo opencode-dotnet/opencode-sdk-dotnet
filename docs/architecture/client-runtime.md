@@ -702,7 +702,11 @@ timeout's inner exception. After a recovery or a replacement stop, contenders th
 process or have finished are released and a held failure is dropped. The spawned command registers
 where its own compiled channel and environment say, so `Channel`, `Command`, and `Environment` must
 agree with the registration the call reads, or the call waits out the bound. Contenders are reaped
-by the SDK as they exit. `OnStart` fires at most once. The returned handle is the same non-owning
+by the SDK as they exit. On Windows a contender starts the way libuv starts a Node child spawned
+`detached` and `windowsHide` with no standard stream inherited: `DETACHED_PROCESS |
+CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW` with `STARTF_USESHOWWINDOW` and `SW_HIDE`, so it has no
+console, roots a process group of its own, and any window it opens starts hidden. `OnStart` fires
+at most once. The returned handle is the same non-owning
 shape discovery returns. Persistent-terminal sidecar I/O is behind `IServicePtyHandoff`: `prepare`
 requests the handoff ticket under the request bound through the SDK's own request pipeline and keeps
 it raw, so it reaches the replacement exactly as the route answered it — the receiving daemon

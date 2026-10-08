@@ -5,6 +5,7 @@ using System.Management;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
+using Testably.Abstractions;
 
 namespace OpenCode.Sdk.Tests;
 
@@ -12,13 +13,14 @@ namespace OpenCode.Sdk.Tests;
 /// The downlevel Windows tree kill against real process trees: taskkill's exit code is the result,
 /// so a root that is already gone — whose descendants taskkill can no longer reach — reports the
 /// kill incomplete, and a taskkill that outlasts its bound is ended before the call returns. The
-/// tests find processes through WMI, by parent and command line, so they only see the processes
-/// they started.
+/// tests find their taskkills through WMI, by parent and command line, so they only see the
+/// processes they started.
 /// </summary>
 [NotInParallel(ParallelConstraintKeys.ServerProcess)]
 public sealed class TaskkillTreeKillTests
 {
     private static readonly TimeSpan Bound = TimeSpan.FromSeconds(10);
+    private static readonly RealFileSystem FileSystem = new();
 
     /// <summary>
     /// How long an ended taskkill is given to leave the process table. The kill is asynchronous,
@@ -28,33 +30,42 @@ public sealed class TaskkillTreeKillTests
 
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(50);
 
+    /// <summary>
+    /// The tree is the fixture's tree root and its idle child. taskkill exits zero only when it
+    /// ended every member itself, so no member may end on its own when another member is ended: a
+    /// root that exits once its child dies is gone before taskkill reaches it, and taskkill then
+    /// reports that root as a failure although the whole tree ended. Neither fixture process waits
+    /// on the other or touches its console, so each one runs until taskkill ends it.
+    /// </summary>
     [Test]
     [Timeout(120_000)]
     public async Task Kill_Should_Report_Issued_When_Taskkill_Ends_The_Tree(CancellationToken cancellationToken)
     {
-        using var root = StartTree("ping -n 120 127.0.0.1 >nul");
-        Process? grandchild = null;
+        await using var root = await ServiceFixtureProcess.StartTreeRootAsync(FileSystem, cancellationToken);
+        Process? child = null;
         try
         {
-            grandchild = await FindChildAsync(root.Id, "PING.EXE", cancellationToken);
-            await Assert.That(grandchild).IsNotNull();
+            // The root holds a handle on its child while it runs, so the pid it named is still the
+            // child when this opens it; the handle taken here then keeps that pid from being
+            // reused until the test is done with it.
+            child = TryOpen(root.ChildProcessId);
+            await Assert.That(child).IsNotNull();
 
-            var result = new TaskkillTreeKill(Bound).Kill(root.Id);
+            var result = new TaskkillTreeKill(Bound).Kill(root.ProcessId);
 
             await Assert.That(result).IsEqualTo(ProcessTreeKillResult.Issued);
-            await Assert.That(await ProcessObservation.ObserveExitWithinAsync(root, Bound, cancellationToken)).IsTrue();
-            await Assert.That(await ProcessObservation.ObserveExitWithinAsync(grandchild!, Bound, cancellationToken)).IsTrue();
+            await Assert.That(await root.ObserveExitWithinAsync(Bound, cancellationToken)).IsTrue();
+            await Assert.That(await ProcessObservation.ObserveExitWithinAsync(child!, Bound, cancellationToken)).IsTrue();
         }
         finally
         {
-            await EndIfRunningAsync(root);
-            if (grandchild is not null)
+            // The root's disposal ends the root; the child outlives a root that is ended alone, so
+            // it is ended here, through the handle that names exactly the recorded process.
+            if (child is not null)
             {
-                // The handle taken when the grandchild was found keeps its pid from being reused,
-                // so this ends exactly the process the test recorded.
-                using (grandchild)
+                using (child)
                 {
-                    await EndIfRunningAsync(grandchild);
+                    await EndIfRunningAsync(child);
                 }
             }
         }
@@ -102,32 +113,6 @@ public sealed class TaskkillTreeKillTests
             _ = TestProcessTreeKill.TryKill(process);
             _ = await ProcessObservation.ObserveExitWithinAsync(process, Bound, CancellationToken.None);
         }
-    }
-
-    /// <summary>
-    /// Waits at most <see cref="Bound"/> for <paramref name="parentId"/> to start a process named
-    /// <paramref name="imageName"/>, and opens a handle on it.
-    /// </summary>
-    /// <returns>The child, owned by the caller; null when none started inside the bound.</returns>
-    private static async Task<Process?> FindChildAsync(int parentId, string imageName, CancellationToken cancellationToken)
-    {
-        var elapsed = Stopwatch.StartNew();
-        while (elapsed.Elapsed < Bound)
-        {
-            foreach (var (processId, _) in Query(
-                "SELECT ProcessId, CommandLine FROM Win32_Process WHERE ParentProcessId = "
-                + parentId.ToString(CultureInfo.InvariantCulture) + " AND Name = '" + imageName + "'"))
-            {
-                if (TryOpen(processId) is { } child)
-                {
-                    return child;
-                }
-            }
-
-            await Task.Delay(PollInterval, cancellationToken);
-        }
-
-        return null;
     }
 
     /// <summary>

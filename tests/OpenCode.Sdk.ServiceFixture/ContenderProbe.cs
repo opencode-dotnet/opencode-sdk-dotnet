@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
@@ -14,7 +15,8 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// standard streams nothing to do, so every observation rides stderr.
 /// </summary>
 /// <remarks>
-/// Three seam probes plus two daemon stand-ins. <c>echo-argv-env &lt;name&gt;…</c> floods stdout
+/// Three seam probes, two daemon stand-ins, and the Windows console probes
+/// <see cref="ContenderConsoleProbe"/> documents. <c>echo-argv-env &lt;name&gt;…</c> floods stdout
 /// with <see cref="StdoutFloodBytes"/> bytes, probes whether stdin reads end at once, and then
 /// prints one JSON line on stderr carrying this process's own arguments (everything after the mode
 /// name) and the value of each named environment variable (<c>null</c> for one that is absent),
@@ -22,7 +24,9 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// <c>stderr-fill [bytes]</c> writes <c>bytes</c> (16 KiB by default) of a position-numbered,
 /// whitespace-free pattern to stderr in 4 KiB chunks paced five milliseconds apart, and exits 0.
 /// <c>daemon-sleep</c> prints <c>ready pid=&lt;pid&gt;</c> on stderr and then sleeps until a signal
-/// ends it. The daemon stand-ins print <c>ready pid=&lt;pid&gt; port=&lt;port&gt;</c> on stdout, so
+/// ends it. <c>daemon-parent</c> starts a <c>daemon-sleep</c> of its own that writes to this
+/// process's stderr, prints <c>spawned pid=&lt;pid&gt;</c> naming it, and exits at once: the short-lived
+/// parent whose child outlives it. The daemon stand-ins print <c>ready pid=&lt;pid&gt; port=&lt;port&gt;</c> on stdout, so
 /// a test can seed a registration naming them, and then play a registered service: <c>stall</c>
 /// accepts every connection and never answers one, so the info probe times out, and <c>stale</c>
 /// answers with an identity no registration carries, so the probe reads no service. Nothing here
@@ -60,10 +64,28 @@ internal static class ContenderProbe
             "echo-argv-env" => EchoArgumentsAndEnvironmentAsync(arguments),
             "stderr-fill" => FillStandardErrorAsync(arguments),
             "daemon-sleep" => SleepLikeADaemonAsync(),
+            "daemon-parent" => StartDaemonAndExitAsync(),
             "stall" => StallAsync(),
             "stale" => StaleAsync(),
+            "console-report" or "group-report" or "group-member" => RunWindowsProbeAsync(mode),
             _ => UsageAsync(),
         };
+
+    /// <summary>The console probes ask about Windows consoles and process groups, which no other platform has: there they are a usage error.</summary>
+    private static Task<int> RunWindowsProbeAsync(string mode)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return UsageAsync();
+        }
+
+        return mode switch
+        {
+            "console-report" => ContenderConsoleProbe.ReportConsoleAsync(),
+            "group-report" => ContenderConsoleProbe.ReportGroupAsync(),
+            _ => ContenderConsoleProbe.RunMemberAsync(),
+        };
+    }
 
     private static async Task<int> EchoArgumentsAndEnvironmentAsync(IReadOnlyList<string> names)
     {
@@ -178,10 +200,37 @@ internal static class ContenderProbe
         return 0;
     }
 
+    /// <summary>
+    /// Starts a <c>daemon-sleep</c> of this fixture and exits without waiting for it. The child
+    /// gets this process's stderr as its own, so its ready line rides the pipe the contender
+    /// seam reads after this process is gone; its stdin is a pipe this process never writes,
+    /// which is what makes the runtime hand the child explicit standard handles. On Windows a
+    /// console-less parent's console child would otherwise take a console of its own, with that
+    /// console's handles in place of the pipe, so the child gets a windowless console.
+    /// </summary>
+    private static async Task<int> StartDaemonAndExitAsync()
+    {
+        var info = new ProcessStartInfo(Environment.ProcessPath ?? "dotnet")
+        {
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardInput = true,
+        };
+        info.ArgumentList.Add(typeof(ContenderProbe).Assembly.Location);
+        info.ArgumentList.Add("contender-probe");
+        info.ArgumentList.Add("daemon-sleep");
+        using var daemon = Process.Start(info) ?? throw new InvalidOperationException("The daemon did not start.");
+        await Console.Error
+            .WriteLineAsync($"spawned pid={daemon.Id.ToString(CultureInfo.InvariantCulture)}")
+            .ConfigureAwait(false);
+        await Console.Error.FlushAsync().ConfigureAwait(false);
+        return 0;
+    }
+
     private static async Task<int> UsageAsync()
     {
         await Console.Error
-            .WriteLineAsync("Usage: contender-probe echo-argv-env [name …] | stderr-fill [bytes] | daemon-sleep | stall | stale")
+            .WriteLineAsync("Usage: contender-probe echo-argv-env [name …] | stderr-fill [bytes] | daemon-sleep | daemon-parent | stall | stale | console-report | group-report | group-member")
             .ConfigureAwait(false);
         return 2;
     }
