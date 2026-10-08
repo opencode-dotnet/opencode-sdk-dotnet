@@ -31,13 +31,7 @@ public sealed class OpenCodeServerLifecycleTests
         CancellationToken cancellationToken = default)
     {
         var runRoot = new TestRunRoot(FileSystem);
-        var options = new PinnedServerLaunch(FileSystem).Options(runRoot);
-        if (gracefulShutdownTimeout is { } grace)
-        {
-            options.GracefulShutdownTimeout = grace;
-        }
-
-        return (await OpenCodeServer.StartAsync(options, cancellationToken), runRoot);
+        return (await new PinnedServerLaunch(FileSystem).StartAsync(runRoot, null, gracefulShutdownTimeout, cancellationToken), runRoot);
     }
 
     [Test]

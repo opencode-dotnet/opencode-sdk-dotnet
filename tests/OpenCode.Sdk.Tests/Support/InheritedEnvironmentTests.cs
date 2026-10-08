@@ -83,6 +83,101 @@ public sealed class InheritedEnvironmentTests
         await Assert.That(plan.NoProxy).IsNull();
     }
 
+    [Test]
+    public async Task Plan_Should_Remove_Provider_Credentials_And_The_Aws_Chain()
+    {
+        var plan = InheritedEnvironment.Plan(
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["anthropic_api_key"] = "secret",
+                ["OPENAI_API_KEY"] = "secret",
+                ["AWS_PROFILE"] = "dev",
+                ["AWS_SESSION_TOKEN"] = "secret",
+                ["PATH"] = "/usr/bin",
+                ["DOTNET_ROOT"] = "/usr/share/dotnet",
+            },
+            [],
+            ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"]);
+
+        string[] expected = ["AWS_PROFILE", "AWS_SESSION_TOKEN", "OPENAI_API_KEY", "anthropic_api_key"];
+        await Assert.That(plan.Removed.OrderBy(static name => name, StringComparer.Ordinal)).IsEquivalentTo(expected);
+    }
+
+    [Test]
+    public async Task Plan_Should_Remove_Every_Telemetry_Variable()
+    {
+        var plan = InheritedEnvironment.Plan(new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["OTEL_EXPORTER_OTLP_ENDPOINT"] = "https://collector.example",
+            ["OTEL_EXPORTER_OTLP_HEADERS"] = "authorization=secret",
+            ["otel_resource_attributes"] = "service.name=dev",
+            ["OTELX"] = "kept",
+            ["PATH"] = "/usr/bin",
+        });
+
+        string[] expected = ["OTEL_EXPORTER_OTLP_ENDPOINT", "OTEL_EXPORTER_OTLP_HEADERS", "otel_resource_attributes"];
+        await Assert.That(plan.Removed.OrderBy(static name => name, StringComparer.Ordinal)).IsEquivalentTo(expected);
+    }
+
+    [Test]
+    public async Task Plan_Should_Keep_The_Variables_The_Suite_Set_Itself()
+    {
+        var plan = InheritedEnvironment.Plan(
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["OPENCODE_DB"] = "/runs/session/data/opencode.db",
+                ["OPENCODE_CONFIG_DIR"] = "/runs/session/config/opencode",
+                ["OPENCODE_SIMULATE"] = "1",
+            },
+            ["OPENCODE_DB", "OPENCODE_CONFIG_DIR"],
+            []);
+
+        string[] expected = ["OPENCODE_SIMULATE"];
+        await Assert.That(plan.Removed).IsEquivalentTo(expected);
+    }
+
+    /// <summary>
+    /// What a child that only inherits gets from the session: every root the pinned server
+    /// resolves, under the session's own root, and none of the variables the scrub removes.
+    /// </summary>
+    [Test]
+    public async Task Session_Should_Hand_Every_Child_The_Isolated_Roots()
+    {
+        var root = SessionIsolation.Root;
+
+        await Assert.That(root).IsNotNull();
+        foreach (var name in new[] { "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "OPENCODE_CONFIG_DIR", "OPENCODE_DB", "OPENCODE_TEST_HOME" })
+        {
+            await Assert.That(Environment.GetEnvironmentVariable(name)).StartsWith(root!);
+            await Assert.That(SessionIsolation.AppliedNames).Contains(name);
+        }
+
+        await Assert.That(Environment.GetEnvironmentVariable("OPENCODE_CONFIG_CONTENT")).IsEqualTo("{}");
+        await Assert.That(Environment.GetEnvironmentVariable("OPENCODE_DISABLE_MODELS_FETCH")).IsEqualTo("1");
+        await Assert.That(SessionIsolation.AppliedNames).DoesNotContain("HOME");
+        await Assert.That(SessionIsolation.AppliedNames).DoesNotContain("USERPROFILE");
+    }
+
+    /// <summary>
+    /// What a child that only inherits really receives: a real child process reads every isolated
+    /// root this session set, each under the session's own root.
+    /// </summary>
+    [Test]
+    [NotInParallel]
+    [Timeout(60_000)]
+    public async Task Session_Should_Reach_A_Child_That_Only_Inherits(CancellationToken cancellationToken)
+    {
+        var root = SessionIsolation.Root;
+
+        await Assert.That(root).IsNotNull();
+        foreach (var name in new[] { "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_STATE_HOME", "XDG_CACHE_HOME", "OPENCODE_CONFIG_DIR", "OPENCODE_DB", "OPENCODE_TEST_HOME" })
+        {
+            await Assert.That(await ChildSeesAsync(name, cancellationToken)).StartsWith(root!);
+        }
+
+        await Assert.That((await ChildSeesAsync("OPENCODE_CONFIG_CONTENT", cancellationToken)).TrimEnd()).IsEqualTo("{}");
+    }
+
     /// <summary>
     /// The mechanism end to end: a hazard seeded in this process reaches a child (the control),
     /// and after the scrub it does not, while a suite knob survives. Process-wide state, so alone.
@@ -101,7 +196,7 @@ public sealed class InheritedEnvironmentTests
         {
             await Assert.That(await ChildSeesAsync(hazard, cancellationToken)).Contains(value);
 
-            var plan = InheritedEnvironment.ScrubProcess();
+            var plan = await InheritedEnvironment.ScrubProcessAsync(cancellationToken);
 
             await Assert.That(plan.Removed).Contains(hazard);
             await Assert.That(plan.Removed).DoesNotContain(knob);

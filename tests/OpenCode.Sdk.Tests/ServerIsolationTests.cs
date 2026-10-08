@@ -26,6 +26,27 @@ public sealed class ServerIsolationTests
         await Assert.That(platformHome).IsEqualTo(home);
     }
 
+    /// <summary>
+    /// Windows keeps per-user stores, gcloud's application default credentials among them, under
+    /// two variables of their own; elsewhere they live under the home the map already moves.
+    /// </summary>
+    [Test]
+    public async Task For_Should_Move_The_Windows_Per_User_Stores_Into_The_Home()
+    {
+        var fileSystem = new MockFileSystem();
+        var runRoot = fileSystem.Path.Combine(fileSystem.Path.GetTempPath(), "run");
+
+        var environment = ServerIsolation.For(fileSystem, runRoot).Environment;
+
+        var home = environment["HOME"];
+        _ = environment.TryGetValue("APPDATA", out var roaming);
+        _ = environment.TryGetValue("LOCALAPPDATA", out var local);
+        var windows = OperatingSystem.IsWindows();
+        await Assert.That(roaming).IsEqualTo(windows ? fileSystem.Path.Combine(home, "AppData", "Roaming") : null);
+        await Assert.That(local).IsEqualTo(windows ? fileSystem.Path.Combine(home, "AppData", "Local") : null);
+        await Assert.That(new[] { roaming, local }.All(store => store is null || fileSystem.Directory.Exists(store))).IsTrue();
+    }
+
     [Test]
     public async Task For_Should_Leave_An_Interactive_Shell_Nothing_To_Ask()
     {

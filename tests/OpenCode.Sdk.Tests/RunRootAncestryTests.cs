@@ -82,6 +82,51 @@ public sealed class RunRootAncestryTests
         await Assert.That(found).IsNull();
     }
 
+    [Test]
+    [Arguments("opencode.json")]
+    [Arguments("opencode.jsonc")]
+    public async Task FindProjectConfiguration_Should_Name_A_Config_File_In_An_Ancestor(string name)
+    {
+        var fileSystem = new MockFileSystem();
+        var runs = Runs(fileSystem);
+        var configuration = fileSystem.Path.Combine(Ancestor(fileSystem), name);
+        _ = fileSystem.Initialize().With(new FileDescription(configuration, "{}"));
+
+        var found = new RunRootAncestry(fileSystem).FindProjectConfiguration(runs);
+
+        await Assert.That(found).IsEqualTo(configuration);
+    }
+
+    [Test]
+    public async Task FindProjectConfiguration_Should_Name_A_Project_Directory_In_An_Ancestor()
+    {
+        var fileSystem = new MockFileSystem();
+        var runs = Runs(fileSystem);
+        var configuration = fileSystem.Path.Combine(Ancestor(fileSystem), ".opencode");
+        _ = fileSystem.Directory.CreateDirectory(configuration);
+
+        var found = new RunRootAncestry(fileSystem).FindProjectConfiguration(runs);
+
+        await Assert.That(found).IsEqualTo(configuration);
+    }
+
+    [Test]
+    public async Task FindProjectConfiguration_Should_Ignore_Skills_And_Repositories()
+    {
+        // Skills are instructions, and a repository above is the checkout's own concern: neither
+        // can start an MCP server, load a plugin, or add a tool.
+        var fileSystem = new MockFileSystem();
+        var runs = Runs(fileSystem);
+        var ancestor = Ancestor(fileSystem);
+        _ = fileSystem.Directory.CreateDirectory(fileSystem.Path.Combine(ancestor, ".claude", "skills"));
+        _ = fileSystem.Directory.CreateDirectory(fileSystem.Path.Combine(ancestor, ".agents", "skills"));
+        _ = fileSystem.Directory.CreateDirectory(fileSystem.Path.Combine(ancestor, ".git"));
+
+        var found = new RunRootAncestry(fileSystem).FindProjectConfiguration(runs);
+
+        await Assert.That(found).IsNull();
+    }
+
     /// <summary>MockFileSystem simulates the host OS, so the chain is built from its own temp root.</summary>
     private static string Ancestor(MockFileSystem fileSystem) =>
         fileSystem.Path.Combine(fileSystem.Path.GetTempPath(), "checkout");

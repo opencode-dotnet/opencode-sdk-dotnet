@@ -27,6 +27,15 @@ internal sealed class RunRootAncestry
     private static readonly string[][] StateDirectories =
         [[".git"], [".opencode"], [".claude", "skills"], [".agents", "skills"]];
 
+    /// <summary>
+    /// The project configuration that can carry MCP servers, plugins and tools: the two config
+    /// files and the project directory that holds both kinds. The compatibility roots are not here:
+    /// they contribute skills, which are instructions, and nothing that runs or authenticates.
+    /// </summary>
+    private static readonly string[] ConfigurationFiles = ["opencode.json", "opencode.jsonc"];
+
+    private static readonly string[][] ConfigurationDirectories = [[".opencode"]];
+
     private readonly IFileSystem _fileSystem;
 
     public RunRootAncestry(IFileSystem fileSystem)
@@ -47,7 +56,7 @@ internal sealed class RunRootAncestry
              current is { Length: > 0 };
              current = _fileSystem.Path.GetDirectoryName(current))
         {
-            if (StateIn(current) is { } state)
+            if (StateIn(current, StateDirectories, StateFiles) is { } state)
             {
                 return state;
             }
@@ -56,9 +65,32 @@ internal sealed class RunRootAncestry
         return null;
     }
 
-    private string? StateIn(string directory)
+    /// <summary>
+    /// Finds the nearest project configuration in <paramref name="directory"/> or above it that
+    /// can start MCP servers, load plugins, or add tools in a server whose location is beneath it.
+    /// </summary>
+    /// <param name="directory">The first directory, walking up, whose project configuration is not pinned.</param>
+    /// <returns>The offending path, or null when the whole chain is clean.</returns>
+    public string? FindProjectConfiguration(string directory)
     {
-        foreach (var segments in StateDirectories)
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+
+        for (var current = _fileSystem.Path.GetFullPath(directory);
+             current is { Length: > 0 };
+             current = _fileSystem.Path.GetDirectoryName(current))
+        {
+            if (StateIn(current, ConfigurationDirectories, ConfigurationFiles) is { } configuration)
+            {
+                return configuration;
+            }
+        }
+
+        return null;
+    }
+
+    private string? StateIn(string directory, string[][] directories, string[] files)
+    {
+        foreach (var segments in directories)
         {
             var candidate = _fileSystem.Path.Combine([directory, .. segments]);
             if (_fileSystem.Directory.Exists(candidate))
@@ -67,7 +99,7 @@ internal sealed class RunRootAncestry
             }
         }
 
-        foreach (var file in StateFiles)
+        foreach (var file in files)
         {
             var candidate = _fileSystem.Path.Combine(directory, file);
             if (_fileSystem.File.Exists(candidate))

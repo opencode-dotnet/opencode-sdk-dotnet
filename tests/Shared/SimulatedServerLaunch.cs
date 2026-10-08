@@ -86,14 +86,7 @@ internal sealed record SimulatedServerLaunch
         return new SimulatedServerLaunch
         {
             Command = persistentHost.Resolve(),
-
-            // Anchored at the pinned CLI package: bun resolves the monorepo's workspace and
-            // tsconfig from the process working directory, not from the absolute entry-file
-            // path, and a scratch directory outside the checkout fails the source run before
-            // readiness. Every global root the host touches stays isolated through the
-            // environment regardless of this directory.
-            WorkingDirectory = fileSystem.Path.Combine(
-                persistentHost.RepositoryRoot, "external", "opencode", "packages", "cli"),
+            WorkingDirectory = persistentHost.WorkingDirectory,
             Environment = environment,
             Manifest = manifest,
             Isolation = isolation,
