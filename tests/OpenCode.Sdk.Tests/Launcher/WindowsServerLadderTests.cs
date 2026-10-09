@@ -64,7 +64,13 @@ public sealed class WindowsServerLadderTests
         _ = await treeKill.Received(1).KillTreeAsync(ProcessId, unwaitedGrace);
     }
 
-    /// <summary>A kill that fails leaves the fallback; the root then ends inside the grace, and no second rung runs.</summary>
+    /// <summary>
+    /// A kill that fails leaves the fallback; the root then ends inside the grace, and no second rung
+    /// runs. The grace is long enough that no start-up cost can use it up before the root ends, so
+    /// the root's exit, not the clock, is what the ladder answers. The failed kill is already
+    /// complete, so the first rung and its fallback run synchronously and the run first yields in
+    /// the wait for the root: the exit lands there, after the one kill, while the ladder still runs.
+    /// </summary>
     [Test]
     public async Task RunAsync_Should_Run_No_Second_Rung_When_The_Root_Ends_Inside_The_Grace()
     {
@@ -74,15 +80,20 @@ public sealed class WindowsServerLadderTests
             return;
         }
 
+        var unwaitedGrace = TimeSpan.FromSeconds(60);
         var exited = new TaskCompletionSource<ChildExitStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
         var treeKill = Substitute.For<IWindowsTreeKill>();
         _ = treeKill.KillTreeAsync(ProcessId, Arg.Any<TimeSpan>()).Returns(Task.FromResult(TreeKillOutcome.Failed));
         using var root = new SafeProcessHandle(IntPtr.Zero, ownsHandle: false);
-        var ladder = new WindowsServerLadder(ProcessId, root, exited.Task, treeKill, Bounds).RunAsync(Grace);
+        var ladder = new WindowsServerLadder(ProcessId, root, exited.Task, treeKill, Bounds).RunAsync(unwaitedGrace);
+        var waitingAfterTheFirstRung = !ladder.IsCompleted;
+        var killsBeforeTheExit = treeKill.ReceivedCalls().ToList();
 
         _ = exited.TrySetResult(new ChildExitStatus { ExitCode = 1 });
         await ladder;
 
+        await Assert.That(waitingAfterTheFirstRung).IsTrue();
+        await Assert.That(killsBeforeTheExit).Count().IsEqualTo(1);
         _ = await treeKill.Received(1).KillTreeAsync(Arg.Any<int>(), Arg.Any<TimeSpan>());
     }
 
