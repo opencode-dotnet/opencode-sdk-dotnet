@@ -25,6 +25,9 @@ namespace OpenCode.Sdk.Tests.BackgroundService.Stop;
 public sealed class ServiceStopperTests
 {
     private const int RegisteredPid = 48213;
+
+    /// <summary>The pid of <see cref="ServiceRegistrationData.DuplicatePidResolved"/>: another service under the same file.</summary>
+    private const int SuccessorPid = 48214;
     private const string Version = "2.0.3";
     private const string SidecarSuffix = ".pty-handoff";
     private static readonly string SidecarContent = new FixtureLoader().LoadJson("BackgroundService.pty-handoff-valid.json");
@@ -194,22 +197,54 @@ public sealed class ServiceStopperTests
         await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsTrue();
     }
 
+    /// <summary>
+    /// Another service registered under the same file while the stop was asking the old one to shut
+    /// its terminals down. Upstream's <c>Service.stop</c> reads the registration afresh before it
+    /// acts, so the service registered now is the one stopped, and the old one is not signalled.
+    /// </summary>
     [Test]
-    public async Task StopAsync_Should_Not_Signal_When_The_Registration_Changed_Before_The_First_Signal()
+    public async Task StopAsync_Should_Stop_The_Service_Registered_After_The_Terminal_Shutdown()
     {
         SeedModern();
+        var successor = new ProcessIdentity(SuccessorPid, Live.StartTimeUtc);
+        var successorAlive = true;
+        _processControl.TrySnapshot(SuccessorPid).Returns(_ => successorAlive ? successor : null);
+        _processControl.TrySignal(successor, ProcessSignal.Terminate).Returns(_ =>
+        {
+            successorAlive = false;
+            return true;
+        });
         _probe.ProbeAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>())
             .Returns(_ =>
             {
-                // Another service registered under the same file while this stop was probing.
-                Seed(SharedRegistrationPath(), ServiceRegistrationData.Minimal);
+                Seed(SharedRegistrationPath(), ServiceRegistrationData.DuplicatePidResolved);
+                return NoService;
+            });
+
+        await Stopper().StopAsync(options: null, CancellationToken.None);
+
+        _ = _processControl.Received(1).TrySignal(successor, ProcessSignal.Terminate);
+        _ = _processControl.DidNotReceive().TrySignal(Live, Arg.Any<ProcessSignal>());
+        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
+    }
+
+    /// <summary>The registration went away while the stop was asking for the shutdown: the sidecar is cleared, and nothing is signalled.</summary>
+    [Test]
+    public async Task StopAsync_Should_Signal_Nothing_When_The_Registration_Is_Gone_After_The_Terminal_Shutdown()
+    {
+        SeedModern();
+        Seed(Sidecar(), SidecarContent);
+        _probe.ProbeAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                _fileSystem.File.Delete(SharedRegistrationPath());
                 return NoService;
             });
 
         await Stopper().StopAsync(options: null, CancellationToken.None);
 
         _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
-        await Assert.That(ReadText(SharedRegistrationPath())).IsEqualTo(ServiceRegistrationData.Minimal);
+        await Assert.That(_fileSystem.File.Exists(Sidecar())).IsFalse();
     }
 
     [Test]

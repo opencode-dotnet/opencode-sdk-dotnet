@@ -13,9 +13,10 @@ namespace OpenCode.Sdk.Tests;
 /// The pipes a standalone start creates, on Linux and macOS. Each server receives only its own
 /// three pipes, even when several starts and <c>Process</c> children are created at once; and every
 /// path a start can take, successful or failed, leaves none of the pipes it created open in the
-/// host. Windows keeps today's <c>Process</c> pipes, and each Windows arm asserts that the same
-/// starts still succeed and fail as they did. Keyless <c>[NotInParallel]</c>: the host's descriptor
-/// table is the subject, so no other test may open pipes while one runs.
+/// host. Windows has no descriptor table to read from the host: there each arm asserts that the
+/// same starts succeed and fail, and the Windows tests prove the inherited-handle list and the
+/// handle count in a host of their own. Keyless <c>[NotInParallel]</c>: the host's descriptor table
+/// is the subject, so no other test may open pipes while one runs.
 /// </summary>
 [NotInParallel]
 public sealed class OpenCodeServerDescriptorTests
@@ -96,7 +97,7 @@ public sealed class OpenCodeServerDescriptorTests
                 }
             }
 
-            Console.WriteLine("branch: POSIX — " + string.Join(" | ", serverDescriptors.Select(static descriptors => string.Join(',', descriptors.Keys.Order()))));
+            BranchReport.Print("POSIX — " + string.Join(" | ", serverDescriptors.Select(static descriptors => string.Join(',', descriptors.Keys.Order()))));
         }
         finally
         {
@@ -159,14 +160,26 @@ public sealed class OpenCodeServerDescriptorTests
     /// Upstream's <c>OPENCODE_PRINT_LOGS=1</c>, read from the host's environment as upstream reads
     /// it: the server's stderr is then the host's own stderr, the same open file, instead of a pipe
     /// the launcher reads, so nothing of it is collected. Without the variable the same stand-in's
-    /// stderr is a launcher pipe and its line is collected, which shows the two apart. Windows keeps
-    /// today's piped stderr until its own strategy reads the variable, and its arm asserts that.
+    /// stderr is a launcher pipe and its line is collected, which shows the two apart. On Windows the
+    /// host is a process of its own, whose stderr the test reads, so the server's line is seen where
+    /// it lands: on the host's stderr with the variable, nowhere outside the host without it.
     /// </summary>
     [Test]
     [Timeout(120_000)]
     public async Task StartAsync_Should_Hand_The_Server_The_Hosts_Stderr_When_The_Host_Asks_For_Logs(CancellationToken cancellationToken)
     {
-        const string standIn = "console.log('" + ReadyLine + "'); console.error('server stderr line'); setInterval(() => {}, 1000);";
+        const string standIn = "console.error('server stderr line'); console.log('" + ReadyLine + "'); setInterval(() => {}, 1000);";
+        if (OperatingSystem.IsWindows())
+        {
+            var handedOver = await HostStderrCarriesAsync(standIn, printLogs: true, cancellationToken);
+            var piped = await HostStderrCarriesAsync(standIn, printLogs: false, cancellationToken);
+
+            await Assert.That(handedOver).IsTrue();
+            await Assert.That(piped).IsFalse();
+            BranchReport.Print("Windows — with OPENCODE_PRINT_LOGS=1 the server's stderr line reached the host's stderr; without it, it stayed in the launcher's pipe");
+            return;
+        }
+
         var printing = LauncherSeams.ForCurrentProcess();
         var hostEnvironment = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in printing.HostEnvironment)
@@ -183,14 +196,6 @@ public sealed class OpenCodeServerDescriptorTests
         OpenDescriptor? printedStderr = null;
         try
         {
-            if (OperatingSystem.IsWindows())
-            {
-                var lines = await LiveReadiness.WaitAsync(
-                    _ => Task.FromResult(printed.GetSnapshot().StandardError), static lines => lines.Count > 0, "the collected stderr line", cancellationToken);
-                Console.WriteLine("branch: Windows — stderr stays a launcher pipe; collected: " + string.Join(" | ", lines));
-                return;
-            }
-
             printedStderr = (await HostDescriptors.DescriptorsOfAsync(server.ProcessId))[2];
         }
         finally
@@ -218,7 +223,29 @@ public sealed class OpenCodeServerDescriptorTests
         await Assert.That(printed.GetSnapshot().StandardError).IsEmpty();
         await Assert.That(controlStderr).IsNotEqualTo(hostStderr);
         await Assert.That(controlStderr.IsPipe).IsTrue();
-        Console.WriteLine("branch: POSIX — with OPENCODE_PRINT_LOGS=1 the server's stderr is the host's (" + hostStderr + "); without it, a launcher pipe (" + controlStderr + ")");
+        BranchReport.Print("POSIX — with OPENCODE_PRINT_LOGS=1 the server's stderr is the host's (" + hostStderr + "); without it, a launcher pipe (" + controlStderr + ")");
+    }
+
+    /// <summary>
+    /// Whether a launcher host's own stderr carries the stand-in's stderr line. The host is ended
+    /// and its stderr read to end-of-stream first, so every writer of it is gone and the answer is
+    /// final either way: no clock decides that a line is absent.
+    /// </summary>
+    private static async Task<bool> HostStderrCarriesAsync(string standIn, bool printLogs, CancellationToken cancellationToken)
+    {
+        var environment = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (printLogs)
+        {
+            environment["OPENCODE_PRINT_LOGS"] = "1";
+        }
+
+        await using var host = await LauncherHost.StartAsync(["bun", "-e", standIn], environment, LauncherHostIgnores.Nothing, cancellationToken);
+        if (!await host.EndAsync())
+        {
+            throw new InvalidOperationException("The host did not end with its stderr closed: " + host.DescribeError());
+        }
+
+        return host.ErrorLines.Contains("server stderr line", StringComparer.Ordinal);
     }
 
     /// <summary>
@@ -259,7 +286,7 @@ public sealed class OpenCodeServerDescriptorTests
 
         if (OperatingSystem.IsWindows())
         {
-            Console.WriteLine("branch: Windows — the " + path + " path ran on Process");
+            BranchReport.Print("Windows — the " + path + " path ran through the SDK's own spawn");
             return;
         }
 
@@ -271,7 +298,7 @@ public sealed class OpenCodeServerDescriptorTests
             await Assert.That(whileRunning).IsEqualTo(3);
         }
 
-        Console.WriteLine("branch: POSIX — the " + path + " path left no pipe open (" + whileRunning.ToString(CultureInfo.InvariantCulture) + " held while running)");
+        BranchReport.Print("POSIX — the " + path + " path left no pipe open (" + whileRunning.ToString(CultureInfo.InvariantCulture) + " held while running)");
     }
 
     private static async Task<int> RunPathAsync(
@@ -417,6 +444,6 @@ public sealed class OpenCodeServerDescriptorTests
             await Assert.That(await ProcessObservation.ObserveExitWithinAsync(pid, ObservationBound, cancellationToken)).IsTrue();
         }
 
-        Console.WriteLine("branch: Windows — " + Servers.ToString(CultureInfo.InvariantCulture) + " concurrent starts on Process, each ended");
+        BranchReport.Print("Windows — " + Servers.ToString(CultureInfo.InvariantCulture) + " concurrent starts through the SDK's own spawn, each ended");
     }
 }

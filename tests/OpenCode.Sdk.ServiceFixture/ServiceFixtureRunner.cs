@@ -22,7 +22,9 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// recovery proofs; <c>launcher-host &lt;command…&gt;</c> owns one standalone server started with that
 /// command, prints its pid and what the launcher observes of it, and ends it once its own stdin
 /// closes; <c>tree-root</c> starts an <c>idle</c> child, prints <c>ready child=&lt;pid&gt;</c>, and
-/// lingers, the tree a tree-kill proof ends. The credential is never printed. Exit 0 carries an answer, 1 a failure, 2 a usage error.
+/// lingers, the tree a tree-kill proof ends; <c>job-report</c>, <c>close-stdout</c>, <c>exit-code &lt;n&gt;</c>,
+/// <c>handle-isolation &lt;command…&gt;</c>, and <c>handle-cycles &lt;command…&gt;</c> are the Windows
+/// launcher probes (<see cref="WindowsLauncherProbe"/>). The credential is never printed. Exit 0 carries an answer, 1 a failure, 2 a usage error.
 /// </remarks>
 internal static class ServiceFixtureRunner
 {
@@ -39,8 +41,16 @@ internal static class ServiceFixtureRunner
             ["tree-root"] => TreeRootMode.RunAsync(),
             ["contender-probe", var probe, .. var arguments] => ContenderProbe.RunAsync(probe, arguments),
             ["launcher-host", .. var command] when command.Length > 0 => LauncherHostMode.RunAsync(command),
+            ["job-report", ..] when OperatingSystem.IsWindows() => WindowsLauncherProbe.ReportJobAsync(),
+            ["close-stdout", ..] when OperatingSystem.IsWindows() => WindowsLauncherProbe.CloseStandardOutputAsync(),
+            ["exit-code", var code, ..] when OperatingSystem.IsWindows() && TryReadCode(code) is { } exitCode => WindowsLauncherProbe.ExitWithCodeAsync(exitCode),
+            ["handle-isolation", .. var command] when OperatingSystem.IsWindows() && command.Length > 0 => WindowsLauncherProbe.ProbeHandleIsolationAsync(command),
+            ["handle-cycles", .. var command] when OperatingSystem.IsWindows() && command.Length > 0 => WindowsLauncherProbe.CountHandlesAsync(command),
             _ => UsageAsync(),
         };
+
+    private static int? TryReadCode(string text) =>
+        int.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var code) ? code : null;
 
     private static TimeSpan? TryReadMilliseconds(string text) =>
         int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var milliseconds) && milliseconds > 0
@@ -50,7 +60,7 @@ internal static class ServiceFixtureRunner
     private static async Task<int> UsageAsync()
     {
         await Console.Error
-            .WriteLineAsync("Usage: discover-default [request-timeout-ms] | discover-channel <channel> | ensure-channel <channel> <ledger> | stop-channel <channel> | idle | ignore-sigterm | tree-root | contender-probe echo-argv-env [name …] | stderr-fill [bytes] | daemon-sleep | stall | stale | console-report | group-report | group-member | launcher-host <command …>")
+            .WriteLineAsync("Usage: discover-default [request-timeout-ms] | discover-channel <channel> | ensure-channel <channel> <ledger> | stop-channel <channel> | idle | ignore-sigterm | tree-root | contender-probe echo-argv-env [name …] | stderr-fill [bytes] | daemon-sleep | stall | stale | console-report | group-report | group-member | launcher-host <command …> | job-report | close-stdout | exit-code <n> | handle-isolation <command …> | handle-cycles <command …>")
             .ConfigureAwait(false);
         return 2;
     }

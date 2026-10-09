@@ -1,24 +1,26 @@
 using System.Collections;
 using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
 using OpenCode.Sdk.Internal.Posix.Abstractions;
-using static OpenCode.Sdk.Internal.BackgroundService.ProcessControl.BackgroundServiceInterop;
+using OpenCode.Sdk.Internal.Windows.Abstractions;
+using static OpenCode.Sdk.Internal.Windows.WindowsPlatform;
 
 namespace OpenCode.Sdk.Internal.BackgroundService.Contender;
 
 /// <summary>
-/// The shipped <see cref="IServiceContenderSpawner"/> on the platform's own spawn primitives:
-/// <c>CreateProcessW</c> bound in <see cref="BackgroundServiceInterop"/>, and the SDK's shared
-/// <see cref="Posix.PosixSpawn"/>, with the stderr pipe taken from the BCL. This file holds what
-/// both platforms share; the <c>.Windows</c> and <c>.Unix</c> files hold one arm each.
+/// The shipped <see cref="IServiceContenderSpawner"/> on the SDK's own spawn primitives, the ones
+/// the standalone launcher uses: <see cref="Windows.WindowsSpawn"/> and <see cref="Posix.PosixSpawn"/>.
+/// This file holds what both platforms share; the <c>.Windows</c> and <c>.Unix</c> files hold one
+/// arm each.
 /// </summary>
 /// <param name="posixSpawn">The POSIX spawn the Unix arm starts contenders through.</param>
-internal sealed partial class ServiceContenderSpawner(IPosixSpawn posixSpawn) : IServiceContenderSpawner
+/// <param name="windowsSpawn">The Windows spawn the Windows arm starts contenders through.</param>
+internal sealed partial class ServiceContenderSpawner(IPosixSpawn posixSpawn, IWindowsSpawn windowsSpawn) : IServiceContenderSpawner
 {
     /// <summary>The PTY-handoff variable whose value is secret-bearing: removed when empty, redacted from diagnostics when present.</summary>
     private const string HandoffVariable = "OPENCODE_PTY_HANDOFF";
 
     private readonly IPosixSpawn _posixSpawn = posixSpawn;
+    private readonly IWindowsSpawn _windowsSpawn = windowsSpawn;
 
     /// <inheritdoc />
     public IServiceContender Spawn(IServiceContenderSpawner.ContenderStartInfo startInfo) => Start(startInfo);

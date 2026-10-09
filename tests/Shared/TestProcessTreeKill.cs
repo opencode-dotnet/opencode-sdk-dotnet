@@ -1,35 +1,66 @@
+using System.ComponentModel;
 using System.Diagnostics;
-using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.Abstractions;
+#if !NET
+using System.Globalization;
+#endif
 
 namespace OpenCode.Sdk.TestSupport;
 
 /// <summary>
-/// The whole-tree kill test cleanup uses on every OS. On Windows it is the launcher's own kill, so
-/// cleanup ends a tree the way the product does. On Linux and macOS the launcher ends its server
-/// through the server's process group and never kills a tree, so cleanup carries its own: the
-/// runtime's entire-process-tree kill on the modern targets, and on the downlevel targets, which
-/// have none, a kill of the root alone.
+/// The whole-tree kill test cleanup uses on every OS, reporting rather than raising whatever the
+/// kill achieved. The launcher itself ends a server through its own ladder; cleanup ends whatever a
+/// test left behind. The modern targets use the runtime's entire-process-tree kill. The downlevel
+/// targets, which run on Windows only, run <c>taskkill /T /F</c> from the system folder, bounded.
 /// </summary>
-internal sealed class TestProcessTreeKill : IProcessTreeKill
+internal static class TestProcessTreeKill
 {
-    private static readonly ProcessTreeTerminator Terminator =
-        OperatingSystem.IsWindows() ? ProcessTreeTerminator.Platform : new ProcessTreeTerminator(new TestProcessTreeKill());
+#if !NET
+    /// <summary>How long one cleanup taskkill may run.</summary>
+    private const int TaskkillBoundMilliseconds = 10_000;
+#endif
 
-    /// <summary>Ends a process tree for cleanup, reporting rather than raising whatever the kill achieved.</summary>
+    /// <summary>Ends a process tree for cleanup.</summary>
     /// <param name="process">The tree's root.</param>
-    /// <returns>What the kill achieved.</returns>
-    public static ProcessTreeKillResult TryKill(Process process) => Terminator.TryKill(process);
-
-    /// <inheritdoc />
-    public ProcessTreeKillResult Kill(Process process)
+    /// <returns>True when the kill ran to its end; false when the tree, or part of it, was already gone or refused it.</returns>
+    public static bool TryKill(Process process)
     {
         ArgumentNullException.ThrowIfNull(process);
+        try
+        {
 #if NET
-        process.Kill(entireProcessTree: true);
+            process.Kill(entireProcessTree: true);
+            return true;
 #else
-        process.Kill();
+            using var taskkill = Process.Start(new ProcessStartInfo
+            {
+                FileName = Environment.GetFolderPath(Environment.SpecialFolder.System) + @"\taskkill.exe",
+                Arguments = "/pid " + process.Id.ToString(CultureInfo.InvariantCulture) + " /T /F",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+            if (taskkill is null || !taskkill.WaitForExit(TaskkillBoundMilliseconds))
+            {
+                taskkill?.Kill();
+                return false;
+            }
+
+            return taskkill.ExitCode is 0;
 #endif
-        return ProcessTreeKillResult.Issued;
+        }
+        catch (AggregateException)
+        {
+            // A process of the tree refused the kill; the others were ended.
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            // Already exited: nothing is left to end.
+            return false;
+        }
+        catch (Win32Exception)
+        {
+            // Exiting, or no longer accessible: nothing further to issue.
+            return false;
+        }
     }
 }

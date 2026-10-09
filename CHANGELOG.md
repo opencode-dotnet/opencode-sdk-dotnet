@@ -9,6 +9,66 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.{shortSha}`.
 
+### 🔧 Changes
+
+- **On Windows a standalone server ends with its owner, however the owner ends.** `StartAsync`
+  creates the server suspended, places it in a process-wide job that ends it when the host process
+  exits, and only then lets it run, as upstream's launcher places its server in a job. Behaviour
+  change: a server that ignores the end-of-stream of its stdin no longer outlives an owner that
+  crashed or was killed before disposing it. Descendants the server starts detached stay outside
+  the job and keep running; the other children of a server built on Bun or Node end with it,
+  because its runtime places them in a job of its own under the launcher's. A start whose server
+  cannot be placed in the job, or resumed, now fails with `OpenCodeServerException` and leaves
+  nothing running.
+- **With the default npm install, pass the path of `opencode.exe` in `Command` for that guarantee.**
+  The bare `opencode` resolves to npm's `opencode.cmd` shim, which runs through `cmd.exe`: the job
+  then holds `cmd.exe`, and the real server, `cmd.exe`'s child, ends with a crashed owner only
+  through its stdin lease, as upstream's own launcher of a `.cmd` file arranges it.
+- **Disposing a standalone server on Windows ends the server and its whole process tree at once
+  with `taskkill /T /F`, as upstream does, instead of closing its stdin and waiting.** Behaviour
+  changes:
+  - The server no longer runs its own graceful shutdown on disposal: it exits with code 1, where
+    the stdin end-of-stream used to end it with code 0. Stdin now closes last, as on Linux and
+    macOS.
+  - Every live descendant of the server is ended at every close, detached ones included; the
+    descendants used to survive a normal close.
+  - Disposal takes the `taskkill` run, about 300 ms, where a server that left on its stdin's
+    end-of-stream used to take about 10 ms.
+  - `GracefulShutdownTimeout` now starts with that first kill and bounds it: when the server is
+    still running at its end, the same kill runs once more, and `TerminateProcess` ends the server
+    with code 1 when a kill fails. A disposal takes at most the grace plus 26 seconds, the output
+    drain and the release of the output readers included.
+  - On `net8.0` and later the forced end is `taskkill`, exit code 1, where it was the runtime's tree
+    kill, exit code -1.
+  - A server that already exited is not tree-killed, and a failed start ends the server the same
+    way, with the configured grace.
+- **On Windows the server no longer inherits the host's own inheritable handles.** It receives its
+  three standard handles and nothing else, so a parent process that captures the host's output
+  sees it end when the host exits, even while a server it started still runs. Behaviour change:
+  the server also no longer receives the handles the host inherited from its own ancestors.
+- **On Windows the server's output is read without a dedicated thread, on every target.** Its
+  stdout and stderr are overlapped pipes whose reads complete on the I/O completion port, on .NET
+  Framework too; the two reader threads each server used to hold are gone.
+- **`StartAsync` on Windows sees the server's own exit without waiting for its output, and fails at
+  once when the server closes its stdout before readiness**, as on Linux and macOS. A readiness
+  line that arrives together with the exit now always starts the server, and a server that exits
+  before readiness while a process it started holds its stdout fails the start within about a
+  second instead of at the readiness timeout.
+- **A Windows exit code is reported in its full 32 bits.** A server that crashes before readiness
+  is reported as `exited with code -1073741819 (0xC0000005)`.
+- **`OPENCODE_PRINT_LOGS=1` in the host's environment hands the server the host's own stderr on
+  Windows too**, as upstream's launcher does; no stderr is then collected or quoted in a startup
+  failure. Diagnostics-mode behaviour, as upstream's: the server then also shares the host's
+  console, so a Ctrl+C in that console reaches the server, even when the host handles it.
+- **A NUL in a command entry or an environment entry is refused with `ArgumentException` on Windows
+  too**, before anything is spawned, and a spawn that fails in a `WorkingDirectory` names the
+  directory.
+- **`StopAsync` and the Ensure replacement act on the service registered when they stop it.** Like
+  upstream's client, they read the registration again before preparing or clearing the terminal
+  handoff, and end the service that file names then. Behaviour change: a service that registered
+  while `StopAsync` was asking the old one to shut its terminals down is the one stopped, where it
+  used to be left running.
+
 ### 🐛 Fixes
 
 - **`OpenCodeServer.EnsureAsync` starts the background service on Windows the way upstream's
@@ -17,6 +77,11 @@ Nightly builds of `master` are on
   with no console at all, in a process group of its own, and with any window it opens starting
   hidden. Behaviour change: the background service an Ensure call starts on Windows no longer has
   a console.
+- **The background service's contender on Windows no longer leaks its stderr pipe into processes
+  the host starts.** The pipe's write end was inheritable from its creation, so a `Process.Start`
+  on another thread of the host could inherit it and hold the contender's stderr open after the
+  contender ended. It is now inheritable only while the contender is being created, under the lock
+  every SDK spawn takes.
 
 ## [0.9.0-preview.7] - 2026-10-06
 

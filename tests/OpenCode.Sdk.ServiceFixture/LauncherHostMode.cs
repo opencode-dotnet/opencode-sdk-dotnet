@@ -6,11 +6,13 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// <summary>
 /// A host that owns one standalone server, for the proofs that need the server's owner to be a
 /// process the test can signal or kill: starts the server through <see cref="OpenCodeServer.StartAsync"/>
-/// with the given command, prints <c>server pid=&lt;pid&gt;</c>, then
-/// <c>children reaped automatically=&lt;True|False&gt;</c> as the launcher reads it from this host's
-/// <c>SIGCHLD</c> action, and <c>server exit=&lt;how it ended&gt;</c> once the launcher observed the
-/// server's exit. It holds the server until its own stdin reaches end-of-stream, which is how the
-/// test ends it; disposal then ends the server.
+/// with the given command, prints <c>server pid=&lt;pid&gt;</c>, then one line of what the launcher
+/// decided on this platform — on Linux and macOS <c>children reaped automatically=&lt;True|False&gt;</c>
+/// as the launcher reads it from this host's <c>SIGCHLD</c> action, on Windows
+/// <c>server shares console=&lt;True|False&gt;</c>, whether the server is attached to this host's
+/// console — and <c>server exit=&lt;how it ended&gt;</c> once the launcher observed the server's exit.
+/// It holds the server until its own stdin reaches end-of-stream, which is how the test ends it;
+/// disposal then ends the server.
 /// </summary>
 internal static class LauncherHostMode
 {
@@ -24,7 +26,11 @@ internal static class LauncherHostMode
         await using (server.ConfigureAwait(false))
         {
             await ReportAsync("server pid=" + server.ProcessId.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
-            await ReportAsync("children reaped automatically=" + new ChildExitStatusReader().AreChildrenReapedAutomatically().ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
+            await ReportAsync(
+                    OperatingSystem.IsWindows()
+                        ? "server shares console=" + WindowsLauncherProbe.SharesConsole(server.ProcessId).ToString(CultureInfo.InvariantCulture)
+                        : "children reaped automatically=" + new ChildExitStatusReader().AreChildrenReapedAutomatically().ToString(CultureInfo.InvariantCulture))
+                .ConfigureAwait(false);
             exitReport = ReportExitAsync(server);
             _ = await Console.In.ReadToEndAsync().ConfigureAwait(false);
         }

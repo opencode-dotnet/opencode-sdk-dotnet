@@ -1,13 +1,12 @@
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using NSubstitute;
-using NSubstitute.ExceptionExtensions;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.Abstractions;
 using OpenCode.Sdk.Internal.Launcher;
 using OpenCode.Sdk.Internal.Posix;
 using OpenCode.Sdk.Internal.Posix.Abstractions;
+using OpenCode.Sdk.Internal.Windows;
+using OpenCode.Sdk.Internal.Windows.Abstractions;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;
@@ -57,9 +56,11 @@ public sealed class OpenCodeServerLifecycleTests
     }
 
     /// <summary>
-    /// The normal close of the pinned server. On Windows it is the stdin lease. On Linux and macOS
-    /// it is <c>SIGTERM</c> to the server's process group, which upstream's server answers the way
-    /// its own runtime answers an interrupt: it shuts down and exits with code 130.
+    /// The normal close of the pinned server, upstream's own on each platform. On Linux and macOS it
+    /// is <c>SIGTERM</c> to the server's process group, which upstream's server answers the way its
+    /// own runtime answers an interrupt: it shuts down and exits with code 130. On Windows it is the
+    /// forced tree kill at once (<c>taskkill /T /F</c>), as upstream ends its server there: the
+    /// server exits with code 1.
     /// </summary>
     [Test]
     [Timeout(240_000)]
@@ -75,12 +76,8 @@ public sealed class OpenCodeServerLifecycleTests
 
         var exit = await ChildExitObservation.WithinAsync(server, ChildObservationBound);
         await Assert.That(ProcessObservation.IsRunning(processId)).IsFalse();
-        if (!OperatingSystem.IsWindows())
-        {
-            await Assert.That(exit.ExitCode).IsEqualTo(130).Because(exit.Describe());
-        }
-
-        Console.WriteLine("branch: " + (OperatingSystem.IsWindows() ? "Windows stdin lease" : "POSIX group SIGTERM") + " — the server " + exit.Describe());
+        await Assert.That(exit.ExitCode).IsEqualTo(OperatingSystem.IsWindows() ? 1 : 130).Because(exit.Describe());
+        Console.WriteLine("branch: " + (OperatingSystem.IsWindows() ? "Windows tree kill" : "POSIX group SIGTERM") + " — the server " + exit.Describe());
     }
 
     [Test]
@@ -259,22 +256,21 @@ public sealed class OpenCodeServerLifecycleTests
     }
 
     /// <summary>
-    /// What the collector holds of a graceful close. On Windows disposal closes the stdin lease and
-    /// drains before the collection closes, so the lines the child writes on the way out are in the
-    /// final snapshot. On Linux and macOS stdin closes last, after <c>SIGTERM</c> ended the child,
-    /// so those lines never exist and the final snapshot holds only what the child wrote while it ran.
+    /// What the collector holds of a close. The ladder ends the server before stdin closes, on every
+    /// platform: <c>SIGTERM</c> on Linux and macOS, the forced tree kill on Windows, as upstream ends
+    /// it. A child that would write its last lines only on stdin's end-of-stream never writes them,
+    /// so the final snapshot holds what it wrote while it ran, and the collection is closed.
     /// </summary>
     [Test]
     [Timeout(120_000)]
-    public async Task DisposeAsync_Should_Finalize_The_Collector_After_A_Graceful_Close(CancellationToken cancellationToken)
+    public async Task DisposeAsync_Should_Finalize_The_Collector_After_The_Ladder_Ended_The_Server(CancellationToken cancellationToken)
     {
         const string readyLine = "{\"url\":\"http://127.0.0.1:1\"}";
         var output = new OpenCodeServerOutput();
         var server = await OpenCodeServer.StartAsync(
             new OpenCodeServerOptions
             {
-                // The child writes its last lines only once the stdin lease is released, then
-                // leaves on its own inside the default grace: the graceful arm of disposal.
+                // The child writes its last lines only once the stdin lease is released.
                 Command =
                 [
                     "bun", "-e",
@@ -286,20 +282,11 @@ public sealed class OpenCodeServerLifecycleTests
 
         await server.DisposeAsync();
 
+        output.AppendStandardOutput("after-disposal");
         var snapshot = output.GetSnapshot();
-        if (OperatingSystem.IsWindows())
-        {
-            // Lines written during the shutdown itself are inside the final snapshot: the drain ran
-            // before the collection closed.
-            await Assert.That(snapshot.StandardOutput).IsEquivalentTo([readyLine, "FINAL-STDOUT"], CollectionOrdering.Matching);
-            await Assert.That(snapshot.StandardError).IsEquivalentTo(["FINAL-STDERR"], CollectionOrdering.Matching);
-            Console.WriteLine("branch: Windows — the lines written after the stdin lease closed are in the snapshot: " + string.Join(" | ", snapshot.StandardOutput));
-            return;
-        }
-
         await Assert.That(snapshot.StandardOutput).IsEquivalentTo([readyLine], CollectionOrdering.Matching);
         await Assert.That(snapshot.StandardError).IsEmpty();
-        Console.WriteLine("branch: POSIX — SIGTERM ended the child before stdin closed, so it wrote no shutdown lines: " + string.Join(" | ", snapshot.StandardOutput));
+        Console.WriteLine("branch: " + (OperatingSystem.IsWindows() ? "Windows" : "POSIX") + " — the ladder ended the child before stdin closed, so it wrote no shutdown lines: " + string.Join(" | ", snapshot.StandardOutput));
     }
 
     [Test]
@@ -331,9 +318,9 @@ public sealed class OpenCodeServerLifecycleTests
     }
 
     /// <summary>
-    /// Disposal releases the output readers with no collector attached too: on Windows they run on
-    /// dedicated threads while the child lives, elsewhere as pending asynchronous reads, and none
-    /// of them outlives the owning handle.
+    /// Disposal releases the output readers with no collector attached too: they run as pending
+    /// asynchronous reads while the child lives, on every platform, and none of them outlives the
+    /// owning handle.
     /// </summary>
     [Test]
     [Timeout(120_000)]
@@ -358,11 +345,11 @@ public sealed class OpenCodeServerLifecycleTests
     /// <summary>
     /// A forced end the platform does not complete is a result disposal continues from: every
     /// release step after it runs, the reader release and the collector's completion included. On
-    /// Windows the tree kill reports itself incomplete (the runtime raises that when a process of
-    /// the tree refuses the kill): the ladder still waits for the child, the output drain runs, and
-    /// the substitute, having waited for the child's last lines, issues the real kill. On Linux and
-    /// macOS every signal is refused, the group and the pid alike: nothing is escalated, disposal
-    /// returns without waiting out the grace, and the child is left running for the test to end.
+    /// Windows the tree kill fails without ending anything: the ladder falls back to
+    /// <c>TerminateProcess</c> on the root with code 1, upstream's fallback, without waiting out the
+    /// grace, and the tree kill runs once. On Linux and macOS every signal is refused, the group and
+    /// the pid alike: nothing is escalated, disposal returns without waiting out the grace, and the
+    /// child is left running for the test to end.
     /// </summary>
     [Test]
     [Timeout(120_000)]
@@ -370,7 +357,7 @@ public sealed class OpenCodeServerLifecycleTests
     {
         if (OperatingSystem.IsWindows())
         {
-            await AssertIncompleteTreeKillReleasesAsync(cancellationToken);
+            await AssertFailedTreeKillReleasesAsync(cancellationToken);
             return;
         }
 
@@ -426,78 +413,56 @@ public sealed class OpenCodeServerLifecycleTests
         return refusing;
     }
 
-    private static async Task AssertIncompleteTreeKillReleasesAsync(CancellationToken cancellationToken)
+    private static async Task AssertFailedTreeKillReleasesAsync(CancellationToken cancellationToken)
     {
         const string readyLine = "{\"url\":\"http://127.0.0.1:1\"}";
-        using var runRoot = new TestRunRoot(FileSystem);
-        const string markerName = "final-written";
-        var marker = FileSystem.Path.Combine(runRoot.Path, markerName);
-        using var markerCreated = new ManualResetEventSlim();
-        using var markerWatcher = FileSystem.FileSystemWatcher.New(runRoot.Path, markerName);
-        markerWatcher.Created += (_, _) => markerCreated.Set();
-        markerWatcher.EnableRaisingEvents = true;
-        var finalWritten = false;
-        var platformKill = new PlatformProcessTreeKill();
-        var incompleteKill = Substitute.For<IProcessTreeKill>();
-        _ = incompleteKill.Kill(Arg.Do<Process>(root =>
-            {
-                try
-                {
-                    finalWritten = markerCreated.Wait(ChildObservationBound, cancellationToken) || FileSystem.File.Exists(marker);
-                }
-                finally
-                {
-                    _ = platformKill.Kill(root);
-                }
-            }))
-            .Throws(new AggregateException(new Win32Exception()));
+        var failing = FailingTreeKill();
         var output = new OpenCodeServerOutput();
         var server = await OpenCodeServer.StartWithSeamsAsync(
             new OpenCodeServerOptions
             {
-                // The child writes its last lines once the stdin lease is released, records that
-                // both writes were flushed, and keeps running until the forced rung ends it.
-                Command =
-                [
-                    "bun", "-e",
-                    "const marker = process.env.OPENCODE_SDK_TEST_FINAL_MARKER; console.log('" + readyLine + "'); process.stdin.resume(); "
-                    + "process.stdin.on('end', () => process.stdout.write('FINAL-STDOUT\\n', () => process.stderr.write('FINAL-STDERR\\n', () => require('node:fs').writeFileSync(marker, '')))); "
-                    + "setTimeout(() => {}, 120000);",
-                ],
-                Environment = new Dictionary<string, string>(StringComparer.Ordinal)
-                {
-                    ["OPENCODE_SDK_TEST_FINAL_MARKER"] = marker,
-                },
-                GracefulShutdownTimeout = TimeSpan.Zero,
+                Command = ["bun", "-e", "console.log('" + readyLine + "'); setTimeout(() => {}, 120000);"],
+                GracefulShutdownTimeout = TimeSpan.FromSeconds(30),
                 Output = output,
             },
-            LauncherSeams.ForCurrentProcess() with { TreeTerminator = new ProcessTreeTerminator(incompleteKill) },
+            LauncherSeams.ForCurrentProcess() with { TreeKill = failing },
             cancellationToken);
         var processId = server.ProcessId;
+        try
+        {
+            var disposal = Stopwatch.StartNew();
+            await server.DisposeAsync();
+            var elapsed = disposal.Elapsed;
+            var exit = await ChildExitObservation.WithinAsync(server, ChildObservationBound);
 
-        await server.DisposeAsync();
+            _ = await failing.Received(1).KillTreeAsync(processId, Arg.Any<TimeSpan>());
+            await Assert.That(exit.ExitCode).IsEqualTo(1);
+            await Assert.That(elapsed).IsLessThan(TimeSpan.FromSeconds(10));
+            await Assert.That(server.OutputReadersEnded.IsCompleted).IsTrue();
+            output.AppendStandardOutput("after-disposal");
+            await Assert.That(output.GetSnapshot().StandardOutput).IsEquivalentTo([readyLine], CollectionOrdering.Matching);
+            Console.WriteLine("branch: Windows — the failed tree kill of pid " + processId.ToString(CultureInfo.InvariantCulture) + " fell back to TerminateProcess: the root " + exit.Describe());
+        }
+        finally
+        {
+            ProcessObservation.KillIfRunning(processId);
+        }
+    }
 
-        _ = incompleteKill.Received(1).Kill(Arg.Any<Process>());
-        await Assert.That(finalWritten).IsTrue();
-        await Assert.That(server.OutputReadersEnded.IsCompleted).IsTrue();
-        await Assert.That(ProcessObservation.IsRunning(processId)).IsFalse();
-
-        // The lines the child wrote just before the kill are in the snapshot: the drain ran
-        // before the collection closed. A line arriving after disposal is ignored: it closed.
-        output.AppendStandardOutput("after-disposal");
-        var snapshot = output.GetSnapshot();
-        await Assert.That(snapshot.StandardOutput).IsEquivalentTo([readyLine, "FINAL-STDOUT"], CollectionOrdering.Matching);
-        await Assert.That(snapshot.StandardError).IsEquivalentTo(["FINAL-STDERR"], CollectionOrdering.Matching);
-        Console.WriteLine("branch: Windows — the incomplete tree kill of pid " + processId.ToString(CultureInfo.InvariantCulture) + " was continued from");
+    /// <summary>A tree kill that reports a failure and ends nothing, as a <c>taskkill</c> that could not start does.</summary>
+    private static IWindowsTreeKill FailingTreeKill()
+    {
+        var failing = Substitute.For<IWindowsTreeKill>();
+        _ = failing.KillTreeAsync(Arg.Any<int>(), Arg.Any<TimeSpan>()).Returns(Task.FromResult(TreeKillOutcome.Failed));
+        return failing;
     }
 
     /// <summary>
     /// A failed start whose forced end the platform does not complete fails as the start failure it
     /// is, never as a teardown fault, and still releases everything: the stderr the drain collected
-    /// is quoted, and the collector is closed. On Windows the tree kill reports itself incomplete,
-    /// and the substitute holds its own handle on the child, so the test's cleanup ends exactly that
-    /// process. On Linux and macOS every signal is refused, so the child is left running and the
-    /// test ends it by its group.
+    /// is quoted, and the collector is closed. On Windows the tree kill fails, and the fallback ends
+    /// the root with code 1. On Linux and macOS every signal is refused, so the child is left
+    /// running and the test ends it by its group.
     /// </summary>
     [Test]
     [Timeout(120_000)]
@@ -505,7 +470,7 @@ public sealed class OpenCodeServerLifecycleTests
     {
         if (OperatingSystem.IsWindows())
         {
-            await AssertIncompleteTreeKillReportsTheStartFailureAsync(cancellationToken);
+            await AssertFailedTreeKillReportsTheStartFailureAsync(cancellationToken);
             return;
         }
 
@@ -567,57 +532,39 @@ public sealed class OpenCodeServerLifecycleTests
         return 0;
     }
 
-    private static async Task AssertIncompleteTreeKillReportsTheStartFailureAsync(CancellationToken cancellationToken)
+    private static async Task AssertFailedTreeKillReportsTheStartFailureAsync(CancellationToken cancellationToken)
     {
-        Process? child = null;
-        var platformKill = new PlatformProcessTreeKill();
-        var incompleteKill = Substitute.For<IProcessTreeKill>();
-        _ = incompleteKill.Kill(Arg.Do<Process>(root =>
-            {
-                child = Process.GetProcessById(root.Id);
-
-                // Hold a handle while the launcher's still pins the pid, so later checks and the
-                // cleanup cannot reach an unrelated process that reused it.
-                _ = child.Handle;
-                _ = platformKill.Kill(root);
-            }))
-            .Throws(new AggregateException(new Win32Exception()));
+        var failing = FailingTreeKill();
         var output = new OpenCodeServerOutput();
+        var processId = 0;
         try
         {
             var failure = await Assert.That(async () => await OpenCodeServer.StartWithSeamsAsync(
                 new OpenCodeServerOptions
                 {
-                    Command = ["bun", "-e", "console.error('starting'); setTimeout(() => {}, 120000)"],
+                    Command = ["bun", "-e", "console.error('starting pid=' + process.pid); setTimeout(() => {}, 120000)"],
                     ReadinessTimeout = TimeSpan.FromSeconds(5),
                     Output = output,
                 },
-                LauncherSeams.ForCurrentProcess() with { TreeTerminator = new ProcessTreeTerminator(incompleteKill) },
+                LauncherSeams.ForCurrentProcess() with { TreeKill = failing },
                 cancellationToken)).Throws<OpenCodeServerException>();
 
             await Assert.That(failure!.Message).Contains("did not report readiness");
-            await Assert.That(failure.Message).Contains("starting");
-            _ = incompleteKill.Received(1).Kill(Arg.Any<Process>());
-            await Assert.That(child).IsNotNull();
-            await Assert.That(child!.HasExited).IsTrue();
+            await Assert.That(failure.Message).Contains("starting pid=");
+            processId = StartingPid(output.GetSnapshot().StandardError);
+            _ = await failing.Received(1).KillTreeAsync(processId, Arg.Any<TimeSpan>());
+            await Assert.That(await ProcessObservation.ObserveExitWithinAsync(processId, ChildObservationBound, cancellationToken)).IsTrue();
 
             output.AppendStandardError("after-failure");
-            await Assert.That(output.GetSnapshot().StandardError).IsEquivalentTo(["starting"], CollectionOrdering.Matching);
-            Console.WriteLine("branch: Windows — the incomplete tree kill reported the start failure: " + failure.Message);
+            await Assert.That(output.GetSnapshot().StandardError).Count().IsEqualTo(1);
+            Console.WriteLine("branch: Windows — the failed tree kill fell back to TerminateProcess; the start failure was reported: " + failure.Message);
         }
         finally
         {
-            if (child is not null)
+            processId = processId is 0 ? TryStartingPid(output.GetSnapshot().StandardError) : processId;
+            if (processId > 0)
             {
-                using (child)
-                {
-                    if (!child.HasExited)
-                    {
-                        _ = TestProcessTreeKill.TryKill(child);
-                    }
-
-                    _ = await ProcessObservation.ObserveExitWithinAsync(child, ChildObservationBound, CancellationToken.None);
-                }
+                ProcessObservation.KillIfRunning(processId);
             }
         }
     }
@@ -625,7 +572,7 @@ public sealed class OpenCodeServerLifecycleTests
     /// <summary>
     /// The normal close waits for the child's own exit, not for its output to reach end-of-stream:
     /// a descendant still holding stdout does not hold disposal open past the child's prompt exit
-    /// (on stdin EOF on Windows, on SIGTERM elsewhere), and the readers of the pipes it still holds
+    /// (on the tree kill on Windows, on SIGTERM elsewhere), and the readers of the pipes it still holds
     /// are released all the same. The holder is the test's to end, by the pid it recorded.
     /// </summary>
     /// <remarks>

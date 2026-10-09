@@ -1,7 +1,10 @@
 using System.Diagnostics;
 using System.Globalization;
 using OpenCode.Sdk.Internal.Launcher;
+using OpenCode.Sdk.Internal.Windows;
 using OpenCode.Sdk.Tests.Support;
+using OpenCode.Sdk.TestSupport;
+using Testably.Abstractions;
 
 namespace OpenCode.Sdk.Tests;
 
@@ -10,10 +13,11 @@ namespace OpenCode.Sdk.Tests;
 /// lives in the process tree, and how disposal and a failed start end it and its children. On Linux
 /// and macOS the server leads a session of its own, disposal sends <c>SIGTERM</c> to its process
 /// group, waits the grace for the root and then for the group, and sends <c>SIGKILL</c> to what is
-/// left; a child in a session of its own is left to the server. On Windows the same trees go
-/// through today's <c>Process</c> path — stdin first, then the grace, then the tree kill — and each
-/// Windows arm asserts that unchanged behaviour. Every process a tree reports is ended by its pid
-/// before the test returns. Keyless <c>[NotInParallel]</c>: the proofs ride wall-clock bounds.
+/// left; a child in a session of its own is left to the server. On Windows the server is in the
+/// launcher's job, and disposal ends the whole tree at once with <c>taskkill /T /F</c>, detached
+/// children included, as upstream does; the grace bounds that first kill, and the same kill runs
+/// again only when the root outlived it. Every process a tree reports is ended by its pid before the
+/// test returns. Keyless <c>[NotInParallel]</c>: the proofs ride wall-clock bounds.
 /// </summary>
 [NotInParallel]
 public sealed class OpenCodeServerProcessGroupTests
@@ -23,6 +27,9 @@ public sealed class OpenCodeServerProcessGroupTests
 
     /// <summary>The grace a proof waits out on purpose.</summary>
     private static readonly TimeSpan ShortGrace = TimeSpan.FromSeconds(1);
+
+    /// <summary>A grace far longer than <see cref="ObservationBound"/>, for a close that must not wait for it.</summary>
+    private static readonly TimeSpan UnwaitedGrace = TimeSpan.FromSeconds(60);
 
     /// <summary>How long a test waits for a process it observes to end.</summary>
     private static readonly TimeSpan ObservationBound = TimeSpan.FromSeconds(10);
@@ -39,6 +46,9 @@ public sealed class OpenCodeServerProcessGroupTests
     /// <summary><c>SIGKILL</c>: what a stand-in that outlived the grace dies of.</summary>
     private const int Kill = 9;
 
+    /// <summary>The code a Windows tree kill or its fallback gives every process it ends, upstream's own.</summary>
+    private const int WindowsForcedExitCode = 1;
+
     [Test]
     [Timeout(120_000)]
     public async Task StartAsync_Should_Place_The_Server_In_A_Session_And_Group_Of_Its_Own(CancellationToken cancellationToken)
@@ -49,8 +59,12 @@ public sealed class OpenCodeServerProcessGroupTests
         {
             if (OperatingSystem.IsWindows())
             {
-                await Assert.That(server.OwnsProcess).IsTrue();
-                Console.WriteLine("branch: Windows — no sessions; pid " + server.ProcessId.ToString(CultureInfo.InvariantCulture) + " runs under Process");
+                // Windows has no sessions to lead: the placement is the launcher's job.
+                using var root = Process.GetProcessById(server.ProcessId);
+                var job = KillOnCloseJob.ForCurrentProcess.Current;
+                await Assert.That(job).IsNotNull();
+                await Assert.That(WindowsProcessProbe.IsInJob(root.SafeHandle, job!)).IsTrue();
+                Console.WriteLine("branch: Windows — pid " + server.ProcessId.ToString(CultureInfo.InvariantCulture) + " is in the launcher's kill-on-close job");
                 return;
             }
 
@@ -88,8 +102,7 @@ public sealed class OpenCodeServerProcessGroupTests
     public async Task DisposeAsync_Should_End_The_Group_And_Leave_A_Child_In_A_Session_Of_Its_Own(CancellationToken cancellationToken)
     {
         var output = new OpenCodeServerOutput();
-        var server = await OpenCodeServer.StartAsync(
-            LadderTree.Options(output, OperatingSystem.IsWindows() ? ShortGrace : Grace, "group-child", "detached"), cancellationToken);
+        var server = await OpenCodeServer.StartAsync(LadderTree.Options(output, Grace, "group-child", "detached"), cancellationToken);
         try
         {
             var groupChild = LadderTree.Pid(output, LadderTree.GroupChild);
@@ -101,16 +114,19 @@ public sealed class OpenCodeServerProcessGroupTests
             var groupChildEnded = await ProcessObservation.ObserveExitWithinAsync(groupChild, ObservationBound, cancellationToken);
 
             await Assert.That(groupChildEnded).IsTrue();
+            await Assert.That(elapsed).IsLessThan(Grace);
             if (OperatingSystem.IsWindows())
             {
-                // The stand-in ignores stdin, so the grace runs out and the tree kill ends every child.
-                await Assert.That(ProcessObservation.IsRunning(detached)).IsFalse();
-                Console.WriteLine("branch: Windows — the tree kill after the grace ended the root (" + exit.Describe() + ") and both children");
+                // Upstream's Windows close: one tree kill at once, which reaches every live
+                // descendant by parent pid, the detached child included, and no grace is waited.
+                var detachedEnded = await ProcessObservation.ObserveExitWithinAsync(detached, ObservationBound, cancellationToken);
+                await Assert.That(exit.ExitCode).IsEqualTo(WindowsForcedExitCode);
+                await Assert.That(detachedEnded).IsTrue();
+                Console.WriteLine("branch: Windows — the tree kill ended the root (" + exit.Describe() + ") and both children after " + elapsed.TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + " ms");
                 return;
             }
 
             await Assert.That(exit.Signal).IsEqualTo(Terminate);
-            await Assert.That(elapsed).IsLessThan(Grace);
             await Assert.That(ProcessObservation.IsRunning(detached)).IsTrue();
             Console.WriteLine("branch: POSIX — the root " + exit.Describe() + ", its group child ended, and the detached child survived");
         }
@@ -120,14 +136,25 @@ public sealed class OpenCodeServerProcessGroupTests
         }
     }
 
+    /// <summary>
+    /// A root that outlives the grace gets the forced rung. On Linux and macOS the stand-in ignores
+    /// <c>SIGTERM</c>, so <c>SIGKILL</c> ends it once the grace expired. On Windows the first tree
+    /// kill reports success but ends nothing, the shape of a kill the root survived; the same kill
+    /// runs again once the grace expired, and that one ends it.
+    /// </summary>
     [Test]
     [Timeout(120_000)]
     public async Task DisposeAsync_Should_Kill_A_Root_That_Outlives_The_Grace(CancellationToken cancellationToken)
     {
         var output = new OpenCodeServerOutput();
-        var server = await OpenCodeServer.StartAsync(LadderTree.Options(output, ShortGrace, "root-ignores-term"), cancellationToken);
+        var treeKill = new RecordingTreeKill(idleRuns: 1);
+        var server = await OpenCodeServer.StartWithSeamsAsync(
+            LadderTree.Options(output, ShortGrace, "root-ignores-term"),
+            LauncherSeams.ForCurrentProcess() with { TreeKill = treeKill },
+            cancellationToken);
         try
         {
+            treeKill.Restart();
             var disposal = Stopwatch.StartNew();
             await server.DisposeAsync();
             var elapsed = disposal.Elapsed;
@@ -136,7 +163,14 @@ public sealed class OpenCodeServerProcessGroupTests
             await Assert.That(elapsed).IsGreaterThanOrEqualTo(ShortGrace - TimerSlack);
             await Assert.That(elapsed).IsLessThan(ShortGrace + PosixServerLadder.ForcedExitTimeout);
             await Assert.That(ProcessObservation.IsRunning(server.ProcessId)).IsFalse();
-            if (!OperatingSystem.IsWindows())
+            if (OperatingSystem.IsWindows())
+            {
+                var runs = treeKill.Runs;
+                await Assert.That(runs.Count).IsEqualTo(2);
+                await Assert.That(runs[1] - runs[0]).IsGreaterThanOrEqualTo(ShortGrace - TimerSlack);
+                await Assert.That(exit.ExitCode).IsEqualTo(WindowsForcedExitCode);
+            }
+            else
             {
                 await Assert.That(exit.Signal).IsEqualTo(Kill);
             }
@@ -152,14 +186,18 @@ public sealed class OpenCodeServerProcessGroupTests
     /// <summary>
     /// The root ends on <c>SIGTERM</c>, but a child in its group ignores it: within the grace the
     /// ladder waits for the root and then for the group, and the member left at the grace's end gets
-    /// <c>SIGKILL</c>, as upstream's wait for its output pipes gets it there.
+    /// <c>SIGKILL</c>, as upstream's wait for its output pipes gets it there. Windows has no signal
+    /// to ignore: the tree kill ends the root and the member together, at once.
     /// </summary>
     [Test]
     [Timeout(120_000)]
     public async Task DisposeAsync_Should_Kill_A_Group_Member_That_Outlives_The_Grace_After_The_Root_Exited(CancellationToken cancellationToken)
     {
         var output = new OpenCodeServerOutput();
-        var server = await OpenCodeServer.StartAsync(LadderTree.Options(output, ShortGrace, "group-child-ignores-term"), cancellationToken);
+
+        // On Windows a grace far longer than the bound below shows that none of it is waited.
+        var server = await OpenCodeServer.StartAsync(
+            LadderTree.Options(output, OperatingSystem.IsWindows() ? UnwaitedGrace : ShortGrace, "group-child-ignores-term"), cancellationToken);
         try
         {
             var groupChild = LadderTree.Pid(output, LadderTree.GroupChild);
@@ -170,9 +208,14 @@ public sealed class OpenCodeServerProcessGroupTests
             var groupChildEnded = await ProcessObservation.ObserveExitWithinAsync(groupChild, ObservationBound, cancellationToken);
 
             await Assert.That(groupChildEnded).IsTrue();
-            await Assert.That(elapsed).IsGreaterThanOrEqualTo(ShortGrace - TimerSlack);
-            if (!OperatingSystem.IsWindows())
+            if (OperatingSystem.IsWindows())
             {
+                await Assert.That(elapsed).IsLessThan(ObservationBound);
+                await Assert.That(exit.ExitCode).IsEqualTo(WindowsForcedExitCode);
+            }
+            else
+            {
+                await Assert.That(elapsed).IsGreaterThanOrEqualTo(ShortGrace - TimerSlack);
                 await Assert.That(exit.Signal).IsEqualTo(Terminate);
             }
 
@@ -185,9 +228,11 @@ public sealed class OpenCodeServerProcessGroupTests
     }
 
     /// <summary>
-    /// A root that already exited on its own: with a failure code its group's survivors are ended
-    /// as a live root's group is; with code 0 the group is left alone, as upstream leaves it. The
-    /// Windows arm asserts the exit the launcher reports and a disposal that returns.
+    /// A root that already exited on its own: on Linux and macOS, with a failure code its group's
+    /// survivors are ended as a live root's group is; with code 0 the group is left alone, as
+    /// upstream leaves it. On Windows the launcher runs no tree kill on an exited root, whatever its
+    /// code: <c>taskkill</c> finds only live processes, so it would reach none of the root's
+    /// descendants.
     /// </summary>
     [Test]
     [Timeout(120_000)]
@@ -196,8 +241,11 @@ public sealed class OpenCodeServerProcessGroupTests
     public async Task DisposeAsync_Should_End_The_Survivors_Of_A_Root_That_Exited_Only_After_A_Failure(int code, CancellationToken cancellationToken)
     {
         var output = new OpenCodeServerOutput();
-        var server = await OpenCodeServer.StartAsync(
-            LadderTree.Options(output, Grace, "group-child", "exit-after-ready=" + code.ToString(CultureInfo.InvariantCulture)), cancellationToken);
+        var treeKill = new RecordingTreeKill();
+        var server = await OpenCodeServer.StartWithSeamsAsync(
+            LadderTree.Options(output, Grace, "group-child", "exit-after-ready=" + code.ToString(CultureInfo.InvariantCulture)),
+            LauncherSeams.ForCurrentProcess() with { TreeKill = treeKill },
+            cancellationToken);
         try
         {
             var groupChild = LadderTree.Pid(output, LadderTree.GroupChild);
@@ -206,11 +254,14 @@ public sealed class OpenCodeServerProcessGroupTests
             var survivorEnded = await ProcessObservation.ObserveExitWithinAsync(groupChild, ObservationBound, cancellationToken);
 
             await Assert.That(exit.ExitCode).IsEqualTo(code);
-            if (!OperatingSystem.IsWindows())
+            if (OperatingSystem.IsWindows())
             {
-                // On Windows Bun's own job object ends a non-detached child with its parent, so whether
-                // the child survives there says nothing about the launcher, which leaves an exited
-                // root's tree alone.
+                // Bun's own job ends a non-detached child with its parent, so whether the child
+                // survives says nothing about the launcher here; the tree kill that never ran does.
+                await Assert.That(treeKill.Runs).IsEmpty();
+            }
+            else
+            {
                 await Assert.That(survivorEnded).IsEqualTo(code != 0);
             }
 
@@ -228,9 +279,14 @@ public sealed class OpenCodeServerProcessGroupTests
     {
         var output = new OpenCodeServerOutput();
         var options = LadderTree.Options(output, Grace, "close-stdout");
+        if (OperatingSystem.IsWindows())
+        {
+            // A Bun stand-in cannot close its stdout on Windows: its runtime keeps a handle of its
+            // own on it. The service fixture's stand-in closes the handle itself.
+            var fixture = new ServiceFixtureCommand(new RealFileSystem()).Resolve();
+            options.Command = [fixture[0], fixture[1], "close-stdout"];
+        }
 
-        // Windows keeps today's readiness wait, which ends at the timeout; a short one keeps the arm cheap.
-        options.ReadinessTimeout = OperatingSystem.IsWindows() ? TimeSpan.FromSeconds(3) : TimeSpan.FromSeconds(60);
         try
         {
             var start = Stopwatch.StartNew();
@@ -239,16 +295,9 @@ public sealed class OpenCodeServerProcessGroupTests
             var rootEnded = await ProcessObservation.ObserveExitWithinAsync(LadderTree.Pid(output, LadderTree.Root), ObservationBound, cancellationToken);
 
             await Assert.That(rootEnded).IsTrue();
-            if (OperatingSystem.IsWindows())
-            {
-                await Assert.That(failure!.Message).Contains("did not report readiness");
-                Console.WriteLine("branch: Windows — the readiness timeout ended the start: " + failure.Message);
-                return;
-            }
-
             await Assert.That(failure!.Message).Contains("closed its standard output before reporting readiness");
             await Assert.That(elapsed).IsLessThan(PromptFailure);
-            Console.WriteLine("branch: POSIX — failed after " + elapsed.TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + " ms: " + failure.Message);
+            Console.WriteLine("branch: " + Platform() + " — failed after " + elapsed.TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + " ms: " + failure.Message);
         }
         finally
         {
@@ -273,7 +322,7 @@ public sealed class OpenCodeServerProcessGroupTests
             var elapsed = start.Elapsed;
 
             await Assert.That(failure!.Message).Contains("exited with code 7 before reporting readiness");
-            await Assert.That(elapsed).IsLessThan(OperatingSystem.IsWindows() ? ObservationBound : PromptFailure);
+            await Assert.That(elapsed).IsLessThan(PromptFailure);
             Console.WriteLine("branch: " + Platform() + " — failed after " + elapsed.TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + " ms: " + failure.Message);
         }
         finally
@@ -309,8 +358,7 @@ public sealed class OpenCodeServerProcessGroupTests
     /// <summary>
     /// The readiness line and the exit arrive together: the line was written first, so it is in the
     /// pipe whichever the launcher sees first, and the first line wins. Several rounds, because the
-    /// order the two arrive in is the race under test. Windows keeps today's race, in which the exit
-    /// can win; its arm records which side did.
+    /// order the two arrive in is the race under test.
     /// </summary>
     [Test]
     [Timeout(120_000)]
@@ -327,21 +375,13 @@ public sealed class OpenCodeServerProcessGroupTests
                 await server.DisposeAsync();
                 outcomes.Add("started");
             }
-            catch (OpenCodeServerException failure) when (OperatingSystem.IsWindows())
-            {
-                outcomes.Add(failure.Message);
-            }
             finally
             {
                 await AssertEveryReportedProcessEndedAsync(output);
             }
         }
 
-        if (!OperatingSystem.IsWindows())
-        {
-            await Assert.That(outcomes).All().Satisfy(static outcome => outcome.IsEqualTo("started"));
-        }
-
+        await Assert.That(outcomes).All().Satisfy(static outcome => outcome.IsEqualTo("started"));
         Console.WriteLine("branch: " + Platform() + " — " + string.Join(" | ", outcomes));
     }
 

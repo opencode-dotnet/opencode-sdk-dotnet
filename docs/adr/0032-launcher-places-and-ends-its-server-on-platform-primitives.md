@@ -49,6 +49,10 @@ a different place from upstream, the difference is a recorded divergence.
 | Waiting for the group | Waits for the root's own output pipes to close | Waits for the root's exit, then for the group to empty | No dependency on who holds the pipes. |
 | Forced-exit wait | Waits on the root's exit alone after the forced kill | Bounds that wait | Disposal never hangs on a process the kernel cannot end. |
 | Windows exit code | Bun truncates it | Reports the code the operating system gives, in full | The exact value. |
+| Windows job assignment | Assigns the server once it runs | Creates the server suspended and assigns it before it runs | The server runs nothing outside the job, and the launcher's job never nests under one a libuv server creates for itself, which would refuse every later assignment. |
+| Windows job creation failure | Aborts the process | Fails the start, and a later start tries again | A library does not abort its host, and a transient failure must not fail every later start. |
+| Windows inherited handles | Passes every inheritable handle of the host | Passes the server's own standard handles alone, inheritable only while the server is created | The server holds nothing of the host's. Residual: a concurrent `Process.Start` of the host can still inherit them while the server is created. |
+| Windows assignment refused as invalid | Never meets it: it adds the calling process to its job first | Retries once in a fresh job | The host is not added to the job, so a Windows Store program's first use can make the job refuse every later assignment. |
 
 ## Target frameworks
 

@@ -143,7 +143,7 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
         if (!compatible)
         {
             Announce(OpenCodeServerEnsureReason.VersionMismatch, answer.Version);
-            await ReplaceAsync(registration, handOff: answer.State == ServiceState.Ready, cancellationToken).ConfigureAwait(false);
+            await ReplaceAsync(handOff: answer.State == ServiceState.Ready, cancellationToken).ConfigureAwait(false);
             ReleaseStoppedContenders(registration.ProcessId);
             _lastSpawn = null;
         }
@@ -153,17 +153,25 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
 
     /// <summary>
     /// The replacement stop, <c>stop({ pty: ready ? "handoff" : "clear" }).catch(() =&gt; undefined)</c>:
-    /// the handoff or clear is best-effort and never keeps the old service running, and a failure
-    /// does not end the election, which probes again next round. The SDK acts on the registration it
-    /// probed, and the terminator's identity check skips a record that changed since. The last
-    /// failure is kept as the timeout's cause when no contender failure is held.
+    /// like upstream's <c>stop</c> it reads the registration afresh, prepares the handoff for the
+    /// service registered now (or clears the sidecar when the probed one was not ready, or when
+    /// nothing is registered any more), and terminates that service; the terminator's identity check
+    /// then skips a record that changed again since. The handoff or clear is best-effort and never
+    /// keeps the old service running, and a failure does not end the election, which probes again
+    /// next round. The last failure is kept as the timeout's cause when no contender failure is held.
     /// </summary>
-    private async Task ReplaceAsync(ServiceRegistration registration, bool handOff, CancellationToken cancellationToken)
+    private async Task ReplaceAsync(bool handOff, CancellationToken cancellationToken)
     {
         try
         {
-            await PrepareOrClearAsync(registration, handOff, cancellationToken).ConfigureAwait(false);
-            await seams.Terminator.TerminateAsync(registration, paths.RegistrationFile, cancellationToken).ConfigureAwait(false);
+            var current = await ServiceRegistrationReader
+                .TryReadAsync(seams.FileSystem, paths.RegistrationFile, cancellationToken)
+                .ConfigureAwait(false);
+            await PrepareOrClearAsync(current, handOff, cancellationToken).ConfigureAwait(false);
+            if (current is not null)
+            {
+                await seams.Terminator.TerminateAsync(current, paths.RegistrationFile, cancellationToken).ConfigureAwait(false);
+            }
         }
         catch (OpenCodeServerException failure)
         {
@@ -178,11 +186,11 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
     [SlopwatchSuppress(
         "SW003",
         "The pinned client's stop catches a failed handoff or clear and only warns (service.ts): persistent terminals are best-effort and must never keep the old service running.")]
-    private async Task PrepareOrClearAsync(ServiceRegistration registration, bool handOff, CancellationToken cancellationToken)
+    private async Task PrepareOrClearAsync(ServiceRegistration? registration, bool handOff, CancellationToken cancellationToken)
     {
         try
         {
-            if (handOff)
+            if (handOff && registration is not null)
             {
                 await seams.Handoff
                     .PrepareAsync(paths.RegistrationFile, registration, seams.Timing.RequestTimeout, cancellationToken)

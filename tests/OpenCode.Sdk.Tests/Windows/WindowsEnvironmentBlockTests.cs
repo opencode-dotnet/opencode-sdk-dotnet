@@ -1,6 +1,6 @@
-using OpenCode.Sdk.Internal.BackgroundService.Contender;
+using OpenCode.Sdk.Internal.Windows;
 
-namespace OpenCode.Sdk.Tests.BackgroundService.Contender;
+namespace OpenCode.Sdk.Tests.Windows;
 
 /// <summary>
 /// <see cref="WindowsEnvironmentBlock"/>: the <c>CreateProcessW</c> block layout, ordered the way
