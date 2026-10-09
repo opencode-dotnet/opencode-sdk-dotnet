@@ -5,7 +5,8 @@ namespace OpenCode.Sdk.Internal.Posix;
 /// <summary>
 /// How a child process ended, as far as its parent learned it: an exit code, a terminating signal,
 /// or neither when the status could not be read (another reaper took the child first). The record
-/// is the decoded form of a <c>waitpid</c> status word; a Windows exit code fits it too, as a code.
+/// is the decoded form of a <c>waitpid</c> status word; a Windows exit code fits it too, as a code,
+/// in its full 32 bits.
 /// </summary>
 internal sealed record ChildExitStatus
 {
@@ -40,8 +41,12 @@ internal sealed record ChildExitStatus
         var signal => new ChildExitStatus { Signal = signal },
     };
 
-    /// <summary>Describes the end as a predicate for a sentence whose subject is the child.</summary>
-    /// <returns>"exited with code N", "terminated on signal N", or "exited with an unknown status".</returns>
+    /// <summary>
+    /// Describes the end as a predicate for a sentence whose subject is the child. A negative code,
+    /// which only Windows gives (an <c>NTSTATUS</c> such as <c>0xC0000005</c> read as a signed 32-bit
+    /// value), also carries its hexadecimal form, the spelling Windows documents it by.
+    /// </summary>
+    /// <returns>"exited with code N", "exited with code -N (0xHHHHHHHH)", "terminated on signal N", or "exited with an unknown status".</returns>
     public string Describe()
     {
         if (Signal is { } signal)
@@ -49,8 +54,11 @@ internal sealed record ChildExitStatus
             return "terminated on signal " + signal.ToString(CultureInfo.InvariantCulture);
         }
 
-        return ExitCode is { } code
-            ? "exited with code " + code.ToString(CultureInfo.InvariantCulture)
-            : "exited with an unknown status";
+        return ExitCode switch
+        {
+            { } code and < 0 => "exited with code " + code.ToString(CultureInfo.InvariantCulture) + " (0x" + code.ToString("X8", CultureInfo.InvariantCulture) + ")",
+            { } code => "exited with code " + code.ToString(CultureInfo.InvariantCulture),
+            null => "exited with an unknown status",
+        };
     }
 }

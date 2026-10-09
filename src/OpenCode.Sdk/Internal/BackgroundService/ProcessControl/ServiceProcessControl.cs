@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 #endif
 using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
 using OpenCode.Sdk.Internal.Posix;
-using static OpenCode.Sdk.Internal.BackgroundService.ProcessControl.BackgroundServiceInterop;
+using static OpenCode.Sdk.Internal.Windows.WindowsPlatform;
 using static OpenCode.Sdk.Internal.Posix.PosixInterop;
 
 namespace OpenCode.Sdk.Internal.BackgroundService.ProcessControl;

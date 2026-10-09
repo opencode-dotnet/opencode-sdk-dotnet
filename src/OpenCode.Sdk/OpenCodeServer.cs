@@ -12,6 +12,7 @@ using OpenCode.Sdk.Internal.BackgroundService.Registration;
 using OpenCode.Sdk.Internal.BackgroundService.Stop;
 using OpenCode.Sdk.Internal.Launcher;
 using OpenCode.Sdk.Internal.Posix;
+using OpenCode.Sdk.Internal.Windows;
 
 namespace OpenCode.Sdk;
 
@@ -19,12 +20,14 @@ namespace OpenCode.Sdk;
 /// A local opencode server reached through one of its process-backed modes, with the ownership
 /// the mode implies visible through <see cref="OwnsProcess"/>. <see cref="StartAsync"/> returns
 /// an owned standalone server: started on port zero with its own generated lease credential, held
-/// through an open stdin pipe, and ended by disposal within bounds. On Windows disposal closes
-/// stdin first, then waits a grace, then kills the tree. On Linux and macOS the server runs in a
-/// session of its own, out of reach of the host terminal's Ctrl+C and hangup, and disposal sends
-/// <c>SIGTERM</c> to its process group, waits a grace, then sends <c>SIGKILL</c> to what is left of
-/// the group. The operating system closes the lease even when the owner crashes before disposal
-/// runs, and the server exits on that end-of-stream. <see cref="DiscoverAsync"/> returns a
+/// through an open stdin pipe, and ended by disposal within bounds. On Windows the server runs in
+/// a job that ends it with its owner, however the owner ends, and disposal ends it and its process
+/// tree at once with <c>taskkill /T /F</c>, running the same kill again when the server outlives the
+/// grace. On Linux and macOS the server runs in a session of its own, out of reach of the host
+/// terminal's Ctrl+C and hangup, and disposal sends <c>SIGTERM</c> to its process group, waits a
+/// grace, then sends <c>SIGKILL</c> to what is left of the group; when the owner crashes before
+/// disposal runs, the operating system closes the lease, and the server exits on that
+/// end-of-stream. <see cref="DiscoverAsync"/> returns a
 /// shared registered background service the first-party CLI runs for every client on the machine:
 /// nothing here owns it, and disposing the handle is a no-op; <see cref="EnsureAsync"/> reuses or
 /// starts that shared service and returns the same non-owning handle; the static
@@ -38,13 +41,13 @@ public class OpenCodeServer : IAsyncDisposable
     /// <summary>The reference client's exact standalone argv tail, appended to every command.</summary>
     private static readonly string[] LauncherArguments = ["--stdio", "--port", "0"];
 
-    private readonly ServerChild? _child;
+    private readonly OwnedServerChild? _child;
     private readonly Uri? _endpoint;
     private readonly string? _password;
     private readonly int? _processId;
     private int _disposed;
 
-    private OpenCodeServer(ServerChild child, Uri endpoint, string password)
+    private OpenCodeServer(OwnedServerChild child, Uri endpoint, string password)
     {
         _child = child;
         _endpoint = endpoint;
@@ -118,8 +121,9 @@ public class OpenCodeServer : IAsyncDisposable
     /// Gets the server's process identifier, for diagnostics and process-truth assertions. It
     /// remains readable after disposal, when any process handle is gone. For a started server it
     /// identifies the process this door owns, which for a Windows batch shim is the cmd.exe host
-    /// the shim's own child runs under rather than the server process; ask the server for its own
-    /// pid when that distinction matters. For a discovered service it is the pid the registration
+    /// the shim's own child runs under rather than the server process (and which the job that ends
+    /// the server with its owner holds); ask the server for its own pid when that distinction
+    /// matters. For a discovered service it is the pid the registration
     /// published and the info answer confirmed.
     /// </summary>
     public virtual int ProcessId =>
@@ -229,7 +233,7 @@ public class OpenCodeServer : IAsyncDisposable
     public static Task<OpenCodeServer> EnsureAsync(
         OpenCodeServerEnsureOptions? options = null,
         CancellationToken cancellationToken = default) =>
-        EnsureWithSeamsAsync(options, ServiceTiming.Default, new ServiceContenderSpawner(new PosixSpawn()), cancellationToken);
+        EnsureWithSeamsAsync(options, ServiceTiming.Default, new ServiceContenderSpawner(new PosixSpawn(), new WindowsSpawn()), cancellationToken);
 
     /// <summary>
     /// The seam-injected Ensure the tests use, kept out of the public option types the way upstream's
@@ -273,18 +277,22 @@ public class OpenCodeServer : IAsyncDisposable
     /// Starts a fresh private standalone server: resolves the command the way a shell would,
     /// spawns it with <c>--stdio --port 0</c> appended and the generated lease credential in the
     /// child environment, then waits for the JSON readiness line. On any failure that reached a
-    /// child, the child is ended before the method throws. On Linux and macOS the server is spawned
-    /// in a session of its own, and a failed start ends it the way disposal does: <c>SIGTERM</c> to
-    /// its process group, <see cref="OpenCodeServerOptions.GracefulShutdownTimeout"/>, then
-    /// <c>SIGKILL</c>. A canceled or timed-out start can therefore take up to that grace plus 16
-    /// seconds to throw: at most 10 for the server's exit after <c>SIGKILL</c>, 1 for draining its
-    /// output, and 5 for releasing the output readers.
+    /// child, the child is ended before the method throws. On Windows the server is created
+    /// suspended, placed in the process-wide job that ends it with its owner, and only then
+    /// resumed; a failed start ends it the way disposal does, with <c>taskkill /T /F</c> at once and
+    /// again after <see cref="OpenCodeServerOptions.GracefulShutdownTimeout"/> when it is still
+    /// running, so a canceled or timed-out start can take up to that grace plus 26 seconds to throw.
+    /// On Linux and macOS the server is spawned in a session of its own, and a failed start ends it
+    /// the way disposal does: <c>SIGTERM</c> to its process group, the grace, then <c>SIGKILL</c>. A
+    /// canceled or timed-out start can therefore take up to that grace plus 16 seconds to throw: at
+    /// most 10 for the server's exit after <c>SIGKILL</c>, 1 for draining its output, and 5 for
+    /// releasing the output readers.
     /// </summary>
     /// <param name="options">The launch options; null uses the defaults.</param>
     /// <param name="cancellationToken">The cancellation token ending the wait for readiness.</param>
     /// <returns>The started server, disposed by the caller.</returns>
-    /// <exception cref="ArgumentException">The options are unusable: an empty command, a blank command entry, a non-positive readiness timeout, a negative grace, an output collector an earlier start already bound, or (on Linux and macOS) a NUL in a command entry or an environment entry.</exception>
-    /// <exception cref="OpenCodeServerException">The command did not resolve on PATH, a leading argument was refused for a Windows batch shim, the platform is neither Windows, Linux, nor macOS, or the process could not start, exited or closed its stdout before readiness, timed out, or broke the readiness contract.</exception>
+    /// <exception cref="ArgumentException">The options are unusable: an empty command, a blank command entry, a non-positive readiness timeout, a negative grace, an output collector an earlier start already bound, or a NUL in a command entry or an environment entry.</exception>
+    /// <exception cref="OpenCodeServerException">The command did not resolve on PATH, a leading argument was refused for a Windows batch shim, the platform is neither Windows, Linux, nor macOS, or the process could not start, could not be placed in the job that ends it with its owner (Windows), exited or closed its stdout before readiness, timed out, or broke the readiness contract.</exception>
     public static Task<OpenCodeServer> StartAsync(
         OpenCodeServerOptions? options = null,
         CancellationToken cancellationToken = default) =>
@@ -318,7 +326,7 @@ public class OpenCodeServer : IAsyncDisposable
         // try, and the finally is the single place that releases the child on that path. The
         // flag is set only once the new OpenCodeServer has taken ownership on success
         // (TransportPolicy.CreateOwnedHttpClient's handler-ownership idiom, mirrored here).
-        ServerChild? child = null;
+        OwnedServerChild? child = null;
         var started = false;
         try
         {
@@ -416,15 +424,18 @@ public class OpenCodeServer : IAsyncDisposable
 
     /// <summary>
     /// Ends the owned child, bounded at every step, quiet for a child that is already gone, and
-    /// idempotent. On Windows: closes stdin (the ownership lease), waits the configured grace,
-    /// then escalates to a forced tree kill. On Linux and macOS: sends <c>SIGTERM</c> to the
+    /// idempotent. On Windows, as upstream ends its server there: ends the server and every live
+    /// descendant of it at once with <c>taskkill /T /F</c>, bounded by the configured grace, which
+    /// starts with it; <c>TerminateProcess</c> ends the server with code 1 when the kill fails; when
+    /// the server is still running at the grace's end, the same pair runs again; stdin closes last.
+    /// A server that already exited is not tree-killed. On Linux and macOS: sends <c>SIGTERM</c> to the
     /// server's process group, waits the configured grace for the server and then for the rest of
     /// its group to end, sends <c>SIGKILL</c> to the group when anything of it is left, and closes
     /// stdin last. A child that moved into a session of its own is left to the server, and a server
     /// that already exited on its own with code 0 or on a signal leaves its group alone. An
     /// <see cref="OpenCodeServerOptions.Output"/> collector keeps collecting while the server is
-    /// ended, and its output is drained within a bound (at most one second on Linux and macOS)
-    /// before the collection closes. A handle that owns no process (<see cref="OwnsProcess"/>
+    /// ended, and its output is drained within a bound of at most one second before the collection
+    /// closes. A handle that owns no process (<see cref="OwnsProcess"/>
     /// false) has nothing to end: disposing a discovered service never stops it.
     /// </summary>
     /// <returns>A task that completes once any owned child is ended and released.</returns>
@@ -514,7 +525,7 @@ public class OpenCodeServer : IAsyncDisposable
     }
 
     private static async Task<string> WaitForReadyLineAsync(
-        ServerChild child,
+        OwnedServerChild child,
         TaskCompletionSource<string> readyLine,
         TimeSpan readinessTimeout,
         object stderrGate,

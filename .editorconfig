@@ -1021,22 +1021,6 @@ dotnet_diagnostic.VSTHRD003.severity = none
 [src/OpenCode.Sdk/Internal/ProcessEventOutputPump.cs]
 dotnet_diagnostic.MA0045.severity = none
 
-# The launcher's Windows output reader reads synchronously on a dedicated thread on purpose:
-# before .NET 11, Process creates the redirected pipes synchronous, so an async read would run
-# the same blocking ReadFile on a thread-pool thread and hold it for the server's whole life
-# (dotnet/runtime#81896), which is the pool starvation this reader exists to prevent. The read is
-# cancellable through CancelSynchronousIo. Winner: the dedicated-thread reader; MA0045 remains
-# enabled elsewhere.
-[src/OpenCode.Sdk/Internal/ChildOutputReader.cs]
-dotnet_diagnostic.MA0045.severity = none
-
-# The pump awaits the completion tasks of the two ChildOutputReader threads it started itself;
-# each is completed only by that reader's own thread when it ends, so there is no foreign task
-# lifetime for VSTHRD003 to protect against. Winner: owned reader completion; VSTHRD003 remains
-# enabled elsewhere.
-[src/OpenCode.Sdk/Internal/DedicatedThreadOutputPump.cs]
-dotnet_diagnostic.VSTHRD003.severity = none
-
 # OpenCodeServerContractTests exercises the processless friend-assembly seam
 # (internal OpenCodeServer(Uri, string)) and the bare protected-ctor mock seam exclusively:
 # neither holds a real child process, so DisposeAsync is a no-op and nothing physical leaks when
@@ -1222,13 +1206,13 @@ dotnet_diagnostic.VSTHRD003.severity = none
 [src/OpenCode.Sdk/Internal/Launcher/PipeOutputPump.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
-[src/OpenCode.Sdk/Internal/Launcher/PosixServerChild.cs]
+[src/OpenCode.Sdk/Internal/Launcher/OwnedServerChild.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
 [src/OpenCode.Sdk/Internal/Launcher/PosixServerLadder.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
-[src/OpenCode.Sdk/Internal/Launcher/ProcessServerChild.cs]
+[src/OpenCode.Sdk/Internal/Launcher/WindowsServerLadder.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
 # The POSIX exit watch is a dedicated background thread that blocks in waitid by design: a

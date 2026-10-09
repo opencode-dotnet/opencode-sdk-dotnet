@@ -367,8 +367,11 @@ section it concerns (ADR-0031).
 
 `OpenCodeServer.StartAsync(OpenCodeServerOptions?, CancellationToken)` is the standalone door
 (upstream `Standalone.start` parity), hand-written with no process-management dependency
-(ADR-0001): over `System.Diagnostics.Process` on Windows, and over the SDK's own spawn, group
-signal, and exit-status seams on Linux and macOS (ADR-0032). Every call is always a fresh private
+(ADR-0001): over the SDK's own spawn, job, exit-status, and tree-kill seams on Windows, and over its
+own spawn, group signal, and exit-status seams on Linux and macOS (ADR-0032). The readiness wait, the
+failed-start and disposal flow, and the order of the release are one flow both platforms share; the
+platforms differ in how the server is created and placed, how its exit is observed, and the rungs of
+its ladder. Every call is always a fresh private
 server on port zero: the caller's `Command` — `opencode serve` by default, the command the
 `@opencode/cli` package installs (the package also installs a transitional `opencode2` alias
 pointing at the same executable) — plus `--stdio --port 0` is the argv, and a freshly generated
@@ -376,22 +379,17 @@ lease credential is injected into the child environment as `OPENCODE_PASSWORD`, 
 caller-supplied `Environment` entries so it can never be shadowed. Readiness is the single JSON
 stdout line the child prints once fully booted; stdin stays open as the ownership lease for as long
 as the server runs, and every later stdout line plus all of stderr is drained continuously (stderr
-into a bounded tail kept for failure diagnostics) so a chatty child can never wedge the pipes. On
-Windows, `Process` creates those pipes synchronous before .NET 11 (dotnet/runtime#81896), so a
-pending read blocks the thread it runs on; `Process`'s own event readers would run those reads on
-thread-pool threads, two per standalone server for its whole life, and a host with several servers
-starves its pool. The launcher therefore reads each stream on a dedicated background thread on
-Windows (`ChildOutputReader`). On Linux and macOS the launcher creates the pipes itself, and their
-reads are asynchronous and hold no thread. Every reader ends before the child's handles are
-released: on Windows, disposal and a failed start wait for end-of-stream inside the drain bound,
-then cancel any read still blocked — a descendant can keep a write end open — with
-`CancelSynchronousIo`, so no reader outlives its owner; each Windows reader thread closes its
-pipe's read handle as it ends, because `Process` never closes a redirected stream that was read
-synchronously. On Linux and macOS disposal with a collector and a failed start drain for at most
-one second, and the release then cancels the pending reads and closes the pipes. .NET
-11's `Process` opens the parent's read ends overlapped (dotnet/runtime#125643); a future .NET 11
-target can read asynchronously on that runtime without a dedicated thread. The contender spawn
-creates its own overlapped stderr pipe instead (ADR-0027).
+into a bounded tail kept for failure diagnostics) so a chatty child can never wedge the pipes. The
+launcher creates the pipes itself on every OS, and their reads are asynchronous and hold no thread:
+on Linux and macOS a pipe read is socket-backed, and on Windows the parent's ends are overlapped
+named pipes whose reads complete on the I/O completion port, on every target, .NET Framework
+included. A host with several servers therefore holds no thread per server, where `Process`'s
+synchronous pipes before .NET 11 (dotnet/runtime#81896) would hold two pool threads per server for
+its whole life. Every reader ends before the child's handles are released: disposal with a
+collector and a failed start drain for at most one second, and the release then cancels the pending
+reads — a descendant can keep a write end open — and closes the pipes; on .NET Framework, where no
+token reaches a pipe read, closing the pipe is what ends it. The background-service contender spawns
+through the same Windows spawn, with the same pipes (ADR-0027).
 
 `Command[0]` is resolved once per start, before the process is created, the way a shell resolves
 it, and the resolved path is what the process starts and what a failure names. A command carrying
@@ -410,7 +408,7 @@ before anything is spawned, naming the command, the number of directories search
 extensions tried.
 
 A resolved Windows batch target (`.cmd`/`.bat`) is launched explicitly through the system
-`cmd.exe` — located the way the downlevel tree kill locates taskkill — with `/d /s /c` and a
+`cmd.exe` — located the way the tree kill locates taskkill — with `/d /s /c` and a
 command line whose script path and every argument are double-quoted inside one outer quote pair,
 which is the single documented `/s` parse. Determinism is the reason: `CreateProcess` will run a
 batch file implicitly, but through a rule nothing in the SDK controls. Because `cmd.exe` re-parses
@@ -419,13 +417,62 @@ CR, or LF is refused with `OpenCodeServerException` naming the offending argumen
 the fail-closed stance Rust and Node took for BatBadBut (CVE-2024-24576). The SDK's own
 `--stdio --port 0` carry no such character; the resolved script path itself is not screened,
 because `&`, `^`, and `%` are legal in Windows paths and a false refusal would break legitimate
-installs. The batch line is composed as one string on every target, because `cmd.exe` does not
-follow the MSVCRT rules `ArgumentList` applies; the non-batch case is unchanged (`ArgumentList` on
-modern targets, `ProcessArgumentComposer` downlevel). The stdin ownership lease and the stdout
-readiness line pass through the interpreter to the child unchanged, and `ProcessId` reports the
-launcher-owned root — for a batch shim, the `cmd.exe` host rather than the server process. The
-forced tree kill reaches the grandchild whenever it runs; when the server and its `cmd.exe` host
-exit inside the disposal grace, no tree kill runs (see the disposal ladder below).
+installs. The batch line is composed as one string, because `cmd.exe` does not follow the MSVCRT
+rules; any other target's command line is its argv composed with the MSVCRT rules
+(`ProcessArgumentComposer`), which the child's runtime parses back. The stdin ownership lease and
+the stdout readiness line pass through the interpreter to the child unchanged, and `ProcessId`
+reports the launcher-owned root — for a batch shim, the `cmd.exe` host rather than the server
+process. The job holds that root: the real server, `cmd.exe`'s child, is outside it, so when the
+owner dies without disposing, the server ends only through its stdin lease, as it does under
+upstream's own launch of a `.cmd` file. The npm install's bare `opencode` resolves to exactly such a
+shim; the full owner-crash guarantee needs `Command` to name `opencode.exe`, and a shim of another
+installer is safe only if it ties its child to itself. The tree kill reaches the grandchild whenever
+it runs; when `cmd.exe` has already exited, no tree kill runs (see the disposal ladder below).
+
+On Windows the server is placed in a process-wide job that ends it with its owner, the job libuv
+gives upstream's server: one job per process, created on the first start and never closed by the
+SDK, with exactly libuv's four limits — kill on close, so the kernel ends every server when the
+host's handle to the job closes, which it does when the host ends, however it ends; breakaway
+allowed and silent breakaway, so no process a server creates joins the job by inheritance and its
+detached descendants outlive it; and death on an unhandled exception, so a crashing server ends
+without an error-reporting dialog. A server built on libuv (Bun, Node) places its other children in
+a job of its own, which nests under the launcher's, so those children end with the owner too. The
+job handle is not inheritable, and the host itself is not added. The server is created suspended
+with `CreateProcessW`, assigned to the job, and only then resumed: it runs no instruction outside
+the job. An assignment refused with `ERROR_ACCESS_DENIED` is tolerated, as libuv tolerates it (a job
+of the host's that cannot nest), and the server then ends with its owner through the stdin lease
+alone; one refused with `ERROR_INVALID_PARAMETER` is tried once more in a fresh job, which serves
+every later start while the old job stays held once it takes the server, and is closed, the old job
+staying in use, when it refuses too; any other refusal, a job that cannot be created, and a main
+thread that cannot be resumed end the suspended server with code 1 and fail the start.
+The spawn passes an explicit inherited-handle list (`PROC_THREAD_ATTRIBUTE_HANDLE_LIST`), so the
+server receives its three standard handles and nothing else the host holds. Every handle the SDK
+creates for a child is non-inheritable; under one lock every Windows spawn of the SDK takes (the
+launcher, the background-service contender, and the tree kill), the spawn duplicates the child's
+ends as inheritable, creates the child, and closes the duplicates, and the parent then closes its
+own copies of the child's ends. A `Process.Start` on another thread of the host can still inherit a
+duplicate inside that call, on every runtime: it passes every inheritable handle under the runtime's
+own spawn lock, which the SDK's spawn does not take. That lock is private; reaching it through
+reflection was considered and rejected, because it breaks with any runtime change and under trimming.
+Stdin, stdout, and stderr are local named pipes under `\\.\pipe\LOCAL\` (the one namespace an
+AppContainer host can create pipes in), created with a fresh name, as the first and only instance,
+refusing remote clients: the parent's end is overlapped, the child's end synchronous, each one
+direction with libuv's attribute rights. Every child is created with `SW_HIDE`, and with
+`CREATE_NO_WINDOW` unless a standard handle is the host's own, libuv's rule for a hidden child: a
+server whose stdio the launcher pipes has a hidden console of its own. Environment names compare
+ignoring case, so a caller entry spelled in another case than the host's replaces it. With
+`OPENCODE_PRINT_LOGS=1` in the host's environment the server's stderr is the host's own stderr, as
+upstream's is, so no stderr is collected or quoted, and the server then shares the host's console,
+as upstream's does: a Ctrl+C in that console reaches the server, even when the host handles it,
+which is diagnostics-mode behaviour, and a batch-shim root answers it with `cmd.exe`'s "Terminate
+batch job (Y/N)?" prompt. A NUL in a command entry or an environment entry is refused
+with `ArgumentException`, because the command line and the environment block end there, and a spawn
+failure in a working directory names the directory. Three residuals are recorded, not handled: the
+named pipes carry the default access rules, so a local process that connects to one first makes the
+start fail (it can read nothing); an owner that crashes between the server's creation and its
+assignment leaves that one server suspended until logoff; and on a Windows edition without
+`taskkill.exe` in System32 (possibly Nano Server, not verified) every tree kill fails, so disposal
+ends the root alone, through the fallback.
 
 On Linux and macOS the server is placed the way upstream places it: `posix_spawnp` with
 `POSIX_SPAWN_SETSID`, so it leads a session and a process group of its own, out of reach of a
@@ -470,6 +517,13 @@ host inherited across `exec` still leaves a zombie; the probe reaps it and repor
 A runtime that reaps every child first (the .NET runtime does when it runs as pid 1) leaves no
 status to read either, and that exit is also reported as unknown rather than invented.
 
+On Windows the server's exit is observed through a registered thread-pool wait on a duplicate of
+its process handle, as libuv observes it, so no thread is held per server. The code is
+`GetExitCodeProcess`'s in its full 32 bits, the bits `Process.ExitCode` gives: an access violation
+is reported as `-1073741819 (0xC0000005)`. The launcher holds the process handle until the server
+has exited and its release ran, whichever comes second, so the root's pid names no other process
+while either rung can reach it.
+
 An optional caller-created `OpenCodeServerOutput` collector, supplied through the start options,
 retains a bounded tail of both streams, including the first stdout line, for pull snapshots. It
 invokes no caller code on the process readers and survives a failed start. Each snapshot reports
@@ -477,41 +531,48 @@ whether either stream was truncated; the launcher's startup exception tail remai
 Output finalization is best effort under the existing bounded diagnostic drain and never extends
 process ownership. Disposal keeps collecting while it ends the server, so a server writing during
 its shutdown never blocks on a full pipe, then drains the output inside its bound before the
-collection closes: the final snapshot holds what the server wrote until it ended. On Linux and
-macOS that drain is at most one second, after the ladder.
+collection closes: the final snapshot holds what the server wrote until it ended. That drain is at
+most one second, after the ladder.
 
 The readiness wait ends at the first stdout line, at the caller's cancellation, at the configured
-timeout, or when the child shows it never will be ready. On Windows that is the root's exit; the
-tree is then killed and the output drained inside its bound. On Linux and macOS it is the root's
-exit, observed by the exit watch rather than by end-of-stream, or stdout reaching end-of-stream
-while the server keeps running, which upstream also fails at once. The output is then drained once,
+timeout, or when the child shows it never will be ready: the root's exit, observed by the exit watch
+rather than by end-of-stream, or stdout reaching end-of-stream while the server keeps running, which
+upstream also fails at once. The output is then drained once,
 for at most one second — a descendant holding stdout open costs that second and no more — and a
 readiness line already in the pipe still wins, because the first line wins whatever follows it.
 
-Disposal is a ladder, bounded at every step so it never hangs the caller. On Windows: stdin EOF
-(the lease release) first, then the configured grace (`GracefulShutdownTimeout`, default 3 seconds
-— the reference client's own force-kill window), then a forced whole-tree kill
-(`Process.Kill(entireProcessTree: true)` on modern TFMs, `taskkill /pid … /T /F` on downlevel
-Windows, run from its absolute System32 path rather than resolved through `PATH` as upstream
-resolves it, so a writable `PATH` entry cannot substitute the executable), then a final bounded
-forced-exit wait. Both waits observe the owned process's own exit
-(the `Process.Exited` notification), not end-of-stream on its redirected output; waiting on the
-exit itself releases a server that exits promptly on stdin EOF at once, even while a descendant
-keeps the pipe open. The output drain keeps its own bound. A tree kill that does not complete is a
-result the ladder continues from, never an exception out of disposal: the runtime's
-`AggregateException` when a process of the tree refuses the kill, a non-zero taskkill exit (128 when
-the root has already exited, so its descendants were not reached), or a taskkill still running at
-its 10-second bound, which is then ended so it does not outlive disposal. Every release step after
-the kill runs either way.
+Disposal is a ladder, bounded at every step so it never hangs the caller. On Windows it follows
+upstream's rungs on upstream's clock: the grace (`GracefulShutdownTimeout`, default 3 seconds — the
+reference client's own force-kill window) starts with the first rung and bounds it.
 
-On Windows, stdin EOF ends the server and nothing else: it releases no descendant, and a
-descendant that does not watch its own stdin keeps running. The tree kill runs only when the grace
-expires, and on a failed start; when the server exits inside the grace — the normal close —
-disposal ends there and does not touch its descendants. Ownership is structural: the returned
-`OpenCodeServer` is the only owner of its child, disposal ends exactly that child, and the
-operating system closes the lease even when the owner crashes before disposal runs — coexistence
-with any other running server is safe by construction, since a started door never discovers or
-attaches to one.
+1. A root that already exited is left alone: `taskkill` finds only live processes, so on an exited
+   root it reaches none of the root's descendants and costs a run of about 300 ms.
+2. At once, the tree kill: `taskkill /pid N /T /F`, upstream's own Windows group kill, which ends
+   every live descendant by parent pid, detached ones included. It runs from its absolute System32
+   path rather than resolved through `PATH` and `cmd.exe` as upstream runs it, so a writable `PATH`
+   entry cannot substitute the executable, through the SDK's own spawn with no handle of the
+   host's, and its exit is awaited without a thread. When it cannot start or exits non-zero,
+   `TerminateProcess` ends the root with code 1, upstream's fallback. A kill the grace overtakes is
+   ended, and the next rung follows at once.
+3. Within what is left of the grace, the root's own exit, observed by the exit watch, not by
+   end-of-stream on its output.
+4. When the root outlived the grace, the same pair again, the tree kill bounded at 10 seconds,
+   unless the root exited meanwhile; then a bounded wait of 10 seconds for the root.
+5. With a collector, the output drains for at most one second, and the collection closes.
+6. Stdin closes, the readers are released, the pipes close, and the exit watch is released once
+   the root has exited.
+
+Stdin is not closed first: upstream never closes it in its release, and the server tolerates being
+ended by force, because upstream ends it that way on Windows. A disposal therefore takes at most the
+grace plus 20 seconds, the drain, and the release; a failed start runs the same ladder. A tree kill
+that does not complete is a result the ladder continues from, never an exception out of disposal.
+
+Ownership is structural: the returned `OpenCodeServer` is the only owner of its child, disposal ends
+exactly that child, and coexistence with any other running server is safe by construction, since a
+started door never discovers or attaches to one. When the owner dies without disposing, the job
+ends the server on Windows, however the owner died; the stdin lease, which the operating system
+closes with the owner, remains the fallback for a server the job does not hold (a tolerated refusal,
+a batch shim's child).
 
 On Linux and macOS the ladder follows upstream's rungs; where the two end in a different place, the
 difference is one of the recorded divergences below.
@@ -557,6 +618,23 @@ The launcher's recorded divergences from upstream on Linux and macOS (ADR-0031, 
 | Signals to the owner | Closes the scope on `SIGINT` and `SIGTERM` | Installs no process-wide signal handler | A library does not take over its host's signal handling; the host ends the server through `DisposeAsync`. |
 | Waiting for the group | Waits for the root's own output pipes to close | Waits for the root's exit, then probes the group until it is empty | No dependency on who holds the pipes. Three consequences at the edges: a same-group member that ignores `SIGTERM` but holds none of the root's pipes is ended by `SIGKILL`, where upstream leaves it running; a detached descendant that holds the root's stdout does not delay the close beyond a collector's one-second drain, where upstream waits the full grace and then sends `SIGKILL` to the group; a root that exits with code 0 while its stdout is still open leaves the group untouched, where upstream sends `SIGTERM` to it within its one-second output deadline. |
 
+The launcher's recorded divergences from upstream on Windows (ADR-0031, ADR-0032):
+
+| Divergence | Upstream | Launcher | Reason |
+|---|---|---|---|
+| Already-exited root | Can run `taskkill` on the dead pid while it waits for the output deadline | Runs no tree kill | `taskkill` finds only live processes, so the run reaches none of the root's descendants and only costs time. |
+| Exit report | Reports an exit up to a second late when a descendant holds stdout | Reports the root's exit as soon as it is observed, after one drain of at most a second | Earlier and exact. |
+| Waiting for the root | Waits for the root's own output pipes to close | Waits for the root's own exit | No dependency on who holds the pipes: a detached descendant that holds the root's stdout does not hold the close open. |
+| Exit code | Bun truncates it to 8 bits | Reports the operating system's code in full, as a signed 32-bit value | The exact value. |
+| Stderr | Discards it | Drains it into a bounded tail for startup diagnostics, and honours `OPENCODE_PRINT_LOGS=1` by handing over the host's stderr | A superset of upstream's behaviour. |
+| Job assignment | Assigns the server right after creating it, the server already running | Creates the server suspended, assigns it, then resumes it | The server runs no instruction outside the job, and the launcher's job always nests under the host's chain, never under a job a libuv server creates for itself before the assignment, which would make every later assignment of the host fail with `ERROR_ACCESS_DENIED`. Residual: an owner that crashes between the creation and the assignment leaves that server suspended until logoff. |
+| Job creation failure | Aborts the process | Fails the start with `OpenCodeServerException`, keeps no record of the failure, and the next start creates the job again | A library does not abort its host, and a transient failure must not fail every later start. |
+| Inherited handles | Passes every inheritable handle; the child's ends are inheritable from their creation | Passes an explicit list; the child's ends are inheritable only around `CreateProcessW`, under one SDK lock | The server receives only its own standard handles, so a parent capturing the host's output sees it end. The handles the host inherited from its own ancestors, which upstream passes on, are not passed either. Residual: a concurrent `Process.Start` of the host can inherit a duplicate inside the call on every runtime, because the SDK's spawn does not take the runtime's private spawn lock. |
+| Assignment refused with `ERROR_INVALID_PARAMETER` | Never meets it: libuv adds the calling process to its job first, the workaround its own comment describes; a refusal would kill the server and fail the spawn | Tries once more in a fresh job, which serves later starts only when it takes the server, keeping the old one held | libuv's comment records a job whose first assignment was a Windows Store program refusing every later one this way. The launcher does not add the host (ADR-0032), so it can meet that, and one retry keeps every later start working. |
+| Tree kill | Runs `taskkill` through `cmd.exe` and `PATH`, and leaves a run that hangs | Runs it from System32 with no handle of the host's, and ends a run its bound overtakes | No substituted executable, and nothing outlives disposal. |
+| Forced-exit wait | Waits on the root's exit alone after the second rung | Bounds it at 10 seconds | Disposal never hangs on a process the kernel cannot end. |
+| Signals to the owner | Closes the scope on `SIGINT` and `SIGTERM` | Installs no process-wide handler | A library does not take over its host's signal handling; the host ends the server through `DisposeAsync`. |
+
 The forced-exit wait observes the directly owned process. A whole-tree kill is asynchronous: the
 direct process exiting does not guarantee that every descendant has finished exiting at that
 instant. Launcher acceptance separately proves bounded descendant termination after a failed
@@ -573,17 +651,20 @@ disposes.
 
 The failure plane of every local-server door, standalone start and background-service discovery
 alike, is `OpenCodeServerException : OpenCodeException`. A bounded stderr tail rides every startup
-failure that reaches a running child: an exit before readiness (naming the exit code, or on Linux
-and macOS the terminating signal), on Linux and macOS a stdout that closed before readiness, a
-readiness timeout (naming the configured bound), and a non-contract first stdout line (quoting it)
-all carry it. The pre-spawn failures carry none, because nothing ran: an unresolvable command
-(naming the command, the directories searched, and the extensions tried), a refused batch argument
-(naming the argument and the shim), an unsupported POSIX platform, and a spawn failure (wrapping the
-underlying `Win32Exception`, naming the caller's spelling and, when they differ, the resolved path,
-and on Linux and macOS the working directory when one was set). On Linux and macOS a NUL in a
-command entry or an environment entry is refused with `ArgumentException`, because a C string would
-silently end there. Caller cancellation during the readiness wait stays `OperationCanceledException`
-rather than being folded into the exception type, after the child is torn down.
+failure that reaches a running child: an exit before readiness (naming the exit code — on Windows in
+its full 32 bits, a negative status code with its hexadecimal form — or on Linux and macOS the
+terminating signal), a stdout that closed before readiness, a readiness timeout (naming the
+configured bound), and a non-contract first stdout line (quoting it) all carry it. The pre-spawn
+failures carry none, because nothing ran: an unresolvable command (naming the command, the
+directories searched, and the extensions tried), a refused batch argument (naming the argument and
+the shim), an unsupported POSIX platform, a spawn failure (wrapping the underlying
+`Win32Exception`, naming the caller's spelling and, when they differ, the resolved path, and the
+working directory when one was set), and on Windows a server that could not be placed in the job
+or resumed (wrapping the `Win32Exception`; the server was ended before it ran). A NUL in a command
+entry or an environment entry is refused with `ArgumentException`, because the spawn would silently
+end the entry there. Caller cancellation during the readiness wait stays
+`OperationCanceledException` rather than being folded into the exception type, after the child is
+torn down.
 
 Launcher acceptance is real-process and three-OS. Platform-specific behavior is tested on the
 platform it represents; a successful compile is not a lifecycle proof.

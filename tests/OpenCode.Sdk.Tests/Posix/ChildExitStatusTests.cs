@@ -62,6 +62,15 @@ public sealed class ChildExitStatusTests
         await Assert.That(status.Describe()).IsEqualTo("exited with code 7");
     }
 
+    /// <summary>A Windows status code such as an access violation reads as a negative 32-bit value, and its hexadecimal spelling rides along.</summary>
+    [Test]
+    public async Task Describe_Should_Add_The_Hexadecimal_Form_Of_A_Negative_Code()
+    {
+        var status = new ChildExitStatus { ExitCode = unchecked((int)0xC0000005) };
+
+        await Assert.That(status.Describe()).IsEqualTo("exited with code -1073741819 (0xC0000005)");
+    }
+
     [Test]
     public async Task Describe_Should_Name_The_Signal_When_A_Signal_Ended_The_Child()
     {

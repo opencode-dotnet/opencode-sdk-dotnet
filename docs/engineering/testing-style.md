@@ -142,9 +142,9 @@ unsupported OpenAPI constructs and prove the exact required/null-representation 
   The compiler compiles each distinct set of emitted sources once per process, so tests that emit
   the same plan share one compilation.
 - A test releases every thread, handle and process it starts, directly or through a server it
-  launches. The launcher's output readers carry a session-level guard: `LauncherReaderLeakGuard`
-  fails the run when any `ChildOutputReader` thread is still alive at `[After(TestSession)]`,
-  after the shared fixtures have been disposed.
+  launches. The launcher's exit watches carry a session-level guard: `LauncherReaderLeakGuard`
+  fails the run when any POSIX exit-watch thread or Windows exit watch is still live at
+  `[After(TestSession)]`, after the shared fixtures have been disposed.
 
 ## 6. Owned servers are hermetic
 

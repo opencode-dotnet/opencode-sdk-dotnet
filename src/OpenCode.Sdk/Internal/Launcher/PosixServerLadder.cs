@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using OpenCode.Sdk.Internal.Launcher.Abstractions;
 using OpenCode.Sdk.Internal.Posix;
 using OpenCode.Sdk.Internal.Posix.Abstractions;
 
@@ -23,7 +24,7 @@ namespace OpenCode.Sdk.Internal.Launcher;
 /// end.</item>
 /// </list>
 /// </summary>
-internal sealed class PosixServerLadder
+internal sealed class PosixServerLadder : IServerLadder
 {
     /// <summary>How long the last rung waits for the root after <c>SIGKILL</c>.</summary>
     public static readonly TimeSpan ForcedExitTimeout = TimeSpan.FromSeconds(10);

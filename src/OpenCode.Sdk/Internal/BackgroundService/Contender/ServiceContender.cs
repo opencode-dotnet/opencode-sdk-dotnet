@@ -4,9 +4,9 @@ using System.Text;
 using Microsoft.Win32.SafeHandles;
 using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
 using OpenCode.Sdk.Internal.Posix;
-using static OpenCode.Sdk.Internal.BackgroundService.ProcessControl.BackgroundServiceInterop;
-using static OpenCode.Sdk.Internal.BackgroundService.ProcessControl.BackgroundServiceInterop.Kernel32;
 using static OpenCode.Sdk.Internal.Posix.PosixInterop;
+using static OpenCode.Sdk.Internal.Windows.WindowsInterop;
+using static OpenCode.Sdk.Internal.Windows.WindowsPlatform;
 
 namespace OpenCode.Sdk.Internal.BackgroundService.Contender;
 

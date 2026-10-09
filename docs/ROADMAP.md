@@ -76,14 +76,13 @@ live queue. In order:
    `net8.0` and `net9.0` leave now, ahead of their end of support on 2026-11-10, across packages,
    tests, CI legs, the public API check, and the docs; no non-preview package is built on a
    pre-GA SDK. A consumer whose target falls back to the `netstandard2.0` asset on an unsupported
-   runtime gets a build warning. It follows `0.9.0-preview.7`, and the launcher's .NET 11 pipe fix
-   (Known Gaps) lands first. Launcher parity work rides the same
-   workstream (ADR-0032): on Linux and macOS the launcher already places its server in a session
-   of its own and ends it on upstream's ladder (a SIGTERM to the process group before the SIGKILL);
-   the Windows strategy (the job object, the explicit inherited-handle list, and the taskkill
-   ladder with its exit code) is next. After the pipe fix and `net11.0`, `OpenCodeServer.Exited`
-   reports how a standalone server ended — exit code or signal, as upstream's `exited` does — on
-   every target and OS. Exit: every leg runs `netstandard2.0`, `net472`, `net10.0`, and `net11.0`
+   runtime gets a build warning. It follows `0.9.0-preview.7`. Launcher parity work rides the same
+   workstream (ADR-0032): on Linux and macOS the launcher places its server in a session of its own
+   and ends it on upstream's ladder (a SIGTERM to the process group before the SIGKILL); on Windows
+   it places its server in a kill-on-close job, passes it only its standard handles, reads its
+   output through overlapped pipes, and ends it on upstream's taskkill ladder. After `net11.0`,
+   `OpenCodeServer.Exited` reports how a standalone server ended — exit code or signal, as
+   upstream's `exited` does — on every target and OS. Exit: every leg runs `netstandard2.0`, `net472`, `net10.0`, and `net11.0`
    as its platform allows.
 3. **Maintainability review.** A time-boxed, read-only review of the code, the generator, the
    tests, and the canon at current `master`. Each finding goes to one of four places: the API
@@ -162,15 +161,6 @@ These do not block `1.0.0` and run beside the road.
 
 ## Known Gaps
 
-- **On the .NET 11 runtime the launcher's Windows output readers cannot be released early.**
-  .NET 11's `Process` opens a child's stdout and stderr read ends overlapped on Windows
-  (dotnet/runtime#125643). The launcher reads them synchronously on dedicated threads and ends a
-  read that a surviving descendant keeps open with `CancelSynchronousIo`, which cannot cancel a
-  read on an overlapped handle; disposal then returns after its bound with the reader thread still
-  waiting for end-of-stream. This follows from the runtime's source and is not yet observed; it
-  affects any target the SDK was built for once it runs on .NET 11. The fix chooses the reader by
-  the pipe's observed mode and reads asynchronous pipes through one cancellable reader, which also
-  ends the Unix drain's wait on a pool thread while a descendant holds the pipe.
 - **An opencode server on Windows can die inside its native file watcher.** `@parcel/watcher` 2.5.1
   crashes the server process when a directory it watches natively is written to while
   subscriptions to it are being released and re-created, which the server does per location for
@@ -260,7 +250,7 @@ These do not block `1.0.0` and run beside the road.
   net472 test targets, and opencode's assets use the same `windows` name.
 - **The launcher's descendant-termination proof has a platform boundary.** The startup-tree tests
   prove the direct child exits immediately and the grandchild terminates inside a ten-second bound
-  on the modern target frameworks (all three OSes) and on `net472` Windows (`taskkill /T`). On Linux
+  on every target framework on Windows (`taskkill /T`) and on the modern ones on Linux and macOS. On Linux
   and macOS a failed start ends the server's process group rather than its tree (ADR-0032), and
   that behavior is established only by the three-OS CI run, never by a Windows-local suite. On
   Unix the observed grandchild is not a child of the test process, so its exit is visible only

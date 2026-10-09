@@ -10,10 +10,10 @@ namespace OpenCode.Sdk.Tests;
 /// The standalone server against what happens to its owner on Linux and macOS: a Ctrl+C sent to
 /// the owner's process group, the owner killed outright, and an owner that runs with signals
 /// ignored or blocked. The owner is a separate host process (<see cref="LauncherHost"/>) wherever
-/// the owner itself must be signalled. Windows has no process groups or signal dispositions; each
-/// Windows arm asserts the unchanged start and disposal instead. Every process a test starts is
-/// ended by its pid before the test returns. Keyless <c>[NotInParallel]</c>: the proofs ride
-/// wall-clock bounds.
+/// the owner itself must be signalled. Windows has no process groups or signal dispositions: there
+/// the job ends the server with a killed owner (<see cref="OpenCodeServerJobTests"/>), and each
+/// Windows arm here asserts a start and its disposal. Every process a test starts is ended by its
+/// pid before the test returns. Keyless <c>[NotInParallel]</c>: the proofs ride wall-clock bounds.
 /// </summary>
 [NotInParallel]
 public sealed class OpenCodeServerOwnerTests

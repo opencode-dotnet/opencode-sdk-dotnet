@@ -7,13 +7,12 @@ namespace OpenCode.Sdk.Tests;
 /// <summary>
 /// The persistent simulation host's diagnostic contract, proven over one dedicated real
 /// lifecycle through the SDK's own launcher and collector: the readiness line is the only thing
-/// on stdout, and the lifecycle milestones reach stderr with their severity, in order. On Windows
-/// disposal releases the stdin lease first and drains, so the third milestone, written only once
-/// the lease is released, is collected too. On Linux and macOS <c>SIGTERM</c> ends the host and the
-/// lease is released last, so the host never writes the third milestone and the final collection
-/// ends at "ready". The shared
-/// <see cref="SimulatedDriveServerFixture"/> rechecks only the stdin-EOF milestone at its own
-/// teardown (the earlier two are evicted over a chatty session); this test is where the
+/// on stdout, and the lifecycle milestones reach stderr with their severity, in order. The ladder
+/// ends the host before the lease is released (<c>SIGTERM</c> on Linux and macOS, the forced tree
+/// kill on Windows), so the host never writes the milestone it would write on stdin's
+/// end-of-stream, and the final collection ends at "ready". The shared
+/// <see cref="SimulatedDriveServerFixture"/> rechecks only that diagnostics reached stderr at its
+/// own teardown (the milestones are evicted over a chatty session); this test is where the
 /// profile's routing is proven on its own. No drive controller is attached here: the milestones
 /// do not depend on the control bootstrap, and readiness already proves the manifest's backend
 /// port is bound.
@@ -57,23 +56,10 @@ public sealed class PersistentSimulationHostTests
         await Assert.That(starting).IsLessThan(ready);
         await Assert.That(snapshot.StandardError[starting]).Contains("level=INFO");
         await Assert.That(snapshot.StandardError[ready]).Contains("level=WARN");
-        if (!OperatingSystem.IsWindows())
-        {
-            await Assert.That(snapshot.StandardError.Any(static line => line.Contains(StdinClosed, StringComparison.Ordinal))).IsFalse();
-            Console.WriteLine(
-                "persistent-host-diagnostics (POSIX, SIGTERM ended the host before the lease closed): " + snapshot.StandardError[starting] +
-                " | " + snapshot.StandardError[ready]);
-            return;
-        }
-
-        var closed = RequireIndex(snapshot, StdinClosed);
-        await Assert.That(ready).IsLessThan(closed);
-        await Assert.That(snapshot.StandardError[closed]).Contains("level=INFO");
-
+        await Assert.That(snapshot.StandardError.Any(static line => line.Contains(StdinClosed, StringComparison.Ordinal))).IsFalse();
         Console.WriteLine(
-            "persistent-host-diagnostics: " + snapshot.StandardError[starting] +
-            " | " + snapshot.StandardError[ready] +
-            " | " + snapshot.StandardError[closed]);
+            "persistent-host-diagnostics (the ladder ended the host before the lease closed): " + snapshot.StandardError[starting] +
+            " | " + snapshot.StandardError[ready]);
     }
 
     /// <summary>

@@ -1,11 +1,14 @@
 namespace OpenCode.Sdk.Internal.Launcher;
 
 /// <summary>
-/// Composes a POSIX server's whole environment, the way the reference client spreads
+/// Composes a server's whole environment, the way the reference client spreads
 /// <c>process.env</c> under its own entries: the host's environment, then the caller's entries,
-/// then the lease credential, so nothing can shadow it. Names compare case-sensitively, as they do
-/// on Linux and macOS. The spawn passes each entry as a C string, which a NUL would cut short
-/// without a word, so a NUL in any name or value is refused.
+/// then the lease credential, so nothing can shadow it. Names compare the way the platform
+/// compares them: case-sensitively on Linux and macOS, ignoring case on Windows, where a caller
+/// entry whose name differs from a host entry only in case replaces it, as
+/// <c>ProcessStartInfo.Environment</c> does. A POSIX spawn passes each entry as a C string and a
+/// Windows environment block ends each entry with a NUL, so a NUL in any name or value would cut
+/// it short without a word, and is refused.
 /// </summary>
 internal sealed class ChildEnvironmentComposer
 {
@@ -13,13 +16,17 @@ internal sealed class ChildEnvironmentComposer
     public const string PasswordVariable = "OPENCODE_PASSWORD";
 
     private readonly IReadOnlyDictionary<string, string> _hostEnvironment;
+    private readonly StringComparer _names;
 
     /// <summary>Initializes the composer over a snapshot of the host's environment.</summary>
     /// <param name="hostEnvironment">The host's environment.</param>
-    public ChildEnvironmentComposer(IReadOnlyDictionary<string, string> hostEnvironment)
+    /// <param name="names">How the platform compares variable names.</param>
+    public ChildEnvironmentComposer(IReadOnlyDictionary<string, string> hostEnvironment, StringComparer names)
     {
         ArgumentNullException.ThrowIfNull(hostEnvironment);
+        ArgumentNullException.ThrowIfNull(names);
         _hostEnvironment = hostEnvironment;
+        _names = names;
     }
 
     /// <summary>Composes the environment.</summary>
@@ -31,7 +38,7 @@ internal sealed class ChildEnvironmentComposer
     {
         ArgumentNullException.ThrowIfNull(password);
 
-        var composed = new Dictionary<string, string>(StringComparer.Ordinal);
+        var composed = new Dictionary<string, string>(_names);
         // The host's own environment cannot hold a NUL; one that somehow does is not passed on cut short.
         foreach (var entry in _hostEnvironment.Where(static entry => !NulText.Occurs(entry.Key) && !NulText.Occurs(entry.Value)))
         {

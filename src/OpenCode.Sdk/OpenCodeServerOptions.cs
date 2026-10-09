@@ -23,12 +23,19 @@ public sealed class OpenCodeServerOptions
     /// through cmd.exe. A leading argument containing a cmd metacharacter is refused for such a
     /// shim rather than escaped.
     /// </para>
+    /// <para>
+    /// On Windows the started process is placed in a job that ends it when its owner ends, however
+    /// the owner ends. A batch shim's own child, the real server, is outside that job: it ends with a
+    /// crashed owner only through its stdin lease. The default <c>opencode</c> of an npm install is
+    /// such a shim, so a host that needs the full guarantee names the path of <c>opencode.exe</c>
+    /// itself.
+    /// </para>
     /// </summary>
     public IReadOnlyList<string> Command { get; set; } = ["opencode", "serve"];
 
     /// <summary>
-    /// Gets or sets the child's working directory; null inherits the caller's. On Linux and macOS a
-    /// blank value counts as null, and a relative command path is resolved against the caller's
+    /// Gets or sets the child's working directory; null inherits the caller's, and a blank value
+    /// counts as null. On Linux and macOS a relative command path is resolved against the caller's
     /// directory, not this one. Where the C library cannot change a spawned child's directory
     /// itself (glibc before 2.29), the child is started through <c>/usr/bin/env -C</c>, which keeps
     /// the same process; a directory that does not exist then fails the start as an exit with code
@@ -52,7 +59,8 @@ public sealed class OpenCodeServerOptions
 
     /// <summary>
     /// Gets or sets the grace before the forced end; zero means immediate escalation. On Windows it
-    /// runs from the stdin-EOF lease release to the forced tree kill. On Linux and macOS it runs
+    /// starts with the first tree kill (<c>taskkill /T /F</c>), which it bounds, and runs to the
+    /// second, which runs only when the server is still alive. On Linux and macOS it runs
     /// from <c>SIGTERM</c> to the server's process group to <c>SIGKILL</c> to the group: within it
     /// the server has to exit, and then every other member of its group. A failed start uses the
     /// same grace. The default mirrors the reference client's 3-second force-kill window.

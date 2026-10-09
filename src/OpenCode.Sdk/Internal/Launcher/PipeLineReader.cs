@@ -4,8 +4,9 @@ using OpenCode.Sdk.Internal.Diagnostics;
 namespace OpenCode.Sdk.Internal.Launcher;
 
 /// <summary>
-/// Reads one of a POSIX child's output pipes line by line, asynchronously: on .NET for Linux and
-/// macOS a pipe read is socket-backed and holds no thread while it waits. Lines split the way
+/// Reads one of a child's output pipes line by line, asynchronously, holding no thread while it
+/// waits: on Linux and macOS a pipe read is socket-backed, and on Windows the launcher's pipe ends
+/// are overlapped, so a read waits on the I/O completion port. Lines split the way
 /// <c>Process</c>'s own readers split them, on <c>\n</c>, <c>\r</c>, or <c>\r\n</c>, with an empty
 /// line delivered as an empty string and a final unterminated line delivered at end-of-stream. The
 /// reader owns its stream and closes it when it ends; disposing the reader releases it early.

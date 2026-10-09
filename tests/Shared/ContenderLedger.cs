@@ -4,6 +4,7 @@ using System.Text;
 using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
 using OpenCode.Sdk.Internal.BackgroundService.Contender;
 using OpenCode.Sdk.Internal.Posix;
+using OpenCode.Sdk.Internal.Windows;
 
 namespace OpenCode.Sdk.TestSupport;
 
@@ -19,7 +20,7 @@ namespace OpenCode.Sdk.TestSupport;
 /// <param name="path">The ledger file.</param>
 internal sealed class ContenderLedger(IFileSystem fileSystem, string path) : IServiceContenderSpawner
 {
-    private readonly ServiceContenderSpawner _spawner = new(new PosixSpawn());
+    private readonly ServiceContenderSpawner _spawner = new(new PosixSpawn(), new WindowsSpawn());
     private readonly Lock _gate = new();
 
     public IServiceContender Spawn(IServiceContenderSpawner.ContenderStartInfo startInfo)

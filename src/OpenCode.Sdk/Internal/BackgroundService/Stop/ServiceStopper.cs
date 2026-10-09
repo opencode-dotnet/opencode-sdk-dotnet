@@ -7,13 +7,14 @@ namespace OpenCode.Sdk.Internal.BackgroundService.Stop;
 
 /// <summary>
 /// The pinned CLI's <c>service stop</c> (<c>handlers/service/stop.ts</c> over <c>Service.stop</c>):
-/// locate the registration the options name, read it once, ask a ready and compatible daemon to
-/// shut its persistent terminals down, clear the handoff sidecar through the shared
-/// <see cref="IServicePtyHandoff"/> seam, then hand the registration to the terminator. A missing
-/// or corrupt registration is nothing to stop; a shutdown the daemon refuses is ignored the way the
-/// CLI ignores it, and a sidecar that cannot be cleared is ignored the way the client's
-/// <c>stop</c> ignores it, so the terminate always runs; the caller's cancellation is the one
-/// thing that is not ignored.
+/// locate the registration the options name, read it and ask a ready and compatible daemon to shut
+/// its persistent terminals down, as the CLI's own discovery does; then, as <c>Service.stop</c>
+/// does, read the registration afresh, clear the handoff sidecar through the shared
+/// <see cref="IServicePtyHandoff"/> seam, and hand the registration read last to the terminator. A
+/// service that registered in between is the one stopped. A missing or corrupt registration is
+/// nothing to stop; a shutdown the daemon refuses is ignored the way the CLI ignores it, and a
+/// sidecar that cannot be cleared is ignored the way the client's <c>stop</c> ignores it, so the
+/// terminate always runs; the caller's cancellation is the one thing that is not ignored.
 /// </summary>
 internal sealed class ServiceStopper(
     IServiceEnvironment environment,
@@ -38,14 +39,19 @@ internal sealed class ServiceStopper(
         var paths = await new ServiceRegistrationLocator(environment, fileSystem)
             .LocateAsync(selection, cancellationToken)
             .ConfigureAwait(false);
+        var discovered = await ServiceRegistrationReader
+            .TryReadAsync(fileSystem, paths.RegistrationFile, cancellationToken)
+            .ConfigureAwait(false);
+        if (discovered is not null)
+        {
+            await ShutdownPersistentTerminalsAsync(discovered, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Service.stop reads the registration afresh: the exchange above can take seconds, and the
+        // file can change hands meanwhile.
         var registration = await ServiceRegistrationReader
             .TryReadAsync(fileSystem, paths.RegistrationFile, cancellationToken)
             .ConfigureAwait(false);
-        if (registration is not null)
-        {
-            await ShutdownPersistentTerminalsAsync(registration, cancellationToken).ConfigureAwait(false);
-        }
-
         await ClearSidecarAsync(paths.RegistrationFile, cancellationToken).ConfigureAwait(false);
         if (registration is not null)
         {

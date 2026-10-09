@@ -1,9 +1,13 @@
-// A server stand-in with a configurable process tree, for the POSIX disposal ladder proofs.
+// A server stand-in with a configurable process tree, for the disposal ladder and placement proofs.
 // OPENCODE_SDK_TEST_LADDER is a comma-separated list of flags:
-//   group-child               a child in the stand-in's own process group
+//   group-child               a child in the stand-in's own process group; on Windows a plain child,
+//                             which the runtime places in its own job
 //   group-child-ignores-term  the same, ignoring SIGTERM
-//   detached                  a child in a session of its own (setsid)
+//   detached                  a child in a session of its own (setsid); on Windows a detached child,
+//                             outside every job
 //   hold-stdout               a detached child that holds the stand-in's stdout open
+//   watch-stdin               the stand-in exits with code 0 on stdin's end-of-stream, as the real
+//                             server does; without it the stand-in never reads stdin
 //   root-ignores-term         the stand-in itself ignores SIGTERM
 //   exit-after-ready=N        exit with code N shortly after the readiness line
 //   exit-before-ready=N       exit with code N instead of reporting readiness
@@ -53,6 +57,10 @@ async function start(role, { detached = false, ignoreTerm = false, holdStdout = 
 }
 
 if (has("root-ignores-term")) process.on("SIGTERM", () => {});
+if (has("watch-stdin")) {
+  process.stdin.resume();
+  process.stdin.on("end", () => process.exit(0));
+}
 report("root", process.pid);
 if (has("group-child")) await start("group-child");
 if (has("group-child-ignores-term")) await start("group-child", { ignoreTerm: true });

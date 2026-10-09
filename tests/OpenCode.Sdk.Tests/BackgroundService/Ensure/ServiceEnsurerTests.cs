@@ -203,6 +203,35 @@ public sealed class ServiceEnsurerTests
         await Assert.That(_starts.Count).IsEqualTo(1);
     }
 
+    /// <summary>
+    /// Another service registered while the mismatched one was being probed. The replacement stop
+    /// reads the registration afresh, as upstream's <c>stop</c> does: the handoff is prepared for the
+    /// service registered now, and that service is the one terminated.
+    /// </summary>
+    [Test]
+    public async Task EnsureAsync_Should_Replace_The_Service_Registered_When_The_Replacement_Stops()
+    {
+        const int successorPid = 48214;
+        SeedRegistered();
+        _probe.ProbeAsync(WithPid(RegisteredPid), Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            Seed(SharedRegistrationPath(), ServiceRegistrationData.DuplicatePidResolved);
+            return Ready;
+        });
+        _probe.ProbeAsync(WithPid(successorPid), Arg.Any<CancellationToken>()).Returns(Ready);
+        ElectOnSpawn("2.0.4");
+
+        var registration = await Ensurer().EnsureAsync(
+            new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
+            CancellationToken.None);
+
+        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+        _ = _handoff.Received(1).PrepareAsync(SharedRegistrationPath(), WithPid(successorPid), Timing.RequestTimeout, Arg.Any<CancellationToken>());
+        _ = _handoff.DidNotReceive().PrepareAsync(SharedRegistrationPath(), WithPid(RegisteredPid), Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>());
+        await Assert.That(_signalled).Contains(successorPid);
+        await Assert.That(_signalled).DoesNotContain(RegisteredPid);
+    }
+
     [Test]
     public async Task EnsureAsync_Should_Clear_Rather_Than_Hand_Off_When_The_Mismatched_Service_Is_Not_Ready()
     {

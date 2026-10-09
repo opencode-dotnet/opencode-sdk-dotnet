@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Internal.Launcher;
 
 /// <summary>
-/// Reads a POSIX child's stdout and stderr continuously, one <see cref="PipeLineReader"/> per
+/// Reads a child's stdout and stderr continuously, one <see cref="PipeLineReader"/> per
 /// pipe, and releases the readers. The launcher creates these pipes itself, and their reads are
 /// asynchronous and hold no thread while they wait. Standard error has no reader when the host's
 /// own descriptor was handed to the child instead of a pipe.

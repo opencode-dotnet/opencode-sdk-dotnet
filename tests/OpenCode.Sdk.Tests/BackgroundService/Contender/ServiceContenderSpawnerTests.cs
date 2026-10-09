@@ -8,6 +8,7 @@ using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
 using OpenCode.Sdk.Internal.BackgroundService.Contender;
 using OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
 using OpenCode.Sdk.Internal.Posix;
+using OpenCode.Sdk.Internal.Windows;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;
@@ -62,8 +63,8 @@ public sealed class ServiceContenderSpawnerTests
     private static readonly TimeSpan SurvivalBound = TimeSpan.FromSeconds(1);
     private static readonly RealFileSystem FileSystem = new();
 
-    /// <summary>The shipped spawner over the shipped POSIX spawn; it holds no per-spawn state.</summary>
-    private static readonly ServiceContenderSpawner Spawner = new(new PosixSpawn());
+    /// <summary>The shipped spawner over the shipped spawns; it holds no per-spawn state.</summary>
+    private static readonly ServiceContenderSpawner Spawner = new(new PosixSpawn(), new WindowsSpawn());
 
     [Test]
     [Timeout(120_000)]
@@ -474,49 +475,6 @@ public sealed class ServiceContenderSpawnerTests
     }
 
     [Test]
-    public async Task CreateStderrPipe_Should_Read_Overlapped_And_Hand_The_Child_A_Synchronous_Write_End()
-    {
-        // .NET 11's Process and libuv make a child's output pipe this way: an anonymous pipe is
-        // always synchronous on Windows, and a pending read on one holds a pool thread for as
-        // long as the contender keeps stderr open. The witness is the handle's own I/O mode, the
-        // query the runtime's SafeFileHandle.IsAsync makes; the bytes and the end-of-stream
-        // must still cross.
-        if (!OperatingSystem.IsWindows())
-        {
-            Console.WriteLine("branch: Unix (" + RuntimeInformation.OSDescription + ") — the runtime's socket-backed anonymous pipe, no Windows handle mode to check");
-            return;
-        }
-
-        var inheritable = new BackgroundServiceInterop.Kernel32.SecurityAttributes
-        {
-            Length = (uint)Marshal.SizeOf<BackgroundServiceInterop.Kernel32.SecurityAttributes>(),
-            SecurityDescriptor = IntPtr.Zero,
-            InheritHandle = 1,
-        };
-        using var readEnd = ServiceContenderSpawner.CreateStderrPipe(ref inheritable, out var rawWriteEnd);
-        using var writeEnd = new Microsoft.Win32.SafeHandles.SafeFileHandle(rawWriteEnd, ownsHandle: true);
-
-        await Assert.That(IoMode(readEnd.SafePipeHandle) & SynchronousIo).IsEqualTo(0u);
-        await Assert.That(IoMode(writeEnd) & SynchronousIo).IsNotEqualTo(0u);
-
-        var sent = Encoding.UTF8.GetBytes("contender stderr\n");
-        using (var writer = FileSystem.FileStream.New(writeEnd, FileAccess.Write, bufferSize: 1, isAsync: false))
-        {
-#if NET
-            await writer.WriteAsync(sent.AsMemory());
-#else
-            await writer.WriteAsync(sent, 0, sent.Length);
-#endif
-        }
-
-        using var received = new MemoryStream();
-        await readEnd.CopyToAsync(received);
-
-        await Assert.That(Encoding.UTF8.GetString(received.ToArray())).IsEqualTo("contender stderr\n");
-        Console.WriteLine("branch: Windows — read end mode 0x" + IoMode(readEnd.SafePipeHandle).ToString("X", CultureInfo.InvariantCulture) + " (overlapped), write end synchronous, bytes and end-of-stream crossed");
-    }
-
-    [Test]
     [Timeout(120_000)]
     public async Task Spawn_Should_Keep_Only_The_Final_Eight_Kib_Of_Standard_Error(CancellationToken cancellationToken)
     {
@@ -844,35 +802,6 @@ public sealed class ServiceContenderSpawnerTests
     /// <summary>The final 8 KiB of the fixture's default fill: blocks 128 through 255 of 256.</summary>
     private static string ExpectedTail() => string.Concat(
         Enumerable.Range(128, 128).Select(static block => block.ToString("D10", CultureInfo.InvariantCulture) + BlockFiller));
-
-    /// <summary><c>FILE_SYNCHRONOUS_IO_ALERT | FILE_SYNCHRONOUS_IO_NONALERT</c>: either bit makes a handle synchronous.</summary>
-    private const uint SynchronousIo = 0x30;
-
-    /// <summary><c>FileModeInformation</c>, the class <c>NtQueryInformationFile</c> answers a handle's I/O mode for.</summary>
-    private const int FileModeInformation = 16;
-
-    /// <summary>The handle's I/O mode, the question the runtime's <c>SafeFileHandle.IsAsync</c> asks.</summary>
-    private static uint IoMode(SafeHandle handle)
-    {
-        var status = QueryInformationFile(handle, out _, out var mode, sizeof(uint), FileModeInformation);
-        if (status != 0)
-        {
-            throw new Win32Exception("NtQueryInformationFile failed with NTSTATUS 0x" + status.ToString("X8", CultureInfo.InvariantCulture));
-        }
-
-        return mode;
-    }
-
-    [DllImport("ntdll", EntryPoint = "NtQueryInformationFile")]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    private static extern int QueryInformationFile(SafeHandle handle, out IoStatusBlock status, out uint mode, uint length, int informationClass);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct IoStatusBlock
-    {
-        public IntPtr Status;
-        public UIntPtr Information;
-    }
 
     /// <summary><c>getsid(2)</c> through the portable <c>libc</c> spelling the SDK's own interop uses.</summary>
     [DllImport("libc", EntryPoint = "getsid", SetLastError = true)]
