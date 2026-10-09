@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-10-06
+Date: 2026-10-09
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -81,7 +81,7 @@ live queue. In order:
    `net8.0` and `net9.0` leave now, ahead of their end of support on 2026-11-10, across packages,
    tests, CI legs, the public API check, and the docs; no non-preview package is built on a
    pre-GA SDK. A consumer whose target falls back to the `netstandard2.0` asset on an unsupported
-   runtime gets a build warning. It follows `0.9.0-preview.7`. Launcher parity work rides the same
+   runtime gets a build warning. It follows `0.9.0-preview.8`. Launcher parity work rides the same
    workstream (ADR-0032): on Linux and macOS the launcher places its server in a session of its own
    and ends it on upstream's ladder (a SIGTERM to the process group before the SIGKILL); on Windows
    it places its server in a kill-on-close job, passes it only its standard handles, reads its
@@ -125,6 +125,11 @@ These do not block `1.0.0` and run beside the road.
   cite documentation (`docs/…` paths and ADR numbers), against `engineering/documentation.md`.
   Each explains its status quo locally instead; generator-emitted comments change through the
   generator.
+- **Dependency trigger:** a `Microsoft.OpenApi` release that carries
+  [microsoft/OpenAPI.NET#3108](https://github.com/microsoft/OpenAPI.NET/pull/3108), the fix for
+  [#3101](https://github.com/microsoft/OpenAPI.NET/issues/3101) that this repository reported, lets
+  the generator drop its own timeout-free components-key rule; the bump first confirms in the
+  shipped assembly that the generated key regex never checks its timeout.
 - **Test categorization**, so a lane can run a named subset. No test carries a category today; the
   only split is by project and by the `*LiveTests` / `*ContractTests` names.
 - **Operations:** automation for the upstream observation lanes (tip detector, candidate refresh),

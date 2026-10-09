@@ -9,6 +9,18 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.{shortSha}`.
 
+## [0.9.0-preview.8] - 2026-10-09
+
+**The pin moves to upstream release tag `v2.0.26`, and all 142 operations it exposes are
+callable — 140 as generated HTTP calls, and the two terminal WebSocket connections through
+hand-written transports.** An integration can connect through an external credential source, and
+a 2.0.26 server's external credentials now decode; the experimental policy action `permission` is
+renamed `tool.use`, the one breaking change, which comes first. On Windows a standalone server now
+runs as upstream's launcher runs it: created suspended in a kill-on-close job, so it ends with its
+owner however the owner ends; given its three standard handles and nothing else; read through
+overlapped pipes; and ended at once with `taskkill /T /F`. `net8.0` and `net9.0` still leave in an
+upcoming preview; see the important notes.
+
 ### 💥 Breaking changes
 
 - **`ConfigInfoExperimentalPoliciesAction.Permission` is now `ToolUse`.** Upstream 2.0.26 renames
@@ -28,7 +40,9 @@ Nightly builds of `master` are on
   `Label`, and stores a reference to its credential source. The integration lists such a method
   as `IntegrationExternalMethod`, and the stored credential reads as `CredentialExternal`
   (`MethodId`, `Metadata`). The route helper is
-  `OpenCodeRoutes.Integrations.ConnectWithExternalCredentials`.
+  `OpenCodeRoutes.Integrations.ConnectWithExternalCredentials`. Behaviour change: on
+  `0.9.0-preview.7` a 2.0.26 server's `external` method surfaced as `UnknownIntegrationMethod`, and
+  its `external` credential value as `UnknownCredentialValue`.
 - **`ConnectionCredentialInfoMethod.External`** names a credential stored through an external
   method. Before, a server that returned one failed the decode of its connection.
 - **`ModelCompatibility.SupportsThinkingBlockBinding` and `SupportsEffortUpdates`** carry the two
@@ -36,27 +50,19 @@ Nightly builds of `master` are on
 
 ### 🔧 Changes
 
-- **The service config's `remote` key is read as upstream reads it.** Remote access is set only
-  through the CLI (`opencode service set remote`); the SDK reads the key and never writes it. A
-  `remote` that is neither an object holding a string `route` nor the legacy boolean makes the
-  whole document no config, as upstream decides, so its `env` overlay no longer applies; a legacy
-  boolean still reads, but such a document is no longer migrated to a named channel's file. While
-  the service's tunnel is attached, its remote URL is listed in `ServerInfo.Urls`.
-- **A PTY connect refused with HTTP 401 or 403 names the credential or the origin.** Upstream
-  2.0.26 checks the request's origin on every connect.
-- **`FileSystem.ReadFileAsync` with a path that leaves the location answers the declared 404 with a
-  typed `FileNotFoundError`.** Upstream 2.0.26 refuses such a path, and one it cannot decode, as a
-  missing file, where it used to fail with an undeclared server error.
-
-- **On Windows a standalone server ends with its owner, however the owner ends.** `StartAsync`
-  creates the server suspended, places it in a process-wide job that ends it when the host process
-  exits, and only then lets it run, as upstream's launcher places its server in a job. Behaviour
-  change: a server that ignores the end-of-stream of its stdin no longer outlives an owner that
-  crashed or was killed before disposing it. Descendants the server starts detached stay outside
-  the job and keep running; the other children of a server built on Bun or Node end with it,
-  because its runtime places them in a job of its own under the launcher's. A start whose server
-  cannot be placed in the job, or resumed, now fails with `OpenCodeServerException` and leaves
-  nothing running.
+- **On Windows a standalone server is placed in a job that ends it with its owner, however the owner
+  ends.** `StartAsync` creates the server suspended, places it in a process-wide job that ends it
+  when the host process exits, and only then lets it run, as upstream's launcher places its server
+  in a job. Behaviour change: a server that ignores the end-of-stream of its stdin no longer
+  outlives an owner that crashed or was killed before disposing it. Descendants the server starts
+  detached stay outside the job and keep running; the other children of a server built on Bun or
+  Node end with it, because its runtime places them in a job of its own under the launcher's. The
+  job also ends a server that crashes on an unhandled exception at once, without a Windows Error
+  Reporting dialog, as upstream's job does, and any window the server opens starts hidden. A server
+  the kernel refuses to place in the job with `ERROR_ACCESS_DENIED`, as under a host job that cannot
+  nest, runs outside it, as upstream's does, and then ends with a crashed owner only through its
+  stdin lease. Any other refusal, a job that cannot be created, and a server that cannot be resumed
+  fail the start with `OpenCodeServerException` and leave nothing running.
 - **With the default npm install, pass the path of `opencode.exe` in `Command` for that guarantee.**
   The bare `opencode` resolves to npm's `opencode.cmd` shim, which runs through `cmd.exe`: the job
   then holds `cmd.exe`, and the real server, `cmd.exe`'s child, ends with a crashed owner only
@@ -66,7 +72,8 @@ Nightly builds of `master` are on
   changes:
   - The server no longer runs its own graceful shutdown on disposal: it exits with code 1, where
     the stdin end-of-stream used to end it with code 0. Stdin now closes last, as on Linux and
-    macOS.
+    macOS, so an `Output` collector no longer receives the lines a server writes when its stdin
+    ends.
   - Every live descendant of the server is ended at every close, detached ones included; the
     descendants used to survive a normal close.
   - Disposal takes the `taskkill` run, about 300 ms, where a server that left on its stdin's
@@ -78,7 +85,11 @@ Nightly builds of `master` are on
   - On `net8.0` and later the forced end is `taskkill`, exit code 1, where it was the runtime's tree
     kill, exit code -1.
   - A server that already exited is not tree-killed, and a failed start ends the server the same
-    way, with the configured grace.
+    way, with the configured grace, so a canceled or timed-out `StartAsync` can take up to the
+    grace plus 26 seconds to throw.
+  - On `net8.0` and later the descendants of a server that exits before readiness are no longer
+    ended: the runtime's tree kill used to end them, but `taskkill` reaches no descendant of an
+    exited root, so it does not run.
 - **On Windows the server no longer inherits the host's own inheritable handles.** It receives its
   three standard handles and nothing else, so a parent process that captures the host's output
   sees it end when the host exits, even while a server it started still runs. Behaviour change:
@@ -86,13 +97,17 @@ Nightly builds of `master` are on
 - **On Windows the server's output is read without a dedicated thread, on every target.** Its
   stdout and stderr are overlapped pipes whose reads complete on the I/O completion port, on .NET
   Framework too; the two reader threads each server used to hold are gone.
-- **`StartAsync` on Windows sees the server's own exit without waiting for its output, and fails at
-  once when the server closes its stdout before readiness**, as on Linux and macOS. A readiness
-  line that arrives together with the exit now always starts the server, and a server that exits
-  before readiness while a process it started holds its stdout fails the start within about a
-  second instead of at the readiness timeout.
-- **A Windows exit code is reported in its full 32 bits.** A server that crashes before readiness
-  is reported as `exited with code -1073741819 (0xC0000005)`.
+- **`StartAsync` on Windows fails at once when the server closes its stdout before readiness and
+  keeps running**, as on Linux and macOS, where it used to wait for the readiness timeout. A
+  readiness line that arrives together with the exit now always starts the server, where the exit
+  could win before. A server that exits before readiness while a process it started holds its
+  stdout fails the start after a drain of at most one second instead of two.
+- **A negative Windows exit code is reported with its hexadecimal form.** A server that crashes
+  before readiness is reported as `exited with code -1073741819 (0xC0000005)`, where the message
+  used to give only the decimal value.
+- **A whitespace-only `WorkingDirectory` counts as none on Windows too.** The server then starts in
+  the host's directory, as on Linux and macOS, where the blank value used to be passed to the
+  process start as the server's directory.
 - **`OPENCODE_PRINT_LOGS=1` in the host's environment hands the server the host's own stderr on
   Windows too**, as upstream's launcher does; no stderr is then collected or quoted in a startup
   failure. Diagnostics-mode behaviour, as upstream's: the server then also shares the host's
@@ -105,20 +120,53 @@ Nightly builds of `master` are on
   handoff, and end the service that file names then. Behaviour change: a service that registered
   while `StopAsync` was asking the old one to shut its terminals down is the one stopped, where it
   used to be left running.
+- **The service config's `remote` key is read as upstream reads it.** Remote access is set only
+  through the CLI (`opencode service set remote true`, or `opencode pair --remote`); the SDK reads
+  the key and never writes it. While the service's tunnel is attached, its remote URL is listed in
+  `ServerInfo.Urls`. Behaviour change: a `remote` that is neither an object holding a string
+  `route` nor the legacy boolean makes the whole document no config, as upstream decides, so its
+  `env` overlay no longer applies, and a document with a legacy boolean still reads but is no
+  longer migrated to a named channel's file; `0.9.0-preview.7` ignored `remote` in both cases.
+- **A PTY connect refused with HTTP 401 or 403 names the credential or the origin.** Upstream
+  2.0.26 checks the request's origin on every connect, before it looks the PTY up. Behaviour
+  change: the `OpenCodeTransportException` message now ends "the request's credential or origin
+  was rejected", as the persistent PTY's message already did, and a refused origin is reported as
+  such even for a PTY that does not exist.
+- **`FileSystem.ReadFileAsync` with a path that leaves the location answers the declared 404 with a
+  typed `FileNotFoundError`.** Upstream 2.0.26 refuses such a path, and one it cannot decode, as a
+  missing file. Behaviour change: the status is 404, not an undeclared 5xx, and `Error` is a
+  `FileNotFoundError`.
+- **A server bound to every interface lists its loopback URL first in `ServerInfo.Urls`.** Upstream
+  2.0.26 puts `http://127.0.0.1:{port}` (or `http://[::1]:{port}`) before the interface addresses
+  of a server bound to `0.0.0.0` or `::`.
 
 ### 🐛 Fixes
 
-- **`OpenCodeServer.EnsureAsync` starts the background service on Windows the way upstream's
-  client does: detached, with no console, and hidden.** The service it started had a windowless
-  console of its own instead, and no hidden show state for a window it might open. It now starts
-  with no console at all, in a process group of its own, and with any window it opens starting
-  hidden. Behaviour change: the background service an Ensure call starts on Windows no longer has
-  a console.
-- **The background service's contender on Windows no longer leaks its stderr pipe into processes
-  the host starts.** The pipe's write end was inheritable from its creation, so a `Process.Start`
-  on another thread of the host could inherit it and hold the contender's stderr open after the
-  contender ended. It is now inheritable only while the contender is being created, under the lock
-  every SDK spawn takes.
+- **`OpenCodeServer.EnsureAsync` starts the background service on Windows the way upstream's client
+  does: detached, with no console, and hidden.** The service it started had a windowless console of
+  its own instead, and no hidden show state for a window it might open. It now starts with no
+  console at all, still in a process group of its own, and with any window it opens starting hidden.
+  Behaviour change: the background service an Ensure call starts on Windows no longer has a console.
+- **The background service's contender on Windows exposes its stderr pipe to processes the host
+  starts only while it is being created.** The pipe's write end was inheritable from its creation,
+  so a `Process.Start` on another thread of the host could inherit it and hold the contender's
+  stderr open after the contender ended. It is now inheritable only while the contender is being
+  created, under the lock every SDK spawn takes.
+
+### 📋 Important Notes
+
+- **`net8.0` and `net9.0` leave the packages, and `net11.0` joins, in an upcoming preview,** ahead
+  of their end of support on 2026-11-10; this release still ships them. The packages will then
+  target `netstandard2.0;net472;net10.0;net11.0`. An app on .NET 8 or 9 still installs through the
+  `netstandard2.0` asset, but that asset is a compatibility asset, not a supported runtime: support
+  and testing cover the targeted runtimes only, and .NET 5–7 are not supported. Plan the move to
+  .NET 10.
+- **Upstream's committed OpenAPI document is still stale at `v2.0.26`**
+  ([anomalyco/opencode#53105](https://github.com/anomalyco/opencode/issues/53105)). It lacks
+  `LocationNotFoundError`, and with it the 404 that location-scoped operations declare for a missing
+  location, and it lacks `integration.connect.external`. This SDK's snapshot comes from upstream's
+  own pinned generator, so a diff against that committed file shows them here; they are real and
+  the server answers them.
 
 ## [0.9.0-preview.7] - 2026-10-06
 
