@@ -130,8 +130,8 @@ public sealed class FileSystemClientLiveTests(SimulatedDriveServerFixture server
     }
 
     /// <summary>
-    /// A path that leaves the location is refused by the server before any byte is read; the
-    /// refusal is not a declared status, so it arrives as an undeclared server error.
+    /// A path that leaves the location is refused by the server before any byte is read, with the
+    /// declared 404 and its typed <see cref="FileNotFoundError"/>.
     /// </summary>
     [Test]
     [Timeout(60_000)]
@@ -148,7 +148,8 @@ public sealed class FileSystemClientLiveTests(SimulatedDriveServerFixture server
             cancellationToken);
 
         await Assert.That(refused.IsError).IsTrue();
-        await Assert.That(refused.Status).IsGreaterThanOrEqualTo(500);
+        await Assert.That(refused.Status).IsEqualTo(404);
+        await Assert.That(refused.Error).IsTypeOf<FileNotFoundError>();
     }
 
     private static string NormalizeSeparators(string value) => value.Replace('\\', '/');

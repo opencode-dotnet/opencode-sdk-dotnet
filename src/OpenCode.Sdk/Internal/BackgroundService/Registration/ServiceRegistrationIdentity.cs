@@ -2,7 +2,7 @@ using OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
 namespace OpenCode.Sdk.Internal.BackgroundService.Registration;
 
 /// <summary>
-/// The pinned client's <c>same()</c> (<c>effect/service.ts</c>): two registrations name the same
+/// The pinned client's <c>same()</c> (<c>service-probe.ts</c>): two registrations name the same
 /// service when their <c>id</c>, <c>version</c>, <c>url</c>, and <c>pid</c> agree. The password is
 /// not part of it, and neither is any operating-system token — the process behind the pid is
 /// identified separately by <see cref="ProcessIdentity"/>.

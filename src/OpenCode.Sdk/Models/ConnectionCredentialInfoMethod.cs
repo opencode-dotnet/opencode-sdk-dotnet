@@ -19,5 +19,10 @@ public enum ConnectionCredentialInfoMethod
     /// Represents the &apos;oauth&apos; wire value.
     /// </summary>
     [JsonStringEnumMemberName("oauth")]
-    Oauth
+    Oauth,
+    /// <summary>
+    /// Represents the &apos;external&apos; wire value.
+    /// </summary>
+    [JsonStringEnumMemberName("external")]
+    External
 }

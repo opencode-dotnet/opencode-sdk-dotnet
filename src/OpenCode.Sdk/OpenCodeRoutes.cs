@@ -861,6 +861,35 @@ public static class OpenCodeRoutes
         }
 
         /// <summary>
+        /// The &apos;POST /api/integration/{integrationID}/connect/external&apos; route template.
+        /// </summary>
+        public const string ConnectWithExternalCredentialsTemplate = "/api/integration/{integrationID}/connect/external";
+        /// <summary>
+        /// Builds the &apos;/api/integration/{integrationID}/connect/external&apos; route.
+        /// </summary>
+        /// <param name = "integrationId">The &apos;integrationID&apos; route value.</param>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string ConnectWithExternalCredentials(string integrationId, IntegrationConnectExternalRequest? request = null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(integrationId);
+            if (integrationId is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(integrationId));
+            }
+
+            var path = "/api/integration/" + RouteValuePolicy.Escape(integrationId, nameof(integrationId)) + "/connect/external";
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddLocation("location", request.Location);
+            return path + query.Value;
+        }
+
+        /// <summary>
         /// The &apos;POST /api/integration/{integrationID}/connect/key&apos; route template.
         /// </summary>
         public const string ConnectWithKeyTemplate = "/api/integration/{integrationID}/connect/key";

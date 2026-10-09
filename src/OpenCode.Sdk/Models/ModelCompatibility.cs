@@ -49,4 +49,18 @@ public sealed record ModelCompatibility
     [JsonPropertyName("supportsPromptCacheKey")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? SupportsPromptCacheKey { get; init; }
+
+    /// <summary>
+    /// Gets the supports thinking block binding value.
+    /// </summary>
+    [JsonPropertyName("supportsThinkingBlockBinding")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? SupportsThinkingBlockBinding { get; init; }
+
+    /// <summary>
+    /// Gets the supports effort updates value.
+    /// </summary>
+    [JsonPropertyName("supportsEffortUpdates")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? SupportsEffortUpdates { get; init; }
 }

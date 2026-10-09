@@ -40,7 +40,7 @@ internal sealed class PtyUpgradeFailurePolicy : ITerminalUpgradeFailurePolicy
                 $"The opencode server answered the PTY '{terminalId}' WebSocket upgrade with HTTP {code}; the PTY session or the requested location does not exist.",
                 exception),
             401 or 403 => new OpenCodeTransportException(
-                $"The opencode server refused the PTY '{terminalId}' WebSocket upgrade with HTTP {code}; the request's credential was rejected.",
+                $"The opencode server refused the PTY '{terminalId}' WebSocket upgrade with HTTP {code}; the request's credential or origin was rejected.",
                 exception),
             _ => new OpenCodeTransportException(
                 $"The opencode server answered the PTY '{terminalId}' WebSocket upgrade with HTTP {code} instead of completing the protocol upgrade.",

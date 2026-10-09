@@ -24,7 +24,7 @@
       "clientName": "Integrations",
       "handleName": "IntegrationClient",
       "handleParameter": "integrationID",
-      "reason": "The connect and oauth flows are multi-step conversations with one integration; six operations chain on integrationID (ADR-0019)."
+      "reason": "The connect and oauth flows are multi-step conversations with one integration; ten operations chain on integrationID (ADR-0019)."
     },
     "mcp": {
       "placement": "client",
@@ -474,6 +474,11 @@
       "operationId": "integration.connect.key",
       "methodName": "ConnectWithKeyAsync",
       "reason": "Upstream summary 'Connect with key': the operation runs a key authentication method and stores the resulting credential."
+    },
+    {
+      "operationId": "integration.connect.external",
+      "methodName": "ConnectWithExternalCredentialsAsync",
+      "reason": "Upstream summary 'Connect with external credentials': the operation runs an external authentication method and stores a reference to its credential source."
     },
     {
       "operationId": "integration.oauth.cancel",

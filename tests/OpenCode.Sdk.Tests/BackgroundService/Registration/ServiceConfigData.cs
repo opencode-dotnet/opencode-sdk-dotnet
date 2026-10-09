@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tests.BackgroundService.Registration;
 
 /// <summary>
-/// Service-config documents that isolate one construct each: the six members the pinned CLI's
+/// Service-config documents that isolate one construct each: the seven members the pinned CLI's
 /// <c>ServiceConfig.Info</c> declares and the rejections the strict reader owns. The canonical
 /// document with an environment map is the embedded fixture
 /// <c>BackgroundService.service-config-env.json</c>.
@@ -67,6 +67,28 @@ internal static class ServiceConfigData
     public const string ArrayRoot = "[]";
 
     public const string Malformed = "{\"env\":{";
+
+    /// <summary>The current <c>remote</c> shape: the generated route the service is served on.</summary>
+    public const string RemoteRoute = "{\"remote\":{\"route\":\"0123456789abcdef\"},\"env\":{\"A\":\"1\"}}";
+
+    /// <summary><c>Struct({ route: String })</c> ignores any other member of the object.</summary>
+    public const string RemoteRouteWithExtraMembers = "{\"remote\":{\"route\":\"0123456789abcdef\",\"enabled\":true},\"env\":{\"A\":\"1\"}}";
+
+    /// <summary>Remote access as earlier builds stored it: the CLI's legacy decode still reads it.</summary>
+    public const string LegacyRemoteTrue = "{\"remote\":true,\"password\":\"kept\",\"env\":{\"A\":\"1\"}}";
+
+    /// <summary>Remote access turned off, as earlier builds stored it.</summary>
+    public const string LegacyRemoteFalse = "{\"remote\":false,\"env\":{\"A\":\"1\"}}";
+
+    public const string RemoteAsNumber = "{\"remote\":5,\"env\":{\"A\":\"1\"}}";
+
+    public const string RemoteNull = "{\"remote\":null,\"env\":{\"A\":\"1\"}}";
+
+    public const string RemoteAsString = "{\"remote\":\"x\",\"env\":{\"A\":\"1\"}}";
+
+    public const string RemoteWithoutRoute = "{\"remote\":{},\"env\":{\"A\":\"1\"}}";
+
+    public const string RemoteRouteNotAString = "{\"remote\":{\"route\":1},\"env\":{\"A\":\"1\"}}";
 
     public const string UnknownMembersSkipped = "{\"env\":{\"A\":\"1\"},\"future\":{\"nested\":true}}";
 }

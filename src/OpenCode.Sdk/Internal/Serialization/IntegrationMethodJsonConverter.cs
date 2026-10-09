@@ -13,6 +13,7 @@ internal sealed class IntegrationMethodJsonConverter : JsonConverter<IIntegratio
     {
         ["command"] = typeof(IntegrationCommandMethod),
         ["env"] = typeof(IntegrationEnvMethod),
+        ["external"] = typeof(IntegrationExternalMethod),
         ["key"] = typeof(IntegrationKeyMethod),
         ["oauth"] = typeof(IntegrationOAuthMethod)
     }.ToFrozenDictionary(StringComparer.Ordinal);

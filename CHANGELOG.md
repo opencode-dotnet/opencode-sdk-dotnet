@@ -9,7 +9,44 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.{shortSha}`.
 
+### 💥 Breaking changes
+
+- **`ConfigInfoExperimentalPoliciesAction.Permission` is now `ToolUse`.** Upstream 2.0.26 renames
+  the experimental policy action `permission` to `tool.use` and adds `integration.use`, which gates
+  MCP servers and skills, so the enum's members are `ProviderUse`, `ToolUse`, and `IntegrationUse`.
+  A 2.0.26 server drops a `permission` policy entry when it loads its config; against an older
+  server whose config still has one, reading the config fails to decode.
+
+### ✨ Added
+
+- **The accepted snapshot moved to upstream release tag `v2.0.26`**
+  (`9b4ec5714d481559990db0a816d5dec19541a814`), published as `@opencode/cli@2.0.26`; install it
+  with `npm install -g @opencode/cli@2.0.26`.
+- **An integration can be connected through an external credential source.**
+  `IntegrationClient.ConnectWithExternalCredentialsAsync(request)` (`integration.connect.external`)
+  runs an external authentication method, named by `MethodId` with an optional form `Answer` and
+  `Label`, and stores a reference to its credential source. The integration lists such a method
+  as `IntegrationExternalMethod`, and the stored credential reads as `CredentialExternal`
+  (`MethodId`, `Metadata`). The route helper is
+  `OpenCodeRoutes.Integrations.ConnectWithExternalCredentials`.
+- **`ConnectionCredentialInfoMethod.External`** names a credential stored through an external
+  method. Before, a server that returned one failed the decode of its connection.
+- **`ModelCompatibility.SupportsThinkingBlockBinding` and `SupportsEffortUpdates`** carry the two
+  compatibility flags upstream 2.0.26 adds.
+
 ### 🔧 Changes
+
+- **The service config's `remote` key is read as upstream reads it.** Remote access is set only
+  through the CLI (`opencode service set remote`); the SDK reads the key and never writes it. A
+  `remote` that is neither an object holding a string `route` nor the legacy boolean makes the
+  whole document no config, as upstream decides, so its `env` overlay no longer applies; a legacy
+  boolean still reads, but such a document is no longer migrated to a named channel's file. While
+  the service's tunnel is attached, its remote URL is listed in `ServerInfo.Urls`.
+- **A PTY connect refused with HTTP 401 or 403 names the credential or the origin.** Upstream
+  2.0.26 checks the request's origin on every connect.
+- **`FileSystem.ReadFileAsync` with a path that leaves the location answers the declared 404 with a
+  typed `FileNotFoundError`.** Upstream 2.0.26 refuses such a path, and one it cannot decode, as a
+  missing file, where it used to fail with an undeclared server error.
 
 - **On Windows a standalone server ends with its owner, however the owner ends.** `StartAsync`
   creates the server suspended, places it in a process-wide job that ends it when the host process

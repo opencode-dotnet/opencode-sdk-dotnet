@@ -29,10 +29,10 @@ flag; it never falls back to `Process.Start`, a shell, or a managed `fork()`. Th
 counterpart of ADR-0026's `kill(2)`, and ADR-0001's "no process library" stands: it binds
 functions of the C library and the Windows process API every process already has loaded. ADR-0032
 extends the same POSIX spawn to the standalone launcher. Two spawn-failure
-classes exist at the pin (`packages/client/src/effect/service.ts:67-77`): a synchronous throw
-from `spawnServiceContender` fails Ensure immediately (`Effect.try`), while the child's
-asynchronous `error` event is deferred through `contenderFailure` and discarded while another
-contender is live. Native `CreateProcessW`/`posix_spawnp` report ENOENT synchronously, so the
+classes exist at the pin (upstream's client `ensure`): a synchronous throw from
+`spawnServiceContender` fails Ensure immediately (`Effect.try`), while the child's asynchronous
+`error` event is kept as the first startup failure and reported once no contender is left
+alive. Native `CreateProcessW`/`posix_spawnp` report ENOENT synchronously, so the
 .NET port maps a synchronous spawn failure to the immediate class and preserves the platform
 error as the inner exception.
 

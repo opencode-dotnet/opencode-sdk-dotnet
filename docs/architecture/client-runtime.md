@@ -709,13 +709,19 @@ pins every file it reads in `spec/source-watch.json` (ADR-0025). The null channe
 release registration `service.json` with no legacy migration; a named channel follows the CLI's
 filename, sanitization, and legacy-migration rules; a direct registration path bypasses all three.
 The channel's service config is read the CLI's way: a document whose members do not decode —
-`disabled` must be a boolean when present — is no config at all, so its `env` overlay and the
-legacy migration it gates do not apply. Its `disabled` key is read only by CLI commands: the
-connection-mode selector (`resolve` starts a standalone server instead of reaching the service when
-it is true) and the pairing command's guard (`opencode pair` needs the service); the pinned
-client's `Service.discover`, `ensure`, and `stop` do not read it, and neither do
-`DiscoverAsync`, `EnsureAsync`, and `StopAsync` — a caller that honors a disabled service chooses
-`StartAsync`, as `resolve` does.
+`disabled` must be a boolean and `remote` an object holding a string `route` (or, in the legacy
+shape, a boolean) when present — is no config at all, so its `env` overlay and the legacy migration
+it gates do not apply; a legacy-shape document still reads, and only the current shape is migrated.
+The CLI's read rewrites a legacy-shape document in place; the SDK, which never authors the config's
+contents, reads it as it is and leaves the rewrite to the daemon's next read, which reads the same
+`env`. Remote access is set only through the CLI (`opencode service set remote`): the SDK reads the
+key and never writes it, and the service's remote URL reaches callers in `ServerInfo.Urls` while its
+tunnel is attached. The config's `disabled` key is read only by CLI commands: the connection-mode
+selector (`resolve` starts a standalone server instead of reaching the service when it is true) and
+the pairing command's guard (`opencode pair` needs the service); the pinned client's
+`Service.discover`, `ensure`, and `stop` do not read it, and neither do `DiscoverAsync`,
+`EnsureAsync`, and `StopAsync` — a caller that honors a disabled service chooses `StartAsync`, as
+`resolve` does.
 The registration and service-config files are read the way libuv opens files, sharing read, write,
 and delete, so a poll never makes the daemon's remove-on-exit fail on Windows, and a UTF-8
 byte-order mark is skipped as the CLI's decoder skips it. A daemon bound to every interface
@@ -821,9 +827,6 @@ reason (ADR-0031):
   where upstream would connect without credentials. Reason: the SDK never yields an
   unauthenticated connection. The pinned daemon always writes a password, so the two only differ
   for a hand-made file.
-- **UTF-8 Basic credential in the probe.** Upstream's probe uses Latin-1 `btoa`, which throws on
-  any password outside Latin-1, while its sidecar writer, its promise client, and the server all
-  use UTF-8. Reason: the SDK agrees with the rest of upstream, not with the one encoder that fails.
 - **No proxy for a loopback probe.** Reason: an environment proxy without `NO_PROXY` would
   otherwise hide a live daemon.
 

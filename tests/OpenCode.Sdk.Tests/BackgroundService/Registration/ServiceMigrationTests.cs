@@ -193,6 +193,33 @@ public sealed class ServiceMigrationTests
     }
 
     [Test]
+    [Arguments(ServiceConfigData.RemoteRoute)]
+    [Arguments(ServiceConfigData.RemoteRouteWithExtraMembers)]
+    public async Task ApplyAsync_Should_Copy_A_Legacy_Config_With_A_Current_Remote(string config)
+    {
+        var paths = ChannelPaths(Channel);
+        Seed(paths.LegacyConfigFile!, config);
+
+        await Migration().ApplyAsync(Select(Channel), paths, CancellationToken.None);
+
+        await Assert.That(_fileSystem.File.ReadAllText(paths.ConfigFile!)).IsEqualTo(config);
+    }
+
+    /// <summary>The CLI's <c>migrateConfig</c> gates on the current decode alone, so a boolean <c>remote</c> stays behind.</summary>
+    [Test]
+    [Arguments(ServiceConfigData.LegacyRemoteTrue)]
+    [Arguments(ServiceConfigData.LegacyRemoteFalse)]
+    public async Task ApplyAsync_Should_Not_Copy_A_Legacy_Config_With_A_Boolean_Remote(string config)
+    {
+        var paths = ChannelPaths(Channel);
+        Seed(paths.LegacyConfigFile!, config);
+
+        await Migration().ApplyAsync(Select(Channel), paths, CancellationToken.None);
+
+        await Assert.That(_fileSystem.File.Exists(paths.ConfigFile!)).IsFalse();
+    }
+
+    [Test]
     public async Task ApplyAsync_Should_Rethrow_Caller_Cancellation()
     {
         var paths = ChannelPaths(Channel);
