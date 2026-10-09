@@ -5,8 +5,9 @@ using OpenCode.Sdk.TestSupport;
 namespace OpenCode.Sdk.Tests.BackgroundService.Registration;
 
 /// <summary>
-/// The strict boundary over the CLI's service config: the six declared members are validated, the
-/// persisted password is accepted and never surfaced, and only the environment map comes out.
+/// The strict boundary over the CLI's service config: the seven declared members are validated, the
+/// persisted password and remote route are accepted and never surfaced, a legacy boolean
+/// <c>remote</c> still reads but is not the current shape, and only the environment map comes out.
 /// </summary>
 public sealed class ServiceConfigReaderTests
 {
@@ -50,12 +51,18 @@ public sealed class ServiceConfigReaderTests
     /// <summary>
     /// The CLI's schema reads <c>port</c> as <c>Number.isSafeInteger</c> over the value <c>JSON.parse</c>
     /// produced, so the notation an integer is written in does not matter, and <c>disabled</c> never
-    /// gates the environment.
+    /// gates the environment. <c>remote</c> is the route object, whose other members the decode
+    /// ignores, or the boolean earlier builds stored, which the CLI's legacy decode reads with the
+    /// rest of the document.
     /// </summary>
     [Test]
     [Arguments(ServiceConfigData.PortWithZeroFraction)]
     [Arguments(ServiceConfigData.PortInExponentNotation)]
     [Arguments(ServiceConfigData.DisabledWithEnvironment)]
+    [Arguments(ServiceConfigData.RemoteRoute)]
+    [Arguments(ServiceConfigData.RemoteRouteWithExtraMembers)]
+    [Arguments(ServiceConfigData.LegacyRemoteTrue)]
+    [Arguments(ServiceConfigData.LegacyRemoteFalse)]
     public async Task TryReadEnvironment_Should_Return_The_Environment_Of_A_Config_The_Cli_Accepts(string json)
     {
         var environment = ServiceConfigReader.TryReadEnvironment(Bytes(json));
@@ -79,6 +86,11 @@ public sealed class ServiceConfigReaderTests
     [Arguments(ServiceConfigData.DisabledAsString)]
     [Arguments(ServiceConfigData.DisabledNull)]
     [Arguments(ServiceConfigData.DisabledAsNumber)]
+    [Arguments(ServiceConfigData.RemoteAsNumber)]
+    [Arguments(ServiceConfigData.RemoteNull)]
+    [Arguments(ServiceConfigData.RemoteAsString)]
+    [Arguments(ServiceConfigData.RemoteWithoutRoute)]
+    [Arguments(ServiceConfigData.RemoteRouteNotAString)]
     [Arguments(ServiceConfigData.ArrayRoot)]
     [Arguments(ServiceConfigData.Malformed)]
     public async Task TryReadEnvironment_Should_Treat_An_Invalid_Config_As_Absent(string json)
@@ -107,6 +119,32 @@ public sealed class ServiceConfigReaderTests
         var environment = ServiceConfigReader.TryReadEnvironment(document);
 
         await Assert.That(environment).IsNull();
+    }
+
+    [Test]
+    [Arguments(ServiceConfigData.Empty)]
+    [Arguments(ServiceConfigData.DisabledWithEnvironment)]
+    [Arguments(ServiceConfigData.RemoteRoute)]
+    [Arguments(ServiceConfigData.RemoteRouteWithExtraMembers)]
+    public async Task IsCurrent_Should_Accept_A_Config_In_The_Current_Shape(string json)
+    {
+        await Assert.That(ServiceConfigReader.IsCurrent(Bytes(json))).IsTrue();
+    }
+
+    /// <summary>
+    /// The CLI's <c>migrateConfig</c> gates on the current decode alone: a legacy boolean
+    /// <c>remote</c> reads, but is not the current shape, and an invalid config is neither.
+    /// </summary>
+    [Test]
+    [Arguments(ServiceConfigData.LegacyRemoteTrue)]
+    [Arguments(ServiceConfigData.LegacyRemoteFalse)]
+    [Arguments(ServiceConfigData.RemoteNull)]
+    [Arguments(ServiceConfigData.RemoteWithoutRoute)]
+    [Arguments(ServiceConfigData.PortAboveRange)]
+    [Arguments(ServiceConfigData.Malformed)]
+    public async Task IsCurrent_Should_Refuse_A_Legacy_Or_Invalid_Config(string json)
+    {
+        await Assert.That(ServiceConfigReader.IsCurrent(Bytes(json))).IsFalse();
     }
 
     private static byte[] Bytes(string json) => Encoding.UTF8.GetBytes(json);

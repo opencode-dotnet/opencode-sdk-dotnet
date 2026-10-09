@@ -6,15 +6,17 @@ using OpenCode.Sdk.Internal.Diagnostics;
 namespace OpenCode.Sdk.Internal.BackgroundService.Ensure;
 
 /// <summary>
-/// One Ensure election, the pinned client's <c>ensure</c> loop (<c>promise/service.ts</c>)
-/// read statement for statement: each round reads the registration and probes it, counts
+/// One Ensure election, the pinned client's <c>ensure</c> loop (<c>promise/service.ts</c>, with
+/// its contender rules in <c>contenderPool</c> and its decision in <c>decide</c>) read statement for
+/// statement: each round reads the registration and probes it, counts
 /// consecutive timeouts on one identity and recovers after the third, reuses a ready compatible
 /// service, fails on a failed one or on one whose health protocol is incompatible while its
 /// version matches, replaces one whose version does not match, and otherwise harvests finished
 /// contenders and keeps at most two live, until a service wins or the wall-clock bound expires.
 /// The first contender failure is held until a recovery or replacement drops it: while held, no
 /// contender is recruited, and the bound expires with it rather than with the timeout.
-/// Its fields are upstream's loop locals; one instance serves one call.
+/// Its fields are upstream's loop locals and its contender pool's state; one instance serves one
+/// call.
 /// </summary>
 internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest request, ServicePaths paths)
 {

@@ -30,8 +30,8 @@ internal sealed class ServiceInfoProbe(ServiceTiming timing) : IServiceInfoProbe
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(registration.Endpoint, InfoPath));
         if (registration.Password is { } password)
         {
-            // UTF-8, as the pipeline encodes the same credential; upstream's probe uses btoa
-            // (Latin-1) while its sidecar writer uses UTF-8, and the daemon decodes UTF-8.
+            // UTF-8, as upstream's probe and the pipeline encode the same credential and the
+            // daemon decodes it.
             request.Headers.Authorization = new AuthenticationHeaderValue(
                 "Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes("opencode:" + password)));
         }

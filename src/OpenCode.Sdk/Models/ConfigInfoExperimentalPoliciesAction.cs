@@ -16,8 +16,13 @@ public enum ConfigInfoExperimentalPoliciesAction
     [JsonStringEnumMemberName("provider.use")]
     ProviderUse,
     /// <summary>
-    /// Represents the &apos;permission&apos; wire value.
+    /// Represents the &apos;tool.use&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("permission")]
-    Permission
+    [JsonStringEnumMemberName("tool.use")]
+    ToolUse,
+    /// <summary>
+    /// Represents the &apos;integration.use&apos; wire value.
+    /// </summary>
+    [JsonStringEnumMemberName("integration.use")]
+    IntegrationUse
 }

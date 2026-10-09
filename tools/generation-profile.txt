@@ -35,6 +35,7 @@ fs.read
 integration.command.cancel
 integration.command.connect
 integration.command.status
+integration.connect.external
 integration.connect.key
 integration.get
 integration.list

@@ -6,10 +6,11 @@ namespace OpenCode.Sdk.Internal.BackgroundService.Registration;
 /// <summary>
 /// The pinned CLI's legacy copy (<c>migrateRegistration</c> and <c>migrateConfig</c> in
 /// <c>service-config.ts</c>): a donor written under the earlier hashed filename is copied byte for
-/// byte to the current name, exclusively, once, and only when its version belongs to the channel.
-/// The copy is a convenience the daemon's own registration supersedes, so every write failure is
-/// swallowed the way upstream's <c>Effect.ignore</c> swallows it, no directory is created, and no
-/// donor is ever removed.
+/// byte to the current name, exclusively, once, and only when its version belongs to the channel; a
+/// config donor is copied only when it decodes under the current shape, so a legacy boolean
+/// <c>remote</c> stays behind. The copy is a convenience the daemon's own registration supersedes,
+/// so every write failure is swallowed the way upstream's <c>Effect.ignore</c> swallows it, no
+/// directory is created, and no donor is ever removed.
 /// </summary>
 internal sealed class ServiceMigration(IServiceFileSystem fileSystem)
 {
@@ -51,7 +52,7 @@ internal sealed class ServiceMigration(IServiceFileSystem fileSystem)
         {
             cancellationToken.ThrowIfCancellationRequested();
             var bytes = await fileSystem.TryReadAllBytesAsync(legacyConfig, cancellationToken).ConfigureAwait(false);
-            if (bytes is not null && ServiceConfigReader.TryReadEnvironment(bytes) is not null)
+            if (bytes is not null && ServiceConfigReader.IsCurrent(bytes))
             {
                 await CopyAsync(configFile, bytes, cancellationToken).ConfigureAwait(false);
             }

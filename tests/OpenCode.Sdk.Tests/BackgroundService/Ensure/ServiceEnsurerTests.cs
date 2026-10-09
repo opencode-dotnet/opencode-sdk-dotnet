@@ -11,14 +11,17 @@ using OpenCode.Sdk.Tests.BackgroundService.Registration;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions.Testing;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.BackgroundService.Ensure;
 
 /// <summary>
 /// The Ensure door over substituted seams: no live process, no real registration, no socket. Each
-/// test states one upstream behavior (<c>promise/service.ts:33-116</c>,
-/// <c>server-connection.ts:74-84</c>) and asserts what the seams observed — spawns, signals,
-/// handoff calls, <c>OnStart</c> — never how many times the loop read the clock.
+/// test states one upstream behavior (<c>ensure</c> in <c>promise/service.ts</c>, its contender rules
+/// in <c>contenderPool</c> in <c>service-contender.ts</c>, its decision in <c>decide</c> in
+/// <c>service-probe.ts</c>, and <c>server-connection.ts:74-84</c>) and asserts what the seams observed
+/// — spawns, signals, handoff calls, <c>OnStart</c>, and the instants the test's own clock showed at
+/// each — never how many times the loop read the clock.
 /// </summary>
 public sealed class ServiceEnsurerTests
 {
@@ -41,6 +44,9 @@ public sealed class ServiceEnsurerTests
     private static readonly ServiceProbeResult Failed = new(ServiceState.Failed, Version, TimedOut: false, Compatible: true);
     private static readonly ServiceProbeResult TimedOut = new(State: null, Version: null, TimedOut: true, Compatible: true);
 
+    /// <summary>The probe was refused: nothing answers at the registered endpoint, as when the registered process is dead.</summary>
+    private static readonly ServiceProbeResult Refused = new(State: null, Version: null, TimedOut: false, Compatible: true);
+
     private readonly MockFileSystem _fileSystem = new();
     private readonly IServiceEnvironment _environment = Substitute.For<IServiceEnvironment>();
     private readonly IServiceInfoProbe _probe = Substitute.For<IServiceInfoProbe>();
@@ -52,6 +58,9 @@ public sealed class ServiceEnsurerTests
     private readonly List<IServiceContenderSpawner.ContenderStartInfo> _starts = [];
     private readonly HashSet<int> _signalled = [];
     private readonly List<(OpenCodeServerEnsureReason Reason, string? Previous)> _announced = [];
+    private readonly List<DateTimeOffset> _refusedAt = [];
+    private readonly List<DateTimeOffset> _spawnedAt = [];
+    private DateTimeOffset _now = Start;
 
     public ServiceEnsurerTests()
     {
@@ -247,6 +256,137 @@ public sealed class ServiceEnsurerTests
         _ = _handoff.Received(1).ClearAsync(SharedRegistrationPath(), Arg.Any<CancellationToken>());
         _ = _handoff.DidNotReceiveWithAnyArgs().PrepareAsync(default!, default!, default, default);
         await Assert.That(_signalled).Contains(RegisteredPid);
+    }
+
+    [Test]
+    public async Task EnsureAsync_Should_Clear_Rather_Than_Hand_Off_When_The_Mismatched_Service_Failed()
+    {
+        // service-decision.test.ts: a version mismatch is replaced whatever the state, and only a
+        // ready service has terminals to hand off; a failed one is cleared, never reported as failed.
+        SeedRegistered();
+        AnswerRegistered(Failed);
+        ElectOnSpawn("2.0.4");
+
+        var registration = await Ensurer().EnsureAsync(
+            Announcing(new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace }),
+            CancellationToken.None);
+
+        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.VersionMismatch, (string?)Version)]);
+        _ = _handoff.Received(1).ClearAsync(SharedRegistrationPath(), Arg.Any<CancellationToken>());
+        _ = _handoff.DidNotReceiveWithAnyArgs().PrepareAsync(default!, default!, default, default);
+        await Assert.That(_signalled).Contains(RegisteredPid);
+    }
+
+    /// <summary>
+    /// service.test.ts "replaces a crashed service whose registration names a dead process" and
+    /// service-contender-pool.test.ts "an unanswered registration gets one spawn delay before an
+    /// attempt competes" are one case at this seam: a registration whose probe is refused. The first
+    /// contender starts one spawn delay after the registration first went unanswered, the dead
+    /// process is never signalled, and <c>OnStart</c> fires once.
+    /// </summary>
+    [Test]
+    public async Task EnsureAsync_Should_Replace_A_Registration_Nothing_Answers_After_One_Spawn_Delay_And_Announce_Once()
+    {
+        var spawnDelay = TimeSpan.FromMinutes(1);
+        SeedRegistered();
+        RefuseRegistered(step: TimeSpan.FromSeconds(15));
+        ExitCleanlyUntilElected(electedSpawn: 1);
+
+        var registration = await Ensurer(Timing with { SpawnDelay = spawnDelay }).EnsureAsync(Announcing(), CancellationToken.None);
+
+        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+        await Assert.That(_spawnedAt.Single() - _refusedAt[0]).IsEqualTo(spawnDelay);
+        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.Missing, (string?)null)]);
+        await Assert.That(_signalled).IsEmpty();
+    }
+
+    /// <summary>
+    /// service-contender-pool.test.ts "clean exits back off up to the maximum spawn delay": each
+    /// contender that exits 0 doubles the delay before the next one, and the doubling stops at the
+    /// maximum.
+    /// </summary>
+    [Test]
+    public async Task EnsureAsync_Should_Double_The_Spawn_Delay_After_Each_Clean_Contender_Exit_Up_To_The_Maximum()
+    {
+        var timing = Timing with { SpawnDelay = TimeSpan.FromSeconds(10), MaxSpawnDelay = TimeSpan.FromSeconds(30) };
+        SeedRegistered();
+        RefuseRegistered(step: TimeSpan.FromSeconds(1));
+        ExitCleanlyUntilElected(electedSpawn: 4);
+
+        var registration = await Ensurer(timing).EnsureAsync(options: null, CancellationToken.None);
+
+        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+        await Assert.That(SpawnGaps()).IsEquivalentTo(
+            [TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30)],
+            CollectionOrdering.Matching);
+    }
+
+    /// <summary>
+    /// service-contender-pool.test.ts "an answering service resets the backoff to the base spawn
+    /// delay": after a clean exit doubled the delay, one answer from the registered service brings the
+    /// next contender back to the base delay.
+    /// </summary>
+    [Test]
+    public async Task EnsureAsync_Should_Reset_The_Spawn_Delay_When_A_Registered_Service_Answers()
+    {
+        var timing = Timing with { SpawnDelay = TimeSpan.FromSeconds(10), MaxSpawnDelay = TimeSpan.FromSeconds(60) };
+        var reaped = false;
+        var answered = false;
+        SeedRegistered();
+        _clock.UtcNow.Returns(_ => _now);
+        _probe.ProbeAsync(WithPid(RegisteredPid), Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            _now += TimeSpan.FromSeconds(1);
+            if (reaped && !answered)
+            {
+                // The first round after the clean exit was reaped, and the delay doubled with it.
+                answered = true;
+                return Waiting;
+            }
+
+            return Refused;
+        });
+        ExitCleanlyUntilElected(electedSpawn: 2, cleanExit => cleanExit.When(static contender => contender.Dispose()).Do(_ => reaped = true));
+
+        var registration = await Ensurer(timing).EnsureAsync(options: null, CancellationToken.None);
+
+        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+        await Assert.That(answered).IsTrue();
+        await Assert.That(_spawnedAt[1] - _spawnedAt[0]).IsEqualTo(timing.SpawnDelay);
+    }
+
+    /// <summary>
+    /// service.test.ts "recovers when the starting service it waits for is stopped": the service
+    /// answers waiting, then its registration is gone; nothing is registered any more, so a contender
+    /// starts at once rather than after the spawn delay, and Ensure signals nothing itself.
+    /// </summary>
+    [Test]
+    public async Task EnsureAsync_Should_Spawn_At_Once_When_The_Starting_Service_It_Waits_For_Is_Stopped()
+    {
+        SeedRegistered();
+        var probes = 0;
+        _probe.ProbeAsync(WithPid(RegisteredPid), Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (++probes == 2)
+            {
+                // The service is stopped between rounds; its registration goes with it.
+                _fileSystem.File.Delete(SharedRegistrationPath());
+            }
+
+            return Waiting;
+        });
+        ElectOnSpawn(Version);
+
+        // A spawn delay the fixed clock never reaches: only an immediate recruit can start a contender.
+        var registration = await Ensurer(Timing with { SpawnDelay = TimeSpan.FromMinutes(1) })
+            .EnsureAsync(Announcing(), CancellationToken.None);
+
+        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+        await Assert.That(_starts.Count).IsEqualTo(1);
+        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.Missing, (string?)null)]);
+        await Assert.That(_signalled).IsEmpty();
+        _ = _probe.Received(2).ProbeAsync(WithPid(RegisteredPid), Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -701,6 +841,53 @@ public sealed class ServiceEnsurerTests
 
     private void AnswerRegistered(ServiceProbeResult result) =>
         _probe.ProbeAsync(WithPid(RegisteredPid), Arg.Any<CancellationToken>()).Returns(result);
+
+    /// <summary>
+    /// The clock becomes the test's own: it shows <see cref="_now"/>, and every probe of the
+    /// registered daemon is one poll round that passes <paramref name="step"/> and is refused. The
+    /// instant each refusal was seen is recorded, so a verdict rests on those instants; the bound still
+    /// ends a loop that never elects.
+    /// </summary>
+    private void RefuseRegistered(TimeSpan step)
+    {
+        _clock.UtcNow.Returns(_ => _now);
+        _probe.ProbeAsync(WithPid(RegisteredPid), Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            _now += step;
+            _refusedAt.Add(_now);
+            return Refused;
+        });
+    }
+
+    /// <summary>
+    /// Records the instant of every spawn. The spawn numbered <paramref name="electedSpawn"/> registers
+    /// a ready daemon the way a winning contender does; every one before it exits 0 without
+    /// registering, and <paramref name="onCleanExit"/> sees each of those.
+    /// </summary>
+    private void ExitCleanlyUntilElected(int electedSpawn, Action<IServiceContender>? onCleanExit = null)
+    {
+        _probe.ProbeAsync(WithPid(ElectedPid), Arg.Any<CancellationToken>()).Returns(Ready);
+        _spawner.Spawn(Arg.Any<IServiceContenderSpawner.ContenderStartInfo>()).Returns(call =>
+        {
+            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>()!);
+            _spawnedAt.Add(_now);
+            var contender = LiveContender();
+            if (_starts.Count == electedSpawn)
+            {
+                Seed(SharedRegistrationPath(), ServiceRegistrationDocument.Compose("srv_elected", Version, ElectedEndpoint, ElectedPid, "elected-p455"));
+                return contender;
+            }
+
+            contender.Finished.Returns(true);
+            contender.ExitedZero.Returns(true);
+            onCleanExit?.Invoke(contender);
+            return contender;
+        });
+    }
+
+    /// <summary>The time from the first refused probe to the first spawn, then between consecutive spawns.</summary>
+    private List<TimeSpan> SpawnGaps() =>
+        [.. _spawnedAt.Select((at, index) => at - (index == 0 ? _refusedAt[0] : _spawnedAt[index - 1]))];
 
     /// <summary>The next spawn registers a ready daemon at <paramref name="version"/>, the way a winning contender does.</summary>
     private void ElectOnSpawn(string version)

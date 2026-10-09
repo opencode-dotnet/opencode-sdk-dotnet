@@ -1,5 +1,5 @@
 Generation is complete at the declared coverage; packages may be published.
-Selected operations: 139
+Selected operations: 140
 Pending operations: 0
 Declined operations: 0
 Transport-owned operations: 2
@@ -41,6 +41,7 @@ Selected:
 - integration.command.cancel
 - integration.command.connect
 - integration.command.status
+- integration.connect.external
 - integration.connect.key
 - integration.get
 - integration.list

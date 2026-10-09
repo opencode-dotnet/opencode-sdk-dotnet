@@ -3,8 +3,8 @@
   "sources": [
     {
       "path": "packages/server/src/handlers/pty.ts",
-      "sha256": "537e0f86abf23a5682a170bfbba88d586d53d7f0fec8f0bde317ce95ac7f92ba",
-      "behavior": "The PTY connect handler closes 4404 when the session is not found or has exited and 1000 on a normal end, consumes the single-use ticket, accepts a cursor at or above -1, and sends the replay as PtyProtocol.chunks followed by the meta frame.",
+      "sha256": "c4328a498f037c02244e4dc221e011847319bd49cd4cf31062de4da59a18970a",
+      "behavior": "Before the WebSocket upgrade the PTY connect handler rejects a disallowed origin (403; a request without an Origin passes), then consumes the single-use ticket, rejecting an invalid one (403), then resolves the location (404 LocationNotFoundError for a missing directory), then answers an empty 404 for a missing session, which PtyUpgradeFailurePolicy reports, and accepts a cursor at or above -1. After the upgrade it closes 4404 when the session is not found or has exited and 1000 on a normal end, and sends the replay as PtyProtocol.chunks followed by the meta frame.",
       "anchor": {
         "type": "contains",
         "text": "new Socket.CloseEvent(4404"
@@ -39,7 +39,7 @@
     },
     {
       "path": "packages/protocol/src/groups/pty.ts",
-      "sha256": "724e1f0755d5439064ba90139df0b09da9f0bcd38cedf195cd652fc62ea47bda",
+      "sha256": "b540fa1d43f8b5389d6fd277b08b4ee505962e0152483962048a7ffdba6715ae",
       "behavior": "The ticket-issuing request carries the x-opencode-ticket header and the connect URL carries the ticket query.",
       "anchor": {
         "type": "contains",
@@ -75,7 +75,7 @@
     },
     {
       "path": "packages/server/src/routes.ts",
-      "sha256": "024a5ed216e01b68333d2c9bfad9f62e6c6233ad3b17f2b7af1bdb7cada8e4c5",
+      "sha256": "eaca0968b66e20e966d74b1eaf9744cf339f66cb17736c7f527611b5270e27bc",
       "behavior": "The PTY ticket service and the persistent-PTY service are wired into the server layer graph.",
       "anchor": {
         "type": "contains",
@@ -93,7 +93,7 @@
     },
     {
       "path": "packages/server/src/handlers/persistent-pty.ts",
-      "sha256": "3bb6bd5e006cf5a69cbca2231ded3922a95405e8932a8c89af6009d11ccd096e",
+      "sha256": "07c13fed2eb4d11bfb375eb8a065b7036f0d63c2b007135e0fbabe02a0cb40f5",
       "behavior": "The persistent connect handler closes 4404 when the terminal is unavailable and 1000 on a normal end, consumes the ticket, and requires a cursor at or above 0.",
       "anchor": {
         "type": "contains",
@@ -156,7 +156,7 @@
     },
     {
       "path": "packages/cli/package.json",
-      "sha256": "b3e17724e20f8ba6cb9ba736cd2f1aa0c03f35786f311fd0752dd21fdd9a50f9",
+      "sha256": "3b9b34771e9c013a8387d475e57ba1297394e6da2595527c024578b3585a0c17",
       "behavior": "The CLI package bin map names \u0022opencode\u0022 as the installed command and keeps \u0022opencode2\u0022 as a transitional alias of the same launcher, so the shipped launcher default resolves \u0022opencode\u0022 from PATH. The CLI depends on the opencode-pty package at 0.2.0.",
       "anchor": {
         "type": "contains",
@@ -165,7 +165,7 @@
     },
     {
       "path": "packages/core/package.json",
-      "sha256": "392e113c61c75cf430b139901ce27c5bf8ffbb468ff23dd758341e02a9961f32",
+      "sha256": "7dea4b509d922e21c9e6dc95ff6666c558c98e63dbb910a678847f2567ad376d",
       "behavior": "The opencode-pty daemon dependency is pinned at 0.2.0, which takes its runtime directory and name as arguments instead of OPENCODE_PTY_RUNTIME_DIR; the daemon protocol the persistent-PTY door speaks stays at version 7.",
       "anchor": {
         "type": "contains",
@@ -174,8 +174,8 @@
     },
     {
       "path": "packages/server/src/process.ts",
-      "sha256": "f92d9d249f8781ddecb26354e3d4f2e439f1152f3a946aebc9b8b85fdf090d9e",
-      "behavior": "A ticketed PTY connect is admitted before the server reports ready. Uncredentialed or wrongly credentialed requests above the API layer receive a 401 whose JSON body is the UnauthorizedError the document declares, with the Basic challenge only for requests that are not browser fetches. While the server is not ready, GET /api/info is answered by the process layer under Basic auth with the version, pid, urls, and paths.tmp body at 500 when failed or 503 when starting or stopping, the latter two with retry-after: 1; once ready the request reaches the API group\u0027s server.info handler, which answers the same shape at 200.",
+      "sha256": "52fb059942a54792ba2816e773d7e167cbd25e7fb1ed980481e5f89fd63377aa",
+      "behavior": "A ticketed PTY connect is admitted before the server reports ready. Uncredentialed or wrongly credentialed requests above the API layer receive a 401 whose JSON body is the UnauthorizedError the document declares, with the Basic challenge only for requests that are not browser fetches. While the server is not ready, GET /api/info is answered by the process layer under Basic auth with the version, pid, urls (the bound connection URLs, plus the remote-access URL while a service\u0027s tunnel is attached), and paths.tmp body at 500 when failed or 503 when starting or stopping, the latter two with retry-after: 1; once ready the request reaches the API group\u0027s server.info handler, which answers the same shape at 200.",
       "anchor": {
         "type": "contains",
         "text": "!hasPtyConnectTicketURL(url)"
@@ -246,8 +246,8 @@
     },
     {
       "path": "packages/cli/src/server-process.ts",
-      "sha256": "c7a191fc620a9ae6193b79015b3df3c0aed984c3d851214f8d1093cfaa1d9599",
-      "behavior": "In stdio mode the serve command prints exactly one JSON line carrying the bound url to stdout after full boot and exits when stdin reaches EOF, which is the readiness line ServerReadyLine parses and the lease OpenCodeServer releases. In service mode it changes into the user home (which ServerIsolation\u0027s isolated home relies on), returns at once when a compatible incumbent already answers, and, when the bind finds the port in use, spends up to 15 seconds re-checking for a recognized incumbent and retrying the bind every 100 milliseconds: a recognized incumbent makes it exit 0 as the loser, and a freed port makes it the service. That exit 0 is the exit the Ensure election reads as a lost race and answers by doubling its spawn delay; a loser that exited non-zero would fail every multi-contender Ensure. On Windows, a service run from a package-manager or curl install first holds a second hard link to its own image under the cache directory, so an installer can replace the binary while the daemon runs; the pid and start time the stop door identifies it by are unchanged, and a daemon the stop door ends hard leaves that link for the next service start to sweep. An OPENCODE_PTY_HANDOFF that does not decode is logged and ignored, so the server starts with fresh persistent terminals instead of failing.",
+      "sha256": "1858da9d94641148b9c1612b67b2d9e0dca401cd81dedb08a9b3ae993a2397c6",
+      "behavior": "In stdio mode the serve command prints exactly one JSON line carrying the bound url to stdout after full boot and exits when stdin reaches EOF, which is the readiness line ServerReadyLine parses and the lease OpenCodeServer releases. In service mode it changes into the user home (which ServerIsolation\u0027s isolated home relies on), returns at once when a compatible incumbent already answers, and, when the bind finds the port in use, spends up to 15 seconds re-checking for a recognized incumbent and retrying the bind every 100 milliseconds: a recognized incumbent makes it exit 0 as the loser, and a freed port makes it the service. That exit 0 is the exit the Ensure election reads as a lost race and answers by doubling its spawn delay; a loser that exited non-zero would fail every multi-contender Ensure. On Windows, a service run from a package-manager or curl install first holds a second hard link to its own image under the cache directory, so an installer can replace the binary while the daemon runs; the pid and start time the stop door identifies it by are unchanged, and a daemon the stop door ends hard leaves that link for the next service start to sweep. An OPENCODE_PTY_HANDOFF that does not decode is logged and ignored, so the server starts with fresh persistent terminals instead of failing. In service mode with remote access configured, it attaches the remote-access tunnel in the background after binding; a tunnel failure is logged and changes neither the readiness line nor the exit status.",
       "anchor": {
         "type": "contains",
         "text": "JSON.stringify({ url })"
@@ -337,7 +337,7 @@
     {
       "path": "packages/protocol/src/errors.ts",
       "sha256": "2785ffc43d39349731dbb683d750d26cc6729e8161c0046e1a818f3dca424aa9",
-      "behavior": "The tagged error catalogue declares the wire discriminators the typed error family maps, so an added, removed or renamed tag changes the SDK\u0027s error union; LocationNotFoundError (404, location and message) is the location middlewares\u0027 error. Group files declare a few tagged errors of their own (WorktreeError, VcsInitNotSupportedError), which reach the SDK through the generated document rather than this file.",
+      "behavior": "The tagged error catalogue declares the wire discriminators the typed error family maps, so an added, removed or renamed tag changes the SDK\u0027s error union; LocationNotFoundError (404, location and message) is the location middlewares\u0027 error, and pty.connect declares it itself. Group files declare a few tagged errors of their own (WorktreeError, VcsInitNotSupportedError), which reach the SDK through the generated document rather than this file.",
       "anchor": {
         "type": "contains",
         "text": "FileNotFoundError"
@@ -372,7 +372,7 @@
     },
     {
       "path": "packages/client/src/promise/service.ts",
-      "sha256": "56cca28e5bcaef7fb20e89badee1e9d846ef381e566ee3671d198b98f76c5f59",
+      "sha256": "c1c3bab85f01074413c5bcd216cb1e1752d287c00147671474a6cf584583d41a",
       "behavior": "The Promise-client ensure loop, the statement-level template ServiceElection follows (ADR-0025; the Effect Service.ensure is the behaviour source and states the same election): a wall-clock deadline loop that reuses a ready compatible service, reports a failed one without spawning, fails at once on a protocol-incompatible service (an authenticated 404 on /api/info) whose version still matches instead of replacing it, replaces only a service whose version requirement is unmet, and after three consecutive info-probe timeouts on the same registration announces missing, clears the handoff sidecar, terminates the unresponsive daemon, and spawns a replacement while keeping one contender plus one lock probe alive. The first contender failure is retained: no contender is recruited while it is held, and the deadline throws it before the timeout. After the recovery terminate and after a replacement stop, contenders whose pid is the stopped service\u0027s or that have finished are released and the retained failure is dropped. stop prepares or clears the handoff best-effort, so a failure there is logged and the terminate still runs.",
       "anchor": {
         "type": "contains",
@@ -390,8 +390,8 @@
     },
     {
       "path": "packages/client/src/effect/service.ts",
-      "sha256": "7a4ef2173d0ab086dc45352af5474246e0778bb76be4a2d5e429d9248c599dcb",
-      "behavior": "discover reads the registration file and probes /api/info with its Basic credential under the request timeout. The probe compares pid and the recorded version; an authenticated 404 marks the registered service protocol-incompatible without decoding a body. Discovery returns only a ready, compatible service whose version matches when requested. ensure repeats that probe every pollInterval until a compatible ready service answers, keeping one contender plus one lock probe alive while the registration is unresolved; a protocol-incompatible service whose version matches fails ensure, and only an unmet version requirement replaces the registered service. The first contender failure is retained, stops recruitment, and is what the deadline fails with; the recovery terminate and the replacement stop release the contenders that are the stopped pid or have finished and drop the retained failure. ensure gives up after promiseTimeout of wall-clock time rather than after a fixed attempt count. stop reads the registration, prepares a persistent-terminal handoff only when asked for one and clears the sidecar otherwise, logging any failure of either without skipping the terminate; terminate compares id, version, url, and pid with the registration before SIGTERM, polls stopPollAttempts spaced stopPollInterval, sends SIGKILL to the same pid when the process is still there whatever the registration says by then, polls again, and removes the registration only when it is still the same record; a process still running after SIGKILL fails the stop and leaves the record in place.",
+      "sha256": "054c2521adf6c920e2a68a16cfc1491c5e6cee2a6382b0972facdb70ec2f5ce2",
+      "behavior": "discover reads the registration file and probes /api/info through the shared probeResult under the request timeout, and returns only a ready, compatible service whose version matches when requested. ensure repeats that probe every pollInterval and acts on decide until a compatible ready service answers, keeping one contender plus one lock probe alive while the registration is unresolved; a protocol-incompatible service whose version matches fails ensure, and only an unmet version requirement replaces the registered service. The contender rules are contenderPool\u0027s: the first contender failure is retained, stops recruitment, and is what the deadline fails with; the recovery terminate and the replacement stop release the contenders that are the stopped pid or have finished and drop the retained failure. ensure gives up after promiseTimeout of wall-clock time rather than after a fixed attempt count. stop reads the registration, prepares a persistent-terminal handoff only when asked for one and clears the sidecar otherwise, logging any failure of either without skipping the terminate; terminate compares id, version, url, and pid with the registration before SIGTERM, polls stopPollAttempts spaced stopPollInterval, sends SIGKILL to the same pid when the process is still there whatever the registration says by then, polls again, and removes the registration only when it is still the same record; a process still running after SIGKILL fails the stop and leaves the record in place.",
       "anchor": {
         "type": "contains",
         "text": "export const discover = Effect.fn(\u0022service.discover\u0022)"
@@ -417,8 +417,8 @@
     },
     {
       "path": "packages/cli/src/services/service-config.ts",
-      "sha256": "29009f55d8990aaba6c12e06d20720415482d052588a54fc35b5250799c39c84",
-      "behavior": "The release channels latest, dev, beta, and next share service.json; every other channel is sanitized into service-\u003Cchannel\u003E.json; a legacy SHA-1 filename exists for every channel except latest and local; versionBelongsToChannel admits the exact installed version or the 0.0.0-\u003Cchannel\u003E-N[.M] spelling; migration copies a donor exclusively with mode 0600 and ignores write failures. Info declares an optional boolean disabled key beside hostname, port, password, cors, and env, and read turns any decode failure into an empty config, so an invalid document is absent config.",
+      "sha256": "21bc1a6d1f62f944a20032e95d03d8899ede0fbbffa9e68df529adfa8c6818c2",
+      "behavior": "The release channels latest, dev, beta, and next share service.json; every other channel is sanitized into service-\u003Cchannel\u003E.json; a legacy SHA-1 filename exists for every channel except latest and local; versionBelongsToChannel admits the exact installed version or the 0.0.0-\u003Cchannel\u003E-N[.M] spelling; migration copies a donor exclusively with mode 0600, ignores write failures, and admits only the current shape. Info declares optional disabled (a boolean) and remote (an object holding a string route) beside hostname, port, password, cors, and env. read turns a document that fails both the current shape and the legacy shape (remote as a boolean) into an empty config, so an invalid document is absent config; a legacy document is rewritten in place, true getting a generated route and false dropping the key.",
       "anchor": {
         "type": "contains",
         "text": "export function filename(channel = OPENCODE_CHANNEL)"
@@ -489,7 +489,7 @@
     },
     {
       "path": "packages/client/test/service.test.ts",
-      "sha256": "59db12b26e5ce34c3f0d71a667e18924fa83ce98d55d3ae71e58987c033578ad",
+      "sha256": "98b171926f67814e3a0b44ac9da8c4099e8f506f916424b2606f98595cbdb2a7",
       "behavior": "Upstream\u0027s own discovery expectations: a compatible registered service is reused, a waiting one is awaited, a failed one is reported without spawning, and a version-mismatched one is replaced; stop escalates by pid when the registration disappears and preserves a successor\u0027s registration; a contender failure is retained without recruiting replacements, survives until the deadline, and is dropped after an eviction. ServiceEnsurerTests, ServiceStopperTests, ServiceDiscoveryTests, and the Ensure live tests re-prove them.",
       "anchor": {
         "type": "contains",
@@ -498,7 +498,7 @@
     },
     {
       "path": "packages/cli/test/service.test.ts",
-      "sha256": "74da9e602986b0688997cc01267e73963c31c1e9d7abf9a35c0fa32a7a78d28a",
+      "sha256": "f253380d584652e55baa11870e1967fa9e22185e6dc134187573cca57fecc1dd",
       "behavior": "Upstream\u0027s own filename and channel expectations: the release channels share service.json, custom channels are sanitized, and version-to-channel membership follows the pre-release spelling; ServicePathResolverTests and ServiceMigrationTests re-prove them. A managed-service contender that finds its port occupied binds once the port is released.",
       "anchor": {
         "type": "contains",
@@ -516,7 +516,7 @@
     },
     {
       "path": "packages/cli/script/service-smoke.ts",
-      "sha256": "b080509094c61bb435ad67440dcc089b3daa58595a6f84e6775de89a7591a6a3",
+      "sha256": "e5c10572b15b2c4bbeaea1c917ea9f68ee433b6b601d3c676dcff041c92c329d",
       "behavior": "Upstream\u0027s end-to-end service smoke asserts that the daemon it built writes a registration carrying the service identity (id, version, pid); it is a check on the daemon\u0027s output, not a client rule, and the SDK\u0027s reader still admits a registration without an id, as the client\u0027s own Info schema does.",
       "anchor": {
         "type": "contains",
@@ -552,7 +552,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "feb4dee71fd65f1fcec7627c38de7fefc850c49e33938937bb27cf55bd432a22",
+      "sha256": "a86ef16c52fa4b85fa196904fb17ad74e94a78cc364031336719b19650455b6c",
       "behavior": "The workspace catalog pins the Effect release the protocol document is generated with, whose JSON Schema encoding of StructWithRest (a struct\u0027s properties beside a single-element allOf carrying only the rest\u0027s additionalProperties) the projector admits as an open object, and whose union decode (SchemaAST Union.getParser: literal sentinels, then the first member in declaration order that decodes) the structural union first-match arm mirrors, as tools/oracles/first-match-union.ts proves; an Effect bump is reviewed against both, and the oracle re-run, before the snapshot moves.",
       "anchor": {
         "type": "contains",
@@ -561,8 +561,8 @@
     },
     {
       "path": "packages/client/src/service-contender.ts",
-      "sha256": "9e290534bbf9535535a9d88832b9b28e3af35f6bee80712974b8ec8acad27bf5",
-      "behavior": "A contender is spawned detached and hidden (windowsHide) with stdin and stdout ignored, stderr piped, and the parent environment overlaid; stderr is retained as an 8 KiB tail, error and close are observed, the child is unref\u0027d, and release drops the listener without signalling. The Ensure door\u0027s spawn seam ports that contract, windowsHide included.",
+      "sha256": "32ee93cca6bdccfde5704700dc8db8754ab7adc1e714e29b06e014a9450bda63",
+      "behavior": "A contender is spawned detached and hidden (windowsHide) with stdin and stdout ignored, stderr piped, and the parent environment overlaid; stderr is retained as an 8 KiB tail, error and close are observed, the child is unref\u0027d, and release drops the listener without signalling. The Ensure door\u0027s spawn seam ports that contract, windowsHide included. contenderPool keeps at most two attempts alive and recruits none while a failure is held; it keeps the first startup failure and reports it once no attempt is alive; a clean exit doubles the spawn delay up to its maximum and an answering service resets it; eviction releases the stopped pid\u0027s and finished attempts, drops the failure, and restarts the spawn clock; an unanswered registration waits one spawn delay before an attempt competes.",
       "anchor": {
         "type": "contains",
         "text": "detached: true,"
@@ -588,7 +588,7 @@
     },
     {
       "path": "packages/cli/src/index.ts",
-      "sha256": "631610e6862fdd27c13192551845333187aa694c061683314f90ff26045ed8e3",
+      "sha256": "55ded209218135a5d554790f8db26bb9339b9f7b882a8f0fae29fb818993a998",
       "behavior": "The CLI\u0027s entry runs every command through NodeRuntime.runMain with its error reporting off, writes a fatal cause to stderr itself, and exits with process.exitCode (0 when unset): the stderr tail and exit status a contender\u0027s failure report carries, and the exit 0 the Ensure election reads as a loser that stood down.",
       "anchor": {
         "type": "contains",
@@ -624,8 +624,8 @@
     },
     {
       "path": "packages/server/src/handlers/fs.ts",
-      "sha256": "091a3fdbc7f6ecdd5376516704570948da7bd981793d06137089a43f6a5a8adb",
-      "behavior": "The fs.read handler takes the wildcard tail from the request URL path, percent-decodes it, reads the file relative to the location and answers its raw bytes under the file MIME type, which the route tail and the binary envelope (Content, ContentType) rely on.",
+      "sha256": "1763dad7774b3002e5218e16f9208c8171972a5a064910e3abe42bb3a3f217ad",
+      "behavior": "The fs.read handler takes the wildcard tail from the request URL path and percent-decodes it (an undecodable tail answers FileNotFoundError), reads the file relative to the location, and, for a request without conditional or Range headers, answers 200 with its raw bytes under the file MIME type, which the route tail and the binary envelope (Content, ContentType) rely on. Its 304, 206 and 416 answers respond only to If-None-Match, If-Modified-Since and Range request headers, which the SDK never sends and the document does not declare.",
       "anchor": {
         "type": "contains",
         "text": "pathname.slice(13)"
@@ -633,11 +633,11 @@
     },
     {
       "path": "packages/protocol/src/api.ts",
-      "sha256": "0ddc48c45b1e8fb188b1cfcfb3e115f85ec6bbf35d3831ad37c5f2b00fe76a76",
-      "behavior": "The API assembly decides which groups carry the location middleware. The PTY group does, so pty.connect resolves its location before the WebSocket upgrade and a missing directory answers 404 there, which PtyUpgradeFailurePolicy reports alongside a missing session; the persistent-PTY group carries none.",
+      "sha256": "7a6abbdc7dc3e67a9857cc398d6e5de99664ca82e77e3f1b4d69b6fe8050b7b5",
+      "behavior": "The API assembly decides which groups carry the location middleware. It passes the middleware into makePtyGroup, which applies it to every PTY endpoint except pty.connect, so pty.connect resolves its location in its own handler; the persistent-PTY group carries none.",
       "anchor": {
         "type": "contains",
-        "text": ".add(PtyGroup.middleware(locationMiddleware))"
+        "text": ".add(makePtyGroup(locationMiddleware))"
       }
     },
     {
@@ -647,6 +647,33 @@
       "anchor": {
         "type": "contains",
         "text": "incompatible health protocol"
+      }
+    },
+    {
+      "path": "packages/client/src/service-probe.ts",
+      "sha256": "f06a0caf95b4a25b56dbf7ee354aecf36c8e93fe299f54080d3d6e3edf641b5b",
+      "behavior": "decide replaces the service on an unmet version requirement (handing off terminals only when it is ready, clearing them otherwise), else fails an incompatible protocol with the health-protocol error, reuses a ready service, fails a failed one, and waits otherwise. probeResult reads a failed exchange as timedOut: signal.aborted, an authenticated 404 as protocol-incompatible and ready without decoding a body, a pid or version mismatch as no service, and 200, 500 and anything else as ready, failed and waiting; same compares id, version, url, and pid. The Ensure election, the discovery probe, and the registration identity port these rules.",
+      "anchor": {
+        "type": "contains",
+        "text": "export function decide(service: LocalService, options: DiscoverOptions)"
+      }
+    },
+    {
+      "path": "packages/client/test/service-contender-pool.test.ts",
+      "sha256": "f0c7e1db16cbb3b95f86f4c9bfa6faf51a165c319cfaf6fb737b62a75c8e650e",
+      "behavior": "Upstream\u0027s own checks of contenderPool: the first failure is reported once no attempt is alive, eviction forgets it and restarts the spawn clock, an unanswered registration gets one spawn delay, at most two attempts are alive, clean exits back off up to the maximum, and an answering service resets the back-off. The Ensure election\u0027s tests mirror them.",
+      "anchor": {
+        "type": "contains",
+        "text": "an unanswered registration gets one spawn delay before an attempt competes"
+      }
+    },
+    {
+      "path": "packages/client/test/service-decision.test.ts",
+      "sha256": "db36f92835c8fd9651e4446da6b637a6d4a64175a38ec56fd9255acbddbdbc6c",
+      "behavior": "Upstream\u0027s own checks of decide: a missing health endpoint fails unless the caller requires a different version, a compatible service is reused, awaited or failed by its state, and a version mismatch replaces the service, handing off terminals only when it is ready. The Ensure election\u0027s tests mirror them.",
+      "anchor": {
+        "type": "contains",
+        "text": "a version mismatch replaces the service, handing off terminals only when it is ready"
       }
     }
   ]

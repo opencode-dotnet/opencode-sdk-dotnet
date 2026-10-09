@@ -11,6 +11,7 @@ internal sealed class CredentialValueJsonConverter : JsonConverter<ICredentialVa
 {
     private static readonly FrozenDictionary<string, Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
     {
+        ["external"] = typeof(CredentialExternal),
         ["key"] = typeof(CredentialKey),
         ["oauth"] = typeof(CredentialOAuth)
     }.ToFrozenDictionary(StringComparer.Ordinal);

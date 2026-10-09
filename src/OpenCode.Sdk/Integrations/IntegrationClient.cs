@@ -131,6 +131,24 @@ public class IntegrationClient
     }
 
     /// <summary>
+    /// Connect with external credentials. Run an external authentication method and store a reference to its credential source.
+    /// </summary>
+    /// <param name = "request">The request body.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;IntegrationConnectExternalResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>integration.connect.external</c>: <c>POST /api/integration/{integrationID}/connect/external</c>.
+    /// </remarks>
+    public virtual Task<IntegrationConnectExternalResponse> ConnectWithExternalCredentialsAsync(IntegrationConnectExternalRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Integrations.ConnectWithExternalCredentials(IntegrationId, request), request, OpenCodeJsonContext.Default.IntegrationConnectExternalRequest, IntegrationConnectExternalResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
     /// Connect with key. Run a key authentication method and store the resulting credential.
     /// </summary>
     /// <param name = "request">The request body.</param>

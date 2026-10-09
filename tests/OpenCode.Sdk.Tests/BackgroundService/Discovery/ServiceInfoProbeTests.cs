@@ -168,7 +168,7 @@ public sealed class ServiceInfoProbeTests
 
         var result = await Probe().ProbeAsync(Registration(server.Endpoint), CancellationToken.None);
 
-        // The pinned client's own answer (packages/client/src/effect/service.ts:228-240): an
+        // The pinned client's own answer (probeResult in packages/client/src/service-probe.ts): an
         // authenticated 404 is the registered daemon, present and ready, speaking another protocol.
         server.ReleaseResponses();
         await Assert.That(result.IsService).IsTrue();
