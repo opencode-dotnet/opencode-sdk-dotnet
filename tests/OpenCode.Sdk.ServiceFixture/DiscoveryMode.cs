@@ -30,7 +30,8 @@ internal static class DiscoveryMode
             // so the verdict goes to stderr beside the elapsed time, never into the stdout contract:
             // a test reads the verdict, the time and the timeline are only diagnostics.
             var timing = requestTimeout is { } bound ? ServiceTiming.Default with { RequestTimeout = bound } : ServiceTiming.Default;
-            var probe = new RecordingProbe(new ServiceInfoProbe(timing), timeline);
+            var transport = new LoopbackTransport(new TimelineConnector(new LoopbackSocketConnector(), timeline));
+            var probe = new RecordingProbe(new ServiceInfoProbe(timing, transport), timeline);
             var stopwatch = Stopwatch.StartNew();
             var server = await OpenCodeServer.DiscoverWithSeamsAsync(options, probe, CancellationToken.None).ConfigureAwait(false);
             await Console.Error
@@ -59,6 +60,20 @@ internal static class DiscoveryMode
             await Console.Error.WriteLineAsync(exception.GetType().Name + ": " + exception.Message).ConfigureAwait(false);
             await Console.Error.WriteLineAsync(timeline.Render()).ConfigureAwait(false);
             return 1;
+        }
+    }
+
+    /// <summary>
+    /// The platform connect, marking on the timeline each socket the probe's transport connects
+    /// itself and whether the loopback option took on it, before the connect starts.
+    /// </summary>
+    private sealed class TimelineConnector(ILoopbackSocketConnector inner, ProbeTimeline timeline) : ILoopbackSocketConnector
+    {
+        public ValueTask ConnectAsync(LoopbackConnectAttempt attempt, CancellationToken cancellationToken)
+        {
+            ArgumentNullException.ThrowIfNull(attempt);
+            timeline.Mark(ProbeTimeline.LoopbackConnectLine(attempt.SynRetransmissionDisabled));
+            return inner.ConnectAsync(attempt, cancellationToken);
         }
     }
 

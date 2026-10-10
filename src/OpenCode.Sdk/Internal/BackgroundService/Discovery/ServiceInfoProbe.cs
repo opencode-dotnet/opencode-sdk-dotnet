@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Sockets;
 using System.Text;
 using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
 using OpenCode.Sdk.Internal.BackgroundService.Ensure;
@@ -9,11 +10,11 @@ namespace OpenCode.Sdk.Internal.BackgroundService.Discovery;
 
 /// <summary>
 /// Performs the pinned client's authenticated info exchange over the probe's own loopback-aware
-/// transport (<see cref="LoopbackTransport"/>). The probe decodes only pid/version; the public
+/// transport (<see cref="LoopbackTransport"/> on the platform). The probe decodes only pid/version; the public
 /// generated info model has a different contract. Discovery keeps its own request bound and never
 /// forwards credentials on redirects.
 /// </summary>
-internal sealed class ServiceInfoProbe(ServiceTiming timing) : IServiceInfoProbe
+internal sealed class ServiceInfoProbe(ServiceTiming timing, IServiceProbeTransport transport) : IServiceInfoProbe
 {
     /// <summary>The pin's info route, resolved against the authority only, as <c>new URL("/api/info", info.url)</c> does.</summary>
     private const string InfoPath = "/api/info";
@@ -26,7 +27,7 @@ internal sealed class ServiceInfoProbe(ServiceTiming timing) : IServiceInfoProbe
         ArgumentNullException.ThrowIfNull(registration);
         cancellationToken.ThrowIfCancellationRequested();
 
-        using var client = LoopbackTransport.CreateProbeClient(registration.Endpoint);
+        using var client = CreateClient(registration.Endpoint);
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri(registration.Endpoint, InfoPath));
         if (registration.Password is { } password)
         {
@@ -50,8 +51,11 @@ internal sealed class ServiceInfoProbe(ServiceTiming timing) : IServiceInfoProbe
             // first over the transport's raw pre-connect (LoopbackTransport), inside the same bound.
             if (registration.Endpoint.IsLoopback
                 && OperatingSystem.IsWindows()
-                && !await LoopbackTransport.IsListeningAsync(registration.Endpoint, bound.Token).ConfigureAwait(false))
+                && !await transport.IsListeningAsync(registration.Endpoint, bound.Token).ConfigureAwait(false))
             {
+                // The pre-connect's answer is classified as a failed exchange is: the caller's
+                // cancellation first.
+                cancellationToken.ThrowIfCancellationRequested();
                 return NoService;
             }
 #endif
@@ -67,10 +71,27 @@ internal sealed class ServiceInfoProbe(ServiceTiming timing) : IServiceInfoProbe
         }
         catch (Exception failure) when (IsTransportFailure(failure))
         {
-            return ClassifyFailure(cancellationToken, bound.Token);
+            return ClassifyFailure(failure, cancellationToken, bound.Token);
         }
 
         return ServiceProbeResponseClassifier.Classify(registration, status, body);
+    }
+
+    /// <summary>Builds the probe's owned client over the transport's handler; the pipeline's timeouts never apply, the probe's bound does.</summary>
+    private HttpClient CreateClient(Uri endpoint)
+    {
+        HttpMessageHandler? handler = null;
+        try
+        {
+            handler = transport.CreateHandler(endpoint);
+            var client = new HttpClient(handler, disposeHandler: true) { Timeout = Timeout.InfiniteTimeSpan };
+            handler = null;
+            return client;
+        }
+        finally
+        {
+            handler?.Dispose();
+        }
     }
 
     /// <summary>The ways an exchange fails rather than answers: the bound's or the caller's cancellation, a refused or dropped connection, a body read cut short.</summary>
@@ -80,17 +101,35 @@ internal sealed class ServiceInfoProbe(ServiceTiming timing) : IServiceInfoProbe
         exception is OperationCanceledException or HttpRequestException or IOException or ObjectDisposedException;
 
     /// <summary>
-    /// The pinned client's <c>probeResult</c> reads every rejected exchange the same way:
-    /// <c>timedOut: signal.aborted</c>. Whether the bound expired decides, never the failure's type:
-    /// .NET Framework's handler can report the bound's abort as an <see cref="HttpRequestException"/>,
-    /// which must still count toward the three-timeout recovery. The caller's cancellation propagates.
+    /// The pinned client's <c>probeResult</c> reads every rejected exchange as
+    /// <c>timedOut: signal.aborted</c>, and its runtime settles a refused loopback connect within
+    /// microseconds, before its abort timer fires, so a refusal reads as no service. Here the bound's timer runs on
+    /// another thread and can expire after the runtime saw the refusal but before the failure
+    /// reaches this method; the runtime then keeps the refusal as an inner exception, even under
+    /// the <see cref="OperationCanceledException"/> it rethrows. So a refused connection anywhere in
+    /// the failure's chain is no service, whatever the bound says. Only a refusal counts: a failed
+    /// name lookup or an unreachable network is no evidence that nothing listens. Otherwise the
+    /// bound decides, whatever the failure's type, because .NET Framework's handler can report the
+    /// bound's abort as an <see cref="HttpRequestException"/>, which must still count toward the
+    /// three-timeout recovery. The caller's cancellation propagates before either.
     /// </summary>
+    /// <param name="failure">The exchange's failure.</param>
     /// <param name="caller">The caller's token.</param>
     /// <param name="bound">The probe's internal request bound.</param>
-    /// <returns>A timeout when the bound expired; otherwise no service.</returns>
-    internal static ServiceProbeResult ClassifyFailure(CancellationToken caller, CancellationToken bound)
+    /// <returns>No service for a refusal; otherwise a timeout when the bound expired, and no service when it did not.</returns>
+    internal static ServiceProbeResult ClassifyFailure(Exception failure, CancellationToken caller, CancellationToken bound)
     {
+        ArgumentNullException.ThrowIfNull(failure);
         caller.ThrowIfCancellationRequested();
+
+        for (var cause = failure; cause is not null; cause = cause.InnerException)
+        {
+            if (cause is SocketException { SocketErrorCode: SocketError.ConnectionRefused })
+            {
+                return NoService;
+            }
+        }
+
         return bound.IsCancellationRequested ? Expired : NoService;
     }
 }

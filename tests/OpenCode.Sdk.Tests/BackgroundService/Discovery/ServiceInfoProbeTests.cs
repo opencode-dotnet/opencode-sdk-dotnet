@@ -1,6 +1,10 @@
 using System.Globalization;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
+#if NET
+using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
+#endif
 using OpenCode.Sdk.Internal.BackgroundService.Discovery;
 using OpenCode.Sdk.Internal.BackgroundService.Ensure;
 using OpenCode.Sdk.Internal.BackgroundService.Registration;
@@ -190,29 +194,18 @@ public sealed class ServiceInfoProbeTests
     }
 
     /// <summary>
-    /// A closed loopback port is "no service", never a timeout, on every host: the pinned client
-    /// counts only an aborted fetch as timed out, and Ensure terminates a registered pid after
-    /// three of those. The verdict is read under the patient bound, so only a probe that waits its
-    /// bound out on a refusal reports a timeout; a process starved of CPU cannot turn the refusal
-    /// into one. Windows reports a refused loopback connect only after its SYN retransmissions,
-    /// about two seconds, so the probe's transport disables them the way libuv, Go, and Bun do; on
-    /// the modern runtime that shows in the socket's own events, as a refusal well inside
-    /// <see cref="ServiceTimingData.RefusalWithoutRetransmission"/> from the connect's start, which
-    /// leaves out every wait for a thread before the connect began. The downlevel transport's
-    /// pre-connect carries the same proof in <see cref="LoopbackTransportTests"/>. Linux and macOS
-    /// refuse at once with no option at all, so there the interval guards nothing and stays
-    /// unchecked. Keyless NotInParallel: the socket events are this process's, and running alone
-    /// keeps every other test's connects out of them.
+    /// A closed loopback port is "no service", never a timeout: the pinned client counts only an
+    /// aborted fetch as timed out, and Ensure terminates a registered pid after three of those. The
+    /// verdict is read under the patient bound, so only a probe that waits its bound out on a
+    /// refusal reports a timeout. On the modern runtime the socket's own events witness that the
+    /// probe's one connect was refused, on every platform. Keyless NotInParallel: the socket events
+    /// are this process's, and running alone keeps every other test's connects out of them.
     /// </summary>
     [Test]
     [NotInParallel]
     public async Task ProbeAsync_Should_Report_No_Service_When_Nothing_Listens()
     {
-        Uri endpoint;
-        await using (var server = LoopbackHttpServer.Start(static _ => Json(HttpStatusCode.OK, ServiceInfoBodyData.Ready)))
-        {
-            endpoint = server.Endpoint;
-        }
+        var endpoint = await ClosedEndpointAsync();
 
 #if NET
         using var connects = new SocketConnectRecorder();
@@ -222,13 +215,8 @@ public sealed class ServiceInfoProbeTests
         await Assert.That(result.IsService).IsFalse();
         await Assert.That(result.TimedOut).IsFalse();
 #if NET
-        if (OperatingSystem.IsWindows())
-        {
-            var refusal = connects.RefusalTime;
-            await Assert.That(connects.ConnectStarts).IsEqualTo(1);
-            await Assert.That(refusal).IsNotNull();
-            await Assert.That(refusal!.Value).IsLessThan(ServiceTimingData.RefusalWithoutRetransmission);
-        }
+        await Assert.That(connects.ConnectStarts).IsEqualTo(1);
+        await Assert.That(connects.Refused).IsTrue();
 #endif
     }
 
@@ -237,7 +225,7 @@ public sealed class ServiceInfoProbeTests
     {
         await using var server = LoopbackHttpServer.Start(static _ => Json(HttpStatusCode.OK, ServiceInfoBodyData.Ready) with { KeepOpen = true });
 
-        var result = await new ServiceInfoProbe(FastTiming).ProbeAsync(Registration(server.Endpoint), CancellationToken.None);
+        var result = await new ServiceInfoProbe(FastTiming, PlatformTransport()).ProbeAsync(Registration(server.Endpoint), CancellationToken.None);
 
         await Assert.That(result.TimedOut).IsTrue();
         await Assert.That(result.IsService).IsFalse();
@@ -277,8 +265,8 @@ public sealed class ServiceInfoProbeTests
     }
 
     /// <summary>
-    /// The pinned client reads any rejected exchange as timed out exactly when its signal aborted
-    /// (<c>timedOut: signal.aborted</c>), whatever the rejection was: .NET Framework's handler can
+    /// A failure that carries no refusal is timed out exactly when the bound expired, whatever its
+    /// type (the pinned client's <c>timedOut: signal.aborted</c>): .NET Framework's handler can
     /// surface the bound's abort as an <see cref="HttpRequestException"/>, which must still count.
     /// </summary>
     [Test]
@@ -288,23 +276,126 @@ public sealed class ServiceInfoProbeTests
     {
         var bound = new CancellationToken(canceled: boundExpired);
 
-        var result = ServiceInfoProbe.ClassifyFailure(CancellationToken.None, bound);
+        var result = ServiceInfoProbe.ClassifyFailure(new HttpRequestException(), CancellationToken.None, bound);
 
         await Assert.That(result.TimedOut).IsEqualTo(boundExpired);
         await Assert.That(result.IsService).IsFalse();
     }
 
+    /// <summary>
+    /// A refused connection is the daemon's absence, whatever the bound says: the runtime keeps the
+    /// refusal as an inner exception when it rethrows the failure as a cancellation because the
+    /// bound expired meanwhile, so the refusal is found at any depth of the chain. Every case is
+    /// classified with the bound already expired.
+    /// </summary>
+    [Test]
+    [MethodDataSource(nameof(RefusalChains))]
+    public async Task ClassifyFailure_Should_Report_No_Service_For_A_Refusal_Whatever_The_Bound(Exception failure)
+    {
+        var expired = new CancellationToken(canceled: true);
+
+        var result = ServiceInfoProbe.ClassifyFailure(failure, CancellationToken.None, expired);
+
+        await Assert.That(result.TimedOut).IsFalse();
+        await Assert.That(result.IsService).IsFalse();
+    }
+
+    /// <summary>
+    /// Only a refusal is evidence that nothing listens: a failed name lookup or an unreachable
+    /// network leaves the decision to the bound, even where a refusal would sit in the chain.
+    /// </summary>
+    [Test]
+    [Arguments(SocketError.HostNotFound, true)]
+    [Arguments(SocketError.NetworkUnreachable, true)]
+    [Arguments(SocketError.HostNotFound, false)]
+    [Arguments(SocketError.NetworkUnreachable, false)]
+    public async Task ClassifyFailure_Should_Let_The_Bound_Decide_A_Socket_Failure_That_Is_Not_A_Refusal(SocketError error, bool boundExpired)
+    {
+        var bound = new CancellationToken(canceled: boundExpired);
+
+        var result = ServiceInfoProbe.ClassifyFailure(BoundAbort(ConnectFailure(error)), CancellationToken.None, bound);
+
+        await Assert.That(result.TimedOut).IsEqualTo(boundExpired);
+        await Assert.That(result.IsService).IsFalse();
+    }
+
+#if NET
+    /// <summary>
+    /// The modern handler tags a failed name lookup and an unreachable network as a connection
+    /// error, the tag it gives a refusal too; the tag is no evidence that nothing listens, so the
+    /// bound still decides.
+    /// </summary>
+    [Test]
+    [Arguments(SocketError.HostNotFound, true)]
+    [Arguments(SocketError.NetworkUnreachable, true)]
+    [Arguments(SocketError.HostNotFound, false)]
+    [Arguments(SocketError.NetworkUnreachable, false)]
+    public async Task ClassifyFailure_Should_Let_The_Bound_Decide_A_Connection_Error_That_Is_Not_A_Refusal(SocketError error, bool boundExpired)
+    {
+        var bound = new CancellationToken(canceled: boundExpired);
+        var connectionError = new HttpRequestException(HttpRequestError.ConnectionError, "connect failed", ConnectFailure(error));
+        Exception failure = boundExpired ? BoundAbort(connectionError) : connectionError;
+
+        var result = ServiceInfoProbe.ClassifyFailure(failure, CancellationToken.None, bound);
+
+        await Assert.That(result.TimedOut).IsEqualTo(boundExpired);
+        await Assert.That(result.IsService).IsFalse();
+    }
+#endif
+
+    /// <summary>The caller's cancellation propagates before any classification, a refusal's included.</summary>
     [Test]
     public async Task ClassifyFailure_Should_Rethrow_Caller_Cancellation_Whatever_The_Bound()
     {
         var cancelled = new CancellationToken(canceled: true);
 
         var exception = await Assert
-            .That(() => ServiceInfoProbe.ClassifyFailure(cancelled, cancelled))
+            .That(() => ServiceInfoProbe.ClassifyFailure(BoundAbort(ConnectFailure(SocketError.ConnectionRefused)), cancelled, cancelled))
             .Throws<OperationCanceledException>();
 
         await Assert.That(exception!.CancellationToken).IsEqualTo(cancelled);
     }
+
+#if NET
+    /// <summary>
+    /// The window refusal-first closes, built from events rather than from a race: the probe's
+    /// transport holds the exchange until the probe's own bound has expired, and only then connects
+    /// to the closed port and meets its refusal. <see cref="HttpClient"/> therefore hands the probe
+    /// the real refusal inside a cancellation of the expired bound, and the probe reads it as no
+    /// service, on every platform.
+    /// </summary>
+    [Test]
+    public async Task ProbeAsync_Should_Report_No_Service_For_A_Refusal_That_Reaches_It_After_The_Bound_Expired()
+    {
+        var endpoint = await ClosedEndpointAsync();
+        var transport = new BoundOutlastingTransport(PlatformTransport());
+
+        var result = await new ServiceInfoProbe(FastTiming, transport).ProbeAsync(Registration(endpoint), CancellationToken.None);
+
+        await Assert.That(transport.Handler).IsNotNull();
+        await Assert.That(transport.Handler!.Refused).IsTrue();
+        await Assert.That(result.TimedOut).IsFalse();
+        await Assert.That(result.IsService).IsFalse();
+    }
+#else
+    /// <summary>
+    /// The pre-connect's refusal is classified as a failed exchange is: a caller that cancels while
+    /// the refusal completes gets its own cancellation, not an answer.
+    /// </summary>
+    [Test]
+    public async Task ProbeAsync_Should_Rethrow_Caller_Cancellation_That_Arrives_With_A_Refused_Pre_Connect()
+    {
+        var endpoint = await ClosedEndpointAsync();
+        using var caller = new CancellationTokenSource();
+        var transport = new LoopbackTransport(new ScriptedLoopbackConnector(caller, ConnectFailure(SocketError.ConnectionRefused)));
+
+        var exception = await Assert
+            .That(async () => _ = await new ServiceInfoProbe(ServiceTimingData.Patient, transport).ProbeAsync(Registration(endpoint), caller.Token))
+            .Throws<OperationCanceledException>();
+
+        await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
+    }
+#endif
 
     [Test]
     public async Task IsTransportFailure_Should_Admit_The_Exchange_Failures_And_Nothing_Else()
@@ -331,10 +422,79 @@ public sealed class ServiceInfoProbeTests
     /// bound; the bound itself is proven once, with <see cref="FastTiming"/>, against a kept-open
     /// response.
     /// </summary>
-    private static ServiceInfoProbe Probe() => new(ServiceTimingData.Patient);
+    private static ServiceInfoProbe Probe() => new(ServiceTimingData.Patient, PlatformTransport());
+
+    private static LoopbackTransport PlatformTransport() => new(new LoopbackSocketConnector());
+
     private static ServiceRegistration Registration(Uri endpoint, string? version = ServiceInfoBodyData.Version, string? password = Password) =>
         new("srv_1", version, endpoint.ToString(), endpoint, ServiceInfoBodyData.Pid, password);
 
+    public static IEnumerable<Func<Exception>> RefusalChains() =>
+    [
+        static () => ConnectFailure(SocketError.ConnectionRefused),
+        static () => new HttpRequestException("connect failed", ConnectFailure(SocketError.ConnectionRefused)),
+        static () => BoundAbort(new HttpRequestException("connect failed", ConnectFailure(SocketError.ConnectionRefused))),
+        static () => new OperationCanceledException("cancelled", ConnectFailure(SocketError.ConnectionRefused)),
+    ];
+
+    private static SocketException ConnectFailure(SocketError error) => new((int)error);
+
+    /// <summary>The shape the runtime gives a failure it rethrows because the request's token was cancelled.</summary>
+    private static TaskCanceledException BoundAbort(Exception inner) => new("The operation was canceled.", inner);
+
+    /// <summary>A loopback port that was listening a moment ago and is closed now.</summary>
+    private static async Task<Uri> ClosedEndpointAsync()
+    {
+        await using var server = LoopbackHttpServer.Start(static _ => Json(HttpStatusCode.OK, ServiceInfoBodyData.Ready));
+        return server.Endpoint;
+    }
+
     private static LoopbackHttpResponse Json(HttpStatusCode status, string body) =>
         new() { StatusCode = status, ContentType = "application/json", Body = body };
+
+#if NET
+    /// <summary>The platform transport, with each exchange held by a <see cref="BoundOutlastingHandler"/>.</summary>
+    private sealed class BoundOutlastingTransport(LoopbackTransport platform) : IServiceProbeTransport
+    {
+        /// <summary>Gets the handler of the last exchange, or null before the first.</summary>
+        public BoundOutlastingHandler? Handler { get; private set; }
+
+        public HttpMessageHandler CreateHandler(Uri endpoint)
+        {
+            var handler = new BoundOutlastingHandler { InnerHandler = platform.CreateHandler(endpoint) };
+            Handler = handler;
+            return handler;
+        }
+    }
+
+    /// <summary>
+    /// Holds the request until its token, the probe's bound, is cancelled, then runs the exchange to
+    /// its end without that token, so a refusal reaches <see cref="HttpClient"/> only after the bound
+    /// expired.
+    /// </summary>
+    private sealed class BoundOutlastingHandler : DelegatingHandler
+    {
+        /// <summary>Gets whether the exchange ended in a refused connect.</summary>
+        public bool Refused { get; private set; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var expired = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            await using (cancellationToken.Register(static state => ((TaskCompletionSource)state!).TrySetResult(), expired))
+            {
+                await expired.Task;
+            }
+
+            try
+            {
+                return await base.SendAsync(request, CancellationToken.None);
+            }
+            catch (HttpRequestException failure) when (failure.InnerException is SocketException { SocketErrorCode: SocketError.ConnectionRefused })
+            {
+                Refused = true;
+                throw;
+            }
+        }
+    }
+#endif
 }

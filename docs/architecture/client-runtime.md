@@ -736,13 +736,21 @@ two loopback rules the pipeline's transport does not: a loopback endpoint is nev
 a proxy, so an environment proxy without `NO_PROXY` cannot hide a live daemon, and on Windows a
 loopback connect disables SYN retransmission (`SIO_TCP_INITIAL_RTO`, the option libuv, Go, and the
 pinned client's own runtime set for loopback), so a refused port is reported at once instead of
-after the retransmissions that would outlast the bound. A failed exchange counts as a timeout
-exactly when the bound expired, whatever the failure's type (the pinned client's
-`timedOut: signal.aborted`). A dead daemon therefore classifies as no service, never as a timeout,
-on every host; on `net472` and `netstandard2.0`, where the platform
-handler has no connect seam, the probe learns the refusal over a raw pre-connect with the same
-option before it sends the request. This private discovery decoder is independent
-of the generated public `ServerInfo` model, whose required `Urls` does not constrain discovery. Discovery returns null for a missing, unusable, or not-ready
+after the retransmissions that would outlast the bound. A failed exchange is classified refusal
+first. The caller's cancellation propagates before anything else. A refused connection anywhere in
+the failure's chain of inner exceptions is no service, whatever the bound says: the runtime keeps
+the refusal as the inner exception of the cancellation it rethrows when the bound expired
+meanwhile. Only a refusal counts, not a failed name lookup or an unreachable network. Any other
+failure counts as a timeout exactly when the bound expired, whatever its type (the pinned client's
+`timedOut: signal.aborted`). A dead daemon therefore classifies as no service on every host once its
+refusal reaches the runtime; only a probe whose bound expires before its connect is refused reports
+a timeout. On `net472` and `netstandard2.0`, where the platform handler has no connect seam, the
+probe learns the refusal over a raw pre-connect with the same option before it sends the request.
+That connect takes no token, because the downlevel connect that takes one reports a cancellation in
+place of a refusal that completes while the token is being cancelled. The bound closes its socket
+instead, so a refusal stands, after the caller's cancellation as any failure does, and a connect
+the bound cut short is the bound's timeout. This
+private discovery decoder is independent of the generated public `ServerInfo` model, whose required `Urls` does not constrain discovery. Discovery returns null for a missing, unusable, or not-ready
 registration and throws only for refused input (`ArgumentException`), caller cancellation, and an
 unresolvable user home (`OpenCodeServerException`).
 
@@ -829,5 +837,17 @@ reason (ADR-0031):
   for a hand-made file.
 - **No proxy for a loopback probe.** Reason: an environment proxy without `NO_PROXY` would
   otherwise hide a live daemon.
+- **A refusal is no service even when the probe's bound expires with it.** Upstream reads every
+  rejected exchange as `timedOut: signal.aborted`; its runtime settles a refused loopback connect
+  within microseconds, before its abort timer fires, so there too a refusal reads as no service.
+  The probe reads the refusal before the bound. Reason: the bound's timer runs on a thread of its
+  own, so under load it could expire after the runtime saw the refusal and before the probe read the
+  failure, a window only the SDK had, which counted a dead daemon toward the three-timeout recovery.
+  The one case that still differs: where upstream's abort timer runs before its settlement, upstream
+  reports a timeout and the SDK reports no service. Recorded risk: on Windows a full listen backlog
+  answers a connect with a reset, so a live but overloaded daemon reads as no service, and Ensure
+  starts a contender that loses the race to register and exits 0; upstream's runtime gives the same
+  answer there. Reversal: upstream states that a refusal its bound overtakes counts as a timeout by
+  design.
 
 Everything else follows the chain at the pin.

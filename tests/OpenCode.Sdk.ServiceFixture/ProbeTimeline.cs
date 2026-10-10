@@ -16,12 +16,11 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// succeeded against a port that was no longer closed.
 /// </summary>
 /// <remarks>
-/// The lines are diagnostics, with one exception: the stale-registration test reads the socket's
-/// refused-connect event as the witness of the refusal, and the stamps of that event and of the
-/// connect start before it as the refused connect's duration. Each event is stamped the moment the
-/// listener receives it, before its payload is rendered. Rendering runs synchronously on the
-/// connecting thread, so it can only lengthen that duration, never shorten it, and the connect
-/// start's rendering is its source and event name alone. No line contains the verdict text <c>probe timedOut=</c> the tests read.
+/// The lines are diagnostics, with two exceptions the stale-registration test reads: the socket's
+/// refused-connect event, the witness of the refusal, and the line the probe transport's own
+/// connect marks (<see cref="LoopbackConnectLine"/>), the witness that the socket it connected took
+/// the loopback option. Each event is stamped the moment the listener receives it, before its
+/// payload is rendered. No line contains the verdict text <c>probe timedOut=</c> the tests read.
 /// Every line starts with <c>timeline</c>.
 /// </remarks>
 internal sealed class ProbeTimeline : EventListener
@@ -33,7 +32,7 @@ internal sealed class ProbeTimeline : EventListener
     /// <c>RequestFailedDetailed</c>. That event's payload is the failure's full <c>ToString()</c>, which
     /// <c>HttpClient</c> renders inside its own failure path, after the refusal and before the
     /// exception reaches the probe. On a starved process the rendering took hundreds of milliseconds
-    /// to over a second, enough to carry a refusal that arrived inside the probe's bound past it.
+    /// to over a second, all of it spent inside the probe's exchange.
     /// Events without keywords, which are all the others this timeline reads, stay enabled.
     /// </summary>
     private const EventKeywords AllButRequestFailedDetailed = (EventKeywords)~1L;
@@ -53,6 +52,15 @@ internal sealed class ProbeTimeline : EventListener
     private readonly TimeSpan _startup = StartupTime();
 
     private readonly ConcurrentQueue<string> _lines = new();
+
+    /// <summary>What the line for a connect of the probe transport's own starts with, before <c>true</c> or <c>false</c>.</summary>
+    private const string LoopbackConnectPrefix = "loopback connect synRetransmissionDisabled=";
+
+    /// <summary>The line for a connect of the probe transport's own, naming whether the loopback option took on its socket.</summary>
+    /// <param name="synRetransmissionDisabled">Whether the transport provider accepted the option.</param>
+    /// <returns>The line's text.</returns>
+    public static string LoopbackConnectLine(bool synRetransmissionDisabled) =>
+        LoopbackConnectPrefix + (synRetransmissionDisabled ? "true" : "false");
 
     /// <summary>Records a named moment of the discovery mode itself.</summary>
     /// <param name="text">What happened.</param>
