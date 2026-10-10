@@ -3,10 +3,11 @@ namespace OpenCode.Sdk.Tests.Support;
 /// <summary>
 /// What one open descriptor holds, as the operating system names it. A pipe end is named on Linux
 /// by the pipe's inode, which both ends share, and on macOS by this end's address and its peer's.
-/// Anything else is named by what <c>/proc</c> or <c>lsof</c> reports for it, which is the same for
-/// two descriptors that share one open file.
+/// Anything else is named by what <c>/proc</c> or <c>libproc</c> reports for it: a path, a file's
+/// device and inode, or a socket's kernel address, which is the same for two descriptors that share
+/// one open file. A macOS descriptor of any other type is named by its type alone.
 /// </summary>
-/// <param name="Target">The name: <c>pipe:[inode]</c> or a path on Linux; a pipe end's address, or the type, device and name, on macOS.</param>
+/// <param name="Target">The name: <c>pipe:[inode]</c> or a path on Linux; a pipe end's address, a file's device, inode and path, a socket's address, or the type, on macOS.</param>
 /// <param name="Peer">The other end's address, for a pipe end on macOS; null otherwise.</param>
 /// <param name="IsPipe">Whether the descriptor holds a pipe end.</param>
 internal sealed record OpenDescriptor(string Target, string? Peer, bool IsPipe)
