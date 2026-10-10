@@ -34,8 +34,7 @@ internal static class OpenCodeCommandShim
             .Resolve(command[0])
             .Path;
         var entry = command[1];
-        var cliDirectory = fileSystem.Path.Combine(
-            pinned.RepositoryRoot, "external", "opencode", "packages", "cli");
+        var cliDirectory = pinned.WorkingDirectory;
 
         var path = fileSystem.Path.Combine(directory, FileName);
         using var stream = fileSystem.FileStream.New(path, FileMode.Create, FileAccess.Write, FileShare.None);

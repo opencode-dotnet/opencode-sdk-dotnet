@@ -53,15 +53,19 @@ internal sealed class PinnedServerCommand
     /// absolute entry path: a directory outside the checkout fails the source run before readiness
     /// with "Cannot find module 'react/jsx-dev-runtime'". So the server starts in the CLI package,
     /// as upstream's own dev script does. That directory is also where the server resolves a
-    /// request that names no location, and configuration discovery walks from a location to the
-    /// drive root: from the CLI package through <c>packages</c> and the upstream checkout, then
-    /// through this repository's <c>external</c> directory, the repository root, and every
-    /// directory above it. The upstream checkout's own project configuration is pinned; from
-    /// <c>external</c> upward it is the developer's, and its MCP servers and plugins would start
-    /// inside every owned server. A checkout with any of it there refuses to launch. Every owned
-    /// server is located through <see cref="Resolve"/>, this directory, or both - an installed
-    /// command an override names still starts here - so both are where a session that could not
-    /// scrub the provider credentials stops.
+    /// request that names no location, and project configuration discovery, when it is on, walks
+    /// from a location to the drive root: from the CLI package through <c>packages</c> and the
+    /// upstream checkout, then through this repository's <c>external</c> directory, the repository
+    /// root, and every directory above it. None of it is harmless: the upstream checkout's own
+    /// configuration carries skills, plugins, tools and a git reference the server clones from
+    /// GitHub, and from <c>external</c> upward it is the developer's. Every owned server is
+    /// launched with that discovery off (<see cref="ServerIsolation"/>). What still walks from here
+    /// is the server whose subject is project configuration, for a request without a location, and
+    /// an installed command an override names, which may not read the switch; for them a checkout
+    /// with configuration that would run inside the server in <c>external</c> or above it refuses
+    /// to launch. Every owned server is located through <see cref="Resolve"/>, this directory, or
+    /// both - an installed command an override names still starts here - so both are where a
+    /// session that could not scrub the provider credentials stops.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// Project configuration sits in the checkout's <c>external</c> directory or above it, or this
@@ -78,9 +82,10 @@ internal sealed class PinnedServerCommand
             {
                 throw new InvalidOperationException(
                     $"The pinned server starts in '{directory}', and '{configuration}' above it is project "
-                    + "configuration the server would load: its MCP servers, plugins and tools would start in "
-                    + "every owned server. Move it, or the checkout, so that nothing of the kind is in '"
-                    + external + "' or above it.");
+                    + "configuration a server with discovery on loads for a request without a location: its MCP "
+                    + "servers, plugins and tools would start in the server whose subject is project configuration, "
+                    + "and in an installed command that may not read the switch. Move it, or the checkout, so that "
+                    + "nothing of the kind is in '" + external + "' or above it.");
             }
 
             return directory;

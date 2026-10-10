@@ -15,8 +15,9 @@ namespace OpenCode.Sdk.TestSupport;
 /// names loopback in <c>NO_PROXY</c> when a proxy variable is present, so neither the test clients
 /// nor the bun server route <c>127.0.0.1</c> through it. It then applies
 /// <see cref="SessionIsolation"/>, so a child that only inherits takes opencode's own roots from
-/// the session. Names are reported, never values: a value can be a secret. Nothing is removed on CI, whose environment carries none of these. The mutation is
-/// process-wide, like <c>PathCommandShim</c>'s PATH, which is why it happens once, first.
+/// the session. Names are reported, never values: a value can be a secret. Nothing is removed on
+/// CI, whose environment carries none of these. The mutation is process-wide, like
+/// <c>PathCommandShim</c>'s PATH, which is why it happens once, first.
 /// </summary>
 public static class InheritedEnvironment
 {
@@ -36,8 +37,24 @@ public static class InheritedEnvironment
 
     private static readonly RealFileSystem FileSystem = new();
 
+    /// <summary>Whether this session has removed the provider credentials: not yet, yes, or not possible.</summary>
+    private static CredentialScrub _credentialScrub = CredentialScrub.NotRun;
+
     /// <summary>Why the last scrub could not name the provider credentials, or null when it could.</summary>
     private static string? _credentialsUnavailable;
+
+    /// <summary>Where the provider credential scrub stands in this process.</summary>
+    internal enum CredentialScrub
+    {
+        /// <summary>The scrub has not run, so every credential the host carries would reach a server.</summary>
+        NotRun,
+
+        /// <summary>The scrub named and removed every provider credential.</summary>
+        Scrubbed,
+
+        /// <summary>The scrub ran without the pinned checkout that names the credentials.</summary>
+        Unavailable,
+    }
 
     [Before(TestSession)]
     public static async Task ScrubTestSessionAsync(CancellationToken cancellationToken)
@@ -76,20 +93,37 @@ public static class InheritedEnvironment
         var plan = Plan(Snapshot(), SessionIsolation.AppliedNames, credentials.Names);
         Apply(plan);
         _credentialsUnavailable = credentials.Unavailable;
+        _credentialScrub = credentials.Unavailable is null ? CredentialScrub.Scrubbed : CredentialScrub.Unavailable;
         return plan;
     }
 
     /// <summary>
     /// Refuses to let a server start when the scrub could not name the provider credentials. Only
     /// a server reads them, so the session itself runs without the pinned checkout, and a server
-    /// start is where a missing name would leak.
+    /// start is where a missing name would leak. A server started before the scrub ran would
+    /// inherit every credential, so that refuses too.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The pinned checkout that names them is missing.</exception>
-    public static void RequireProviderCredentialsScrubbed()
+    /// <exception cref="InvalidOperationException">
+    /// The scrub has not run in this process, or the pinned checkout that names the credentials is missing.
+    /// </exception>
+    public static void RequireProviderCredentialsScrubbed() => RequireScrubbed(_credentialScrub, _credentialsUnavailable);
+
+    /// <summary>The rule <see cref="RequireProviderCredentialsScrubbed"/> applies, over a given state.</summary>
+    /// <param name="scrub">Whether the scrub has run, and whether it could name the credentials.</param>
+    /// <param name="unavailable">Why it could not, when it could not.</param>
+    /// <exception cref="InvalidOperationException">The state is anything but <see cref="CredentialScrub.Scrubbed"/>.</exception>
+    internal static void RequireScrubbed(CredentialScrub scrub, string? unavailable)
     {
-        if (_credentialsUnavailable is { } reason)
+        switch (scrub)
         {
-            throw new InvalidOperationException(reason);
+            case CredentialScrub.Scrubbed:
+                return;
+            case CredentialScrub.Unavailable:
+                throw new InvalidOperationException(unavailable);
+            default:
+                throw new InvalidOperationException(
+                    "No server may start before the test session has scrubbed the provider credentials it would "
+                    + "inherit; the scrub runs before the session's first test.");
         }
     }
 

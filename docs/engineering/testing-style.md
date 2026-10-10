@@ -153,21 +153,35 @@ did not put there. No test, and no developer running `dotnet test`, exports anyt
 true; the fixture hands the boundary to the child process it starts.
 
 - **One environment policy.** `tests/Shared/ServerIsolation.cs` is the only place an owned launch
-  takes its environment from: the XDG roots, the config root and database, an empty config seed, an
-  emptied explicit config file, no model-catalog fetch, and a home that exists inside the fixture's
-  own run root and gives an interactive shell nothing to ask (a terminal the server opens runs the
-  user's own shell there, and zsh meets a home without startup files with a first-run wizard), with
-  Windows' roaming and local application data roots (`APPDATA`, `LOCALAPPDATA`) inside it, where
-  per-user stores such as gcloud's application default credentials would otherwise be read. A
-  variable that can steer a server at the developer's data belongs there, set. The one thing
-  fixtures share is bun's transpiler cache, kept beside the run roots: it is content-addressed
-  output of the pinned source and carries no state, and leaving it under each isolated cache root
-  made every source-run server start transpile the monorepo from cold. The map comes as an
-  `IsolationBoundary` (`ServerIsolation.For`), which also carries the check that the server honoured
-  it: every owner of a real server calls `ConfirmHonored` once the server is ready and before any
-  test reaches it, and a server that opened no database under the run root stops the fixture there -
-  it would otherwise be reading and writing the developer's own profile, which a later installed CLI
-  that stopped reading one of the variables would do silently. Which server an owned fixture starts
+  takes its environment from: the XDG roots, the config root and database, a temp directory
+  (`TMPDIR`, and `TMP` and `TEMP` on Windows), an empty config seed, an emptied explicit config
+  file, no model-catalog fetch, project configuration discovery off, and a home that exists inside
+  the fixture's own run root and gives an interactive shell nothing to ask (a terminal the server
+  opens runs the user's own shell there, and zsh meets a home without startup files with a
+  first-run wizard), with Windows' roaming and local application data roots (`APPDATA`,
+  `LOCALAPPDATA`) inside it, where per-user stores such as gcloud's application default
+  credentials would otherwise be read. A variable that can steer a server at the developer's data
+  belongs there, set. The temp directory moves the server's own temp root, which agents may use as
+  an approved external directory and which would otherwise be shared with the developer's
+  opencode. Discovery off is upstream's own switch, `OPENCODE_DISABLE_PROJECT_CONFIG=1`, which the
+  pinned server and the simulation host both read: discovery otherwise walks from every location to
+  the drive root and loads each ancestor's `opencode.json[c]`, `.opencode` directory, `.claude` and
+  `.agents` skills and `AGENTS.md`, together with the git references that configuration declares;
+  for a request without a location that walk starts inside the upstream checkout, whose own
+  configuration makes the server clone a GitHub repository. With it off, the server reads only the
+  isolated global config root and home. The one test whose subject is project configuration (the
+  workspace skill) starts a server of its own through `ServerIsolation.ForProjectConfiguration`,
+  the same map with the switch set to `0` - set, because every child of the session inherits it
+  on - and puts its workspace inside that server's run root, as upstream's own config tests keep
+  discovery on and put the project in a temp directory. The one thing fixtures share is bun's
+  transpiler cache, kept beside the run roots: it is content-addressed output of the pinned source
+  and carries no state, and leaving it under each isolated cache root made every source-run server
+  start transpile the monorepo from cold. The map comes as an `IsolationBoundary`
+  (`ServerIsolation.For`), which also carries the check that the server honoured it: every owner
+  of a real server calls `ConfirmHonored` once the server is ready and before any test reaches it,
+  and a server that opened no database under the run root stops the fixture there - it would
+  otherwise be reading and writing the developer's own profile, which a later installed CLI that
+  stopped reading one of the variables would do silently. Which server an owned fixture starts
   (`OPENCODE_SDK_TESTS_SERVER_COMMAND`, `OPENCODE_SDK_TESTS_ENDPOINT`) is a separate choice and not
   part of the boundary.
 - **The host's own environment is scrubbed first.** A child inherits whatever the isolation map
@@ -177,34 +191,45 @@ true; the fixture hands the boundary to the child process it starts.
   switch the pinned checkout names (`ProviderCredentialVariables`: each provider's `env` names in
   the bundled model catalog; every variable name the pinned provider and plugin sources spell or
   read, `type: "env"` methods and direct reads such as the Vertex project switches included, minus
-  the terminal, shell and proxy names they also read; and the two the Google auth library reads,
-  `GOOGLE_APPLICATION_CREDENTIALS` and `CLOUDSDK_CONFIG`), the whole `AWS_*` chain, and the git
+  the terminal, shell and proxy names they also read; and the three an auth tool reads whether or
+  not the source spells them: `GOOGLE_APPLICATION_CREDENTIALS` and `CLOUDSDK_CONFIG` for the Google
+  auth library, `AZURE_CONFIG_DIR` for the Azure CLI), the whole `AWS_*` chain, and the git
   variables that address another repository (`GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE`,
   `GIT_CEILING_DIRECTORIES`), and when a proxy variable is set it names loopback in `NO_PROXY`, so
-  neither the test clients nor the bun server route `127.0.0.1` through the proxy. It prints the names it removed, never values. CI's environment
-  carries none of these; the scrub exists for developer machines, where an exported variable
-  otherwise looks like an SDK defect. Without the pinned checkout the credentials cannot be named,
-  and the session still runs, because only a server reads them: `PinnedServerCommand`, through
-  which every owned server is located, refuses instead. The hook then sets the `ServerIsolation`
-  map, without `HOME`, `USERPROFILE`, `APPDATA` and `LOCALAPPDATA`, over a session root of its own
-  (`SessionIsolation`), so a child that only inherits takes opencode's own roots from there, and the
-  session fails at its end if a server opened a database there.
-- **Run roots have a clean chain above them.** The pinned server loads project configuration from
-  every directory between a location and the drive root, and resolves a workspace inside a
+  neither the test clients nor the bun server route `127.0.0.1` through the proxy. It prints the
+  names it removed, never values. CI's environment carries none of these; the scrub exists for
+  developer machines, where an exported variable otherwise looks like an SDK defect.
+  `PinnedServerCommand`, through which every owned server is located, refuses to start a server
+  until the scrub has run, and refuses instead of the session when the pinned checkout is missing
+  and the credentials cannot be named: only a server reads them. The hook then sets the
+  `ServerIsolation` map, without `HOME`, `USERPROFILE`, `APPDATA`, `LOCALAPPDATA` and the temp
+  variables (the test host takes its own temp directory, and on Linux and macOS its run roots, from
+  them), over a session root of its own (`SessionIsolation`), so a child that only inherits takes
+  opencode's own roots from there and loads no project configuration, and the session fails at its
+  end if a server opened a database there.
+- **Run roots have a clean chain above them.** The server whose subject is project configuration,
+  and an installed command an override names, which may not read the switch, load it from every
+  directory between a location and the drive root, and every server resolves a workspace inside a
   repository to that repository's project, whatever the environment says - so where a run root
-  lives is part of the boundary. `TestRunRootLocation` keeps run roots outside the user profile
-  and outside every repository: under the machine-wide application data root on Windows, where the
-  temp root sits inside the profile, and under the temp root elsewhere. It refuses, naming the path
-  and `OPENCODE_SDK_TESTS_RUN_ROOT`, a directory that has a repository, project configuration, or
-  a skills directory anywhere above it.
+  lives is part of the boundary. `TestRunRootLocation` keeps run roots outside the
+  user profile and outside every repository: under the machine-wide application data root on
+  Windows, where the temp root sits inside the profile, and under the temp root elsewhere. It
+  refuses, naming the path and `OPENCODE_SDK_TESTS_RUN_ROOT`, a directory that has a repository, or
+  any project configuration discovery loads, skills directories included, anywhere above it.
 - **A client names a location.** The pinned server resolves a request without a directory to its
   own working directory, which bun needs anchored inside the upstream checkout. An owned fixture's
   `CreateClient()` therefore defaults to an empty directory of its own; a test passes a
   `LocationSelector` when the location is its subject. An external endpoint gets no default,
-  because it may not share this machine's filesystem. Because a request without a location still
-  loads configuration from above that working directory, `PinnedServerCommand.WorkingDirectory`
-  refuses a checkout with `.opencode` or `opencode.json[c]` in its `external` directory or above
-  it; the upstream checkout's own project configuration below that is pinned.
+  because it may not share this machine's filesystem. The upstream checkout's own project
+  configuration is not harmless - it carries skills, plugins, tools and a git reference the server
+  clones - and owned servers keep it out with discovery off, which
+  `ProjectConfigurationIsolationLiveTests` proves at that working directory. What would still walk
+  from there is the server whose subject is project configuration, for a request without a
+  location, and an installed command an override names, which may not read the switch. For them
+  `PinnedServerCommand.WorkingDirectory` refuses a checkout with configuration that would run
+  inside the server - `.opencode` or `opencode.json[c]` - in its `external` directory or above it.
+  Skills directories there are not refused: a checkout under a home that keeps its own skills is
+  the usual Linux and macOS layout, and such a server would read them but run nothing from them.
 - **An owned process never outlives its fixture.** Teardown ends every process its test started and
   waits for each to be finished before it removes the run root: a server still running under a
   removed root recreates it and keeps running unowned. Finished means the process has closed its

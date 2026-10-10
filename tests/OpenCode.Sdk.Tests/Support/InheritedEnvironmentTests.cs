@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Globalization;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.TestSupport;
 
 namespace OpenCode.Sdk.Tests.Support;
@@ -10,6 +12,9 @@ namespace OpenCode.Sdk.Tests.Support;
 /// </summary>
 public sealed class InheritedEnvironmentTests
 {
+    /// <summary>How long an ended child may take to exit.</summary>
+    private static readonly TimeSpan ChildExitBound = TimeSpan.FromSeconds(15);
+
     [Test]
     public async Task Plan_Should_Remove_Every_Pinned_Server_Variable_But_Keep_The_Suite_Knobs()
     {
@@ -154,8 +159,13 @@ public sealed class InheritedEnvironmentTests
 
         await Assert.That(Environment.GetEnvironmentVariable("OPENCODE_CONFIG_CONTENT")).IsEqualTo("{}");
         await Assert.That(Environment.GetEnvironmentVariable("OPENCODE_DISABLE_MODELS_FETCH")).IsEqualTo("1");
-        await Assert.That(SessionIsolation.AppliedNames).DoesNotContain("HOME");
-        await Assert.That(SessionIsolation.AppliedNames).DoesNotContain("USERPROFILE");
+        await Assert.That(Environment.GetEnvironmentVariable(ServerIsolation.ProjectConfigurationSwitch)).IsEqualTo("1");
+        await Assert.That(SessionIsolation.AppliedNames).Contains(ServerIsolation.ProjectConfigurationSwitch);
+        foreach (var name in new[] { "HOME", "USERPROFILE", "TMPDIR", "TMP", "TEMP" })
+        {
+            // The test host's own home and temp directory, which it and every tool it starts read.
+            await Assert.That(SessionIsolation.AppliedNames).DoesNotContain(name);
+        }
     }
 
     /// <summary>
@@ -176,6 +186,40 @@ public sealed class InheritedEnvironmentTests
         }
 
         await Assert.That((await ChildSeesAsync("OPENCODE_CONFIG_CONTENT", cancellationToken)).TrimEnd()).IsEqualTo("{}");
+        await Assert.That((await ChildSeesAsync(ServerIsolation.ProjectConfigurationSwitch, cancellationToken)).TrimEnd()).IsEqualTo("1");
+    }
+
+    [Test]
+    public async Task RequireScrubbed_Should_Refuse_A_Server_Before_The_Scrub_Has_Run()
+    {
+        var refusal = await Assert.That(() => InheritedEnvironment.RequireScrubbed(InheritedEnvironment.CredentialScrub.NotRun, null))
+            .Throws<InvalidOperationException>();
+
+        await Assert.That(refusal!.Message).Contains("scrubbed");
+    }
+
+    [Test]
+    public async Task RequireScrubbed_Should_Refuse_With_The_Reason_When_The_Credentials_Could_Not_Be_Named()
+    {
+        const string reason = "The pinned checkout is missing.";
+
+        var refusal = await Assert.That(() => InheritedEnvironment.RequireScrubbed(InheritedEnvironment.CredentialScrub.Unavailable, reason))
+            .Throws<InvalidOperationException>();
+
+        await Assert.That(refusal!.Message).IsEqualTo(reason);
+    }
+
+    [Test]
+    public async Task RequireScrubbed_Should_Accept_A_Completed_Scrub()
+    {
+        await Assert.That(() => InheritedEnvironment.RequireScrubbed(InheritedEnvironment.CredentialScrub.Scrubbed, null)).ThrowsNothing();
+    }
+
+    /// <summary>This session's own scrub ran before its first test, so a server may start.</summary>
+    [Test]
+    public async Task RequireProviderCredentialsScrubbed_Should_Accept_This_Session()
+    {
+        await Assert.That(InheritedEnvironment.RequireProviderCredentialsScrubbed).ThrowsNothing();
     }
 
     /// <summary>
@@ -211,19 +255,78 @@ public sealed class InheritedEnvironmentTests
         }
     }
 
+    /// <summary>
+    /// A child still running when its test is cancelled is ended, and has exited by the time the
+    /// cancellation reaches the test. The child reads its input, which nothing ever closes, so it
+    /// runs until it is ended.
+    /// </summary>
+    [Test]
+    [Timeout(60_000)]
+    public async Task ReadToExitAsync_Should_End_A_Running_Child_When_Cancelled(CancellationToken cancellationToken)
+    {
+        var startInfo = OperatingSystem.IsWindows()
+            ? new ProcessStartInfo("cmd.exe") { Arguments = "/d /c set /p line=" }
+            : new ProcessStartInfo("/bin/sh") { Arguments = "-c \"read line\"" };
+        startInfo.RedirectStandardInput = true;
+        using var process = Start(startInfo);
+        using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        await cancellation.CancelOnWorkerAsync();
+        try
+        {
+            await Assert.That(() => (Task)ReadToExitAsync(process, cancellation.Token)).Throws<OperationCanceledException>();
+
+            await Assert.That(process.HasExited).IsTrue();
+        }
+        finally
+        {
+            if (!process.HasExited)
+            {
+                _ = TestProcessTreeKill.TryKill(process);
+            }
+        }
+    }
+
     /// <summary>Echoes one variable from a child shell, the way a fixture's server would read it.</summary>
     private static async Task<string> ChildSeesAsync(string name, CancellationToken cancellationToken)
     {
         var startInfo = OperatingSystem.IsWindows()
             ? new ProcessStartInfo("cmd.exe") { Arguments = "/d /c echo %" + name + "%" }
             : new ProcessStartInfo("/bin/sh") { Arguments = "-c \"printf %s \\\"$" + name + "\\\"\"" };
+        using var process = Start(startInfo);
+        return await ReadToExitAsync(process, cancellationToken);
+    }
+
+    private static Process Start(ProcessStartInfo startInfo)
+    {
         startInfo.UseShellExecute = false;
         startInfo.RedirectStandardOutput = true;
         startInfo.CreateNoWindow = true;
+        return Process.Start(startInfo) ?? throw new InvalidOperationException("The child shell did not start.");
+    }
 
-        using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("The child shell did not start.");
-        var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
-        await process.WaitForExitAsync(cancellationToken);
-        return output;
+    /// <summary>
+    /// Reads a child's output to its exit. A cancelled read ends the child and waits for it to
+    /// exit before the cancellation reaches the test, so no child outlives the test that started it.
+    /// </summary>
+    private static async Task<string> ReadToExitAsync(Process process, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var output = await process.StandardOutput.ReadToEndAsync(cancellationToken);
+            await process.WaitForExitAsync(cancellationToken);
+            return output;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            _ = TestProcessTreeKill.TryKill(process);
+            if (!await ProcessObservation.ObserveExitWithinAsync(process, ChildExitBound, CancellationToken.None))
+            {
+                throw new InvalidOperationException(
+                    "The child shell " + process.Id.ToString(CultureInfo.InvariantCulture) + " was ended but did not exit within "
+                    + ChildExitBound.TotalSeconds.ToString(CultureInfo.InvariantCulture) + " seconds.");
+            }
+
+            throw;
+        }
     }
 }

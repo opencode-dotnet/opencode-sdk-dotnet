@@ -57,7 +57,7 @@ public sealed class ProviderCredentialVariablesTests
     /// <summary>
     /// The names each kind of read takes at the pin: the catalog's, an env method a plugin
     /// declares, a key an auth helper takes, a direct read, a credential switch, and what the
-    /// Google auth library reads that the source never spells.
+    /// Google auth library and the Azure CLI read whether or not the source spells it.
     /// </summary>
     [Test]
     public async Task FromPinnedSourceAsync_Should_Name_Every_Kind_Of_Credential_The_Pin_Reads(CancellationToken cancellationToken)
@@ -72,7 +72,7 @@ public sealed class ProviderCredentialVariablesTests
                      "CF_AIG_TOKEN", "VERCEL_OIDC_TOKEN", "CLOUDFLARE_WORKERS_AI_TOKEN",
                      "GOOGLE_VERTEX_API_KEY", "MODAL_PROXY_TOKEN", "AICORE_SERVICE_KEY",
                      "GOOGLE_VERTEX_PROJECT", "GOOGLE_CLOUD_PROJECT", "GCP_PROJECT", "GCLOUD_PROJECT",
-                     "GOOGLE_APPLICATION_CREDENTIALS", "CLOUDSDK_CONFIG",
+                     "GOOGLE_APPLICATION_CREDENTIALS", "CLOUDSDK_CONFIG", "AZURE_CONFIG_DIR",
                  })
         {
             await Assert.That(credentials.Names).Contains(name);
@@ -88,7 +88,9 @@ public sealed class ProviderCredentialVariablesTests
     /// Fails when the pin gains an env method the scrub would not remove, read with a parser of
     /// its own rather than the scan's. A method whose names are not a literal list is computed;
     /// the pin has one, the catalog's own, whose names are the catalog's plus literals the scan
-    /// reads, and a new one fails here until it is read.
+    /// reads, and a new one fails here until it is read. A method's names are the property that
+    /// follows its type, so a method whose next property is anything else fails here rather than
+    /// letting the parser read some later, unrelated list.
     /// </summary>
     [Test]
     public async Task FromPinnedSourceAsync_Should_Cover_Every_Env_Method_The_Pinned_Source_Declares(CancellationToken cancellationToken)
@@ -96,35 +98,63 @@ public sealed class ProviderCredentialVariablesTests
         var credentials = await ProviderCredentialVariables.FromPinnedSourceAsync(FileSystem, cancellationToken);
         var declared = new SortedSet<string>(StringComparer.Ordinal);
         var computed = new List<string>();
+        var unpaired = new List<string>();
         foreach (var file in ProviderCredentialVariables.PinnedSourceFiles(FileSystem))
         {
             var source = await ProviderCredentialVariables.ReadSourceAsync(FileSystem, file, cancellationToken);
-            for (var method = source.IndexOf(EnvMethod, StringComparison.Ordinal);
-                 method >= 0;
-                 method = source.IndexOf(EnvMethod, method + 1, StringComparison.Ordinal))
-            {
-                var names = source.IndexOf(Names, method, StringComparison.Ordinal) + Names.Length;
-                var list = source.AsSpan(names).TrimStart();
-                if (list is not ['[', ..])
-                {
-                    computed.Add(FileSystem.Path.GetFileName(file));
-                    continue;
-                }
-
-                foreach (var entry in list[1..list.IndexOf(']')].ToString().Split(','))
-                {
-                    if (entry.Trim().Trim('"') is { Length: > 0 } name)
-                    {
-                        _ = declared.Add(name);
-                    }
-                }
-            }
+            var methods = ReadEnvMethods(source);
+            declared.UnionWith(methods.Declared);
+            computed.AddRange(Enumerable.Repeat(FileSystem.Path.GetFileName(file), methods.Computed));
+            unpaired.AddRange(Enumerable.Repeat(FileSystem.Path.GetFileName(file), methods.Unpaired));
         }
 
         string[] expectedComputed = ["models-dev.ts"];
+        await Assert.That(unpaired).IsEmpty();
         await Assert.That(computed).IsEquivalentTo(expectedComputed);
         await Assert.That(declared).Contains("SNOWFLAKE_CORTEX_PAT");
         await Assert.That(declared.Where(name => !credentials.Names.Contains(name))).IsEmpty();
+    }
+
+    [Test]
+    public async Task ReadEnvMethods_Should_Read_The_Literal_Names_That_Follow_A_Method()
+    {
+        const string source = """
+            methods: [{ type: "env", names: ["ONE_API_KEY", "ONE_REGION"] }, { type: "env", names: catalog.env }]
+            """;
+
+        var methods = ReadEnvMethods(source);
+
+        string[] expected = ["ONE_API_KEY", "ONE_REGION"];
+        await Assert.That(methods.Declared).IsEquivalentTo(expected);
+        await Assert.That(methods.Computed).IsEqualTo(1);
+        await Assert.That(methods.Unpaired).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ReadEnvMethods_Should_Count_A_Method_Without_Names_As_Unpaired()
+    {
+        const string source = """
+            methods: [{ type: "env" }]
+            """;
+
+        var methods = ReadEnvMethods(source);
+
+        await Assert.That(methods.Unpaired).IsEqualTo(1);
+        await Assert.That(methods.Declared).IsEmpty();
+    }
+
+    /// <summary>A names list further on belongs to something else, and is not read as the method's.</summary>
+    [Test]
+    public async Task ReadEnvMethods_Should_Not_Read_A_Later_Unrelated_Names_List()
+    {
+        const string source = """
+            methods: [{ type: "env", label: "Key" }], other: { names: ["UNRELATED"] }
+            """;
+
+        var methods = ReadEnvMethods(source);
+
+        await Assert.That(methods.Unpaired).IsEqualTo(1);
+        await Assert.That(methods.Declared).IsEmpty();
     }
 
     /// <summary>
@@ -139,6 +169,21 @@ public sealed class ProviderCredentialVariablesTests
         var catalog = await ProviderCredentialVariables.ParseCatalogAsync(stream, cancellationToken);
 
         await Assert.That(catalog.Where(ProviderCredentialVariables.IsNotCredential)).IsEmpty();
+    }
+
+    /// <summary>
+    /// A provider reads Windows' roaming profile root to find its stores, so the pinned source
+    /// names <c>APPDATA</c>; it is a profile root, not a credential, and stays in the test host,
+    /// while the isolation map moves it into the run root for every owned server.
+    /// </summary>
+    [Test]
+    public async Task FromPinnedSourceAsync_Should_Leave_The_Windows_Profile_Root_To_The_Environment(CancellationToken cancellationToken)
+    {
+        var credentials = await ProviderCredentialVariables.FromPinnedSourceAsync(FileSystem, cancellationToken);
+
+        await Assert.That(credentials.Unavailable).IsNull();
+        await Assert.That(credentials.Names.Contains("APPDATA")).IsFalse();
+        await Assert.That(ProviderCredentialVariables.IsNotCredential("appdata")).IsTrue();
     }
 
     /// <summary>
@@ -182,6 +227,30 @@ public sealed class ProviderCredentialVariablesTests
         await Assert.That(credentials.Names).Contains("GOOGLE_APPLICATION_CREDENTIALS");
     }
 
+    /// <summary>
+    /// What an auth tool reads stands on its own: a later pin whose source no longer spells one of
+    /// those names still scrubs it, because the tool reads it whatever the source says.
+    /// </summary>
+    [Test]
+    public async Task FromPinnedSourceAsync_Should_Name_What_An_Auth_Tool_Reads_When_The_Source_Spells_Nothing(CancellationToken cancellationToken)
+    {
+        var fileSystem = new MockFileSystem();
+        var repositoryRoot = new PinnedServerCommand(FileSystem).RepositoryRoot;
+        var checkout = fileSystem.Path.Combine(repositoryRoot, "external", "opencode");
+        _ = fileSystem.Directory.CreateDirectory(AppContext.BaseDirectory);
+        _ = fileSystem.Directory.CreateDirectory(fileSystem.Path.Combine(checkout, "packages", "core", "src", "plugin"));
+        _ = fileSystem.Directory.CreateDirectory(fileSystem.Path.Combine(checkout, "packages", "ai", "src", "providers"));
+        _ = fileSystem.Initialize().With(new FileDescription(fileSystem.Path.Combine(repositoryRoot, "OpenCode.slnx"), string.Empty));
+        _ = fileSystem.Initialize().With(new FileDescription(
+            fileSystem.Path.Combine(checkout, "packages", "core", "src", "models-dev", "snapshot.txt"), "{}"));
+
+        var credentials = await ProviderCredentialVariables.FromPinnedSourceAsync(fileSystem, cancellationToken);
+
+        string[] expected = ["GOOGLE_APPLICATION_CREDENTIALS", "CLOUDSDK_CONFIG", "AZURE_CONFIG_DIR"];
+        await Assert.That(credentials.Unavailable).IsNull();
+        await Assert.That(credentials.Names).IsEquivalentTo(expected);
+    }
+
     [Test]
     [Arguments("AWS_PROFILE", true)]
     [Arguments("aws_web_identity_token_file", true)]
@@ -192,4 +261,47 @@ public sealed class ProviderCredentialVariablesTests
 
         await Assert.That(ProviderCredentialVariables.IsAwsChain(name)).IsEqualTo(expected);
     }
+
+    /// <summary>
+    /// Reads the env methods one source declares, with a parser of the guard's own rather than the
+    /// scan's. A method's names are the property that follows its type: a literal list is read, any
+    /// other value is computed, and a method whose next property is not its names is unpaired.
+    /// </summary>
+    private static EnvMethodDeclarations ReadEnvMethods(string source)
+    {
+        var names = new List<string>();
+        var computed = 0;
+        var unpaired = 0;
+        for (var method = source.IndexOf(EnvMethod, StringComparison.Ordinal);
+             method >= 0;
+             method = source.IndexOf(EnvMethod, method + 1, StringComparison.Ordinal))
+        {
+            var next = source.AsSpan(method + EnvMethod.Length).TrimStart();
+            if (next is not [',', ..] || !next[1..].TrimStart().StartsWith(Names.AsSpan(), StringComparison.Ordinal))
+            {
+                unpaired++;
+                continue;
+            }
+
+            var list = next[1..].TrimStart()[Names.Length..].TrimStart();
+            if (list is not ['[', ..])
+            {
+                computed++;
+                continue;
+            }
+
+            foreach (var entry in list[1..list.IndexOf(']')].ToString().Split(','))
+            {
+                if (entry.Trim().Trim('"') is { Length: > 0 } name)
+                {
+                    names.Add(name);
+                }
+            }
+        }
+
+        return new EnvMethodDeclarations(names, computed, unpaired);
+    }
+
+    /// <summary>The env methods of one source: their literal names, and how many are computed or unpaired.</summary>
+    private sealed record EnvMethodDeclarations(IReadOnlyList<string> Declared, int Computed, int Unpaired);
 }
