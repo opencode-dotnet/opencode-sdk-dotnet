@@ -1,13 +1,12 @@
 #if NET
-using System.Diagnostics;
 using System.Diagnostics.Tracing;
 
 namespace OpenCode.Sdk.Tests.Support;
 
 /// <summary>
-/// Records this process's socket connect events while it lives, stamped on the writing thread the
-/// moment the runtime raises them, so a test can read how long a refused connect took from the
-/// connect's own start rather than from the start of everything around it.
+/// Records this process's socket connect events while it lives, so a test can read that its own
+/// connect started and that the peer refused it, from the socket's own events rather than from the
+/// answer of everything around it.
 /// </summary>
 internal sealed class SocketConnectRecorder : EventListener
 {
@@ -16,17 +15,15 @@ internal sealed class SocketConnectRecorder : EventListener
     private const string ConnectFailed = "ConnectFailed";
     private const string ErrorPayload = "error";
 
-    /// <summary>Guards the two stamps; events arrive on whichever thread started or completed the connect.</summary>
+    /// <summary>Guards the two records; events arrive on whichever thread started or completed the connect.</summary>
     private readonly Lock _gate = new();
 
-    private long? _lastStart;
-    private TimeSpan? _refusalTime;
+    private bool _refused;
     private int _connectStarts;
 
     /// <summary>
     /// How many connects this process started while the recorder lived. A test reads it to know
-    /// <see cref="RefusalTime"/> measured its own connect: a second connect starting during a slow
-    /// refusal would restart the measured interval and shorten it.
+    /// <see cref="Refused"/> witnessed its own connect and no other.
     /// </summary>
     public int ConnectStarts
     {
@@ -39,17 +36,14 @@ internal sealed class SocketConnectRecorder : EventListener
         }
     }
 
-    /// <summary>
-    /// The interval from the last connect start to the first connect the peer refused after it,
-    /// or null while no refused connect has followed a connect start.
-    /// </summary>
-    public TimeSpan? RefusalTime
+    /// <summary>Gets whether a connect the peer refused followed a connect start.</summary>
+    public bool Refused
     {
         get
         {
             lock (_gate)
             {
-                return _refusalTime;
+                return _refused;
             }
         }
     }
@@ -66,20 +60,15 @@ internal sealed class SocketConnectRecorder : EventListener
     protected override void OnEventWritten(EventWrittenEventArgs eventData)
     {
         ArgumentNullException.ThrowIfNull(eventData);
-        var now = Stopwatch.GetTimestamp();
         lock (_gate)
         {
             if (eventData.EventName == ConnectStart)
             {
-                _lastStart = now;
                 _connectStarts++;
             }
-            else if (eventData.EventName == ConnectFailed
-                && _refusalTime is null
-                && _lastStart is { } started
-                && IsRefusal(eventData))
+            else if (eventData.EventName == ConnectFailed && _connectStarts > 0 && IsRefusal(eventData))
             {
-                _refusalTime = Stopwatch.GetElapsedTime(started, now);
+                _refused = true;
             }
         }
     }

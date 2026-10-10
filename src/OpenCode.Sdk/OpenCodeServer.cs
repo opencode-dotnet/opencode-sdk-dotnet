@@ -145,7 +145,7 @@ public class OpenCodeServer : IAsyncDisposable
     public static Task<OpenCodeServer?> DiscoverAsync(
         OpenCodeServerDiscoverOptions? options = null,
         CancellationToken cancellationToken = default) =>
-        DiscoverWithSeamsAsync(options, new ServiceInfoProbe(ServiceTiming.Default), cancellationToken);
+        DiscoverWithSeamsAsync(options, PlatformProbe(ServiceTiming.Default), cancellationToken);
 
     /// <summary>
     /// <see cref="DiscoverAsync"/> over an injected probe, the seam the isolated test executable uses
@@ -167,6 +167,10 @@ public class OpenCodeServer : IAsyncDisposable
         var registration = await discovery.DiscoverAsync(options, cancellationToken).ConfigureAwait(false);
         return registration is null ? null : SharedService(registration);
     }
+
+    /// <summary>The info probe over the platform's loopback transport and socket connect.</summary>
+    private static ServiceInfoProbe PlatformProbe(ServiceTiming timing) =>
+        new(timing, new LoopbackTransport(new LoopbackSocketConnector()));
 
     /// <summary>
     /// The non-owning handle over a registered service. Discover and the Ensure election return only
@@ -208,7 +212,7 @@ public class OpenCodeServer : IAsyncDisposable
         var stopper = new ServiceStopper(
             new ServiceEnvironment(),
             fileSystem,
-            new ServiceInfoProbe(timing),
+            PlatformProbe(timing),
             ptyShutdown,
             new ServicePtyHandoff(fileSystem, new ServiceClock(), ptyShutdown),
             new ServiceProcessControl(),
@@ -262,7 +266,7 @@ public class OpenCodeServer : IAsyncDisposable
         var ensurer = new ServiceEnsurer(
             new ServiceEnvironment(),
             fileSystem,
-            new ServiceInfoProbe(timing),
+            PlatformProbe(timing),
             spawner,
             new ServicePtyHandoff(fileSystem, clock, new ServicePtyShutdown()),
             new ServiceProcessControl(),

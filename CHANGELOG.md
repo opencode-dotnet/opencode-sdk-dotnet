@@ -9,6 +9,17 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.{shortSha}`.
 
+### 🐛 Fixes
+
+- **`OpenCodeServer.DiscoverAsync` and `EnsureAsync` read a refused connection as no service even
+  when the probe's two-second bound expires at the same moment.** On a loaded machine
+  the bound could expire after the runtime had already seen the daemon's port refuse the connect,
+  and the probe then reported a timeout for a daemon that was gone. A refused connection now decides
+  whatever the bound says; any other failure still counts as a timeout exactly when the bound
+  expired. Behaviour change: fewer spurious timeouts under load, so Ensure less often counts a dead
+  daemon toward the three timeouts that end a registered service, and starts a contender after the
+  spawn delay instead.
+
 ## [0.9.0-preview.8] - 2026-10-09
 
 **The pin moves to upstream release tag `v2.0.26`, and all 142 operations it exposes are
