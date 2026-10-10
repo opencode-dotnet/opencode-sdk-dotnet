@@ -8,6 +8,16 @@ namespace OpenCode.Sdk.Tests;
 [NotInParallel]
 public sealed class OwnedTransportTests
 {
+#if NET472
+    /// <summary>
+    /// Bounds only a hang on net472, where a cancelled socket read and the server's view of the
+    /// closed connection both settle on pool continuations: the surfaced outcome and the observed
+    /// disconnect decide the verdict, so a slow pool settling them late is no failure, and a read
+    /// or socket that never settles still fails as a timeout rather than the awaited outcome.
+    /// </summary>
+    private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
+#endif
+
 #if NET
     [Test]
     public async Task CreateOwnedHttpHandler_Should_Expose_The_Modern_Owned_Policy()
@@ -109,7 +119,7 @@ public sealed class OwnedTransportTests
         await Assert.That(exception!.Message).IsEqualTo("The opencode response body could not be read.");
 #if NET472
         Task[] disconnectTasks = [server.ClientDisconnected];
-        await Task.WhenAll(disconnectTasks).WaitAsync(TimeSpan.FromSeconds(1));
+        await Task.WhenAll(disconnectTasks).WaitAsync(HangGuard);
 #endif
     }
 
@@ -230,12 +240,12 @@ public sealed class OwnedTransportTests
             Task[] pendingReads = [pendingRead];
 
             _ = await Assert
-                .That(async () => await Task.WhenAll(pendingReads).WaitAsync(TimeSpan.FromSeconds(1)))
+                .That(async () => await Task.WhenAll(pendingReads).WaitAsync(HangGuard))
                 .Throws<OperationCanceledException>();
 
             await Assert.That(cancellation.IsCancellationRequested).IsTrue();
             Task[] disconnectTasks = [server.ClientDisconnected];
-            await Task.WhenAll(disconnectTasks).WaitAsync(TimeSpan.FromSeconds(1));
+            await Task.WhenAll(disconnectTasks).WaitAsync(HangGuard);
         }
         finally
         {

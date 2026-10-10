@@ -21,7 +21,10 @@ namespace OpenCode.Sdk.Tests;
 /// start. The owner is a separate host process (<see cref="LauncherHost"/>) wherever it must be
 /// killed. Linux and macOS place the server in a session instead, which the process-group tests
 /// prove; each test's POSIX arm says so. Every process a test starts is ended by its pid before the
-/// test returns. Keyless <c>[NotInParallel]</c>: the proofs ride wall-clock bounds.
+/// test returns. An end the owner's death must bring is awaited under a hang guard, which only a
+/// process that is never ended reaches. Keyless <c>[NotInParallel]</c>: two proofs watch a window,
+/// a detached child's survival after its server ended and a delayed placement, and a loaded host
+/// can only narrow either window into a pass that proves nothing.
 /// </summary>
 [NotInParallel]
 public sealed class OpenCodeServerJobTests
@@ -29,8 +32,15 @@ public sealed class OpenCodeServerJobTests
     private const string PrintLogsVariable = "OPENCODE_PRINT_LOGS";
     private const string LadderVariable = "OPENCODE_SDK_TEST_LADDER";
 
-    /// <summary>The bound upstream's own standalone test gives a server to end with its killed owner.</summary>
-    private static readonly TimeSpan OwnerDeathBound = TimeSpan.FromSeconds(5);
+    /// <summary>
+    /// The hang guard for a killed owner's exit and for every end its death must bring, the job's kill
+    /// and the lease's end-of-stream after it: far above what either takes, so only a process that is
+    /// never ended reaches it.
+    /// </summary>
+    private static readonly TimeSpan OwnerDeathGuard = TimeSpan.FromSeconds(20);
+
+    /// <summary>The bound upstream's own standalone test gives a server to end with its killed owner, reported beside the measured end.</summary>
+    private static readonly TimeSpan UpstreamOwnerDeathBound = TimeSpan.FromSeconds(5);
 
     /// <summary>How long a detached descendant has to keep running after its server ended.</summary>
     private static readonly TimeSpan SurvivalWindow = TimeSpan.FromSeconds(2);
@@ -64,14 +74,16 @@ public sealed class OpenCodeServerJobTests
             await using var host = await LauncherHost.StartAsync([.. tree.Command], tree.Environment!, LauncherHostIgnores.Nothing, cancellationToken);
             server = Hold(host.ServerProcessId);
 
+            var sinceKill = Stopwatch.StartNew();
             var killed = host.Kill();
-            var ownerEnded = await host.ExitedWithinAsync(ObservationBound);
-            var serverEnded = await ProcessObservation.ObserveExitWithinAsync(server, OwnerDeathBound, cancellationToken);
+            var ownerEnded = await host.ExitedWithinAsync(OwnerDeathGuard);
+            var serverEnded = await ProcessObservation.ObserveExitWithinAsync(server, OwnerDeathGuard, cancellationToken);
+            var serverEndedAfter = sinceKill.Elapsed;
 
             await Assert.That(killed).IsTrue();
             await Assert.That(ownerEnded).IsTrue();
             await Assert.That(serverEnded).IsTrue().Because(host.DescribeError());
-            BranchReport.Print("Windows — owner " + host.ProcessId.ToString(CultureInfo.InvariantCulture) + " killed; the job ended server " + server.Id.ToString(CultureInfo.InvariantCulture) + " with code " + server.ExitCode.ToString(CultureInfo.InvariantCulture));
+            BranchReport.Print("Windows — owner " + host.ProcessId.ToString(CultureInfo.InvariantCulture) + " killed; the job ended server " + server.Id.ToString(CultureInfo.InvariantCulture) + " with code " + server.ExitCode.ToString(CultureInfo.InvariantCulture) + " " + AfterOwnerDeath(serverEndedAfter));
         }
         finally
         {
@@ -106,15 +118,17 @@ public sealed class OpenCodeServerJobTests
             using var groupChild = Hold(pids[LadderTree.GroupChild]);
             using var detached = Hold(pids[LadderTree.Detached]);
 
+            var sinceKill = Stopwatch.StartNew();
             _ = host.Kill();
-            var serverEnded = await ProcessObservation.ObserveExitWithinAsync(server, OwnerDeathBound, cancellationToken);
-            var groupChildEnded = await ProcessObservation.ObserveExitWithinAsync(groupChild, OwnerDeathBound, cancellationToken);
+            var serverEnded = await ProcessObservation.ObserveExitWithinAsync(server, OwnerDeathGuard, cancellationToken);
+            var groupChildEnded = await ProcessObservation.ObserveExitWithinAsync(groupChild, OwnerDeathGuard, cancellationToken);
+            var childrenEndedAfter = sinceKill.Elapsed;
             var detachedSurvived = !await ProcessObservation.ObserveExitWithinAsync(detached, SurvivalWindow, cancellationToken);
 
             await Assert.That(serverEnded).IsTrue();
             await Assert.That(groupChildEnded).IsTrue();
             await Assert.That(detachedSurvived).IsTrue();
-            BranchReport.Print("Windows — the owner's death ended the server and its joined child; the detached child " + detached.Id.ToString(CultureInfo.InvariantCulture) + " survived");
+            BranchReport.Print("Windows — the owner's death ended the server and its joined child " + AfterOwnerDeath(childrenEndedAfter) + "; the detached child " + detached.Id.ToString(CultureInfo.InvariantCulture) + " survived");
         }
         finally
         {
@@ -301,12 +315,14 @@ public sealed class OpenCodeServerJobTests
             server = Hold(host.ServerProcessId);
             var inHostJob = WindowsProcessProbe.IsInJob(server.SafeHandle, hostJob.Handle);
 
+            var sinceKill = Stopwatch.StartNew();
             _ = host.Kill();
-            var serverEnded = await ProcessObservation.ObserveExitWithinAsync(server, OwnerDeathBound, cancellationToken);
+            var serverEnded = await ProcessObservation.ObserveExitWithinAsync(server, OwnerDeathGuard, cancellationToken);
+            var serverEndedAfter = sinceKill.Elapsed;
 
             await Assert.That(inHostJob).IsEqualTo(serverInHostJob);
             await Assert.That(serverEnded).IsTrue().Because(host.DescribeError());
-            BranchReport.Print("Windows — host job limits 0x" + hostJobLimits.ToString("X", CultureInfo.InvariantCulture) + ": the server " + (inHostJob ? "started in the host's job" : "broke away from it") + ", and the owner's death ended it");
+            BranchReport.Print("Windows — host job limits 0x" + hostJobLimits.ToString("X", CultureInfo.InvariantCulture) + ": the server " + (inHostJob ? "started in the host's job" : "broke away from it") + ", and the owner's death ended it " + AfterOwnerDeath(serverEndedAfter));
         }
         finally
         {
@@ -353,21 +369,28 @@ public sealed class OpenCodeServerJobTests
             using var interpreter = Hold(host.ServerProcessId);
             using var server = Hold(pids[LadderTree.Root]);
 
+            var sinceKill = Stopwatch.StartNew();
             _ = host.Kill();
-            var interpreterEnded = await ProcessObservation.ObserveExitWithinAsync(interpreter, OwnerDeathBound, cancellationToken);
-            var serverEnded = await ProcessObservation.ObserveExitWithinAsync(server, OwnerDeathBound, cancellationToken);
+            var interpreterEnded = await ProcessObservation.ObserveExitWithinAsync(interpreter, OwnerDeathGuard, cancellationToken);
+            var serverEnded = await ProcessObservation.ObserveExitWithinAsync(server, OwnerDeathGuard, cancellationToken);
+            var serverEndedAfter = sinceKill.Elapsed;
 
             await Assert.That(interpreter.Id).IsNotEqualTo(server.Id);
             await Assert.That(interpreterEnded).IsTrue();
             await Assert.That(serverEnded).IsTrue();
             await Assert.That(server.ExitCode).IsEqualTo(0);
-            BranchReport.Print("Windows — the job ended cmd.exe " + interpreter.Id.ToString(CultureInfo.InvariantCulture) + "; its server " + server.Id.ToString(CultureInfo.InvariantCulture) + " left on the lease's end-of-stream with code 0");
+            BranchReport.Print("Windows — the job ended cmd.exe " + interpreter.Id.ToString(CultureInfo.InvariantCulture) + "; its server " + server.Id.ToString(CultureInfo.InvariantCulture) + " left on the lease's end-of-stream with code 0 " + AfterOwnerDeath(serverEndedAfter));
         }
         finally
         {
             await Assert.That(await LadderTree.EndEveryReportedProcessAsync(reported)).IsEmpty();
         }
     }
+
+    /// <summary>Describes how long an end took after the owner was killed, beside upstream's own bound for it.</summary>
+    private static string AfterOwnerDeath(TimeSpan elapsed) =>
+        elapsed.TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + " ms after the owner was killed (upstream's own test allows " +
+        UpstreamOwnerDeathBound.TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + " ms)";
 
     private static IReadOnlyList<string> FixtureCommand(params string[] mode)
     {

@@ -35,8 +35,21 @@ internal static class ContenderConsoleProbe
     /// <summary><c>CTRL_BREAK_EVENT</c>: unlike Ctrl+C, a new process group never starts with it ignored.</summary>
     private const uint ControlBreakEvent = 1;
 
-    /// <summary>How long a probe waits for a console event before it reports the event as not delivered.</summary>
-    private static readonly TimeSpan EventBound = TimeSpan.FromSeconds(3);
+    /// <summary>
+    /// The hang guard on the event the contender must hear: a delivered event arrives at once, so only
+    /// an event that never comes reaches it. It leaves the probe inside the launching test's
+    /// thirty-second wait for the report, so an undelivered event still arrives as the report.
+    /// </summary>
+    private static readonly TimeSpan DeliveryGuard = TimeSpan.FromSeconds(15);
+
+    /// <summary>
+    /// How long the probe watches for the member hearing the contender's event once the contender
+    /// heard it. Windows signals no end to a process's console events, and a second event cannot
+    /// mark one: the system runs each event's handler on a thread it creates for that event, so the
+    /// member's handlers for two events run in no fixed order. The absence therefore rests on this
+    /// window; a late delivery can only let a wrong spawner pass, never fail a right one.
+    /// </summary>
+    private static readonly TimeSpan MemberAbsenceWindow = TimeSpan.FromSeconds(3);
 
     /// <summary>How long the probe waits for its member to start and to end.</summary>
     private static readonly TimeSpan MemberBound = TimeSpan.FromSeconds(30);
@@ -104,7 +117,7 @@ internal static class ContenderConsoleProbe
                     // that roots no group on it.
                     if (GenerateConsoleCtrlEvent(ControlBreakEvent, (uint)Environment.ProcessId))
                     {
-                        rootHeard = await CompletesWithinAsync(heard.Task, EventBound).ConfigureAwait(false);
+                        rootHeard = await CompletesWithinAsync(heard.Task, DeliveryGuard).ConfigureAwait(false);
                     }
                     else
                     {
@@ -122,7 +135,7 @@ internal static class ContenderConsoleProbe
                 memberPid = member.Id,
                 sendError,
                 rootHeard,
-                memberHeard = await CompletesWithinAsync(memberHeard.Task, EventBound).ConfigureAwait(false),
+                memberHeard = await CompletesWithinAsync(memberHeard.Task, MemberAbsenceWindow).ConfigureAwait(false),
             };
             await error.WriteLineAsync(JsonSerializer.Serialize(report)).ConfigureAwait(false);
             return 0;

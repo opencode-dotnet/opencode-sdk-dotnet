@@ -55,8 +55,12 @@ internal static class ContenderProbe
     /// <summary>The pacing between stderr-fill chunks: fast enough for the tail proof, slow enough for the release-drain proof to stay inside its survival window.</summary>
     private static readonly TimeSpan ChunkDelay = TimeSpan.FromMilliseconds(5);
 
-    /// <summary>The most the stdin probe waits before it reports the read as blocked.</summary>
-    private static readonly TimeSpan StandardInputBound = TimeSpan.FromSeconds(2);
+    /// <summary>
+    /// The stdin probe's hang guard: a NUL stdin answers end-of-file at once, so only a stdin that
+    /// blocks reaches it. It leaves the probe inside the launching test's thirty-second wait for the
+    /// report, so a blocked stdin still arrives as the <c>blocked</c> report.
+    /// </summary>
+    private static readonly TimeSpan StandardInputGuard = TimeSpan.FromSeconds(20);
 
     public static Task<int> RunAsync(string mode, IReadOnlyList<string> arguments) =>
         mode switch
@@ -123,19 +127,23 @@ internal static class ContenderProbe
     }
 
     /// <summary>
-    /// Reads one character of stdin behind the bound: a NUL stdin answers EOF at once, a pipe the
-    /// spawner left open blocks until someone writes, and an inherited console blocks for input.
-    /// The bound turns every block into the <c>blocked</c> report instead of a hang the test
-    /// would meet only as a timeout.
+    /// Reads one character of stdin: a NUL stdin answers EOF at once, a pipe the spawner left open
+    /// blocks until someone writes, and an inherited console blocks for input. The read's own
+    /// outcome decides the report; the hang guard turns only a read that blocks into the
+    /// <c>blocked</c> report instead of a hang the test would meet only as a timeout.
     /// </summary>
     private static async Task<string> ProbeStandardInputAsync()
     {
-        // The bound turns a spawner-left-open stdin (blocks forever) and an inherited console
-        // (blocks for input) into the blocked report instead of a hang the test would meet only
-        // as its own timeout.
+        // A thread of its own for the blocking read, so the answer never waits for a pool thread.
+        // A read that blocks keeps that background thread until the process exits.
+        var read = Task.Factory.StartNew(
+            static () => Console.In.Read(),
+            CancellationToken.None,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
         try
         {
-            return await Task.Run(Console.In.Read).WaitAsync(StandardInputBound).ConfigureAwait(false) < 0 ? "eof" : "byte";
+            return await read.WaitAsync(StandardInputGuard).ConfigureAwait(false) < 0 ? "eof" : "byte";
         }
         catch (TimeoutException)
         {

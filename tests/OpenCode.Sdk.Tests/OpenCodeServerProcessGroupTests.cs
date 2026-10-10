@@ -1,6 +1,9 @@
 using System.Diagnostics;
 using System.Globalization;
+using NSubstitute;
 using OpenCode.Sdk.Internal.Launcher;
+using OpenCode.Sdk.Internal.Posix;
+using OpenCode.Sdk.Internal.Posix.Abstractions;
 using OpenCode.Sdk.Internal.Windows;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
@@ -36,9 +39,6 @@ public sealed class OpenCodeServerProcessGroupTests
 
     /// <summary>How much earlier than its due time a timed wait may end on a coarse system timer.</summary>
     private static readonly TimeSpan TimerSlack = TimeSpan.FromMilliseconds(50);
-
-    /// <summary>How long a start may take to fail once the stand-in showed it never will be ready.</summary>
-    private static readonly TimeSpan PromptFailure = TimeSpan.FromSeconds(5);
 
     /// <summary><c>SIGTERM</c>: what a stand-in with no handler of its own dies of at a normal close.</summary>
     private const int Terminate = 15;
@@ -97,12 +97,24 @@ public sealed class OpenCodeServerProcessGroupTests
         }
     }
 
+    /// <summary>
+    /// The normal close needs no grace: on Linux and macOS <c>SIGTERM</c> ends the root and its
+    /// group, and a child in a session of its own keeps running; on Windows one tree kill ends all
+    /// three at once. The grace is far longer than any close takes, so the rung that ended the tree
+    /// is what the test reads: no <c>SIGKILL</c> was sent, or the tree kill ran once. A close that
+    /// waited the grace would have taken all of it by the launcher's own timer.
+    /// </summary>
     [Test]
     [Timeout(120_000)]
     public async Task DisposeAsync_Should_End_The_Group_And_Leave_A_Child_In_A_Session_Of_Its_Own(CancellationToken cancellationToken)
     {
         var output = new OpenCodeServerOutput();
-        var server = await OpenCodeServer.StartAsync(LadderTree.Options(output, Grace, "group-child", "detached"), cancellationToken);
+        var signals = RecordingSignals();
+        var treeKill = new RecordingTreeKill();
+        var server = await OpenCodeServer.StartWithSeamsAsync(
+            LadderTree.Options(output, UnwaitedGrace, "group-child", "detached"),
+            LauncherSeams.ForCurrentProcess() with { Signals = signals, TreeKill = treeKill },
+            cancellationToken);
         try
         {
             var groupChild = LadderTree.Pid(output, LadderTree.GroupChild);
@@ -114,21 +126,26 @@ public sealed class OpenCodeServerProcessGroupTests
             var groupChildEnded = await ProcessObservation.ObserveExitWithinAsync(groupChild, ObservationBound, cancellationToken);
 
             await Assert.That(groupChildEnded).IsTrue();
-            await Assert.That(elapsed).IsLessThan(Grace);
+
+            // The grace was not waited: a close that waits it takes all of it by its own timer.
+            await Assert.That(elapsed).IsLessThan(UnwaitedGrace - TimerSlack);
             if (OperatingSystem.IsWindows())
             {
                 // Upstream's Windows close: one tree kill at once, which reaches every live
-                // descendant by parent pid, the detached child included, and no grace is waited.
+                // descendant by parent pid, the detached child included, and no second rung runs.
                 var detachedEnded = await ProcessObservation.ObserveExitWithinAsync(detached, ObservationBound, cancellationToken);
                 await Assert.That(exit.ExitCode).IsEqualTo(WindowsForcedExitCode);
                 await Assert.That(detachedEnded).IsTrue();
+                await Assert.That(treeKill.Runs.Count).IsEqualTo(1);
                 Console.WriteLine("branch: Windows — the tree kill ended the root (" + exit.Describe() + ") and both children after " + elapsed.TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + " ms");
                 return;
             }
 
             await Assert.That(exit.Signal).IsEqualTo(Terminate);
             await Assert.That(ProcessObservation.IsRunning(detached)).IsTrue();
-            Console.WriteLine("branch: POSIX — the root " + exit.Describe() + ", its group child ended, and the detached child survived");
+            _ = signals.Received(1).SignalGroup(server.ProcessId, ProcessSignal.Terminate);
+            _ = signals.DidNotReceive().SignalGroup(Arg.Any<int>(), ProcessSignal.Kill);
+            Console.WriteLine("branch: POSIX — the root " + exit.Describe() + ", its group child ended, and the detached child survived, without SIGKILL, after " + elapsed.TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + " ms");
         }
         finally
         {
@@ -273,6 +290,12 @@ public sealed class OpenCodeServerProcessGroupTests
         }
     }
 
+    /// <summary>
+    /// The stand-in closes its stdout instead of reporting readiness and keeps running: the close
+    /// itself fails the start, and the root is ended. The readiness timeout stays at its default,
+    /// far beyond any start, so a launcher that waited for an exit or for the timeout instead would
+    /// fail the start only at that timeout, and the failure would name the timeout, never the close.
+    /// </summary>
     [Test]
     [Timeout(120_000)]
     public async Task StartAsync_Should_Fail_Promptly_When_The_Server_Closes_Stdout_And_Keeps_Running(CancellationToken cancellationToken)
@@ -296,7 +319,6 @@ public sealed class OpenCodeServerProcessGroupTests
 
             await Assert.That(rootEnded).IsTrue();
             await Assert.That(failure!.Message).Contains("closed its standard output before reporting readiness");
-            await Assert.That(elapsed).IsLessThan(PromptFailure);
             Console.WriteLine("branch: " + Platform() + " — failed after " + elapsed.TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + " ms: " + failure.Message);
         }
         finally
@@ -307,7 +329,10 @@ public sealed class OpenCodeServerProcessGroupTests
 
     /// <summary>
     /// The root exits before readiness while a detached descendant keeps its stdout open, so no
-    /// end-of-stream comes: the exit itself fails the start, after one bounded drain.
+    /// end-of-stream comes: the exit itself fails the start, after one bounded drain. The readiness
+    /// timeout stays at its default, far beyond any start, so a launcher that waited for the
+    /// end-of-stream instead would fail the start only at that timeout, and the failure would name
+    /// the timeout, never the exit.
     /// </summary>
     [Test]
     [Timeout(120_000)]
@@ -322,7 +347,6 @@ public sealed class OpenCodeServerProcessGroupTests
             var elapsed = start.Elapsed;
 
             await Assert.That(failure!.Message).Contains("exited with code 7 before reporting readiness");
-            await Assert.That(elapsed).IsLessThan(PromptFailure);
             Console.WriteLine("branch: " + Platform() + " — failed after " + elapsed.TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + " ms: " + failure.Message);
         }
         finally
@@ -422,6 +446,18 @@ public sealed class OpenCodeServerProcessGroupTests
     }
 
     private static string Platform() => OperatingSystem.IsWindows() ? "Windows" : "POSIX";
+
+    /// <summary>The shipped group signal behind a substitute that records every call it forwards.</summary>
+    private static IProcessGroupSignal RecordingSignals()
+    {
+        var real = new ProcessGroupSignal();
+        var recording = Substitute.For<IProcessGroupSignal>();
+        _ = recording.SignalGroup(Arg.Any<int>(), Arg.Any<ProcessSignal>()).Returns(call => real.SignalGroup(call.Arg<int>(), call.Arg<ProcessSignal>()));
+        _ = recording.SignalProcess(Arg.Any<int>(), Arg.Any<ProcessSignal>()).Returns(call => real.SignalProcess(call.Arg<int>(), call.Arg<ProcessSignal>()));
+        _ = recording.ProbeGroup(Arg.Any<int>()).Returns(call => real.ProbeGroup(call.Arg<int>()));
+        _ = recording.ProbeProcess(Arg.Any<int>()).Returns(call => real.ProbeProcess(call.Arg<int>()));
+        return recording;
+    }
 
     private static async Task AssertEveryReportedProcessEndedAsync(OpenCodeServerOutput output)
     {

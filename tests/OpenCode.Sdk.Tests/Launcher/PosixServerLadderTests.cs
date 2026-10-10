@@ -10,14 +10,21 @@ namespace OpenCode.Sdk.Tests.Launcher;
 /// <summary>
 /// Every rung of the POSIX disposal ladder against scripted seams, with no process: the signals are
 /// a substitute, and the root's exit is a <see cref="ScriptedChildExit"/> the test (or a signal the
-/// substitute receives) completes. The live proofs of the same rungs run against real process
-/// trees in <c>OpenCodeServerProcessGroupTests</c>.
+/// substitute receives) completes. The root ends once: a signal that reaches the group after the
+/// root ended leaves its status alone, so the status the watch reports does not depend on when the
+/// watch thread runs. The live proofs of the same rungs run against real process trees in
+/// <c>OpenCodeServerProcessGroupTests</c>.
 /// </summary>
 public sealed class PosixServerLadderTests
 {
     private const int Pid = 4242;
 
-    private static readonly TimeSpan ForcedExitTimeout = TimeSpan.FromSeconds(2);
+    /// <summary>
+    /// A hang guard on the exit the watch observes, never a measure of speed: every wait follows an
+    /// exit the test or the ladder already scripted, so only a watch that never reports it reaches
+    /// the guard.
+    /// </summary>
+    private static readonly TimeSpan ExitObservationGuard = TimeSpan.FromSeconds(60);
 
     /// <summary>A grace no proof waits out: a ladder that reaches it has failed its test.</summary>
     private static readonly TimeSpan LongGrace = TimeSpan.FromSeconds(30);
@@ -47,7 +54,7 @@ public sealed class PosixServerLadderTests
         _ = signals.Received(1).SignalGroup(Pid, ProcessSignal.Terminate);
         _ = signals.DidNotReceive().SignalGroup(Pid, ProcessSignal.Kill);
         await Assert.That(elapsed.Elapsed).IsLessThan(LongGrace);
-        await Assert.That(await ChildExitObservation.WithinAsync(watch, ForcedExitTimeout)).IsEqualTo(Terminated);
+        await Assert.That(await ChildExitObservation.WithinAsync(watch, ExitObservationGuard)).IsEqualTo(Terminated);
     }
 
     [Test]
@@ -63,7 +70,7 @@ public sealed class PosixServerLadderTests
         _ = signals.Received(1).SignalGroup(Pid, ProcessSignal.Terminate);
         _ = signals.Received(1).SignalGroup(Pid, ProcessSignal.Kill);
         await Assert.That(elapsed.Elapsed).IsGreaterThanOrEqualTo(ShortGrace - TimerSlack);
-        await Assert.That(await ChildExitObservation.WithinAsync(watch, ForcedExitTimeout)).IsEqualTo(Killed);
+        await Assert.That(await ChildExitObservation.WithinAsync(watch, ExitObservationGuard)).IsEqualTo(Killed);
     }
 
     [Test]
@@ -80,7 +87,7 @@ public sealed class PosixServerLadderTests
         _ = signals.Received(1).SignalGroup(Pid, ProcessSignal.Kill);
         _ = signals.DidNotReceive().SignalProcess(Pid, ProcessSignal.Kill);
         await Assert.That(elapsed.Elapsed).IsGreaterThanOrEqualTo(ShortGrace - TimerSlack);
-        await Assert.That(await ChildExitObservation.WithinAsync(watch, ForcedExitTimeout)).IsEqualTo(Terminated);
+        await Assert.That(await ChildExitObservation.WithinAsync(watch, ExitObservationGuard)).IsEqualTo(Terminated);
     }
 
     [Test]
@@ -120,7 +127,7 @@ public sealed class PosixServerLadderTests
             "signal 15" => Terminated,
             _ => ChildExitStatus.Unknown,
         });
-        _ = await ChildExitObservation.WithinAsync(watch, ForcedExitTimeout);
+        _ = await ChildExitObservation.WithinAsync(watch, ExitObservationGuard);
 
         await ladder.RunAsync(LongGrace);
 
@@ -142,7 +149,7 @@ public sealed class PosixServerLadderTests
         _ = signals.ProbeGroup(Pid).Returns(SignalDelivery.Delivered);
         var ladder = Ladder(exits, signals, out var watch);
         exits.Exit(ChildExitStatus.Unknown);
-        _ = await ChildExitObservation.WithinAsync(watch, ForcedExitTimeout);
+        _ = await ChildExitObservation.WithinAsync(watch, ExitObservationGuard);
 
         await ladder.RunAsync(ShortGrace);
 
@@ -162,7 +169,7 @@ public sealed class PosixServerLadderTests
         _ = signals.ProbeGroup(Pid).Returns(SignalDelivery.NoSuchTarget);
         var ladder = Ladder(exits, signals, out var watch);
         exits.Exit(new ChildExitStatus { ExitCode = 3 });
-        _ = await ChildExitObservation.WithinAsync(watch, ForcedExitTimeout);
+        _ = await ChildExitObservation.WithinAsync(watch, ExitObservationGuard);
 
         await ladder.RunAsync(LongGrace);
 
@@ -182,7 +189,7 @@ public sealed class PosixServerLadderTests
         _ = signals.SignalGroup(Pid, Arg.Any<ProcessSignal>()).Returns(SignalDelivery.NoSuchTarget);
         var ladder = Ladder(exits, signals, out var watch);
         exits.Exit(new ChildExitStatus { ExitCode = 3 });
-        _ = await ChildExitObservation.WithinAsync(watch, ForcedExitTimeout);
+        _ = await ChildExitObservation.WithinAsync(watch, ExitObservationGuard);
 
         await ladder.RunAsync(LongGrace);
 
@@ -213,7 +220,7 @@ public sealed class PosixServerLadderTests
         finally
         {
             exits.Exit(ChildExitStatus.Unknown);
-            _ = await ChildExitObservation.WithinAsync(watch, ForcedExitTimeout);
+            _ = await ChildExitObservation.WithinAsync(watch, ExitObservationGuard);
         }
     }
 
@@ -230,26 +237,25 @@ public sealed class PosixServerLadderTests
 
         _ = signals.Received(1).SignalProcess(Pid, ProcessSignal.Terminate);
         _ = signals.DidNotReceive().SignalProcess(Pid, ProcessSignal.Kill);
-        await Assert.That(await ChildExitObservation.WithinAsync(watch, ForcedExitTimeout)).IsEqualTo(Terminated);
+        await Assert.That(await ChildExitObservation.WithinAsync(watch, ExitObservationGuard)).IsEqualTo(Terminated);
     }
 
     /// <summary>
     /// A substitute whose group and pid signals reach the scripted root: <c>SIGTERM</c> ends it with
-    /// signal 15 unless <paramref name="exitOnTerminate"/> is false, and <c>SIGKILL</c> always ends
-    /// it with signal 9. The group probe reports an empty group unless a test says otherwise.
+    /// signal 15 unless <paramref name="exitOnTerminate"/> is false, and <c>SIGKILL</c> ends it with
+    /// signal 9. A root that already ended keeps the status it ended with, as the kernel keeps it: a
+    /// later signal reaches only the rest of its group. The group probe reports an empty group unless
+    /// a test says otherwise.
     /// </summary>
     private static IProcessGroupSignal Signals(ScriptedChildExit exits, bool exitOnTerminate = true)
     {
         var signals = Substitute.For<IProcessGroupSignal>();
         SignalDelivery Deliver(ProcessSignal signal)
         {
-            if (signal is ProcessSignal.Kill)
+            // The scripted reap reads the status without taking it: a status means the root ended.
+            if (exits.Reap(Pid) is null && (signal is ProcessSignal.Kill || exitOnTerminate))
             {
-                exits.Exit(Killed);
-            }
-            else if (exitOnTerminate)
-            {
-                exits.Exit(Terminated);
+                exits.Exit(signal is ProcessSignal.Kill ? Killed : Terminated);
             }
 
             return SignalDelivery.Delivered;
@@ -264,6 +270,6 @@ public sealed class PosixServerLadderTests
     private static PosixServerLadder Ladder(ScriptedChildExit exits, IProcessGroupSignal signals, out PosixChildExitWatch watch)
     {
         watch = PosixChildExitWatch.Start(Pid, exits, signals, childrenReapedAutomatically: false);
-        return new PosixServerLadder(Pid, watch, signals, ForcedExitTimeout);
+        return new PosixServerLadder(Pid, watch, signals, PosixServerLadder.ForcedExitTimeout);
     }
 }

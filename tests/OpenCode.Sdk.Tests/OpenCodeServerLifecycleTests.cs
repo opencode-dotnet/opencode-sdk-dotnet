@@ -25,6 +25,15 @@ public sealed class OpenCodeServerLifecycleTests
     /// <summary>How long a test waits for a child it observes to write, or to exit after it was ended.</summary>
     private static readonly TimeSpan ChildObservationBound = TimeSpan.FromSeconds(10);
 
+    /// <summary>A grace longer than a test may run, so a close that waits it out never returns inside the test.</summary>
+    private static readonly TimeSpan HolderOutlivingGrace = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// The hang guard around a close that must not wait for a descendant holding its output: far
+    /// above anything the prompt close needs, and reached only by a close that waits for the holder.
+    /// </summary>
+    private static readonly TimeSpan CloseHangGuard = TimeSpan.FromSeconds(30);
+
     private static async Task<(OpenCodeServer Server, TestRunRoot Root)> StartPinnedAsync(
         TimeSpan? gracefulShutdownTimeout = null,
         CancellationToken cancellationToken = default)
@@ -460,9 +469,11 @@ public sealed class OpenCodeServerLifecycleTests
     /// <summary>
     /// A failed start whose forced end the platform does not complete fails as the start failure it
     /// is, never as a teardown fault, and still releases everything: the stderr the drain collected
-    /// is quoted, and the collector is closed. On Windows the tree kill fails, and the fallback ends
-    /// the root with code 1. On Linux and macOS every signal is refused, so the child is left
-    /// running and the test ends it by its group.
+    /// is quoted, and the collector is closed. The stand-in reports its pid on stderr, then closes
+    /// its stdout and keeps running, so the close fails the start, and the readiness timeout, left at
+    /// its default, never decides. On Windows the tree kill fails, and the fallback ends the root
+    /// with code 1. On Linux and macOS every signal is refused, so the child is left running and the
+    /// test ends it by its pid.
     /// </summary>
     [Test]
     [Timeout(120_000)]
@@ -476,23 +487,16 @@ public sealed class OpenCodeServerLifecycleTests
 
         var refusing = RefusingSignals();
         var output = new OpenCodeServerOutput();
-        var processId = 0;
         try
         {
             var failure = await Assert.That(async () => await OpenCodeServer.StartWithSeamsAsync(
-                new OpenCodeServerOptions
-                {
-                    Command = ["bun", "-e", "console.error('starting pid=' + process.pid); setTimeout(() => {}, 120000)"],
-                    ReadinessTimeout = TimeSpan.FromSeconds(5),
-                    GracefulShutdownTimeout = TimeSpan.FromSeconds(30),
-                    Output = output,
-                },
+                ClosingStdoutOptions(output),
                 LauncherSeams.ForCurrentProcess() with { Signals = refusing },
                 cancellationToken)).Throws<OpenCodeServerException>();
 
-            await Assert.That(failure!.Message).Contains("did not report readiness");
-            await Assert.That(failure.Message).Contains("starting pid=");
-            processId = StartingPid(output.GetSnapshot().StandardError);
+            var processId = LadderTree.Pid(output, LadderTree.Root);
+            await Assert.That(failure!.Message).Contains("closed its standard output before reporting readiness");
+            await Assert.That(failure.Message).Contains(RootReport(processId));
             _ = refusing.Received(1).SignalGroup(processId, ProcessSignal.Terminate);
             _ = refusing.DidNotReceive().SignalGroup(Arg.Any<int>(), ProcessSignal.Kill);
             await Assert.That(ProcessObservation.IsRunning(processId)).IsTrue();
@@ -503,55 +507,46 @@ public sealed class OpenCodeServerLifecycleTests
         }
         finally
         {
-            processId = processId is 0 ? TryStartingPid(output.GetSnapshot().StandardError) : processId;
-            if (processId > 1)
-            {
-                _ = new ProcessGroupSignal().SignalGroup(processId, ProcessSignal.Kill);
-                _ = await ProcessObservation.ObserveExitWithinAsync(processId, ChildObservationBound, CancellationToken.None);
-            }
+            _ = await LadderTree.EndEveryReportedProcessAsync(output);
         }
     }
 
-    private static int StartingPid(IReadOnlyList<string> standardError) =>
-        TryStartingPid(standardError) is var pid and > 1
-            ? pid
-            : throw new InvalidOperationException("The stand-in reported no pid: " + string.Join(" | ", standardError));
-
-    private static int TryStartingPid(IReadOnlyList<string> standardError)
+    /// <summary>
+    /// A stand-in that reports its pid on stderr, then closes its stdout and keeps running. Bun keeps
+    /// a handle of its own on its stdout on Windows, so there the service fixture's stand-in, which
+    /// closes the handle itself, takes its place. The grace is far longer than any forced end takes,
+    /// so the end the first rung forced is seen inside it, and no second rung runs.
+    /// </summary>
+    private static OpenCodeServerOptions ClosingStdoutOptions(OpenCodeServerOutput output)
     {
-        const string prefix = "starting pid=";
-        foreach (var line in standardError)
+        var options = LadderTree.Options(output, TimeSpan.FromSeconds(30), "close-stdout");
+        if (OperatingSystem.IsWindows())
         {
-            if (line.StartsWith(prefix, StringComparison.Ordinal) &&
-                int.TryParse(line.AsSpan(prefix.Length), NumberStyles.Integer, CultureInfo.InvariantCulture, out var pid))
-            {
-                return pid;
-            }
+            var fixture = new ServiceFixtureCommand(FileSystem).Resolve();
+            options.Command = [fixture[0], fixture[1], "close-stdout"];
         }
 
-        return 0;
+        return options;
     }
+
+    /// <summary>The stderr line the stand-in reports its pid in, which the failure quotes.</summary>
+    private static string RootReport(int processId) =>
+        "ladder-tree role=" + LadderTree.Root + " pid=" + processId.ToString(CultureInfo.InvariantCulture);
 
     private static async Task AssertFailedTreeKillReportsTheStartFailureAsync(CancellationToken cancellationToken)
     {
         var failing = FailingTreeKill();
         var output = new OpenCodeServerOutput();
-        var processId = 0;
         try
         {
             var failure = await Assert.That(async () => await OpenCodeServer.StartWithSeamsAsync(
-                new OpenCodeServerOptions
-                {
-                    Command = ["bun", "-e", "console.error('starting pid=' + process.pid); setTimeout(() => {}, 120000)"],
-                    ReadinessTimeout = TimeSpan.FromSeconds(5),
-                    Output = output,
-                },
+                ClosingStdoutOptions(output),
                 LauncherSeams.ForCurrentProcess() with { TreeKill = failing },
                 cancellationToken)).Throws<OpenCodeServerException>();
 
-            await Assert.That(failure!.Message).Contains("did not report readiness");
-            await Assert.That(failure.Message).Contains("starting pid=");
-            processId = StartingPid(output.GetSnapshot().StandardError);
+            var processId = LadderTree.Pid(output, LadderTree.Root);
+            await Assert.That(failure!.Message).Contains("closed its standard output before reporting readiness");
+            await Assert.That(failure.Message).Contains(RootReport(processId));
             _ = await failing.Received(1).KillTreeAsync(processId, Arg.Any<TimeSpan>());
             await Assert.That(await ProcessObservation.ObserveExitWithinAsync(processId, ChildObservationBound, cancellationToken)).IsTrue();
 
@@ -561,11 +556,7 @@ public sealed class OpenCodeServerLifecycleTests
         }
         finally
         {
-            processId = processId is 0 ? TryStartingPid(output.GetSnapshot().StandardError) : processId;
-            if (processId > 0)
-            {
-                ProcessObservation.KillIfRunning(processId);
-            }
+            _ = await LadderTree.EndEveryReportedProcessAsync(output);
         }
     }
 
@@ -573,13 +564,18 @@ public sealed class OpenCodeServerLifecycleTests
     /// The normal close waits for the child's own exit, not for its output to reach end-of-stream:
     /// a descendant still holding stdout does not hold disposal open past the child's prompt exit
     /// (on the tree kill on Windows, on SIGTERM elsewhere), and the readers of the pipes it still holds
-    /// are released all the same. The holder is the test's to end, by the pid it recorded.
+    /// are released all the same. The holder is out of the close's reach on every platform: its parent
+    /// exited before readiness, so the tree kill finds no path to it, and it runs in a session of its
+    /// own, outside the group <c>SIGTERM</c> reaches. It still holds the pipes when the close returns,
+    /// and the test ends it by the pid it recorded.
     /// </summary>
     /// <remarks>
-    /// The long grace keeps the bound far from both outcomes. A close that waits for end-of-stream
-    /// runs out the whole grace and then the 10-second forced-exit wait, about 40 seconds; the
-    /// prompt close takes well under a second. A 10-second bound leaves room for a loaded machine
-    /// and still fails the waiting close by 30 seconds.
+    /// The grace is longer than the test may run, so a close that waits for end-of-stream cannot
+    /// return while the holder lives, and the holder lives until the test ends it, after the close.
+    /// The close's return decides; the hang guard around it is far
+    /// above anything the prompt close needs, and only a close still waiting for the holder reaches
+    /// it. The holder is ended before a close still pending is awaited again, so a waiting close
+    /// then finishes instead of outliving the test.
     /// </remarks>
     [Test]
     [Timeout(120_000)]
@@ -588,11 +584,14 @@ public sealed class OpenCodeServerLifecycleTests
         using var runRoot = new TestRunRoot(FileSystem);
         var pidFile = FileSystem.Path.Combine(runRoot.Path, "holder.pid");
         OpenCodeServer? server = null;
+        Task? disposal = null;
         int? holderId = null;
         var holderRunningAtClose = false;
+        var holderRunningAfterClose = false;
+        var closed = false;
         var holderEnded = false;
         var readersEndedAtClose = false;
-        TimeSpan elapsed;
+        var elapsed = TimeSpan.Zero;
         try
         {
             server = await OpenCodeServer.StartAsync(
@@ -603,26 +602,28 @@ public sealed class OpenCodeServerLifecycleTests
                     {
                         ["OPENCODE_SDK_TEST_HOLDER_PID_FILE"] = pidFile,
                     },
-                    GracefulShutdownTimeout = TimeSpan.FromSeconds(30),
+                    GracefulShutdownTimeout = HolderOutlivingGrace,
                 },
                 cancellationToken);
             holderId = await ReadProcessIdAsync(pidFile, cancellationToken);
             holderRunningAtClose = ProcessObservation.IsRunning(holderId.Value);
-            var disposal = Stopwatch.StartNew();
-            await server.DisposeAsync();
-            elapsed = disposal.Elapsed;
+            var clock = Stopwatch.StartNew();
+            disposal = server.DisposeAsync().AsTask();
+            closed = await BoundedWait.CompletesWithinAsync(disposal, CloseHangGuard);
+            elapsed = clock.Elapsed;
+            if (closed)
+            {
+                // A close that failed fails the test with its own fault.
+                await disposal;
+            }
 
-            // The holder still holds the output pipes, so only the release can have ended the readers.
-            readersEndedAtClose = server.OutputReadersEnded.IsCompleted;
+            // The readers are read before the holder: a holder still running afterwards held the pipes
+            // throughout, so only the release can have ended the readers.
+            readersEndedAtClose = closed && server.OutputReadersEnded.IsCompleted;
+            holderRunningAfterClose = ProcessObservation.IsRunning(holderId.Value);
         }
         finally
         {
-            if (server is not null)
-            {
-                // A no-op after the measured disposal; it ends the child when the arrangement failed.
-                await server.DisposeAsync();
-            }
-
             // The fixture records the holder before it reports readiness, so a start or a pid read
             // that failed can still have left a holder running.
             holderId ??= await TryReadProcessIdAsync(pidFile);
@@ -631,12 +632,25 @@ public sealed class OpenCodeServerLifecycleTests
                 ProcessObservation.KillIfRunning(id);
                 holderEnded = await ProcessObservation.ObserveExitWithinAsync(id, HolderExitBound, CancellationToken.None);
             }
+
+            if (disposal is null && server is not null)
+            {
+                // The arrangement failed before the measured close: this close ends the child.
+                await server.DisposeAsync();
+            }
+            else if (disposal is { IsCompleted: false })
+            {
+                // A close still waiting for end-of-stream gets it from the holder's end and finishes.
+                _ = await BoundedWait.CompletesWithinAsync(disposal, CloseHangGuard);
+            }
         }
 
         await Assert.That(holderRunningAtClose).IsTrue();
-        await Assert.That(elapsed).IsLessThan(TimeSpan.FromSeconds(10));
+        await Assert.That(closed).IsTrue();
         await Assert.That(readersEndedAtClose).IsTrue();
+        await Assert.That(holderRunningAfterClose).IsTrue();
         await Assert.That(holderEnded).IsTrue();
+        Console.WriteLine("branch: " + (OperatingSystem.IsWindows() ? "Windows tree kill" : "POSIX group SIGTERM") + " — the close returned after " + elapsed.TotalMilliseconds.ToString("F0", CultureInfo.InvariantCulture) + " ms, and the holder still held stdout after it");
     }
 
     [Test]
