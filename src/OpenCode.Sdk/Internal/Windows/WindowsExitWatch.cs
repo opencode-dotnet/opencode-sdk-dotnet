@@ -125,11 +125,14 @@ internal sealed class WindowsExitWatch : IWindowsExitWatch
             status = ChildExitStatus.Unknown;
         }
 
-        _ = _exited.TrySetResult(status);
+        // The exit is marked before the task completes, so a caller that saw the exit and then
+        // disposes the watch always finds it marked and releases at once.
         if (Interlocked.Exchange(ref _state, ExitObserved) == Disposed)
         {
             Release();
         }
+
+        _ = _exited.TrySetResult(status);
     }
 
     private void Release()

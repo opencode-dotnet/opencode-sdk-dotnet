@@ -3,38 +3,38 @@ using System.IO.Abstractions;
 namespace OpenCode.Sdk.TestSupport;
 
 /// <summary>
-/// What the pinned server would load into every owned server from above a run root. Configuration
-/// discovery walks from each location to the drive root with no stop
-/// (<c>packages/core/src/config/discovery.ts:36</c> over <c>packages/util/src/fs-util.ts:164-187</c>
-/// at the pin), so an ancestor's project configuration, and the skills directories it watches
-/// natively, belong to every workspace beneath it - whatever the environment redirects. Project
-/// resolution walks the same way: a workspace inside a repository belongs to that repository's
-/// project, so an enclosing checkout would become the project of every plain workspace.
+/// What the pinned server would load from above a location when its project configuration
+/// discovery is on. Discovery walks from the location to the drive root with no stop
+/// (<c>packages/core/src/config/discovery.ts:33-36</c> over <c>packages/util/src/fs-util.ts:165</c>
+/// at the pin), so an ancestor's project configuration belongs to every workspace beneath it -
+/// whatever the environment redirects. Every owned server turns that walk off
+/// (<see cref="ServerIsolation"/>); these checks guard what still walks: the server whose subject
+/// is project configuration, and an installed command that may not read the switch. Project
+/// resolution walks the same way and has no switch: a workspace inside a repository belongs to
+/// that repository's project, so an enclosing checkout would become the project of every plain
+/// workspace.
 /// </summary>
 internal sealed class RunRootAncestry
 {
-    /// <summary>
-    /// The project configuration files discovery reads (<c>discovery.ts:11</c>), and the marker of
-    /// a linked git worktree, which is a file where a repository has a directory.
-    /// </summary>
-    private static readonly string[] StateFiles = ["opencode.json", "opencode.jsonc", ".git"];
+    /// <summary>A repository, and the marker of a linked git worktree, which is a file where a repository has a directory.</summary>
+    private const string Repository = ".git";
 
-    /// <summary>
-    /// A repository, the project root discovery loads and watches as a directory, and the two
-    /// compatibility roots, which contribute their skills directory and nothing else
-    /// (<c>discovery.ts:41</c>, <c>config/plugin/compatibility.ts:41</c>).
-    /// </summary>
-    private static readonly string[][] StateDirectories =
-        [[".git"], [".opencode"], [".claude", "skills"], [".agents", "skills"]];
-
-    /// <summary>
-    /// The project configuration that can carry MCP servers, plugins and tools: the two config
-    /// files and the project directory that holds both kinds. The compatibility roots are not here:
-    /// they contribute skills, which are instructions, and nothing that runs or authenticates.
-    /// </summary>
+    /// <summary>The project configuration files discovery reads (<c>discovery.ts:11</c>).</summary>
     private static readonly string[] ConfigurationFiles = ["opencode.json", "opencode.jsonc"];
 
+    /// <summary>
+    /// The project directory, which can carry MCP servers, plugins, tools, agents, commands and
+    /// skills, as the two configuration files can.
+    /// </summary>
     private static readonly string[][] ConfigurationDirectories = [[".opencode"]];
+
+    /// <summary>
+    /// The skills directories of the two compatibility roots discovery registers in every
+    /// directory it walks (<c>discovery.ts:41</c>, <c>config/plugin/compatibility.ts:39</c>). Their
+    /// skills are developer state a server loads and hands the model, like any other project
+    /// configuration; unlike it, they start, load and authenticate nothing.
+    /// </summary>
+    private static readonly string[][] SkillDirectories = [[".claude", "skills"], [".agents", "skills"]];
 
     private readonly IFileSystem _fileSystem;
 
@@ -45,33 +45,32 @@ internal sealed class RunRootAncestry
         _fileSystem = fileSystem;
     }
 
-    /// <summary>Finds the nearest state an ancestor of <paramref name="directory"/>, or the directory itself, would contribute.</summary>
+    /// <summary>
+    /// Finds the nearest state an ancestor of <paramref name="directory"/>, or the directory
+    /// itself, would contribute to a workspace beneath it: a repository, and every kind of project
+    /// configuration discovery loads, skills included. The suite chooses where run roots live, so
+    /// nothing of the kind is accepted above them.
+    /// </summary>
     /// <param name="directory">The directory run roots are created in.</param>
     /// <returns>The offending path, or null when the whole chain is clean.</returns>
-    public string? FindDeveloperState(string directory)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
-
-        for (var current = _fileSystem.Path.GetFullPath(directory);
-             current is { Length: > 0 };
-             current = _fileSystem.Path.GetDirectoryName(current))
-        {
-            if (StateIn(current, StateDirectories, StateFiles) is { } state)
-            {
-                return state;
-            }
-        }
-
-        return null;
-    }
+    public string? FindDeveloperState(string directory) =>
+        Walk(directory, [[Repository], .. ConfigurationDirectories, .. SkillDirectories], [.. ConfigurationFiles, Repository]);
 
     /// <summary>
     /// Finds the nearest project configuration in <paramref name="directory"/> or above it that
     /// can start MCP servers, load plugins, or add tools in a server whose location is beneath it.
+    /// The developer chooses where the checkout lives, and only a server with discovery on walks
+    /// from there for a request without a location, so this refuses what would run inside it.
+    /// Skills directories are the same developer state <see cref="FindDeveloperState"/> refuses,
+    /// and stay accepted here: a checkout under a home that keeps its own skills is the usual
+    /// Linux and macOS layout, and such a server would read them but run nothing from them.
     /// </summary>
-    /// <param name="directory">The first directory, walking up, whose project configuration is not pinned.</param>
+    /// <param name="directory">The first directory, walking up, that the checkout does not own.</param>
     /// <returns>The offending path, or null when the whole chain is clean.</returns>
-    public string? FindProjectConfiguration(string directory)
+    public string? FindProjectConfiguration(string directory) =>
+        Walk(directory, ConfigurationDirectories, ConfigurationFiles);
+
+    private string? Walk(string directory, string[][] directories, string[] files)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
 
@@ -79,9 +78,9 @@ internal sealed class RunRootAncestry
              current is { Length: > 0 };
              current = _fileSystem.Path.GetDirectoryName(current))
         {
-            if (StateIn(current, ConfigurationDirectories, ConfigurationFiles) is { } configuration)
+            if (StateIn(current, directories, files) is { } state)
             {
-                return configuration;
+                return state;
             }
         }
 
