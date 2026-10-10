@@ -35,7 +35,15 @@ public sealed class ServicePtyHandoffTests
     private const long TicketExpiry = 1700000060000;
     private const long NowMilliseconds = 1_700_000_000_000;
     private static readonly DateTimeOffset Now = DateTimeOffset.FromUnixTimeMilliseconds(NowMilliseconds);
-    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// The request bound every preparation test hands the product, far past any loopback exchange a
+    /// loaded runner still completes: the daemon double's answer, a recorded request, or the caller's
+    /// cancellation decides which path the preparation takes, never this bound expiring first. Only
+    /// the test about the bound itself passes a short one.
+    /// </summary>
+    private static readonly TimeSpan RequestTimeout = ServiceTimingData.PatientRequestTimeout;
+
     private static readonly FixtureLoader Fixtures = new();
     private static readonly JsonElement Ticket = LoadTicket();
 
@@ -153,20 +161,29 @@ public sealed class ServicePtyHandoffTests
         fileSystem.DidNotReceiveWithAnyArgs().Rename(default!, default!);
     }
 
+    /// <summary>
+    /// The concurrent caller's sidecar lands once the ticket request has reached the daemon double and
+    /// before its failed answer is released, so the recheck finds it: the preparation returns without
+    /// a shutdown and leaves that sidecar in place.
+    /// </summary>
     [Test]
     public async Task PrepareAsync_Should_Return_When_A_Concurrent_Caller_Published_A_Fresh_Matching_Sidecar()
     {
         var arrived = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        await using var server = LoopbackHttpServer.Start(_ => Pending(arrived));
+        await using var server = LoopbackHttpServer.Start(path => path == ShutdownPath ? NoContent() : Pending(arrived));
         var registration = Registration(server.Endpoint);
 
         var pending = Handoff().PrepareAsync(RegistrationPath(), registration, RequestTimeout, CancellationToken.None);
-        _ = await arrived.Task.WaitAsync(RequestTimeout);
+        // The arrival or the preparation's end, whichever comes first; the preparation's own bound
+        // ends a request that never arrives, so no timer of the test's decides.
+        _ = await Task.WhenAny(arrived.Task, pending);
+        await Assert.That(arrived.Task.IsCompleted).IsTrue();
         Seed(SidecarPath(), Sidecar(registration, Ticket, NowMilliseconds + 60_000).ToUtf8Json());
         server.ReleaseResponses();
 
         await pending;
 
+        await Assert.That(server.RequestPaths).DoesNotContain(ShutdownPath);
         await Assert.That(ReadSidecar()!.Handoff).IsNotNull();
     }
 
@@ -325,16 +342,23 @@ public sealed class ServicePtyHandoffTests
             .Throws<OperationCanceledException>();
     }
 
-    /// <summary>A cancellation that arrives while the ticket request is in flight is the caller's, never a preparation failure.</summary>
+    /// <summary>
+    /// A cancellation that arrives while the ticket request is in flight is the caller's, never a
+    /// preparation failure. The caller cancels once the request has reached the daemon double, which
+    /// holds its answer, so the cancellation is the only thing that can end the request.
+    /// </summary>
     [Test]
     public async Task PrepareAsync_Should_Rethrow_Caller_Cancellation_During_The_Ticket_Request()
     {
         var arrived = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        await using var server = LoopbackHttpServer.Start(_ => Pending(arrived));
+        await using var server = LoopbackHttpServer.Start(path => path == ShutdownPath ? NoContent() : Pending(arrived));
         using var caller = new CancellationTokenSource();
 
         var pending = Handoff().PrepareAsync(RegistrationPath(), Registration(server.Endpoint), RequestTimeout, caller.Token);
-        _ = await arrived.Task.WaitAsync(RequestTimeout);
+        // The arrival or the preparation's end, whichever comes first; the preparation's own bound
+        // ends a request that never arrives, so no timer of the test's decides.
+        _ = await Task.WhenAny(arrived.Task, pending);
+        await Assert.That(arrived.Task.IsCompleted).IsTrue();
         await caller.CancelOnWorkerAsync();
 
         OperationCanceledException? caught = null;

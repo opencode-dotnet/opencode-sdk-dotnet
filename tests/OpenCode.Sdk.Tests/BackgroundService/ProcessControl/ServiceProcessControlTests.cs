@@ -18,7 +18,14 @@ namespace OpenCode.Sdk.Tests.BackgroundService.ProcessControl;
 public sealed class ServiceProcessControlTests
 {
     private static readonly RealFileSystem FileSystem = new();
+
+    /// <summary>A hang guard on an exit a test caused: only a process the signal did not end reaches it.</summary>
     private static readonly TimeSpan ExitBound = TimeSpan.FromSeconds(15);
+
+    /// <summary>
+    /// How long a process that must stay alive is watched. It is only ever asserted not to exit
+    /// within it, never to exit within it, so a slow host cannot fail a test that holds.
+    /// </summary>
     private static readonly TimeSpan SurvivalBound = TimeSpan.FromSeconds(2);
 
     [Test]
@@ -91,18 +98,19 @@ public sealed class ServiceProcessControlTests
         var live = control.TrySnapshot(lingering.ProcessId)!.Value;
 
         await Assert.That(control.TrySignal(live, ProcessSignal.Terminate)).IsTrue();
-        var leftOnTheFirstRung = await lingering.ObserveExitWithinAsync(SurvivalBound, cancellationToken);
 
         if (OperatingSystem.IsWindows())
         {
-            // Windows has no signal to ignore: the first rung is already TerminateProcess.
+            // Windows has no signal to ignore: the first rung is already TerminateProcess, so the
+            // exit itself decides, under the same hang guard as the terminate rung's own test.
             Console.WriteLine("branch: Windows — the terminate rung is a hard kill and ended pid " + lingering.ProcessId.ToString(CultureInfo.InvariantCulture));
-            await Assert.That(leftOnTheFirstRung).IsTrue();
+            await Assert.That(await lingering.ObserveExitWithinAsync(ExitBound, cancellationToken)).IsTrue();
+            await Assert.That(await WaitForTheTableAsync(control, lingering.ProcessId, cancellationToken)).IsNull();
             return;
         }
 
         Console.WriteLine("branch: Unix — pid " + lingering.ProcessId.ToString(CultureInfo.InvariantCulture) + " ignored SIGTERM, SIGKILL ends it");
-        await Assert.That(leftOnTheFirstRung).IsFalse();
+        await Assert.That(await lingering.ObserveExitWithinAsync(SurvivalBound, cancellationToken)).IsFalse();
         await Assert.That(control.TrySnapshot(lingering.ProcessId)).IsEqualTo(live);
         await Assert.That(control.TrySignal(live, ProcessSignal.Kill)).IsTrue();
         await Assert.That(await lingering.ObserveExitWithinAsync(ExitBound, cancellationToken)).IsTrue();

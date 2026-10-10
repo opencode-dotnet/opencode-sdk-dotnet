@@ -22,10 +22,11 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// handle itself, which a Node or Bun stand-in cannot (its runtime keeps a handle of its own), and
 /// lingers.
 /// <c>handle-isolation &lt;command…&gt;</c> owns an inheritable pipe while it starts a server with that
-/// command, closes its own write end, and prints <c>inherited pipe eof=&lt;True|False&gt;</c>: only a
-/// server that inherited the write end keeps the end-of-stream away. <c>handle-cycles
-/// &lt;command…&gt;</c> starts and disposes servers with that command, and fails starts on purpose, in
-/// three rounds, and prints <c>handles=&lt;after warm-up&gt;, &lt;after one round&gt;, &lt;after two&gt;</c>:
+/// command, closes its own write end, and prints <c>inherited pipe eof=&lt;True|False&gt;</c>: the pipe's
+/// end-of-stream arrives at once unless a server inherited the write end, which keeps it away while
+/// the server runs, and only that server meets the probe's hang guard and the <c>False</c> report.
+/// <c>handle-cycles &lt;command…&gt;</c> starts and disposes servers with that command, and fails starts
+/// on purpose, in three rounds, and prints <c>handles=&lt;after warm-up&gt;, &lt;after one round&gt;, &lt;after two&gt;</c>:
 /// this process's handle count once every exit watch was released.
 /// </remarks>
 [SupportedOSPlatform("windows")]
@@ -36,8 +37,11 @@ internal static class WindowsLauncherProbe
 
     private const string ReadyLine = "{\"url\":\"http://127.0.0.1:1\"}";
 
-    /// <summary>How long the isolation probe waits for the end-of-stream a released pipe gives.</summary>
-    private static readonly TimeSpan EndOfStreamBound = TimeSpan.FromSeconds(2);
+    /// <summary>
+    /// The isolation probe's hang guard: a released pipe ends at once, so only a server holding the
+    /// inherited write end, which keeps the end-of-stream away for as long as it runs, reaches it.
+    /// </summary>
+    private static readonly TimeSpan EndOfStreamGuard = TimeSpan.FromSeconds(60);
 
     /// <summary>How long a round of the handle count waits for its exit watches to be released.</summary>
     private static readonly TimeSpan ReleaseBound = TimeSpan.FromSeconds(10);
@@ -99,9 +103,6 @@ internal static class WindowsLauncherProbe
         return code;
     }
 
-    [SlopwatchSuppress(
-        "SW004",
-        "The bound is the proof: an end-of-stream that has not come within it is what a server holding an inherited write end looks like, and nothing else can signal its absence.")]
     public static async Task<int> ProbeHandleIsolationAsync(IReadOnlyList<string> command)
     {
         using var pipe = new AnonymousPipeServerStream(PipeDirection.In, HandleInheritability.Inheritable);
@@ -112,9 +113,20 @@ internal static class WindowsLauncherProbe
             var buffer = new byte[1];
 
             // The read end is synchronous, so this read holds a pool thread until the end-of-stream
-            // or the process exit; the probe exits right after it reports.
+            // or the process exit; the probe exits right after it reports. The server is released
+            // only after the read, so an end-of-stream seen here came while the server ran; a
+            // server holding the write end keeps it away until the guard.
             var read = pipe.ReadAsync(buffer, 0, buffer.Length);
-            var ended = await Task.WhenAny(read, Task.Delay(EndOfStreamBound)).ConfigureAwait(false) == read && await read.ConfigureAwait(false) == 0;
+            bool ended;
+            try
+            {
+                ended = await read.WaitAsync(EndOfStreamGuard).ConfigureAwait(false) == 0;
+            }
+            catch (TimeoutException)
+            {
+                ended = false;
+            }
+
             await Console.Out.WriteLineAsync("inherited pipe eof=" + ended.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
             await Console.Out.FlushAsync().ConfigureAwait(false);
         }
