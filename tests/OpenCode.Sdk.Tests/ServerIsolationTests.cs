@@ -81,6 +81,61 @@ public sealed class ServerIsolationTests
             && !cache.StartsWith(second + fileSystem.Path.DirectorySeparatorChar, StringComparison.Ordinal)).IsTrue();
     }
 
+    /// <summary>
+    /// Project configuration discovery walks from a location to the drive root, so every owned
+    /// server is launched with upstream's own switch for it on.
+    /// </summary>
+    [Test]
+    public async Task For_Should_Turn_Project_Configuration_Discovery_Off()
+    {
+        var fileSystem = new MockFileSystem();
+        var runRoot = fileSystem.Path.Combine(fileSystem.Path.GetTempPath(), "run");
+
+        var environment = ServerIsolation.For(fileSystem, runRoot).Environment;
+
+        await Assert.That(environment["OPENCODE_DISABLE_PROJECT_CONFIG"]).IsEqualTo("1");
+    }
+
+    /// <summary>
+    /// The server whose subject is project configuration takes the same map with discovery on,
+    /// set rather than left out, because every child of the session inherits it off.
+    /// </summary>
+    [Test]
+    public async Task ForProjectConfiguration_Should_Differ_Only_In_Turning_Discovery_On()
+    {
+        var fileSystem = new MockFileSystem();
+        var runRoot = fileSystem.Path.Combine(fileSystem.Path.GetTempPath(), "run");
+
+        var isolated = ServerIsolation.For(fileSystem, runRoot).Environment;
+        var discovering = ServerIsolation.ForProjectConfiguration(fileSystem, runRoot).Environment;
+
+        await Assert.That(discovering["OPENCODE_DISABLE_PROJECT_CONFIG"]).IsEqualTo("0");
+        await Assert.That(discovering.Keys).IsEquivalentTo(isolated.Keys);
+        await Assert.That(discovering.Where(pair => pair.Key != "OPENCODE_DISABLE_PROJECT_CONFIG" && isolated[pair.Key] != pair.Value)).IsEmpty();
+    }
+
+    /// <summary>
+    /// The server's temp root is the runtime's temp directory plus its own name, so the variables
+    /// the runtime reads it from on this platform name an existing directory inside the run root.
+    /// </summary>
+    [Test]
+    public async Task For_Should_Name_An_Existing_Temp_Directory_Beneath_The_Run_Root()
+    {
+        var fileSystem = new MockFileSystem();
+        var runRoot = fileSystem.Path.Combine(fileSystem.Path.GetTempPath(), "run");
+
+        var environment = ServerIsolation.For(fileSystem, runRoot).Environment;
+
+        var temporary = environment["TMPDIR"];
+        await Assert.That(fileSystem.Directory.Exists(temporary)).IsTrue();
+        await Assert.That(temporary.StartsWith(runRoot + fileSystem.Path.DirectorySeparatorChar, StringComparison.Ordinal)).IsTrue();
+        _ = environment.TryGetValue("TMP", out var tmp);
+        _ = environment.TryGetValue("TEMP", out var temp);
+        var windows = OperatingSystem.IsWindows();
+        await Assert.That(tmp).IsEqualTo(windows ? temporary : null);
+        await Assert.That(temp).IsEqualTo(windows ? temporary : null);
+    }
+
     [Test]
     public async Task ConfirmHonored_Should_Refuse_A_Server_That_Opened_No_Database_Under_The_Run_Root()
     {

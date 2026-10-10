@@ -40,7 +40,32 @@ internal sealed class PinnedServerLaunch
     {
         ArgumentNullException.ThrowIfNull(runRoot);
 
-        var isolation = ServerIsolation.For(_fileSystem, runRoot.Path);
+        return await StartAsync(ServerIsolation.For(_fileSystem, runRoot.Path), command, gracefulShutdownTimeout, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Starts the pinned server over its own run root with project configuration discovery on, for
+    /// a test whose subject is project configuration; every request it sends names a location
+    /// inside <paramref name="runRoot"/>.
+    /// </summary>
+    /// <param name="runRoot">The per-run root every global state directory is redirected into.</param>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>The started server.</returns>
+    public async Task<OpenCodeServer> StartWithProjectConfigurationAsync(TestRunRoot runRoot, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(runRoot);
+
+        return await StartAsync(ServerIsolation.ForProjectConfiguration(_fileSystem, runRoot.Path), null, null, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<OpenCodeServer> StartAsync(
+        IsolationBoundary isolation,
+        IReadOnlyList<string>? command,
+        TimeSpan? gracefulShutdownTimeout,
+        CancellationToken cancellationToken)
+    {
         var options = new OpenCodeServerOptions
         {
             Command = command ?? Command,

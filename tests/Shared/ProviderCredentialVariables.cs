@@ -12,8 +12,8 @@ namespace OpenCode.Sdk.TestSupport;
 /// model catalog lists under <c>env</c>, and every variable name the provider and plugin sources
 /// spell or read, which takes in every <c>type: "env"</c> method's names, every name a provider
 /// hands its auth helper, and every direct <c>process.env</c> read. Two short hand lists remain:
-/// the names an auth library reads that the pinned source never spells, and the names those
-/// sources read that are not provider configuration at all.
+/// the names an auth library or tool reads whether or not the pinned source spells them, and the
+/// names those sources read that are not provider configuration at all.
 /// </summary>
 internal static class ProviderCredentialVariables
 {
@@ -32,18 +32,22 @@ internal static class ProviderCredentialVariables
         [["packages", "core", "src", "plugin"], ["packages", "ai", "src", "providers"]];
 
     /// <summary>
-    /// What Vertex's Google auth library reads without the pinned source naming it: a service
-    /// account key file, and the gcloud configuration directory that holds the developer's
-    /// application default credentials.
+    /// What a provider's auth tool reads whether or not the pinned source names it: Vertex's
+    /// Google auth library takes a service account key file and the gcloud configuration directory
+    /// that holds the developer's application default credentials, and the Azure CLI, which the
+    /// Azure provider runs with the server's whole environment, takes the directory that holds the
+    /// developer's <c>az login</c> session.
     /// </summary>
-    private static readonly string[] LibraryReads = ["GOOGLE_APPLICATION_CREDENTIALS", "CLOUDSDK_CONFIG"];
+    private static readonly string[] LibraryReads = ["GOOGLE_APPLICATION_CREDENTIALS", "CLOUDSDK_CONFIG", "AZURE_CONFIG_DIR"];
 
     /// <summary>
     /// What the scanned sources read that is not provider configuration: the terminal and shell a
-    /// skill's command runs under, and the proxy routing the scrub handles on its own terms.
+    /// skill's command runs under, the proxy routing the scrub handles on its own terms, and Windows'
+    /// roaming profile root, which a provider reads to find its stores and which the isolation map
+    /// moves into the run root for every owned server.
     /// </summary>
     private static readonly string[] NotCredentials =
-        ["TERM", "TERM_PROGRAM", "COLORTERM", "SHELL", "ComSpec", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"];
+        ["TERM", "TERM_PROGRAM", "COLORTERM", "SHELL", "ComSpec", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY", "APPDATA"];
 
     /// <summary>Whether a variable belongs to the AWS credential chain.</summary>
     /// <param name="name">The variable name, in any case.</param>
@@ -52,7 +56,7 @@ internal static class ProviderCredentialVariables
 
     /// <summary>Gets whether a name the sources read is deliberately left to the environment.</summary>
     /// <param name="name">The variable name, in any case.</param>
-    /// <returns>True for a terminal, shell or proxy variable.</returns>
+    /// <returns>True for a terminal, shell, proxy or Windows profile-root variable.</returns>
     public static bool IsNotCredential(string name) =>
         Array.Exists(NotCredentials, kept => string.Equals(kept, name, StringComparison.OrdinalIgnoreCase));
 

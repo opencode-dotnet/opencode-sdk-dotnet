@@ -8,19 +8,22 @@ namespace OpenCode.Sdk.TestSupport;
 /// this layer covers is every child that only inherits: a contender a door spawns, a fixture
 /// process, or a server a test starts without a map of its own. Such a server finds opencode's own
 /// config, data, state, cache and stored credentials under this session's root, not in the
-/// developer's profile.
+/// developer's profile, and loads no project configuration from above its location.
 /// It is still a defect, because it shares that root with every other server like it and nothing
 /// confirmed it honoured the isolation, so the session fails at its end when a database appeared
 /// here. HOME and USERPROFILE stay as they are, and so do APPDATA and LOCALAPPDATA: git, the .NET
 /// host and NuGet read them too, and the variables set here already move every root the server
-/// itself derives from the home. What a provider's own SDK reads from the profile (an AWS shared
-/// credentials file, gcloud's application default credentials) is not moved here; only an owned
-/// launch, which takes the whole map, moves it.
+/// itself derives from the home. The temp variables stay too: the test host takes its own temp
+/// directory from them, and on Linux and macOS the run roots with it. What a provider's own SDK
+/// reads from the profile (an AWS shared credentials file, gcloud's application default
+/// credentials) and the server's temp root are not moved here; only an owned launch, which takes
+/// the whole map, moves them.
 /// </summary>
 public static class SessionIsolation
 {
     /// <summary>The variables the session leaves to the platform rather than to this layer.</summary>
-    private static readonly string[] Inherited = ["HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA"];
+    private static readonly string[] Inherited =
+        ["HOME", "USERPROFILE", "APPDATA", "LOCALAPPDATA", "TMPDIR", "TMP", "TEMP"];
 
     private static readonly RealFileSystem FileSystem = new();
     private static readonly HashSet<string> Applied = new(StringComparer.OrdinalIgnoreCase);
