@@ -8,15 +8,13 @@ namespace OpenCode.Sdk.Tests;
 [NotInParallel]
 public sealed class OwnedTransportTests
 {
-#if NET472
     /// <summary>
-    /// Bounds only a hang on net472, where a cancelled socket read and the server's view of the
-    /// closed connection both settle on pool continuations: the surfaced outcome and the observed
-    /// disconnect decide the verdict, so a slow pool settling them late is no failure, and a read
-    /// or socket that never settles still fails as a timeout rather than the awaited outcome.
+    /// Bounds only a hang: the surfaced outcome decides the verdict. On net472 a cancelled socket
+    /// read and the server's view of the closed connection both settle on pool continuations, so a
+    /// slow pool settling them late is no failure, and a read or socket that never settles still
+    /// fails as a timeout rather than the awaited outcome.
     /// </summary>
     private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
-#endif
 
 #if NET
     [Test]
@@ -97,23 +95,29 @@ public sealed class OwnedTransportTests
             Body = WireBodyData.InfoOk,
             KeepOpen = true,
         });
-        using var handler = TransportPolicy.CreateOwnedHttpHandler(server.Endpoint);
+        var time = new ManualTimeProvider();
+        using var ownedHandler = TransportPolicy.CreateOwnedHttpHandler(server.Endpoint);
+        using var handler = new HeadersSignal(ownedHandler);
         using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(
-            httpClient, endpoint: server.Endpoint, networkTimeout: TimeSpan.FromMilliseconds(250));
+        using var pipeline = PipelineFactory.Create(httpClient, endpoint: server.Endpoint, time: time);
 
         // The client's own timeout never guards a post-headers read; the progress window is
         // the only timer over a real stalled socket, interrupting through the read token on
         // modern targets and through content disposal on net472. The message names the phase:
         // a window that fired before the headers would fail the send instead and still throw
-        // the same exception type.
+        // the same exception type. The window runs on the test's clock, which passes it only
+        // once the headers are in, so the body phase is the only one it can fire in.
+        var execution = pipeline.ExecuteAsync(
+            HttpMethod.Get,
+            "/api/info",
+            new RecordingResponseAdapter(),
+            options: null,
+            CancellationToken.None);
+        await handler.HeadersReceived.WaitAsync(HangGuard);
+        time.Advance(PipelineMessage.DefaultNetworkTimeout);
+
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
-                HttpMethod.Get,
-                "/api/info",
-                new RecordingResponseAdapter(),
-                options: null,
-                CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5)))
+            .That(execution.WaitAsync(HangGuard))
             .Throws<OpenCodeTransportException>();
 
         await Assert.That(exception!.Message).IsEqualTo("The opencode response body could not be read.");
@@ -274,4 +278,20 @@ public sealed class OwnedTransportTests
         }
     }
 #endif
+
+    /// <summary>Reports when the inner handler has returned a response, which is when its headers are in.</summary>
+    private sealed class HeadersSignal(HttpMessageHandler inner) : DelegatingHandler(inner)
+    {
+        private readonly TaskCompletionSource<bool> _headersReceived = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        /// <summary>Gets a task that completes once a response's headers are in.</summary>
+        public Task HeadersReceived => _headersReceived.Task;
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var response = await base.SendAsync(request, cancellationToken);
+            _ = _headersReceived.TrySetResult(true);
+            return response;
+        }
+    }
 }

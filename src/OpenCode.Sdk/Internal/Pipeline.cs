@@ -33,7 +33,8 @@ internal sealed class Pipeline : IDisposable
     private bool _disposed;
 
     internal Pipeline(HttpClient httpClient, bool ownsHttpClient, IOpenCodeClientOptions options,
-        IEventStreamFramer? framer = null, ArrayPool<byte>? bufferPool = null, TimeSpan? networkTimeout = null)
+        IEventStreamFramer? framer = null, ArrayPool<byte>? bufferPool = null, TimeSpan? networkTimeout = null,
+        TimeProvider? time = null)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentNullException.ThrowIfNull(options);
@@ -68,7 +69,7 @@ internal sealed class Pipeline : IDisposable
         _policies =
         [
             new RequestDecorationPolicy(authorization, options.Location, UserAgentPolicy.Resolve()),
-            new ResponseBufferingPolicy(bufferPool ?? ArrayPool<byte>.Shared),
+            new ResponseBufferingPolicy(bufferPool ?? ArrayPool<byte>.Shared, time ?? TimeProvider.System),
             _transport,
         ];
 

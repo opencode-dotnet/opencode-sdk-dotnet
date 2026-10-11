@@ -45,6 +45,13 @@
     <PackageReference Include="System.Collections.Immutable" />
   </ItemGroup>
 
+  <!-- TimeProvider and ITimer are inbox from net8.0 on; the launcher's early-end drain and the
+       pipeline's progress window run on them, so the downlevel targets need the package that
+       carries them. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include="Microsoft.Bcl.TimeProvider" />
+  </ItemGroup>
+
   <!-- .NET Framework ships HttpClient in this framework assembly; no NuGet HTTP stack is added. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.Net.Http" />

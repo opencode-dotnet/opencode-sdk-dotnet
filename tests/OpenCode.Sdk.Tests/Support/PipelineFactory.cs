@@ -17,7 +17,8 @@ internal static class PipelineFactory
         LocationSelector? location = null,
         IEventStreamFramer? framer = null,
         ArrayPool<byte>? bufferPool = null,
-        TimeSpan? networkTimeout = null)
+        TimeSpan? networkTimeout = null,
+        TimeProvider? time = null)
     {
         var options = new OpenCodeClientOptions
         {
@@ -30,6 +31,6 @@ internal static class PipelineFactory
             options.Username = username;
         }
 
-        return new Pipeline(httpClient, ownsHttpClient, options, framer, bufferPool, networkTimeout);
+        return new Pipeline(httpClient, ownsHttpClient, options, framer, bufferPool, networkTimeout, time);
     }
 }

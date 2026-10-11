@@ -247,6 +247,13 @@ true; the fixture hands the boundary to the child process it starts.
   their own before the winner is ended, because ending the winner first hands the registration to a
   loser that is still starting. A registration that still names a live process after everything
   recorded was ended fails the test.
+- **The event decides a verdict, never the clock.** A test whose verdict rests on a product bound
+  passing, or not passing, runs that bound on `ManualTimeProvider`, which moves only when the test
+  moves it, and moves it only after the event the verdict rests on. The pipeline's progress window
+  takes its clock through the internal `Pipeline` constructor and the launcher's early-end drain
+  through `LauncherSeams.Time`. A test that needs the bound running first waits for the timer to
+  be created. Every other upper bound in a test is a hang guard: it decides no verdict, and only a
+  hang reaches it.
 - **A wrapper's deadline stays above the bound it wraps.** When a test helper wraps an operation
   that has its own named bound, the wrapper's deadline stays above that bound, so the named failure
   is the one reported. `OwnedCleanup` is the mechanism for cleanup: a step whose inner bound exceeds

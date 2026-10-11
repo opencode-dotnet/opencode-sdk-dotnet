@@ -119,7 +119,8 @@ internal static class PosixServerChild
                     Exited = watch.Exited,
                     Ladder = ladder,
                 },
-                start);
+                start,
+                seams.Time);
         }
         catch
         {

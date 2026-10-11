@@ -20,12 +20,15 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
     private const int MaxArrayLength = 0x7FFFFFC7;
 
     private readonly ArrayPool<byte> _pool;
+    private readonly TimeProvider _time;
 
-    public ResponseBufferingPolicy(ArrayPool<byte> pool)
+    public ResponseBufferingPolicy(ArrayPool<byte> pool, TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(pool);
+        ArgumentNullException.ThrowIfNull(time);
 
         _pool = pool;
+        _time = time;
     }
 
     public override async ValueTask ProcessAsync(PipelineMessage message, ReadOnlyMemory<PipelinePolicy> remaining)
@@ -33,9 +36,9 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
         // The window is linked over the caller's token and armed before the send, so a
         // server that never answers headers is bounded exactly like a stalled body. The
         // transport sends under NetworkToken; classification keeps reading the caller token.
-        using var progress = CancellationTokenSource.CreateLinkedTokenSource(message.CancellationToken);
+        using var progress = new ProgressWindow(message.NetworkTimeout, _time, message.CancellationToken);
         message.NetworkToken = progress.Token;
-        progress.CancelAfter(message.NetworkTimeout);
+        progress.Restart();
 
         // A streamed request body restarts the window as each chunk goes out, so the send is
         // bounded by progress exactly like the read.
@@ -66,7 +69,7 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
         return message.BufferBody || (int)message.Response!.StatusCode is < 200 or >= 300;
     }
 
-    private async Task<ResponseBody> ReadAsync(PipelineMessage message, CancellationTokenSource progress)
+    private async Task<ResponseBody> ReadAsync(PipelineMessage message, ProgressWindow progress)
     {
         var content = message.Response!.Content;
         if (content is null)
@@ -93,10 +96,9 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
 #endif
         try
         {
-            progress.CancelAfter(message.NetworkTimeout);
+            progress.Restart();
             var body = await content.ReadAsStreamAsync(progress.Token).ConfigureAwait(false);
-            return await CopyToPooledAsync(body, content.Headers.ContentLength, message.NetworkTimeout, progress)
-                .ConfigureAwait(false);
+            return await CopyToPooledAsync(body, content.Headers.ContentLength, progress).ConfigureAwait(false);
         }
         catch (Exception exception) when (FailureClassification.Handles(exception, FailurePhase.ResponseBodyRead))
         {
@@ -115,8 +117,7 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
         }
     }
 
-    private async Task<ResponseBody> CopyToPooledAsync(Stream body, long? declaredLength,
-        TimeSpan networkTimeout, CancellationTokenSource progress)
+    private async Task<ResponseBody> CopyToPooledAsync(Stream body, long? declaredLength, ProgressWindow progress)
     {
         var bytes = _pool.Rent(InitialRent(declaredLength));
         try
@@ -137,7 +138,7 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
                 }
 
                 filled += read;
-                progress.CancelAfter(networkTimeout);
+                progress.Restart();
             }
         }
         catch

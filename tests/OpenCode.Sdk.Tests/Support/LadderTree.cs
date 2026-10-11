@@ -48,6 +48,30 @@ internal static class LadderTree
             : throw new InvalidOperationException(
                 $"The ladder tree reported no '{role}' pid: " + string.Join(" | ", output.GetSnapshot().StandardError));
 
+    /// <summary>
+    /// Waits until the tree has reported the pid for a role. The collector raises no event when a
+    /// line arrives, so the wait reads it again after a short pause; the arrival decides, and only a
+    /// tree that never reports reaches the hang guard.
+    /// </summary>
+    /// <param name="output">The start's collector.</param>
+    /// <param name="role">The role.</param>
+    /// <param name="hangGuard">Bounds a tree that never reports; it decides nothing else.</param>
+    /// <returns>The pid.</returns>
+    [SlopwatchSuppress("SW004", "The collector raises no arrival event; the pause only paces a re-read, and the arrival decides")]
+    public static async Task<int> WaitForPidAsync(OpenCodeServerOutput output, string role, TimeSpan hangGuard)
+    {
+        using var guard = new CancellationTokenSource(hangGuard);
+        while (true)
+        {
+            if (Pids(output).TryGetValue(role, out var pid))
+            {
+                return pid;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(10), guard.Token);
+        }
+    }
+
     /// <summary>Reads every pid the tree reported, by role.</summary>
     /// <param name="output">The start's collector.</param>
     /// <returns>The pids.</returns>

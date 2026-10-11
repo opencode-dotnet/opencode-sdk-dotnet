@@ -1021,6 +1021,13 @@ dotnet_diagnostic.VSTHRD003.severity = none
 [src/OpenCode.Sdk/Internal/ProcessEventOutputPump.cs]
 dotnet_diagnostic.MA0045.severity = none
 
+# The progress window's expiry is a timer callback, synchronous by the ITimer contract, already
+# running on a pool thread of its own, as a source's own CancelAfter timer cancels it. There is no
+# caller to make async and no caller worker for CancelOnWorkerAsync to spare. Winner: the
+# synchronous timer-callback contract; MA0045 remains enabled for every other file.
+[src/OpenCode.Sdk/Internal/ProgressWindow.cs]
+dotnet_diagnostic.MA0045.severity = none
+
 # OpenCodeServerContractTests exercises the processless friend-assembly seam
 # (internal OpenCodeServer(Uri, string)) and the bare protected-ctor mock seam exclusively:
 # neither holds a real child process, so DisposeAsync is a no-op and nothing physical leaks when

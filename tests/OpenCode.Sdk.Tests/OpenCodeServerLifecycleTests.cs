@@ -34,6 +34,12 @@ public sealed class OpenCodeServerLifecycleTests
     /// </summary>
     private static readonly TimeSpan CloseHangGuard = TimeSpan.FromSeconds(30);
 
+    /// <summary>Bounds a stand-in that never reports or a drain that never starts; it decides nothing else.</summary>
+    private static readonly TimeSpan StartHangGuard = TimeSpan.FromSeconds(60);
+
+    /// <summary>Moves the fake clock past any bound the early-end drain could have.</summary>
+    private static readonly TimeSpan PastEveryDrainBound = TimeSpan.FromMinutes(10);
+
     private static async Task<(OpenCodeServer Server, TestRunRoot Root)> StartPinnedAsync(
         TimeSpan? gracefulShutdownTimeout = null,
         CancellationToken cancellationToken = default)
@@ -471,9 +477,10 @@ public sealed class OpenCodeServerLifecycleTests
     /// is, never as a teardown fault, and still releases everything: the stderr the drain collected
     /// is quoted, and the collector is closed. The stand-in reports its pid on stderr, then closes
     /// its stdout and keeps running, so the close fails the start, and the readiness timeout, left at
-    /// its default, never decides. On Windows the tree kill fails, and the fallback ends the root
-    /// with code 1. On Linux and macOS every signal is refused, so the child is left running and the
-    /// test ends it by its pid.
+    /// its default, never decides. The early-end drain runs on the test's clock, which passes it only
+    /// once the report is in the collector, so the quote never depends on how fast the stderr reader
+    /// was. On Windows the tree kill fails, and the fallback ends the root with code 1. On Linux and
+    /// macOS every signal is refused, so the child is left running and the test ends it by its pid.
     /// </summary>
     [Test]
     [Timeout(120_000)]
@@ -486,15 +493,17 @@ public sealed class OpenCodeServerLifecycleTests
         }
 
         var refusing = RefusingSignals();
+        var time = new ManualTimeProvider();
         var output = new OpenCodeServerOutput();
         try
         {
-            var failure = await Assert.That(async () => await OpenCodeServer.StartWithSeamsAsync(
+            var starting = OpenCodeServer.StartWithSeamsAsync(
                 ClosingStdoutOptions(output),
-                LauncherSeams.ForCurrentProcess() with { Signals = refusing },
-                cancellationToken)).Throws<OpenCodeServerException>();
+                LauncherSeams.ForCurrentProcess() with { Signals = refusing, Time = time },
+                cancellationToken);
+            var processId = await PassTheDrainOnceReportedAsync(time, output);
+            var failure = await Assert.That(starting).Throws<OpenCodeServerException>();
 
-            var processId = LadderTree.Pid(output, LadderTree.Root);
             await Assert.That(failure!.Message).Contains("closed its standard output before reporting readiness");
             await Assert.That(failure.Message).Contains(RootReport(processId));
             _ = refusing.Received(1).SignalGroup(processId, ProcessSignal.Terminate);
@@ -529,6 +538,20 @@ public sealed class OpenCodeServerLifecycleTests
         return options;
     }
 
+    /// <summary>
+    /// Waits for the closed stdout to start the early-end drain and for the stand-in's report to
+    /// reach the collector, in whichever order they come, and only then moves the clock past the
+    /// drain's bound.
+    /// </summary>
+    /// <returns>The pid the stand-in reported.</returns>
+    private static async Task<int> PassTheDrainOnceReportedAsync(ManualTimeProvider time, OpenCodeServerOutput output)
+    {
+        var processId = await LadderTree.WaitForPidAsync(output, LadderTree.Root, StartHangGuard);
+        await time.WaitForTimerAsync(StartHangGuard);
+        time.Advance(PastEveryDrainBound);
+        return processId;
+    }
+
     /// <summary>The stderr line the stand-in reports its pid in, which the failure quotes.</summary>
     private static string RootReport(int processId) =>
         "ladder-tree role=" + LadderTree.Root + " pid=" + processId.ToString(CultureInfo.InvariantCulture);
@@ -536,15 +559,17 @@ public sealed class OpenCodeServerLifecycleTests
     private static async Task AssertFailedTreeKillReportsTheStartFailureAsync(CancellationToken cancellationToken)
     {
         var failing = FailingTreeKill();
+        var time = new ManualTimeProvider();
         var output = new OpenCodeServerOutput();
         try
         {
-            var failure = await Assert.That(async () => await OpenCodeServer.StartWithSeamsAsync(
+            var starting = OpenCodeServer.StartWithSeamsAsync(
                 ClosingStdoutOptions(output),
-                LauncherSeams.ForCurrentProcess() with { TreeKill = failing },
-                cancellationToken)).Throws<OpenCodeServerException>();
+                LauncherSeams.ForCurrentProcess() with { TreeKill = failing, Time = time },
+                cancellationToken);
+            var processId = await PassTheDrainOnceReportedAsync(time, output);
+            var failure = await Assert.That(starting).Throws<OpenCodeServerException>();
 
-            var processId = LadderTree.Pid(output, LadderTree.Root);
             await Assert.That(failure!.Message).Contains("closed its standard output before reporting readiness");
             await Assert.That(failure.Message).Contains(RootReport(processId));
             _ = await failing.Received(1).KillTreeAsync(processId, Arg.Any<TimeSpan>());

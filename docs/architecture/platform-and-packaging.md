@@ -74,6 +74,10 @@ Two separate API vintages shape the downlevel legs, and conflating them would mi
 - Terminal sessions use `System.Threading.Channels` for their internal receive queue. The
   SDK declares that bridge package directly for `net472` and `netstandard2.0`; modern targets
   use the inbox implementation. Channel types are not part of the public SDK API.
+- The pipeline's progress window and the launcher's early-end drain run on `TimeProvider`, so a
+  test can run either bound on a clock it moves itself. The SDK declares
+  `Microsoft.Bcl.TimeProvider` for `net472` and `netstandard2.0`; modern targets use the inbox
+  type. `TimeProvider` is not part of the public SDK API.
 
 - Declare explicitly every package this repository's source uses directly, that appears on a
   public surface, or that is version-pinned for behavior; trust the transitive graph otherwise.

@@ -48,10 +48,11 @@ internal sealed class PipeOutputPump
     /// bound is the guarantee, and an expired bound is reported rather than raised.
     /// </summary>
     /// <param name="bound">How long the caller waits for end-of-stream.</param>
+    /// <param name="time">The clock the bound runs on.</param>
     /// <returns>True when every pipe reached end-of-stream inside the bound.</returns>
-    public async Task<bool> DrainAsync(TimeSpan bound)
+    public async Task<bool> DrainAsync(TimeSpan bound, TimeProvider time)
     {
-        if (!await BoundedWait.CompletesWithinAsync(ReadersEnded, bound).ConfigureAwait(false))
+        if (!await BoundedWait.CompletesWithinAsync(ReadersEnded, bound, time).ConfigureAwait(false))
         {
             return false;
         }
