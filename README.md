@@ -113,7 +113,7 @@ starts a private server for you.
 
 ### Nightly builds (GitHub Packages)
 
-Every code push to `master` publishes `0.9.0-nightly.{yyyyMMdd}.{shortSha}` to GitHub Packages:
+Every code push to `master` publishes `0.9.0-nightly.{yyyyMMdd}.g{shortSha}` to GitHub Packages:
 
 ```bash
 # Add the GitHub Packages source (PAT: classic token with the read:packages scope)

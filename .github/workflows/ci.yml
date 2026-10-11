@@ -318,9 +318,11 @@ jobs:
       - name: Verify generated output
         run: dotnet run --file tools/opencode-tool.cs -- generate --verify
 
+      # The g prefix keeps the commit identifier alphanumeric: an all-digit short SHA with a
+      # leading zero (0044030) is not a valid SemVer identifier, and restore fails on it.
       - name: Compute nightly version suffix
         id: version
-        run: echo "suffix=nightly.$(date -u +%Y%m%d).${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+        run: echo "suffix=nightly.$(date -u +%Y%m%d).g${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Pack
         run: dotnet pack --configuration Release --version-suffix "${{ steps.version.outputs.suffix }}" --output packages
