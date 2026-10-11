@@ -14,6 +14,15 @@ public sealed class PipelineTests
 {
     private static readonly Uri Endpoint = new("http://localhost:4096");
 
+    /// <summary>Bounds a wait for an event that never comes; it decides no verdict.</summary>
+    private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// The progress window the manual-clock tests run under: far beyond the hang guard, so only the
+    /// test's clock can pass it, never the host's.
+    /// </summary>
+    private static readonly TimeSpan Window = TimeSpan.FromMinutes(2);
+
     [Test]
     public async Task ExecuteAsync_Should_Join_The_Route_Onto_The_Endpoint()
     {
@@ -812,27 +821,61 @@ public sealed class PipelineTests
         await Assert.That(content.IsDisposed).IsTrue();
     }
 
+    /// <summary>
+    /// Under progress semantics a slow body that keeps moving survives: every chunk arrives just
+    /// inside the window, and the body as a whole outlives it several times over. The window runs on
+    /// the test's clock, which moves only while a read waits, so no scheduling delay counts.
+    /// </summary>
     [Test]
-    [NotInParallel]
     public async Task ExecuteAsync_Should_Keep_A_Trickling_Body_That_Outlives_The_Window()
     {
         var payload = Encoding.UTF8.GetBytes("{\"healthy\":true}");
-        using var content = new TricklingContent(payload, chunkCount: 12, gap: TimeSpan.FromMilliseconds(250));
+        var time = new ManualTimeProvider();
+        var started = time.GetUtcNow();
+        using var body = new GatedStream(payload, chunkCount: 4);
+        using var content = new StreamContent(body);
         using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = content,
         });
         using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, networkTimeout: TimeSpan.FromSeconds(2));
+        using var pipeline = CreatePipeline(httpClient, networkTimeout: Window, time: time);
         var adapter = new RecordingResponseAdapter();
 
-        // Twelve 250ms gaps outlive the 2s window as a whole, but every read progresses well
-        // inside it: under progress semantics the slow-but-flowing body survives. The gaps
-        // sit far under the window and the test runs alone, so a starved two-core CI
-        // runner's scheduling slop cannot push one gap past the window.
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
+        var delivering = body.DeliverAsync(() => time.Advance(Window - TimeSpan.FromTicks(1)), HangGuard);
+        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None).WaitAsync(HangGuard);
+        await delivering;
 
         await Assert.That(adapter.AdaptedRawBody).IsEqualTo("{\"healthy\":true}");
+        await Assert.That(time.GetUtcNow() - started).IsGreaterThan(TimeSpan.FromTicks(Window.Ticks * 3));
+    }
+
+    /// <summary>
+    /// The twin of the trickling body: a read that waits out the whole window fails the exchange,
+    /// so the window the trickling body survives does run on the test's clock.
+    /// </summary>
+    [Test]
+    public async Task ExecuteAsync_Should_Fail_A_Body_Read_That_Waits_Out_The_Window()
+    {
+        var payload = Encoding.UTF8.GetBytes("{\"healthy\":true}");
+        var time = new ManualTimeProvider();
+        using var body = new GatedStream(payload, chunkCount: 4);
+        using var content = new StreamContent(body);
+        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = content,
+        });
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = CreatePipeline(httpClient, networkTimeout: Window, time: time);
+
+        var execution = pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        await body.WaitForReadAsync(HangGuard);
+        body.Release();
+        await body.WaitForReadAsync(HangGuard);
+        time.Advance(Window);
+
+        var exception = await Assert.That(execution.WaitAsync(HangGuard)).Throws<OpenCodeTransportException>();
+        await Assert.That(exception!.Message).IsEqualTo("The opencode response body could not be read.");
     }
 
     [Test]
@@ -1074,6 +1117,7 @@ public sealed class PipelineTests
         string? password = null,
         string? username = null,
         LocationSelector? location = null,
-        TimeSpan? networkTimeout = null) =>
-        PipelineFactory.Create(httpClient, ownsHttpClient, endpoint, password, username, location, networkTimeout: networkTimeout);
+        TimeSpan? networkTimeout = null,
+        TimeProvider? time = null) =>
+        PipelineFactory.Create(httpClient, ownsHttpClient, endpoint, password, username, location, networkTimeout: networkTimeout, time: time);
 }

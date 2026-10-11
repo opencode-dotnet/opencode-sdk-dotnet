@@ -65,10 +65,10 @@ internal sealed class PipelineMessage : IDisposable
     /// Gets or sets the progress window the buffering policy arms for the exchange; null outside
     /// it. A request body that streams writes through <see cref="RestartProgressWindow"/>.
     /// </summary>
-    internal CancellationTokenSource? ProgressWindow { get; set; }
+    internal ProgressWindow? ProgressWindow { get; set; }
 
     /// <summary>Restarts the progress window after the exchange progressed; a no-op outside one.</summary>
-    public void RestartProgressWindow() => ProgressWindow?.CancelAfter(NetworkTimeout);
+    public void RestartProgressWindow() => ProgressWindow?.Restart();
 
     public void Dispose()
     {

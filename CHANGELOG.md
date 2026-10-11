@@ -9,6 +9,12 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.{shortSha}`.
 
+### 🔧 Changes
+
+- **The `netstandard2.0` and `net472` assets depend on `Microsoft.Bcl.TimeProvider`.** The request
+  progress window and the standalone launcher's output drain now run on `TimeProvider`, which
+  `net8.0` and later carry inbox. Behaviour does not change: both still run on the system clock.
+
 ### 🐛 Fixes
 
 - **`OpenCodeServer.DiscoverAsync` and `EnsureAsync` read a refused connection as no service even

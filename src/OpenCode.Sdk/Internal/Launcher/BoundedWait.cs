@@ -11,12 +11,24 @@ internal static class BoundedWait
     /// <param name="task">The awaited task.</param>
     /// <param name="bound">How long the caller waits.</param>
     /// <returns>True when the task ended inside the bound, however it ended.</returns>
-    public static async Task<bool> CompletesWithinAsync(Task task, TimeSpan bound)
+    public static Task<bool> CompletesWithinAsync(Task task, TimeSpan bound) =>
+        CompletesWithinAsync(task, bound, TimeProvider.System);
+
+    /// <summary>
+    /// Waits at most <paramref name="bound"/>, measured on <paramref name="time"/>, for
+    /// <paramref name="task"/> to end, as <see cref="CompletesWithinAsync(Task, TimeSpan)"/> does.
+    /// </summary>
+    /// <param name="task">The awaited task.</param>
+    /// <param name="bound">How long the caller waits.</param>
+    /// <param name="time">The clock the bound runs on.</param>
+    /// <returns>True when the task ended inside the bound, however it ended.</returns>
+    public static async Task<bool> CompletesWithinAsync(Task task, TimeSpan bound, TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(task);
+        ArgumentNullException.ThrowIfNull(time);
         try
         {
-            await task.WaitAsync(bound).ConfigureAwait(false);
+            await task.WaitAsync(bound, time).ConfigureAwait(false);
             return true;
         }
         catch (TimeoutException) when (!task.IsCompleted)

@@ -8,9 +8,9 @@ namespace OpenCode.Sdk.Internal.Launcher;
 
 /// <summary>
 /// Everything a standalone start reaches outside the process through: the Windows spawn, job,
-/// exit-status, and tree-kill seams, the POSIX spawn, group signal, and exit-status seams, and a
-/// snapshot of the host's environment. <see cref="ForCurrentProcess"/> is the public door's set;
-/// a test replaces one member.
+/// exit-status, and tree-kill seams, the POSIX spawn, group signal, and exit-status seams, the
+/// clock, and a snapshot of the host's environment. <see cref="ForCurrentProcess"/> is the public
+/// door's set; a test replaces one member.
 /// </summary>
 internal sealed record LauncherSeams
 {
@@ -35,6 +35,9 @@ internal sealed record LauncherSeams
     /// <summary>Gets the POSIX exit status.</summary>
     public required IChildExitStatus Exits { get; init; }
 
+    /// <summary>Gets the clock the early-end drain of a server that ended runs on.</summary>
+    public required TimeProvider Time { get; init; }
+
     /// <summary>
     /// Gets the host's environment, which a child receives under the caller's entries. On Windows
     /// its names compare ignoring case, as Windows compares them.
@@ -56,6 +59,7 @@ internal sealed record LauncherSeams
             Spawn = new PosixSpawn(),
             Signals = new ProcessGroupSignal(),
             Exits = new ChildExitStatusReader(),
+            Time = TimeProvider.System,
             HostEnvironment = SnapshotEnvironment(),
         };
     }

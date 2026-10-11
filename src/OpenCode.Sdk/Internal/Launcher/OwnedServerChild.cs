@@ -22,20 +22,24 @@ internal sealed class OwnedServerChild : IAsyncDisposable
     private readonly OwnedServerProcess _process;
     private readonly OpenCodeServerOutput? _output;
     private readonly TimeSpan _grace;
+    private readonly TimeProvider _time;
     private Task? _ending;
     private bool _drained;
 
     /// <summary>Initializes the flow over a running server.</summary>
     /// <param name="process">What the platform strategy started.</param>
     /// <param name="start">The start the server belongs to.</param>
-    public OwnedServerChild(OwnedServerProcess process, ServerChildStart start)
+    /// <param name="time">The clock <see cref="EarlyEndBound"/> runs on.</param>
+    public OwnedServerChild(OwnedServerProcess process, ServerChildStart start, TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(process);
         ArgumentNullException.ThrowIfNull(start);
+        ArgumentNullException.ThrowIfNull(time);
 
         _process = process;
         _output = start.Output;
         _grace = start.GracefulShutdownTimeout;
+        _time = time;
     }
 
     /// <summary>Gets the pid of the process this child owns.</summary>
@@ -70,7 +74,7 @@ internal sealed class OwnedServerChild : IAsyncDisposable
         // The exit can win the race against a readiness line still in the pipe, so the output is
         // drained once, inside its bound, before anything is decided; the first line still wins.
         _drained = true;
-        _ = await BoundedWait.CompletesWithinAsync(Task.WhenAll(ReadersEnded, Exited), EarlyEndBound).ConfigureAwait(false);
+        _ = await BoundedWait.CompletesWithinAsync(Task.WhenAll(ReadersEnded, Exited), EarlyEndBound, _time).ConfigureAwait(false);
         if (readyLine.IsCompleted)
         {
             // Ready after all. A server that has not exited lives on, so the drain at its end is
@@ -193,6 +197,6 @@ internal sealed class OwnedServerChild : IAsyncDisposable
         }
 
         _drained = true;
-        _ = await _process.Output.DrainAsync(EarlyEndBound).ConfigureAwait(false);
+        _ = await _process.Output.DrainAsync(EarlyEndBound, _time).ConfigureAwait(false);
     }
 }
