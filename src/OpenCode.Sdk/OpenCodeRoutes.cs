@@ -1506,9 +1506,27 @@ public static class OpenCodeRoutes
     public static class Projects
     {
         /// <summary>
-        /// The &apos;GET /api/project&apos; route.
+        /// The &apos;GET /api/project&apos; route template.
         /// </summary>
-        public const string ListProjects = "/api/project";
+        public const string ListProjectsTemplate = "/api/project";
+        /// <summary>
+        /// Builds the &apos;/api/project&apos; route.
+        /// </summary>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string ListProjects(ProjectListRequest? request = null)
+        {
+            var path = "/api/project";
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddBoolean("archived", request.Archived);
+            return path + query.Value;
+        }
+
         /// <summary>
         /// The &apos;PATCH /api/project/{projectID}&apos; route template.
         /// </summary>

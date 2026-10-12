@@ -192,6 +192,38 @@ public sealed class SpecBinderTests
         await Assert.That(syntheticPayload.Name).IsEqualTo("SessionInboxSyntheticPayload");
     }
 
+    /// <summary>
+    /// A member that references a named primitive alias reads the alias's description, and a
+    /// reference to a stabilize duplicate that folds onto an undescribed base keeps the duplicate's.
+    /// </summary>
+    [Test]
+    public async Task Bind_Should_Carry_The_Description_Of_A_Referenced_Or_Folded_Primitive_Alias()
+    {
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
+            .WithSchema("Item.ID", schema => schema.Type("string").Pattern("^itm").Description("The item identifier"))
+            .WithSchema("Owner.ID", schema => schema.Type("string").Pattern("^own"))
+            .WithSchema("Owner.ID_1", schema => schema.Type("string").Pattern("^own").Description("Owner to hand the item to"))
+            .WithSchema("ItemInfo", schema => schema
+                .Type("object")
+                .Property("id", property => property.Ref("Item.ID"), required: true)
+                .Property("owner", property => property.Ref("Owner.ID_1"), required: true)
+                .Property("creator", property => property.Ref("Owner.ID"), required: true))
+            .WithOperation("widget.item", path: "/api/widget/item", configure: operation => operation
+                .Response(200, "application/json", schema => schema.Ref("ItemInfo")))));
+
+        var plan = new BindingTestHost().Bind(
+            document,
+            Selection("widget.item"),
+            Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null))));
+
+        var item = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "ItemInfo");
+        await Assert.That(item.Properties.Single(static property => property.WireName == "id").Description)
+            .IsEqualTo("The item identifier");
+        await Assert.That(item.Properties.Single(static property => property.WireName == "owner").Description)
+            .IsEqualTo("Owner to hand the item to");
+        await Assert.That(item.Properties.Single(static property => property.WireName == "creator").Description).IsNull();
+    }
+
     [Test]
     public async Task Bind_Should_Map_Required_And_Nullable_Independently()
     {

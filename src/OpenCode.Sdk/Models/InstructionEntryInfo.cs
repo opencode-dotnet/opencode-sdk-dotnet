@@ -10,7 +10,7 @@ namespace OpenCode.Sdk.Models;
 public sealed record InstructionEntryInfo
 {
     /// <summary>
-    /// Gets the key value.
+    /// Instruction entry key (lowercase alphanumerics plus . _ -)
     /// </summary>
     [JsonPropertyName("key")]
     public required string Key { get; init; }

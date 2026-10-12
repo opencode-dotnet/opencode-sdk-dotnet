@@ -3,9 +3,9 @@ index 61c4ddecd1..799ce56e43 100644
 --- a/packages/protocol/script/generate-openapi.ts
 +++ b/packages/protocol/script/generate-openapi.ts
 @@ -1,10 +1,38 @@
--import { OpenApi } from "effect/unstable/httpapi"
+-import { OpenApi } from "effect/http-api"
 +import { SchemaAST } from "effect"
-+import { HttpApi, OpenApi } from "effect/unstable/httpapi"
++import { HttpApi, OpenApi } from "effect/http-api"
  import { format } from "prettier"
  import { fileURLToPath } from "url"
  import { ClientApi } from "../src/client.js"

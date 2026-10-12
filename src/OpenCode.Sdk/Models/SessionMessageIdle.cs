@@ -39,4 +39,11 @@ public sealed record SessionMessageIdle : ISessionMessageInfo
     /// </summary>
     [JsonPropertyName("outcome")]
     public required SessionMessageIdleOutcome Outcome { get; init; }
+
+    /// <summary>
+    /// Gets the error value.
+    /// </summary>
+    [JsonPropertyName("error")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SessionStructuredError? Error { get; init; }
 }

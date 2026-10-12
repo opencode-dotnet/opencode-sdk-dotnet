@@ -57,5 +57,5 @@
   "errorSchema": {
     "not": {}
   },
-  "failureEvent": "effect/httpapi/stream/failure"
+  "failureEvent": "effect/http-api/stream/failure"
 }

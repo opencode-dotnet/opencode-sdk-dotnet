@@ -86,10 +86,24 @@ internal sealed class SchemaProjector
             (CoreSchemaShape.JsonString, _) => _jsonStringProjector.Project(schema, root, pointer, location, state),
             (CoreSchemaShape.EncodedString, _) => CreateEncodedString(schema),
             (CoreSchemaShape.Unrestricted, _) => CreateUnrestricted(schema),
-            (CoreSchemaShape.Never, _) => new NeverNode(),
+            (CoreSchemaShape.Never, _) => ProjectNegation(schema),
             _ => null,
         };
     }
+
+    /// <summary>
+    /// Projects the two negations the wall admits. <c>not: {}</c> admits nothing.
+    /// <c>not: {"type":"null"}</c> is how Effect renders a struct with no declared fields; nothing
+    /// says what the content is, so it is an object of unspecified content.
+    /// </summary>
+    private static SchemaNode ProjectNegation(OpenApiSchema schema) =>
+        schema.Not is OpenApiSchema { Type: JsonSchemaType.Null }
+            ? new FreeFormObjectNode
+            {
+                Description = schema.Description,
+                Format = schema.Format,
+            }
+            : new NeverNode();
 
     private ArrayNode? ProjectArray(OpenApiSchema schema, string root, string pointer, ProjectionState state)
     {

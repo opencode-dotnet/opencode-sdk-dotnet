@@ -21,18 +21,19 @@ internal sealed class SchemaAliasApplier
             return document;
         }
 
+        var fold = new Fold(map, document.Schemas);
         var schemas = new Dictionary<string, SchemaNode>(StringComparer.Ordinal);
         foreach (var (key, schema) in document.Schemas)
         {
             if (!map.ContainsKey(key))
             {
-                schemas[key] = Rewrite(schema, map);
+                schemas[key] = Rewrite(schema, fold);
             }
         }
 
         return new SpecDocument
         {
-            Operations = [.. document.Operations.Select(operation => RewriteOperation(operation, map))],
+            Operations = [.. document.Operations.Select(operation => RewriteOperation(operation, fold))],
             Schemas = schemas,
         };
     }
@@ -57,7 +58,7 @@ internal sealed class SchemaAliasApplier
         return map;
     }
 
-    private SpecOperation RewriteOperation(SpecOperation operation, IReadOnlyDictionary<string, string> map) =>
+    private SpecOperation RewriteOperation(SpecOperation operation, Fold map) =>
         operation with
         {
             Parameters =
@@ -83,7 +84,7 @@ internal sealed class SchemaAliasApplier
             ],
         };
 
-    private SpecEffectStreamContract? RewriteEffectStream(SpecEffectStreamContract? contract, IReadOnlyDictionary<string, string> map)
+    private SpecEffectStreamContract? RewriteEffectStream(SpecEffectStreamContract? contract, Fold map)
     {
         if (contract is null)
         {
@@ -99,11 +100,12 @@ internal sealed class SchemaAliasApplier
         };
     }
 
-    private SchemaNode Rewrite(SchemaNode node, IReadOnlyDictionary<string, string> map) => node switch
+    private SchemaNode Rewrite(SchemaNode node, Fold map) => node switch
     {
-        RefNode reference when map.TryGetValue(reference.Target, out var target) => reference with
+        RefNode reference when map.Targets.TryGetValue(reference.Target, out var target) => reference with
         {
-            Target = target
+            Target = target,
+            Description = reference.Description ?? map.Schemas.GetValueOrDefault(reference.Target)?.Description,
         },
         NullableNode nullable => nullable with
         {
@@ -139,7 +141,7 @@ internal sealed class SchemaAliasApplier
     };
 
     /// <summary>Collapsed branches can duplicate a reference; the duplicates fold away mechanically.</summary>
-    private UnionNode RewriteUnion(UnionNode union, IReadOnlyDictionary<string, string> map)
+    private UnionNode RewriteUnion(UnionNode union, Fold map)
     {
         var branches = new List<SchemaNode>(union.Branches.Count);
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -158,4 +160,11 @@ internal sealed class SchemaAliasApplier
             Branches = branches
         };
     }
+
+    /// <summary>
+    /// One collapse: each aliased key's target, and the graph before the collapse. A reference that
+    /// folds onto its target keeps the folded schema's description when it carries none of its own,
+    /// since a stabilize duplicate is often the use site's own description of a shared type.
+    /// </summary>
+    private sealed record Fold(IReadOnlyDictionary<string, string> Targets, IReadOnlyDictionary<string, SchemaNode> Schemas);
 }

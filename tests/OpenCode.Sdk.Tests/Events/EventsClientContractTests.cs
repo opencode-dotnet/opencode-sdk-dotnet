@@ -45,7 +45,7 @@ public sealed class EventsClientContractTests
     public async Task SubscribeAsync_Should_Expose_A_Typed_Mid_Stream_Failure_Cause()
     {
         using var scenario = ContractScenario.RespondingWithFrames(
-            WireBodyData.NamedFrame("effect/httpapi/stream/failure", WireBodyData.StreamFailureCause));
+            WireBodyData.NamedFrame("effect/http-api/stream/failure", WireBodyData.StreamFailureCause));
 
         var exception = await Assert
             .That(async () => _ = await CollectAsync(scenario))

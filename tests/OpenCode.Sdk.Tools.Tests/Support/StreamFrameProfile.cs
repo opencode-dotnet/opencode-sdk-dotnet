@@ -6,4 +6,7 @@ internal enum StreamFrameProfile
     NonNullableStringId = 1,
     NullableNumberId = 2,
     NumberEvent = 3,
+    OptionalId = 4,
+    OptionalEvent = 5,
+    OptionalData = 6,
 }

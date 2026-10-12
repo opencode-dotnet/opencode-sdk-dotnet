@@ -153,7 +153,7 @@ public sealed class EnvelopeClassifierTests
         await Assert.That(response.ContentType!.IsEventStream).IsTrue();
         await Assert.That(response.EffectStream).IsNotNull();
         await Assert.That(response.EffectStream!.Encoding).IsEqualTo("sse");
-        await Assert.That(response.EffectStream.FailureEventName).IsEqualTo("effect/httpapi/stream/failure");
+        await Assert.That(response.EffectStream.FailureEventName).IsEqualTo("effect/http-api/stream/failure");
         await Assert.That(response.EffectStream.CauseSchema).IsTypeOf<ArrayNode>();
         await Assert.That(response.EffectStream.ErrorSchema).IsTypeOf<NeverNode>();
     }

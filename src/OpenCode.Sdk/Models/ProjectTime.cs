@@ -25,4 +25,11 @@ public sealed record ProjectTime
     /// </summary>
     [JsonPropertyName("active")]
     public required long Active { get; init; }
+
+    /// <summary>
+    /// Gets the archived value.
+    /// </summary>
+    [JsonPropertyName("archived")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? Archived { get; init; }
 }

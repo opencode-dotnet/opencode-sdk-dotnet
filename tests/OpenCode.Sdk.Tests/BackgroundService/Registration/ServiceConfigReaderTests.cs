@@ -63,6 +63,7 @@ public sealed class ServiceConfigReaderTests
     [Arguments(ServiceConfigData.RemoteRouteWithExtraMembers)]
     [Arguments(ServiceConfigData.LegacyRemoteTrue)]
     [Arguments(ServiceConfigData.LegacyRemoteFalse)]
+    [Arguments(ServiceConfigData.RemoteAccepted)]
     public async Task TryReadEnvironment_Should_Return_The_Environment_Of_A_Config_The_Cli_Accepts(string json)
     {
         var environment = ServiceConfigReader.TryReadEnvironment(Bytes(json));
@@ -91,6 +92,9 @@ public sealed class ServiceConfigReaderTests
     [Arguments(ServiceConfigData.RemoteAsString)]
     [Arguments(ServiceConfigData.RemoteWithoutRoute)]
     [Arguments(ServiceConfigData.RemoteRouteNotAString)]
+    [Arguments(ServiceConfigData.RemoteAcceptedFalse)]
+    [Arguments(ServiceConfigData.RemoteAcceptedNull)]
+    [Arguments(ServiceConfigData.RemoteAcceptedAsString)]
     [Arguments(ServiceConfigData.ArrayRoot)]
     [Arguments(ServiceConfigData.Malformed)]
     public async Task TryReadEnvironment_Should_Treat_An_Invalid_Config_As_Absent(string json)
@@ -126,6 +130,7 @@ public sealed class ServiceConfigReaderTests
     [Arguments(ServiceConfigData.DisabledWithEnvironment)]
     [Arguments(ServiceConfigData.RemoteRoute)]
     [Arguments(ServiceConfigData.RemoteRouteWithExtraMembers)]
+    [Arguments(ServiceConfigData.RemoteAccepted)]
     public async Task IsCurrent_Should_Accept_A_Config_In_The_Current_Shape(string json)
     {
         await Assert.That(ServiceConfigReader.IsCurrent(Bytes(json))).IsTrue();
@@ -140,6 +145,7 @@ public sealed class ServiceConfigReaderTests
     [Arguments(ServiceConfigData.LegacyRemoteFalse)]
     [Arguments(ServiceConfigData.RemoteNull)]
     [Arguments(ServiceConfigData.RemoteWithoutRoute)]
+    [Arguments(ServiceConfigData.RemoteAcceptedFalse)]
     [Arguments(ServiceConfigData.PortAboveRange)]
     [Arguments(ServiceConfigData.Malformed)]
     public async Task IsCurrent_Should_Refuse_A_Legacy_Or_Invalid_Config(string json)

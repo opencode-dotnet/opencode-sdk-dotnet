@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-10-09
+Date: 2026-10-12
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -28,28 +28,19 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   targets. Linux and macOS live verification also passed on net8/net9/net10, including the persistent daemon
   round trip and normal PTY reuse after read cancellation. `architecture/client-runtime.md` and
   ADR-0023 own the contract.
-- **2.0.26 refresh** — the accepted pin follows upstream's release tags, now `v2.0.26`, with no
-  compatibility layer between them. 2.0.26 adds one operation, generated:
-  `IntegrationClient.ConnectWithExternalCredentialsAsync` (`integration.connect.external`), with the
-  external credential and the external integration method it connects through; the experimental
-  policy actions are `provider.use`, `tool.use`, and `integration.use`. A location whose directory
-  does not exist answers a typed 404 `LocationNotFoundError` on every location- and session-scoped
-  route, `pty.connect` included; `ServerInfo.Capabilities.PersistentPty` says whether the server can
-  run the persistent-terminal daemon; and `WorktreeError` is a tagged error. The service config's
-  `disabled` key is read only by CLI commands (its connection-mode selector and pairing guard),
-  never by the background-service doors; the strict reader validates it, and the `remote` key that
-  only the CLI sets, as upstream decodes them. The background-service doors follow the 2.0.26
-  client, whose contender pool and service decision moved into shared helpers without changing
-  behaviour: Ensure fails on an incompatible health protocol rather than replacing it, holds the
-  first contender failure, and treats the persistent-terminal handoff and the sidecar clear as
-  best-effort; Stop escalates to the hard kill by pid without re-reading the registration between
-  the two signals. Upstream's committed OpenAPI document is stale against its own generator at this
-  tag as at the previous ones (it lacks `LocationNotFoundError` and `integration.connect.external`;
-  [anomalyco/opencode#53105](https://github.com/anomalyco/opencode/issues/53105)), so the snapshot
-  is always produced by upstream's pinned generator, never copied (ADR-0020). Every watched input
-  under the hand-written doors was reviewed; the launcher's watched inputs changed, but not in its
-  readiness line, stdin lease, or exit status, and the PTY connect handler's new check order
-  (origin, ticket, location, session) answers the SDK's origin-less, ticket-less connect as before.
+- **2.0.27 refresh** — the accepted pin follows upstream's release tags, now `v2.0.27`, with no
+  compatibility layer between them. 2.0.27 adds no operation; `project.list` takes an `archived`
+  filter, a project records when it was archived, and an idle message carries the error of a failed
+  turn. Upstream moved to Effect 4.0.1: the stream failure frame is `effect/http-api/stream/failure`,
+  a struct with no declared fields renders as `not: {"type":"null"}` and binds as before, branded
+  identifiers become named components that bind as their strings, and the SSE frame's `id` is
+  optional. The union first-match oracle reproduces its verdicts under 4.0.1. Upstream's committed
+  OpenAPI document now matches its own generator; the snapshot is still produced by upstream's
+  pinned generator, never copied (ADR-0020). Every watched input under the hand-written doors was
+  reviewed: the service config gains `remoteAccepted`, which the strict reader validates as
+  upstream decodes it; the PTY connection loop now writes its close frame through the one outbound
+  queue, and a server that ends a terminal connection without one closes it with 1001 or 1011,
+  which the SDK reports as an abnormal close, as upstream's own terminal clients do.
   Each refresh's CI run qualifies every leg at its pin: Windows on `net472`, `net8.0`, `net9.0`, and
   `net10.0`, Linux and macOS on `net8.0`, `net9.0`, and `net10.0`, with regeneration and receipt
   verification passing.

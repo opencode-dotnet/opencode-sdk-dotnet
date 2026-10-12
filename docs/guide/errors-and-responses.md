@@ -1,6 +1,6 @@
 # 🧱 Errors and responses
 
-Date: 2026-09-24
+Date: 2026-10-12
 
 Every one-shot call answers with a **response envelope** that carries the same four members no
 matter which operation produced it, and every failure is either a typed API error you can branch on
@@ -192,7 +192,7 @@ still have removed part of the worktree. `Data.ForceRequired` says which kind of
 | `false` | The server ran `git worktree remove` and git failed part way. Git does not roll back, so the worktree's files and its git metadata can already be gone while the directory and the inventory row remain | Read `Data.Message` — it is git's own stderr — and see below |
 | `null` | The server refused before it ran git — or, after a partial removal, found no git worktree left at the directory (`Worktree directory unavailable`) | Fix the request; after a partial removal, recover as below |
 
-The `false` arm is the surprising one. Observed on Windows on `@opencode/cli@2.0.15`, whose worktree and location sources the current pin keeps unchanged:
+The `false` arm is the surprising one. Observed on Windows on `@opencode/cli@2.0.15`; the current pin keeps the same location lifetime and the same `git worktree remove` path:
 `Data.Message` is git's `error: failed to delete '<dir>': Permission denied`, and the directory is
 left empty. The process that holds it is the server's own. The server keeps a location alive for
 every directory it has served — one request addressed to the worktree, for example through a

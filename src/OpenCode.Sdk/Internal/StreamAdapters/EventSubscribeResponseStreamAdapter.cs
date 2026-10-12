@@ -35,7 +35,7 @@ internal sealed class EventSubscribeResponseStreamAdapter : IStreamAdapter<IEven
     /// <summary>
     /// Gets the event name a mid-stream failure frame carries.
     /// </summary>
-    public string FailureEventName => "effect/httpapi/stream/failure";
+    public string FailureEventName => "effect/http-api/stream/failure";
     /// <summary>
     /// Gets the metadata each frame&apos;s payload is read through.
     /// </summary>
