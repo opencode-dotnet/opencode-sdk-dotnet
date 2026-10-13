@@ -142,6 +142,17 @@ public sealed class SchemaProjectorTests
     }
 
     [Test]
+    public async Task Project_Should_Read_Not_Null_As_A_Struct_With_No_Declared_Fields()
+    {
+        var host = new SchemaProjectionTestHost();
+        var scenario = SpecScenario.Define(spec => spec.WithSchema("Value", schema => schema.Raw("not", "{\"type\":\"null\"}")));
+
+        var result = await host.ProjectAsync(scenario);
+
+        await Assert.That(result.Schemas["Value"]).IsTypeOf<FreeFormObjectNode>();
+    }
+
+    [Test]
     public async Task Project_Should_Keep_Dotted_Schema_Name_Verbatim()
     {
         var host = new SchemaProjectionTestHost();

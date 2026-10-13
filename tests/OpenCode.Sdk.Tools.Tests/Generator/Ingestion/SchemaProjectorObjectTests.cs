@@ -160,6 +160,20 @@ public sealed class SchemaProjectorObjectTests
     }
 
     [Test]
+    public async Task Project_Should_Produce_Dictionary_From_PatternProperties_Closed_By_AdditionalProperties_False()
+    {
+        var host = new SchemaProjectionTestHost();
+        var scenario = SpecScenario.Define(spec => spec.WithSchema("Counts", schema => schema
+            .Type("object")
+            .PatternProperties("^ses", value => value.Type("integer"))
+            .AdditionalPropertiesFalse()));
+
+        var result = await host.ProjectAsync(scenario);
+
+        await Assert.That(result.Schemas["Counts"]).IsTypeOf<DictionaryNode>();
+    }
+
+    [Test]
     public async Task Project_Should_Refuse_When_PatternProperties_Is_Combined_With_AdditionalProperties_Schema()
     {
         var host = new SchemaProjectionTestHost();

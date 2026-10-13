@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-09-24
+Date: 2026-10-12
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -709,8 +709,8 @@ pins every file it reads in `spec/source-watch.json` (ADR-0025). The null channe
 release registration `service.json` with no legacy migration; a named channel follows the CLI's
 filename, sanitization, and legacy-migration rules; a direct registration path bypasses all three.
 The channel's service config is read the CLI's way: a document whose members do not decode —
-`disabled` must be a boolean and `remote` an object holding a string `route` (or, in the legacy
-shape, a boolean) when present — is no config at all, so its `env` overlay and the legacy migration
+`disabled` must be a boolean, `remote` an object holding a string `route` (or, in the legacy
+shape, a boolean), and `remoteAccepted` the literal `true` when present — is no config at all, so its `env` overlay and the legacy migration
 it gates do not apply; a legacy-shape document still reads, and only the current shape is migrated.
 The CLI's read rewrites a legacy-shape document in place; the SDK, which never authors the config's
 contents, reads it as it is and leaves the rewrite to the daemon's next read, which reads the same

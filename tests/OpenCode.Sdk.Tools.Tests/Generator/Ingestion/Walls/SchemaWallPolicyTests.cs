@@ -92,6 +92,20 @@ public sealed class SchemaWallPolicyTests
     }
 
     [Test]
+    public async Task Project_Should_Refuse_Not_Null_When_Combined_With_Another_Shape()
+    {
+        var host = new SchemaProjectionTestHost();
+        var scenario = SpecScenario.Define(spec => spec.WithSchema(
+            "Bad",
+            schema => schema.Type("object").Raw("not", "{\"type\":\"null\"}")));
+
+        var ex = await host.ProjectExpectingRefusalAsync(scenario);
+
+        await Assert.That(ex.Errors).Count().IsEqualTo(1);
+        await Assert.That(ex.Errors[0].Location).IsEqualTo("Bad/not");
+    }
+
+    [Test]
     public async Task Project_Should_Refuse_Empty_Not_When_Combined_With_Another_Shape()
     {
         var host = new SchemaProjectionTestHost();

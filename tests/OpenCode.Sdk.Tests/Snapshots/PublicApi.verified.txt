@@ -813,8 +813,9 @@ namespace OpenCode.Sdk
         }
         public static class Projects
         {
-            public const string ListProjects = "/api/project";
+            public const string ListProjectsTemplate = "/api/project";
             public const string UpdateProjectTemplate = "/api/project/{projectID}";
+            public static string ListProjects(OpenCode.Sdk.ProjectListRequest? request = null) { }
             public static string UpdateProject(string projectId) { }
         }
         public static class Providers
@@ -1334,6 +1335,11 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PluginListResponse> ListPluginsAsync(OpenCode.Sdk.PluginListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PluginUpdateResponse> UpdatePluginsAsync(OpenCode.Sdk.Models.PluginUpdateRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
+    public sealed class ProjectListRequest : System.IEquatable<OpenCode.Sdk.ProjectListRequest>
+    {
+        public ProjectListRequest() { }
+        public OpenCode.Sdk.QueryBoolean? Archived { get; init; }
+    }
     public sealed class ProjectListResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ProjectListResponse>
     {
         public ProjectListResponse() { }
@@ -1349,7 +1355,7 @@ namespace OpenCode.Sdk
     public class ProjectsClient
     {
         protected ProjectsClient() { }
-        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ProjectListResponse> ListProjectsAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ProjectListResponse> ListProjectsAsync(OpenCode.Sdk.ProjectListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ProjectUpdateResponse> UpdateProjectAsync(string projectId, OpenCode.Sdk.Models.ProjectUpdateRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
     public sealed class ProviderListRequest : System.IEquatable<OpenCode.Sdk.ProviderListRequest>
@@ -5900,6 +5906,9 @@ namespace OpenCode.Sdk.Models
         public ProjectTime() { }
         [System.Text.Json.Serialization.JsonPropertyName("active")]
         public required long Active { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("archived")]
+        public long? Archived { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
         public required long Created { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("updated")]
@@ -8107,6 +8116,9 @@ namespace OpenCode.Sdk.Models
     public sealed class SessionMessageIdle : OpenCode.Sdk.Models.ISessionMessageInfo, System.IEquatable<OpenCode.Sdk.Models.SessionMessageIdle>
     {
         public SessionMessageIdle() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("error")]
+        public OpenCode.Sdk.Models.SessionStructuredError? Error { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public required string Id { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

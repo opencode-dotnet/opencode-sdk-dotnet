@@ -2724,6 +2724,30 @@ public sealed class OperationPlanBinderTests
     }
 
     [Test]
+    public async Task BindStream_Should_Bind_A_Frame_Whose_Id_Is_Optional()
+    {
+        var document = await BindingTestHost.IngestAsync(new StreamOperationScenario(frameProfile: StreamFrameProfile.OptionalId));
+
+        var plan = new BindingTestHost().Bind(
+            document,
+            Selection(StreamOperationScenario.OperationId),
+            Curation(Groups(StreamOperationScenario.GroupName, RootGroup())));
+
+        var operation = plan.Clients.SelectMany(static client => client.Operations).Single();
+        await Assert.That(operation.Stream).IsNotNull();
+    }
+
+    [Test]
+    [Arguments((int)StreamFrameProfile.OptionalEvent)]
+    [Arguments((int)StreamFrameProfile.OptionalData)]
+    public async Task BindStream_Should_Refuse_A_Frame_Whose_Event_Or_Data_Is_Optional(int profile)
+    {
+        var document = await BindingTestHost.IngestAsync(new StreamOperationScenario(frameProfile: (StreamFrameProfile)profile));
+
+        await AssertStreamRefusalAsync(document, "require 'event' and 'data'");
+    }
+
+    [Test]
     public async Task BindStream_Should_Refuse_An_Event_That_Is_Not_A_String()
     {
         var document = await BindingTestHost.IngestAsync(
@@ -2801,7 +2825,7 @@ public sealed class OperationPlanBinderTests
         await Assert.That(operation.Envelope).IsNull();
         await Assert.That(operation.Stream).IsNotNull();
         await Assert.That(operation.Stream!.PayloadTypeName).IsEqualTo("ExampleEvent");
-        await Assert.That(operation.Stream.FailureEventName).IsEqualTo("effect/httpapi/stream/failure");
+        await Assert.That(operation.Stream.FailureEventName).IsEqualTo("effect/http-api/stream/failure");
         await Assert.That(operation.Stream.CauseTypeName).IsEqualTo("IStreamFailureCause[]");
 
         var cause = plan.Unions.Single(static union => union.Name == "IStreamFailureCause");

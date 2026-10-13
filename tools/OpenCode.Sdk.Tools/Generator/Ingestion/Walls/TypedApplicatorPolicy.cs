@@ -20,13 +20,25 @@ internal static class TypedApplicatorPolicy
 
         var serialized = Serialize(schema);
         if (serialized is JsonObject { Count: 1 } host
-            && host["not"] is JsonObject { Count: 0 })
+            && host["not"] is JsonObject negated
+            && IsAdmitted(negated))
         {
             return;
         }
 
-        errors.Add(string.Concat(location, "/not"), "schema keyword 'not' is supported only as the standalone empty-schema form 'not: {}'");
+        errors.Add(string.Concat(location, "/not"), "schema keyword 'not' is supported only as the standalone forms 'not: {}' and 'not: {\"type\":\"null\"}'");
     }
+
+    /// <summary>
+    /// Admits <c>not: {}</c>, the dialect's never schema, and <c>not: {"type":"null"}</c>, how
+    /// Effect renders a struct with no declared fields.
+    /// </summary>
+    private static bool IsAdmitted(JsonObject negated) =>
+        negated.Count is 0
+        || (negated.Count is 1
+            && negated["type"] is JsonValue type
+            && type.TryGetValue<string>(out var name)
+            && string.Equals(name, "null", StringComparison.Ordinal));
 
     private static JsonNode? Serialize(OpenApiSchema schema)
     {

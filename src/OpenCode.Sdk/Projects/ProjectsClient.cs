@@ -29,8 +29,9 @@ public class ProjectsClient
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("ProjectsClient", "Pipeline");
 
     /// <summary>
-    /// List projects. List known projects.
+    /// List projects. List known projects. Archived projects are excluded unless archived=true.
     /// </summary>
+    /// <param name = "request">The request shaping the query.</param>
     /// <param name = "requestOptions">The per-call options.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;ProjectListResponse&apos; envelope.</returns>
@@ -39,9 +40,9 @@ public class ProjectsClient
     /// <remarks>
     /// Operation <c>project.list</c>: <c>GET /api/project</c>.
     /// </remarks>
-    public virtual Task<ProjectListResponse> ListProjectsAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    public virtual Task<ProjectListResponse> ListProjectsAsync(ProjectListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Projects.ListProjects, ProjectListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Projects.ListProjects(request), ProjectListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>

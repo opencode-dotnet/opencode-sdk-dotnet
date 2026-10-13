@@ -9,11 +9,50 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 💥 Breaking changes
+
+- **A mid-stream failure is recognized under upstream 2.0.27's frame name.** Upstream 2.0.27 moves
+  to Effect 4.0.1, which renames the reserved failure frame from `effect/httpapi/stream/failure` to
+  `effect/http-api/stream/failure`. Against a 2.0.27 server a failure on `EventsClient` or the
+  session log surfaces as `OpenCodeStreamFailureException` with its typed causes; against an older
+  server it surfaces as `OpenCodeTransportException` naming the undeclared frame. On
+  `0.9.0-preview.8` it was the other way round.
+- **`OpenCodeRoutes.Projects.ListProjects` is now a method.** `project.list` takes an optional
+  `archived` query, so the route helper is `ListProjects(ProjectListRequest? request = null)` and
+  the template constant is `ListProjectsTemplate`. `ProjectsClient.ListProjectsAsync` gains a
+  leading optional `ProjectListRequest? request` parameter: a call that passes `requestOptions`
+  positionally moves it one place, and the change needs a recompile.
+
+### ✨ Added
+
+- **The accepted snapshot moved to upstream release tag `v2.0.27`**
+  (`1f4d07a4a519185955ae8ab2ea3607805509e386`), published as `@opencode/cli@2.0.27`; install it
+  with `npm install -g @opencode/cli@2.0.27`.
+- **Archived projects.** Upstream 2.0.27 archives a project whose known directories are all gone
+  and unarchives it when it is resolved again. `ProjectTime.Archived` carries when it was
+  archived, and `project.list` leaves archived projects out unless
+  `ProjectListRequest.Archived` is `QueryBoolean.True`.
+- **`SessionMessageIdle.Error`** carries the `SessionStructuredError` of a turn that went idle with
+  a failed outcome.
+
 ### 🔧 Changes
 
 - **The `netstandard2.0` and `net472` assets depend on `Microsoft.Bcl.TimeProvider`.** The request
   progress window and the standalone launcher's output drain now run on `TimeProvider`, which
   `net8.0` and later carry inbox. Behaviour does not change: both still run on the system clock.
+- **The background-service config reader validates `remoteAccepted` as upstream 2.0.27 decodes
+  it.** The CLI records an accepted remote access as the literal `true`; a document whose
+  `remoteAccepted` is anything else is no config at all, so its `env` overlay and the legacy
+  migration it gates do not apply, as in the CLI.
+- **A 2.0.27 server that stops or fails while a terminal is connected closes it with 1001 or
+  1011, which reads as an abnormal close.** When the server stops, or a handler fails, before it
+  queues its own close on a `pty.connect` or persistent-terminal connection, it now closes with
+  1001 or 1011, which `PtySession` and `PersistentPtySession` report as an abnormal close
+  (`OpenCodeTransportException`), as upstream's own terminal clients do. A 2.0.26 server sent a
+  close frame with no status there, which read as a normal end.
+- **`FileSystemClient.ListEntriesAsync` reports a missing directory as the typed `FileNotFoundError`**,
+  which upstream 2.0.27 now answers, and declares on `fs.list`'s 404 beside `LocationNotFoundError`;
+  an older server answered an undeclared server error.
 
 ### 🐛 Fixes
 

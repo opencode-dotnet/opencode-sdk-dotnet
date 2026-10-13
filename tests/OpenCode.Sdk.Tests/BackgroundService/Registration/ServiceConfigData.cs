@@ -90,5 +90,14 @@ internal static class ServiceConfigData
 
     public const string RemoteRouteNotAString = "{\"remote\":{\"route\":1},\"env\":{\"A\":\"1\"}}";
 
+    /// <summary>The CLI records an accepted remote access by writing the literal <c>true</c>, here after turning it off.</summary>
+    public const string RemoteAccepted = "{\"remoteAccepted\":true,\"env\":{\"A\":\"1\"}}";
+
+    public const string RemoteAcceptedFalse = "{\"remoteAccepted\":false,\"env\":{\"A\":\"1\"}}";
+
+    public const string RemoteAcceptedNull = "{\"remoteAccepted\":null,\"env\":{\"A\":\"1\"}}";
+
+    public const string RemoteAcceptedAsString = "{\"remoteAccepted\":\"true\",\"env\":{\"A\":\"1\"}}";
+
     public const string UnknownMembersSkipped = "{\"env\":{\"A\":\"1\"},\"future\":{\"nested\":true}}";
 }

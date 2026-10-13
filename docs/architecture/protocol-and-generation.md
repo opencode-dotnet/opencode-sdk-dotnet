@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-09-24
+Date: 2026-10-12
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -196,8 +196,10 @@ remain hard walls. Declared no-content responses drain and ignore unexpected bod
 success decoding preserves `HttpContent` charset, BOM, and replacement-decoding behavior while
 materializing valid UTF-8 directly (ADR-0014).
 
-The exact standalone `not: {}` applicator is the dialect's never schema; other `not` shapes refuse
-at their applicator pointer rather than approximating general JSON Schema negation. A required never
+The exact standalone `not: {}` applicator is the dialect's never schema. The exact standalone
+`not: {"type":"null"}` is how Effect renders a struct with no declared fields: nothing says what
+the content is, so it binds as an object of unspecified content. Other `not` shapes refuse at
+their applicator pointer rather than approximating general JSON Schema negation. A required never
 member makes its object branch uninhabitable. Tagged unions preserve such a branch as a known
 impossible tag in their bound plan, emit no dead public variant for it, and refuse that tag during
 dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).

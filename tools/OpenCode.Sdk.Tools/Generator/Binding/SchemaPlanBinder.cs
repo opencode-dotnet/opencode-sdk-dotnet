@@ -63,7 +63,7 @@ internal sealed class SchemaPlanBinder(
             switch (schema)
             {
                 case ObjectNode objectNode:
-                    var objectPlan = BindObject(key, name, objectNode, inheritance, requestKeys.Contains(key), typeBinder, errors);
+                    var objectPlan = BindObject(key, name, objectNode, inheritance, requestKeys.Contains(key), document.Schemas, typeBinder, errors);
                     if (objectPlan is not null)
                     {
                         models.Add(objectPlan);
@@ -622,8 +622,17 @@ internal sealed class SchemaPlanBinder(
         return duplicates.Length is 0;
     }
 
+    /// <summary>
+    /// Reads the description of a named primitive alias (an upstream ID or cursor type) a member
+    /// references, since such a member carries no description of its own.
+    /// </summary>
+    private static string? AliasDescription(SchemaNode schema, IReadOnlyDictionary<string, SchemaNode> schemas) =>
+        schema is RefNode reference && schemas.TryGetValue(reference.Target, out var target) && target is PrimitiveNode
+            ? target.Description
+            : null;
+
     private static ObjectModelPlan? BindObject(string key, string name, ObjectNode node, Dictionary<string, List<string>> inheritance,
-        bool isRequestReachable, TypePlanBinder typeBinder, BindingErrorCollector errors)
+        bool isRequestReachable, IReadOnlyDictionary<string, SchemaNode> schemas, TypePlanBinder typeBinder, BindingErrorCollector errors)
     {
         if (!TryAdmitAdditionalProperties(key, node, errors, out var emitsExtensionData))
         {
@@ -663,7 +672,7 @@ internal sealed class SchemaPlanBinder(
                 EmitsOptionalWrapper = emitsOptionalWrapper,
                 LiteralKind = literal?.Kind,
                 LiteralValue = literal?.Value,
-                Description = property.Schema.Description,
+                Description = property.Schema.Description ?? AliasDescription(property.Schema, schemas),
             });
         }
 

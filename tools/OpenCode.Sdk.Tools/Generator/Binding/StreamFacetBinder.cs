@@ -34,12 +34,11 @@ internal sealed class StreamFacetBinder(OperationFacetContext context)
         var data = frame.Properties.FirstOrDefault(static property => property.Name is "data");
         if (frame.Properties.Count is not 3
             || frame.Properties.Any(static property => property.Name is not ("id" or "event" or "data"))
-            || frame.Properties.Any(static property => !property.IsRequired)
             || id is null
-            || eventName is null
-            || data is null)
+            || eventName is not { IsRequired: true }
+            || data is not { IsRequired: true })
         {
-            return _context.RefuseNull<StreamPlan>("the event frame must require exactly 'id', 'event' and 'data'");
+            return _context.RefuseNull<StreamPlan>("the event frame must declare exactly 'id', 'event' and 'data', and require 'event' and 'data'");
         }
 
         if (!SpineShapePolicy.IsNullableUnformattedString(_context, id.Schema))

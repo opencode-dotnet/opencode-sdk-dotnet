@@ -143,6 +143,25 @@ public sealed class ProviderCredentialVariablesTests
         await Assert.That(methods.Declared).IsEmpty();
     }
 
+    /// <summary>A line comment between the type and the names does not unpair them, and a spread is computed.</summary>
+    [Test]
+    public async Task ReadEnvMethods_Should_Read_Past_A_Comment_And_Count_A_Spread_As_Computed()
+    {
+        const string source = """
+            method: {
+              type: "env",
+              // Every listed variable is treated as a key.
+              names: [...provider.environment],
+            }
+            """;
+
+        var methods = ReadEnvMethods(source);
+
+        await Assert.That(methods.Computed).IsEqualTo(1);
+        await Assert.That(methods.Unpaired).IsEqualTo(0);
+        await Assert.That(methods.Declared).IsEmpty();
+    }
+
     /// <summary>A names list further on belongs to something else, and is not read as the method's.</summary>
     [Test]
     public async Task ReadEnvMethods_Should_Not_Read_A_Later_Unrelated_Names_List()
@@ -264,8 +283,9 @@ public sealed class ProviderCredentialVariablesTests
 
     /// <summary>
     /// Reads the env methods one source declares, with a parser of the guard's own rather than the
-    /// scan's. A method's names are the property that follows its type: a literal list is read, any
-    /// other value is computed, and a method whose next property is not its names is unpaired.
+    /// scan's. A method's names are the property that follows its type, past any line comment: a
+    /// literal list is read, a spread or any other value is computed, and a method whose next
+    /// property is not its names is unpaired.
     /// </summary>
     private static EnvMethodDeclarations ReadEnvMethods(string source)
     {
@@ -277,14 +297,14 @@ public sealed class ProviderCredentialVariablesTests
              method = source.IndexOf(EnvMethod, method + 1, StringComparison.Ordinal))
         {
             var next = source.AsSpan(method + EnvMethod.Length).TrimStart();
-            if (next is not [',', ..] || !next[1..].TrimStart().StartsWith(Names.AsSpan(), StringComparison.Ordinal))
+            if (next is not [',', ..] || !SkipLineComments(next[1..]).StartsWith(Names.AsSpan(), StringComparison.Ordinal))
             {
                 unpaired++;
                 continue;
             }
 
-            var list = next[1..].TrimStart()[Names.Length..].TrimStart();
-            if (list is not ['[', ..])
+            var list = SkipLineComments(next[1..])[Names.Length..].TrimStart();
+            if (list is not ['[', ..] || list[..list.IndexOf(']')].Contains("...".AsSpan(), StringComparison.Ordinal))
             {
                 computed++;
                 continue;
@@ -300,6 +320,19 @@ public sealed class ProviderCredentialVariablesTests
         }
 
         return new EnvMethodDeclarations(names, computed, unpaired);
+    }
+
+    /// <summary>Skips the whitespace and the line comments that may stand between two properties.</summary>
+    private static ReadOnlySpan<char> SkipLineComments(ReadOnlySpan<char> source)
+    {
+        var rest = source.TrimStart();
+        while (rest.StartsWith("//".AsSpan(), StringComparison.Ordinal))
+        {
+            var end = rest.IndexOf('\n');
+            rest = end < 0 ? [] : rest[(end + 1)..].TrimStart();
+        }
+
+        return rest;
     }
 
     /// <summary>The env methods of one source: their literal names, and how many are computed or unpaired.</summary>

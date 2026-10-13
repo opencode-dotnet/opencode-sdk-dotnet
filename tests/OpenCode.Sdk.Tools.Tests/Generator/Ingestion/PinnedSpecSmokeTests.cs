@@ -47,7 +47,7 @@ public sealed class PinnedSpecSmokeTests
         var document = await IngestPinnedSpecAsync();
 
         var durableEvent = (UnionNode)document.Schemas["Session.Event.Durable"];
-        await Assert.That(durableEvent.Keyword).IsEqualTo(UnionKeyword.OneOf);
+        await Assert.That(durableEvent.Keyword).IsEqualTo(UnionKeyword.AnyOf);
         await Assert.That(durableEvent.Classification).IsEqualTo(UnionClassification.Marked);
 
         var message = (UnionNode)document.Schemas["Session.Message.Info"];

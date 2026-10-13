@@ -111,7 +111,7 @@ public sealed class SessionLogContractTests
     {
         using var scenario = ContractScenario.RespondingWithFrames(
             WireBodyData.Frames(WireBodyData.SessionCreatedEvent)
-            + WireBodyData.NamedFrame("effect/httpapi/stream/failure", WireBodyData.StreamFailureCause));
+            + WireBodyData.NamedFrame("effect/http-api/stream/failure", WireBodyData.StreamFailureCause));
 
         var exception = await Assert
             .That(async () => _ = await CollectAsync(scenario))
@@ -126,7 +126,7 @@ public sealed class SessionLogContractTests
     public async Task GetLogAsync_Should_Preserve_An_Unknown_Failure_Cause_Tag()
     {
         using var scenario = ContractScenario.RespondingWithFrames(
-            WireBodyData.NamedFrame("effect/httpapi/stream/failure", WireBodyData.UnknownStreamFailureCause));
+            WireBodyData.NamedFrame("effect/http-api/stream/failure", WireBodyData.UnknownStreamFailureCause));
 
         var exception = await Assert
             .That(async () => _ = await CollectAsync(scenario))
@@ -141,7 +141,7 @@ public sealed class SessionLogContractTests
     public async Task GetLogAsync_Should_Refuse_The_Known_Impossible_Failure_Cause_Tag()
     {
         using var scenario = ContractScenario.RespondingWithFrames(
-            WireBodyData.NamedFrame("effect/httpapi/stream/failure", WireBodyData.ImpossibleStreamFailureCause));
+            WireBodyData.NamedFrame("effect/http-api/stream/failure", WireBodyData.ImpossibleStreamFailureCause));
 
         var exception = await Assert
             .That(async () => _ = await CollectAsync(scenario))
@@ -158,7 +158,7 @@ public sealed class SessionLogContractTests
     public async Task GetLogAsync_Should_Expose_An_Interrupt_Failure_Cause(string body, double? expectedFiberId)
     {
         using var scenario = ContractScenario.RespondingWithFrames(
-            WireBodyData.NamedFrame("effect/httpapi/stream/failure", body));
+            WireBodyData.NamedFrame("effect/http-api/stream/failure", body));
 
         var exception = await Assert
             .That(async () => _ = await CollectAsync(scenario))
@@ -172,7 +172,7 @@ public sealed class SessionLogContractTests
     public async Task GetLogAsync_Should_Preserve_Multiple_Failure_Causes()
     {
         using var scenario = ContractScenario.RespondingWithFrames(
-            WireBodyData.NamedFrame("effect/httpapi/stream/failure", WireBodyData.MultipleStreamFailureCauses));
+            WireBodyData.NamedFrame("effect/http-api/stream/failure", WireBodyData.MultipleStreamFailureCauses));
 
         var exception = await Assert
             .That(async () => _ = await CollectAsync(scenario))
@@ -187,7 +187,7 @@ public sealed class SessionLogContractTests
     public async Task GetLogAsync_Should_Preserve_An_Empty_Failure_Cause()
     {
         using var scenario = ContractScenario.RespondingWithFrames(
-            WireBodyData.NamedFrame("effect/httpapi/stream/failure", WireBodyData.EmptyStreamFailureCause));
+            WireBodyData.NamedFrame("effect/http-api/stream/failure", WireBodyData.EmptyStreamFailureCause));
 
         var exception = await Assert
             .That(async () => _ = await CollectAsync(scenario))

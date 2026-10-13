@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Tests.Support;
 internal sealed class TestStreamAdapter : IStreamAdapter<TestBody, TestStreamFailureCause[]>
 {
     /// <summary>The name the pinned contract gives a mid-stream failure frame.</summary>
-    public const string StreamFailureEventName = "effect/httpapi/stream/failure";
+    public const string StreamFailureEventName = "effect/http-api/stream/failure";
 
     private readonly string[]? _allowedTags;
 

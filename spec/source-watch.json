@@ -3,7 +3,7 @@
   "sources": [
     {
       "path": "packages/server/src/handlers/pty.ts",
-      "sha256": "c4328a498f037c02244e4dc221e011847319bd49cd4cf31062de4da59a18970a",
+      "sha256": "cc5b482a4e96ffa777cecdeaf9c28e04e696e9f78a9e8e50ce649513aedca35e",
       "behavior": "Before the WebSocket upgrade the PTY connect handler rejects a disallowed origin (403; a request without an Origin passes), then consumes the single-use ticket, rejecting an invalid one (403), then resolves the location (404 LocationNotFoundError for a missing directory), then answers an empty 404 for a missing session, which PtyUpgradeFailurePolicy reports, and accepts a cursor at or above -1. After the upgrade it closes 4404 when the session is not found or has exited and 1000 on a normal end, and sends the replay as PtyProtocol.chunks followed by the meta frame.",
       "anchor": {
         "type": "contains",
@@ -12,16 +12,16 @@
     },
     {
       "path": "packages/server/src/handlers/pty-socket.ts",
-      "sha256": "a480a11ce1b8e12ecfd0609eea82eaa1d9c422f55ac72234f58d9d98e25b7314",
-      "behavior": "runPtySocket races the PTY output drain against the WebSocket input loop with Effect.raceFirst, so whichever side ends first ends both PTY doors\u0027 connections, and runs detach on every exit path.",
+      "sha256": "f82a65eb8b6919f9d8de6ed0c6c77ae5881cef5a27ce3caf5888c03a4ec8a2b7",
+      "behavior": "runPtySocket is the connection loop both PTY doors share: one writer drains a single outbound queue, so the replay, live output, and the close frame reach the client in queue order and nothing follows the close frame; it races that drain against the WebSocket input loop with Effect.raceFirst, so whichever side closes first ends the connection; a close from either side, whatever its code, ends the run normally while a read or write failure dies; and it runs detach on every exit path.",
       "anchor": {
         "type": "contains",
-        "text": "Effect.raceFirst(drain, socket).pipe(Effect.ensuring(Effect.sync(detach)))"
+        "text": "Effect.raceFirst(drain, read)"
       }
     },
     {
       "path": "packages/server/src/middleware/authorization.ts",
-      "sha256": "61e1cb8df3e9f61803acbf25f4056349ad67ed8109f9bb63a7e474fc7c1cb0ef",
+      "sha256": "050d751598d9be28164deca3988dc6631b02a9544c00a9258d4c1256f2326a52",
       "behavior": "A non-empty ticket query on a PTY connect, and a pairing link under /auth/connect/, skip the credential check, so the hand-written door authenticates the WebSocket upgrade with the ticket alone and a pairing code is redeemed with no other credential.",
       "anchor": {
         "type": "contains",
@@ -39,7 +39,7 @@
     },
     {
       "path": "packages/protocol/src/groups/pty.ts",
-      "sha256": "b540fa1d43f8b5389d6fd277b08b4ee505962e0152483962048a7ffdba6715ae",
+      "sha256": "e0e154bbdccaa986b905a20e3f0eee3d499f8d385a27dc352953f92ffac927c6",
       "behavior": "The ticket-issuing request carries the x-opencode-ticket header and the connect URL carries the ticket query.",
       "anchor": {
         "type": "contains",
@@ -75,7 +75,7 @@
     },
     {
       "path": "packages/server/src/routes.ts",
-      "sha256": "eaca0968b66e20e966d74b1eaf9744cf339f66cb17736c7f527611b5270e27bc",
+      "sha256": "7d61d4a59322812ccdee2d269d7abae00e313224bf3971dcc5965bbef886e1ca",
       "behavior": "The PTY ticket service and the persistent-PTY service are wired into the server layer graph.",
       "anchor": {
         "type": "contains",
@@ -84,7 +84,7 @@
     },
     {
       "path": "packages/protocol/src/groups/persistent-pty.ts",
-      "sha256": "85398c1b03de7b6d3a487983b2d160ffb24a94a4d63a23efb7aa3c85f13ee9a3",
+      "sha256": "8fa2c8508b4b8823d551a99614757bb99887536676b23255d2c3c1434944776c",
       "behavior": "The handoff response is a single-key body whose handoff value is nullable, and the persistent connect endpoint reuses the PTY ticket query and header.",
       "anchor": {
         "type": "contains",
@@ -93,7 +93,7 @@
     },
     {
       "path": "packages/server/src/handlers/persistent-pty.ts",
-      "sha256": "07c13fed2eb4d11bfb375eb8a065b7036f0d63c2b007135e0fbabe02a0cb40f5",
+      "sha256": "49aa47debe92dbfd15c748f19580f30bcf8dd212bb4ff4f73bf669615d807612",
       "behavior": "The persistent connect handler closes 4404 when the terminal is unavailable and 1000 on a normal end, consumes the ticket, and requires a cursor at or above 0.",
       "anchor": {
         "type": "contains",
@@ -156,7 +156,7 @@
     },
     {
       "path": "packages/cli/package.json",
-      "sha256": "3b9b34771e9c013a8387d475e57ba1297394e6da2595527c024578b3585a0c17",
+      "sha256": "e13ad5918040bb0c19aa4683bf93cc857112c53043785e2264d04371cc617b54",
       "behavior": "The CLI package bin map names \u0022opencode\u0022 as the installed command and keeps \u0022opencode2\u0022 as a transitional alias of the same launcher, so the shipped launcher default resolves \u0022opencode\u0022 from PATH. The CLI depends on the opencode-pty package at 0.2.0.",
       "anchor": {
         "type": "contains",
@@ -165,7 +165,7 @@
     },
     {
       "path": "packages/core/package.json",
-      "sha256": "7dea4b509d922e21c9e6dc95ff6666c558c98e63dbb910a678847f2567ad376d",
+      "sha256": "bee94740e4c561259bac1d2909d5bded552e9f6d5ea0086420470a6988de85b9",
       "behavior": "The opencode-pty daemon dependency is pinned at 0.2.0, which takes its runtime directory and name as arguments instead of OPENCODE_PTY_RUNTIME_DIR; the daemon protocol the persistent-PTY door speaks stays at version 7.",
       "anchor": {
         "type": "contains",
@@ -174,7 +174,7 @@
     },
     {
       "path": "packages/server/src/process.ts",
-      "sha256": "52fb059942a54792ba2816e773d7e167cbd25e7fb1ed980481e5f89fd63377aa",
+      "sha256": "08f2aa9eb41d7f4636426b32ccc9119aa5acce14357769039a370a7bc196254f",
       "behavior": "A ticketed PTY connect is admitted before the server reports ready. Uncredentialed or wrongly credentialed requests above the API layer receive a 401 whose JSON body is the UnauthorizedError the document declares, with the Basic challenge only for requests that are not browser fetches. While the server is not ready, GET /api/info is answered by the process layer under Basic auth with the version, pid, urls (the bound connection URLs, plus the remote-access URL while a service\u0027s tunnel is attached), and paths.tmp body at 500 when failed or 503 when starting or stopping, the latter two with retry-after: 1; once ready the request reaches the API group\u0027s server.info handler, which answers the same shape at 200.",
       "anchor": {
         "type": "contains",
@@ -183,7 +183,7 @@
     },
     {
       "path": "packages/server/test/persistent-pty.test.ts",
-      "sha256": "44662ac40a1037d45c283e120a358d1e1ed39f216d2b7500349083ac5ff7d6fc",
+      "sha256": "b4cf54fea4e34ff0f29dc8248c6a10b3c5c5f1bc16e4abaabe730dade3b64b9f",
       "behavior": "Behavioral oracle: the upstream suite asserts the 4404 close code, the null handoff body, terminal survival across an explicit restart handoff, and the migration of a handoff that names a legacy runtime directory.",
       "anchor": {
         "type": "contains",
@@ -201,7 +201,7 @@
     },
     {
       "path": "packages/core/src/ripgrep/binary.ts",
-      "sha256": "bc1bdc9e6429d8f586a8346ff58f5616e90f1755740f93fa938d266b34495d21",
+      "sha256": "49900f7647db6b720ff80451c69f92824184266fb61d8e65e0bcfa8781062005",
       "behavior": "The ripgrep version upstream downloads on demand. CI provisions that exact version with pinned digests so an offline simulated server never has to reach the network for it, so a moved constant must be reviewed with the refresh rather than discovered as a failing filesystem live test.",
       "anchor": {
         "type": "contains",
@@ -219,7 +219,7 @@
     },
     {
       "path": "packages/cli/src/services/standalone.ts",
-      "sha256": "6cb84355aaddef02a53913049ff394fa180d6167ce629d97bd4f967d0a8d2d91",
+      "sha256": "dc8197da471d3d213acf51ef809bb1c05a7cf697bce1f0795e49fdd4c0165cf9",
       "behavior": "The standalone service decodes one JSON readiness object from the child\u0027s stdout, requiring only a string url member, and ends the server by closing its stdin, which is the contract the SDK\u0027s launcher is a parity port of. The endpoint it returns carries the child\u0027s pid and an exited effect (proc.exitCode) that yields the exit code, or fails with the terminating signal when a signal ended the child.",
       "anchor": {
         "type": "contains",
@@ -228,7 +228,7 @@
     },
     {
       "path": "packages/util/src/cross-spawn-spawner.ts",
-      "sha256": "9986d9c858933ea11e9c326b59af36a90922cdf3743c1e424fe94cf0eed35444",
+      "sha256": "9a73e57e0200310519cf7635f7e5f1682d96c1054a7f6634a00980c24a85bdbf",
       "behavior": "The spawner the standalone service starts its child through merges the command env over the parent environment when extendEnv is set, starts the child in its own process group off Windows, and ends it by killing the tree (taskkill /pid \u003Cpid\u003E /T /F on Windows, process.kill(-pid, signal) elsewhere, falling back to the child alone) with killSignal, SIGTERM by default, escalating to SIGKILL once forceKillAfter elapses; after the child exits, its stdout and stderr share one 1-second deadline to close before they are discarded.",
       "anchor": {
         "type": "contains",
@@ -246,7 +246,7 @@
     },
     {
       "path": "packages/cli/src/server-process.ts",
-      "sha256": "1858da9d94641148b9c1612b67b2d9e0dca401cd81dedb08a9b3ae993a2397c6",
+      "sha256": "6ba7e3a0d9165dc358db80dec6f7f8598ad2f9cf1ecf5471386facdea65cadc1",
       "behavior": "In stdio mode the serve command prints exactly one JSON line carrying the bound url to stdout after full boot and exits when stdin reaches EOF, which is the readiness line ServerReadyLine parses and the lease OpenCodeServer releases. In service mode it changes into the user home (which ServerIsolation\u0027s isolated home relies on), returns at once when a compatible incumbent already answers, and, when the bind finds the port in use, spends up to 15 seconds re-checking for a recognized incumbent and retrying the bind every 100 milliseconds: a recognized incumbent makes it exit 0 as the loser, and a freed port makes it the service. That exit 0 is the exit the Ensure election reads as a lost race and answers by doubling its spawn delay; a loser that exited non-zero would fail every multi-contender Ensure. On Windows, a service run from a package-manager or curl install first holds a second hard link to its own image under the cache directory, so an installer can replace the binary while the daemon runs; the pid and start time the stop door identifies it by are unchanged, and a daemon the stop door ends hard leaves that link for the next service start to sweep. An OPENCODE_PTY_HANDOFF that does not decode is logged and ignored, so the server starts with fresh persistent terminals instead of failing. In service mode with remote access configured, it attaches the remote-access tunnel in the background after binding; a tunnel failure is logged and changes neither the readiness line nor the exit status.",
       "anchor": {
         "type": "contains",
@@ -264,7 +264,7 @@
     },
     {
       "path": "packages/server/src/location.ts",
-      "sha256": "09a5ef6175927093ac707df86530fe2dc7da8943c8dabdd02163fcfc6b7051c6",
+      "sha256": "8f8cac178efa51059b79a6ce1bd13da334b7cd1d0d4a4a0fbc2211e80ff484ea",
       "behavior": "The request directory is resolved from location[directory] first, then the percent-decoded x-opencode-directory header, then the server working directory. The server no longer reads the workspace query or header, which defines the hand-written directory-only LocationSelector contract. A directory that does not exist answers 404 LocationNotFoundError (locationErrors) instead of failing the request as a defect.",
       "anchor": {
         "type": "contains",
@@ -273,7 +273,7 @@
     },
     {
       "path": "packages/server/src/middleware/session-location.ts",
-      "sha256": "3e071795112fe5484da65eb4342a155829b60f90de060ecd50ddf034f2e94a9b",
+      "sha256": "b8aef884bbe46d3e5d24967d570dd5473a424b66e05d870f1d4669353121d887",
       "behavior": "Session-scoped routes take their location from the session row that the sessionID route parameter names, so the request\u0027s location[directory] query and x-opencode-directory header do not select the location there; an invalid session ID is InvalidRequestError, a missing session is SessionNotFoundError, and a session whose directory no longer exists is LocationNotFoundError (404).",
       "anchor": {
         "type": "contains",
@@ -282,7 +282,7 @@
     },
     {
       "path": "packages/server/src/middleware/form-location.ts",
-      "sha256": "7b1da45c316d647fabfccd7d5e1ec6ebcc385a8f8080f0025485ec3fb2dd6200",
+      "sha256": "aff866ce37a2f4981d63ef497ea68c2147228423acfdf1c1b19ee663f2716f9c",
       "behavior": "Session form routes take their location from the session row like other session routes, except that the sessionID \u0022global\u0022 skips the session lookup and takes the location from the request (location[directory] query, then the x-opencode-directory header, then the server working directory). A location whose directory does not exist answers 404 LocationNotFoundError on both paths.",
       "anchor": {
         "type": "contains",
@@ -291,7 +291,7 @@
     },
     {
       "path": "packages/server/src/handlers/event.ts",
-      "sha256": "4f14b97a7d5aaad76d69a5642e879193b268a79eee14787f98d6353c65673fda",
+      "sha256": "0d1c4a383a345100ffc4ef82ee5e3ed47c8e5d6fdd1fd2c3f55abe5c971bb5c6",
       "behavior": "The global event stream sends server.connected as its first frame and a heartbeat every 15 seconds, which the SSE door\u0027s first-frame handling and idle expectations depend on.",
       "anchor": {
         "type": "contains",
@@ -327,7 +327,7 @@
     },
     {
       "path": "packages/protocol/src/groups/session.ts",
-      "sha256": "dc36e4bf720bf65294c31a810a96c52308977c71b435caec021ed584bd079f11",
+      "sha256": "1eb38a3bc9c463e2923d9f4fc12597aeebece8eadba6f6aa5ff5b917cd2df1e5",
       "behavior": "The session list declares limit, order and cursor, where order applies to the first page only and the opaque cursor carries the continuation, which the cursor-list spine and CursorSequence depend on; the file is also the Restore patch preimage for the SSE payloads.",
       "anchor": {
         "type": "contains",
@@ -354,7 +354,7 @@
     },
     {
       "path": "packages/protocol/src/groups/message.ts",
-      "sha256": "abdb0f6c8573eb2b7c606f47056b2b82108e23dde3834140d7709816b8015b38",
+      "sha256": "bfc9fdb58bd8d3288b4d223ed2645d1a201bae12edc0eceafe72b67915b14de1",
       "behavior": "The message list declares limit, order, cursor and a type filter that must be passed again on every continuation, which the message-list spine, CursorSequence and EnumerateMessagesAsync depend on.",
       "anchor": {
         "type": "contains",
@@ -417,8 +417,8 @@
     },
     {
       "path": "packages/cli/src/services/service-config.ts",
-      "sha256": "21bc1a6d1f62f944a20032e95d03d8899ede0fbbffa9e68df529adfa8c6818c2",
-      "behavior": "The release channels latest, dev, beta, and next share service.json; every other channel is sanitized into service-\u003Cchannel\u003E.json; a legacy SHA-1 filename exists for every channel except latest and local; versionBelongsToChannel admits the exact installed version or the 0.0.0-\u003Cchannel\u003E-N[.M] spelling; migration copies a donor exclusively with mode 0600, ignores write failures, and admits only the current shape. Info declares optional disabled (a boolean) and remote (an object holding a string route) beside hostname, port, password, cors, and env. read turns a document that fails both the current shape and the legacy shape (remote as a boolean) into an empty config, so an invalid document is absent config; a legacy document is rewritten in place, true getting a generated route and false dropping the key.",
+      "sha256": "ae1b8f6d28ff38063e6f31995c2b94e9e8196c3a02bf3b7afbe020af3e48b725",
+      "behavior": "The release channels latest, dev, beta, and next share service.json; every other channel is sanitized into service-\u003Cchannel\u003E.json; a legacy SHA-1 filename exists for every channel except latest and local; versionBelongsToChannel admits the exact installed version or the 0.0.0-\u003Cchannel\u003E-N[.M] spelling; migration copies a donor exclusively with mode 0600, ignores write failures, and admits only the current shape. Info declares optional disabled (a boolean), remote (an object holding a string route), and remoteAccepted (the literal true, which the CLI writes when remote access is accepted while pairing or turned off after it was on, and which the service get, set, and unset commands do not reach) beside hostname, port, password, cors, and env. read turns a document that fails both the current shape and the legacy shape (remote as a boolean) into an empty config, so an invalid document, including one whose remoteAccepted is present but not true, is absent config; a legacy document is rewritten in place, true getting a generated route and false dropping the key.",
       "anchor": {
         "type": "contains",
         "text": "export function filename(channel = OPENCODE_CHANNEL)"
@@ -426,7 +426,7 @@
     },
     {
       "path": "packages/cli/src/services/service-registration.ts",
-      "sha256": "f570523cc38ec390d726b76dd504ee6e4e527dea037bc124bd5033137a4aa787",
+      "sha256": "5149c2874cf87260b99725192b275a7d8827ea9d83d7c5e52b4adf4794e55eae",
       "behavior": "The service writes its registration atomically through a temp file and rename with mode 0600, carrying id, the compiled version, the bound url, its own pid, and the password, then re-reads the file every five seconds and shuts down when another instance replaced it.",
       "anchor": {
         "type": "contains",
@@ -480,7 +480,7 @@
     },
     {
       "path": "packages/protocol/src/groups/server.ts",
-      "sha256": "cb4e29990241a41487e103625651f794d95fc6cce037ea036b452e2a0f671829",
+      "sha256": "677efe3d3c88ff809adddc9d2ab695bdfbd8ea4ad77e2a4576d21b7cb5d02d29",
       "behavior": "The info answer carries version, pid, urls, paths.tmp, and an optional capabilities object whose optional persistentPty flag says whether the server can run the persistent-terminal daemon; pid may be zero for a runtime without an OS process identity. The background-service probe revalidates the registered process identity and expected version.",
       "anchor": {
         "type": "contains",
@@ -498,7 +498,7 @@
     },
     {
       "path": "packages/cli/test/service.test.ts",
-      "sha256": "f253380d584652e55baa11870e1967fa9e22185e6dc134187573cca57fecc1dd",
+      "sha256": "c97c285027dd9c37884f36fbfc6ce5e9fea558ae6bf491871f5de06bc9559095",
       "behavior": "Upstream\u0027s own filename and channel expectations: the release channels share service.json, custom channels are sanitized, and version-to-channel membership follows the pre-release spelling; ServicePathResolverTests and ServiceMigrationTests re-prove them. A managed-service contender that finds its port occupied binds once the port is released.",
       "anchor": {
         "type": "contains",
@@ -534,11 +534,11 @@
     },
     {
       "path": "packages/cli/src/env.ts",
-      "sha256": "04055e533068daff42c6373266042de7b30831e367e5617837c474828fac53db",
+      "sha256": "5775e3e3e77687d596f15db4fdc98638564d075c3098eb8af3d7a919c5e295d8",
       "behavior": "The CLI reads the server password from OPENCODE_PASSWORD and falls back to the legacy OPENCODE_SERVER_PASSWORD; the session environment it hands on omits both.",
       "anchor": {
         "type": "contains",
-        "text": "Config.orElse(() =\u003E Config.redacted(\u0022OPENCODE_SERVER_PASSWORD\u0022))"
+        "text": "Config.orElse(() =\u003E Config.Redacted(\u0022OPENCODE_SERVER_PASSWORD\u0022))"
       }
     },
     {
@@ -552,11 +552,11 @@
     },
     {
       "path": "package.json",
-      "sha256": "a86ef16c52fa4b85fa196904fb17ad74e94a78cc364031336719b19650455b6c",
+      "sha256": "220edd68bd0ca2c70ef83c7dcb13b88acefaafb63320c18d1b914066c34913f7",
       "behavior": "The workspace catalog pins the Effect release the protocol document is generated with, whose JSON Schema encoding of StructWithRest (a struct\u0027s properties beside a single-element allOf carrying only the rest\u0027s additionalProperties) the projector admits as an open object, and whose union decode (SchemaAST Union.getParser: literal sentinels, then the first member in declaration order that decodes) the structural union first-match arm mirrors, as tools/oracles/first-match-union.ts proves; an Effect bump is reviewed against both, and the oracle re-run, before the snapshot moves.",
       "anchor": {
         "type": "contains",
-        "text": "\u0022effect\u0022: \u00224.0.0-rc.112\u0022"
+        "text": "\u0022effect\u0022: \u00224.0.1\u0022"
       }
     },
     {
@@ -615,7 +615,7 @@
     },
     {
       "path": "packages/httpapi-codegen/src/index.ts",
-      "sha256": "b8efe25ebb2b99888af0b6eabad3ee1b4f2b0faa4fc7a8e82314edf7eee45d6f",
+      "sha256": "89b387c305ff36dc1ff66bdc95b1d17a445fe3c2533523c8cd208750329e9f66",
       "behavior": "Upstream codegen turns a route whose path ends in a single trailing wildcard into a required string input named path, or wildcard when an input already takes path, and fills it with encodePath: each slash-separated segment through encodeURIComponent; the generator route-tail rule mirrors both (ADR-0029), and tools/oracles/wildcard-path.ts re-proves the encoding against the generated client.",
       "anchor": {
         "type": "contains",
@@ -624,7 +624,7 @@
     },
     {
       "path": "packages/server/src/handlers/fs.ts",
-      "sha256": "1763dad7774b3002e5218e16f9208c8171972a5a064910e3abe42bb3a3f217ad",
+      "sha256": "001cb251827a000c4891b8587278063b872330cf9fb51aacc080ffaf3eaed2a1",
       "behavior": "The fs.read handler takes the wildcard tail from the request URL path and percent-decodes it (an undecodable tail answers FileNotFoundError), reads the file relative to the location, and, for a request without conditional or Range headers, answers 200 with its raw bytes under the file MIME type, which the route tail and the binary envelope (Content, ContentType) rely on. Its 304, 206 and 416 answers respond only to If-None-Match, If-Modified-Since and Range request headers, which the SDK never sends and the document does not declare.",
       "anchor": {
         "type": "contains",
@@ -633,7 +633,7 @@
     },
     {
       "path": "packages/protocol/src/api.ts",
-      "sha256": "7a6abbdc7dc3e67a9857cc398d6e5de99664ca82e77e3f1b4d69b6fe8050b7b5",
+      "sha256": "9bc2d903aaaa3070fc895af250c4ad6b2a892c9e7247ca31ad10627c43525e05",
       "behavior": "The API assembly decides which groups carry the location middleware. It passes the middleware into makePtyGroup, which applies it to every PTY endpoint except pty.connect, so pty.connect resolves its location in its own handler; the persistent-PTY group carries none.",
       "anchor": {
         "type": "contains",

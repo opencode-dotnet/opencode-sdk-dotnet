@@ -62,7 +62,7 @@ public sealed class StreamOperationEmissionTests
         await Assert.That(clientSource).Contains("OpenCodeStreamFailureException");
         await Assert.That(clientSource).Contains("schema-valid failure with a typed cause");
         await Assert.That(clientSource).Contains("The example stream is volatile by contract.");
-        await Assert.That(adapterSource).Contains("public string FailureEventName => \"effect/httpapi/stream/failure\";");
+        await Assert.That(adapterSource).Contains("public string FailureEventName => \"effect/http-api/stream/failure\";");
         await Assert
             .That(adapterSource)
             .Contains(

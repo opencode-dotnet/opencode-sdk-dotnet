@@ -60,7 +60,9 @@ internal sealed class ObjectSchemaProjector
             return null;
         }
 
-        if (schema.AdditionalProperties is not null || !schema.AdditionalPropertiesAllowed)
+        // additionalProperties: false only restates that no key outside the pattern is admitted,
+        // which the dictionary does not check; a schema for the other keys refuses.
+        if (schema.AdditionalProperties is not null)
         {
             state.Errors.Add(location, "patternProperties cannot be combined with additionalProperties");
             return null;

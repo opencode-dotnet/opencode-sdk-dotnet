@@ -9,7 +9,7 @@ internal sealed class StreamOperationScenario(
 {
     public const string OperationId = "example.events";
     public const string GroupName = "example";
-    public const string FailureEventName = "effect/httpapi/stream/failure";
+    public const string FailureEventName = "effect/http-api/stream/failure";
 
     protected override void Arrange(SpecDocumentBuilder spec)
     {
@@ -23,9 +23,9 @@ internal sealed class StreamOperationScenario(
                 .Raw("contentSchema", "{\"$ref\":\"#/components/schemas/ExampleEvent\"}"))
             .WithSchema("ExampleEventFrame", schema => schema
                 .Type("object")
-                .Property("id", ConfigureId, required: true)
-                .Property("event", ConfigureEvent, required: true)
-                .Property("data", property => property.Ref("ExampleEventJsonString"), required: true))
+                .Property("id", ConfigureId, required: frameProfile is not StreamFrameProfile.OptionalId)
+                .Property("event", ConfigureEvent, required: frameProfile is not StreamFrameProfile.OptionalEvent)
+                .Property("data", property => property.Ref("ExampleEventJsonString"), required: frameProfile is not StreamFrameProfile.OptionalData))
             .WithSchema("ExampleEventsPostRequest", schema => schema
                 .Type("object")
                 .Property("filter", property => property.Type("string"), required: true))
@@ -44,7 +44,7 @@ internal sealed class StreamOperationScenario(
     {
         _ = frameProfile switch
         {
-            StreamFrameProfile.Valid => schema.AnyOf(
+            StreamFrameProfile.Valid or StreamFrameProfile.OptionalId or StreamFrameProfile.OptionalEvent or StreamFrameProfile.OptionalData => schema.AnyOf(
                 static branch => branch.Type("string"),
                 static branch => branch.Type("null")),
             StreamFrameProfile.NonNullableStringId => schema.Type("string"),

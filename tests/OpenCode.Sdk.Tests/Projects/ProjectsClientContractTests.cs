@@ -35,8 +35,22 @@ public sealed class ProjectsClientContractTests
         await Assert.That(project.Time.Created).IsEqualTo(1);
         await Assert.That(project.Time.Active).IsEqualTo(3);
         await Assert.That(project.Sandboxes).IsEmpty();
+        await Assert.That(project.Time.Archived).IsNull();
         await Assert.That(scenario.Requests.Single().RequestUri)
             .IsEqualTo(new Uri("http://localhost:4096/api/project"));
+    }
+
+    [Test]
+    public async Task ListProjectsAsync_Should_Send_The_Archived_Filter_And_Read_When_A_Project_Was_Archived()
+    {
+        const string body = "[{\"id\":\"prj_1\",\"canonical\":\"/gone\",\"time\":{\"created\":1,\"updated\":2,\"active\":3,\"archived\":4},\"sandboxes\":[]}]";
+        using var scenario = ContractScenario.Responding(HttpStatusCode.OK, body);
+
+        var response = await scenario.Client.Projects.ListProjectsAsync(new ProjectListRequest { Archived = QueryBoolean.True });
+
+        await Assert.That(response.Projects.Single().Time.Archived).IsEqualTo(4);
+        await Assert.That(scenario.Requests.Single().RequestUri)
+            .IsEqualTo(new Uri("http://localhost:4096/api/project?archived=true"));
     }
 
     [Test]

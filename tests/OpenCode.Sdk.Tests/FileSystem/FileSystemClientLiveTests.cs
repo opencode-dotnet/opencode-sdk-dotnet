@@ -61,6 +61,23 @@ public sealed class FileSystemClientLiveTests(SimulatedDriveServerFixture server
             " directory=" + childDirectory.Path);
     }
 
+    /// <summary>A directory the location does not hold is the declared 404 and its typed <see cref="FileNotFoundError"/>.</summary>
+    [Test]
+    [Timeout(60_000)]
+    public async Task ListEntriesAsync_Should_Report_A_Missing_Directory_As_FileNotFoundError(CancellationToken cancellationToken)
+    {
+        using var workspace = server.CreateWorkspace();
+        using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
+
+        var missing = await client.FileSystem.ListEntriesAsync(
+            new FsListRequest { Path = "sdk-live-missing-directory" },
+            OpenCodeRequestOptions.NoThrow,
+            cancellationToken);
+
+        await Assert.That(missing.Status).IsEqualTo(404);
+        await Assert.That(missing.Error).IsTypeOf<FileNotFoundError>();
+    }
+
     /// <summary>
     /// The route carries the nested path escaped segment by segment, the server confines it to the
     /// location and answers the file's bytes under a MIME type taken from its extension.
