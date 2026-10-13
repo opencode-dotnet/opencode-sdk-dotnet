@@ -9,6 +9,18 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+## [0.9.0-preview.9] - 2026-10-13
+
+**The pin moves to upstream release tag `v2.0.27`, and all 142 operations it exposes are
+callable — 140 as generated HTTP calls, and the two terminal WebSocket connections through
+hand-written transports.** Upstream 2.0.27 moves to Effect 4.0.1, which renames the stream failure
+frame, and `project.list` takes an `archived` filter, which makes its route helper a method; the
+two breaking changes come first. A project records when it was archived, an idle message carries
+the error of a failed turn, `fs.list` answers a missing directory with a typed
+`FileNotFoundError`, and the background-service config reader validates `remoteAccepted` as the
+CLI does. Discovery reads a refused connection as no service even when its bound expires at the
+same moment. `net8.0` and `net9.0` still leave in an upcoming preview; see the important notes.
+
 ### 💥 Breaking changes
 
 - **A mid-stream failure is recognized under upstream 2.0.27's frame name.** Upstream 2.0.27 moves
@@ -64,6 +76,18 @@ Nightly builds of `master` are on
   expired. Behaviour change: fewer spurious timeouts under load, so Ensure less often counts a dead
   daemon toward the three timeouts that end a registered service, and starts a contender after the
   spawn delay instead.
+
+### 📋 Important Notes
+
+- **`net8.0` and `net9.0` leave the packages, and `net11.0` joins, in an upcoming preview,** ahead
+  of their end of support on 2026-11-10; this release still ships them. The packages will then
+  target `netstandard2.0;net472;net10.0;net11.0`. An app on .NET 8 or 9 still installs through the
+  `netstandard2.0` asset, but that asset is a compatibility asset, not a supported runtime: support
+  and testing cover the targeted runtimes only, and .NET 5–7 are not supported. Plan the move to
+  .NET 10.
+- **Upstream's committed OpenAPI document matches its own generator at `v2.0.27`.** The stale
+  copy that `0.9.0-preview.8` noted is current again, so a diff against it no longer shows
+  operations or errors this SDK has and that document lacks.
 
 ## [0.9.0-preview.8] - 2026-10-09
 
@@ -1208,6 +1232,8 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[0.9.0-preview.9]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.9
+[0.9.0-preview.8]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.8
 [0.9.0-preview.7]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.7
 [0.9.0-preview.6]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.6
 [0.9.0-preview.5]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.5

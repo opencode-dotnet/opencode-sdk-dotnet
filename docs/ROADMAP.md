@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-10-12
+Date: 2026-10-13
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -72,7 +72,7 @@ live queue. In order:
    `net8.0` and `net9.0` leave now, ahead of their end of support on 2026-11-10, across packages,
    tests, CI legs, the public API check, and the docs; no non-preview package is built on a
    pre-GA SDK. A consumer whose target falls back to the `netstandard2.0` asset on an unsupported
-   runtime gets a build warning. It follows `0.9.0-preview.8`. Launcher parity work rides the same
+   runtime gets a build warning. It follows `0.9.0-preview.9`. Launcher parity work rides the same
    workstream (ADR-0032): on Linux and macOS the launcher places its server in a session of its own
    and ends it on upstream's ladder (a SIGTERM to the process group before the SIGKILL); on Windows
    it places its server in a kill-on-close job, passes it only its standard handles, reads its
