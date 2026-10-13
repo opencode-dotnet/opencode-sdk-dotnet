@@ -1,6 +1,6 @@
 # Repository Workflow
 
-Date: 2026-08-18
+Date: 2026-10-13
 
 Canonical working agreements for research, implementation, temporary work, verification, and Git
 history.
@@ -33,6 +33,22 @@ Upstream submodules under `external/` are read-only evidence. Never hand-edit th
 Verification requirements live in `quality-gates.md`. Run them before claiming completion and state
 honestly what was not run. Generated SDK output changes through the generator and is reviewed as a
 complete diff; it is never hand-edited.
+
+## Dependency refresh
+
+Versions live in `Directory.Packages.props`, the SDK in `global.json`, and repository tools in
+`dotnet-tools.json`. A refresh takes the latest stable versions; a prerelease arrives only with the
+work that needs it. It lands as one pull request per class, in this order, each through the full
+completion gate:
+
+1. **Servicing and shipped dependencies** — the SDK feature band, the runtime's servicing packages,
+   and Polyfill. The CHANGELOG names every raised dependency floor of a shipped package and the
+   security fixes it carries; Polyfill's new members are audited against `BannedSymbols.txt`.
+2. **Generator and tooling** — `generate --verify` and `refresh-spec --verify` stay byte-identical.
+3. **Analyzers** — every new diagnostic is decided per rule under the analyzer policy in
+   `quality-gates.md`, never by a blanket suppression.
+4. **Test stack** — last, so a test-host regression can be reverted alone; a snapshot format change
+   is reviewed as a complete diff.
 
 ## Documentation sessions
 

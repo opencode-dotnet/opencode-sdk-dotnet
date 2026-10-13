@@ -181,14 +181,14 @@ These do not block `1.0.0` and run beside the road.
   which carries a terminal-adoption ticket, are created exclusively at mode `0600`: `net8.0` and
   later set the mode at creation through `FileStreamOptions.UnixCreateMode`, while `net472` and
   `netstandard2.0` have no such API and apply it through Polyfill's `File.SetUnixFileMode`, which
-  spawns `chmod` with an unquoted path and no exit-code check, so a failed `chmod` leaves the file
-  at the process umask. The stop door's Unix signal rungs and the contender spawn are `DllImport`s
+  spawns `chmod` after the create, and a failed `chmod` removes the file and fails the create. The
+  stop door's Unix signal rungs and the contender spawn are `DllImport`s
   on that asset, where the `LibraryImport` generator the modern targets use is unavailable
   (ADR-0026, ADR-0027). The registration copy is a convenience the daemon's own registration
   supersedes and the ticket carries its own expiry; the population of that arm is Mono on Unix
   (`net472` is Windows-only), and no CI leg runs the combination, so it is recorded rather than
   tested; the README's Known Issues carries the consumer-facing sentence. Reopens if a supported
-  target ever needs that arm or if Polyfill quotes the path.
+  target ever needs that arm.
 - **A pid reused before `StopAsync` runs is indistinguishable from a wedged daemon.** The
   registration names a pid and no process start time, so a daemon that died and whose pid the
   operating system handed to an unrelated process before a stop ran looks, to the file, like the

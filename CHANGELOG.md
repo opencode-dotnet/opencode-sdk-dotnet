@@ -9,6 +9,28 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 🔧 Changes
+
+- **The packages depend on the .NET 10.0.12 servicing builds of their dependencies.**
+  `OpenCodeDotNet.Sdk` requires `System.Text.Json` 10.0.12 on `netstandard2.0`, `net472`,
+  `net8.0`, and `net9.0`, and `Microsoft.Bcl.AsyncInterfaces`, `Microsoft.Bcl.Memory`,
+  `Microsoft.Bcl.TimeProvider`, `System.Collections.Immutable`, and `System.Threading.Channels`
+  10.0.12 on `netstandard2.0` and `net472`, up from 10.0.11; its `net10.0` asset still declares no
+  dependency. `OpenCodeDotNet.Sdk.Extensions` requires
+  `Microsoft.Extensions.DependencyInjection.Abstractions` and
+  `Microsoft.Extensions.Options.ConfigurationExtensions` 10.0.12 on every target, up from 10.0.10.
+  No security advisory covers the versions they replace. A project that references one of these
+  packages directly at a lower version must raise it, or restore reports a package downgrade
+  (NU1605, an error by default).
+
+### 🐛 Fixes
+
+- **On Unix under Mono, a failed `chmod` of an owner-only file fails its write.** The
+  `netstandard2.0` and `net472` assets set mode `0600` on the files discovery and `EnsureAsync`
+  write through a `chmod` child process after the create. That process now receives a quoted path,
+  and a nonzero exit removes the file and fails the create, as the modern targets' atomic
+  owner-only create does. Behaviour change: such a file was kept at the process umask before.
+
 ## [0.9.0-preview.9] - 2026-10-13
 
 **The pin moves to upstream release tag `v2.0.27`, and all 142 operations it exposes are

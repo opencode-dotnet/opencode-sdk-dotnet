@@ -11,8 +11,8 @@ namespace OpenCode.Sdk.Internal.BackgroundService;
 /// the pinned CLI's migration write (<c>flag: "wx", mode: 0o600</c>): on the modern targets Unix
 /// gets an atomic owner-only create through <c>FileStreamOptions.UnixCreateMode</c>; on the
 /// <c>netstandard2.0</c> asset the file is created first and its mode set second through the
-/// polyfilled <c>File.SetUnixFileMode</c>, a best-effort <c>chmod</c> the roadmap records as a known
-/// gap; Windows inherits the parent directory's DACL, as Node's <c>mode</c> does there.
+/// polyfilled <c>File.SetUnixFileMode</c>, a <c>chmod</c> child process whose failure fails the
+/// create; Windows inherits the parent directory's DACL, as Node's <c>mode</c> does there.
 /// </summary>
 internal sealed class ServiceFileSystem : IServiceFileSystem
 {

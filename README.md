@@ -319,8 +319,8 @@ has the two properties to set.
 - **On `net472` and `netstandard2.0`, two costs are larger than on modern targets.** A response body
   over 1 MB is copied once at wire size, because the downlevel array pool caps its buckets at 1 MB.
   On Unix (Mono), owner-only files that discovery and `EnsureAsync` write get mode `0600` through a
-  `chmod` child process, which does not quote the path or check the exit code. No CI leg runs .NET
-  Framework or Mono on Unix.
+  `chmod` child process rather than at creation, and a failed `chmod` fails the write. No CI leg runs
+  .NET Framework or Mono on Unix.
 
 - **Each terminal connection allocates a 16 KiB receive buffer**, reused across reads. The receiver
   also queues frames that nobody reads, so a slow or absent consumer can grow memory. See the
