@@ -398,6 +398,19 @@ public sealed class SchemaProjectorTests
     }
 
     [Test]
+    public async Task Project_Should_Refuse_AllOf_Wrapper_When_Element_Has_Example()
+    {
+        var host = new SchemaProjectionTestHost();
+        var scenario = SpecScenario.Define(spec => spec.WithSchema(
+            "Bad",
+            schema => schema.Type("string").AllOf(element => element.Raw("example", "\"ses_1\""))));
+
+        var ex = await host.ProjectExpectingRefusalAsync(scenario);
+
+        await Assert.That(ex.Message).Contains("allOf");
+    }
+
+    [Test]
     public async Task Project_Should_Refuse_AllOf_Wrapper_When_Element_Has_Unrecognized_Keyword()
     {
         var host = new SchemaProjectionTestHost();

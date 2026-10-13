@@ -31,11 +31,15 @@ internal static class AllOfWrapperKeywords
             Xml: null,
             ExternalDocs: null,
             Default: null,
-            Example: null,
             Deprecated: false,
             ReadOnly: false,
             WriteOnly: false,
         }
+               // CS0618 marks Example obsolete for authoring, but the reader still stores a singular
+               // `example` keyword there, and refusing it is this list's contract.
+#pragma warning disable CS0618
+               && element.Example is null
+#pragma warning restore CS0618
                && element.DependentSchemas is not { Count: > 0 }
                && element.DependentRequired is not { Count: > 0 }
                && element.Definitions is not { Count: > 0 }
