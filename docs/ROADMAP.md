@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-10-13
+Date: 2026-10-14
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -243,6 +243,15 @@ These do not block `1.0.0` and run beside the road.
 - **Three one-off test failures were seen once each and never reproduced.** No runner named a test
   and re-runs of the same binaries were green, so this is a measurement gap rather than a known
   defect: run the gates with `--report-trx --report-trx-filename <unique>` so a recurrence names it.
+- **The Windows launcher's handle test measures the whole process.**
+  `StartAsync_Should_Leave_No_Handle_Behind_Across_Starts_And_Releases` bounds
+  `Process.HandleCount` across start and release rounds, and that count includes the runtime's own
+  thread churn: each thread-pool or tiered-compilation worker adds three handles. It failed once on
+  CI (a delta of 6 against a bound of 5) and passed on rerun; measured locally, the handle kinds the
+  launcher creates showed a net delta of exactly zero, so no SDK leak is known. The fix is designed
+  and parked in internal research (2026-10-13, Windows handle-cycles failure): count only the
+  launcher's handle kinds and require an exact match with the warm-up round. Reopens if the test
+  fails again.
 - **CodeQL analyses C# without a build.** Code scanning runs on default setup, which extracts C#
   in `build-mode: none`. That leaves the database under CodeQL's own confidence thresholds — 83% of
   calls resolve to a target against a threshold of 85%, and 89% of expressions carry a known type
