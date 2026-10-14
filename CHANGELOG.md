@@ -19,8 +19,9 @@ defaults, request-body encoding and top-level config policies. `OpenCodeServer.E
 a started server ended, and on Windows a server's exit is observed on the operating system's own
 wait thread, so a busy host no longer reports a crashed start as a closed stdout. The breaking
 changes come first: besides the target frameworks, `OpenCodeServerOptions` refuses an out-of-range
-timeout when it is set, `IOpenCodeClientOptions` is removed, and
-`OpenCodeStreamFailureException.Cause` is now `Causes`.
+timeout when it is set, `IOpenCodeClientOptions` is removed,
+`OpenCodeStreamFailureException.Cause` is now `Causes`, and `PersistentPtyReplayBounds` takes
+camelCase constructor parameters.
 
 ### 💥 Breaking changes
 
@@ -102,6 +103,10 @@ timeout when it is set, `IOpenCodeClientOptions` is removed, and
   `ConfigProviderSettings`, `ModelSettings`, and `ConfigModelSettings` it is no longer in
   `AdditionalProperties`, where `0.9.0-preview.9` kept it as an undeclared member.
 
+- **The source is laid out in feature folders, and the internal namespaces are flattened into
+  `OpenCode.Sdk.Internal`.** The public API is unchanged, byte for byte. Only the names of internal
+  types differ, as a stack trace or reflection shows them.
+
 ### 🐛 Fixes
 
 - **On a busy Windows host, a server's exit is no longer reported late.** The launcher learned of a
@@ -129,6 +134,9 @@ timeout when it is set, `IOpenCodeClientOptions` is removed, and
 - **This release is built on the .NET 11 release-candidate SDK.** A preview package may build on a
   go-live release candidate (ADR-0002); the first non-preview package waits for the GA SDK. The
   `net11.0` asset needs the .NET 11 runtime, and a `net10.0` app keeps using the `net10.0` asset.
+- **From `1.0.0`, a minor version may move the protocol pin** and change the generated surface the
+  way upstream changed it, each change listed under protocol changes; only a major version breaks
+  the hand-written design (ADR-0034).
 
 ## [0.9.0-preview.9] - 2026-10-13
 
