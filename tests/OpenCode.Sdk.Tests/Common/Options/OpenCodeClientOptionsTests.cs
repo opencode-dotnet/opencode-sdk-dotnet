@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Common.Options;
 
 public sealed class OpenCodeClientOptionsTests
 {

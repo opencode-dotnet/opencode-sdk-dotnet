@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Common;
 
 /// <summary>
 /// The carrier's own contract, independent of any wire shape: which of the three states each
