@@ -31,7 +31,11 @@ internal static class WireDocumentationPolicy
                 continue;
             }
 
-            Add(candidates, model.Name, $"The '{tag}' event.");
+            // An event record used anywhere besides its unions has a second role and keeps today's text.
+            if (uses.GetValueOrDefault(model.Name) is 1)
+            {
+                Add(candidates, model.Name, $"The '{tag}' event.");
+            }
             var data = model.Properties.SingleOrDefault(static property => property.WireName is "data");
             if (data?.Type is NamedTypeReferencePlan payload && uses.GetValueOrDefault(payload.Name) is 1)
             {
@@ -40,7 +44,7 @@ internal static class WireDocumentationPolicy
         }
 
         foreach (var variant in plan.Unions
-                     .Where(static union => union.MarkerWireName is ErrorMarkerPolicy.WireName)
+                     .Where(static union => union.ConceptName is ErrorMarkerPolicy.ErrorConceptName)
                      .SelectMany(static union => union.Variants)
                      .Where(static variant => !variant.IsNestedUnion)
                      .DistinctBy(static variant => variant.TypeName, StringComparer.Ordinal))
@@ -50,7 +54,7 @@ internal static class WireDocumentationPolicy
 
         foreach (var group in boundOperations.Where(static operation => operation.RequestBody is { IsBinary: false })
                      .GroupBy(static operation => operation.RequestBody!.TypeName, StringComparer.Ordinal)
-                     .Where(static group => group.Count() is 1))
+                     .Where(group => group.Count() is 1 && uses.GetValueOrDefault(group.Key) is 1))
         {
             Add(candidates, group.Key, OperationDocumentationPolicy.Summary("body", group.Single()));
         }

@@ -17,7 +17,7 @@
     {
       "type": "SessionMessageAssistant",
       "member": "RawFinish",
-      "summary": "The provider's own finish-reason string, kept verbatim for diagnostics; often null. Use Finish for logic.",
+      "summary": "The provider's own finish-reason string, kept verbatim for diagnostics; it may be null. Use Finish for logic.",
       "remarks": null,
       "reason": "Upstream copies the provider's stop reason unnormalised beside Finish."
     },
@@ -25,7 +25,7 @@
       "type": "SessionMessageAssistant",
       "member": "Error",
       "summary": "Set when this step failed, for example a provider error, a content filter or an interruption; the message and its partial content stay in the session.",
-      "remarks": "It is cleared again when the same step is retried successfully.",
+      "remarks": "It is cleared when the step starts again on this same message. When a failure after partial output continues the turn, the continuation is a new message and this one keeps its error.",
       "reason": "Builders could not tell a failed turn from a finished one; upstream sets it from session.step.failed and clears it on a retried step.started."
     },
     {
@@ -59,7 +59,7 @@
     {
       "type": "SessionTextDelta",
       "member": null,
-      "summary": "A live fragment of assistant text: append its Delta to the text part its AssistantMessageId and Ordinal name.",
+      "summary": "A live fragment of assistant text: append its Data.Delta to the text part its Data.AssistantMessageId and Data.Ordinal name.",
       "remarks": "Deltas are never stored or replayed; after reconnecting, rely on SessionTextEnded or the session's messages.",
       "reason": "Builders kept only deltas and lost text across reconnects; upstream declares stream fragments live-only (schema/src/session-event.ts)."
     },
@@ -80,7 +80,7 @@
     {
       "type": "SessionTextEnded",
       "member": null,
-      "summary": "The end of one assistant text part. It is durable and replayed, and its Text holds the part's complete final text.",
+      "summary": "The end of one assistant text part. It is durable and replayed, and its Data.Text holds the part's complete final text.",
       "remarks": null,
       "reason": "Upstream declares Text.Ended the replayable full-value boundary (schema/src/session-event.ts)."
     },
@@ -129,14 +129,14 @@
     {
       "type": "SessionPromptRequest",
       "member": "Delivery",
-      "summary": "Steer, the default, puts the prompt into the running turn at its next step; Queue holds it until the session is idle and then starts a new turn with it.",
+      "summary": "Steer, the default, puts the prompt into the running turn at its next step; Queue waits for the current turn to end and starts a new turn with it.",
       "remarks": null,
       "reason": "Upstream's inbox delivery modes (core/src/session/inbox.ts)."
     },
     {
       "type": "SessionPromptRequest",
       "member": "Resume",
-      "summary": "False stores the prompt without starting the session; it waits until something next wakes the session. The default is true.",
+      "summary": "False stores the prompt without waking the session for it: an idle session leaves it pending until something else wakes it, while a session already running can still take it at its next boundary. The default is true.",
       "remarks": null,
       "reason": "Upstream skips scheduling the run when resume is false."
     },
@@ -164,14 +164,14 @@
     {
       "type": "SessionCreateRequest",
       "member": "Agent",
-      "summary": "The agent to use. When it is absent, the server chooses its default agent at the start of every turn.",
+      "summary": "The agent to use. When it is absent, the server chooses its default agent each time the session runs a step.",
       "remarks": null,
       "reason": "Upstream stores no agent when none is given (core/src/agent.ts)."
     },
     {
       "type": "SessionCreateRequest",
       "member": "Model",
-      "summary": "The model to use. When it is absent, the server chooses its default model at the start of every turn; an unavailable model is reported only when a turn runs.",
+      "summary": "The model to use. When it is absent, the server chooses its default model each time the session runs a step; an unavailable model is reported only when the session runs.",
       "remarks": null,
       "reason": "Builders expected create to validate the model; upstream resolves it per turn (core/src/session/runner/model.ts)."
     },
@@ -192,14 +192,14 @@
     {
       "type": "SessionExecutionStarted",
       "member": null,
-      "summary": "The server began working on the session after it was woken while idle. Exactly one of SessionExecutionSucceeded, SessionExecutionFailed or SessionExecutionInterrupted follows, however many prompts arrive meanwhile.",
+      "summary": "The server began working on the session after it was woken while idle. When that work settles, exactly one of SessionExecutionSucceeded, SessionExecutionFailed or SessionExecutionInterrupted follows, however many prompts arrive meanwhile; a server that crashes mid-work publishes none.",
       "remarks": null,
       "reason": "Upstream publishes one terminal observation per busy period (core/src/session/execution.ts)."
     },
     {
       "type": "SessionExecutionSucceeded",
       "member": null,
-      "summary": "The session finished all its pending work and went idle.",
+      "summary": "The execution finished the work it took on and the session went idle. Prompts it did not take, such as queued ones, can still be pending.",
       "remarks": null,
       "reason": "The turn-ending event builders need to wait on."
     },
@@ -214,14 +214,14 @@
       "type": "SessionExecutionInterrupted",
       "member": null,
       "summary": "The session's work stopped before it finished; its Data.Reason says why.",
-      "remarks": "With the shutdown reason the turn is not over: the server keeps it in progress and resumes it after it restarts, with a new SessionExecutionStarted.",
+      "remarks": "With the shutdown reason the turn is not over: the server keeps it marked in progress, and a server that resumes work after it restarts picks it up again with a new SessionExecutionStarted. A turn that cannot be resumed, or has been resumed too often, ends with SessionExecutionFailed.",
       "reason": "Builders treated every interrupt as the end of a turn; upstream resumes a shutdown interrupt (core/src/session/execution/restart.ts)."
     },
     {
       "type": "PtyCreateRequest",
       "member": "Command",
       "summary": "The program to run, an executable rather than a command line. When it is absent the server picks a shell: the configured shell, then $SHELL, then a per-platform fallback.",
-      "remarks": "The fallback is the first of pwsh, powershell, Git Bash, %COMSPEC% and cmd.exe found on Windows, /bin/zsh on macOS, and bash on PATH or else /bin/sh elsewhere. A configured shell that is not executable skips $SHELL and goes straight to the fallback. PowerShell starts with no added arguments, so its profile loads; pass -NoProfile in Args for a clean one.",
+      "remarks": "The fallback is, on Windows, the first of pwsh, powershell and Git Bash that is found, otherwise %COMSPEC%, or cmd.exe when COMSPEC is unset; /bin/zsh on macOS; and bash on PATH, or else /bin/sh, elsewhere. A configured shell that is not executable skips $SHELL and goes straight to the fallback. PowerShell starts with no added arguments, so its profile loads; pass -NoProfile in Args for a clean one.",
       "reason": "Builders could not predict which shell a PTY gets; upstream's resolver order (core/src/pty.ts, core/src/shell/select.ts)."
     },
     {

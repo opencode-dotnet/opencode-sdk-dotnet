@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Models;
 /// The session&apos;s work stopped before it finished; its Data.Reason says why.
 /// </summary>
 /// <remarks>
-/// With the shutdown reason the turn is not over: the server keeps it in progress and resumes it after it restarts, with a new SessionExecutionStarted.
+/// With the shutdown reason the turn is not over: the server keeps it marked in progress, and a server that resumes work after it restarts picks it up again with a new SessionExecutionStarted. A turn that cannot be resumed, or has been resumed too often, ends with SessionExecutionFailed.
 /// </remarks>
 public sealed record SessionExecutionInterrupted : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

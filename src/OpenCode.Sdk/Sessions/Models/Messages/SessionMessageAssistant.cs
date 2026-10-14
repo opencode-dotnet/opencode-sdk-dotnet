@@ -70,7 +70,7 @@ public sealed record SessionMessageAssistant : ISessionMessageInfo
     public SessionMessageAssistantFinish? Finish { get; init; }
 
     /// <summary>
-    /// The provider&apos;s own finish-reason string, kept verbatim for diagnostics; often null. Use Finish for logic.
+    /// The provider&apos;s own finish-reason string, kept verbatim for diagnostics; it may be null. Use Finish for logic.
     /// </summary>
     [JsonPropertyName("rawFinish")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -101,7 +101,7 @@ public sealed record SessionMessageAssistant : ISessionMessageInfo
     /// Set when this step failed, for example a provider error, a content filter or an interruption; the message and its partial content stay in the session.
     /// </summary>
     /// <remarks>
-    /// It is cleared again when the same step is retried successfully.
+    /// It is cleared when the step starts again on this same message. When a failure after partial output continues the turn, the continuation is a new message and this one keeps its error.
     /// </remarks>
     [JsonPropertyName("error")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

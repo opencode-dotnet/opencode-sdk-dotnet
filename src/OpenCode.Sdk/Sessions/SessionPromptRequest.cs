@@ -56,7 +56,7 @@ public sealed record SessionPromptRequest
     public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
 
     /// <summary>
-    /// Steer, the default, puts the prompt into the running turn at its next step; Queue holds it until the session is idle and then starts a new turn with it.
+    /// Steer, the default, puts the prompt into the running turn at its next step; Queue waits for the current turn to end and starts a new turn with it.
     /// </summary>
     [JsonPropertyName("delivery")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -64,7 +64,7 @@ public sealed record SessionPromptRequest
     public Optional<SessionInboxDelivery?> Delivery { get; init; }
 
     /// <summary>
-    /// False stores the prompt without starting the session; it waits until something next wakes the session. The default is true.
+    /// False stores the prompt without waking the session for it: an idle session leaves it pending until something else wakes it, while a session already running can still take it at its next boundary. The default is true.
     /// </summary>
     [JsonPropertyName("resume")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]

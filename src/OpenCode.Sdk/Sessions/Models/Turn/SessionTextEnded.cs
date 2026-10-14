@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The end of one assistant text part. It is durable and replayed, and its Text holds the part&apos;s complete final text.
+/// The end of one assistant text part. It is durable and replayed, and its Data.Text holds the part&apos;s complete final text.
 /// </summary>
 public sealed record SessionTextEnded : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

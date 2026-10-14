@@ -38,7 +38,7 @@ public sealed record SessionCreateRequest
     public Optional<string?> Title { get; init; }
 
     /// <summary>
-    /// The agent to use. When it is absent, the server chooses its default agent at the start of every turn.
+    /// The agent to use. When it is absent, the server chooses its default agent each time the session runs a step.
     /// </summary>
     [JsonPropertyName("agent")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -46,7 +46,7 @@ public sealed record SessionCreateRequest
     public Optional<string?> Agent { get; init; }
 
     /// <summary>
-    /// The model to use. When it is absent, the server chooses its default model at the start of every turn; an unavailable model is reported only when a turn runs.
+    /// The model to use. When it is absent, the server chooses its default model each time the session runs a step; an unavailable model is reported only when the session runs.
     /// </summary>
     [JsonPropertyName("model")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]

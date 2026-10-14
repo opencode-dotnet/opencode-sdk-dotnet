@@ -118,6 +118,14 @@ Curation may:
   HTTP method is never a name source, in method, request, response, or payload names (ADR-0008);
 - declare that a family emits an internal raw layer rather than a public surface, where
   hand-written code owns that family's public doors (ADR-0021);
+- document a generated type or one of its members where the wire says too little, through a
+  reason-bearing `descriptions` row keyed by the generated C# type and optional member: its
+  summary replaces the generated one and its remarks join any the type already carries. A row
+  wins over a schema description, which wins over the summary the generator derives from an
+  unambiguous wire role (an event, its exclusive payload, an operation's exclusive body, response
+  or query record, an error of the error spine); a record with two roles keeps the plain
+  placeholder. A row whose type or member is gone, a duplicate, or an empty summary or reason fails
+  generation;
 - place a model in a slice where its name carries no family prefix, through a reason-bearing
   `modelOwners` row; a family's prefixes are its name, its singular, its group key and the
   group's `prefixAliases`, and a model with no prefix and no row fails generation. A

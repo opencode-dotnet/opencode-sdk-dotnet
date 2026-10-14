@@ -13,7 +13,7 @@ public sealed record PtyCreateRequest
     /// The program to run, an executable rather than a command line. When it is absent the server picks a shell: the configured shell, then $SHELL, then a per-platform fallback.
     /// </summary>
     /// <remarks>
-    /// The fallback is the first of pwsh, powershell, Git Bash, %COMSPEC% and cmd.exe found on Windows, /bin/zsh on macOS, and bash on PATH or else /bin/sh elsewhere. A configured shell that is not executable skips $SHELL and goes straight to the fallback. PowerShell starts with no added arguments, so its profile loads; pass -NoProfile in Args for a clean one.
+    /// The fallback is, on Windows, the first of pwsh, powershell and Git Bash that is found, otherwise %COMSPEC%, or cmd.exe when COMSPEC is unset; /bin/zsh on macOS; and bash on PATH, or else /bin/sh, elsewhere. A configured shell that is not executable skips $SHELL and goes straight to the fallback. PowerShell starts with no added arguments, so its profile loads; pass -NoProfile in Args for a clean one.
     /// </remarks>
     [JsonPropertyName("command")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

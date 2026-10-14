@@ -147,6 +147,21 @@ public sealed class DescriptionCurationBinderTests
     private static DescriptionCuration Description(string type, string? member = null, string summary = "The curated summary.", string? remarks = null) =>
         new() { Type = type, Member = member, Summary = summary, Remarks = remarks, Reason = "Describe the scenario's generated C# surface." };
 
+    /// <summary>A curated summary on a hoisted interface replaces the placeholder and keeps the consume-only remark.</summary>
+    [Test]
+    public async Task Emit_Should_Keep_The_Consume_Only_Remark_On_A_Curated_Hoisted_Interface()
+    {
+        var (document, selection, curation) = await BindingTestHost.LoadPinnedInputsAsync();
+        var plan = new BindingTestHost().Bind(document, selection,
+            curation with { Descriptions = [.. curation.Descriptions, Description("IDurableEnvelope", null, "A curated envelope summary.")] });
+
+        var hoisted = plan.HoistedInterfaces.Single(static value => value.Name == "IDurableEnvelope");
+        var source = Encoding.UTF8.GetString(HoistedInterfaceEmitter.Emit([hoisted], plan.Placement).Single().Utf8Source.Span);
+
+        await Assert.That(source).Contains("A curated envelope summary.");
+        await Assert.That(source).Contains("Consume this interface; do not implement it outside tests.");
+    }
+
     /// <summary>A member's documentation is indented with its member; the assertions read it unindented.</summary>
     private static string Unindented(string source) => string.Join('\n', source.Split('\n').Select(static line => line.TrimStart()));
 

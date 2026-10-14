@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The &apos;Interrupt&apos; error.
+/// Represents a stream failure cause interrupt value.
 /// </summary>
 public sealed record StreamFailureCauseInterrupt : IStreamFailureCause
 {
