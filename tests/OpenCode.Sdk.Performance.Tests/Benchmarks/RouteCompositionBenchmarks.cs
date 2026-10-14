@@ -8,13 +8,12 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// <summary>
 /// Route and query composition alone, per request shape: the constant route as the
 /// composition-free control, the two-parameter path route, and the query-bearing list route,
-/// plus the path route decorated through a per-call location merge over an ambient snapshot —
+/// plus path request construction and a per-call location merge over an ambient snapshot —
 /// the member-by-member merge <see cref="RequestDecorationPolicy"/> performs on every request
-/// that carries a per-call <see cref="OpenCodeRequestOptions.Location"/>. Research doc 20 D1
-/// gates any composition rework on these numbers being visible next to materialization.
+/// that carries a per-call <see cref="OpenCodeRequestOptions.Location"/>.
 /// </summary>
 [MemoryDiagnoser]
-public class RouteCompositionBenchmarks
+public class RouteCompositionBenchmarks : IDisposable
 {
     private const string EndpointBase = "https://benchmark.invalid";
     private const string SessionId = "ses_bench0000000000000000001";
@@ -42,12 +41,28 @@ public class RouteCompositionBenchmarks
         AmbientLocation,
         UserAgentPolicy.Resolve());
 
-    /// <summary>The constant no-parameter route.</summary>
+    private string _constantRoute = string.Empty;
+    private string _pathRoute = string.Empty;
+    private PipelineMessage? _message;
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        _constantRoute = OpenCodeRoutes.Server.GetInfo;
+        _pathRoute = OpenCodeRoutes.Sessions.GetMessage(SessionId, MessageId);
+        _message = new PipelineMessage
+        {
+            Request = new HttpRequestMessage(HttpMethod.Get, new Uri(EndpointBase + _pathRoute, UriKind.Absolute)),
+            PerCallLocation = PerCallLocation,
+        };
+    }
+
+    /// <summary>The constant no-parameter route: the call-overhead floor.</summary>
     [Benchmark]
-    public string ConstantRoute() => OpenCodeRoutes.Server.GetInfo;
+    public string ConstantRoute() => _constantRoute;
 
     /// <summary>The two-parameter path route: segment concatenation plus value escaping.</summary>
-    [Benchmark]
+    [Benchmark(Baseline = true)]
     public string PathRoute() => OpenCodeRoutes.Sessions.GetMessage(SessionId, MessageId);
 
     /// <summary>The query-bearing list route: builder, escaping, and final concatenation.</summary>
@@ -55,23 +70,52 @@ public class RouteCompositionBenchmarks
     public string QueryRoute() =>
         OpenCodeRoutes.Sessions.ListMessages(SessionId, FullQuery);
 
-    /// <summary>
-    /// <see cref="PathRoute"/>'s composed route, decorated through the same
-    /// <see cref="RequestDecorationPolicy"/> every request rides, with a per-call location that
-    /// merges over the ambient snapshot member by member (directory overridden and re-escaped). Reads against <see cref="PathRoute"/> to isolate the merge's added
-    /// cost from composition alone.
-    /// </summary>
+    /// <summary>Request construction over a precomposed path route: URI, HTTP request, and pipeline message.</summary>
     [Benchmark]
-    public async Task<string> PathRouteWithLocationMergeAsync()
+    public Uri PathRouteRequestConstruction()
     {
-        var route = OpenCodeRoutes.Sessions.GetMessage(SessionId, MessageId);
         using var message = new PipelineMessage
         {
-            Request = new HttpRequestMessage(HttpMethod.Get, new Uri(EndpointBase + route, UriKind.Absolute)),
+            Request = new HttpRequestMessage(HttpMethod.Get, new Uri(EndpointBase + _pathRoute, UriKind.Absolute)),
             PerCallLocation = PerCallLocation,
         };
 
+        return message.Request.RequestUri!;
+    }
+
+    /// <summary>
+    /// A preconstructed path request, decorated through the same <see cref="RequestDecorationPolicy"/>
+    /// every request rides, with a per-call location that merges over the ambient snapshot member
+    /// by member (directory overridden and re-escaped). Includes clearing headers each call so
+    /// repeated decoration does not accumulate values; request construction is measured separately.
+    /// An <c>async ValueTask</c> method whose awaits complete synchronously allocates no state
+    /// machine box, so the rung carries no async wrapper cost over the no-op terminal.
+    /// </summary>
+    [Benchmark]
+    public async ValueTask<string> PathRouteWithLocationMergeAsync()
+    {
+        var message = _message!;
+        message.Request.Headers.Clear();
         await Decoration.ProcessAsync(message, Terminal).ConfigureAwait(false);
         return message.Request.Headers.GetValues("x-opencode-directory").First();
+    }
+
+    [GlobalCleanup]
+    public void Cleanup() => Dispose();
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposing)
+        {
+            return;
+        }
+
+        _message?.Dispose();
     }
 }

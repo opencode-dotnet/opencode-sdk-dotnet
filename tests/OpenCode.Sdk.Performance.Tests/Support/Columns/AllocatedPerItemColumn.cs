@@ -14,5 +14,5 @@ internal sealed class AllocatedPerItemColumn : WireFixtureColumn
     public override string Legend => "Allocated bytes per operation divided by items consumed";
 
     protected override string? Format(WireFixture fixture, long? allocatedBytes) =>
-        allocatedBytes is { } allocated && fixture.Items > 0 ? Integer(allocated / fixture.Items) : null;
+        allocatedBytes is { } allocated && fixture.Items > 0 ? Ratio(allocated / (double)fixture.Items) : null;
 }
