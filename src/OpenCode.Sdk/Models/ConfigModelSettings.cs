@@ -18,6 +18,13 @@ public sealed record ConfigModelSettings
     public IProviderCompaction? Compaction { get; init; }
 
     /// <summary>
+    /// Gets the encoding value.
+    /// </summary>
+    [JsonPropertyName("encoding")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ProviderEncoding? Encoding { get; init; }
+
+    /// <summary>
     /// Gets the members the pinned document leaves open, keyed by wire name; empty when the body carried none.
     /// </summary>
     [JsonIgnore]
@@ -41,5 +48,5 @@ public sealed record ConfigModelSettings
     /// <summary>
     /// Prints the record&apos;s members with its secret members masked.
     /// </summary>
-    public override string ToString() => RecordPrinter.Format(nameof(ConfigModelSettings), ("Compaction", Compaction), ("AdditionalProperties", RecordPrinter.RedactEntries(AdditionalProperties)));
+    public override string ToString() => RecordPrinter.Format(nameof(ConfigModelSettings), ("Compaction", Compaction), ("Encoding", Encoding), ("AdditionalProperties", RecordPrinter.RedactEntries(AdditionalProperties)));
 }

@@ -51,6 +51,13 @@ public sealed record ModelCompatibility
     public bool? SupportsPromptCacheKey { get; init; }
 
     /// <summary>
+    /// Gets the cache format value.
+    /// </summary>
+    [JsonPropertyName("cacheFormat")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ModelCacheFormat? CacheFormat { get; init; }
+
+    /// <summary>
     /// Gets the supports thinking block binding value.
     /// </summary>
     [JsonPropertyName("supportsThinkingBlockBinding")]
