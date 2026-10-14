@@ -2,7 +2,9 @@ using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Win32.SafeHandles;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Internal.Launcher;
 using OpenCode.Sdk.Internal.Windows;
+using OpenCode.Sdk.Internal.Windows.Abstractions;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;
@@ -140,6 +142,67 @@ public sealed class WindowsExitWatchTests
         await Assert.That(released).IsEqualTo(rounds);
     }
 
+    /// <summary>
+    /// The exit completes on the operating system's wait thread, never in the .NET thread pool's
+    /// queue, so a busy pool cannot hold back an exit the kernel has already reported.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    public async Task Exited_Should_Complete_On_The_Native_Wait_Thread_Rather_Than_A_Pool_Thread(CancellationToken cancellationToken)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            BranchReport.Print("POSIX — a dedicated watch thread completes the exit there");
+            return;
+        }
+
+        var child = Spawn("exit-code", "0");
+        using var watch = WindowsExitWatch.Start(child.Process);
+
+        _ = await watch.Exited.WaitAsync(Bound, cancellationToken);
+
+        await Assert.That(watch.CompletedOnPoolThread).IsNotNull();
+        await Assert.That(watch.CompletedOnPoolThread!.Value).IsFalse();
+    }
+
+    /// <summary>
+    /// A start that fails after the exit watch is registered ends the server and disposes the
+    /// watch, which releases its registration and handles once the ended server is gone.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    public async Task A_Start_That_Fails_After_The_Watch_Is_Registered_Should_Release_It(CancellationToken cancellationToken)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            BranchReport.Print("POSIX — the exit watch is a thread that ends with its child there");
+            return;
+        }
+
+        var exits = new RecordingChildExit();
+
+        // A ladder without a tree kill refuses to be built, the first step after the watch.
+        var seams = LauncherSeams.ForCurrentProcess() with { WindowsExits = exits, TreeKill = null! };
+        var fixture = new ServiceFixtureCommand(FileSystem).Resolve();
+        var start = new ServerChildStart
+        {
+            Executable = new ExecutableResolver(ExecutableSearchEnvironment.ForCurrentProcess()).Resolve(fixture[0]),
+            SuppliedArguments = [fixture[1], "idle"],
+            LauncherArguments = [],
+            Password = nameof(WindowsExitWatchTests),
+            GracefulShutdownTimeout = TimeSpan.FromSeconds(5),
+            OnStandardOutput = static _ => { },
+            OnStandardError = static _ => { },
+        };
+
+        _ = await Assert.That(async () => await ServerChild.LaunchAsync(start, seams)).Throws<ArgumentNullException>();
+        var watch = exits.Started.Single();
+        var exit = await watch.Exited.WaitAsync(Bound, cancellationToken);
+
+        await Assert.That(exit.ExitCode).IsEqualTo(1);
+        await Assert.That(await WatchReleasedWithinAsync(watch, cancellationToken)).IsTrue();
+    }
+
     private static WindowsSpawnedChild Spawn(params string[] mode)
     {
         var fixture = new ServiceFixtureCommand(FileSystem).Resolve();
@@ -147,10 +210,38 @@ public sealed class WindowsExitWatchTests
         return new WindowsSpawn().Spawn(new WindowsSpawnRequest { ApplicationPath = command.ApplicationPath, CommandLine = command.CommandLine });
     }
 
-    /// <summary>The release runs on the exit callback's thread, a moment after the exit completes the task.</summary>
+    /// <summary>The release closes the handles on the pool, a moment after the exit completes the task.</summary>
     [SlopwatchSuppress(
         "SW004",
-        "The release has no signal of its own to await: the exit callback closes the handle a moment after it completes the task the test awaited, so the poll waits for the handle's closed state, bounded by Bound and cancelled with the test.")]
+        "The release has no signal of its own to await: it closes the handles on the pool a moment after the exit completes the task the test awaited, so the poll waits for the watch's released state, bounded by Bound and cancelled with the test.")]
+    private static async Task<bool> WatchReleasedWithinAsync(WindowsExitWatch watch, CancellationToken cancellationToken)
+    {
+        var waited = Stopwatch.StartNew();
+        while (!watch.IsReleased && waited.Elapsed < Bound)
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(10), cancellationToken);
+        }
+
+        return watch.IsReleased;
+    }
+
+    /// <summary>The shipped exit watch, recorded so a test can follow a watch the launcher started.</summary>
+    private sealed class RecordingChildExit : IWindowsChildExit
+    {
+        public List<WindowsExitWatch> Started { get; } = [];
+
+        public IWindowsExitWatch Watch(SafeProcessHandle process)
+        {
+            var watch = WindowsExitWatch.Start(process);
+            Started.Add(watch);
+            return watch;
+        }
+    }
+
+    /// <summary>The release closes the handles on the pool, a moment after the exit completes the task.</summary>
+    [SlopwatchSuppress(
+        "SW004",
+        "The release has no signal of its own to await: it closes the handle on the pool a moment after the exit completes the task the test awaited, so the poll waits for the handle's closed state, bounded by Bound and cancelled with the test.")]
     private static async Task<bool> ReleasedWithinAsync(SafeProcessHandle process, CancellationToken cancellationToken)
     {
         var waited = Stopwatch.StartNew();

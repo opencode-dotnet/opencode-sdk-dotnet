@@ -517,8 +517,12 @@ host inherited across `exec` still leaves a zombie; the probe reaps it and repor
 A runtime that reaps every child first (the .NET runtime does when it runs as pid 1) leaves no
 status to read either, and that exit is also reported as unknown rather than invented.
 
-On Windows the server's exit is observed through a registered thread-pool wait on a duplicate of
-its process handle, as libuv observes it, so no thread is held per server. The code is
+On Windows the server's exit is observed through a native registered wait on a duplicate of its
+process handle, as libuv observes it (`WT_EXECUTEINWAITTHREAD | WT_EXECUTEONLYONCE`), so no thread
+is held per server. The callback runs on the operating system's wait thread itself, never in the
+.NET thread pool's queue, so a busy pool cannot delay an exit the kernel has already reported: the
+readiness verdict, the ladder's check for an exited root, and `OpenCodeServer.Exited` all read the
+one exit the callback completes. The code is
 `GetExitCodeProcess`'s in its full 32 bits, the bits `Process.ExitCode` gives: an access violation
 is reported as `-1073741819 (0xC0000005)`. The launcher holds the process handle until the server
 has exited and its release ran, whichever comes second, so the root's pid names no other process

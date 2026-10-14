@@ -84,6 +84,13 @@ Nightly builds of `master` are on
 
 ### 🐛 Fixes
 
+- **On a busy Windows host, a server's exit is no longer reported late.** The launcher learned of a
+  Windows server's exit through a callback queued to the .NET thread pool, so under load it could
+  arrive seconds after the server had exited. A server that exited before readiness then failed
+  its start as one that closed its stdout, without its exit code; `OpenCodeServer.Exited`
+  completed late; and ending a server that had already exited could still end the descendants it
+  left running. The exit is now observed on the operating system's own wait thread, as libuv
+  observes it, so each of these reads the exit as soon as the kernel reports it.
 - **`OpenCodeServer.EnsureAsync` started through a `.cmd` or `.bat` shim on Windows opens no
   console window.** With a batch shim such as npm's `opencode.cmd` as the command, the background
   service took a new console of its own, with a visible terminal window that took the focus and
