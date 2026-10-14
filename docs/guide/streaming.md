@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-09-24
+Date: 2026-10-14
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **global event bus** for everything happening in the server
@@ -78,6 +78,76 @@ while (await events.MoveNextAsync())
 `SessionIdle` and `SessionStatusUpdated` are declared by the pinned document but not published by
 the server it pins: upstream marks `session.idle` deprecated, and its session runtime reports turns
 through the three execution events only. A loop that waits for either of them never ends.
+
+### ✍️ Streaming an answer as it arrives
+
+The answer's text arrives on the same bus, in pieces. This recipe does what upstream's own client
+does:
+
+```csharp
+var session = client.Sessions.GetSessionClient(sessionId);
+using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+await using var events = client.Events.SubscribeAsync(deadline.Token).GetAsyncEnumerator();
+
+// 1. The stream is ready once its first event, server.connected, has arrived.
+if (!await events.MoveNextAsync() || events.Current is not EventServerConnected)
+{
+    throw new InvalidOperationException("The event stream did not start with server.connected.");
+}
+
+// 2. Prompt with an id of your own, so you can recognize this prompt's delivery.
+var promptId = $"msg_{Guid.NewGuid():N}";
+await session.PromptAsync(new SessionPromptRequest { Id = promptId, Text = "Summarize this repository." }, cancellationToken: deadline.Token);
+
+// 3. Follow the session from the moment the prompt is delivered until its turn ends.
+var delivered = false;
+var texts = new Dictionary<(string AssistantMessageId, long Ordinal), string>();
+var turnEnded = false;
+while (!turnEnded && await events.MoveNextAsync())
+{
+    switch (events.Current)
+    {
+        case SessionInboxDelivered { Data: var data } when data.SessionId == sessionId && data.InboxId == promptId:
+            delivered = true;
+            break;
+        case SessionTextDelta { Data: var delta } when delivered && delta.SessionId == sessionId:
+            var part = (delta.AssistantMessageId, delta.Ordinal);
+            texts[part] = texts.TryGetValue(part, out var sofar) ? sofar + delta.Delta : delta.Delta;
+            Console.Write(delta.Delta);
+            break;
+        case SessionTextEnded { Data: var ended } when delivered && ended.SessionId == sessionId:
+            texts[(ended.AssistantMessageId, ended.Ordinal)] = ended.Text;
+            break;
+        case SessionExecutionSucceeded { Data: var succeeded } when delivered && succeeded.SessionId == sessionId:
+        case SessionExecutionFailed { Data: var failed } when delivered && failed.SessionId == sessionId:
+        case SessionExecutionInterrupted { Data: var interrupted } when delivered && interrupted.SessionId == sessionId:
+            turnEnded = true;
+            break;
+    }
+}
+```
+
+- **Open the bus first, and wait for `EventServerConnected`.** The server sends it to every new
+  subscriber before anything else, so once it has arrived, nothing the session publishes is missed.
+  Upstream's client fails a stream that starts with anything else, and its CLI waits for this event
+  before it sends a prompt.
+- **Your own `Id` is how you find your prompt.** Upstream's CLI passes one too. The server requires
+  only that it start with `msg_`; make it unique, as the `Guid` above does. When the session takes
+  your prompt from its inbox, `SessionInboxDelivered` arrives with your id as its `InboxId`. Text the
+  session streams before that moment belongs to an earlier turn.
+- **`SessionTextDelta` carries the text; `SessionTextEnded` carries the final value.** Append each
+  delta's `Delta` to its part, and when the part ends, replace what you have with `Text`. A part is
+  identified by its `AssistantMessageId` and `Ordinal`, because one answer can hold several text
+  parts. Deltas are live only and are never stored, whereas `SessionTextEnded` is durable and is
+  what the session's messages keep.
+- **Reasoning is separate.** `SessionReasoningDelta` and `SessionReasoningEnded` have the same shape
+  for the model's reasoning; keep them out of the answer.
+- **The turn ends with one of the three execution events.** They report the session going idle, not
+  one prompt being answered: when several prompts are queued, one turn can work through all of
+  them, so the event you stop on covers your prompt and anything delivered with it.
+
+Messages already settled are on the session too: `EnumerateMessagesAsync` returns them, with each
+text part in its final form.
 
 **This bus is live and volatile, by the server's design, not the SDK's.** It has no filter, no
 cursor, no replay, and no resume channel:

@@ -69,6 +69,24 @@ Nightly builds of `master` are on
   with the value kept (`IsKnown` is false). One-shot responses read the same way. See the Breaking
   entry on extensible enums.
 
+### 📚 Documentation
+
+- **The streaming guide streams an answer as it arrives.** The recipe follows upstream's own client:
+  - wait for `EventServerConnected` before you prompt;
+  - prompt with your own `msg_` id, and match it to `SessionInboxDelivered`'s `InboxId`;
+  - append `SessionTextDelta` text, and replace it with `SessionTextEnded`'s final `Text`;
+  - stop on the session's execution event.
+- **The requests guide names the session-create location.** `SessionCreateRequest.Location` is a
+  body `LocationPublicRef`, not the `LocationSelector` that headers and queries use. The guide also
+  shows that a collection expression cannot fill an `Optional` collection member (CS9174).
+- **The terminals guide documents the two normal-PTY gaps.** It says which shell a PTY gets without a
+  `Command`: the configured `shell`, then `$SHELL`, then a per-OS fallback. It also shows how to
+  resize a normal PTY, through `PtyClient.UpdateAsync` with `Size`.
+- **The connection guide keeps a launched server around a host, and fixes the 401.**
+  - A launched server stays in `await using` around the host's `RunAsync`. The container does not
+    dispose a handle you register.
+  - A passwordless 401 carries the typed `UnauthorizedError`, not an empty body.
+
 ## [0.9.0-preview.10] - 2026-10-14
 
 **The packages target `netstandard2.0`, `net472`, `net10.0`, and `net11.0`: `net8.0` and `net9.0`

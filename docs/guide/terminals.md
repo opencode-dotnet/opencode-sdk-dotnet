@@ -1,6 +1,6 @@
 # 🖥️ Terminals
 
-Date: 2026-09-12
+Date: 2026-10-14
 
 opencode has two terminal families, and they are genuinely different animals:
 
@@ -10,7 +10,8 @@ opencode has two terminal families, and they are genuinely different animals:
 | Keyed by | its own id | a session id |
 | Survives a server restart | no | yes, through a handoff |
 | Output on the wire | text frames | raw bytes |
-| Input | `SubmitAsync(string)`, or raw `WriteAsync(string)` | `SubmitAsync(string)`, or raw `WriteAsync(ReadOnlyMemory<byte>)` + `ResizeAsync` |
+| Input | `SubmitAsync(string)`, or raw `WriteAsync(string)` | `SubmitAsync(string)`, or raw `WriteAsync(ReadOnlyMemory<byte>)` |
+| Resize | `PtyClient.UpdateAsync` with `Size`, over HTTP | `ResizeAsync` on the session, over the socket |
 | Available on Windows | ✅ yes | ❌ no — [see the platform note](#-the-windows-platform-note) |
 
 Both live sessions ride a **WebSocket**, not the HTTP pipeline. They are the only two doors in the
@@ -82,6 +83,39 @@ Three rules worth knowing before your first surprise:
 3. **There is no end-of-command marker on this wire.** A terminal just goes quiet. If you need to
    know a command finished, either wait for the stream to settle or ask `GetAsync` for the
    PTY's status and exit code — the exit code is *not* on the socket.
+
+**Without a `Command`, the server picks the shell:**
+
+1. the `shell` in the opencode configuration;
+2. otherwise `$SHELL`;
+3. otherwise a per-OS fallback:
+   - on Windows, the first one installed of `pwsh`, `powershell`, Git Bash, and `%COMSPEC%` (else
+     `cmd.exe`);
+   - on macOS, `/bin/zsh`;
+   - elsewhere, `bash`, else `/bin/sh`.
+
+A configured shell that cannot be run skips `$SHELL` and goes straight to the fallback. A POSIX
+login shell (`bash`, `zsh`, `sh`, …) gets `-l` after your `Args`, and PowerShell gets nothing added,
+so either one loads the user's profile. For a shell without the profile, name it yourself:
+
+```csharp
+var created = await client.Ptys.CreatePtyAsync(new PtyCreateRequest
+{
+    Command = "pwsh",
+    Args = ["-NoProfile"],
+});
+```
+
+**Resizing a normal PTY is an HTTP call, not a socket message.** The socket carries no resize
+frames: everything you write on it is terminal input. Set the new size on the PTY itself, as
+upstream's web terminal does:
+
+```csharp
+await pty.UpdateAsync(new PtyUpdateRequest { Size = new PtyUpdateSize { Cols = 100, Rows = 30 } });
+```
+
+The persistent family is the other way round: it resizes through `ResizeAsync` on its socket,
+shown [below](#-persistent-ptys).
 
 Closing:
 
