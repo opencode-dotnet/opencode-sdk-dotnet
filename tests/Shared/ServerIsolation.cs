@@ -32,6 +32,7 @@ internal static class ServerIsolation
     {
         ArgumentNullException.ThrowIfNull(fileSystem);
         ArgumentException.ThrowIfNullOrWhiteSpace(runRoot);
+        SystemConfigurationSources.RefuseUnmovable(fileSystem);
 
         var home = PrepareHome(fileSystem, runRoot);
 
@@ -93,7 +94,7 @@ internal static class ServerIsolation
         };
         if (OperatingSystem.IsWindows())
         {
-            MoveWindowsProfile(fileSystem, environment, home, temporary);
+            MoveWindowsProfile(fileSystem, environment, runRoot, home, temporary);
         }
 
         return new IsolationBoundary(fileSystem, environment);
@@ -136,10 +137,11 @@ internal static class ServerIsolation
     /// <summary>
     /// Moves what Windows reads outside HOME. os.homedir() reads USERPROFILE there, and
     /// os.tmpdir() reads TEMP and TMP; upstream's own suite redirects all three
-    /// (packages/core/script/test.ts:34).
+    /// (packages/core/script/test.ts:34). The machine-wide configuration directory follows
+    /// ProgramData (<see cref="SystemConfigurationSources"/>).
     /// </summary>
     private static void MoveWindowsProfile(
-        IFileSystem fileSystem, Dictionary<string, string> environment, string home, string temporary)
+        IFileSystem fileSystem, Dictionary<string, string> environment, string runRoot, string home, string temporary)
     {
         environment["USERPROFILE"] = home;
         environment["TMP"] = temporary;
@@ -155,5 +157,12 @@ internal static class ServerIsolation
         _ = fileSystem.Directory.CreateDirectory(local);
         environment["APPDATA"] = roaming;
         environment["LOCALAPPDATA"] = local;
+
+        // The system directory is ProgramData\opencode (packages/core/src/config/discovery.ts:30),
+        // loaded as managed settings that outrank every source above. A ProgramData of the
+        // server's own, kept empty, leaves it absent.
+        var programData = SystemConfigurationSources.ProgramDataFor(fileSystem, runRoot);
+        _ = fileSystem.Directory.CreateDirectory(programData);
+        environment["ProgramData"] = programData;
     }
 }

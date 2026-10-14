@@ -175,4 +175,95 @@ public sealed class ServerIsolationTests
 
         await Assert.That(() => isolation.ConfirmHonored("The server under test")).ThrowsNothing();
     }
+
+    /// <summary>
+    /// Windows' machine-wide configuration directory follows ProgramData, so each server gets one
+    /// of its own inside the run root, existing and empty; elsewhere no variable moves it.
+    /// </summary>
+    [Test]
+    public async Task For_Should_Give_A_Windows_Server_An_Empty_ProgramData_Of_Its_Own()
+    {
+        var fileSystem = new MockFileSystem();
+        var runRoot = fileSystem.Path.Combine(fileSystem.Path.GetTempPath(), "run");
+
+        var environment = ServerIsolation.For(fileSystem, runRoot).Environment;
+
+        _ = environment.TryGetValue("ProgramData", out var programData);
+        if (!OperatingSystem.IsWindows())
+        {
+            await Assert.That(programData).IsNull();
+            return;
+        }
+
+        var expected = fileSystem.Path.Combine(runRoot, "programdata");
+        await Assert.That(programData).IsEqualTo(expected);
+        await Assert.That(fileSystem.Directory.Exists(expected)).IsTrue();
+        await Assert.That(fileSystem.Directory.EnumerateFileSystemEntries(expected)).IsEmpty();
+    }
+
+    /// <summary>
+    /// The sources no variable moves, in upstream's order at the pin
+    /// (packages/core/src/config/discovery.ts:28-40): the system directory on Linux; on macOS the
+    /// system directory and the per-user, then the machine, managed-preference plist.
+    /// </summary>
+    [Test]
+    public async Task Unmovable_Should_Name_Upstreams_System_Sources_On_Linux_And_MacOS()
+    {
+        await Assert.That(SystemConfigurationSources.Unmovable(macOS: false, "dev")).IsEquivalentTo(["/etc/opencode"]);
+        await Assert.That(SystemConfigurationSources.Unmovable(macOS: true, "dev")).IsEquivalentTo(
+            [
+                "/Library/Application Support/opencode",
+                "/Library/Managed Preferences/dev/ai.opencode.managed.plist",
+                "/Library/Managed Preferences/ai.opencode.managed.plist",
+            ]);
+    }
+
+    /// <summary>
+    /// Upstream loads a system directory that exists and a plist that is a file; the guard refuses
+    /// either kind at any of the paths, so a file where a directory belongs is refused too.
+    /// </summary>
+    [Test]
+    [Arguments(0, true)]
+    [Arguments(0, false)]
+    [Arguments(1, false)]
+    [Arguments(2, false)]
+    public async Task FirstPresent_Should_Find_A_Source_That_Exists_As_A_Directory_Or_A_File(int index, bool asDirectory)
+    {
+        var fileSystem = new MockFileSystem();
+        var candidates = SystemConfigurationSources.Unmovable(macOS: true, "dev");
+        var present = candidates[index];
+        if (asDirectory)
+        {
+            _ = fileSystem.Directory.CreateDirectory(present);
+        }
+        else
+        {
+            _ = fileSystem.Initialize().With(new FileDescription(present, "{}"));
+        }
+
+        await Assert.That(SystemConfigurationSources.FirstPresent(fileSystem, candidates)).IsEqualTo(present);
+        await Assert.That(SystemConfigurationSources.FirstPresent(new MockFileSystem(), candidates)).IsNull();
+    }
+
+    /// <summary>
+    /// On Linux and macOS an owned launch refuses to start while a source no variable moves exists,
+    /// and names it; on Windows the same path is moved by ProgramData, so nothing is refused.
+    /// </summary>
+    [Test]
+    public async Task For_Should_Refuse_A_Machine_Wide_Configuration_No_Variable_Moves()
+    {
+        var fileSystem = new MockFileSystem();
+        var runRoot = fileSystem.Path.Combine(fileSystem.Path.GetTempPath(), "run");
+        var present = SystemConfigurationSources.Unmovable(OperatingSystem.IsMacOS(), Environment.UserName)[0];
+        _ = fileSystem.Directory.CreateDirectory(present);
+
+        if (OperatingSystem.IsWindows())
+        {
+            await Assert.That(() => ServerIsolation.For(fileSystem, runRoot)).ThrowsNothing();
+            return;
+        }
+
+        var refusal = await Assert.That(() => ServerIsolation.For(fileSystem, runRoot)).Throws<InvalidOperationException>();
+        await Assert.That(refusal!.Message).Contains("'" + present + "'");
+    }
 }
