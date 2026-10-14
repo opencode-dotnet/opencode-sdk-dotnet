@@ -97,6 +97,12 @@ jobs:
         env:
           DOTNET_TieredPGO: 0
 
+      # The Release build above produces every shipped asset; validate both packages before merge.
+      - name: Validate packages
+        run: |
+          dotnet pack src/OpenCode.Sdk/OpenCode.Sdk.csproj --no-build --no-restore --configuration Release -p:EnablePackageValidation=true --output "${{ runner.temp }}/package-validation"
+          dotnet pack src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj --no-build --no-restore --configuration Release -p:EnablePackageValidation=true --output "${{ runner.temp }}/package-validation"
+
       # Smoke-runs the repo tooling entry; exercises the committed executable bit and the
       # shebang, which only take effect on a Linux checkout.
       - name: Tooling entry smoke
