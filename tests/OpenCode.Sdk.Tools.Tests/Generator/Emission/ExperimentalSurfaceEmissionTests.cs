@@ -38,6 +38,23 @@ public sealed class ExperimentalSurfaceEmissionTests
             .IsEqualTo("OPENCODE001");
     }
 
+    /// <summary>The same family emitted internal-raw: its hand-written door stands for the handle too, so the root property that returns it carries the id.</summary>
+    [Test]
+    public async Task Emit_Should_Mark_The_Door_Property_Of_A_Raw_Family_Whose_Collection_Is_Empty()
+    {
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(static spec => spec
+            .WithOperation("probe.get", path: "/api/experimental/probe/{id}", configure: static operation => operation
+                .Parameter("id", "path", static schema => schema.Type("string"), required: true)
+                .Response(200, "application/json", static schema => schema.Type("object")))));
+        var plan = new BindingTestHost().Bind(document, Selection("probe.get"),
+            Curation(Groups("probe", ClientGroup("Probes", "ProbeClient", "id", EmissionMode.InternalRaw, "OPENCODE001"))));
+
+        var root = Type<ClassDeclarationSyntax>(SourceEmitter.Emit(plan), "OpenCodeClient");
+
+        await Assert.That(Diagnostic(root.Members.OfType<PropertyDeclarationSyntax>().Single(static property => property.Identifier.ValueText == "Probes")))
+            .IsEqualTo("OPENCODE001");
+    }
+
     [Test]
     public async Task Emit_Should_Mark_A_Pagination_Companion_Unless_Its_Class_Is_Marked()
     {

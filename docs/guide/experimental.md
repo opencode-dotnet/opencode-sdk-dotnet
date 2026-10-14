@@ -1,5 +1,7 @@
 # 🧪 Experimental APIs
 
+Date: 2026-10-14
+
 Upstream serves some of its API under `/api/experimental/`. The SDK exposes all of it, and marks
 every member that reaches it with .NET's `[Experimental]` attribute, so the compiler tells you
 before you depend on it.

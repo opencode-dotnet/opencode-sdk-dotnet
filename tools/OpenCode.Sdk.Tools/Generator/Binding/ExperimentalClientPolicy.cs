@@ -10,7 +10,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// and a handle factory on an unmarked collection. A route container whose routes are all
 /// experimental carries the id on the class whatever the family's emission, because the routes
 /// are public even when the family's clients are not; the root property of an internal-raw family
-/// returns its hand-written door and takes the id of the raw client the door wraps.
+/// returns its hand-written door and takes the id its whole raw family carries.
 /// </summary>
 internal static class ExperimentalClientPolicy
 {
@@ -44,6 +44,19 @@ internal static class ExperimentalClientPolicy
             .Where(static client => client.Name is not null)
             .GroupBy(static client => client.Name, StringComparer.Ordinal)
             .ToDictionary(static group => group.Key, static group => Diagnostic([.. group.First().Operations]), StringComparer.Ordinal);
+
+        // A hand-written door stands for its whole raw family, the handle's operations included,
+        // so a family whose collection has none still marks the property that returns its door.
+        var rawFamilies = clients
+            .Where(static client => client is { Name: not null, Emission: EmissionMode.InternalRaw })
+            .GroupBy(static client => client.ContainerName ?? client.Name, StringComparer.Ordinal)
+            .SelectMany(static family =>
+            {
+                var id = Diagnostic([.. family.SelectMany(static client => client.Operations)]);
+                return family.Select(client => (client.Name, Id: id));
+            })
+            .GroupBy(static entry => entry.Name, StringComparer.Ordinal)
+            .ToDictionary(static group => group.Key, static group => group.First().Id, StringComparer.Ordinal);
         var marked = clients
             .Select(client => client with
             {
@@ -61,7 +74,7 @@ internal static class ExperimentalClientPolicy
                 : client.HandleFactory,
             SubClients = [.. client.SubClients.Select(reference => reference with
             {
-                ExperimentalDiagnostic = Returned(families, reference.TypeName),
+                ExperimentalDiagnostic = Returned(families, rawFamilies, reference.TypeName),
             })],
         })];
     }
@@ -70,14 +83,14 @@ internal static class ExperimentalClientPolicy
         name is null ? null : families.GetValueOrDefault(name);
 
     /// <summary>The id of the client a root property returns: a generated client by its name, a hand-written door by the raw client it wraps.</summary>
-    private static string? Returned(Dictionary<string, string?> families, string? typeName)
+    private static string? Returned(Dictionary<string, string?> families, Dictionary<string, string?> rawFamilies, string? typeName)
     {
         if (typeName is null)
         {
             return null;
         }
 
-        return families.TryGetValue(typeName, out var id) ? id : Lookup(families, CSharpNamePolicy.ToRawClientName(typeName));
+        return families.TryGetValue(typeName, out var id) ? id : Lookup(rawFamilies, CSharpNamePolicy.ToRawClientName(typeName));
     }
 
     /// <summary>The one id every operation carries, or none when any operation is stable or the ids differ.</summary>
