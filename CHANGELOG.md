@@ -102,7 +102,6 @@ camelCase constructor parameters.
 - **A settings `encoding` member is read as the typed `Encoding`.** On `ProviderSettings`,
   `ConfigProviderSettings`, `ModelSettings`, and `ConfigModelSettings` it is no longer in
   `AdditionalProperties`, where `0.9.0-preview.9` kept it as an undeclared member.
-
 - **The source is laid out in feature folders, and the internal namespaces are flattened into
   `OpenCode.Sdk.Internal`.** The public API is unchanged, byte for byte. Only the names of internal
   types differ, as a stack trace or reflection shows them.
