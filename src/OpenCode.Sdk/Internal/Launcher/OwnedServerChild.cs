@@ -40,6 +40,9 @@ internal sealed class OwnedServerChild : IAsyncDisposable
         _output = start.Output;
         _grace = start.GracefulShutdownTimeout;
         _time = time;
+
+        // Started here, so its bound runs from the exit whenever anyone first asks for it.
+        Closed = CloseAsync();
     }
 
     /// <summary>Gets the pid of the process this child owns.</summary>
@@ -47,6 +50,15 @@ internal sealed class OwnedServerChild : IAsyncDisposable
 
     /// <summary>Gets the owned process's own exit, never the end of its output.</summary>
     public Task<ChildExitStatus> Exited => _process.Exited;
+
+    /// <summary>
+    /// Gets the owned process's exit once its output ended too, or <see cref="EarlyEndBound"/>
+    /// after the exit when a descendant holds a pipe open: upstream's <c>close</c>, which waits for
+    /// the exit and stdio and stops waiting for stdio one second after the exit. It drains on its
+    /// own after a natural exit, and disposal's release of the readers ends that wait at once.
+    /// It never faults.
+    /// </summary>
+    public Task<ChildExitStatus> Closed { get; }
 
     /// <summary>Gets a task that completes once no output reader is pending any more.</summary>
     public Task ReadersEnded => _process.Output.ReadersEnded;
@@ -164,6 +176,18 @@ internal sealed class OwnedServerChild : IAsyncDisposable
         {
             _output?.Complete();
         }
+    }
+
+    /// <summary>
+    /// The exit, then the readers' end inside <see cref="EarlyEndBound"/>. It only waits, so it
+    /// takes nothing from the drains the readiness wait and disposal run: an expired bound leaves
+    /// the readers as they are.
+    /// </summary>
+    private async Task<ChildExitStatus> CloseAsync()
+    {
+        var status = await _process.Exited.ConfigureAwait(false);
+        _ = await BoundedWait.CompletesWithinAsync(ReadersEnded, EarlyEndBound, _time).ConfigureAwait(false);
+        return status;
     }
 
     /// <summary>The ladder, run at most once, by whichever path ends the child first.</summary>

@@ -83,8 +83,8 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    it places its server in a kill-on-close job, passes it only its standard handles, reads its
    output through overlapped pipes, and ends it on upstream's taskkill ladder.
    `OpenCodeServer.Exited` ([#174](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/174))
-   reports how a standalone server ended — exit code or signal, as upstream's `exited` does — on
-   every target and OS; it does not wait for `net11.0`. Exit: every leg runs `netstandard2.0`,
+   reports how a standalone server ended — exit code, signal, or unknown, as upstream's `exited`
+   does — on every target and OS. **Landed.** Exit: every leg runs `netstandard2.0`,
    `net472`, `net10.0`, and `net11.0` as its platform allows.
 3. **Maintainability review.** A time-boxed, read-only review limited to what feeds the freeze:
    a pass over the public API baseline

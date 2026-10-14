@@ -44,6 +44,26 @@ it started:
 | `Endpoint` | The `http://127.0.0.1:{port}` address the child actually bound |
 | `Password` / `Username` | The generated lease credential this server accepts |
 | `ProcessId` | The PID of the child it owns — the `cmd.exe` host when the command resolved to a Windows batch shim, see [below](#how-the-command-is-resolved) |
+| `Exited` | A task that completes with an `OpenCodeServerExit` once the server has ended, on its own or through disposal |
+
+`Exited` lets you notice a server that dies under you. It is a task, not an event, and it never
+faults: a signal that ends the server is a value, not an exception. `Kind` says which members are
+set. `ExitCode` is the code; on Windows it is the full 32-bit code, as `Process.ExitCode` gives it.
+`Signal` is the signal's name, such as `SIGTERM`, and `SignalNumber` is its number on the host.
+`Unknown` means the exit status could not be read, for example because something other than the
+launcher reaped the server.
+
+```csharp
+var exit = await server.Exited;
+if (exit.Kind == OpenCodeServerExitKind.Signaled)
+{
+    Console.WriteLine($"opencode was ended by {exit.Signal ?? "signal " + exit.SignalNumber}");
+}
+```
+
+It completes once the exit is observed and the server's output has ended, or one second after the
+exit when a process the server started still holds the output open. A handle from `DiscoverAsync`
+or `EnsureAsync` owns no process, and its `Exited` throws `InvalidOperationException`.
 
 ### Shaping the launch
 

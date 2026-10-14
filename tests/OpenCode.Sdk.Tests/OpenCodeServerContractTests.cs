@@ -206,6 +206,31 @@ public sealed class OpenCodeServerContractTests
         await Assert.That(failure!.Message).Contains("OpenCodeServer.Endpoint");
     }
 
+    [Test]
+    public async Task Exited_Should_Throw_The_Mock_Seam_Failure_On_A_Bare_Mock()
+    {
+        var mock = new MockableServer();
+
+        var failure = await Assert.That(() => { _ = mock.Exited; }).Throws<InvalidOperationException>();
+
+        await Assert.That(failure!.Message).Contains("OpenCodeServer.Exited");
+    }
+
+    /// <summary>
+    /// A handle over a registered service owns no process, so its end is not observed: upstream's
+    /// attach endpoint carries no exit either.
+    /// </summary>
+    [Test]
+    public async Task Exited_Should_Throw_When_The_Handle_Owns_No_Process()
+    {
+        var shared = new OpenCodeServer(new Uri("http://127.0.0.1:4096"), "pw", processId: 4242);
+
+        var failure = await Assert.That(() => { _ = shared.Exited; }).Throws<InvalidOperationException>();
+
+        await Assert.That(shared.OwnsProcess).IsFalse();
+        await Assert.That(failure!.Message).Contains("owns no process");
+    }
+
     private sealed class MockableServer : OpenCodeServer
     {
     }

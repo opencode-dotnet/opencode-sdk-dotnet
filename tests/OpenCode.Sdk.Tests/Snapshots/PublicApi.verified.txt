@@ -984,6 +984,7 @@ namespace OpenCode.Sdk
     {
         protected OpenCodeServer() { }
         public virtual System.Uri Endpoint { get; }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.OpenCodeServerExit> Exited { get; }
         public virtual bool OwnsProcess { get; }
         public virtual string Password { get; }
         public virtual int ProcessId { get; }
@@ -1025,6 +1026,23 @@ namespace OpenCode.Sdk
         public OpenCodeServerException() { }
         public OpenCodeServerException(string message) { }
         public OpenCodeServerException(string message, System.Exception innerException) { }
+    }
+    public sealed class OpenCodeServerExit : System.IEquatable<OpenCode.Sdk.OpenCodeServerExit>
+    {
+        public int? ExitCode { get; }
+        public OpenCode.Sdk.OpenCodeServerExitKind Kind { get; }
+        public string? Signal { get; }
+        public int? SignalNumber { get; }
+        public static OpenCode.Sdk.OpenCodeServerExit Unknown { get; }
+        public override string ToString() { }
+        public static OpenCode.Sdk.OpenCodeServerExit FromExitCode(int exitCode) { }
+        public static OpenCode.Sdk.OpenCodeServerExit FromSignal(string? signal, int signalNumber) { }
+    }
+    public enum OpenCodeServerExitKind
+    {
+        Unknown = 0,
+        Exited = 1,
+        Signaled = 2,
     }
     public sealed class OpenCodeServerOptions
     {
