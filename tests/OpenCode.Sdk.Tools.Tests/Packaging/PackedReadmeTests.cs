@@ -36,10 +36,11 @@ public sealed partial class PackedReadmeTests(PackedConsumerFeed feed)
     }
 
     /// <summary>
-    /// The packed README is the repository's, byte for byte, apart from the rewritten links. MSBuild
-    /// splits item lists at semicolons and unescapes percent sequences, and the target's text stays
-    /// whole only because it comes from a property function; the repository README carries both
-    /// (prose with semicolons, badge URLs with <c>%2F</c>), so a change that loses either fails here.
+    /// The packed README is the repository's, byte for byte, apart from the rewritten links. Text that
+    /// goes through an MSBuild item list is split at semicolons, has its percent sequences unescaped,
+    /// and on Linux and macOS has every backslash turned into a slash; the repository README carries
+    /// all three (prose with semicolons, badge URLs with <c>%2F</c>, shell line continuations), so a
+    /// write path that loses any of them fails here.
     /// </summary>
     [Test]
     [Arguments("OpenCodeDotNet.Sdk")]
@@ -55,6 +56,7 @@ public sealed partial class PackedReadmeTests(PackedConsumerFeed feed)
 
         await Assert.That(source).Contains(';').Because("the comparison must cover a semicolon");
         await Assert.That(PercentSequence().IsMatch(source)).IsTrue().Because("the comparison must cover a percent sequence");
+        await Assert.That(source).Contains('\\').Because("the comparison must cover a backslash");
         await Assert.That(package.Readme.TrimEnd('\r', '\n')).IsEqualTo(expected.TrimEnd('\r', '\n'));
     }
 
