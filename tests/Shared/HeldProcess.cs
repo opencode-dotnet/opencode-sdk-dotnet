@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO.Abstractions;
+using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
+using OpenCode.Sdk.Internal.Windows;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.TestSupport;
@@ -16,6 +18,8 @@ namespace OpenCode.Sdk.TestSupport;
 /// <c>home/</c> working directory). The process object is signalled only once that is done, so on
 /// Windows this waits on the handle it opened while the process ran, which also pins the pid to
 /// this process. Elsewhere a process's descriptors close as it exits, and the exit is awaited.
+/// Either way the wait owns what it waits on, a handle or a process object of its own, so releasing
+/// the held process while a wait runs never ends or breaks that wait.
 /// </summary>
 internal sealed class HeldProcess : IDisposable
 {
@@ -119,7 +123,7 @@ internal sealed class HeldProcess : IDisposable
     {
         if (!OperatingSystem.IsWindows())
         {
-            return await ProcessObservation.ObserveExitWithinAsync(_process, bound, cancellationToken).ConfigureAwait(false);
+            return await ProcessObservation.ObserveExitWithinAsync(_process.Id, bound, cancellationToken).ConfigureAwait(false);
         }
 
         using var signal = new ProcessSignal(_process.SafeHandle);
@@ -145,10 +149,32 @@ internal sealed class HeldProcess : IDisposable
 
     public void Dispose() => _process.Dispose();
 
-    /// <summary>The held process handle as a wait handle; the process keeps ownership of it.</summary>
-    private sealed class ProcessSignal : WaitHandle
+    /// <summary>
+    /// A wait handle on the held process that owns a handle of its own: a registered wait keeps the
+    /// handle it was given alive until the thread pool's wait thread has dropped it, so releasing
+    /// the held process while a wait is still registered never leaves that thread waiting on a
+    /// closed handle, which ends the host. A wrapper over the process's own handle would protect
+    /// only itself.
+    /// </summary>
+    internal sealed class ProcessSignal : WaitHandle
     {
-        public ProcessSignal(SafeProcessHandle process) =>
-            SafeWaitHandle = new SafeWaitHandle(process.DangerousGetHandle(), ownsHandle: false);
+        public ProcessSignal(SafeProcessHandle process)
+        {
+            if (!WindowsInterop.DuplicateProcessHandle(
+                    WindowsInterop.CurrentProcess,
+                    process,
+                    WindowsInterop.CurrentProcess,
+                    out var copy,
+                    WindowsInterop.Synchronize,
+                    inheritHandle: false,
+                    0))
+            {
+                var failure = new Win32Exception(Marshal.GetLastWin32Error());
+                copy.Dispose();
+                throw failure;
+            }
+
+            SafeWaitHandle = copy;
+        }
     }
 }
