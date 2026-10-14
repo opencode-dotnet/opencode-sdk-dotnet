@@ -3,22 +3,19 @@
 Date: 2026-08-08
 
 `OpenCode.Sdk` itself ships the `opencode serve` process launcher (start, readiness probe,
-stop), hand-rolled on `System.Diagnostics.Process` with no process library. Upstream sets the
+stop), hand-rolled with no process library. Upstream sets the
 parity bar — `@opencode/client` ships `Service.ensure()`, which spawns `opencode serve --service`
 from inside the client package — and the MCP C# SDK does the same (`StdioClientTransport` spawns
 inside `ModelContextProtocol.Core`; kept as reference implementation). Evidence and lifecycle
 anatomy: internal research, 2026-08-08, ".NET SDK design decisions: packaging, process management,
 TFMs" and "Process management: CliWrap, raw Process, or the new .NET APIs?".
 
-The background-service door's process control (ADR-0026) binds one function of the platform C
-library, `kill(2)`, for the Unix signal rungs that `System.Diagnostics.Process` cannot send; that
-is a platform primitive every process already has loaded, not a process library, and this record's
-rule is unchanged by it.
-
-The background-service door's contender spawn (ADR-0027) binds the platform's own process-creation
-primitives, `CreateProcessW` and `posix_spawnp`, for the detached session that
-`System.Diagnostics.Process` cannot open; that is the same class of platform primitive every
-process already has loaded, not a process library, and this record's rule is unchanged by it.
+Where `System.Diagnostics.Process` cannot give upstream's result, the SDK binds the platform's own
+primitives: `kill(2)` for the background service's Unix signal rungs (ADR-0026), `CreateProcessW`
+and `posix_spawnp` for the detached contender (ADR-0027), and the same spawn, a Windows job, a
+process-group signal, and its own exit status for the standalone launcher (ADR-0032). Each is a
+function of the C library or the Windows process API every process already has loaded, not a
+process library, so this record's rule holds.
 
 ## Considered options
 

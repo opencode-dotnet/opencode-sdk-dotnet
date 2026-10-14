@@ -769,7 +769,7 @@ hands before the signalled process exits, so the kill rung follows that process 
 client's does. The process is identified as (pid, start time), compared immediately before every
 send and at every look of the poll, so a pid the operating system reuses during the stop is never
 signalled and reads as the registered process being gone (ADR-0026); a reuse before the stop runs is
-the Known Gap the roadmap records. A zombie — exited, not yet reaped by its parent — reads as gone
+not detected, because the registration records no start time. A zombie — exited, not yet reaped by its parent — reads as gone
 too. A missing or corrupt registration completes successfully; a sidecar that cannot be removed is
 ignored, as the pinned client's `stop` ignores it, so the process is still ended; a process still
 running after the kill rung throws `OpenCodeServerException`, the registration then left in place;

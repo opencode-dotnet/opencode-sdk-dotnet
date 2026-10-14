@@ -69,4 +69,5 @@ envelope; `text/*` → `string`); an unknown content type breaks generation.
 - This curation changes only .NET naming. It cannot repair a type, constraint, format, or
   validation missing from the pinned OpenAPI document (ADR-0013).
 
-Evidence: research log Q102.
+Evidence: internal research, 2026-08-17, "How do the two public names the projection cannot
+express enter the API?".
