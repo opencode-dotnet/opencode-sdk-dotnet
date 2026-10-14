@@ -56,7 +56,10 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:
+          # The pinned .NET 11 release-candidate SDK carries only the .NET 11 runtime; the 10.0
+          # SDK beside it runs the tools, which stay on the LTS release.
           global-json-file: global.json
+          dotnet-version: 10.0.x
 
       # Reads the Linux leg's cache; that leg restores a superset of these packages and is the
       # one writer of the key.
@@ -136,12 +139,11 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:
-          # SDK version comes from the repo pin; 8.x/9.x are additionally installed so their
-          # runtimes are present for the net8.0/net9.0 test legs.
+          # The SDK comes from the repository pin, the .NET 11 release candidate, which carries only
+          # the .NET 11 runtime; the 10.0 SDK is installed beside it for the net10.0 test legs and
+          # for the tools, which run on the LTS release.
           global-json-file: global.json
-          dotnet-version: |
-            8.0.x
-            9.0.x
+          dotnet-version: 10.0.x
 
       # Bun, the exact ripgrep the server resolves, and the pinned server's dependencies. Shared
       # with the distributed-build consumer leg so the two lanes cannot drift.
@@ -215,7 +217,7 @@ jobs:
 
       - name: Test (service elections)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: dotnet test tests/OpenCode.Sdk.Tests --configuration Release --no-build --max-parallel-test-modules 1 -- --report-trx --results-directory "${{ github.workspace }}/test-results/service-elections" --treenode-filter "/*/*/*/*[Category=ServiceElection]" --minimum-expected-tests 1
+        run: dotnet test --project "${{ github.workspace }}/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --report-trx --results-directory "${{ github.workspace }}/test-results/service-elections" --treenode-filter "/*/*/*/*[Category=ServiceElection]" --minimum-expected-tests 1
         env:
           TUNIT_ARTIFACT_RETENTION_DAYS: 7
           TUNIT_DISABLE_ARTIFACT_UPLOAD: true
@@ -309,7 +311,10 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:
+          # The pinned .NET 11 release-candidate SDK carries only the .NET 11 runtime; the 10.0
+          # SDK beside it runs the tools, which stay on the LTS release.
           global-json-file: global.json
+          dotnet-version: 10.0.x
 
       # Two-layer defense against a partial generated surface (Directory.Build.targets' header
       # comment): that target refuses to pack on a missing or stale .generation-incomplete marker,

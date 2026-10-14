@@ -11,6 +11,14 @@ Nightly builds of `master` are on
 
 ### 💥 Breaking changes
 
+- **The packages target `netstandard2.0`, `net472`, `net10.0`, and `net11.0`.** `net8.0` and
+  `net9.0` leave ahead of their end of support on 2026-11-10, and `net11.0` joins on its go-live
+  release candidate. `0.9.0-preview.9` is the last version with `net8.0` and `net9.0` assets. A
+  `net8.0` or `net9.0` project still installs the packages through the `netstandard2.0` asset, now
+  with a build warning, because that runtime is not one the packages are tested on; set
+  `<SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>` to silence it, or move
+  the project to `net10.0` or later. A project that treats warnings as errors fails its build on it
+  until it does one or the other.
 - **`IOpenCodeClientOptions` is removed.** No public API accepted it, and every option added
   later would have broken its implementers, because `net472` and `netstandard2.0` have no default
   interface members. Configure clients through `OpenCodeClientOptions`, which a client still
@@ -58,11 +66,10 @@ Nightly builds of `master` are on
 ### 🔧 Changes
 
 - **The packages depend on the .NET 10.0.13 servicing builds of their dependencies.**
-  `OpenCodeDotNet.Sdk` requires `System.Text.Json` 10.0.13 on `netstandard2.0`, `net472`,
-  `net8.0`, and `net9.0`, and `Microsoft.Bcl.AsyncInterfaces`, `Microsoft.Bcl.Memory`,
-  `Microsoft.Bcl.TimeProvider`, `System.Collections.Immutable`, and `System.Threading.Channels`
-  10.0.13 on `netstandard2.0` and `net472`, up from 10.0.11; its `net10.0` asset still declares no
-  dependency. `OpenCodeDotNet.Sdk.Extensions` requires
+  `OpenCodeDotNet.Sdk` requires `System.Text.Json`, `Microsoft.Bcl.AsyncInterfaces`,
+  `Microsoft.Bcl.Memory`, `Microsoft.Bcl.TimeProvider`, `System.Collections.Immutable`, and
+  `System.Threading.Channels` 10.0.13 on `netstandard2.0` and `net472`, up from 10.0.11; its
+  `net10.0` and `net11.0` assets declare no dependency. `OpenCodeDotNet.Sdk.Extensions` requires
   `Microsoft.Extensions.DependencyInjection.Abstractions` and
   `Microsoft.Extensions.Options.ConfigurationExtensions` 10.0.13 on every target, up from 10.0.10.
   No security advisory covers the versions they replace. A project that references one of these

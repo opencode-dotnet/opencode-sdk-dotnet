@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
   <PropertyGroup>
+    <!-- Every target-framework literal of the repository lives here (ADR-0002). The tools, the
+         service fixture, the sandbox, and the performance project build on the default, the LTS
+         release; the newest supported release joins at its first go-live release candidate. -->
     <DefaultTargetFramework>net10.0</DefaultTargetFramework>
-    <AllTargetFrameworks>netstandard2.0;net472;net8.0;net9.0;$(DefaultTargetFramework)</AllTargetFrameworks>
+    <LatestTargetFramework>net11.0</LatestTargetFramework>
+    <AllTargetFrameworks>netstandard2.0;net472;$(DefaultTargetFramework);$(LatestTargetFramework)</AllTargetFrameworks>
+    <TestTargetFrameworks>$(DefaultTargetFramework);$(LatestTargetFramework)</TestTargetFrameworks>
     <!-- Pinned: 'latest' resolves differently per machine and SDK. C# 14 on net472 is
          unsupported-but-standard practice via polyfills (Polly/Serilog do the same). -->
     <LangVersion>14.0</LangVersion>

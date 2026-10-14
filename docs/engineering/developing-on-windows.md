@@ -47,7 +47,7 @@ so the two installs clobber each other's daemon binary.
    $env:OPENCODE_SDK_TESTS_ENDPOINT = "http://localhost:4097"
    $env:OPENCODE_SDK_TESTS_PASSWORD = "<pw>"
    $env:OPENCODE_SDK_TESTS_PTY_DAEMON = "1"
-   dotnet test tests/OpenCode.Sdk.Tests --configuration Release --no-build `
+   dotnet test --project "$PWD/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj" --configuration Release --no-build `
      -- --treenode-filter "/*/*/PersistentPtyLiveTests/*" --report-trx
    ```
 

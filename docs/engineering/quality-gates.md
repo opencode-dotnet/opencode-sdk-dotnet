@@ -74,8 +74,12 @@ dotnet build --configuration Release
 dotnet format whitespace --verify-no-changes --no-restore
 dotnet format style --verify-no-changes --no-restore --severity warn
 dotnet test --configuration Release --no-build -- --treenode-filter "/*/*/*/*[Category!=ServiceElection]"
-dotnet test tests/OpenCode.Sdk.Tests --configuration Release --no-build --max-parallel-test-modules 1 -- --treenode-filter "/*/*/*/*[Category=ServiceElection]"
+dotnet test --project "$PWD/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --treenode-filter "/*/*/*/*[Category=ServiceElection]"
 ```
+
+The project path is absolute because the .NET 11 release-candidate SDK resolves a relative
+`--project` path a second time against the project's own directory when the project has more than
+one target framework.
 
 Changes to the protocol, generator, curation, or generated output also run:
 

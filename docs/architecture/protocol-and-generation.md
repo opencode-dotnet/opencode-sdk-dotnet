@@ -334,5 +334,5 @@ dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).
 
 System.Text.Json source generation is mandatory. The generator emits the single serializer
 registry used by product code; reflection fallback is not a product path. `IsAotCompatible` is
-enabled on every modern target the packages build (`net8.0` and later), where the platform supports
+enabled on every modern target the packages build (`net10.0` and later), where the platform supports
 that contract, as a target-framework range rather than a named target (ADR-0003).

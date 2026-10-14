@@ -11,12 +11,22 @@ The package matrix follows Microsoft's support lifecycle: every modern .NET vers
 supports, plus `net472` and `netstandard2.0` (ADR-0002). It is:
 
 ```text
-netstandard2.0;net472;net8.0;net9.0;net10.0
+netstandard2.0;net472;net10.0;net11.0
 ```
 
 A version joins at its first go-live release candidate and leaves no later than its end of
-support; a non-preview package is built only on a GA SDK. `net11.0` joins on its go-live release
-candidate and `net8.0` and `net9.0` leave with it, ahead of their end of support on 2026-11-10.
+support; a non-preview package is built only on a GA SDK. `global.json` pins the .NET 11 release
+candidate SDK until its GA. `Directory.Build.props` holds every target-framework literal:
+`DefaultTargetFramework` (the LTS release, on which the tools, the service fixture, the sandbox, and
+the performance project build), `LatestTargetFramework`, `AllTargetFrameworks` for the packages,
+and `TestTargetFrameworks` for the test projects, which add `net472` on Windows.
+
+A consumer whose target framework resolves to the `netstandard2.0` asset on a runtime the packages
+do not target — .NET Core below the default target, .NET Framework below 4.7.2 — gets a build
+warning from a generated `buildTransitive` target in that asset's folder; empty placeholders in the
+folders of the shipped targets keep their consumers silent, and
+`SuppressTfmSupportBuildWarnings` silences it, as the runtime's own packages do. A consumer on any
+other `netstandard2.0` platform gets the asset without a warning.
 
 `net472` owns .NET Framework-specific compile and runtime behavior. `netstandard2.0` is the broad
 compatibility bridge and has no runtime of its own; net472 legs proxy its downlevel behavior. It is
@@ -83,7 +93,9 @@ Two separate API vintages shape the downlevel legs, and conflating them would mi
   public surface, or that is version-pinned for behavior; trust the transitive graph otherwise.
 - Downlevel bridge packages (`System.Memory`, `System.Buffers`, `System.Collections.Immutable`,
   `Microsoft.Bcl.*`) are conditioned to the target frameworks that need them; modern targets use
-  the inbox APIs.
+  the inbox APIs. `System.Text.Json` is one of them: modern targets use the runtime's copy, and a
+  package reference on a modern target comes back only as a recorded exception, for a fix shipped
+  only as a package patch.
 - A new shipped dependency is a maintainer decision recorded with its consumer; no package is
   added for a capability no scheduled work consumes.
 
