@@ -64,9 +64,11 @@ and `form.created` carries it inside the form. Read `Data.SessionId` on `FormCan
 
 A session's turn ends with exactly one of three events: `SessionExecutionSucceeded`,
 `SessionExecutionFailed`, or `SessionExecutionInterrupted`. The server publishes one each time the
-session goes from working to idle, however many prompts it worked through. One interrupt is not
-an end: `SessionExecutionInterrupted` with `Reason` `Shutdown` means the server is stopping, and it
-resumes the turn after it restarts, with a new `SessionExecutionStarted`. Open the bus **before**
+session goes from working to idle, however many prompts it worked through. The samples here stop
+on any `SessionExecutionInterrupted`, including one whose `Reason` is `Shutdown`. That interrupt means
+the server is stopping: the stream ends with it, and the server resumes the turn after it restarts,
+with a new `SessionExecutionStarted`. To follow the resumed turn, subscribe again once the server is
+back and wait the same way. Open the bus **before**
 you prompt, because an event published before you listen is gone; the first event,
 `EventServerConnected`, says the stream is live:
 
