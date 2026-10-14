@@ -5,7 +5,7 @@ Date: 2026-09-23
 A generated model is a C# record, and a record's compiler-synthesized `ToString()` prints every
 public member. Logging a configuration, a request, or a union that holds one therefore wrote its
 secrets: `McpOAuthConfig.ClientSecret` printed through the record and, since structural unions
-print their active arm, through `McpRemoteConfigOauth`. The OpenAPI document cannot say which
+print their active arm, through `McpRemoteConfigOAuth`. The OpenAPI document cannot say which
 members are secret — `client_secret` is `{"type": "string"}` — and upstream carries no
 `format: password` or `writeOnly` marker; its runtime keeps secrets in Effect's `Redacted`, which
 the document does not project. Upstream does name secrets in one place the SDK can follow: its
@@ -74,7 +74,7 @@ generator's format pass strips it; structural unions override `ToString()` for t
   unknown arm preserves as `[REDACTED]` and keeps that arm's marker visible, since an arm the pin
   does not know may carry the same secret. At the pin that is `UnknownCredentialValue`,
   `UnknownMcp`, and `UnknownConfigEntry` (a configuration document reaches masked maps through its
-  MCP servers, providers, agents, formatters, and LSP servers), and the Unknown arm of the structural unions `McpRemoteConfigOauth`, `ConfigInfoFormatter`,
+  MCP servers, providers, agents, formatters, and LSP servers), and the Unknown arm of the structural unions `McpRemoteConfigOAuth`, `ConfigInfoFormatter`,
   `ConfigInfoLsp`, and `ConfigLspEntry`.
 - Masking is a printing concern only: equality, serialization, and the members' values are
   unchanged.

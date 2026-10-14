@@ -28,7 +28,7 @@ public readonly struct ConnectionCredentialInfoMethod : IEquatable<ConnectionCre
     /// <summary>
     /// Gets the &apos;oauth&apos; wire value.
     /// </summary>
-    public static ConnectionCredentialInfoMethod Oauth { get; } = new("oauth");
+    public static ConnectionCredentialInfoMethod OAuth { get; } = new("oauth");
     /// <summary>
     /// Gets the &apos;external&apos; wire value.
     /// </summary>

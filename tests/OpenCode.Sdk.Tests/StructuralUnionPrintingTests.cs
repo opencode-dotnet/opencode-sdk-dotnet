@@ -26,7 +26,7 @@ public sealed class StructuralUnionPrintingTests
     public async Task Every_Shipped_Union_Should_Print_Its_Active_Arm()
     {
         await Assert.That(FormWhenValue.FromText("draft").ToString()).IsEqualTo("FormWhenValue { Kind = Text, Text = draft }");
-        await Assert.That(McpRemoteConfigOauth.FromBoolean(true).ToString()).IsEqualTo("McpRemoteConfigOauth { Kind = Boolean, Boolean = True }");
+        await Assert.That(McpRemoteConfigOAuth.FromBoolean(true).ToString()).IsEqualTo("McpRemoteConfigOAuth { Kind = Boolean, Boolean = True }");
         await Assert.That(ProviderSettingsTimeout.FromNumber(30000).ToString()).IsEqualTo("ProviderSettingsTimeout { Kind = Number, Number = 30000 }");
         await Assert.That(ProviderSettingsTimeout.FromBoolean(false).ToString()).IsEqualTo("ProviderSettingsTimeout { Kind = Boolean, Boolean = False }");
     }

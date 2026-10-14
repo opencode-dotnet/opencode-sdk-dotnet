@@ -5,14 +5,14 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;DELETE /api/integration/{integrationID}/connect/oauth/{attemptID}&apos; operation.
+/// Represents the response of the &apos;POST /api/integration/{integrationID}/connect/oauth/{attemptID}/complete&apos; operation.
 /// </summary>
-public sealed record IntegrationOauthCancelResponse : OpenCodeResponse
+public sealed record IntegrationOAuthCompleteResponse : OpenCodeResponse
 {
     /// <summary>
-    /// Initializes a success instance of the &apos;IntegrationOauthCancelResponse&apos; envelope.
+    /// Initializes a success instance of the &apos;IntegrationOAuthCompleteResponse&apos; envelope.
     /// </summary>
-    public IntegrationOauthCancelResponse()
+    public IntegrationOAuthCompleteResponse()
     {
     }
 
@@ -20,7 +20,7 @@ public sealed record IntegrationOauthCancelResponse : OpenCodeResponse
     /// Initializes an error-path instance; the payload stays unset behind its guard.
     /// </summary>
     [SetsRequiredMembers]
-    internal IntegrationOauthCancelResponse(int status, IOpenCodeError? error, string? rawBody)
+    internal IntegrationOAuthCompleteResponse(int status, IOpenCodeError? error, string? rawBody)
     {
         Status = status;
         IsError = true;

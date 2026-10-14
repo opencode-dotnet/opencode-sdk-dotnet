@@ -227,9 +227,9 @@ IntegrationInfo owner=Integrations reached-by=Integrations
 IntegrationKeyMethod owner=Integrations reached-by=Integrations
 IntegrationMethodNotFoundError owner=Integrations reached-by=Integrations
 IntegrationNotFoundError owner=Integrations reached-by=Integrations
+IntegrationOAuthCompleteRequest owner=Integrations reached-by=Integrations
+IntegrationOAuthConnectRequest owner=Integrations reached-by=Integrations
 IntegrationOAuthMethod owner=Integrations reached-by=Integrations
-IntegrationOauthCompleteRequest owner=Integrations reached-by=Integrations
-IntegrationOauthConnectRequest owner=Integrations reached-by=Integrations
 IntegrationUpdated owner=Integrations reached-by=Events
 InvalidCursorError owner=Sessions reached-by=Sessions
 InvalidRequestError owner=Common reached-by=Agents,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Shells,Skills,Vcs,Websearch,Worktrees
@@ -244,8 +244,8 @@ McpLocalConfigTimeout owner=McpServers reached-by=Config,Experimental
 McpOAuthConfig owner=McpServers reached-by=Config,Experimental
 McpProtocol owner=McpServers reached-by=Config,Experimental
 McpRemoteConfig owner=McpServers reached-by=Config,Experimental
-McpRemoteConfigOauth owner=McpServers reached-by=Config,Experimental
-McpRemoteConfigOauthKind owner=McpServers reached-by=Config,Experimental
+McpRemoteConfigOAuth owner=McpServers reached-by=Config,Experimental
+McpRemoteConfigOAuthKind owner=McpServers reached-by=Config,Experimental
 McpRemoteConfigTimeout owner=McpServers reached-by=Config,Experimental
 McpResource owner=McpServers reached-by=McpServers
 McpResourceCatalog owner=McpServers reached-by=McpServers

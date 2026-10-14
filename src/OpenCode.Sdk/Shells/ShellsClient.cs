@@ -26,17 +26,17 @@ public class ShellsClient
     /// <summary>
     /// Gets a bound &apos;ShellClient&apos;; the handle never caches server state.
     /// </summary>
-    /// <param name = "id">The &apos;id&apos; route value.</param>
+    /// <param name = "shellId">The &apos;id&apos; route value.</param>
     /// <returns>The bound &apos;ShellClient&apos;.</returns>
-    public virtual ShellClient GetShellClient(string id)
+    public virtual ShellClient GetShellClient(string shellId)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        if (id is "." or "..")
+        ArgumentException.ThrowIfNullOrWhiteSpace(shellId);
+        if (shellId is "." or "..")
         {
-            throw new ArgumentException("Route values must not be dot segments.", nameof(id));
+            throw new ArgumentException("Route values must not be dot segments.", nameof(shellId));
         }
 
-        return new ShellClient(Pipeline, id);
+        return new ShellClient(Pipeline, shellId);
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("ShellsClient", "Pipeline");

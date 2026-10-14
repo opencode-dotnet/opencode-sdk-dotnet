@@ -62,17 +62,17 @@ public static partial class OpenCodeRoutes
         /// <summary>
         /// Builds the &apos;/api/permission/saved/{id}&apos; route.
         /// </summary>
-        /// <param name = "id">The &apos;id&apos; route value.</param>
+        /// <param name = "savedPermissionId">The &apos;id&apos; route value.</param>
         /// <returns>The escaped route.</returns>
-        public static string RemoveSaved(string id)
+        public static string RemoveSaved(string savedPermissionId)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(id);
-            if (id is "." or "..")
+            ArgumentException.ThrowIfNullOrWhiteSpace(savedPermissionId);
+            if (savedPermissionId is "." or "..")
             {
-                throw new ArgumentException("Route values must not be dot segments.", nameof(id));
+                throw new ArgumentException("Route values must not be dot segments.", nameof(savedPermissionId));
             }
 
-            return "/api/permission/saved/" + RouteValuePolicy.Escape(id, nameof(id));
+            return "/api/permission/saved/" + RouteValuePolicy.Escape(savedPermissionId, nameof(savedPermissionId));
         }
     }
 }

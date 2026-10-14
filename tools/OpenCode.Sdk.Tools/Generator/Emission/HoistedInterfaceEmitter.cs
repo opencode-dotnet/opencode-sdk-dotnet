@@ -30,7 +30,10 @@ internal static class HoistedInterfaceEmitter
             .InterfaceDeclaration(plan.Name)
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([.. plan.Members.Select(EmitMember)]))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(plan.Description ?? $"Represents a {plan.Name} value."));
+            .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+                plan.Description ?? $"Represents a {plan.Name} value.",
+                [],
+                remarks: PinBoundInterfaceRemarks.Runs));
         var unit = EmissionSyntax.CompilationUnit(plan.Namespace, CollectUsings(plan), [declaration]);
         return EmissionSyntax.CreateSource(relativePath, unit);
     }

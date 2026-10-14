@@ -6,6 +6,9 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents the shared timeout shape of every mcp variant.
 /// </summary>
+/// <remarks>
+/// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin, which a minor version may do.
+/// </remarks>
 public interface IMcpTimeout
 {
     /// <summary>

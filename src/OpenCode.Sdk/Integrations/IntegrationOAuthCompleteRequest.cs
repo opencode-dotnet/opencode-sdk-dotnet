@@ -5,9 +5,9 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a integration oauth complete request value.
+/// Represents a integration o auth complete request value.
 /// </summary>
-public sealed record IntegrationOauthCompleteRequest
+public sealed record IntegrationOAuthCompleteRequest
 {
     /// <summary>
     /// Gets the code value.

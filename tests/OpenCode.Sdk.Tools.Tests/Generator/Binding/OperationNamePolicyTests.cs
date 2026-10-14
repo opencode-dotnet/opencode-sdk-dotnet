@@ -109,7 +109,7 @@ public sealed class OperationNamePolicyTests
     [Arguments("session.update", "patch", "SessionUpdateResponse")]
     [Arguments("session.prompt", "post", "SessionPromptResponse")]
     [Arguments("pty.update", "put", "PtyUpdateResponse")]
-    [Arguments("integration.oauth.complete", "post", "IntegrationOauthCompleteResponse")]
+    [Arguments("integration.oauth.complete", "post", "IntegrationOAuthCompleteResponse")]
     [Arguments("experimental.session.instructions.entry.put", "put", "ExperimentalSessionInstructionsEntryResponse")]
     [Arguments("location.reload", "post", "LocationReloadResponse")]
     public async Task ResponseTypeName_Should_Carry_Only_A_Grammar_Verb(string operationId, string method, string expected)

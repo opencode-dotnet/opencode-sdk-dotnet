@@ -124,31 +124,31 @@ public sealed class IntegrationClientContractTests
     }
 
     [Test]
-    public async Task PostOauthConnectAsync_Should_Return_The_Typed_Attempt()
+    public async Task PostOAuthConnectAsync_Should_Return_The_Typed_Attempt()
     {
         const string attempt = "{\"attemptID\":\"att_1\",\"url\":\"https://example.test/authorize\","
             + "\"instructions\":\"Open the link\",\"mode\":\"auto\",\"time\":{\"created\":1,\"expires\":2}}";
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.LocationEnvelope(attempt));
 
         var response = await scenario.Client.Integrations.GetIntegrationClient("int_1")
-            .BeginOauthConnectionAsync(new IntegrationOauthConnectRequest { MethodId = "github" });
+            .BeginOAuthConnectionAsync(new IntegrationOAuthConnectRequest { MethodId = "github" });
 
-        await Assert.That(response.OauthConnect.AttemptId).IsEqualTo("att_1");
-        await Assert.That(response.OauthConnect.Url).IsEqualTo("https://example.test/authorize");
-        await Assert.That(response.OauthConnect.Mode).IsEqualTo(IntegrationAttemptMode.Auto);
+        await Assert.That(response.OAuthConnect.AttemptId).IsEqualTo("att_1");
+        await Assert.That(response.OAuthConnect.Url).IsEqualTo("https://example.test/authorize");
+        await Assert.That(response.OAuthConnect.Mode).IsEqualTo(IntegrationAttemptMode.Auto);
         await Assert.That(scenario.Requests.Single().RequestUri)
             .IsEqualTo(new Uri("http://localhost:4096/api/integration/int_1/connect/oauth"));
         await Assert.That(scenario.Requests.Single().Body).IsEqualTo("{\"methodID\":\"github\"}");
     }
 
     [Test]
-    public async Task PostOauthConnectAsync_Should_Throw_The_Declared_400_Error()
+    public async Task PostOAuthConnectAsync_Should_Throw_The_Declared_400_Error()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
 
         var exception = await Assert
             .That(async () => _ = await scenario.Client.Integrations.GetIntegrationClient("int_1")
-                .BeginOauthConnectionAsync(new IntegrationOauthConnectRequest { MethodId = "github" }))
+                .BeginOAuthConnectionAsync(new IntegrationOAuthConnectRequest { MethodId = "github" }))
             .Throws<OpenCodeApiException>();
 
         await Assert.That(exception!.Status).IsEqualTo(400);
@@ -156,12 +156,12 @@ public sealed class IntegrationClientContractTests
     }
 
     [Test]
-    public async Task PostOauthConnectAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
+    public async Task PostOAuthConnectAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
 
-        var response = await scenario.Client.Integrations.GetIntegrationClient("int_1").BeginOauthConnectionAsync(
-            new IntegrationOauthConnectRequest { MethodId = "github" },
+        var response = await scenario.Client.Integrations.GetIntegrationClient("int_1").BeginOAuthConnectionAsync(
+            new IntegrationOAuthConnectRequest { MethodId = "github" },
             requestOptions: OpenCodeRequestOptions.NoThrow);
 
         await Assert.That(response.IsError).IsTrue();

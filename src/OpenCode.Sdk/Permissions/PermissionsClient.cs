@@ -61,7 +61,7 @@ public class PermissionsClient
     /// <summary>
     /// Remove saved permission. Remove a saved permission by ID.
     /// </summary>
-    /// <param name = "id">The &apos;id&apos; route value.</param>
+    /// <param name = "savedPermissionId">The &apos;id&apos; route value.</param>
     /// <param name = "requestOptions">The per-call options.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;PermissionSavedRemoveResponse&apos; envelope.</returns>
@@ -70,9 +70,9 @@ public class PermissionsClient
     /// <remarks>
     /// Operation <c>permission.saved.remove</c>: <c>DELETE /api/permission/saved/{id}</c>.
     /// </remarks>
-    public virtual Task<PermissionSavedRemoveResponse> RemoveSavedAsync(string id, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    public virtual Task<PermissionSavedRemoveResponse> RemoveSavedAsync(string savedPermissionId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrEmpty(id);
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Permissions.RemoveSaved(id), PermissionSavedRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
+        ArgumentException.ThrowIfNullOrEmpty(savedPermissionId);
+        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Permissions.RemoveSaved(savedPermissionId), PermissionSavedRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

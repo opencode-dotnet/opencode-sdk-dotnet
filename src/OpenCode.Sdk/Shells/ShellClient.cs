@@ -9,18 +9,18 @@ namespace OpenCode.Sdk;
 public class ShellClient
 {
     private readonly Pipeline? _pipeline;
-    private readonly string? _id;
-    internal ShellClient(Pipeline pipeline, string id)
+    private readonly string? _shellId;
+    internal ShellClient(Pipeline pipeline, string shellId)
     {
         ArgumentNullException.ThrowIfNull(pipeline);
-        ArgumentException.ThrowIfNullOrWhiteSpace(id);
-        if (id is "." or "..")
+        ArgumentException.ThrowIfNullOrWhiteSpace(shellId);
+        if (shellId is "." or "..")
         {
-            throw new ArgumentException("Route values must not be dot segments.", nameof(id));
+            throw new ArgumentException("Route values must not be dot segments.", nameof(shellId));
         }
 
         _pipeline = pipeline;
-        _id = id;
+        _shellId = shellId;
     }
 
     /// <summary>
@@ -31,7 +31,7 @@ public class ShellClient
     }
 
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("ShellClient", "Pipeline");
-    private string Id => _id ?? throw MockSeam.CreateError("ShellClient", "Id");
+    private string ShellId => _shellId ?? throw MockSeam.CreateError("ShellClient", "ShellId");
 
     /// <summary>
     /// Get shell command. Get one shell command, including its status and exit code once exited.
@@ -47,7 +47,7 @@ public class ShellClient
     /// </remarks>
     public virtual Task<ShellResponse> GetAsync(ShellRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Shells.Get(Id, request), ShellResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Shells.Get(ShellId, request), ShellResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -64,7 +64,7 @@ public class ShellClient
     /// </remarks>
     public virtual Task<ShellOutputResponse> GetOutputAsync(ShellOutputRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Shells.GetOutput(Id, request), ShellOutputResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Shells.GetOutput(ShellId, request), ShellOutputResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -81,6 +81,6 @@ public class ShellClient
     /// </remarks>
     public virtual Task<ShellRemoveResponse> RemoveAsync(ShellRemoveRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Shells.Remove(Id, request), ShellRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Shells.Remove(ShellId, request), ShellRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

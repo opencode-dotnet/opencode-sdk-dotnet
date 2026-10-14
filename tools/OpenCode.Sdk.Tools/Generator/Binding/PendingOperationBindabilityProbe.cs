@@ -132,6 +132,7 @@ internal sealed class PendingOperationBindabilityProbe(ISpecBinder binder)
             Declined = [],
             HoistedMemberNames = [],
             EnumMemberNames = [],
+            ParameterNames = [],
             RedactedMembers = [],
             RedactedOpenMembers = [],
             SecretLookingNames = [],

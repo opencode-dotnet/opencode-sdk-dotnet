@@ -95,6 +95,6 @@ public sealed class ShellsClientContractTests
 
         var exception = Assert.Throws<ArgumentException>(() => _ = scenario.Client.Shells.GetShellClient(id));
 
-        await Assert.That(exception.ParamName).IsEqualTo("id");
+        await Assert.That(exception.ParamName).IsEqualTo("shellId");
     }
 }

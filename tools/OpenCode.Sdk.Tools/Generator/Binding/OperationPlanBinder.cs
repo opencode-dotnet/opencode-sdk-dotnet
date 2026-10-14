@@ -514,6 +514,13 @@ internal sealed class OperationPlanBinder
                 }),
         ];
 
+        /// <summary>The C# name a parameter-name row gives one of this operation's route values, if any.</summary>
+        private string? CuratedParameterName(string wireName) =>
+            _context.Curation.ParameterNames.FirstOrDefault(row =>
+                    string.Equals(row.OperationId, _context.Operation.OperationId, StringComparison.Ordinal)
+                    && string.Equals(row.Parameter, wireName, StringComparison.Ordinal))
+                ?.DotNetName;
+
         private IReadOnlyList<OperationParameterPlan>? BindParameters(GroupCuration row,
             IReadOnlyList<DeclaredHeaderPlan> declaredHeaders)
         {
@@ -523,7 +530,7 @@ internal sealed class OperationPlanBinder
                 .Select(parameter => new OperationParameterPlan
                 {
                     WireName = parameter.Name,
-                    Name = CSharpNamePolicy.ToCamelCase(parameter.Name),
+                    Name = CuratedParameterName(parameter.Name) ?? CSharpNamePolicy.ToCamelCase(parameter.Name),
                     TypeName = "string",
                     IsHandleParameter = row.Placement is GroupPlacement.Client
                                         && string.Equals(parameter.Name, row.HandleParameter, StringComparison.Ordinal),

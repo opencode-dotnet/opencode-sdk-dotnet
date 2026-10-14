@@ -2,21 +2,21 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk.Internal;
 /// <summary>
-/// Adapts the &apos;DELETE /api/integration/{integrationID}/connect/oauth/{attemptID}&apos; responses onto &apos;IntegrationOauthCancelResponse&apos;.
+/// Adapts the &apos;POST /api/integration/{integrationID}/connect/oauth/{attemptID}/complete&apos; responses onto &apos;IntegrationOAuthCompleteResponse&apos;.
 /// </summary>
-internal sealed class IntegrationOauthCancelResponseAdapter : ResponseAdapter<IntegrationOauthCancelResponse>
+internal sealed class IntegrationOAuthCompleteResponseAdapter : ResponseAdapter<IntegrationOAuthCompleteResponse>
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["LocationNotFoundError"];
-    private IntegrationOauthCancelResponseAdapter()
+    private static readonly string[] Status404Tags = ["IntegrationAttemptNotFoundError", "IntegrationNotFoundError", "LocationNotFoundError"];
+    private IntegrationOAuthCompleteResponseAdapter()
     {
     }
 
     /// <summary>
     /// Gets the shared adapter instance.
     /// </summary>
-    public static IntegrationOauthCancelResponseAdapter Instance { get; } = new IntegrationOauthCancelResponseAdapter();
+    public static IntegrationOAuthCompleteResponseAdapter Instance { get; } = new IntegrationOAuthCompleteResponseAdapter();
 
     /// <summary>
     /// Classifies a status under this operation&apos;s pinned contract.
@@ -33,27 +33,27 @@ internal sealed class IntegrationOauthCancelResponseAdapter : ResponseAdapter<In
     /// <summary>
     /// Maps the declared UTF-8 success body onto the typed envelope.
     /// </summary>
-    public override IntegrationOauthCancelResponse AdaptSuccess(int status, ReadOnlySpan<byte> utf8Body) => new()
+    public override IntegrationOAuthCompleteResponse AdaptSuccess(int status, ReadOnlySpan<byte> utf8Body) => new()
     {
         Status = status
     };
     /// <summary>
     /// Maps one buffered response onto the typed envelope.
     /// </summary>
-    public override IntegrationOauthCancelResponse Adapt(int status, string rawBody)
+    public override IntegrationOAuthCompleteResponse Adapt(int status, string rawBody)
     {
         ArgumentNullException.ThrowIfNull(rawBody);
         return status switch
         {
-            204 => new IntegrationOauthCancelResponse
+            204 => new IntegrationOAuthCompleteResponse
             {
                 Status = status
             },
             >= 200 and < 300 => throw StatusVerdictFailures.UndeclaredSuccess(status),
-            400 => new IntegrationOauthCancelResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
-            401 => new IntegrationOauthCancelResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
-            404 => new IntegrationOauthCancelResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
-            _ => new IntegrationOauthCancelResponse(status, ReadTolerantError(rawBody, null), rawBody)
+            400 => new IntegrationOAuthCompleteResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
+            401 => new IntegrationOAuthCompleteResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
+            404 => new IntegrationOAuthCompleteResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
+            _ => new IntegrationOAuthCompleteResponse(status, ReadTolerantError(rawBody, null), rawBody)
         };
     }
 }

@@ -20,6 +20,7 @@ internal static class BindingScenarioData
         IReadOnlyList<DeclinedCuration>? declined = null,
         IReadOnlyList<HoistedMemberNameCuration>? hoistedMemberNames = null,
         IReadOnlyList<EnumMemberNameCuration>? enumMemberNames = null,
+        IReadOnlyList<ParameterNameCuration>? parameterNames = null,
         IReadOnlyList<RedactedMemberCuration>? redactedMembers = null,
         IReadOnlyList<SecretLookingNameCuration>? secretLookingNames = null,
         IReadOnlyList<RedactedOpenMembersCuration>? redactedOpenMembers = null,
@@ -37,11 +38,22 @@ internal static class BindingScenarioData
             Declined = declined ?? [],
             HoistedMemberNames = hoistedMemberNames ?? [],
             EnumMemberNames = enumMemberNames ?? [],
+            ParameterNames = parameterNames ?? [],
             RedactedMembers = redactedMembers ?? [],
             RedactedOpenMembers = redactedOpenMembers ?? [],
             SecretLookingNames = secretLookingNames ?? [],
             ModelOwners = modelOwners ?? [],
             SessionAreas = sessionAreas ?? [],
+        };
+
+    public static ParameterNameCuration ParameterName(string operationId, string parameter, string dotnetName,
+        string reason = "Scenario names the route value after its resource.") =>
+        new()
+        {
+            OperationId = operationId,
+            Parameter = parameter,
+            DotNetName = dotnetName,
+            Reason = reason,
         };
 
     public static ModelOwnerCuration Owner(string match, string owner,

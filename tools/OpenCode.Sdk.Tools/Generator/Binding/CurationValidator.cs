@@ -22,6 +22,7 @@ internal sealed class CurationValidator
         var documentGroups = document.Operations.Select(GetGroup).ToHashSet(_comparer);
         ValidateGroups(selected, selectedGroups, documentGroups, curation, errors);
         ValidateOperationNames(selectedIds, documentIds, curation, errors);
+        ValidateParameterNames(selected, curation, errors);
         ValidateSchemaNames(document, reachable, curation, errors);
         ValidateEnumMemberNames(document, reachable, curation, errors);
         ValidateEnvelopeNames(selectedIds, documentIds, curation, errors);
@@ -169,6 +170,79 @@ internal sealed class CurationValidator
             {
                 errors.Add(BindingErrorCategory.Naming, operationName.OperationId,
                     $"method name '{operationName.MethodName}' must be a valid C# identifier ending in 'Async'");
+            }
+        }
+    }
+
+    /// <summary>
+    /// A parameter-name row names a route value of a selected operation, once, with a reason and a
+    /// camel-cased identifier that differs from the mechanical one. A handle parameter names one
+    /// working object, so every operation of a handle family that carries it must name it the same
+    /// way, across every group the family merges.
+    /// </summary>
+    private void ValidateParameterNames(IReadOnlyList<SpecOperation> selected, GenerationCuration curation,
+        BindingErrorCollector errors)
+    {
+        var operations = selected.ToDictionary(static operation => operation.OperationId, _comparer);
+        var curated = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var row in curation.ParameterNames)
+        {
+            var subject = row.OperationId + ":" + row.Parameter;
+            if (!curated.Add(subject))
+            {
+                errors.Add(BindingErrorCategory.Curation, subject, "parameter name curation is duplicated");
+            }
+
+            if (!operations.TryGetValue(row.OperationId, out var operation))
+            {
+                errors.Add(BindingErrorCategory.Curation, subject, "curated operation is not selected by the current profile");
+            }
+            else if (!operation.Parameters.Any(parameter => parameter.Location is SpecParameterLocation.Path
+                                                            && string.Equals(parameter.Name, row.Parameter, StringComparison.Ordinal)))
+            {
+                errors.Add(BindingErrorCategory.Curation, subject, "curated parameter is not a route value of the operation");
+            }
+
+            if (string.IsNullOrWhiteSpace(row.Reason))
+            {
+                errors.Add(BindingErrorCategory.Curation, subject, "parameter name curation must declare a reason");
+            }
+
+            if (!CSharpNamePolicy.IsValidIdentifier(row.DotNetName) || !char.IsLower(row.DotNetName[0]))
+            {
+                errors.Add(BindingErrorCategory.Naming, subject,
+                    $"parameter name '{row.DotNetName}' must be a valid camel-cased C# identifier");
+            }
+            else if (string.Equals(row.DotNetName, CSharpNamePolicy.ToCamelCase(row.Parameter), StringComparison.Ordinal))
+            {
+                errors.Add(BindingErrorCategory.Curation, subject,
+                    $"parameter name '{row.DotNetName}' changes no name; the mechanical rule already gives it");
+            }
+        }
+
+        // Groups sharing a client name merge into one family, so the family, not the wire group,
+        // is the unit whose handle parameter must read the same everywhere.
+        foreach (var family in curation
+                     .Groups
+                     .Where(static pair => pair.Value.HandleParameter is not null)
+                     .GroupBy(static pair => pair.Value.ClientName ?? pair.Key, StringComparer.Ordinal)
+                     .OrderBy(static family => family.Key, StringComparer.Ordinal))
+        {
+            var names = family
+                .SelectMany(pair => selected
+                    .Where(operation => string.Equals(GetGroup(operation), pair.Key, StringComparison.Ordinal)
+                                        && operation.Parameters.Any(parameter => parameter.Location is SpecParameterLocation.Path
+                                                                                 && string.Equals(parameter.Name, pair.Value.HandleParameter, StringComparison.Ordinal)))
+                    .Select(operation => curation.ParameterNames.FirstOrDefault(row =>
+                            string.Equals(row.OperationId, operation.OperationId, StringComparison.Ordinal)
+                            && string.Equals(row.Parameter, pair.Value.HandleParameter, StringComparison.Ordinal))
+                        ?.DotNetName ?? string.Empty))
+                .Distinct(StringComparer.Ordinal)
+                .Count();
+            if (names > 1)
+            {
+                errors.Add(BindingErrorCategory.Curation, family.Key,
+                    $"every operation of the handle family must name handle parameter '{family.First().Value.HandleParameter}' the same way");
             }
         }
     }

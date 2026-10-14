@@ -11,6 +11,18 @@ Nightly builds of `master` are on
 
 ### 💥 Breaking changes
 
+- **Every generated name spells `OAuth` as the brand does.** Names built from operation ids and wire
+  members said `Oauth`, beside the schema-derived `CredentialOAuth` and `McpOAuthConfig`. They are now
+  `BeginOAuthConnectionAsync`, `CancelOAuthConnectionAsync`, `CompleteOAuthConnectionAsync`,
+  `GetOAuthStatusAsync`, the `IntegrationOAuth*` request and response types with their
+  `OAuthConnect` and `OAuthStatus` members, `McpRemoteConfigOAuth` (with its `Kind`), the
+  `OpenCodeRoutes` builders and templates, and the `OAuth` value of
+  `ConnectionCredentialInfoMethod`. Rename the uses; nothing on the wire changes.
+- **The shell and saved-permission ids have descriptive parameter names.**
+  - `ShellsClient.GetShellClient`, and the `OpenCodeRoutes.Shells` builders, take `shellId`.
+  - `PermissionsClient.RemoveSavedAsync` and `OpenCodeRoutes.Permissions.RemoveSaved` take
+    `savedPermissionId`.
+  - Before, both were a bare `id`. Only a call that named the argument (`id: …`) changes.
 - **Generated string enums are extensible value types (ADR-0035).**
   - Every enum the API defines, such as `VcsMode`, `PermissionEffect`, `SessionInboxDelivery` and
     `AgentInfoMode`, is now a `readonly struct`, not a C# `enum`.

@@ -18,6 +18,19 @@ public sealed class CSharpNamePolicyTests
         await Assert.That(result).IsEqualTo(expected);
     }
 
+    /// <summary>A brand keeps its spelling in any casing the wire uses; everything around it stays ordinary PascalCase.</summary>
+    [Test]
+    [Arguments("oauth", "OAuth", "oAuth")]
+    [Arguments("integration.oauth.connect", "IntegrationOAuthConnect", "integrationOAuthConnect")]
+    [Arguments("oauth_status", "OAuthStatus", "oAuthStatus")]
+    [Arguments("OAUTH", "OAuth", "oAuth")]
+    [Arguments("McpOAuthConfig", "McpOAuthConfig", "mcpOAuthConfig")]
+    public async Task ToPascalCase_Should_Keep_A_Brand_Spelling(string wireName, string pascal, string camel)
+    {
+        await Assert.That(CSharpNamePolicy.ToPascalCase(wireName)).IsEqualTo(pascal);
+        await Assert.That(CSharpNamePolicy.ToCamelCase(wireName)).IsEqualTo(camel);
+    }
+
     /// <summary>
     /// A whole name that opens with a digit needs a letter prefix; a fragment appended to a
     /// stem does not, and taking it there would spell an interior underscore the repository's
