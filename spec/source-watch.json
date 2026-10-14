@@ -21,11 +21,11 @@
     },
     {
       "path": "packages/server/src/middleware/authorization.ts",
-      "sha256": "050d751598d9be28164deca3988dc6631b02a9544c00a9258d4c1256f2326a52",
-      "behavior": "A non-empty ticket query on a PTY connect, and a pairing link under /auth/connect/, skip the credential check, so the hand-written door authenticates the WebSocket upgrade with the ticket alone and a pairing code is redeemed with no other credential.",
+      "sha256": "77b1863fa8b67456c4cae5ae5024e9afe9ffd94365017c85fc59e97310301ad6",
+      "behavior": "A non-empty ticket query on a request routed to the PTY or persistent-PTY connect endpoint, and a request routed to the pairing link /auth/connect/:code, skip the credential check, so the hand-written door authenticates the WebSocket upgrade with the ticket alone and a pairing code is redeemed with no other credential.",
       "anchor": {
         "type": "contains",
-        "text": "hasPtyConnectTicketURL(url) || hasPersistentPtyConnectTicketURL(url)"
+        "text": "route.route.path === PTY_CONNECT_PATH || route.route.path === PERSISTENT_PTY_CONNECT_PATH"
       }
     },
     {
@@ -39,7 +39,7 @@
     },
     {
       "path": "packages/protocol/src/groups/pty.ts",
-      "sha256": "e0e154bbdccaa986b905a20e3f0eee3d499f8d385a27dc352953f92ffac927c6",
+      "sha256": "c51fe7c3704b938ddac0da48252368843a7b1004262974ccb4b67b98808bffde",
       "behavior": "The ticket-issuing request carries the x-opencode-ticket header and the connect URL carries the ticket query.",
       "anchor": {
         "type": "contains",
@@ -84,7 +84,7 @@
     },
     {
       "path": "packages/protocol/src/groups/persistent-pty.ts",
-      "sha256": "8fa2c8508b4b8823d551a99614757bb99887536676b23255d2c3c1434944776c",
+      "sha256": "052b0fcf88a6f890f2cc0f8a9ee7275690cec947023e22e373f6bce4e02ef70f",
       "behavior": "The handoff response is a single-key body whose handoff value is nullable, and the persistent connect endpoint reuses the PTY ticket query and header.",
       "anchor": {
         "type": "contains",
@@ -156,7 +156,7 @@
     },
     {
       "path": "packages/cli/package.json",
-      "sha256": "e1455a6a43b2200cc7ec67a5e58373c1a3cd3707557b174bdfdd4311b7493b5c",
+      "sha256": "f69914f2c1cb2b038c752542ab4754f83c16e39a30147e09976bcd62e077c919",
       "behavior": "The CLI package bin map names \u0022opencode\u0022 as the installed command and keeps \u0022opencode2\u0022 as a transitional alias of the same launcher, so the shipped launcher default resolves \u0022opencode\u0022 from PATH. The CLI depends on the opencode-pty package at 0.2.0.",
       "anchor": {
         "type": "contains",
@@ -165,7 +165,7 @@
     },
     {
       "path": "packages/core/package.json",
-      "sha256": "cc5b24afc13e59bf8c25aceee37ad2327bf1233d291313b3c4dfa2548ce05ba8",
+      "sha256": "0e9a4c79e28afb605be8952c185d8936af3bb92410e860281d9e510a16b74821",
       "behavior": "The opencode-pty daemon dependency is pinned at 0.2.0, which takes its runtime directory and name as arguments instead of OPENCODE_PTY_RUNTIME_DIR; the daemon protocol the persistent-PTY door speaks stays at version 7.",
       "anchor": {
         "type": "contains",
@@ -480,7 +480,7 @@
     },
     {
       "path": "packages/protocol/src/groups/server.ts",
-      "sha256": "677efe3d3c88ff809adddc9d2ab695bdfbd8ea4ad77e2a4576d21b7cb5d02d29",
+      "sha256": "e09b51e00ec7cb7d4818f7675a8cdd11df10cbde80d28117f18a26d51c08442e",
       "behavior": "The info answer carries version, pid, urls, paths.tmp, and an optional capabilities object whose optional persistentPty flag says whether the server can run the persistent-terminal daemon; pid may be zero for a runtime without an OS process identity. The background-service probe revalidates the registered process identity and expected version.",
       "anchor": {
         "type": "contains",
@@ -552,7 +552,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "8e236aee8b2338212f4fb9184f6d9f811f79e99bfbc4d38a57750ee2332acd8c",
+      "sha256": "a0d3f21a366eea08da3beaee0d54944d79df5e750b79cc5af31ac9aeffd51094",
       "behavior": "The workspace catalog pins the Effect release the protocol document is generated with, whose JSON Schema encoding of StructWithRest (a struct\u0027s properties beside a single-element allOf carrying only the rest\u0027s additionalProperties) the projector admits as an open object, and whose union decode (SchemaAST Union.getParser: literal sentinels, then the first member in declaration order that decodes) the structural union first-match arm mirrors, as tools/oracles/first-match-union.ts proves; an Effect bump is reviewed against both, and the oracle re-run, before the snapshot moves.",
       "anchor": {
         "type": "contains",
