@@ -285,7 +285,9 @@ public sealed class OwnedTransportTests
         private readonly TaskCompletionSource<bool> _headersReceived = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         /// <summary>Gets a task that completes once a response's headers are in.</summary>
+#pragma warning disable VSTHRD003 // Test signals complete on their own source and resume asynchronously; exposing the task is the signal's contract.
         public Task HeadersReceived => _headersReceived.Task;
+#pragma warning restore VSTHRD003
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {

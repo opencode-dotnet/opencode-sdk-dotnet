@@ -22,6 +22,9 @@ Nightly builds of `master` are on
   No security advisory covers the versions they replace. A project that references one of these
   packages directly at a lower version must raise it, or restore reports a package downgrade
   (NU1605, an error by default).
+- **A server that does not report readiness in time fails with the timeout as the inner
+  exception.** The `OpenCodeServerException` that `OpenCodeServer.StartAsync` throws then carries
+  the readiness bound's `OperationCanceledException` as its `InnerException`, which was `null`.
 
 ### 🐛 Fixes
 
