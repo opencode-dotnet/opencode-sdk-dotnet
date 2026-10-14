@@ -1,6 +1,6 @@
 # Platform and Packaging Architecture
 
-Date: 2026-09-29
+Date: 2026-10-14
 
 Canonical current rules for target frameworks, package boundaries, repository shape, versioning,
 distribution, dependencies, and licensing.
@@ -110,9 +110,10 @@ Two separate API vintages shape the downlevel legs, and conflating them would mi
 The MCP server lives in a sibling repository of the `opencode-dotnet` organization and consumes the
 SDK as a published package; it remains a thin adapter over the SDK (ADR-0030).
 
-Every package versions independently. Package versions do not align with upstream opencode and do
-not move in lockstep with one another. Intra-repository compatibility uses ordinary NuGet dependency
-ranges (ADR-0006).
+`OpenCode.Sdk` and `OpenCode.Sdk.Extensions` version in lockstep: one version source stamps both
+packages, every release ships both, and Extensions depends on the SDK release it ships with through
+an ordinary NuGet dependency (ADR-0006). Package versions do not align with upstream opencode. The
+MCP server versions on its own in its repository.
 
 The release policy is per-merge publication to GitHub Packages and a manual pipeline for NuGet.org.
 Pre-1.0 numbering is an operational decision, not a canon rule (ADR-0006).
