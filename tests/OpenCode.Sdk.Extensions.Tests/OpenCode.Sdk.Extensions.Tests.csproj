@@ -16,6 +16,10 @@
 
   <ItemGroup>
     <PackageReference Include="TUnit"/>
+    <PackageReference Include="PublicApiGenerator"/>
+    <PackageReference Include="System.Reflection.MetadataLoadContext"/>
+    <PackageReference Include="Testably.Abstractions"/>
+    <PackageReference Include="Verify.TUnit"/>
     <PackageReference Include="Microsoft.Extensions.Configuration"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
   </ItemGroup>
@@ -23,6 +27,15 @@
   <ItemGroup>
     <ProjectReference Include="../../src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj"/>
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../Shared/ShippedAssetSurface.cs" LinkBase="Shared" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <ShippedAssetProject>../../src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj</ShippedAssetProject>
+  </PropertyGroup>
+  <Import Project="../Shared/ShippedAssets.targets" />
 
   <!-- Implicit usings apply only on net6.0+; the net472 leg needs these globally too. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

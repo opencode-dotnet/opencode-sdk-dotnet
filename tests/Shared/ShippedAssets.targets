@@ -1,0 +1,28 @@
+<Project>
+
+  <!--
+    Every asset a package ships is held to the package's one reviewed public API baseline
+    (tests/Shared/ShippedAssetSurface.cs). No test host can load all of them, so the tests read each
+    from the build output through MetadataLoadContext. A test project sets ShippedAssetProject to
+    the package it holds and imports this file, which records where each asset is (GetTargetPath only
+    evaluates; it never builds a second time), where the baseline is, and where the references the
+    assets compile against live.
+  -->
+  <Target Name="RecordShippedAssets" BeforeTargets="GetAssemblyAttributes">
+    <ItemGroup>
+      <_ShippedTargetFramework Include="$(AllTargetFrameworks)" />
+    </ItemGroup>
+    <MSBuild Projects="$(ShippedAssetProject)"
+             Targets="GetTargetPath"
+             Properties="TargetFramework=%(_ShippedTargetFramework.Identity)">
+      <Output TaskParameter="TargetOutputs" ItemName="_ShippedAsset" />
+    </MSBuild>
+    <ItemGroup>
+      <AssemblyMetadata Include="ShippedAssets" Value="@(_ShippedAsset->'%(FullPath)')" />
+      <AssemblyMetadata Include="NuGetPackageRoot" Value="$(NuGetPackageRoot)" />
+      <AssemblyMetadata Include="NetCoreTargetingPackRoot" Value="$(NetCoreTargetingPackRoot)" />
+      <AssemblyMetadata Include="PublicApiBaseline" Value="$(MSBuildProjectDirectory)/Snapshots/PublicApi.verified.txt" />
+    </ItemGroup>
+  </Target>
+
+</Project>

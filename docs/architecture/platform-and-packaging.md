@@ -33,6 +33,12 @@ compatibility bridge and has no runtime of its own; net472 legs proxy its downle
 a compatibility asset, not a supported runtime: a consumer on another runtime can install it, but
 support and testing cover the targeted runtimes only.
 
+Every asset of a package exposes the same public API, held to that package's one reviewed baseline:
+a test reads each shipped asset from the build output and compares it. The one reviewed difference
+is the trimming and native AOT annotations (`RequiresUnreferencedCode`, `RequiresDynamicCode`),
+which are public attributes on .NET only; the `netstandard2.0` and `net472` assets carry internal
+copies, so their members render without them. Any other difference fails the test.
+
 Modern C# on downlevel targets is deliberate and supported inside this repository by the private,
 source-only Polyfill package. Exact package versions belong to `Directory.Packages.props`, not this
 document. A polyfilled member whose downlevel behaviour is a hazard is banned in

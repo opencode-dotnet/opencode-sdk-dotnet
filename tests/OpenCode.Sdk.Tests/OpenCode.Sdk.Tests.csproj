@@ -17,6 +17,7 @@
     <PackageReference Include="NSubstitute"/>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
     <PackageReference Include="PublicApiGenerator"/>
+    <PackageReference Include="System.Reflection.MetadataLoadContext"/>
     <PackageReference Include="Verify.TUnit"/>
     <PackageReference Include="Testably.Abstractions"/>
     <PackageReference Include="Testably.Abstractions.Testing"/>
@@ -29,6 +30,11 @@
   <ItemGroup>
     <ProjectReference Include="../../src/OpenCode.Sdk/OpenCode.Sdk.csproj"/>
   </ItemGroup>
+
+  <PropertyGroup>
+    <ShippedAssetProject>../../src/OpenCode.Sdk/OpenCode.Sdk.csproj</ShippedAssetProject>
+  </PropertyGroup>
+  <Import Project="../Shared/ShippedAssets.targets" />
 
   <!-- Cross-project test support compiles into each consuming test project as shared source. -->
   <ItemGroup>
