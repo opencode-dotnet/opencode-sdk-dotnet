@@ -34,6 +34,14 @@ Verification requirements live in `quality-gates.md`. Run them before claiming c
 honestly what was not run. Generated SDK output changes through the generator and is reviewed as a
 complete diff; it is never hand-edited.
 
+## Findings
+
+A finding that the change at hand does not fix gets a record before the work moves on. A product,
+test, or documentation finding becomes an issue on the project board, in a milestone or, for the
+backlog, in none; a finding about process alone is recorded in the private companion repository. A
+declined finding is recorded too, with its reason, in its issue or as an issue closed as not
+planned. Scratch notes, session messages, and review reports are evidence, not records.
+
 ## Dependency refresh
 
 Versions live in `Directory.Packages.props`, the SDK in `global.json`, and repository tools in

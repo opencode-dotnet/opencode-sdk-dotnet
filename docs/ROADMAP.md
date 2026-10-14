@@ -111,8 +111,13 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    the half-open stream gap. Exit: no planned capability needs a breaking construction change. The
    surface then freezes and `1.0.0-rc.1` ships.
 6. **1.0 performance gate.** The benchmark coverage reviewed and extended with representative
-   scenarios, a generator baseline, and a full run of the suite on the release candidate. Exit: a
-   reviewed full run with no unexplained regression.
+   scenarios ([#185](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/185)), then a
+   baseline run of the full suite, both before the freeze. The baseline's costs split three ways: a
+   cost a public signature fixes is decided with the API review, before the surface freezes; an
+   obvious, low-risk avoidable allocation on a shipped hot path is fixed, time-boxed, before
+   `1.0.0-rc.1`; every other cost becomes an issue in milestone `1.1`. After `1.0.0-rc.1` only a
+   regression is fixed. A generator baseline and a full run of the suite on the release candidate
+   close the gate. Exit: a reviewed full run with no unexplained regression.
 7. **`1.0.0`** ([#187](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/187)). Exit:
    `1.0.0` on NuGet.org, the `OpenCodeAI.*` popularity moved to `OpenCodeDotNet.*`, the README's
    rename notice gone, and milestone `1.1` ordered with its first items assigned.
