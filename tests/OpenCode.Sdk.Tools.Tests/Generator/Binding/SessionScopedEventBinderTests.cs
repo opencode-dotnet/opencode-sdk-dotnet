@@ -69,13 +69,6 @@ public sealed class SessionScopedEventBinderTests
 
     [Test]
     [Arguments("missing", "identifier schema does not exist")]
-    [Arguments("invalid", "not a valid C# identifier")]
-    [Arguments("collision", "collides with a generated type")]
-    [Arguments("union-collision", "collides with a generated type")]
-    [Arguments("converter-collision", "collides with a generated type")]
-    [Arguments("carrier-collision", "collides with a generated type")]
-    [Arguments("client-collision", "collides with a generated type")]
-    [Arguments("invalid-member", "not a valid C# identifier")]
     [Arguments("missing-union", "not a generated marked union")]
     [Arguments("empty", "no event qualifies")]
     [Arguments("reason", "must declare a reason")]
@@ -86,13 +79,6 @@ public sealed class SessionScopedEventBinderTests
         row = fault switch
         {
             "missing" => row with { Identifier = "Missing.ID" },
-            "invalid" => row with { Interface = "not-an-identifier" },
-            "collision" => row with { Interface = "Qualified" },
-            "union-collision" => row with { Interface = "IEvent" },
-            "converter-collision" => row with { Interface = "EventJsonConverter" },
-            "carrier-collision" => row with { Interface = "IEventLogData" },
-            "client-collision" => row with { Interface = "OpenCodeClient" },
-            "invalid-member" => row with { InterfaceMember = "not-an-identifier" },
             "missing-union" => row with { Unions = ["IMissingEvent"] },
             "empty" => row with { Member = "missingID" },
             "reason" => row with { Reason = string.Empty },
@@ -110,6 +96,19 @@ public sealed class SessionScopedEventBinderTests
     public async Task Bind_Should_Refuse_A_Qualifying_Payload_That_Can_Be_Absent()
     {
         var document = await BindingTestHost.IngestAsync(new SessionScopedEventScenario(optionalPayload: true));
+
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(
+            document, Selection("event.get"), SessionScopedEventScenario.EventCuration()));
+
+        await Assert.That(exception.Errors.Any(static error => error.Subject == "Qualified"
+            && error.Problem.Contains("payload must be required and non-nullable", StringComparison.Ordinal))).IsTrue();
+    }
+
+    /// <summary>A payload the wire may send as null cannot answer the contract, even when it is required.</summary>
+    [Test]
+    public async Task Bind_Should_Refuse_A_Required_Payload_That_Can_Be_Null()
+    {
+        var document = await BindingTestHost.IngestAsync(new SessionScopedEventScenario(nullablePayload: true));
 
         var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(
             document, Selection("event.get"), SessionScopedEventScenario.EventCuration()));

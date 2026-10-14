@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-10-14
+Date: 2026-10-15
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **global event bus** for everything happening in the server
@@ -64,7 +64,9 @@ and `form.created` carries it inside the form. Read `Data.SessionId` on `FormCan
 
 A session's turn ends with exactly one of three events: `SessionExecutionSucceeded`,
 `SessionExecutionFailed`, or `SessionExecutionInterrupted`. The server publishes one each time the
-session goes from working to idle, however many prompts it worked through. Open the bus **before**
+session goes from working to idle, however many prompts it worked through. One interrupt is not
+an end: `SessionExecutionInterrupted` with `Reason` `Shutdown` means the server is stopping, and it
+resumes the turn after it restarts, with a new `SessionExecutionStarted`. Open the bus **before**
 you prompt, because an event published before you listen is gone; the first event,
 `EventServerConnected`, says the stream is live:
 

@@ -4,8 +4,9 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
 /// <summary>
-/// The session-scoped event row names schemas, unions and members the document must have, and an
-/// interface that no generated type may already be called; every mismatch refuses generation.
+/// The session-scoped event row names schemas, unions and members the document must have; every
+/// mismatch refuses generation. The interface's name needs no check here: it is reserved, so no
+/// generated type can take it.
 /// </summary>
 internal static class SessionScopedEventValidator
 {
@@ -18,16 +19,6 @@ internal static class SessionScopedEventValidator
         if (string.IsNullOrWhiteSpace(row.Reason))
         {
             errors.Add(BindingErrorCategory.Curation, "sessionScopedEvent", "session-scoped event curation must declare a reason");
-        }
-
-        if (!CSharpNamePolicy.IsValidIdentifier(row.Interface))
-        {
-            errors.Add(BindingErrorCategory.Naming, "sessionScopedEvent", $"interface name '{row.Interface}' is not a valid C# identifier");
-        }
-
-        if (!CSharpNamePolicy.IsValidIdentifier(row.InterfaceMember))
-        {
-            errors.Add(BindingErrorCategory.Naming, "sessionScopedEvent", $"interface member '{row.InterfaceMember}' is not a valid C# identifier");
         }
 
         if (string.IsNullOrWhiteSpace(row.Identifier) || !context.Document.Schemas.TryGetValue(row.Identifier, out var identifier))
@@ -52,28 +43,6 @@ internal static class SessionScopedEventValidator
         if (string.IsNullOrWhiteSpace(row.PayloadMember) || string.IsNullOrWhiteSpace(row.Member))
         {
             errors.Add(BindingErrorCategory.Curation, "sessionScopedEvent", "session-scoped event member names cannot be blank");
-        }
-
-        var operations = context.Clients.SelectMany(static client => client.Operations).ToArray();
-        var names = context.Schemas.Models.Select(static model => model.Name)
-            .Concat(context.Schemas.Models.OfType<EnumModelPlan>().Select(static model => model.Name + "JsonConverter"))
-            .Concat(context.Schemas.Models.OfType<StructuralUnionModelPlan>().Select(static model => model.KindTypeName))
-            .Concat(context.Schemas.Models.OfType<StructuralUnionModelPlan>().Select(static model => model.Name + "JsonConverter"))
-            .Concat(context.Schemas.Unions.SelectMany(static union => new[]
-            {
-                union.Name, union.UnknownTypeName, union.ConceptName + "JsonConverter", union.UnknownTypeName + "JsonConverter",
-            }))
-            .Concat(context.Schemas.HoistedInterfaces.Select(static hoisted => hoisted.Name))
-            .Concat(context.Clients.Select(static client => client.Name))
-            .Concat(operations.Select(static operation => operation.QueryRequest?.TypeName))
-            .Concat(operations.Select(static operation => operation.Envelope?.ResponseTypeName))
-            .Concat(operations.Select(static operation => operation.Envelope?.AdapterTypeName))
-            .Concat(operations.Select(static operation => operation.Envelope?.EnvelopeDtoTypeName))
-            .Concat(operations.Select(static operation => operation.Stream?.AdapterTypeName))
-            .OfType<string>();
-        if (names.Contains(row.Interface, StringComparer.Ordinal))
-        {
-            errors.Add(BindingErrorCategory.Naming, "sessionScopedEvent", $"interface name '{row.Interface}' collides with a generated type");
         }
     }
 }

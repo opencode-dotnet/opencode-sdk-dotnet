@@ -1,8 +1,6 @@
 {
   "sessionScopedEvent": {
     "unions": ["IEvent", "ISessionEventDurable"],
-    "interface": "ISessionScopedEvent",
-    "interfaceMember": "SessionId",
     "payloadMember": "data",
     "member": "sessionID",
     "identifier": "Session.ID",

@@ -37,7 +37,7 @@ internal static class ReservedNamePolicy
             "CursorSequence",
             "ErrorBehavior",
             EffectStreamTypeNamePolicy.CauseMarkerInterface,
-            "ISessionScopedEvent",
+            SessionScopedEventContract.InterfaceName,
             "ListCursor",
             "ListOrder",
             "ListRequest",

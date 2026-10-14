@@ -4,7 +4,7 @@ using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding.Support;
 
-internal sealed class SessionScopedEventScenario(bool optionalPayload = false) : SpecScenario
+internal sealed class SessionScopedEventScenario(bool optionalPayload = false, bool nullablePayload = false) : SpecScenario
 {
     public static GenerationCuration EventCuration(SessionScopedEventCuration? row = null) =>
         Curation(Groups("event", RootGroup()), sessionScopedEvent: row ?? Rule());
@@ -12,8 +12,6 @@ internal sealed class SessionScopedEventScenario(bool optionalPayload = false) :
     public static SessionScopedEventCuration Rule() => new()
     {
         Unions = ["IEvent", "IEventLog"],
-        Interface = "ISessionScopedEvent",
-        InterfaceMember = "SessionId",
         PayloadMember = "data",
         Member = "sessionID",
         Identifier = "Session.ID",
@@ -24,10 +22,13 @@ internal sealed class SessionScopedEventScenario(bool optionalPayload = false) :
     {
         spec.WithSchema("Session.ID", static schema => schema.Type("string").Pattern("^ses"))
             .WithSchema("Session.ID_1", static schema => schema.Type("string").Pattern("^ses").Description("Session to select"))
+            .WithSchema("QualifiedData", static schema => schema.Type("object")
+                .Property("sessionID", static id => id.Ref("Session.ID"), required: true))
             .WithSchema("Qualified", schema => schema.Type("object")
                 .Property("type", static member => member.Type("string").Const("qualified"), required: true)
-                .Property("data", static data => data.Type("object")
-                    .Property("sessionID", static id => id.Ref("Session.ID"), required: true), required: !optionalPayload))
+                .Property("data", data => _ = nullablePayload
+                    ? data.AnyOf(static arm => arm.Ref("QualifiedData"), static arm => arm.Type("null"))
+                    : data.Type("object").Property("sessionID", static id => id.Ref("Session.ID"), required: true), required: !optionalPayload))
             .WithSchema("Duplicate", static schema => schema.Type("object")
                 .Property("type", static member => member.Type("string").Const("duplicate"), required: true)
                 .Property("data", static data => data.Type("object")

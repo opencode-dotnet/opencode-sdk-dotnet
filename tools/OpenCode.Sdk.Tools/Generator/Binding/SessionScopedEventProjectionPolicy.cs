@@ -51,8 +51,8 @@ internal sealed class SessionScopedEventProjectionPolicy
 
         return new SessionScopedEventPlan
         {
-            InterfaceName = row.Interface,
-            MemberName = row.InterfaceMember,
+            InterfaceName = SessionScopedEventContract.InterfaceName,
+            MemberName = SessionScopedEventContract.MemberName,
             PayloadPropertyName = ownPayload.Name,
             IdentifierPropertyName = ownIdentifier.Name,
         };

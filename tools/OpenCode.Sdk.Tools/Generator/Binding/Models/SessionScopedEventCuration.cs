@@ -4,8 +4,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 /// <summary>
 /// The rule that marks session-scoped events: which event unions to look in, the payload member and
-/// the identifier member it must carry, the identifier schema that member must be, and the
-/// hand-written interface with its member the qualifying records implement.
+/// the identifier member it must carry, and the identifier schema that member must be.
 /// </summary>
 internal sealed record SessionScopedEventCuration
 {
@@ -20,14 +19,6 @@ internal sealed record SessionScopedEventCuration
             field = Array.AsReadOnly([.. value]);
         }
     } = Array.AsReadOnly(Array.Empty<string>());
-
-    /// <summary>Gets the hand-written interface a qualifying record implements.</summary>
-    [JsonPropertyName("interface")]
-    public required string Interface { get; init; }
-
-    /// <summary>Gets the interface member the record implements explicitly.</summary>
-    [JsonPropertyName("interfaceMember")]
-    public required string InterfaceMember { get; init; }
 
     /// <summary>Gets the wire name of the record's payload member.</summary>
     [JsonPropertyName("payloadMember")]
