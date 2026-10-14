@@ -20,7 +20,10 @@
     <ProduceReferenceAssembly Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">true</ProduceReferenceAssembly>
   </PropertyGroup>
 
-  <ItemGroup>
+  <!-- System.Text.Json is inbox on every modern target, so only the downlevel targets take the
+       package; a modern target takes it back only as a recorded exception, for a fix shipped only
+       as a package patch. -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="System.Text.Json" />
   </ItemGroup>
 

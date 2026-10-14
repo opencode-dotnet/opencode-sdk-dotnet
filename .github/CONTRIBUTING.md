@@ -29,9 +29,11 @@ sign.
 
 ### Prerequisites
 
-- [.NET SDK 10.0](https://dotnet.microsoft.com/download) — the exact floor is pinned in
-  [`global.json`](../global.json) (`10.0.402`, `rollForward: latestFeature`)
-- The **.NET 8 and .NET 9 runtimes**, so the `net8.0` and `net9.0` test legs can run
+- [.NET SDK 11.0](https://dotnet.microsoft.com/download/dotnet/11.0) — the release candidate is
+  pinned in [`global.json`](../global.json) (`11.0.100-rc.2.26504.105`,
+  `rollForward: latestFeature`, `allowPrerelease: true`)
+- The **.NET 10 runtime**, for the `net10.0` test legs and the repository tools, which run on the
+  LTS release (the .NET 10 SDK carries it)
 - On Windows, the **.NET Framework 4.7.2 targeting pack** for the `net472` legs
 - [Bun](https://bun.sh/) at the exact version in `external/opencode/package.json`'s
   `packageManager` field — the pinned-server fixture and CI use that runtime
@@ -75,10 +77,10 @@ sign.
    dotnet test --configuration Release --no-build
 
    # One project
-   dotnet test tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj
+   dotnet test --project "$PWD/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj"
 
-   # A named subset
-   dotnet test --filter "FullyQualifiedName~Pipeline"
+   # A named subset: every test class whose name contains Pipeline
+   dotnet test --project "$PWD/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj" -- --treenode-filter "/*/*/*Pipeline*/*"
    ```
 
 ## 🐛 Reporting Issues

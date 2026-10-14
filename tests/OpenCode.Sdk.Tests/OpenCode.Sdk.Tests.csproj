@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net8.0;net9.0;$(DefaultTargetFramework)</TargetFrameworks>
+    <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     <!-- net472 tests run on Windows only; adding the TFM conditionally keeps Linux/macOS legs green.
          IncludeNet472Tests adds it elsewhere for a build that only compiles, such as the CI lint

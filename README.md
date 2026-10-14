@@ -274,13 +274,15 @@ internals.
 
 ### Supported Platforms
 
-- [.NET 10](https://dotnet.microsoft.com/download/dotnet/10.0) | [.NET 9](https://dotnet.microsoft.com/download/dotnet/9.0) | [.NET 8](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET 11](https://dotnet.microsoft.com/download/dotnet/11.0) | [.NET 10](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [.NET Standard 2.0](https://docs.microsoft.com/en-us/dotnet/standard/net-standard)
 - [.NET Framework 4.7.2 and Above](https://dotnet.microsoft.com/download/dotnet-framework)
 
-Both packages target `netstandard2.0;net472;net8.0;net9.0;net10.0`. The whole suite runs on
-`net472` on Windows, real-process launcher tests included, and on `net8.0`, `net9.0`, and `net10.0`
-on Windows, Linux, and macOS. A .NET Framework project needs a newer C# version than its default;
+Both packages target `netstandard2.0;net472;net10.0;net11.0`. The whole suite runs on `net472` on
+Windows, real-process launcher tests included, and on `net10.0` and `net11.0` on Windows, Linux,
+and macOS. A project whose target framework falls back to the `netstandard2.0` asset on a runtime
+the packages do not target, such as `net8.0` or `net9.0`, gets a build warning;
+`<SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>` silences it. A .NET Framework project needs a newer C# version than its default;
 the [getting-started guide](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/getting-started.md#net-framework-projects)
 has the two properties to set.
 

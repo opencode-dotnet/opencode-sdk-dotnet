@@ -101,7 +101,10 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:
+          # The pinned .NET 11 release-candidate SDK carries only the .NET 11 runtime; the 10.0
+          # SDK beside it runs the tools, which stay on the LTS release.
           global-json-file: global.json
+          dotnet-version: 10.0.x
 
       # Two-layer defense against a partial generated surface (Directory.Build.targets' header
       # comment): that target refuses to pack on a missing or stale .generation-incomplete marker,

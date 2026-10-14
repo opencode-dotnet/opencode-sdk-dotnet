@@ -69,7 +69,10 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:
+          # The pinned .NET 11 release-candidate SDK carries only the .NET 11 runtime; the 10.0
+          # SDK beside it runs the tools, which stay on the LTS release.
           global-json-file: global.json
+          dotnet-version: 10.0.x
 
       - name: Setup Node LTS
         uses: actions/setup-node@v7
@@ -167,7 +170,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $results = Join-Path $env:GITHUB_WORKSPACE "TestResults/consumer-leg"
           $null = New-Item -ItemType Directory -Force -Path $results
-          & dotnet test tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj `
+          & dotnet test --project tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj `
             --configuration Release --no-build --framework net10.0 `
             -- --results-directory $results 2>&1 | Tee-Object -FilePath (Join-Path $results "test-run.log")
           if ($LASTEXITCODE -ne 0) {

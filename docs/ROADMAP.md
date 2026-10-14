@@ -22,8 +22,8 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   the committed marker and names every one. One-shot calls, server-sent event streams (the global
   bus and the per-session log), PTY and persistent-PTY WebSocket sessions, cursor pagination, typed
   errors with `NoThrow`, and the standalone launcher (`OpenCodeServer.StartAsync`) are landed.
-- **Assurance** — the suite runs on `net8.0`, `net9.0`, and `net10.0` across Linux, Windows, and
-  macOS, plus `net472` on Windows, the fullest leg; `engineering/quality-gates.md` owns the gate a
+- **Assurance** — the suite runs on `net10.0` and `net11.0` across Linux, Windows, and macOS,
+  plus `net472` on Windows, the fullest leg; `engineering/quality-gates.md` owns the gate a
   change must pass before it is called done.
 - **Terminal lifetime corrections (D)** — consumer cancellation, send deadlines, local viewport
   ordering, and shared cleanup are implemented and verified on Windows across the four runnable
@@ -44,9 +44,9 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   connect route paths, and the authorization middleware, which now recognizes ticketed terminal
   connects and pairing links by the route it dispatches to instead of by a URL pattern — leave the
   behaviour the doors read unchanged.
-  Each refresh's CI run qualifies every leg at its pin: Windows on `net472`, `net8.0`, `net9.0`, and
-  `net10.0`, Linux and macOS on `net8.0`, `net9.0`, and `net10.0`, with regeneration and receipt
-  verification passing.
+  Each refresh's CI run qualifies every leg at its pin: Windows on `net472`, `net10.0`, and
+  `net11.0`, Linux and macOS on `net10.0` and `net11.0`, with regeneration and receipt verification
+  passing.
 - **Upstream 2.x** — the upstream team launched the 2.x line publicly on 2026-09-26. It ships as
   the `@opencode/cli` npm package, the one this SDK pins and its guides install; the 1.x line
   continues beside it as `opencode-ai` (`1.18.33` on 2026-09-28), and upstream's GitHub Releases page

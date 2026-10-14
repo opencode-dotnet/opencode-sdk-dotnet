@@ -22,8 +22,10 @@ dotnet add package OpenCodeDotNet.Sdk.Extensions --prerelease   # dependency inj
 > `using OpenCode.Sdk;` — nuget.org reserves the `OpenCode.` id prefix for an unrelated owner, so
 > the artifact carries a different name than the code inside it.
 
-The packages target `netstandard2.0`, `net472`, `net8.0`, `net9.0`, and `net10.0`, so any project
-on one of those works — a .NET Framework project after one language setting, below. Nightly builds
+The packages target `netstandard2.0`, `net472`, `net10.0`, and `net11.0`, so any project on one of
+those works — a .NET Framework project after one language setting, below. A project on an older
+.NET, such as `net8.0` or `net9.0`, still installs the `netstandard2.0` asset but gets a build
+warning: that runtime is not one the packages are tested on. Nightly builds
 of `master` live on a GitHub Packages feed; the source command and its `read:packages` token
 requirement live in one place so they never drift:
 [**Installation** in the root README](../../README.md#-installation).

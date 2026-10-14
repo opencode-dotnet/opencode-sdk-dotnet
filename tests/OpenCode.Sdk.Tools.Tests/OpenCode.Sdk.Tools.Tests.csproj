@@ -16,6 +16,36 @@
     <ProjectReference Include="../../tools/OpenCode.Sdk.Tools/OpenCode.Sdk.Tools.csproj" />
   </ItemGroup>
 
+  <!-- The packed-consumer tests build a consumer on a target framework the packages no longer
+       ship, and restore it offline. Its reference pack comes into the global packages folder here,
+       in this project's own restore, at the version the SDK itself picks for that target; the
+       tests read the target from the assembly metadata, so it is named once. -->
+  <PropertyGroup>
+    <PackedConsumerUnsupportedTargetFramework>net8.0</PackedConsumerUnsupportedTargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyMetadata Include="PackedConsumerUnsupportedTargetFramework" Value="$(PackedConsumerUnsupportedTargetFramework)" />
+  </ItemGroup>
+
+  <!-- The SDK already downloads this project's own reference pack under the same id, and NuGet
+       refuses a second item for it, so the consumer's version joins that item's version list. -->
+  <Target Name="DownloadPackedConsumerReferencePack" AfterTargets="ProcessFrameworkReferences" BeforeTargets="CollectPackageDownloads">
+    <ItemGroup>
+      <_PackedConsumerReferencePack Include="@(KnownFrameworkReference->WithMetadataValue('Identity', 'Microsoft.NETCore.App')->WithMetadataValue('TargetFramework', '$(PackedConsumerUnsupportedTargetFramework)'))" />
+      <_ExistingReferencePackDownload Include="@(PackageDownload->WithMetadataValue('Identity', 'Microsoft.NETCore.App.Ref'))" />
+    </ItemGroup>
+    <PropertyGroup>
+      <_PackedConsumerReferencePackVersion>[@(_PackedConsumerReferencePack->'%(TargetingPackVersion)')]</_PackedConsumerReferencePackVersion>
+      <_ExistingReferencePackVersions>@(_ExistingReferencePackDownload->'%(Version)')</_ExistingReferencePackVersions>
+    </PropertyGroup>
+    <ItemGroup>
+      <PackageDownload Remove="Microsoft.NETCore.App.Ref" />
+      <PackageDownload Include="Microsoft.NETCore.App.Ref" Version="$(_PackedConsumerReferencePackVersion)" Condition="'$(_ExistingReferencePackVersions)' == ''" />
+      <PackageDownload Include="Microsoft.NETCore.App.Ref" Version="$(_ExistingReferencePackVersions);$(_PackedConsumerReferencePackVersion)" Condition="'$(_ExistingReferencePackVersions)' != ''" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <EmbeddedResource Include="Fixtures/**/*.json" />
     <None Include="../../spec/openapi.json"
