@@ -1,7 +1,6 @@
 using System.Net.WebSockets;
 using NSubstitute;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.Abstractions;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests;

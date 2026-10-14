@@ -1,5 +1,3 @@
-using OpenCode.Sdk.Internal.Abstractions;
-
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>Starts cancellation timers using the platform timer implementation.</summary>

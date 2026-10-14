@@ -1,4 +1,5 @@
 using System.Net;
+using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Tests.Support;
 

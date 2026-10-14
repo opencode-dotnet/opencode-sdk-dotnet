@@ -1,7 +1,6 @@
 using System.Text.Json;
 using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
 using OpenCode.Sdk.Internal.BackgroundService.Registration;
-using OpenCode.Sdk.Internal.Diagnostics;
 
 namespace OpenCode.Sdk.Internal.BackgroundService.Handoff;
 

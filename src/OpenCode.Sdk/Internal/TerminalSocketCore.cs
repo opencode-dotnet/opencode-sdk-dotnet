@@ -1,6 +1,5 @@
 using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
-using OpenCode.Sdk.Internal.Abstractions;
 
 namespace OpenCode.Sdk.Internal;
 

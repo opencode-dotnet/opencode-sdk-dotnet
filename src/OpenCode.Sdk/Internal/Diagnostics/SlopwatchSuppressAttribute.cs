@@ -1,11 +1,10 @@
-namespace OpenCode.Sdk.Internal.Diagnostics;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Suppresses one slopwatch rule at one site, with the reason the scanner requires — the product
 /// twin of the test projects' attribute, matched by name. Product code uses it where a pinned
 /// upstream behavior is itself a deliberate swallow (<c>Effect.ignore</c>, <c>.catch(() =&gt;
-/// undefined)</c>), so the catch says so instead of returning a result nobody reads. It lives in its
-/// own namespace so it never collides with the test projects' attribute of the same name.
+/// undefined)</c>), so the catch says so instead of returning a result nobody reads.
 /// </summary>
 [AttributeUsage(AttributeTargets.All, AllowMultiple = true)]
 internal sealed class SlopwatchSuppressAttribute : Attribute

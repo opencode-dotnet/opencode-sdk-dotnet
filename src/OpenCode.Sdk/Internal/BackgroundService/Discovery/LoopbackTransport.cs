@@ -1,6 +1,5 @@
 using System.Net.Sockets;
 using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.Diagnostics;
 
 namespace OpenCode.Sdk.Internal.BackgroundService.Discovery;
 

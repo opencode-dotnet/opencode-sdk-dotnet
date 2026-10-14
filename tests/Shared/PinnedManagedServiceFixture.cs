@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Text;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Internal.BackgroundService.Registration;
-using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
 using TUnit.Core.Interfaces;
 

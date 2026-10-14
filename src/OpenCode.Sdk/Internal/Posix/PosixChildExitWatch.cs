@@ -1,4 +1,3 @@
-using OpenCode.Sdk.Internal.Diagnostics;
 using OpenCode.Sdk.Internal.Posix.Abstractions;
 
 namespace OpenCode.Sdk.Internal.Posix;
