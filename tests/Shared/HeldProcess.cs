@@ -18,6 +18,8 @@ namespace OpenCode.Sdk.TestSupport;
 /// <c>home/</c> working directory). The process object is signalled only once that is done, so on
 /// Windows this waits on the handle it opened while the process ran, which also pins the pid to
 /// this process. Elsewhere a process's descriptors close as it exits, and the exit is awaited.
+/// Either way the wait owns what it waits on, a handle or a process object of its own, so releasing
+/// the held process while a wait runs never ends or breaks that wait.
 /// </summary>
 internal sealed class HeldProcess : IDisposable
 {
@@ -121,7 +123,7 @@ internal sealed class HeldProcess : IDisposable
     {
         if (!OperatingSystem.IsWindows())
         {
-            return await ProcessObservation.ObserveExitWithinAsync(_process, bound, cancellationToken).ConfigureAwait(false);
+            return await ProcessObservation.ObserveExitWithinAsync(_process.Id, bound, cancellationToken).ConfigureAwait(false);
         }
 
         using var signal = new ProcessSignal(_process.SafeHandle);
