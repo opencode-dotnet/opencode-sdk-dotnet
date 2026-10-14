@@ -1,6 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-
-namespace OpenCode.Sdk.Internal.BackgroundService.Registration;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Reproduces the pinned CLI's channel, XDG-root, and legacy-donor rules

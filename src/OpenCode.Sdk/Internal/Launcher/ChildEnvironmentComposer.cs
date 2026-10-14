@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Composes a server's whole environment, the way the reference client spreads

@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.BackgroundService.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The detached-spawn seam Ensure elections start contenders through: the managed port of the

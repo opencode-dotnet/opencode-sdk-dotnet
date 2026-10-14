@@ -5,10 +5,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.Launcher;
-using OpenCode.Sdk.Internal.Posix;
-using OpenCode.Sdk.Internal.Windows;
-using OpenCode.Sdk.Internal.Windows.Abstractions;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;
 

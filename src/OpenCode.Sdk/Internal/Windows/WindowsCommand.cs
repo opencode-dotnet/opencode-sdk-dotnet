@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>What <c>CreateProcessW</c> starts for one resolved command, and the whole line it hands it.</summary>
 /// <param name="ApplicationPath">The executable that runs: the resolved target, or the system cmd.exe for a batch shim; null for a bare name, which <c>CreateProcessW</c> then finds itself.</param>

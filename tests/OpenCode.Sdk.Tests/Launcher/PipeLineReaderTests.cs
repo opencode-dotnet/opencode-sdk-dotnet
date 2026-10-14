@@ -1,4 +1,4 @@
-using OpenCode.Sdk.Internal.Launcher;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
 

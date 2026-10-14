@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.BackgroundService.Registration;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The validated, entry-time snapshot of a discovery or stop request. <see cref="Channel"/> is

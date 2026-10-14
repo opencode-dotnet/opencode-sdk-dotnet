@@ -1,5 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
-namespace OpenCode.Sdk.Internal.BackgroundService.Registration;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The pinned client's <c>same()</c> (<c>service-probe.ts</c>): two registrations name the same

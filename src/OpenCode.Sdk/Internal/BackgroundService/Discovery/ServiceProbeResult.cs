@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.BackgroundService.Discovery;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// What one info probe learned, in the pinned client's own return shape (<c>probeResult</c>):

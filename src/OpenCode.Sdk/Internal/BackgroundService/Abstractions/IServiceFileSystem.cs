@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.BackgroundService.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The file access the background-service door performs, and nothing more: read, one exclusive

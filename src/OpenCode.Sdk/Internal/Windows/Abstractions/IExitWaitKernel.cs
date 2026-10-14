@@ -1,6 +1,6 @@
 using Microsoft.Win32.SafeHandles;
 
-namespace OpenCode.Sdk.Internal.Windows.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The kernel calls the Windows exit watch makes: the native registered wait, its one

@@ -1,11 +1,6 @@
 using System.Globalization;
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.BackgroundService.Ensure;
-using OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
-using OpenCode.Sdk.Internal.Posix;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Stop;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The pinned client's <c>terminate</c> (<c>effect/service.ts</c>): read the registration and act

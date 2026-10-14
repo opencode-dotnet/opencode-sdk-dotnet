@@ -1,7 +1,6 @@
 using System.Text.Json;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Handoff;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The persistent-terminal handoff sidecar the pinned client keeps at

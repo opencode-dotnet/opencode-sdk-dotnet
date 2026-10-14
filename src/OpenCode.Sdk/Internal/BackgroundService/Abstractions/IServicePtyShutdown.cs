@@ -1,5 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
-namespace OpenCode.Sdk.Internal.BackgroundService.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The one API call the stop lifecycle makes before signalling: the pinned CLI's

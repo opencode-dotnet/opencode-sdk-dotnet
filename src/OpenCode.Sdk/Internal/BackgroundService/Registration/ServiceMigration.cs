@@ -1,6 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-
-namespace OpenCode.Sdk.Internal.BackgroundService.Registration;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The pinned CLI's legacy copy (<c>migrateRegistration</c> and <c>migrateConfig</c> in

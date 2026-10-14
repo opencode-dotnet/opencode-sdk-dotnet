@@ -1,6 +1,6 @@
 using Microsoft.Win32.SafeHandles;
 
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// A job object handle. Closing the last handle of a kill-on-close job ends every process in it,

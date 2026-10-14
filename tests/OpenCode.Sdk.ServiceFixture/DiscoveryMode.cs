@@ -1,9 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.BackgroundService.Discovery;
-using OpenCode.Sdk.Internal.BackgroundService.Ensure;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
+using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.ServiceFixture;
 

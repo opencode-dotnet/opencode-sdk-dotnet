@@ -1,4 +1,4 @@
-using OpenCode.Sdk.Internal.Launcher;
+using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Tests.Launcher;
 

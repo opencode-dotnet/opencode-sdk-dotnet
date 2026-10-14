@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Windows.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The Windows tree-kill seam: end a process and every live descendant of it at once, the way

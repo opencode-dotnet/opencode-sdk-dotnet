@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.BackgroundService.Registration;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The files one discovery reads or may create, as the pinned CLI's <c>ServiceConfig.paths()</c>

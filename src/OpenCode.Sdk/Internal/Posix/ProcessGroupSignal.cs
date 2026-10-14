@@ -1,7 +1,6 @@
 using System.Runtime.InteropServices;
-using OpenCode.Sdk.Internal.Posix.Abstractions;
 
-namespace OpenCode.Sdk.Internal.Posix;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The shipped <see cref="IProcessGroupSignal"/> over <see cref="PosixInterop.Kill"/>. An id of zero

@@ -1,7 +1,6 @@
 using System.Net.Sockets;
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Discovery;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The discovery probe's own transport: the non-redirecting handler for one info exchange against

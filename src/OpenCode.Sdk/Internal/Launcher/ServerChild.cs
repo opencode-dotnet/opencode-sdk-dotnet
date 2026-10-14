@@ -1,7 +1,4 @@
-using OpenCode.Sdk.Internal.Posix;
-using OpenCode.Sdk.Internal.Windows;
-
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Starts the standalone server process a start owns through the platform's strategy: on Windows

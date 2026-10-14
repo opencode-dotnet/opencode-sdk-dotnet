@@ -1,6 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-
-namespace OpenCode.Sdk.Internal.BackgroundService.Registration;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Where a selection's registration lives, the first step Discover, Stop, and Ensure share: resolve

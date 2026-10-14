@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Posix.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The spawn file action that starts a child in another directory,

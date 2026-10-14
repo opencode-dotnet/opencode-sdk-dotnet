@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Text;
-using OpenCode.Sdk.Internal.Posix;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Posix;

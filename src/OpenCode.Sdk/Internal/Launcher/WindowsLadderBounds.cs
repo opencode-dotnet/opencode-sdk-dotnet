@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The bounds of the Windows ladder's last rung, which the grace does not cover: how long the

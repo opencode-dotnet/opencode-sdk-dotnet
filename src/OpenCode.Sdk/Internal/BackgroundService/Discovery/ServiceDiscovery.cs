@@ -1,8 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.BackgroundService.Ensure;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
-
-namespace OpenCode.Sdk.Internal.BackgroundService.Discovery;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The pinned client's <c>discover</c>: locate the registration (paths plus the channel's legacy

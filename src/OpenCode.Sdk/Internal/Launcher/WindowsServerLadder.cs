@@ -1,10 +1,6 @@
 using Microsoft.Win32.SafeHandles;
-using OpenCode.Sdk.Internal.Launcher.Abstractions;
-using OpenCode.Sdk.Internal.Posix;
-using OpenCode.Sdk.Internal.Windows;
-using OpenCode.Sdk.Internal.Windows.Abstractions;
 
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// How a Windows server and its process tree are ended, on upstream's rungs and on upstream's

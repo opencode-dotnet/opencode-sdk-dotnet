@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// What a standalone start hands a <see cref="ServerChild"/>: the resolved command and its argv tail,

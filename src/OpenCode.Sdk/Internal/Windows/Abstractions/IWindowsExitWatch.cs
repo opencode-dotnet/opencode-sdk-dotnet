@@ -1,6 +1,4 @@
-using OpenCode.Sdk.Internal.Posix;
-
-namespace OpenCode.Sdk.Internal.Windows.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// One child's exit as a watch observes it. Disposal releases the watch: at once when the child

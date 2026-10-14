@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using Microsoft.Win32.SafeHandles;
 
-namespace OpenCode.Sdk.Internal.Windows.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The job seam: the one job per process that ends every server the launcher started when the

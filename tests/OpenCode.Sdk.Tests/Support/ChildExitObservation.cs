@@ -1,5 +1,4 @@
-using OpenCode.Sdk.Internal.Posix;
-using OpenCode.Sdk.Internal.Windows.Abstractions;
+using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Tests.Support;
 

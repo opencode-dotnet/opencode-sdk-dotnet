@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 #endif
 
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Whether the process runs on Windows, asked the same way on every target framework: the

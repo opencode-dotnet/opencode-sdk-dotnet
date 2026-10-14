@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Reads one of a child's output pipes line by line, asynchronously, holding no thread while it

@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.BackgroundService.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The process environment the background-service door reads: the XDG roots, the config-root

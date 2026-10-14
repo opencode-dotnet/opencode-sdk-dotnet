@@ -1,8 +1,7 @@
 using System.Net;
 using System.Text.Json;
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Registration;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The strict hand-written boundary over the registration file (<c>Service.Info</c> at the pin:

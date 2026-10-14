@@ -1,7 +1,4 @@
-using OpenCode.Sdk.Internal.Launcher.Abstractions;
-using OpenCode.Sdk.Internal.Posix;
-
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// What a platform strategy hands the shared flow once its server runs: the pid, the stdin lease,

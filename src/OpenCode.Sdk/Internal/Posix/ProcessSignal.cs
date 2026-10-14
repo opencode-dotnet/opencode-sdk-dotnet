@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Posix;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The two rungs of the pinned client's <c>terminate</c>: a request to stop that the process may

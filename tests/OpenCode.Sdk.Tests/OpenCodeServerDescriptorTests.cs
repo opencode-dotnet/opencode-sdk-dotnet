@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
-using OpenCode.Sdk.Internal.Launcher;
-using OpenCode.Sdk.Internal.Posix;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;

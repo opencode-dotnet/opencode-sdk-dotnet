@@ -1,6 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-
-namespace OpenCode.Sdk.Internal.BackgroundService;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>The production <see cref="IServiceClock"/> over <see cref="DateTimeOffset.UtcNow"/>.</summary>
 internal sealed class ServiceClock : IServiceClock

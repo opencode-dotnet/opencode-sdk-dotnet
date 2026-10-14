@@ -1,10 +1,7 @@
 using System.Collections.Concurrent;
 using Microsoft.Win32.SafeHandles;
 using NSubstitute;
-using OpenCode.Sdk.Internal.Launcher;
-using OpenCode.Sdk.Internal.Posix;
-using OpenCode.Sdk.Internal.Windows;
-using OpenCode.Sdk.Internal.Windows.Abstractions;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Launcher;

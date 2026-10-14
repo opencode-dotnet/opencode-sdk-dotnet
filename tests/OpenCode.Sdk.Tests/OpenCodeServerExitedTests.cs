@@ -1,4 +1,4 @@
-using OpenCode.Sdk.Internal.Launcher;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;

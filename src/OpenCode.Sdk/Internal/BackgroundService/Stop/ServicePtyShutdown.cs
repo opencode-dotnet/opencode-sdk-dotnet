@@ -1,7 +1,5 @@
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Stop;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The shipped <see cref="IServicePtyShutdown"/>: a client over the registration's endpoint and

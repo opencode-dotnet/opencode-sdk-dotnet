@@ -2,10 +2,9 @@ using System.ComponentModel;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Text;
-using OpenCode.Sdk.Internal.Posix.Abstractions;
-using static OpenCode.Sdk.Internal.Posix.PosixInterop;
+using static OpenCode.Sdk.Internal.PosixInterop;
 
-namespace OpenCode.Sdk.Internal.Posix;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The shipped <see cref="IPosixSpawn"/>: <c>posix_spawnp</c> with the session flag, default signal

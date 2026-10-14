@@ -1,9 +1,6 @@
 using System.Diagnostics;
-using OpenCode.Sdk.Internal.Launcher.Abstractions;
-using OpenCode.Sdk.Internal.Posix;
-using OpenCode.Sdk.Internal.Posix.Abstractions;
 
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// How a POSIX server and the children in its process group are ended, on upstream's rungs. The

@@ -1,9 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using OpenCode.Sdk.Internal.Posix;
-using OpenCode.Sdk.Internal.Posix.Abstractions;
 
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The Linux and macOS strategy. The server is spawned in a session of its own, so a Ctrl+C or a

@@ -1,9 +1,8 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
-using OpenCode.Sdk.Internal.Windows.Abstractions;
 
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>The shipped <see cref="IJobObjects"/>: the kernel's own calls.</summary>
 internal sealed class JobObjects : IJobObjects

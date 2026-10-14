@@ -1,6 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
-using OpenCode.Sdk.Internal.Posix;
-namespace OpenCode.Sdk.Internal.BackgroundService.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The two process primitives the stop lifecycle needs and nothing more: identify a process and

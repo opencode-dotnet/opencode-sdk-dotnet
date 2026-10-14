@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Net.Sockets;
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.BackgroundService.Discovery;
+using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Tests.Support;
 

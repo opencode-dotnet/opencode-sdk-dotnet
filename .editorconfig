@@ -1007,7 +1007,7 @@ dotnet_diagnostic.MA0076.severity = none
 # externally-owned task lifetime for VSTHRD003 to protect against, the same shape already
 # arbitrated for ScriptedTerminalWebSocket's TaskCompletionSource handles. Winner: the event-to-async
 # bridge for the readiness signal; VSTHRD003 remains enabled for every other file.
-[src/OpenCode.Sdk/OpenCodeServer.cs]
+[src/OpenCode.Sdk/OpenCodeServer.Launcher.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
 # The progress window's expiry is a timer callback, synchronous by the ITimer contract, already

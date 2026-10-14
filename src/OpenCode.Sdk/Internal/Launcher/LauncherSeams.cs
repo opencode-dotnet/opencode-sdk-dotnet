@@ -1,10 +1,6 @@
 using System.Collections;
-using OpenCode.Sdk.Internal.Posix;
-using OpenCode.Sdk.Internal.Posix.Abstractions;
-using OpenCode.Sdk.Internal.Windows;
-using OpenCode.Sdk.Internal.Windows.Abstractions;
 
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Everything a standalone start reaches outside the process through: the Windows spawn, job,

@@ -1,5 +1,5 @@
 using System.Text;
-using OpenCode.Sdk.Internal.BackgroundService;
+using OpenCode.Sdk.Internal;
 using Testably.Abstractions;
 
 namespace OpenCode.Sdk.Tests.BackgroundService;

@@ -1,6 +1,4 @@
-using OpenCode.Sdk.Internal.Posix;
-
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Where a Windows child's three standard handles lead. A pipe is created per stream, with the

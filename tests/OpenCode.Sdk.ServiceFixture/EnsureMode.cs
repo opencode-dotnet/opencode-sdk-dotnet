@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using System.Globalization;
-using OpenCode.Sdk.Internal.BackgroundService.Ensure;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;
 

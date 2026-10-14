@@ -1,8 +1,7 @@
 using System.Net;
 using System.Text.Json;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Discovery;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>Classifies the info probe using the pinned client's pid/version decoder, independently of the public info model.</summary>
 internal static class ServiceProbeResponseClassifier

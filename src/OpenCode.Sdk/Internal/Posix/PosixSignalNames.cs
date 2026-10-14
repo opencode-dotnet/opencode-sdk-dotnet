@@ -1,6 +1,6 @@
 using System.Collections.Frozen;
 
-namespace OpenCode.Sdk.Internal.Posix;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The standard signal names of one operating system, by number, so an exit reports the name

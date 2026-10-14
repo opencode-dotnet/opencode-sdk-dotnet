@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 #endif
 
-namespace OpenCode.Sdk.Internal.Posix;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The two POSIX kernels the SDK binds by number. Their spawn flags, signal numbers, and structure

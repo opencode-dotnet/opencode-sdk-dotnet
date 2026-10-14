@@ -1,9 +1,7 @@
 using System.ComponentModel;
 using System.Globalization;
-using OpenCode.Sdk.Internal.Launcher;
-using OpenCode.Sdk.Internal.Windows.Abstractions;
 
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The shipped <see cref="IWindowsTreeKill"/>: one run of the system <c>taskkill /pid N /T /F</c>,

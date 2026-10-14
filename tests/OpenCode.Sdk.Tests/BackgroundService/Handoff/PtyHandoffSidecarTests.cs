@@ -1,5 +1,5 @@
 using System.Text;
-using OpenCode.Sdk.Internal.BackgroundService.Handoff;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.TestSupport;
 
 namespace OpenCode.Sdk.Tests.BackgroundService.Handoff;

@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using Microsoft.Win32.SafeHandles;
 
-namespace OpenCode.Sdk.Internal.Windows.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The kernel's job-object calls the launcher's job makes: create a job with limits, and assign a

@@ -1,4 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService;
+using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Tests.BackgroundService;
 

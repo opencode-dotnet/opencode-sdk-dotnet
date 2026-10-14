@@ -1,8 +1,6 @@
 using System.ComponentModel;
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.Posix;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Contender;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>The Unix arm: the shared POSIX spawn, in a new session with default signal state, <c>/dev/null</c> on 0 and 1, and the stderr pipe on 2.</summary>
 internal sealed partial class ServiceContenderSpawner

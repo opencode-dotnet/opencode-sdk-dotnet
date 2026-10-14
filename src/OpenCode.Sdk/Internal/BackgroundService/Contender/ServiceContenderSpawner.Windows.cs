@@ -1,9 +1,6 @@
 using System.ComponentModel;
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.Posix;
-using OpenCode.Sdk.Internal.Windows;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Contender;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The Windows arm: the SDK's Windows spawn with the placement libuv's <c>uv_spawn</c> gives a child

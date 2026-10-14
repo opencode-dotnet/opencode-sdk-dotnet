@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Handoff;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The persistent-terminal handoff route's answer with the ticket kept as the route wrote it: the

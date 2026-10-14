@@ -4,12 +4,10 @@ using System.Globalization;
 #if !NET
 using System.Runtime.InteropServices;
 #endif
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.Posix;
-using static OpenCode.Sdk.Internal.Windows.WindowsPlatform;
-using static OpenCode.Sdk.Internal.Posix.PosixInterop;
+using static OpenCode.Sdk.Internal.WindowsPlatform;
+using static OpenCode.Sdk.Internal.PosixInterop;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The shipped <see cref="IServiceProcessControl"/> on the platform's own primitives (ADR-0026).

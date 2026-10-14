@@ -4,7 +4,7 @@ using System.Globalization;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using OpenCode.Sdk.Internal.Windows;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;
 

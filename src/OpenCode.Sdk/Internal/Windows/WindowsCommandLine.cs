@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The two Windows spellings of one resolved command, shared by the launcher and the

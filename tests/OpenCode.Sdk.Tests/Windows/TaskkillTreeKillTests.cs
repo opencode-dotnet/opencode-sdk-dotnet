@@ -1,7 +1,5 @@
 using System.Diagnostics;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.Windows;
-using OpenCode.Sdk.Internal.Windows.Abstractions;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;

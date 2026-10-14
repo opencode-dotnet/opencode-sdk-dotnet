@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.BackgroundService.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The wall clock the Ensure election loop reads for its <c>PromiseTimeout</c> deadline, spawn

@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Posix.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The exit-status seam: <c>waitid</c> and <c>waitpid</c> on a child of this process, and the
