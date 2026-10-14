@@ -30,7 +30,7 @@ sign.
 ### Prerequisites
 
 - [.NET SDK 10.0](https://dotnet.microsoft.com/download) — the exact floor is pinned in
-  [`global.json`](../global.json) (`10.0.401`, `rollForward: latestFeature`)
+  [`global.json`](../global.json) (`10.0.402`, `rollForward: latestFeature`)
 - The **.NET 8 and .NET 9 runtimes**, so the `net8.0` and `net9.0` test legs can run
 - On Windows, the **.NET Framework 4.7.2 targeting pack** for the `net472` legs
 - [Bun](https://bun.sh/) at the exact version in `external/opencode/package.json`'s
