@@ -1187,7 +1187,7 @@ dotnet_diagnostic.MA0045.severity = none
 # nothing; the conversion exists so an ordinary object initializer keeps assigning Shell = "pwsh"
 # across the generated request surface. Winner: the object-initializer contract; CA2225 remains
 # enabled for every other file.
-[src/OpenCode.Sdk/Optional.cs]
+[src/OpenCode.Sdk/Common/Optional.cs]
 dotnet_diagnostic.CA1000.severity = none
 dotnet_diagnostic.CA2225.severity = none
 

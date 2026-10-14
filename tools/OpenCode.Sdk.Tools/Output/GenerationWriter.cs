@@ -20,14 +20,12 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
 
     private static readonly StringComparer OwnedPathComparer = StringComparer.OrdinalIgnoreCase;
 
-    /// <summary>Folder names the project root reserves for shared homes; no family may take one.</summary>
-    private static readonly string[] ReservedFolders = ["Common", "Internal", "Hosting", "Properties"];
-
     /// <summary>
-    /// Hand-written root folders the vertical-slice layout has not moved yet. A family taking one
-    /// would mix its files into them, so they are refused like the reserved names until they are gone.
+    /// Folder names no family may take: the shared homes, and <c>Models</c> and <c>Pagination</c>,
+    /// because the slice layout has no root <c>Models/</c> or <c>Pagination/</c> and a family may
+    /// never recreate one.
     /// </summary>
-    private static readonly string[] OccupiedRootFolders = ["Models", "Pagination"];
+    private static readonly string[] ReservedFolders = ["Common", "Internal", "Hosting", "Properties", "Models", "Pagination"];
 
     /// <summary>The shared homes generated files may live in beside the families.</summary>
     private static readonly string[] SharedFolders = ["Internal/Serialization/", "Common/Errors/", "Common/Internal/"];
@@ -86,9 +84,9 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
                 throw new InvalidOperationException($"Family folder '{folder}' is unsafe.");
             }
 
-            if (ReservedFolders.Concat(OccupiedRootFolders).Contains(folder, OwnedPathComparer))
+            if (ReservedFolders.Contains(folder, OwnedPathComparer))
             {
-                throw new InvalidOperationException($"Family folder '{folder}' shadows a reserved or occupied root folder.");
+                throw new InvalidOperationException($"Family folder '{folder}' shadows a reserved folder name.");
             }
 
             if (!result.Add(folder))

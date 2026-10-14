@@ -177,7 +177,7 @@ public sealed class GenerationWriterTests
     }
 
     [Test]
-    public async Task WriteAsync_Should_Refuse_A_Family_Folder_Shadowing_By_Case()
+    public async Task WriteAsync_Should_Refuse_A_Family_Folder_Taking_A_Reserved_Name_In_Another_Case()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
         var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
@@ -186,11 +186,11 @@ public sealed class GenerationWriterTests
             .That(async () => await writer.WriteAsync(Request([], familyFolders: ["models"]), CancellationToken.None))
             .Throws<InvalidOperationException>();
 
-        await Assert.That(exception!.Message).Contains("shadows");
+        await Assert.That(exception!.Message).Contains("reserved");
     }
 
     [Test]
-    public async Task WriteAsync_Should_Refuse_A_Family_Folder_Shadowing_The_Pagination_Spine()
+    public async Task WriteAsync_Should_Refuse_A_Family_Folder_Named_Pagination()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
         var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
@@ -199,7 +199,7 @@ public sealed class GenerationWriterTests
             .That(async () => await writer.WriteAsync(Request([], familyFolders: ["Pagination"]), CancellationToken.None))
             .Throws<InvalidOperationException>();
 
-        await Assert.That(exception!.Message).Contains("shadows");
+        await Assert.That(exception!.Message).Contains("reserved");
     }
 
     [Test]
@@ -284,7 +284,7 @@ public sealed class GenerationWriterTests
     }
 
     [Test]
-    public async Task WriteAsync_Should_Refuse_A_Family_Folder_Shadowing_A_Static_Owned_Directory()
+    public async Task WriteAsync_Should_Refuse_A_Family_Folder_Named_Models()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
         var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
@@ -295,6 +295,7 @@ public sealed class GenerationWriterTests
             .Throws<InvalidOperationException>();
 
         await Assert.That(exception!.Message).Contains("Models");
+        await Assert.That(exception.Message).Contains("reserved");
     }
 
     [Test]

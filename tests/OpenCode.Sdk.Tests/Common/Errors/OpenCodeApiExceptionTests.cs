@@ -1,6 +1,6 @@
 using OpenCode.Sdk.Models;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Common.Errors;
 
 public sealed class OpenCodeApiExceptionTests
 {
