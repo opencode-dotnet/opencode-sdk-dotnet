@@ -99,6 +99,14 @@ ranges (ADR-0006).
 The release policy is per-merge publication to GitHub Packages and a manual pipeline for NuGet.org.
 Pre-1.0 numbering is an operational decision, not a canon rule (ADR-0006).
 
+From `1.0.0`, a version's parts say where a change comes from (ADR-0034). A patch carries fixes
+and additive changes of the SDK's own. A minor moves the protocol pin and may change the generated
+protocol surface the way upstream changed it; the CHANGELOG lists each such change under protocol
+changes. A major breaks the hand-written surface. A family upstream marks experimental carries
+`[Experimental]` and may change in any minor. Package validation against the previous release
+holds the line: a break in a generated type, as the generated manifest identifies it, is allowed in
+a minor, and a break in a hand-written type needs a major.
+
 ## Licensing
 
 Repository packages use the MIT license and ship it through `PackageLicenseFile`. Project and pack
