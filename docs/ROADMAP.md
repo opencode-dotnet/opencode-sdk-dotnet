@@ -5,7 +5,8 @@ Date: 2026-10-14
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
 current architecture and engineering canon; decision records live in `adr/`. The live operational
-queue is the GitHub milestones [`1.0`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/1)
+queue is the [project board](https://github.com/orgs/opencode-dotnet/projects/1); its to-dos link
+to issues in the milestones [`1.0`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/1)
 and [`1.1`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/2).
 
 ## Status
@@ -65,8 +66,8 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 `1.0.0` is the first stable release; the public surface freezes before it. Releases stay
 `0.9.0-preview.N` until the freeze, then ship as `1.0.0-rc.N`, then `1.0.0`; between those points a
 pin refresh or a fix round ships as the next preview or release candidate. Each workstream has a
-short plan in the private companion repository when it starts, and milestone `1.0` holds its
-issues. Only work that breaks or decides the public surface, the gates that enforce the freeze,
+short plan in the private companion repository when it starts, and its issues sit in milestone
+`1.0` on the project board. Only work that breaks or decides the public surface, the gates that enforce the freeze,
 and the items named below come before `1.0.0`; additive and internal work waits in milestone
 `1.1`. In order:
 
