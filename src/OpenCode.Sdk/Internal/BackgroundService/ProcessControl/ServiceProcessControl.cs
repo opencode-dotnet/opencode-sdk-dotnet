@@ -4,8 +4,8 @@ using System.Globalization;
 #if !NET
 using System.Runtime.InteropServices;
 #endif
-using static OpenCode.Sdk.Internal.WindowsPlatform;
 using static OpenCode.Sdk.Internal.PosixInterop;
+using static OpenCode.Sdk.Internal.WindowsPlatform;
 
 namespace OpenCode.Sdk.Internal;
 

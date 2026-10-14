@@ -18,8 +18,6 @@ public sealed class NamespacePolicyTests
 
     private const string InternalFolderFile = "Sessions/Internal/Widget.cs";
 
-    private const string AreaInternalFolder = "Internal/Transport";
-
     private const string TypeName = "Widget";
 
     private const string CompanionTypeName = "WidgetCompanion";
@@ -106,11 +104,22 @@ public sealed class NamespacePolicyTests
         await Assert.That(SdkNamespacePolicy.Violation(file)).IsNotNull();
     }
 
-    /// <summary>An area folder under <c>Internal/</c> is placement only: its files still declare <c>OpenCode.Sdk.Internal</c>.</summary>
+    /// <summary>
+    /// An area folder under <c>Internal/</c> is placement only: its files still declare
+    /// <c>OpenCode.Sdk.Internal</c>. The hosting folders, which once kept their folder namespaces,
+    /// get no exception either.
+    /// </summary>
     [Test]
-    public async Task Violation_Should_Refuse_A_Folder_Namespace_Under_An_Internal_Area_Folder()
+    [Arguments("Internal/Transport")]
+    [Arguments("Internal/BackgroundService")]
+    [Arguments("Internal/BackgroundService/Registration")]
+    [Arguments("Internal/Launcher")]
+    [Arguments("Internal/Posix")]
+    [Arguments("Internal/Windows/Abstractions")]
+    public async Task Violation_Should_Refuse_A_Folder_Namespace_Under_An_Internal_Area_Folder(string folder)
     {
-        var file = FolderNamespaceFile(AreaInternalFolder);
+        ArgumentNullException.ThrowIfNull(folder);
+        var file = FolderNamespaceFile(folder);
 
         await Assert.That(SdkNamespacePolicy.Violation(file)).IsNotNull();
     }
