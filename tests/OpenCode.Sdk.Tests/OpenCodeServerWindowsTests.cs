@@ -55,9 +55,12 @@ public sealed class OpenCodeServerWindowsTests
 
     /// <summary>
     /// Starts, failed starts, and releases, round after round, in a host of their own: once every
-    /// exit watch is released the host's handle count is where it was, so no round leaves a handle.
-    /// The first round warms the host up: the thread pool's threads and the runtime's own handles
-    /// settle there, and only the slope after it is measured.
+    /// exit watch and its duplicate are released, the host holds exactly the launcher-kind handles
+    /// it held after the warm-up round, so no round leaves a process, thread, pipe, or job handle.
+    /// The census counts those kinds only (<see cref="LauncherHandleCensus"/>): the host's whole
+    /// handle count also moves with the runtime's own thread churn, three handles per worker, which
+    /// no launcher path controls. The first round warms the host up: the launcher's one job is
+    /// created there.
     /// </summary>
     [Test]
     [Timeout(240_000)]
@@ -70,16 +73,22 @@ public sealed class OpenCodeServerWindowsTests
         }
 
         var result = await new ServiceFixtureCommand(FileSystem).RunAsync(["handle-cycles", "bun", "-e", IdleStandIn], NoOverlay, cancellationToken);
-        var line = result.StandardOutput.Trim();
-        const string prefix = "handles=";
+        var lines = result.StandardOutput.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        const string prefix = "census=";
         await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
-        await Assert.That(line).StartsWith(prefix).Because(result.StandardError);
-        var counts = line[prefix.Length..].Split(',').Select(static count => int.Parse(count.Trim(), CultureInfo.InvariantCulture)).ToArray();
+        var line = lines.FirstOrDefault(static candidate => candidate.StartsWith(prefix, StringComparison.Ordinal));
+        await Assert.That(line).IsNotNull().Because(result.StandardOutput + result.StandardError);
+        var censuses = line![prefix.Length..].Split(';').Select(static census => LauncherHandles.Parse(census.Trim())).ToArray();
+        var report = result.StandardOutput.Trim();
 
-        // Ten rounds of three starts each: a single handle left per start would add thirty.
-        await Assert.That(counts[2] - counts[1]).IsLessThanOrEqualTo(5).Because(line);
-        await Assert.That(counts[1] - counts[0]).IsLessThanOrEqualTo(10).Because(line);
-        BranchReport.Print("Windows — host handle counts after warm-up, one, and two rounds: " + line[prefix.Length..]);
+        // Every child of the warm-up round has exited and been released, so it holds no handle on
+        // another process or its threads; then ten rounds of three starts each, compared exactly: a
+        // single handle left by any start shows.
+        await Assert.That(censuses).Count().IsEqualTo(3).Because(report);
+        await Assert.That(censuses[0] with { Pipes = 0, Jobs = 0 }).IsEqualTo(new LauncherHandles(Processes: 0, ExitWaits: 0, Threads: 0, Pipes: 0, Jobs: 0)).Because(report);
+        await Assert.That(censuses[1]).IsEqualTo(censuses[0]).Because(report);
+        await Assert.That(censuses[2]).IsEqualTo(censuses[0]).Because(report);
+        BranchReport.Print("Windows — " + string.Join(" | ", lines));
     }
 
     /// <summary>

@@ -145,6 +145,12 @@ unsupported OpenAPI constructs and prove the exact required/null-representation 
   launches. The launcher's exit watches carry a session-level guard: `LauncherReaderLeakGuard`
   fails the run when any POSIX exit-watch thread or Windows exit watch is still live at
   `[After(TestSession)]`, after the shared fixtures have been disposed.
+- A proof that a launcher path leaves no handle behind counts only the kinds that path creates, and
+  compares them exactly: pipe descriptors on Linux and macOS (`HostDescriptors`), and on Windows
+  the handles on other processes and their threads, pipe ends and jobs (`LauncherHandleCensus`).
+  A whole-process count is never the measure: it moves with the runtime's own thread churn, which no
+  launcher path controls. A wait before the count is for an asynchronous release the path starts
+  and names, and for nothing else.
 
 ## 6. Owned servers are hermetic
 

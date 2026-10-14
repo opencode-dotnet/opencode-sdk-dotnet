@@ -23,7 +23,8 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// command, prints its pid and what the launcher observes of it, and ends it once its own stdin
 /// closes; <c>tree-root</c> starts an <c>idle</c> child, prints <c>ready child=&lt;pid&gt;</c>, and
 /// lingers, the tree a tree-kill proof ends; <c>job-report</c>, <c>close-stdout</c>, <c>exit-code &lt;n&gt;</c>,
-/// <c>handle-isolation &lt;command…&gt;</c>, and <c>handle-cycles &lt;command…&gt;</c> are the Windows
+/// <c>handle-isolation &lt;command…&gt;</c>, <c>handle-cycles &lt;command…&gt;</c>, and
+/// <c>handle-census &lt;foreign pid&gt;</c> are the Windows
 /// launcher probes (<see cref="WindowsLauncherProbe"/>). The credential is never printed. Exit 0 carries an answer, 1 a failure, 2 a usage error.
 /// </remarks>
 internal static class ServiceFixtureRunner
@@ -46,8 +47,12 @@ internal static class ServiceFixtureRunner
             ["exit-code", var code, ..] when OperatingSystem.IsWindows() && TryReadCode(code) is { } exitCode => WindowsLauncherProbe.ExitWithCodeAsync(exitCode),
             ["handle-isolation", .. var command] when OperatingSystem.IsWindows() && command.Length > 0 => WindowsLauncherProbe.ProbeHandleIsolationAsync(command),
             ["handle-cycles", .. var command] when OperatingSystem.IsWindows() && command.Length > 0 => WindowsLauncherProbe.CountHandlesAsync(command),
+            ["handle-census", var foreign] when OperatingSystem.IsWindows() && TryReadProcessId(foreign) is { } foreignProcessId => WindowsLauncherProbe.ProveCensusAsync(foreignProcessId),
             _ => UsageAsync(),
         };
+
+    private static int? TryReadProcessId(string text) =>
+        int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var processId) && processId > 0 ? processId : null;
 
     private static int? TryReadCode(string text) =>
         int.TryParse(text, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var code) ? code : null;
@@ -60,7 +65,7 @@ internal static class ServiceFixtureRunner
     private static async Task<int> UsageAsync()
     {
         await Console.Error
-            .WriteLineAsync("Usage: discover-default [request-timeout-ms] | discover-channel <channel> | ensure-channel <channel> <ledger> | stop-channel <channel> | idle | ignore-sigterm | tree-root | contender-probe echo-argv-env [name …] | stderr-fill [bytes] | daemon-sleep | stall | stale | console-report | group-report | group-member | launcher-host <command …> | job-report | close-stdout | exit-code <n> | handle-isolation <command …> | handle-cycles <command …>")
+            .WriteLineAsync("Usage: discover-default [request-timeout-ms] | discover-channel <channel> | ensure-channel <channel> <ledger> | stop-channel <channel> | idle | ignore-sigterm | tree-root | contender-probe echo-argv-env [name …] | stderr-fill [bytes] | daemon-sleep | stall | stale | console-report | group-report | group-member | launcher-host <command …> | job-report | close-stdout | exit-code <n> | handle-isolation <command …> | handle-cycles <command …> | handle-census <foreign pid>")
             .ConfigureAwait(false);
         return 2;
     }

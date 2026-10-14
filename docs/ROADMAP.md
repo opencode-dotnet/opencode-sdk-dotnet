@@ -265,14 +265,6 @@ These do not block `1.0.0` and run beside the road.
 - **Three one-off test failures were seen once each and never reproduced.** No runner named a test
   and re-runs of the same binaries were green, so this is a measurement gap rather than a known
   defect: run the gates with `--report-trx --report-trx-filename <unique>` so a recurrence names it.
-- **The Windows launcher's handle test measures the whole process.**
-  `StartAsync_Should_Leave_No_Handle_Behind_Across_Starts_And_Releases` bounds
-  `Process.HandleCount` across start and release rounds, and that count includes the runtime's own
-  thread churn: each thread-pool or tiered-compilation worker adds three handles. It failed twice on
-  CI (a delta of 6 against a bound of 5, passing on rerun); measured locally, the handle kinds the
-  launcher creates showed a net delta of exactly zero, so no SDK leak is known. The fix counts only
-  the launcher's handle kinds and requires an exact match with the warm-up round
-  ([#169](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/169)).
 - **CodeQL analyses C# without a build.** Code scanning runs on default setup, which extracts C#
   in `build-mode: none`. That leaves the database under CodeQL's own confidence thresholds — 83% of
   calls resolve to a target against a threshold of 85%, and 89% of expressions carry a known type
