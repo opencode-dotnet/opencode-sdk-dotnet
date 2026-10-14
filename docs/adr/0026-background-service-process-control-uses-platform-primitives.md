@@ -27,8 +27,8 @@ the platform's own library (`LIBC_SO` from `<gnu/lib-names.h>` on glibc, `/usr/l
 macOS, `libc.so.7` on FreeBSD) instead of probing for a file, and that loader serves CoreCLR's
 managed resolution and native AOT alike, with the same mapping in CoreCLR's own PAL. The
 `LibraryImport` generator needs the SDK project's `AllowUnsafeBlocks`; that is a compiler option
-of this project for the generated stubs, reaches no consumer, and the stubs are the only unsafe code
-allowed in the shipped SDK.
+of this project, reaches no consumer, and the generated stubs and the native exit wait's one
+reverse-P/Invoke function-pointer expression are the only unsafe code in the shipped SDK.
 
 ## Considered options
 

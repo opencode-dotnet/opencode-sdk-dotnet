@@ -55,6 +55,7 @@ internal sealed class WindowsExitWatch : IWindowsExitWatch
     private IntPtr _registration;
     private int _arrivals;
     private int _released;
+    private int _releaseFailed;
 
     private WindowsExitWatch(SafeProcessHandle process, SafeWaitHandle signal, IExitWaitKernel kernel)
     {
@@ -82,6 +83,12 @@ internal sealed class WindowsExitWatch : IWindowsExitWatch
 
     /// <summary>Gets whether this watch has released its registration and handles.</summary>
     internal bool IsReleased => Volatile.Read(ref _released) != 0;
+
+    /// <summary>
+    /// Gets whether the release found the wait could not be unregistered, and so kept the handles
+    /// and the callback's context rather than free what a callback could still reach.
+    /// </summary>
+    internal bool ReleaseFailed => Volatile.Read(ref _releaseFailed) != 0;
 
     /// <summary>
     /// Gets whether the thread that completed <see cref="Exited"/> was a .NET thread-pool thread:
@@ -120,26 +127,45 @@ internal sealed class WindowsExitWatch : IWindowsExitWatch
         }
 
         var watch = new WindowsExitWatch(process, waitable, kernel);
-        watch._self = GCHandle.Alloc(watch);
-
-        // The callback may run before this call returns, when the child has already exited; it
-        // reads nothing the registration's result sets, and the release that needs the result
-        // waits for the watch's disposal, which cannot come before this method returns.
-        if (!kernel.Register(
-                out var registration,
-                waitable,
-                CallbackAddress(),
-                GCHandle.ToIntPtr(watch._self),
-                WindowsInterop.ExecuteInWaitThread | WindowsInterop.ExecuteOnlyOnce))
+        var registration = IntPtr.Zero;
+        try
         {
-            // Nothing waits on the duplicate, so it is closed here; the process handle stays the caller's.
-            var failure = new Win32Exception(Marshal.GetLastWin32Error());
-            watch._self.Free();
-            waitable.Dispose();
-            throw failure;
-        }
+            watch._self = GCHandle.Alloc(watch);
 
-        Volatile.Write(ref watch._registration, registration);
+            // The callback may run before this call returns, when the child has already exited;
+            // it reads nothing the registration's result sets, and the release that needs the
+            // result waits for the watch's disposal, which cannot come before this method returns.
+            if (!kernel.Register(
+                    out registration,
+                    waitable,
+                    CallbackAddress(),
+                    GCHandle.ToIntPtr(watch._self),
+                    WindowsInterop.ExecuteInWaitThread | WindowsInterop.ExecuteOnlyOnce))
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+
+            Volatile.Write(ref watch._registration, registration);
+        }
+        catch
+        {
+            // Until the watch is handed over, nothing else owns the registration, the callback's
+            // context, or the duplicate, so a failure releases them here and the process handle
+            // stays the caller's. A registration that cannot be unregistered may still call back,
+            // so its context and duplicate are then kept rather than freed under it. A thread
+            // abort on .NET Framework is not covered.
+            if (registration == IntPtr.Zero || kernel.Unregister(registration))
+            {
+                if (watch._self.IsAllocated)
+                {
+                    watch._self.Free();
+                }
+
+                waitable.Dispose();
+            }
+
+            throw;
+        }
 
         // Counted only once registered: the release that uncounts it needs the watch's disposal,
         // which cannot come before this returns.
@@ -219,7 +245,7 @@ internal sealed class WindowsExitWatch : IWindowsExitWatch
         {
             // The callback cannot wait for its own end, so the release runs on the pool, where the
             // unregistration waits for this callback to return before anything is closed.
-            _ = ThreadPool.UnsafeQueueUserWorkItem(static state => (state as WindowsExitWatch)?.Release(), this);
+            _ = ThreadPool.UnsafeQueueUserWorkItem(static state => (state as WindowsExitWatch)?.ReleaseOnPool(), this);
         }
 
         CompletedOnPoolThread = Thread.CurrentThread.IsThreadPoolThread;
@@ -250,14 +276,41 @@ internal sealed class WindowsExitWatch : IWindowsExitWatch
         }
     }
 
+    /// <summary>The release as the pool runs it, where an exception would end the host.</summary>
+    [SlopwatchSuppress(
+        "SW003",
+        "A pool work item that throws ends the host, so a release that fails there keeps what it holds rather than escape; the release itself already keeps everything a callback could still reach when the unregistration fails.")]
+    private void ReleaseOnPool()
+    {
+        try
+        {
+            Release();
+        }
+        catch (Exception)
+        {
+            // Nothing may escape a pool work item; what the release did not close stays open.
+            Volatile.Write(ref _releaseFailed, 1);
+        }
+    }
+
     private void Release()
     {
-        // Returns once a callback still running has finished, so nothing below races it.
-        _kernel.Unregister(Volatile.Read(ref _registration));
-        _signal.Dispose();
-        _process.Dispose();
-        _self.Free();
-        Volatile.Write(ref _released, 1);
+        // Returns once a callback still running has finished, so nothing below races it. A wait
+        // that cannot be unregistered may still call back, so its handles and context are kept:
+        // leaking a registration is safe, freeing what a live callback reaches is not.
+        if (_kernel.Unregister(Volatile.Read(ref _registration)))
+        {
+            _signal.Dispose();
+            _process.Dispose();
+            _self.Free();
+            Volatile.Write(ref _released, 1);
+        }
+        else
+        {
+            Volatile.Write(ref _releaseFailed, 1);
+        }
+
+        // The release has run either way: nothing more is left for the watch to do.
         _ = Interlocked.Decrement(ref s_liveWatches);
     }
 }

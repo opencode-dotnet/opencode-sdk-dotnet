@@ -166,7 +166,8 @@ public sealed class WindowsExitWatchTests
 
         _ = await watch.Exited.WaitAsync(Bound, cancellationToken);
 
-        await Assert.That(kernel.RegisteredFlags).IsEqualTo(WindowsInterop.ExecuteInWaitThread | WindowsInterop.ExecuteOnlyOnce);
+        // WT_EXECUTEINWAITTHREAD (0x4) | WT_EXECUTEONLYONCE (0x8), as winnt.h defines them.
+        await Assert.That(kernel.RegisteredFlags).IsEqualTo(0x0000000Cu);
         await Assert.That(watch.CompletedOnPoolThread).IsNotNull();
         await Assert.That(watch.CompletedOnPoolThread!.Value).IsFalse();
     }
@@ -214,6 +215,65 @@ public sealed class WindowsExitWatchTests
         await Assert.That(kernel.Unregistrations).IsEqualTo(1);
         await Assert.That(kernel.HandlesOpenAtEveryUnregistration).IsTrue();
         await Assert.That(child.Process.IsClosed).IsTrue();
+    }
+
+    /// <summary>
+    /// A registration the watch cannot hand over, because something fails after the kernel
+    /// registered it, is unregistered before the failure surfaces, so no callback can reach a
+    /// context the failed start freed; the process handle stays the caller's.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    public async Task Start_Should_Unregister_A_Registration_It_Cannot_Hand_Over(CancellationToken cancellationToken)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            BranchReport.Print("POSIX — the exit watch is a thread that ends with its child there");
+            return;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        var child = Spawn("idle");
+        var kernel = new RecordingKernel { Process = child.Process, ThrowAfterRegister = true };
+        try
+        {
+            _ = await Assert.That(() => WindowsExitWatch.Start(child.Process, kernel)).Throws<InvalidOperationException>();
+
+            await Assert.That(kernel.Unregistrations).IsEqualTo(1);
+            await Assert.That(child.Process.IsClosed).IsFalse();
+        }
+        finally
+        {
+            _ = WindowsInterop.TerminateProcess(child.Process, 0);
+            child.Process.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// A wait the kernel will not unregister may still call back, so the release keeps the handles
+    /// and the callback's context rather than free what a callback could reach, and says so.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    public async Task Release_Should_Keep_The_Handles_When_The_Wait_Cannot_Be_Unregistered(CancellationToken cancellationToken)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            BranchReport.Print("POSIX — the exit watch is a thread that ends with its child there");
+            return;
+        }
+
+        var child = Spawn("exit-code", "0");
+        var kernel = new RecordingKernel { Process = child.Process, FailUnregister = true };
+        var watch = WindowsExitWatch.Start(child.Process, kernel);
+        _ = await watch.Exited.WaitAsync(Bound, cancellationToken);
+
+        watch.Dispose();
+
+        await Assert.That(kernel.Unregistrations).IsEqualTo(1);
+        await Assert.That(watch.ReleaseFailed).IsTrue();
+        await Assert.That(watch.IsReleased).IsFalse();
+        await Assert.That(child.Process.IsClosed).IsFalse();
     }
 
     /// <summary>
@@ -279,6 +339,7 @@ public sealed class WindowsExitWatchTests
 
         await Assert.That(exit.ExitCode).IsEqualTo(1);
         await Assert.That(await WatchReleasedWithinAsync(watch, cancellationToken)).IsTrue();
+        await Assert.That(exits.Kernel.Unregistrations).IsEqualTo(1);
     }
 
     private static WindowsSpawnedChild Spawn(params string[] mode)
@@ -330,6 +391,12 @@ public sealed class WindowsExitWatchTests
 
         public bool FailRead { get; init; }
 
+        /// <summary>Gets whether the unregistration reports failure, after unregistering for real so no callback outlives the test.</summary>
+        public bool FailUnregister { get; init; }
+
+        /// <summary>Gets whether the registration throws after registering for real, as a failure after the kernel call would.</summary>
+        public bool ThrowAfterRegister { get; init; }
+
         public uint? RegisteredFlags { get; private set; }
 
         public int Unregistrations => Volatile.Read(ref _unregistrations);
@@ -339,10 +406,13 @@ public sealed class WindowsExitWatchTests
         public bool Register(out IntPtr registration, SafeWaitHandle waited, IntPtr callback, IntPtr context, uint flags)
         {
             RegisteredFlags = flags;
-            return ExitWaitKernel.Instance.Register(out registration, waited, callback, context, flags);
+            var registered = ExitWaitKernel.Instance.Register(out registration, waited, callback, context, flags);
+            return registered && ThrowAfterRegister
+                ? throw new InvalidOperationException("The test's injected failure after the registration.")
+                : registered;
         }
 
-        public void Unregister(IntPtr registration)
+        public bool Unregister(IntPtr registration)
         {
             _ = Interlocked.Increment(ref _unregistrations);
             if (Process is { IsClosed: true })
@@ -350,7 +420,7 @@ public sealed class WindowsExitWatchTests
                 _ = Interlocked.Increment(ref _closedAtUnregistration);
             }
 
-            ExitWaitKernel.Instance.Unregister(registration);
+            return ExitWaitKernel.Instance.Unregister(registration) && !FailUnregister;
         }
 
         public bool TryReadExitCode(SafeProcessHandle process, out uint exitCode) =>
@@ -364,9 +434,11 @@ public sealed class WindowsExitWatchTests
     {
         public List<WindowsExitWatch> Started { get; } = [];
 
+        public RecordingKernel Kernel { get; } = new();
+
         public IWindowsExitWatch Watch(SafeProcessHandle process)
         {
-            var watch = WindowsExitWatch.Start(process);
+            var watch = WindowsExitWatch.Start(process, Kernel);
             Started.Add(watch);
             return watch;
         }

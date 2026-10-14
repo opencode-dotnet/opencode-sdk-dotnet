@@ -14,8 +14,8 @@ internal sealed class ExitWaitKernel : IExitWaitKernel
         WindowsInterop.RegisterWaitForSingleObject(out registration, waited, callback, context, WindowsInterop.InfiniteWait, flags);
 
     /// <inheritdoc />
-    public void Unregister(IntPtr registration) =>
-        _ = WindowsInterop.UnregisterWaitEx(registration, WindowsInterop.InvalidHandleValue);
+    public bool Unregister(IntPtr registration) =>
+        WindowsInterop.UnregisterWaitEx(registration, WindowsInterop.InvalidHandleValue);
 
     /// <inheritdoc />
     public bool TryReadExitCode(SafeProcessHandle process, out uint exitCode) =>

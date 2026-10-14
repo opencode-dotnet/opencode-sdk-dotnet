@@ -23,7 +23,8 @@ internal interface IExitWaitKernel
     /// on the wait thread, where it would wait for itself.
     /// </summary>
     /// <param name="registration">The registration.</param>
-    public void Unregister(IntPtr registration);
+    /// <returns>True when the wait is unregistered and no callback of it can still run.</returns>
+    public bool Unregister(IntPtr registration);
 
     /// <summary>Reads a process's exit code.</summary>
     /// <param name="process">The process.</param>
