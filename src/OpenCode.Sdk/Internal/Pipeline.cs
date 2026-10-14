@@ -32,7 +32,7 @@ internal sealed class Pipeline : IDisposable
     private readonly TransportPolicy _transport;
     private bool _disposed;
 
-    internal Pipeline(HttpClient httpClient, bool ownsHttpClient, IOpenCodeClientOptions options,
+    internal Pipeline(HttpClient httpClient, bool ownsHttpClient, OpenCodeClientOptions options,
         IEventStreamFramer? framer = null, ArrayPool<byte>? bufferPool = null, TimeSpan? networkTimeout = null,
         TimeProvider? time = null)
     {

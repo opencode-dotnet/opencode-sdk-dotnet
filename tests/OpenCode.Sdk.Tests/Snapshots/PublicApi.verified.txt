@@ -344,13 +344,6 @@ namespace OpenCode.Sdk
         public string? ContentType { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
-    public interface IOpenCodeClientOptions
-    {
-        System.Uri? Endpoint { get; }
-        OpenCode.Sdk.LocationSelector? Location { get; }
-        string? Password { get; }
-        string Username { get; }
-    }
     public class IntegrationClient
     {
         protected IntegrationClient() { }
@@ -609,7 +602,7 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.LocationResponse> GetLocationAsync(OpenCode.Sdk.LocationRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.LocationReloadResponse> ReloadLocationsAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
-    public sealed class OpenCodeClientOptions : OpenCode.Sdk.IOpenCodeClientOptions
+    public sealed class OpenCodeClientOptions
     {
         public OpenCodeClientOptions() { }
         public System.Uri? Endpoint { get; set; }
