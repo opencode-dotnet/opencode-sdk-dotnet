@@ -356,14 +356,7 @@ public static partial class OpenCodeRoutes
     }
 
     /// <summary>
-    /// Spells one &apos;ExperimentalSessionStatsRequestTools&apos; member the way the wire query expects it.
+    /// Spells one &apos;ExperimentalSessionStatsRequestTools&apos; value the way the wire query expects it.
     /// </summary>
-    private static string? ToWireValue(ExperimentalSessionStatsRequestTools? value) => value switch
-    {
-        ExperimentalSessionStatsRequestTools.None => "none",
-        ExperimentalSessionStatsRequestTools.Summary => "summary",
-        ExperimentalSessionStatsRequestTools.Detail => "detail",
-        null => null,
-        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown ExperimentalSessionStatsRequestTools value.")
-    };
+    private static string? ToWireValue(ExperimentalSessionStatsRequestTools? value) => value is not { } member ? null : member.Equals(default) ? throw new ArgumentException("A default ExperimentalSessionStatsRequestTools has no wire value.", nameof(value)) : member.ToString();
 }

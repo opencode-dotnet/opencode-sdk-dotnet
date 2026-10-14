@@ -5,24 +5,80 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// MCP protocol negotiation. &quot;legacy&quot; (default) opens with the initialize handshake and speaks protocol revisions up to 2025-11-25. &quot;auto&quot; probes for the 2026-07-28 revision and falls back to legacy when the server does not support it. &quot;2026-07-28&quot; requires that revision and fails otherwise.
+/// MCP protocol negotiation. &quot;legacy&quot; (default) opens with the initialize handshake and speaks protocol revisions up to 2025-11-25. &quot;auto&quot; probes for the 2026-07-28 revision and falls back to legacy when the server does not support it. &quot;2026-07-28&quot; requires that revision and fails otherwise. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
-[JsonConverter(typeof(StrictJsonStringEnumConverter<McpProtocol>))]
-public enum McpProtocol
+[JsonConverter(typeof(McpProtocolJsonConverter))]
+public readonly struct McpProtocol : IEquatable<McpProtocol>
 {
+    private const string LegacyValue = "legacy";
+    private const string AutoValue = "auto";
+    private const string Revision20260728Value = "2026-07-28";
+    private readonly string? _value;
     /// <summary>
-    /// Represents the &apos;legacy&apos; wire value.
+    /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
     /// </summary>
-    [JsonStringEnumMemberName("legacy")]
-    Legacy,
+    /// <param name = "value">The wire spelling.</param>
+    public McpProtocol(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        _value = value;
+    }
+
     /// <summary>
-    /// Represents the &apos;auto&apos; wire value.
+    /// Gets the &apos;legacy&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("auto")]
-    Auto,
+    public static McpProtocol Legacy { get; } = new(LegacyValue);
     /// <summary>
-    /// Represents the &apos;2026-07-28&apos; wire value.
+    /// Gets the &apos;auto&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("2026-07-28")]
-    Revision20260728
+    public static McpProtocol Auto { get; } = new(AutoValue);
+    /// <summary>
+    /// Gets the &apos;2026-07-28&apos; wire value.
+    /// </summary>
+    public static McpProtocol Revision20260728 { get; } = new(Revision20260728Value);
+    /// <summary>
+    /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
+    /// </summary>
+    public bool IsKnown => _value is LegacyValue or AutoValue or Revision20260728Value;
+
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator ==(McpProtocol left, McpProtocol right) => left.Equals(right);
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally for inequality.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator !=(McpProtocol left, McpProtocol right) => !left.Equals(right);
+    /// <summary>
+    /// Converts a wire spelling to a value.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static implicit operator McpProtocol(string value) => new(value);
+    /// <summary>
+    /// Creates a value from its wire spelling, as the implicit conversion does.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static McpProtocol FromString(string value) => new(value);
+    /// <summary>
+    /// Compares wire spellings ordinally: upstream compares string literals exactly.
+    /// </summary>
+    /// <param name = "other">The other value.</param>
+    public bool Equals(McpProtocol other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+    /// <summary>
+    /// Compares with another object: equal only to a value with the same wire spelling.
+    /// </summary>
+    /// <param name = "obj">The other object.</param>
+    public override bool Equals(object? obj) => obj is McpProtocol other && Equals(other);
+    /// <summary>
+    /// Hashes the wire spelling ordinally, as equality compares it.
+    /// </summary>
+    public override int GetHashCode() => _value is null ? 0 : StringComparer.Ordinal.GetHashCode(_value);
+    /// <summary>
+    /// Returns the wire spelling, or an empty string for a default value, which has none.
+    /// </summary>
+    public override string ToString() => _value ?? string.Empty;
 }

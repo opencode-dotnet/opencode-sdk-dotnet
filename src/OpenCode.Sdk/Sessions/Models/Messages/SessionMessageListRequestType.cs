@@ -5,59 +5,115 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Defines the supported session message list request type values.
+/// The session message list request type. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
-[JsonConverter(typeof(StrictJsonStringEnumConverter<SessionMessageListRequestType>))]
-public enum SessionMessageListRequestType
+[JsonConverter(typeof(SessionMessageListRequestTypeJsonConverter))]
+public readonly struct SessionMessageListRequestType : IEquatable<SessionMessageListRequestType>
 {
+    private const string AgentSwitchedValue = "agent-switched";
+    private const string ModelSwitchedValue = "model-switched";
+    private const string LocationSwitchedValue = "location-switched";
+    private const string UserValue = "user";
+    private const string SyntheticValue = "synthetic";
+    private const string SystemValue = "system";
+    private const string SkillValue = "skill";
+    private const string ShellValue = "shell";
+    private const string AssistantValue = "assistant";
+    private const string CompactionValue = "compaction";
+    private readonly string? _value;
     /// <summary>
-    /// Represents the &apos;agent-switched&apos; wire value.
+    /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
     /// </summary>
-    [JsonStringEnumMemberName("agent-switched")]
-    AgentSwitched,
+    /// <param name = "value">The wire spelling.</param>
+    public SessionMessageListRequestType(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        _value = value;
+    }
+
     /// <summary>
-    /// Represents the &apos;model-switched&apos; wire value.
+    /// Gets the &apos;agent-switched&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("model-switched")]
-    ModelSwitched,
+    public static SessionMessageListRequestType AgentSwitched { get; } = new(AgentSwitchedValue);
     /// <summary>
-    /// Represents the &apos;location-switched&apos; wire value.
+    /// Gets the &apos;model-switched&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("location-switched")]
-    LocationSwitched,
+    public static SessionMessageListRequestType ModelSwitched { get; } = new(ModelSwitchedValue);
     /// <summary>
-    /// Represents the &apos;user&apos; wire value.
+    /// Gets the &apos;location-switched&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("user")]
-    User,
+    public static SessionMessageListRequestType LocationSwitched { get; } = new(LocationSwitchedValue);
     /// <summary>
-    /// Represents the &apos;synthetic&apos; wire value.
+    /// Gets the &apos;user&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("synthetic")]
-    Synthetic,
+    public static SessionMessageListRequestType User { get; } = new(UserValue);
     /// <summary>
-    /// Represents the &apos;system&apos; wire value.
+    /// Gets the &apos;synthetic&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("system")]
-    System,
+    public static SessionMessageListRequestType Synthetic { get; } = new(SyntheticValue);
     /// <summary>
-    /// Represents the &apos;skill&apos; wire value.
+    /// Gets the &apos;system&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("skill")]
-    Skill,
+    public static SessionMessageListRequestType System { get; } = new(SystemValue);
     /// <summary>
-    /// Represents the &apos;shell&apos; wire value.
+    /// Gets the &apos;skill&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("shell")]
-    Shell,
+    public static SessionMessageListRequestType Skill { get; } = new(SkillValue);
     /// <summary>
-    /// Represents the &apos;assistant&apos; wire value.
+    /// Gets the &apos;shell&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("assistant")]
-    Assistant,
+    public static SessionMessageListRequestType Shell { get; } = new(ShellValue);
     /// <summary>
-    /// Represents the &apos;compaction&apos; wire value.
+    /// Gets the &apos;assistant&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("compaction")]
-    Compaction
+    public static SessionMessageListRequestType Assistant { get; } = new(AssistantValue);
+    /// <summary>
+    /// Gets the &apos;compaction&apos; wire value.
+    /// </summary>
+    public static SessionMessageListRequestType Compaction { get; } = new(CompactionValue);
+    /// <summary>
+    /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
+    /// </summary>
+    public bool IsKnown => _value is AgentSwitchedValue or ModelSwitchedValue or LocationSwitchedValue or UserValue or SyntheticValue or SystemValue or SkillValue or ShellValue or AssistantValue or CompactionValue;
+
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator ==(SessionMessageListRequestType left, SessionMessageListRequestType right) => left.Equals(right);
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally for inequality.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator !=(SessionMessageListRequestType left, SessionMessageListRequestType right) => !left.Equals(right);
+    /// <summary>
+    /// Converts a wire spelling to a value.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static implicit operator SessionMessageListRequestType(string value) => new(value);
+    /// <summary>
+    /// Creates a value from its wire spelling, as the implicit conversion does.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static SessionMessageListRequestType FromString(string value) => new(value);
+    /// <summary>
+    /// Compares wire spellings ordinally: upstream compares string literals exactly.
+    /// </summary>
+    /// <param name = "other">The other value.</param>
+    public bool Equals(SessionMessageListRequestType other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+    /// <summary>
+    /// Compares with another object: equal only to a value with the same wire spelling.
+    /// </summary>
+    /// <param name = "obj">The other object.</param>
+    public override bool Equals(object? obj) => obj is SessionMessageListRequestType other && Equals(other);
+    /// <summary>
+    /// Hashes the wire spelling ordinally, as equality compares it.
+    /// </summary>
+    public override int GetHashCode() => _value is null ? 0 : StringComparer.Ordinal.GetHashCode(_value);
+    /// <summary>
+    /// Returns the wire spelling, or an empty string for a default value, which has none.
+    /// </summary>
+    public override string ToString() => _value ?? string.Empty;
 }

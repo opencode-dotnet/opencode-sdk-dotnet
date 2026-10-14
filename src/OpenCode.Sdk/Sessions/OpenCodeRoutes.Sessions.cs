@@ -898,21 +898,7 @@ public static partial class OpenCodeRoutes
     }
 
     /// <summary>
-    /// Spells one &apos;SessionMessageListRequestType&apos; member the way the wire query expects it.
+    /// Spells one &apos;SessionMessageListRequestType&apos; value the way the wire query expects it.
     /// </summary>
-    private static string? ToWireValue(SessionMessageListRequestType? value) => value switch
-    {
-        SessionMessageListRequestType.AgentSwitched => "agent-switched",
-        SessionMessageListRequestType.ModelSwitched => "model-switched",
-        SessionMessageListRequestType.LocationSwitched => "location-switched",
-        SessionMessageListRequestType.User => "user",
-        SessionMessageListRequestType.Synthetic => "synthetic",
-        SessionMessageListRequestType.System => "system",
-        SessionMessageListRequestType.Skill => "skill",
-        SessionMessageListRequestType.Shell => "shell",
-        SessionMessageListRequestType.Assistant => "assistant",
-        SessionMessageListRequestType.Compaction => "compaction",
-        null => null,
-        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown SessionMessageListRequestType value.")
-    };
+    private static string? ToWireValue(SessionMessageListRequestType? value) => value is not { } member ? null : member.Equals(default) ? throw new ArgumentException("A default SessionMessageListRequestType has no wire value.", nameof(value)) : member.ToString();
 }

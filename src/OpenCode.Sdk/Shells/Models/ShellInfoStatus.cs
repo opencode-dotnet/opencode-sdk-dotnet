@@ -5,29 +5,85 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Defines the supported shell info status values.
+/// The shell info status. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
-[JsonConverter(typeof(StrictJsonStringEnumConverter<ShellInfoStatus>))]
-public enum ShellInfoStatus
+[JsonConverter(typeof(ShellInfoStatusJsonConverter))]
+public readonly struct ShellInfoStatus : IEquatable<ShellInfoStatus>
 {
+    private const string RunningValue = "running";
+    private const string ExitedValue = "exited";
+    private const string TimeoutValue = "timeout";
+    private const string KilledValue = "killed";
+    private readonly string? _value;
     /// <summary>
-    /// Represents the &apos;running&apos; wire value.
+    /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
     /// </summary>
-    [JsonStringEnumMemberName("running")]
-    Running,
+    /// <param name = "value">The wire spelling.</param>
+    public ShellInfoStatus(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        _value = value;
+    }
+
     /// <summary>
-    /// Represents the &apos;exited&apos; wire value.
+    /// Gets the &apos;running&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("exited")]
-    Exited,
+    public static ShellInfoStatus Running { get; } = new(RunningValue);
     /// <summary>
-    /// Represents the &apos;timeout&apos; wire value.
+    /// Gets the &apos;exited&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("timeout")]
-    Timeout,
+    public static ShellInfoStatus Exited { get; } = new(ExitedValue);
     /// <summary>
-    /// Represents the &apos;killed&apos; wire value.
+    /// Gets the &apos;timeout&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("killed")]
-    Killed
+    public static ShellInfoStatus Timeout { get; } = new(TimeoutValue);
+    /// <summary>
+    /// Gets the &apos;killed&apos; wire value.
+    /// </summary>
+    public static ShellInfoStatus Killed { get; } = new(KilledValue);
+    /// <summary>
+    /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
+    /// </summary>
+    public bool IsKnown => _value is RunningValue or ExitedValue or TimeoutValue or KilledValue;
+
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator ==(ShellInfoStatus left, ShellInfoStatus right) => left.Equals(right);
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally for inequality.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator !=(ShellInfoStatus left, ShellInfoStatus right) => !left.Equals(right);
+    /// <summary>
+    /// Converts a wire spelling to a value.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static implicit operator ShellInfoStatus(string value) => new(value);
+    /// <summary>
+    /// Creates a value from its wire spelling, as the implicit conversion does.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static ShellInfoStatus FromString(string value) => new(value);
+    /// <summary>
+    /// Compares wire spellings ordinally: upstream compares string literals exactly.
+    /// </summary>
+    /// <param name = "other">The other value.</param>
+    public bool Equals(ShellInfoStatus other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+    /// <summary>
+    /// Compares with another object: equal only to a value with the same wire spelling.
+    /// </summary>
+    /// <param name = "obj">The other object.</param>
+    public override bool Equals(object? obj) => obj is ShellInfoStatus other && Equals(other);
+    /// <summary>
+    /// Hashes the wire spelling ordinally, as equality compares it.
+    /// </summary>
+    public override int GetHashCode() => _value is null ? 0 : StringComparer.Ordinal.GetHashCode(_value);
+    /// <summary>
+    /// Returns the wire spelling, or an empty string for a default value, which has none.
+    /// </summary>
+    public override string ToString() => _value ?? string.Empty;
 }

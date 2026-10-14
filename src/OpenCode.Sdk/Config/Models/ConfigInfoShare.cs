@@ -5,24 +5,80 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Defines the supported config info share values.
+/// The config info share. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
-[JsonConverter(typeof(StrictJsonStringEnumConverter<ConfigInfoShare>))]
-public enum ConfigInfoShare
+[JsonConverter(typeof(ConfigInfoShareJsonConverter))]
+public readonly struct ConfigInfoShare : IEquatable<ConfigInfoShare>
 {
+    private const string ManualValue = "manual";
+    private const string AutoValue = "auto";
+    private const string DisabledValue = "disabled";
+    private readonly string? _value;
     /// <summary>
-    /// Represents the &apos;manual&apos; wire value.
+    /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
     /// </summary>
-    [JsonStringEnumMemberName("manual")]
-    Manual,
+    /// <param name = "value">The wire spelling.</param>
+    public ConfigInfoShare(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        _value = value;
+    }
+
     /// <summary>
-    /// Represents the &apos;auto&apos; wire value.
+    /// Gets the &apos;manual&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("auto")]
-    Auto,
+    public static ConfigInfoShare Manual { get; } = new(ManualValue);
     /// <summary>
-    /// Represents the &apos;disabled&apos; wire value.
+    /// Gets the &apos;auto&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("disabled")]
-    Disabled
+    public static ConfigInfoShare Auto { get; } = new(AutoValue);
+    /// <summary>
+    /// Gets the &apos;disabled&apos; wire value.
+    /// </summary>
+    public static ConfigInfoShare Disabled { get; } = new(DisabledValue);
+    /// <summary>
+    /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
+    /// </summary>
+    public bool IsKnown => _value is ManualValue or AutoValue or DisabledValue;
+
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator ==(ConfigInfoShare left, ConfigInfoShare right) => left.Equals(right);
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally for inequality.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator !=(ConfigInfoShare left, ConfigInfoShare right) => !left.Equals(right);
+    /// <summary>
+    /// Converts a wire spelling to a value.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static implicit operator ConfigInfoShare(string value) => new(value);
+    /// <summary>
+    /// Creates a value from its wire spelling, as the implicit conversion does.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static ConfigInfoShare FromString(string value) => new(value);
+    /// <summary>
+    /// Compares wire spellings ordinally: upstream compares string literals exactly.
+    /// </summary>
+    /// <param name = "other">The other value.</param>
+    public bool Equals(ConfigInfoShare other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+    /// <summary>
+    /// Compares with another object: equal only to a value with the same wire spelling.
+    /// </summary>
+    /// <param name = "obj">The other object.</param>
+    public override bool Equals(object? obj) => obj is ConfigInfoShare other && Equals(other);
+    /// <summary>
+    /// Hashes the wire spelling ordinally, as equality compares it.
+    /// </summary>
+    public override int GetHashCode() => _value is null ? 0 : StringComparer.Ordinal.GetHashCode(_value);
+    /// <summary>
+    /// Returns the wire spelling, or an empty string for a default value, which has none.
+    /// </summary>
+    public override string ToString() => _value ?? string.Empty;
 }

@@ -6,11 +6,9 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 /// <summary>
-/// Emits the wire spelling of an enum-valued query member as a generated switch over the
-/// same <see cref="EnumModelPlan"/> the model emitter renders, so the query string and the
-/// JSON member name can never drift apart. The switch replaces reflection and
-/// <c>Enum.ToString</c>, which neither trimming nor AOT can follow to the member-name
-/// attribute.
+/// Emits the wire spelling of an enum-valued query member. The extensible enum (ADR-0035) carries
+/// its own spelling, so the query string and the JSON value can never drift apart; the converter
+/// adds the unset and default cases a query member needs.
 /// </summary>
 internal static class QueryEnumWireValueEmitter
 {
@@ -65,30 +63,35 @@ internal static class QueryEnumWireValueEmitter
     {
         var type = TypeSyntaxEmitter.EmitNamed(model.Name);
         var value = SyntaxFactory.IdentifierName("value");
-        var arms = new List<SwitchExpressionArmSyntax>(
-        [
-            .. model.Values.Select(member => SyntaxFactory.SwitchExpressionArm(
-                SyntaxFactory.ConstantPattern(EmissionSyntax.MemberAccess(type, member.Name)),
-                SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(member.WireValue)))),
-            // An unset optional member contributes nothing to the query string.
-            SyntaxFactory.SwitchExpressionArm(
-                SyntaxFactory.ConstantPattern(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)),
-                SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)),
-            SyntaxFactory.SwitchExpressionArm(
-                SyntaxFactory.DiscardPattern(),
+        var member = SyntaxFactory.IdentifierName("member");
+
+        // An unset optional member contributes nothing to the query string; a default value has no
+        // spelling and is the caller's mistake; any other value is spelled as it was given, pinned
+        // or not (ADR-0035).
+        var body = SyntaxFactory.ConditionalExpression(
+            SyntaxFactory.IsPatternExpression(
+                value,
+                SyntaxFactory.UnaryPattern(SyntaxFactory.RecursivePattern()
+                    .WithPropertyPatternClause(SyntaxFactory.PropertyPatternClause())
+                    .WithDesignation(SyntaxFactory.SingleVariableDesignation(member.Identifier)))),
+            SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression),
+            SyntaxFactory.ConditionalExpression(
+                EmissionSyntax.Invocation(
+                    EmissionSyntax.MemberAccess(member, "Equals"),
+                    SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                        SyntaxKind.DefaultLiteralExpression, SyntaxFactory.Token(SyntaxKind.DefaultKeyword)))),
                 SyntaxFactory.ThrowExpression(SyntaxFactory
-                    .ObjectCreationExpression(TypeSyntaxEmitter.EmitNamed("ArgumentOutOfRangeException"))
+                    .ObjectCreationExpression(TypeSyntaxEmitter.EmitNamed("ArgumentException"))
                     .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList(
                     [
+                        SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                            SyntaxKind.StringLiteralExpression,
+                            SyntaxFactory.Literal($"A default {model.Name} has no wire value."))),
                         SyntaxFactory.Argument(EmissionSyntax.Invocation(
                             SyntaxFactory.IdentifierName("nameof"),
                             SyntaxFactory.Argument(value))),
-                        SyntaxFactory.Argument(value),
-                        SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
-                            SyntaxKind.StringLiteralExpression,
-                            SyntaxFactory.Literal($"Unknown {model.Name} value."))),
-                    ]))))),
-        ]);
+                    ])))),
+                EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(member, "ToString"))));
         return SyntaxFactory
             .MethodDeclaration(
                 SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword))),
@@ -98,11 +101,9 @@ internal static class QueryEnumWireValueEmitter
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
             .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList(
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("value")).WithType(SyntaxFactory.NullableType(type)))))
-            .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(SyntaxFactory.SwitchExpression(
-                value,
-                SyntaxFactory.SeparatedList(arms))))
+            .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(body))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
             .WithLeadingTrivia(EmissionSyntax.Documentation(
-                $"Spells one '{model.Name}' member the way the wire query expects it."));
+                $"Spells one '{model.Name}' value the way the wire query expects it."));
     }
 }

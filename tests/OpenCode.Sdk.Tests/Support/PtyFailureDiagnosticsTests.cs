@@ -56,7 +56,7 @@ public sealed class PtyFailureDiagnosticsTests
             }
             else
             {
-                await Assert.That(diagnostics.Describe()).Contains("http=200 status=Running pid=4242");
+                await Assert.That(diagnostics.Describe()).Contains("http=200 status=running pid=4242");
             }
         }
         finally

@@ -76,13 +76,7 @@ public static partial class OpenCodeRoutes
     }
 
     /// <summary>
-    /// Spells one &apos;FsFindRequestType&apos; member the way the wire query expects it.
+    /// Spells one &apos;FsFindRequestType&apos; value the way the wire query expects it.
     /// </summary>
-    private static string? ToWireValue(FsFindRequestType? value) => value switch
-    {
-        FsFindRequestType.File => "file",
-        FsFindRequestType.Directory => "directory",
-        null => null,
-        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown FsFindRequestType value.")
-    };
+    private static string? ToWireValue(FsFindRequestType? value) => value is not { } member ? null : member.Equals(default) ? throw new ArgumentException("A default FsFindRequestType has no wire value.", nameof(value)) : member.ToString();
 }

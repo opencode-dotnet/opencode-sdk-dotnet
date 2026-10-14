@@ -5,39 +5,95 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Defines the supported session message assistant finish values.
+/// The session message assistant finish. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
-[JsonConverter(typeof(StrictJsonStringEnumConverter<SessionMessageAssistantFinish>))]
-public enum SessionMessageAssistantFinish
+[JsonConverter(typeof(SessionMessageAssistantFinishJsonConverter))]
+public readonly struct SessionMessageAssistantFinish : IEquatable<SessionMessageAssistantFinish>
 {
+    private const string StopValue = "stop";
+    private const string LengthValue = "length";
+    private const string ToolCallsValue = "tool-calls";
+    private const string ContentFilterValue = "content-filter";
+    private const string ErrorValue = "error";
+    private const string UnknownValue = "unknown";
+    private readonly string? _value;
     /// <summary>
-    /// Represents the &apos;stop&apos; wire value.
+    /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
     /// </summary>
-    [JsonStringEnumMemberName("stop")]
-    Stop,
+    /// <param name = "value">The wire spelling.</param>
+    public SessionMessageAssistantFinish(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        _value = value;
+    }
+
     /// <summary>
-    /// Represents the &apos;length&apos; wire value.
+    /// Gets the &apos;stop&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("length")]
-    Length,
+    public static SessionMessageAssistantFinish Stop { get; } = new(StopValue);
     /// <summary>
-    /// Represents the &apos;tool-calls&apos; wire value.
+    /// Gets the &apos;length&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("tool-calls")]
-    ToolCalls,
+    public static SessionMessageAssistantFinish Length { get; } = new(LengthValue);
     /// <summary>
-    /// Represents the &apos;content-filter&apos; wire value.
+    /// Gets the &apos;tool-calls&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("content-filter")]
-    ContentFilter,
+    public static SessionMessageAssistantFinish ToolCalls { get; } = new(ToolCallsValue);
     /// <summary>
-    /// Represents the &apos;error&apos; wire value.
+    /// Gets the &apos;content-filter&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("error")]
-    Error,
+    public static SessionMessageAssistantFinish ContentFilter { get; } = new(ContentFilterValue);
     /// <summary>
-    /// Represents the &apos;unknown&apos; wire value.
+    /// Gets the &apos;error&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("unknown")]
-    Unknown
+    public static SessionMessageAssistantFinish Error { get; } = new(ErrorValue);
+    /// <summary>
+    /// Gets the &apos;unknown&apos; wire value.
+    /// </summary>
+    public static SessionMessageAssistantFinish Unknown { get; } = new(UnknownValue);
+    /// <summary>
+    /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
+    /// </summary>
+    public bool IsKnown => _value is StopValue or LengthValue or ToolCallsValue or ContentFilterValue or ErrorValue or UnknownValue;
+
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator ==(SessionMessageAssistantFinish left, SessionMessageAssistantFinish right) => left.Equals(right);
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally for inequality.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator !=(SessionMessageAssistantFinish left, SessionMessageAssistantFinish right) => !left.Equals(right);
+    /// <summary>
+    /// Converts a wire spelling to a value.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static implicit operator SessionMessageAssistantFinish(string value) => new(value);
+    /// <summary>
+    /// Creates a value from its wire spelling, as the implicit conversion does.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static SessionMessageAssistantFinish FromString(string value) => new(value);
+    /// <summary>
+    /// Compares wire spellings ordinally: upstream compares string literals exactly.
+    /// </summary>
+    /// <param name = "other">The other value.</param>
+    public bool Equals(SessionMessageAssistantFinish other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+    /// <summary>
+    /// Compares with another object: equal only to a value with the same wire spelling.
+    /// </summary>
+    /// <param name = "obj">The other object.</param>
+    public override bool Equals(object? obj) => obj is SessionMessageAssistantFinish other && Equals(other);
+    /// <summary>
+    /// Hashes the wire spelling ordinally, as equality compares it.
+    /// </summary>
+    public override int GetHashCode() => _value is null ? 0 : StringComparer.Ordinal.GetHashCode(_value);
+    /// <summary>
+    /// Returns the wire spelling, or an empty string for a default value, which has none.
+    /// </summary>
+    public override string ToString() => _value ?? string.Empty;
 }

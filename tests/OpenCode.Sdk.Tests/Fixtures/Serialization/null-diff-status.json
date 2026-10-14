@@ -1,0 +1,7 @@
+{
+  "file": "src/App.cs",
+  "patch": "@@ -1 +1 @@",
+  "additions": 1,
+  "deletions": 0,
+  "status": null
+}

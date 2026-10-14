@@ -21,7 +21,7 @@ Package validation against the previous release enforces the split: the generate
 generated types from hand-written ones, so a break in a generated type is allowed in a minor and a
 break in a hand-written type needs a major. Additive server changes do not break an older SDK at
 run time, because unknown union arms (ADR-0009), unknown fields (ADR-0012) and unknown enum values
-are tolerated.
+(ADR-0035) are tolerated.
 
 ## Considered options
 

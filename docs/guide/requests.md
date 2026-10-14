@@ -90,6 +90,20 @@ Console.WriteLine(request.Title switch
 Equality follows the same three states: `default` does not equal `Optional<string?>.Null`, and two
 members carrying the same value are equal. To go back to absent, assign `default`.
 
+## 🏷️ Enum values
+
+The API's string enums (`VcsMode`, `PermissionEffect`, `SessionInboxDelivery` and the rest) are
+value types, not C# `enum`s. A server newer than the SDK can send a value this SDK does not know, so
+reading it never fails and writing it back keeps it as it was. The pinned values are static
+properties. Compare with `==`, not a `case` label, and use `IsKnown` to spot a newer server's value:
+
+```csharp
+if (info.Mode == AgentInfoMode.Primary) { /* … */ }
+else if (!info.Mode.IsKnown) { Console.WriteLine($"a mode this SDK does not know: {info.Mode}"); }
+
+var diff = await client.Vcs.GetDiffAsync(new VcsDiffRequest { Mode = VcsMode.Committed });
+```
+
 ## 🔗 Query members
 
 Some operations put their inputs in the query string rather than the body, and the request record
