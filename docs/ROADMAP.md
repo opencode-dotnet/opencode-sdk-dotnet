@@ -5,7 +5,8 @@ Date: 2026-10-14
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
 current architecture and engineering canon; decision records live in `adr/`. The live operational
-queue is on the [project board](https://github.com/orgs/opencode-dotnet/projects/1).
+queue is the GitHub milestones [`1.0`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/1)
+and [`1.1`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/milestone/2).
 
 ## Status
 
@@ -50,7 +51,7 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   the `@opencode/cli` npm package, the one this SDK pins and its guides install; the 1.x line
   continues beside it as `opencode-ai` (`1.18.33` on 2026-09-28), and upstream's GitHub Releases page
   still lists 1.x releases. The pin tracks upstream 2.x release tags and is refreshed under receipt
-  before a release. The accepted protocol identity is owned by `../spec/SNAPSHOT.md`.
+  right before a release, not between releases. The accepted protocol identity is owned by `../spec/SNAPSHOT.md`.
 - **Packages** — the two packages publish as `OpenCodeDotNet.Sdk` and
   `OpenCodeDotNet.Sdk.Extensions` (the assemblies stay `OpenCode.Sdk`) and pack at the
   single-sourced `VersionPrefix 0.9.0`. Every `master` push publishes a `0.9.0-nightly.*` build to
@@ -64,8 +65,10 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 `1.0.0` is the first stable release; the public surface freezes before it. Releases stay
 `0.9.0-preview.N` until the freeze, then ship as `1.0.0-rc.N`, then `1.0.0`; between those points a
 pin refresh or a fix round ships as the next preview or release candidate. Each workstream has a
-short plan in the private companion repository when it starts, and the project board holds the
-live queue. In order:
+short plan in the private companion repository when it starts, and milestone `1.0` holds its
+issues. Only work that breaks or decides the public surface, the gates that enforce the freeze,
+and the items named below come before `1.0.0`; additive and internal work waits in milestone
+`1.1`. In order:
 
 1. **Support policy.** The MCP server's repository (ADR-0030), the target-framework policy
    (ADR-0002), and the end of the .NET 5–7 promise
@@ -78,64 +81,80 @@ live queue. In order:
    workstream (ADR-0032): on Linux and macOS the launcher places its server in a session of its own
    and ends it on upstream's ladder (a SIGTERM to the process group before the SIGKILL); on Windows
    it places its server in a kill-on-close job, passes it only its standard handles, reads its
-   output through overlapped pipes, and ends it on upstream's taskkill ladder. After `net11.0`,
-   `OpenCodeServer.Exited` reports how a standalone server ended — exit code or signal, as
-   upstream's `exited` does — on every target and OS. Exit: every leg runs `netstandard2.0`, `net472`, `net10.0`, and `net11.0`
-   as its platform allows.
-3. **Maintainability review.** A time-boxed, read-only review of the code, the generator, the
-   tests, and the canon at current `master`. Each finding goes to one of four places: the API
-   review, the 1.0 performance gate, a small fix now, or a parallel track. Exit: one triaged
-   finding list.
-4. **API review.** First the namespace layout — family namespaces or today's flat
-   `OpenCode.Sdk` and `OpenCode.Sdk.Models` — decided from a measured model-ownership analysis and
-   a one-family pilot. Then the parked handle questions (a parent-mediated handle door for flat
-   single-action families, a handle client's resource id as a property), the Extensions API
-   baseline and the remaining package, test-roster, and Native AOT assurance (#51), exclusion
-   fingerprints for the transport-owned operations (ADR-0008), and a bound for the terminal
-   receive queue, which is unbounded today. Exit: every surface question is decided.
+   output through overlapped pipes, and ends it on upstream's taskkill ladder.
+   `OpenCodeServer.Exited` ([#174](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/174))
+   reports how a standalone server ended — exit code or signal, as upstream's `exited` does — on
+   every target and OS; it does not wait for `net11.0`. Exit: every leg runs `netstandard2.0`,
+   `net472`, `net10.0`, and `net11.0` as its platform allows.
+3. **Maintainability review.** A time-boxed, read-only review limited to what feeds the freeze:
+   a pass over the public API baseline
+   ([#183](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/183)), the terminal receive
+   queue under slow, absent and burst consumers
+   ([#184](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/184)), and the canon's
+   consistency, with the ADR trim
+   ([#182](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/182)). The other review
+   areas follow `1.0.0` ([#201](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/201)).
+   Exit: one triaged finding list.
+4. **API review.** The namespace layout is decided: the public namespaces stay `OpenCode.Sdk` and
+   `OpenCode.Sdk.Models`, internal types move to `OpenCode.Sdk.Internal`, and the folders become
+   vertical slices, a placement-only change that runs as a parallel track. Still open: what a
+   `1.x` version promises when an upstream refresh changes generated shapes, the remaining surface
+   questions the baseline pass raises, and the package, test-roster, and Native AOT gates
+   ([#51](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/51)). The parked handle
+   questions are additive and wait for `1.1`. Exit: every surface question is decided.
 5. **Extension points.** How retry, telemetry, and hooks attach (the policy roster, ADR-0018),
-   and whether validated client configuration splits from the transport factory, decided so that
-   each capability lands additively after `1.0.0`. The public network-timeout option and the
-   per-operation event-stream idle bound it gates ship here, closing the half-open stream gap.
-   Exit: no planned capability needs a breaking construction change. The surface then freezes and
-   `1.0.0-rc.1` ships.
+   decided so that each capability lands additively after `1.0.0`. The public network-timeout
+   option, a bound for long-poll operations
+   ([#175](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/175)), and the
+   per-operation event-stream idle bound
+   ([#176](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/176)) ship here, closing
+   the half-open stream gap. Exit: no planned capability needs a breaking construction change. The
+   surface then freezes and `1.0.0-rc.1` ships.
 6. **1.0 performance gate.** The benchmark coverage reviewed and extended with representative
    scenarios, a generator baseline, and a full run of the suite on the release candidate. Exit: a
    reviewed full run with no unexplained regression.
-7. **`1.0.0`.** Exit: `1.0.0` on NuGet.org, the `OpenCodeAI.*` popularity moved to
-   `OpenCodeDotNet.*`, and the README's rename notice gone.
+7. **`1.0.0`** ([#187](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/187)). Exit:
+   `1.0.0` on NuGet.org, the `OpenCodeAI.*` popularity moved to `OpenCodeDotNet.*`, the README's
+   rename notice gone, and milestone `1.1` ordered with its first items assigned.
 
 ## Parallel tracks
 
 These do not block `1.0.0` and run beside the road.
 
-- **MCP server** in its own repository (ADR-0030), a thin adapter over the published SDK. Design
-  and scaffolding can start now; code against the SDK waits for the namespace decision.
-- **Maintainability follow-ups** that change no public surface: the folder layout (after the
-  namespace decision), the ADR and canon review, dead code, test-support ownership, and the
-  source-watch review.
-- **References point one way:** about 170 comments in source, tools, tests, and workflows still
-  cite documentation (`docs/…` paths and ADR numbers), against `engineering/documentation.md`.
-  Each explains its status quo locally instead; generator-emitted comments change through the
-  generator.
-- **Dependency trigger:** a `Microsoft.OpenApi` release that carries
-  [microsoft/OpenAPI.NET#3108](https://github.com/microsoft/OpenAPI.NET/pull/3108), the fix for
-  [#3101](https://github.com/microsoft/OpenAPI.NET/issues/3101) that this repository reported, lets
-  the generator drop its own timeout-free components-key rule; the bump first confirms in the
-  shipped assembly that the generated key regex never checks its timeout.
-- **Test categorization**, so a lane can run a named subset. No test carries a category today; the
-  only split is by project and by the `*LiveTests` / `*ContractTests` names.
-- **Operations:** automation for the upstream observation lanes (tip detector, candidate refresh),
-  a quarantine lane, the nightly source-run canary with the performance suite (ADR-0022),
-  Restore-patch retirement, the operation inventory and assurance ledger (ADR-0022: a contract
-  test for every status arm the pinned document declares, verifier-checked, with the unreachable
-  arms listed by name), larger CI runners now that the repository is in an organization (paid),
-  and a publish-lane diet (the nightly job's `generate --verify` repeats what the same run's lint
-  job already proved).
+- **Vertical-slice layout**
+  ([#173](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/173)): the folders become
+  vertical slices in pure-rename slices scheduled around the other work. The public namespaces and
+  the public API do not change.
+- **MCP server** in its own repository (ADR-0030), a thin adapter over the published SDK. The
+  namespace decision keeps the public namespaces, so code against the SDK can start.
+- **Milestone `1.1`** holds the work deferred from `1.0.0`, one issue each, and a lane takes an
+  item early when it is idle and the item conflicts with nothing:
+  - the maintainability areas the 1.0 review leaves, test categorization among them
+    ([#201](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/201));
+  - references that point one way: about 170 comments in source, tools, tests, and workflows still
+    cite documentation, against `engineering/documentation.md`
+    ([#202](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/202));
+  - the dependency trigger: a `Microsoft.OpenApi` release that carries
+    [microsoft/OpenAPI.NET#3108](https://github.com/microsoft/OpenAPI.NET/pull/3108), the fix for
+    [#3101](https://github.com/microsoft/OpenAPI.NET/issues/3101) that this repository reported,
+    lets the generator drop its own timeout-free components-key rule; the bump first confirms in
+    the shipped assembly that the generated key regex never checks its timeout
+    ([#211](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/211));
+  - operations: automation for the upstream observation lanes and the nightly source-run canary
+    ([#205](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/205)), Restore-patch
+    retirement ([#56](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/56)), the
+    operation inventory and assurance ledger, a contract test for every status arm the pinned
+    document declares (ADR-0022,
+    [#206](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/206)), larger CI runners
+    ([#207](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/207)), and a publish-lane
+    diet ([#208](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/208)). A quarantine
+    lane is not planned: a flaky test is fixed at its root cause
+    ([#217](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/217)).
 
 ## After 1.0
 
-- Retry, telemetry, and hooks themselves, added through the extension points `1.0.0` fixes.
+- Retry, telemetry, and hooks themselves, added through the extension points `1.0.0` fixes
+  ([#199](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/199)).
 - A Hosting package, if a concrete consumer — the MCP server or a first external host — needs
   host-owned process lifecycle.
 - Research: turning the service's remote access on and off from .NET. Upstream exposes it only
@@ -155,9 +174,10 @@ These do not block `1.0.0` and run beside the road.
   Upstream has no production caller that passes `after`, so this SDK is the path's first consumer.
 - **OpenAPI projection fidelity** — the pinned document loses detail upstream's implementation
   carries. Confirmed losses are reported upstream
-  ([anomalyco/opencode#44911](https://github.com/anomalyco/opencode/issues/44911), restored by the
-  proposed [PR #45182](https://github.com/anomalyco/opencode/pull/45182)); further candidates are
-  parked for filing at the maintainer's choosing — off-convention `persistentPty.*` operation ids,
+  ([anomalyco/opencode#44911](https://github.com/anomalyco/opencode/issues/44911); the restoring
+  [PR #45182](https://github.com/anomalyco/opencode/pull/45182) closed unmerged on 2026-09-26);
+  further candidates are parked for filing at the maintainer's choosing
+  ([#212](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/212)) — off-convention `persistentPty.*` operation ids,
   a missing security-scheme declaration, 25 lost `Config.Info` descriptions, an undeclared header
   value, a numeric range and a file path both invisible behind bare strings, a WebSocket close code
   overloaded across two causes, and two declared arms the handler cannot produce. Findings stay
@@ -225,8 +245,7 @@ These do not block `1.0.0` and run beside the road.
   place this one layer above their core client, which does not reconnect either
   (`packages/client/src/solid/connection.ts`: two-second connect, forty-five-second idle abort,
   one-second reconnect delay, and an authoritative refetch once reconnected).
-- **Live tests are serialized by one mutex within a host** ([#83](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/83)):
-  every live class that shares a server carries the `ServerProcess` key, and the classes whose
+- **Live tests are serialized by one mutex within a host:** every live class that shares a server carries the `ServerProcess` key, and the classes whose
   assertions ride a wall-clock bound run keyless `[NotInParallel]`, so a host's live tests run one
   at a time. The part of that serial tail a key could shorten measured under 30 s of a Windows
   run, whose critical path is the build, so it is not queued. Bounded parallelism
@@ -241,19 +260,19 @@ These do not block `1.0.0` and run beside the road.
   enumeration; and the public API baseline renders `typeof(X)` attribute arguments as `typeof(X?)`
   on interfaces whose members are mostly nullable — a PublicApiGenerator artifact of the
   compiler's nullable-context compression, harmless and stable, to be normalized in the baseline
-  test and reported upstream.
+  test and reported upstream
+  ([#203](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/203)).
 - **Three one-off test failures were seen once each and never reproduced.** No runner named a test
   and re-runs of the same binaries were green, so this is a measurement gap rather than a known
   defect: run the gates with `--report-trx --report-trx-filename <unique>` so a recurrence names it.
 - **The Windows launcher's handle test measures the whole process.**
   `StartAsync_Should_Leave_No_Handle_Behind_Across_Starts_And_Releases` bounds
   `Process.HandleCount` across start and release rounds, and that count includes the runtime's own
-  thread churn: each thread-pool or tiered-compilation worker adds three handles. It failed once on
-  CI (a delta of 6 against a bound of 5) and passed on rerun; measured locally, the handle kinds the
-  launcher creates showed a net delta of exactly zero, so no SDK leak is known. The fix is designed
-  and parked in internal research (2026-10-13, Windows handle-cycles failure): count only the
-  launcher's handle kinds and require an exact match with the warm-up round. Reopens if the test
-  fails again.
+  thread churn: each thread-pool or tiered-compilation worker adds three handles. It failed twice on
+  CI (a delta of 6 against a bound of 5, passing on rerun); measured locally, the handle kinds the
+  launcher creates showed a net delta of exactly zero, so no SDK leak is known. The fix counts only
+  the launcher's handle kinds and requires an exact match with the warm-up round
+  ([#169](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/169)).
 - **CodeQL analyses C# without a build.** Code scanning runs on default setup, which extracts C#
   in `build-mode: none`. That leaves the database under CodeQL's own confidence thresholds — 83% of
   calls resolve to a target against a threshold of 85%, and 89% of expressions carry a known type
@@ -261,7 +280,8 @@ These do not block `1.0.0` and run beside the road.
   repository commits a large generated surface. No alert is open, so the gap is possible false
   negatives rather than a known defect. Closing it means retiring default setup for an advanced
   `codeql.yml` that builds: full type resolution, bought with a workflow whose failure would stop
-  scanning silently rather than loudly.
+  scanning silently rather than loudly
+  ([#209](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/209)).
 - **`BuildOs`/`BuildArch` in `Directory.Build.props`** need their values adapted to opencode's
   release-asset naming when the binary-download need lands. `BuildOs == 'windows'` already adds the
   net472 test targets, and opencode's assets use the same `windows` name.
