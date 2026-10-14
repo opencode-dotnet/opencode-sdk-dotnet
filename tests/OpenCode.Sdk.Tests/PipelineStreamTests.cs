@@ -283,7 +283,7 @@ public sealed class PipelineStreamTests
             .That(async () => _ = await CollectAsync(pipeline))
             .Throws<OpenCodeStreamFailureException>();
 
-        var cause = (TestStreamFailureCause)exception!.Cause.Single();
+        var cause = (TestStreamFailureCause)exception!.Causes.Single();
         await Assert.That(cause.Tag).IsEqualTo("Die");
         await Assert.That(cause.Detail).IsEqualTo("boom");
     }

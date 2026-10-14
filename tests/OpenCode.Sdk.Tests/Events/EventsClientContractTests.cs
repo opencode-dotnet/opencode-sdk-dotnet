@@ -51,7 +51,7 @@ public sealed class EventsClientContractTests
             .That(async () => _ = await CollectAsync(scenario))
             .Throws<OpenCodeStreamFailureException>();
 
-        var cause = (StreamFailureCauseDie)exception!.Cause.Single();
+        var cause = (StreamFailureCauseDie)exception!.Causes.Single();
         await Assert.That(cause.Defect.ValueKind).IsEqualTo(JsonValueKind.String);
         await Assert.That(cause.Defect.GetString()).IsEqualTo("boom");
     }

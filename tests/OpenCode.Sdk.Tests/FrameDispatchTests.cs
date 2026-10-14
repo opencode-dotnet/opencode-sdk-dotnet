@@ -27,7 +27,7 @@ public sealed class FrameDispatchTests
         var exception = Assert.Throws<OpenCodeStreamFailureException>(
             () => _ = FrameDispatch.ReadPayload(frame, new TestStreamAdapter()));
 
-        var cause = (TestStreamFailureCause)exception.Cause.Single();
+        var cause = (TestStreamFailureCause)exception.Causes.Single();
         await Assert.That(cause.Tag).IsEqualTo("Die");
         await Assert.That(cause.Detail).IsEqualTo("boom");
     }

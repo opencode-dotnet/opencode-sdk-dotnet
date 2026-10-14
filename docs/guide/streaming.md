@@ -202,7 +202,7 @@ try
 }
 catch (OpenCodeStreamFailureException failure)
 {
-    Console.WriteLine($"the server ended the stream: {failure.Cause.Count} declared cause(s)");
+    Console.WriteLine($"the server ended the stream: {failure.Causes.Count} declared cause(s)");
 }
 catch (OpenCodeTransportException transport)
 {
@@ -211,7 +211,7 @@ catch (OpenCodeTransportException transport)
 ```
 
 - `OpenCodeStreamFailureException` means the **server** ended the stream with a declared failure
-  frame; its `Cause` collection carries the typed causes and is never null.
+  frame; its `Causes` collection carries the typed causes and is never null.
 - `OpenCodeTransportException` — its base class — covers everything else: a broken connection, a
   body cut mid-event, an undecodable frame, a stalled read. Catching the base handles both.
 - `OperationCanceledException` stays itself. Your cancellation is never repackaged as a failure.

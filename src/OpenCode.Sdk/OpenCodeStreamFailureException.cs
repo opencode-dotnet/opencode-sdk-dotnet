@@ -5,41 +5,41 @@ namespace OpenCode.Sdk;
 /// <summary>Represents a schema-valid failure reported after an opencode event stream opened.</summary>
 public sealed class OpenCodeStreamFailureException : OpenCodeTransportException
 {
-    private static readonly IReadOnlyList<IOpenCodeStreamFailureCause> EmptyCause =
+    private static readonly IReadOnlyList<IOpenCodeStreamFailureCause> EmptyCauses =
         Array.AsReadOnly(Array.Empty<IOpenCodeStreamFailureCause>());
 
-    /// <summary>Initializes an exception with an empty cause.</summary>
+    /// <summary>Initializes an exception with no causes.</summary>
     public OpenCodeStreamFailureException()
     {
-        Cause = EmptyCause;
+        Causes = EmptyCauses;
     }
 
-    /// <summary>Initializes an exception with a message and an empty cause.</summary>
+    /// <summary>Initializes an exception with a message and no causes.</summary>
     /// <param name="message">The failure description.</param>
     public OpenCodeStreamFailureException(string message)
         : base(message)
     {
-        Cause = EmptyCause;
+        Causes = EmptyCauses;
     }
 
-    /// <summary>Initializes an exception with a message, underlying failure, and empty cause.</summary>
+    /// <summary>Initializes an exception with a message, underlying failure, and no causes.</summary>
     /// <param name="message">The failure description.</param>
     /// <param name="innerException">The underlying failure.</param>
     public OpenCodeStreamFailureException(string message, Exception innerException)
         : base(message, innerException)
     {
-        Cause = EmptyCause;
+        Causes = EmptyCauses;
     }
 
-    /// <summary>Initializes an exception with the cause reported by the stream.</summary>
-    /// <param name="cause">The typed reasons reported by the reserved failure frame.</param>
-    public OpenCodeStreamFailureException(IReadOnlyList<IOpenCodeStreamFailureCause> cause)
+    /// <summary>Initializes an exception with the causes reported by the stream.</summary>
+    /// <param name="causes">The typed reasons reported by the reserved failure frame.</param>
+    public OpenCodeStreamFailureException(IReadOnlyList<IOpenCodeStreamFailureCause> causes)
         : base("The opencode event stream reported a failure after it opened.")
     {
-        ArgumentNullException.ThrowIfNull(cause);
-        Cause = cause;
+        ArgumentNullException.ThrowIfNull(causes);
+        Causes = causes;
     }
 
     /// <summary>Gets the typed reasons reported by the stream.</summary>
-    public IReadOnlyList<IOpenCodeStreamFailureCause> Cause { get; }
+    public IReadOnlyList<IOpenCodeStreamFailureCause> Causes { get; }
 }

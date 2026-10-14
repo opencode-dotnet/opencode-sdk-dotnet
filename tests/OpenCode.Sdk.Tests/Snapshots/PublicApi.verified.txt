@@ -1083,10 +1083,10 @@ namespace OpenCode.Sdk
     public sealed class OpenCodeStreamFailureException : OpenCode.Sdk.OpenCodeTransportException
     {
         public OpenCodeStreamFailureException() { }
-        public OpenCodeStreamFailureException(System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.IOpenCodeStreamFailureCause> cause) { }
+        public OpenCodeStreamFailureException(System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.IOpenCodeStreamFailureCause> causes) { }
         public OpenCodeStreamFailureException(string message) { }
         public OpenCodeStreamFailureException(string message, System.Exception innerException) { }
-        public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.IOpenCodeStreamFailureCause> Cause { get; }
+        public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.IOpenCodeStreamFailureCause> Causes { get; }
     }
     public class OpenCodeTransportException : OpenCode.Sdk.OpenCodeException
     {
@@ -1239,11 +1239,12 @@ namespace OpenCode.Sdk
     }
     public sealed class PersistentPtyReplayBounds : System.IEquatable<OpenCode.Sdk.PersistentPtyReplayBounds>
     {
-        public PersistentPtyReplayBounds(long RequestedOffset, long AvailableOffset, long EndOffset, bool Truncated) { }
+        public PersistentPtyReplayBounds(long requestedOffset, long availableOffset, long endOffset, bool truncated) { }
         public long AvailableOffset { get; init; }
         public long EndOffset { get; init; }
         public long RequestedOffset { get; init; }
         public bool Truncated { get; init; }
+        public void Deconstruct(out long requestedOffset, out long availableOffset, out long endOffset, out bool truncated) { }
     }
     public sealed class PersistentPtyReplayCompleteFrame : OpenCode.Sdk.PersistentPtyFrame
     {
