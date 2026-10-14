@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Xml.Linq;
+using CliWrap;
 using OpenCode.Sdk.Tools.Generator.Refresh;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions;
@@ -213,7 +214,7 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
 
         var publishDirectory = FileSystem.Path.Combine(directory, "publish");
         // No quiet flags here: the trim and AOT warning codes in the output are what the tests read.
-        var published = await RunAsync(
+        var published = await PublishAsync(
             ["publish", project, "-nologo", "--configuration", "Release",
                 "--runtime", RuntimeInformation.RuntimeIdentifier,
                 "--output", publishDirectory,
@@ -301,6 +302,37 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
         return line is null
             ? throw new InvalidOperationException("The global packages folder could not be read:\n" + listed.Text)
             : line[prefix.Length..].Trim();
+    }
+
+    /// <summary>
+    /// Runs the native AOT publish. On Windows, ILC locates the linker through Visual Studio's
+    /// vcvarsall, and the Visual Studio 2026 one calls vswhere by name, so a PATH without the
+    /// installer's folder leaves vswhere's error text inside the linker command line. The publish
+    /// therefore gets vswhere's documented fixed folder on its PATH, whatever the caller's PATH is;
+    /// nothing else about its environment changes.
+    /// </summary>
+    private static async Task<(int ExitCode, string Text)> PublishAsync(IReadOnlyList<string> arguments, string workingDirectory, CancellationToken cancellationToken)
+    {
+        var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+        var installer = FileSystem.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft Visual Studio", "Installer");
+        if (OperatingSystem.IsWindows() && FileSystem.Directory.Exists(installer))
+        {
+            path = installer + FileSystem.Path.PathSeparator + path;
+        }
+
+        var standardOutput = new StringBuilder();
+        var standardError = new StringBuilder();
+        var result = await Cli.Wrap("dotnet")
+            .WithArguments(arguments)
+            .WithWorkingDirectory(workingDirectory)
+            .WithEnvironmentVariables(environment => environment.Set("PATH", path))
+            .WithStandardOutputPipe(PipeTarget.ToStringBuilder(standardOutput))
+            .WithStandardErrorPipe(PipeTarget.ToStringBuilder(standardError))
+            .WithValidation(CommandResultValidation.None)
+            .ExecuteAsync(cancellationToken)
+            .ConfigureAwait(false);
+        return (result.ExitCode, standardOutput.ToString() + standardError);
     }
 
     private async Task<(int ExitCode, string Text)> RunAsync(IReadOnlyList<string> arguments, string workingDirectory, CancellationToken cancellationToken = default)
