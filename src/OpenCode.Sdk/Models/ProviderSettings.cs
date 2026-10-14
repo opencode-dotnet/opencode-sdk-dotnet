@@ -46,6 +46,13 @@ public sealed record ProviderSettings
     public ProviderTransport? Transport { get; init; }
 
     /// <summary>
+    /// Gets the encoding value.
+    /// </summary>
+    [JsonPropertyName("encoding")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ProviderEncoding? Encoding { get; init; }
+
+    /// <summary>
     /// Gets the members the pinned document leaves open, keyed by wire name; empty when the body carried none.
     /// </summary>
     [JsonIgnore]
@@ -69,5 +76,5 @@ public sealed record ProviderSettings
     /// <summary>
     /// Prints the record&apos;s members with its secret members masked.
     /// </summary>
-    public override string ToString() => RecordPrinter.Format(nameof(ProviderSettings), ("Timeout", Timeout), ("HeaderTimeout", HeaderTimeout), ("ChunkTimeout", ChunkTimeout), ("Compaction", Compaction), ("Transport", Transport), ("AdditionalProperties", RecordPrinter.RedactEntries(AdditionalProperties)));
+    public override string ToString() => RecordPrinter.Format(nameof(ProviderSettings), ("Timeout", Timeout), ("HeaderTimeout", HeaderTimeout), ("ChunkTimeout", ChunkTimeout), ("Compaction", Compaction), ("Transport", Transport), ("Encoding", Encoding), ("AdditionalProperties", RecordPrinter.RedactEntries(AdditionalProperties)));
 }

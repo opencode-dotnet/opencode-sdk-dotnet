@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "upstreamCommit": "1f4d07a4a519185955ae8ab2ea3607805509e386",
-  "rawDocumentSha256": "9f3ad7980cadf772700c20a363800bee36aa20e1446eaf4db993e8bd9ce777f4",
-  "generatedBaselineSha256": "9f3ad7980cadf772700c20a363800bee36aa20e1446eaf4db993e8bd9ce777f4",
+  "upstreamCommit": "026b106bc5d41b679ffc413264229c340871e4d3",
+  "rawDocumentSha256": "7ec8b0a3ccf4b5161be5b49947e306f02cb04662048d796bd03bce905a84f109",
+  "generatedBaselineSha256": "0257b7d1e17471212a1759b17782ffc582cd8b76db03588a0887873861e9e898",
   "patches": [
     {
       "manifest": "001-restore-sse-payloads.json",
@@ -19,13 +19,13 @@
       ]
     }
   ],
-  "normalizedDocumentSha256": "73ca6140abde550dc7004c62f00da3839875645e99cb483af6d2888a8e4d632d",
+  "normalizedDocumentSha256": "f675d6be98ac15ff1fd11f318ea90ec38aa714ec39651d5261bf3f472564d213",
   "normalizedDocumentPath": null,
   "operationSetDigest": "b1752db03ff7c451bc1674c7aba69300b29939b64111a37ef7adeaa9eaa6b511",
   "operationCount": 142,
   "addedOperations": [],
   "removedOperations": [],
-  "componentCount": 415,
+  "componentCount": 418,
   "contentSchemaCount": 2,
   "watchedSources": [
     {
@@ -115,12 +115,12 @@
     },
     {
       "path": "packages/cli/package.json",
-      "sha256": "e13ad5918040bb0c19aa4683bf93cc857112c53043785e2264d04371cc617b54",
+      "sha256": "e1455a6a43b2200cc7ec67a5e58373c1a3cd3707557b174bdfdd4311b7493b5c",
       "anchorMatched": true
     },
     {
       "path": "packages/core/package.json",
-      "sha256": "bee94740e4c561259bac1d2909d5bded552e9f6d5ea0086420470a6988de85b9",
+      "sha256": "cc5b24afc13e59bf8c25aceee37ad2327bf1233d291313b3c4dfa2548ce05ba8",
       "anchorMatched": true
     },
     {
@@ -140,7 +140,7 @@
     },
     {
       "path": "packages/core/src/ripgrep/binary.ts",
-      "sha256": "49900f7647db6b720ff80451c69f92824184266fb61d8e65e0bcfa8781062005",
+      "sha256": "b828ed2c9c87a701b7118cb15eb97553c5e862b7bae32dc923248eb0686b6b78",
       "anchorMatched": true
     },
     {
@@ -270,7 +270,7 @@
     },
     {
       "path": "packages/cli/src/version.ts",
-      "sha256": "91bc229970b2ddf688f2aa5b3e582229b8ac600a5232af1d8d4e4171a3757ab2",
+      "sha256": "035ff5714f07e40ffc9011d5929bb3cd41fd892e471cfb64c3aa9b590efffc19",
       "anchorMatched": true
     },
     {
@@ -335,7 +335,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "220edd68bd0ca2c70ef83c7dcb13b88acefaafb63320c18d1b914066c34913f7",
+      "sha256": "8e236aee8b2338212f4fb9184f6d9f811f79e99bfbc4d38a57750ee2332acd8c",
       "anchorMatched": true
     },
     {

@@ -2830,6 +2830,9 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("compaction")]
         public OpenCode.Sdk.Models.IProviderCompaction? Compaction { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("encoding")]
+        public OpenCode.Sdk.Models.ProviderEncoding? Encoding { get; init; }
         public override string ToString() { }
     }
     public sealed class ConfigModelVariants : System.IEquatable<OpenCode.Sdk.Models.ConfigModelVariants>
@@ -2867,6 +2870,9 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("canonical")]
         public string? Canonical { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("compatibility")]
+        public OpenCode.Sdk.Models.ProviderCompatibility? Compatibility { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("env")]
         public System.Collections.Generic.IReadOnlyList<string>? Env { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -2897,6 +2903,9 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("compaction")]
         public OpenCode.Sdk.Models.IProviderCompaction? Compaction { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("encoding")]
+        public OpenCode.Sdk.Models.ProviderEncoding? Encoding { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("headerTimeout")]
         public OpenCode.Sdk.Models.ConfigProviderSettingsHeaderTimeout? HeaderTimeout { get; init; }
@@ -5107,6 +5116,14 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("_tag")]
         public string Tag { get; }
     }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ModelCacheFormat>))]
+    public enum ModelCacheFormat
+    {
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("anthropic")]
+        Anthropic = 0,
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("alibaba")]
+        Alibaba = 1,
+    }
     public sealed class ModelCapabilities : System.IEquatable<OpenCode.Sdk.Models.ModelCapabilities>
     {
         public ModelCapabilities() { }
@@ -5120,6 +5137,9 @@ namespace OpenCode.Sdk.Models
     public sealed class ModelCompatibility : System.IEquatable<OpenCode.Sdk.Models.ModelCompatibility>
     {
         public ModelCompatibility() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("cacheFormat")]
+        public OpenCode.Sdk.Models.ModelCacheFormat? CacheFormat { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("maxTokensField")]
         public OpenCode.Sdk.Models.ModelMaxTokensField? MaxTokensField { get; init; }
@@ -5278,6 +5298,9 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("compaction")]
         public OpenCode.Sdk.Models.IProviderCompaction? Compaction { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("encoding")]
+        public OpenCode.Sdk.Models.ProviderEncoding? Encoding { get; init; }
         public override string ToString() { }
     }
     public sealed class ModelUpdated : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.ModelUpdated>
@@ -6074,6 +6097,41 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
+    public sealed class ProviderCompatibility : System.IEquatable<OpenCode.Sdk.Models.ProviderCompatibility>
+    {
+        public ProviderCompatibility() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("cacheFormat")]
+        public OpenCode.Sdk.Models.ModelCacheFormat? CacheFormat { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("maxTokensField")]
+        public OpenCode.Sdk.Models.ModelMaxTokensField? MaxTokensField { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("reasoningField")]
+        public string? ReasoningField { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("requireAssistantAfterTool")]
+        public bool? RequireAssistantAfterTool { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("requireFinishReason")]
+        public bool? RequireFinishReason { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("requireReasoning")]
+        public bool? RequireReasoning { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("supportsPromptCacheKey")]
+        public bool? SupportsPromptCacheKey { get; init; }
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ProviderEncoding>))]
+    public enum ProviderEncoding
+    {
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("zstd")]
+        Zstd = 0,
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("gzip")]
+        Gzip = 1,
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("none")]
+        None = 2,
+    }
     public sealed class ProviderInfo : System.IEquatable<OpenCode.Sdk.Models.ProviderInfo>
     {
         public ProviderInfo() { }
@@ -6085,6 +6143,9 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("canonical")]
         public string? Canonical { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("compatibility")]
+        public OpenCode.Sdk.Models.ProviderCompatibility? Compatibility { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("headers")]
         public System.Collections.Generic.IReadOnlyDictionary<string, string>? Headers { get; init; }
@@ -6144,6 +6205,9 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("compaction")]
         public OpenCode.Sdk.Models.IProviderCompaction? Compaction { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("encoding")]
+        public OpenCode.Sdk.Models.ProviderEncoding? Encoding { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("headerTimeout")]
         public OpenCode.Sdk.Models.ProviderSettingsHeaderTimeout? HeaderTimeout { get; init; }

@@ -28,19 +28,21 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   targets. Linux and macOS live verification also passed on net8/net9/net10, including the persistent daemon
   round trip and normal PTY reuse after read cancellation. `architecture/client-runtime.md` and
   ADR-0023 own the contract.
-- **2.0.27 refresh** — the accepted pin follows upstream's release tags, now `v2.0.27`, with no
-  compatibility layer between them. 2.0.27 adds no operation; `project.list` takes an `archived`
-  filter, a project records when it was archived, and an idle message carries the error of a failed
-  turn. Upstream moved to Effect 4.0.1: the stream failure frame is `effect/http-api/stream/failure`,
-  a struct with no declared fields renders as `not: {"type":"null"}` and binds as before, branded
-  identifiers become named components that bind as their strings, and the SSE frame's `id` is
-  optional. The union first-match oracle reproduces its verdicts under 4.0.1. Upstream's committed
-  OpenAPI document now matches its own generator; the snapshot is still produced by upstream's
-  pinned generator, never copied (ADR-0020). Every watched input under the hand-written doors was
-  reviewed: the service config gains `remoteAccepted`, which the strict reader validates as
-  upstream decodes it; the PTY connection loop now writes its close frame through the one outbound
-  queue, and a server that ends a terminal connection without one closes it with 1001 or 1011,
-  which the SDK reports as an abnormal close, as upstream's own terminal clients do.
+- **2.0.28 refresh** — the accepted pin follows upstream's release tags, now `v2.0.28`, with no
+  compatibility layer between them. 2.0.28 adds and changes no operation: a provider carries the
+  compatibility defaults its models inherit, a model's compatibility names the prompt-cache marker
+  format its endpoint accepts, and provider and model settings name a request-body encoding.
+  Upstream generates with Effect 4.0.1: the stream failure frame is
+  `effect/http-api/stream/failure`, a struct with no declared fields renders as
+  `not: {"type":"null"}`, branded identifiers are named components that bind as their strings, and
+  the SSE frame's `id` is optional; the union first-match oracle reproduces its verdicts under
+  4.0.1. Upstream's committed OpenAPI document is stale against its own generator at this tag: it
+  lacks `Provider.Encoding` and the four `encoding` settings members
+  ([anomalyco/opencode#53105](https://github.com/anomalyco/opencode/issues/53105)), so the
+  snapshot is produced by upstream's pinned generator, never copied (ADR-0020). Every watched input
+  under the hand-written doors was reviewed; the five that moved — three package manifests'
+  version bumps, the CLI's version module, and ripgrep's Windows archive extraction — leave the
+  behaviour the doors read unchanged.
   Each refresh's CI run qualifies every leg at its pin: Windows on `net472`, `net8.0`, `net9.0`, and
   `net10.0`, Linux and macOS on `net8.0`, `net9.0`, and `net10.0`, with regeneration and receipt
   verification passing.

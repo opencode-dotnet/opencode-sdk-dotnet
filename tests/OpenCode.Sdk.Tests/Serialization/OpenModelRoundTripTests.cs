@@ -42,6 +42,19 @@ public sealed class OpenModelRoundTripTests
         await AssertRoundTripAsync(json, _serializer.Serialize(settings));
     }
 
+    /// <summary>A member the document names is read into its property and never into the open view.</summary>
+    [Test]
+    public async Task ProviderSettings_Should_Read_Encoding_Into_Its_Named_Member()
+    {
+        const string json = """{"encoding":"gzip","baseURL":"https://llm.example.test"}""";
+
+        var settings = _serializer.Deserialize<ProviderSettings>(json);
+
+        await Assert.That(settings.Encoding).IsEqualTo(ProviderEncoding.Gzip);
+        await Assert.That(settings.AdditionalProperties.Keys).IsEquivalentTo(["baseURL"]);
+        await AssertRoundTripAsync(json, _serializer.Serialize(settings));
+    }
+
     [Test]
     public async Task ModelSettings_Should_Keep_Open_Members_Through_A_Round_Trip()
     {

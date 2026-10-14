@@ -39,6 +39,13 @@ public sealed record ConfigProvider
     public string? Package { get; init; }
 
     /// <summary>
+    /// Gets the compatibility value.
+    /// </summary>
+    [JsonPropertyName("compatibility")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ProviderCompatibility? Compatibility { get; init; }
+
+    /// <summary>
     /// Gets the settings value.
     /// </summary>
     [JsonPropertyName("settings")]
@@ -69,5 +76,5 @@ public sealed record ConfigProvider
     /// <summary>
     /// Prints the record&apos;s members with its secret members masked.
     /// </summary>
-    public override string ToString() => RecordPrinter.Format(nameof(ConfigProvider), ("Canonical", Canonical), ("Name", Name), ("Env", Env), ("Package", Package), ("Settings", Settings), ("Headers", RecordPrinter.Redact(Headers)), ("Body", Body), ("Models", Models));
+    public override string ToString() => RecordPrinter.Format(nameof(ConfigProvider), ("Canonical", Canonical), ("Name", Name), ("Env", Env), ("Package", Package), ("Compatibility", Compatibility), ("Settings", Settings), ("Headers", RecordPrinter.Redact(Headers)), ("Body", Body), ("Models", Models));
 }
