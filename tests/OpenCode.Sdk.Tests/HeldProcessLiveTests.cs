@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.TestSupport;
+using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
 
 namespace OpenCode.Sdk.Tests;
@@ -56,6 +57,48 @@ public sealed class HeldProcessLiveTests
         finally
         {
             _ = BestEffortDelete.TryDeleteTree(_fileSystem, directory);
+        }
+    }
+
+    /// <summary>
+    /// A held process released while its wait is still registered: the wait owns its own handle, so
+    /// the thread pool's wait thread, made to wait again by a second registration, never waits on a
+    /// closed handle, which would end this host, and the wait still reports the process's end.
+    /// </summary>
+    [Test]
+    [Timeout(60_000)]
+    public async Task WaitForTerminationAsync_Should_Survive_The_Process_Being_Released_While_It_Waits(CancellationToken cancellationToken)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            BranchReport.Print("POSIX — the wait observes the pid; no handle is registered");
+            return;
+        }
+
+        using var child = Process.Start(new ProcessStartInfo(_fileSystem.Path.Combine(Environment.SystemDirectory, "ping.exe"))
+        {
+            ArgumentList = { "-n", "120", "127.0.0.1" },
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+        })!;
+        var mark = ProcessMark.TryRead(_fileSystem, child.Id);
+        await Assert.That(mark).IsNotNull();
+        var held = HeldProcess.TryHold(_fileSystem, mark!.Value);
+        await Assert.That(held).IsNotNull();
+
+        var ended = held!.WaitForTerminationAsync(TerminationBound, cancellationToken);
+        held.Dispose();
+        using var other = new ManualResetEvent(initialState: false);
+        var waitAgain = ThreadPool.RegisterWaitForSingleObject(other, static (_, _) => { }, state: null, Timeout.Infinite, executeOnlyOnce: true);
+        try
+        {
+            child.Kill();
+
+            await Assert.That(await ended).IsTrue();
+        }
+        finally
+        {
+            _ = waitAgain.Unregister(null);
         }
     }
 
