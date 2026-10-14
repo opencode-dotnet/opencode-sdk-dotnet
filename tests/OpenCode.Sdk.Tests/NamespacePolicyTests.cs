@@ -49,14 +49,6 @@ public sealed class NamespacePolicyTests
     }
 
     [Test]
-    public async Task InternalFilesInPublicFolders_Should_Each_Still_Exist()
-    {
-        var stale = SdkNamespacePolicy.StaleInternalFilesInPublicFolders(await new SdkSourceTree().LoadAsync());
-
-        await Assert.That(stale).IsEmpty();
-    }
-
-    [Test]
     [Arguments(PublicFolderFile, PublicNamespace)]
     [Arguments(ModelsFolderFile, ModelsNamespace)]
     public async Task Violation_Should_Admit_A_Public_Folder_File_When_It_Declares_A_Public_Namespace_And_Public_Types(

@@ -39,18 +39,6 @@ internal static class SdkNamespacePolicy
         "Internal/Windows", // Hosting platform interop
     ];
 
-    /// <summary>
-    /// Gets the internal raw clients that still sit in their family's public folder. They move under
-    /// the family's <c>Internal/</c> folder when the generated files move, and their rows go with them.
-    /// </summary>
-    public static IReadOnlyList<string> InternalFilesInPublicFolders { get; } =
-    [
-        "PersistentPtys/PersistentPtyRawClient.cs",
-        "PersistentPtys/PersistentPtysRawClient.cs",
-        "Ptys/PtyRawClient.cs",
-        "Ptys/PtysRawClient.cs",
-    ];
-
     /// <summary>Returns why <paramref name="file"/> breaks the rule, or <see langword="null"/> when it keeps it.</summary>
     public static string? Violation(SdkSourceFile file)
     {
@@ -65,9 +53,7 @@ internal static class SdkNamespacePolicy
             return $"{file.RelativePath}: declares no file-scoped namespace or no top-level type";
         }
 
-        var internalFile = file.Folders.Contains(InternalFolder, StringComparer.Ordinal)
-                           || InternalFilesInPublicFolders.Contains(file.RelativePath, StringComparer.Ordinal);
-        return internalFile
+        return file.Folders.Contains(InternalFolder, StringComparer.Ordinal)
             ? InternalFileViolation(file, declaredNamespace, declarations.TopLevelTypes)
             : PublicFileViolation(file.RelativePath, declaredNamespace, declarations.TopLevelTypes);
     }
@@ -81,14 +67,6 @@ internal static class SdkNamespacePolicy
             .ToArray();
 
         return [.. LegacyNamespaceFolders.Where(folder => !legacyPaths.Any(path => IsUnder(path, folder)))];
-    }
-
-    /// <summary>Returns the listed internal files in public folders that no longer exist.</summary>
-    public static IReadOnlyList<string> StaleInternalFilesInPublicFolders(IEnumerable<SdkSourceFile> files)
-    {
-        var paths = files.Select(static file => file.RelativePath).ToHashSet(StringComparer.Ordinal);
-
-        return [.. InternalFilesInPublicFolders.Where(path => !paths.Contains(path))];
     }
 
     /// <summary>Reads the file-scoped namespace and the top-level types a file declares.</summary>

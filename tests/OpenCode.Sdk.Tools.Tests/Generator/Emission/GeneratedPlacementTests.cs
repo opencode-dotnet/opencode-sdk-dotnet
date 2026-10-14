@@ -19,19 +19,19 @@ public sealed class GeneratedPlacementTests
     private const string UnplacedName = "SessionStray";
 
     [Test]
-    [Arguments("Model", SessionsSlice, null, SessionInfo, "Models/SessionInfo.cs")]
-    [Arguments("Model", SessionsSlice, MessagesArea, SessionMessage, "Models/SessionMessage.cs")]
-    [Arguments("Model", TypeHome.CommonSlice, null, "NotFoundError", "Models/NotFoundError.cs")]
-    [Arguments("BodyRequest", SessionsSlice, null, SessionForkRequest, "Models/SessionForkRequest.cs")]
+    [Arguments("Model", SessionsSlice, null, SessionInfo, "Sessions/Models/SessionInfo.cs")]
+    [Arguments("Model", SessionsSlice, MessagesArea, SessionMessage, "Sessions/Models/Messages/SessionMessage.cs")]
+    [Arguments("Model", TypeHome.CommonSlice, null, "NotFoundError", "Common/Errors/NotFoundError.cs")]
+    [Arguments("BodyRequest", SessionsSlice, null, SessionForkRequest, "Sessions/SessionForkRequest.cs")]
     [Arguments("OperationRecord", SessionsSlice, null, "SessionListRequest", "Sessions/SessionListRequest.cs")]
     [Arguments("Client", SessionsSlice, null, "SessionsClient", "Sessions/SessionsClient.cs")]
-    [Arguments("RawClient", "Ptys", null, "PtysRawClient", "Ptys/PtysRawClient.cs")]
+    [Arguments("RawClient", "Ptys", null, "PtysRawClient", "Ptys/Internal/PtysRawClient.cs")]
     [Arguments("RootClient", null, null, "OpenCodeClient", "OpenCodeClient.cs")]
     [Arguments("Routes", SessionsSlice, null, "OpenCodeRoutes", "Sessions/OpenCodeRoutes.Sessions.cs")]
-    [Arguments("ModelConverter", SessionsSlice, MessagesArea, "PartJsonConverter", "Internal/Serialization/PartJsonConverter.cs")]
-    [Arguments("ResponseAdapter", "Agents", null, "AgentListResponseAdapter", "Internal/ResponseAdapters/AgentListResponseAdapter.cs")]
-    [Arguments("EnvelopeDto", SessionsSlice, null, "SessionGetEnvelopeDto", "Internal/Serialization/SessionGetEnvelopeDto.cs")]
-    [Arguments("StreamAdapter", "Events", null, "EventSubscribeStreamAdapter", "Internal/StreamAdapters/EventSubscribeStreamAdapter.cs")]
+    [Arguments("ModelConverter", SessionsSlice, MessagesArea, "PartJsonConverter", "Sessions/Internal/PartJsonConverter.cs")]
+    [Arguments("ResponseAdapter", "Agents", null, "AgentListResponseAdapter", "Agents/Internal/AgentListResponseAdapter.cs")]
+    [Arguments("EnvelopeDto", SessionsSlice, null, "SessionGetEnvelopeDto", "Sessions/Internal/SessionGetEnvelopeDto.cs")]
+    [Arguments("StreamAdapter", "Events", null, "EventSubscribeStreamAdapter", "Events/Internal/EventSubscribeStreamAdapter.cs")]
     [Arguments("SharedSerialization", null, null, "OpenCodeJsonContext", "Internal/Serialization/OpenCodeJsonContext.cs")]
     public async Task PathOf_Should_Place_Each_Kind_In_Its_Folder(string kindName, string? slice, string? area, string typeName,
         string expected)
@@ -63,9 +63,9 @@ public sealed class GeneratedPlacementTests
 
     /// <summary>The kind is pinned beside the path, so the body-request choice still shows once the two kinds' folders part.</summary>
     [Test]
-    [Arguments(SessionForkRequest, "BodyRequest", "Models/SessionForkRequest.cs")]
-    [Arguments(SessionInfo, "Model", "Models/SessionInfo.cs")]
-    [Arguments(SessionMessage, "Model", "Models/SessionMessage.cs")]
+    [Arguments(SessionForkRequest, "BodyRequest", "Sessions/SessionForkRequest.cs")]
+    [Arguments(SessionInfo, "Model", "Sessions/Models/SessionInfo.cs")]
+    [Arguments(SessionMessage, "Model", "Sessions/Models/Messages/SessionMessage.cs")]
     public async Task ModelPathOf_Should_Place_A_Body_Request_As_A_Body_Request_And_Every_Other_Name_As_A_Model(string typeName,
         string kindName, string expected)
     {
@@ -89,7 +89,7 @@ public sealed class GeneratedPlacementTests
 
     /// <summary>The converter's own name has no placement, so a path at all proves the union's home placed it.</summary>
     [Test]
-    [Arguments(SessionMessage, "SessionMessageJsonConverter", "Internal/Serialization/SessionMessageJsonConverter.cs")]
+    [Arguments(SessionMessage, "SessionMessageJsonConverter", "Sessions/Internal/SessionMessageJsonConverter.cs")]
     public async Task ConverterPathOf_Should_Place_A_Converter_By_The_Home_Of_Its_Union(string unionName, string converterName,
         string expected)
     {

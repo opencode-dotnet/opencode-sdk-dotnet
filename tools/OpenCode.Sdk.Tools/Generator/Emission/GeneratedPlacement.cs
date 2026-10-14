@@ -17,11 +17,10 @@ internal static class GeneratedPlacement
             GeneratedKind.RootClient => $"{typeName}.cs",
             GeneratedKind.SharedSerialization => $"Internal/Serialization/{typeName}.cs",
             GeneratedKind.Routes => $"{Slice(kind, owner)}/{typeName}.{Slice(kind, owner)}.cs",
-            GeneratedKind.Model or GeneratedKind.BodyRequest => ModelPath(kind, owner, typeName),
-            GeneratedKind.OperationRecord or GeneratedKind.Client or GeneratedKind.RawClient => $"{Slice(kind, owner)}/{typeName}.cs",
-            GeneratedKind.ModelConverter or GeneratedKind.EnvelopeDto => InternalPath(kind, owner, "Internal/Serialization", typeName),
-            GeneratedKind.ResponseAdapter => InternalPath(kind, owner, "Internal/ResponseAdapters", typeName),
-            GeneratedKind.StreamAdapter => InternalPath(kind, owner, "Internal/StreamAdapters", typeName),
+            GeneratedKind.Model => $"{ModelFolder(kind, owner)}/{typeName}.cs",
+            GeneratedKind.BodyRequest or GeneratedKind.OperationRecord or GeneratedKind.Client => $"{Slice(kind, owner)}/{typeName}.cs",
+            GeneratedKind.RawClient or GeneratedKind.ModelConverter or GeneratedKind.EnvelopeDto or GeneratedKind.ResponseAdapter
+                or GeneratedKind.StreamAdapter => $"{Slice(kind, owner)}/Internal/{typeName}.cs",
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown generated kind."),
         };
     }
@@ -41,16 +40,19 @@ internal static class GeneratedPlacement
         return PathOf(GeneratedKind.ModelConverter, placement.HomeOf(unionName), converterName);
     }
 
-    private static string ModelPath(GeneratedKind kind, TypeHome? owner, string typeName)
+    /// <summary>
+    /// A family's models live in its <c>Models/</c> folder, a Sessions model in its area's subfolder,
+    /// and the shared error spine in <c>Common/Errors/</c>.
+    /// </summary>
+    private static string ModelFolder(GeneratedKind kind, TypeHome? owner)
     {
-        _ = Slice(kind, owner);
-        return $"Models/{typeName}.cs";
-    }
+        var slice = Slice(kind, owner);
+        if (owner!.IsCommon)
+        {
+            return $"{TypeHome.CommonSlice}/Errors";
+        }
 
-    private static string InternalPath(GeneratedKind kind, TypeHome? owner, string sharedFolder, string typeName)
-    {
-        _ = Slice(kind, owner);
-        return $"{sharedFolder}/{typeName}.cs";
+        return owner.Area is null ? $"{slice}/Models" : $"{slice}/Models/{owner.Area}";
     }
 
     private static string Slice(GeneratedKind kind, TypeHome? owner) =>

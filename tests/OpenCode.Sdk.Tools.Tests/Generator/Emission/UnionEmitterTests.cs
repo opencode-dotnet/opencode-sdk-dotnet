@@ -38,7 +38,7 @@ public sealed class UnionEmitterTests
     public async Task Emit_Should_Dispatch_Literal_Tags_Then_The_Prefix_Arm_Then_The_Unknown_Carrier()
     {
         var sources = EmitUnionSnapshot();
-        var converter = EmitterSnapshot.Content(sources, "Internal/Serialization/ExampleEventJsonConverter.cs");
+        var converter = EmitterSnapshot.Content(sources, "Example/Internal/ExampleEventJsonConverter.cs");
 
         var known = converter.IndexOf("TryFindKnown(", StringComparison.Ordinal);
         var prefix = converter.IndexOf("marker.StartsWith(\"rpc.\", StringComparison.Ordinal)", StringComparison.Ordinal);
@@ -53,8 +53,8 @@ public sealed class UnionEmitterTests
     public async Task Emit_Should_Make_The_Unknown_Carrier_Refuse_A_Prefix_Claimed_Marker()
     {
         var sources = EmitUnionSnapshot();
-        var carrier = EmitterSnapshot.Content(sources, "Models/UnknownExampleEvent.cs");
-        var carrierConverter = EmitterSnapshot.Content(sources, "Internal/Serialization/UnknownExampleEventJsonConverter.cs");
+        var carrier = EmitterSnapshot.Content(sources, "Example/Models/UnknownExampleEvent.cs");
+        var carrierConverter = EmitterSnapshot.Content(sources, "Example/Internal/UnknownExampleEventJsonConverter.cs");
 
         await Assert.That(carrier).Contains("The 'type' marker is claimed by the 'rpc.' prefix-tagged arm and cannot be carried as unknown.");
         await Assert.That(carrierConverter).Contains("The ExampleEvent payload carries the 'rpc.' prefix-tagged arm and is not an unknown example event.");
@@ -64,7 +64,7 @@ public sealed class UnionEmitterTests
     public async Task Emit_Should_Leave_A_Union_Without_A_Prefix_Arm_Unchanged()
     {
         var sources = EmitUnionSnapshot();
-        var phase = EmitterSnapshot.Content(sources, "Internal/Serialization/ExamplePhaseJsonConverter.cs");
+        var phase = EmitterSnapshot.Content(sources, "Example/Internal/ExamplePhaseJsonConverter.cs");
 
         await Assert.That(phase).DoesNotContain("StartsWith(");
     }

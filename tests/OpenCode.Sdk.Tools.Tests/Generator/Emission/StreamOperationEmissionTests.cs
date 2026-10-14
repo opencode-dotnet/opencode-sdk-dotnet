@@ -43,9 +43,9 @@ public sealed class StreamOperationEmissionTests
         var clientSource = EmitterSnapshot.Create(
             [sources.Single(static source => source.RelativePath == "OpenCodeClient.cs")]);
         var adapterSource = EmitterSnapshot.Create(
-            [sources.Single(static source => source.RelativePath == "Internal/StreamAdapters/ExampleEventsResponseStreamAdapter.cs")]);
+            [sources.Single(static source => source.RelativePath == "Example/Internal/ExampleEventsResponseStreamAdapter.cs")]);
         var causeConverterSource = EmitterSnapshot.Create(
-            [sources.Single(static source => source.RelativePath == "Internal/Serialization/StreamFailureCauseJsonConverter.cs")]);
+            [sources.Single(static source => source.RelativePath == "Example/Internal/StreamFailureCauseJsonConverter.cs")]);
         var routeSource = EmitterSnapshot.Create(
             [sources.Single(static source => source.RelativePath == "Example/OpenCodeRoutes.Example.cs")]);
         await Assert

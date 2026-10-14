@@ -22,9 +22,9 @@ public sealed class SecretMemberEmissionTests
     {
         var sources = ModelEmitter.Emit(Redact(EmitterPlanFixture.CreateModelSnapshot(), "ExampleItem", "note"));
 
-        await Assert.That(EmitterSnapshot.Content(sources, "Models/ExampleItem.cs"))
+        await Assert.That(EmitterSnapshot.Content(sources, "Example/Models/ExampleItem.cs"))
             .Contains("public override string ToString() => RecordPrinter.Format(nameof(ExampleItem), (\"ID\", ID), (\"Note\", RecordPrinter.Redact(Note))");
-        await Assert.That(EmitterSnapshot.Content(sources, "Models/OpenSettings.cs")).DoesNotContain("ToString");
+        await Assert.That(EmitterSnapshot.Content(sources, "Example/Models/OpenSettings.cs")).DoesNotContain("ToString");
     }
 
     [Test]
@@ -52,7 +52,7 @@ public sealed class SecretMemberEmissionTests
     {
         var sources = ModelEmitter.Emit(RedactOpen(EmitterPlanFixture.CreateModelSnapshot(), "OpenSettings"));
 
-        await Assert.That(EmitterSnapshot.Content(sources, "Models/OpenSettings.cs")).Contains(
+        await Assert.That(EmitterSnapshot.Content(sources, "Example/Models/OpenSettings.cs")).Contains(
             "public override string ToString() => RecordPrinter.Format(nameof(OpenSettings), (\"Timeout\", Timeout), (\"AdditionalProperties\", RecordPrinter.RedactEntries(AdditionalProperties)));");
     }
 
@@ -94,9 +94,9 @@ public sealed class SecretMemberEmissionTests
         UnionPlan[] unions = [.. EmitterPlanFixture.CreateUnionSnapshot().Select(static union => MaskUnknown(union, "IExamplePhase"))];
         var sources = UnionEmitter.Emit(unions, ModelPlacementFixture.SingleSlice(unions));
 
-        await Assert.That(EmitterSnapshot.Content(sources, "Models/UnknownExamplePhase.cs")).Contains(
+        await Assert.That(EmitterSnapshot.Content(sources, "Example/Models/UnknownExamplePhase.cs")).Contains(
             "public override string ToString() => RecordPrinter.Format(nameof(UnknownExamplePhase), (\"Status\", Status), (\"Type\", Type), (\"Payload\", RecordPrinter.Redact(Payload)));");
-        await Assert.That(EmitterSnapshot.Content(sources, "Models/UnknownExampleEvent.cs")).DoesNotContain("ToString");
+        await Assert.That(EmitterSnapshot.Content(sources, "Example/Models/UnknownExampleEvent.cs")).DoesNotContain("ToString");
     }
 
     [Test]
@@ -109,9 +109,9 @@ public sealed class SecretMemberEmissionTests
         var masked = StructuralUnionEmitter.Emit(maskedUnions, ModelPlacementFixture.SingleSlice(maskedUnions));
         var plain = StructuralUnionEmitter.Emit(plainUnions, ModelPlacementFixture.SingleSlice(plainUnions));
 
-        await Assert.That(EmitterSnapshot.Content(masked, "Models/StructuralValue.cs")).Contains(
+        await Assert.That(EmitterSnapshot.Content(masked, "Example/Models/StructuralValue.cs")).Contains(
             "StructuralUnionPrinter.Format(nameof(StructuralValue), Kind.ToString(), Kind is StructuralValueKind.Unknown ? RecordPrinter.Redacted : _value);");
-        await Assert.That(EmitterSnapshot.Content(plain, "Models/StructuralValue.cs")).Contains(
+        await Assert.That(EmitterSnapshot.Content(plain, "Example/Models/StructuralValue.cs")).Contains(
             "StructuralUnionPrinter.Format(nameof(StructuralValue), Kind.ToString(), _value);");
     }
 

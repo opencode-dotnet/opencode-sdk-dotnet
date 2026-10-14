@@ -58,8 +58,8 @@ public sealed class SourceEmitterTests
 
         foreach (var union in plan.Unions)
         {
-            var source = sources.Single(candidate => candidate.RelativePath ==
-                                                     $"Internal/Serialization/{union.ConceptName}JsonConverter.cs");
+            var source = sources.Single(candidate => candidate.RelativePath.EndsWith(
+                $"/Internal/{union.ConceptName}JsonConverter.cs", StringComparison.Ordinal));
             var expected = union
                 .Variants
                 .OrderBy(static variant => variant.Tag, StringComparer.Ordinal)
@@ -69,8 +69,8 @@ public sealed class SourceEmitterTests
 
         foreach (var structural in plan.Models.OfType<StructuralUnionModelPlan>())
         {
-            var source = sources.Single(candidate => candidate.RelativePath ==
-                                                     $"Internal/Serialization/{structural.Name}JsonConverter.cs");
+            var source = sources.Single(candidate => candidate.RelativePath.EndsWith(
+                $"/Internal/{structural.Name}JsonConverter.cs", StringComparison.Ordinal));
             var expected = structural.Arms.Where(static arm => arm.Claim is null).SelectMany(arm => arm.Tokens.Select(token =>
                 new KeyValuePair<string, string>(token.ToString(), arm.Name)));
             await Assert.That(ReadStructuralConverterMappings(source).SequenceEqual(expected)).IsTrue();
@@ -206,9 +206,8 @@ public sealed class SourceEmitterTests
         var sources = SourceEmitter.Emit(EmitterPlanFixture.Create());
 
         await Assert
-            .That(sources.Select(static source => source.RelativePath))
-            .DoesNotContain(
-                "Internal/Serialization/OptionalCollectionInput.cs");
+            .That(sources.Select(static source => source.RelativePath.Split('/')[^1]))
+            .DoesNotContain("OptionalCollectionInput.cs");
         var content = EmitterSnapshot.Create(sources);
         await Assert.That(content).DoesNotContain("WireNullRejecting");
         await Assert.That(content).DoesNotContain("NullElementRejectingListJsonConverter");
