@@ -1,9 +1,11 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using OpenCode.Sdk.Internal.Windows;
+using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;
 
 namespace OpenCode.Sdk.ServiceFixture;
@@ -26,8 +28,14 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// end-of-stream arrives at once unless a server inherited the write end, which keeps it away while
 /// the server runs, and only that server meets the probe's hang guard and the <c>False</c> report.
 /// <c>handle-cycles &lt;command…&gt;</c> starts and disposes servers with that command, and fails starts
-/// on purpose, in three rounds, and prints <c>handles=&lt;after warm-up&gt;, &lt;after one round&gt;, &lt;after two&gt;</c>:
-/// this process's handle count once every exit watch was released.
+/// on purpose, in three rounds, and prints <c>census=&lt;after warm-up&gt;; &lt;after one round&gt;; &lt;after two&gt;</c>,
+/// the census of the launcher's handle kinds once every exit watch and its duplicate were released
+/// (<see cref="LauncherHandleCensus"/>), and <c>handles=</c> with this process's whole handle count
+/// at the same points, for the record.
+/// <c>handle-census &lt;foreign pid&gt;</c> runs the census's own controls against that process and
+/// prints <c>before=</c>, <c>open=</c>, <c>closed=</c>, <c>mine-open=</c>, <c>mine-closed=</c>,
+/// <c>parked=</c> censuses and <c>raw=</c>
+/// whole handle counts (<see cref="ProveCensusAsync"/>).
 /// </remarks>
 [SupportedOSPlatform("windows")]
 internal static class WindowsLauncherProbe
@@ -50,6 +58,12 @@ internal static class WindowsLauncherProbe
 
     /// <summary><c>STD_OUTPUT_HANDLE</c>.</summary>
     private const int StandardOutputHandle = -11;
+
+    /// <summary><c>PROCESS_QUERY_LIMITED_INFORMATION</c>.</summary>
+    private const uint ProcessQueryLimitedInformation = 0x1000;
+
+    /// <summary><c>THREAD_QUERY_LIMITED_INFORMATION</c>.</summary>
+    private const uint ThreadQueryLimitedInformation = 0x0800;
 
     private static readonly RealFileSystem FileSystem = new();
 
@@ -136,16 +150,145 @@ internal static class WindowsLauncherProbe
 
     public static async Task<int> CountHandlesAsync(IReadOnlyList<string> command)
     {
+        var censuses = new List<LauncherHandles>(3);
         var counts = new List<int>(3);
         for (var round = 0; round < 3; round++)
         {
             await RunCyclesAsync(command, round == 0 ? 3 : CyclesPerRound).ConfigureAwait(false);
-            counts.Add(await SettledHandleCountAsync().ConfigureAwait(false));
+            censuses.Add(await SettledCensusAsync().ConfigureAwait(false));
+            using var self = Process.GetCurrentProcess();
+            counts.Add(self.HandleCount);
         }
 
+        await Console.Out.WriteLineAsync("census=" + string.Join("; ", censuses)).ConfigureAwait(false);
         await Console.Out.WriteLineAsync("handles=" + string.Join(", ", counts.Select(static count => count.ToString(CultureInfo.InvariantCulture)))).ConfigureAwait(false);
         await Console.Out.FlushAsync().ConfigureAwait(false);
         return 0;
+    }
+
+    /// <summary>
+    /// The census's own controls, in a host where nothing else opens handles. Positive: a handle on
+    /// another process, a <c>SYNCHRONIZE</c>-only one, a handle on one of its threads, a pipe (two
+    /// ends), and a job each show in their own count while open, and none once closed. Negative: two
+    /// threads parked in this process add to its whole handle count and not to the census.
+    /// </summary>
+    /// <param name="foreignProcessId">A process other than this one that outlives the probe.</param>
+    /// <returns>0 once every census is printed.</returns>
+    public static async Task<int> ProveCensusAsync(int foreignProcessId)
+    {
+        int threadId;
+        using (var foreign = Process.GetProcessById(foreignProcessId))
+        {
+            threadId = foreign.Threads[0].Id;
+        }
+
+        // The first pipe a process creates leaves one pipe handle of the system's own behind, held
+        // for the process's lifetime (measured: one more after both ends closed, never again after),
+        // so one pipe opened and closed first keeps it out of the counted window, as the launcher's
+        // warm-up round does in handle-cycles.
+        CloseAll(OpenPipe());
+
+        var before = LauncherHandleCensus.Take();
+        var mine = OpenOneOfEachKind(foreignProcessId, threadId);
+        LauncherHandles open;
+        LauncherHandles mineOpen;
+        try
+        {
+            open = LauncherHandleCensus.Take();
+            mineOpen = LauncherHandleCensus.Count(mine);
+        }
+        finally
+        {
+            CloseAll(mine);
+        }
+
+        // The same values once closed: the race a census meets when the finalizer closes a handle
+        // between the snapshot and the questions about it.
+        var mineClosed = LauncherHandleCensus.Count(mine);
+        var closed = LauncherHandleCensus.Take();
+        var (whileParked, rawBefore, rawParked) = CensusWhileThreadsParked();
+
+        await Console.Out.WriteLineAsync("before=" + before).ConfigureAwait(false);
+        await Console.Out.WriteLineAsync("open=" + open).ConfigureAwait(false);
+        await Console.Out.WriteLineAsync("closed=" + closed).ConfigureAwait(false);
+        await Console.Out.WriteLineAsync("mine-open=" + mineOpen).ConfigureAwait(false);
+        await Console.Out.WriteLineAsync("mine-closed=" + mineClosed).ConfigureAwait(false);
+        await Console.Out.WriteLineAsync("parked=" + whileParked).ConfigureAwait(false);
+        await Console.Out.WriteLineAsync(
+            "raw=" + rawBefore.ToString(CultureInfo.InvariantCulture) + ", " + rawParked.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
+        await Console.Out.FlushAsync().ConfigureAwait(false);
+        return 0;
+    }
+
+    /// <summary>
+    /// Opens, as raw handle values, one handle of each kind the census counts: one on the foreign
+    /// process, a <c>SYNCHRONIZE</c>-only one, one on its thread, both ends of a pipe, and a job.
+    /// </summary>
+    private static (IntPtr Handle, uint Access)[] OpenOneOfEachKind(int foreignProcessId, int threadId)
+    {
+        var opened = new List<(IntPtr Handle, uint Access)>(6);
+        try
+        {
+            opened.Add((Opened(OpenProcess(ProcessQueryLimitedInformation, inherit: false, (uint)foreignProcessId)), ProcessQueryLimitedInformation));
+            opened.Add((Opened(OpenProcess(WindowsInterop.Synchronize, inherit: false, (uint)foreignProcessId)), WindowsInterop.Synchronize));
+            opened.Add((Opened(OpenThread(ThreadQueryLimitedInformation, inherit: false, (uint)threadId)), ThreadQueryLimitedInformation));
+            opened.AddRange(OpenPipe());
+            opened.Add((Opened(CreateJobObject(IntPtr.Zero, IntPtr.Zero)), 0));
+            return [.. opened];
+        }
+        catch
+        {
+            CloseAll(opened);
+            throw;
+        }
+    }
+
+    private static (IntPtr Handle, uint Access)[] OpenPipe() =>
+        CreatePipe(out var read, out var write, IntPtr.Zero, 0)
+            ? [(read, 0), (write, 0)]
+            : throw new Win32Exception(Marshal.GetLastWin32Error());
+
+    private static IntPtr Opened(IntPtr handle) =>
+        handle == IntPtr.Zero ? throw new Win32Exception(Marshal.GetLastWin32Error()) : handle;
+
+    private static void CloseAll(IEnumerable<(IntPtr Handle, uint Access)> handles)
+    {
+        foreach (var (handle, _) in handles)
+        {
+            _ = CloseHandle(handle);
+        }
+    }
+
+    /// <summary>Parks two threads, counts while they wait, and releases them.</summary>
+    private static (LauncherHandles Census, int RawBefore, int RawParked) CensusWhileThreadsParked()
+    {
+        using var release = new ManualResetEventSlim();
+        var parked = Enumerable.Range(0, 2).Select(_ => new Thread(() => release.Wait())).ToArray();
+        int rawBefore;
+        using (var self = Process.GetCurrentProcess())
+        {
+            rawBefore = self.HandleCount;
+        }
+
+        foreach (var worker in parked)
+        {
+            worker.Start();
+        }
+
+        var census = LauncherHandleCensus.Take();
+        int rawParked;
+        using (var self = Process.GetCurrentProcess())
+        {
+            rawParked = self.HandleCount;
+        }
+
+        release.Set();
+        foreach (var worker in parked)
+        {
+            worker.Join();
+        }
+
+        return (census, rawBefore, rawParked);
     }
 
     private static async Task RunCyclesAsync(IReadOnlyList<string> command, int cycles)
@@ -182,10 +325,17 @@ internal static class WindowsLauncherProbe
         throw new InvalidOperationException("A start meant to fail succeeded.");
     }
 
+    /// <summary>
+    /// Waits for the round's exit watches to be released, then for their <c>SYNCHRONIZE</c>
+    /// duplicates to close, and counts. Only the duplicates are awaited: a released watch hands its
+    /// duplicate back to the pool's wait thread, which closes it once it processes the
+    /// unregistration, after the watch is uncounted. Every other kind is counted once, so a handle a
+    /// round left behind stays in the census rather than being waited out.
+    /// </summary>
     [SlopwatchSuppress(
         "SW004",
-        "An exit watch is released on the pool a moment after its child exits, with no signal to await: the poll waits for the live count to reach zero, bounded by ReleaseBound.")]
-    private static async Task<int> SettledHandleCountAsync()
+        "An exit watch is released on the pool a moment after its child exits, and its duplicate closes on the wait thread after that, with no signal to await for either: the polls wait for the live count and then the duplicates to reach zero, bounded together by ReleaseBound.")]
+    private static async Task<LauncherHandles> SettledCensusAsync()
     {
         var waited = Stopwatch.StartNew();
         while (WindowsExitWatch.LiveWatches != 0 && waited.Elapsed < ReleaseBound)
@@ -193,13 +343,36 @@ internal static class WindowsLauncherProbe
             await Task.Delay(50).ConfigureAwait(false);
         }
 
-        using var self = Process.GetCurrentProcess();
-        return self.HandleCount;
+        var census = LauncherHandleCensus.Take();
+        while (census.ExitWaits != 0 && waited.Elapsed < ReleaseBound)
+        {
+            await Task.Delay(50).ConfigureAwait(false);
+            census = LauncherHandleCensus.Take();
+        }
+
+        return census;
     }
 
     [DllImport("kernel32", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     private static extern IntPtr GetStdHandle(int standardHandle);
+
+    [DllImport("kernel32", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern IntPtr OpenProcess(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, uint processId);
+
+    [DllImport("kernel32", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool CreatePipe(out IntPtr read, out IntPtr write, IntPtr attributes, uint size);
+
+    [DllImport("kernel32", EntryPoint = "CreateJobObjectW", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern IntPtr CreateJobObject(IntPtr attributes, IntPtr name);
+
+    [DllImport("kernel32", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern IntPtr OpenThread(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, uint threadId);
 
     [DllImport("kernel32", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]

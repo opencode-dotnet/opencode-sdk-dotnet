@@ -20,4 +20,10 @@
     <Compile Include="../Shared/ProcessMark.cs" LinkBase="Shared" />
   </ItemGroup>
 
+  <!-- The handle-cycles mode counts the launcher's handle kinds the way the census self-test proves. -->
+  <ItemGroup>
+    <Compile Include="../Shared/LauncherHandleCensus.cs" LinkBase="Shared" />
+    <Compile Include="../Shared/LauncherHandles.cs" LinkBase="Shared" />
+  </ItemGroup>
+
 </Project>
