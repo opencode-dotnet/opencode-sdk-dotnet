@@ -19,6 +19,9 @@ public sealed class ReservedNamePolicyTests
     /// <summary>The namespaces generated types are emitted into; a reserved twin there would not compile.</summary>
     private static readonly string[] GeneratedNamespaces = ["OpenCode.Sdk", "OpenCode.Sdk.Models"];
 
+    /// <summary>The namespace every generated internal type shares with the hand-written internals.</summary>
+    private const string InternalNamespace = "OpenCode.Sdk.Internal";
+
     [Test]
     public async Task SpineTypeNames_Should_Mirror_The_HandWritten_Public_Types_In_The_Generated_Namespaces()
     {
@@ -40,6 +43,27 @@ public sealed class ReservedNamePolicyTests
         handWritten.Sort(StringComparer.Ordinal);
         await Assert.That(handWritten)
             .IsEquivalentTo(ReservedNamePolicy.SpineTypeNames.Order(StringComparer.Ordinal).ToArray());
+    }
+
+    [Test]
+    public async Task InternalTypeNames_Should_Mirror_The_HandWritten_Types_In_The_Internal_Namespace()
+    {
+        var handWritten = new List<string>();
+        foreach (var tree in await LoadHandWrittenSdkTreesAsync())
+        {
+            var root = await tree.GetRootAsync();
+            handWritten.AddRange(root
+                .DescendantNodes(static node => node is CompilationUnitSyntax or BaseNamespaceDeclarationSyntax)
+                .OfType<MemberDeclarationSyntax>()
+                .Where(static member => member is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax
+                                     && string.Equals(NamespaceOf(member), InternalNamespace, StringComparison.Ordinal))
+                .Select(static member => member is DelegateDeclarationSyntax del
+                    ? del.Identifier.ValueText
+                    : ((BaseTypeDeclarationSyntax)member).Identifier.ValueText));
+        }
+
+        await Assert.That(handWritten.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray())
+            .IsEquivalentTo(ReservedNamePolicy.InternalTypeNames.Order(StringComparer.Ordinal).ToArray());
     }
 
     [Test]

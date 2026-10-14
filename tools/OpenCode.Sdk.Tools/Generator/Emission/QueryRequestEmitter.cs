@@ -53,8 +53,10 @@ internal static class QueryRequestEmitter
         var usings = queryRequest.Properties.Any(static property => property.Kind is QueryValueKind.Enum)
             ? new[] { GeneratedNamespace.Models, }
             : [];
-        var unit = EmissionSyntax.CompilationUnit("OpenCode.Sdk", usings, [declaration]);
-        return EmissionSyntax.CreateSource($"{operation.RouteContainerName}/{queryRequest.TypeName}.cs", unit);
+        var unit = EmissionSyntax.CompilationUnit(GeneratedNamespace.Public, usings, [declaration]);
+        return EmissionSyntax.CreateSource(
+            GeneratedPlacement.PathOf(GeneratedKind.OperationRecord, TypeHome.Family(operation.RouteContainerName), queryRequest.TypeName),
+            unit);
     }
 
     internal static PropertyDeclarationSyntax EmitProperty(QueryPropertyPlan property)

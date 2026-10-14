@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.Serialization;
 using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
@@ -81,12 +80,9 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.ResponseAdapters;
-using OpenCode.Sdk.Internal.Serialization;
 using OpenCode.Sdk.Models;
 
-namespace OpenCode.Sdk;
+namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// A bound &apos;PtyRawClient&apos; handle; it holds an immutable identifier and the shared pipeline.
 /// </summary>
@@ -141,12 +137,9 @@ using System;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.ResponseAdapters;
-using OpenCode.Sdk.Internal.Serialization;
 using OpenCode.Sdk.Models;
 
-namespace OpenCode.Sdk;
+namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// The &apos;PtysRawClient&apos; collection client.
 /// </summary>

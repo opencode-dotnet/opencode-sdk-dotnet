@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Formats a generated model that carries a secret member, and the unknown arm of a union whose

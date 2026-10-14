@@ -9,23 +9,24 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 internal static class UnionEmitter
 {
-    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<UnionPlan> unions)
+    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<UnionPlan> unions, ModelPlacement placement)
     {
         ArgumentNullException.ThrowIfNull(unions);
+        ArgumentNullException.ThrowIfNull(placement);
         var byName = unions.ToDictionary(static union => union.Name, StringComparer.Ordinal);
         var result = new List<GeneratedSource>(unions.Count * 4);
         foreach (var union in unions.OrderBy(static union => union.Name, StringComparer.Ordinal))
         {
-            result.Add(EmitBase(union, byName));
-            result.Add(EmitUnknown(union, byName));
-            result.Add(EmitConverter(union));
-            result.Add(EmitCarrierConverter(union));
+            result.Add(EmitBase(union, byName, GeneratedPlacement.ModelPathOf(placement, union.Name)));
+            result.Add(EmitUnknown(union, byName, GeneratedPlacement.ModelPathOf(placement, union.UnknownTypeName)));
+            result.Add(EmitConverter(union, placement));
+            result.Add(EmitCarrierConverter(union, placement));
         }
 
         return Array.AsReadOnly([.. result]);
     }
 
-    private static GeneratedSource EmitBase(UnionPlan union, IReadOnlyDictionary<string, UnionPlan> unions)
+    private static GeneratedSource EmitBase(UnionPlan union, IReadOnlyDictionary<string, UnionPlan> unions, string relativePath)
     {
         var converterTypeName = $"{union.ConceptName}JsonConverter";
 
@@ -68,9 +69,9 @@ internal static class UnionEmitter
 
         var unit = EmissionSyntax.CompilationUnit(
             union.Namespace,
-            HoistedUsings(union.HoistedMembers, ["OpenCode.Sdk.Internal.Serialization", "System.Text.Json.Serialization"]),
+            HoistedUsings(union.HoistedMembers, [GeneratedNamespace.Internal, "System.Text.Json.Serialization"]),
             [declaration]);
-        return EmissionSyntax.CreateSource($"Models/{union.Name}.cs", unit);
+        return EmissionSyntax.CreateSource(relativePath, unit);
     }
 
     private static PropertyDeclarationSyntax EmitHoistedMember(UnionPlan union, HoistedMemberPlan member)
@@ -137,7 +138,7 @@ internal static class UnionEmitter
         return false;
     }
 
-    private static GeneratedSource EmitUnknown(UnionPlan union, IReadOnlyDictionary<string, UnionPlan> unions)
+    private static GeneratedSource EmitUnknown(UnionPlan union, IReadOnlyDictionary<string, UnionPlan> unions, string relativePath)
     {
         var chain = ChainHoistedMembers(union, unions);
         var markerType = TypeSyntaxEmitter.EmitMarker(union.MarkerKind);
@@ -181,13 +182,13 @@ internal static class UnionEmitter
             .WithMembers(SyntaxFactory.List(members))
             .WithLeadingTrivia(EmissionSyntax.Documentation($"Preserves an unknown {GeneratedDisplayName.Of(union.ConceptName)} payload."));
         var usingNames = union.MarkerKind is LiteralKind.String
-            ? new[] { "System", "System.Text.Json", "System.Text.Json.Serialization", "OpenCode.Sdk.Internal.Serialization", }
-            : ["System.Text.Json", "System.Text.Json.Serialization", "OpenCode.Sdk.Internal.Serialization"];
+            ? new[] { "System", "System.Text.Json", "System.Text.Json.Serialization", GeneratedNamespace.Internal, }
+            : ["System.Text.Json", "System.Text.Json.Serialization", GeneratedNamespace.Internal];
         var unit = EmissionSyntax.CompilationUnit(
             union.Namespace,
             HoistedUsings(chain.Select(static entry => entry.Member), usingNames),
             [declaration]);
-        return EmissionSyntax.CreateSource($"Models/{union.UnknownTypeName}.cs", unit);
+        return EmissionSyntax.CreateSource(relativePath, unit);
     }
 
     /// <summary>
@@ -223,7 +224,7 @@ internal static class UnionEmitter
     /// The carrier's own converter: reading reproduces the base converter's fallback arm,
     /// writing replays the preserved document.
     /// </summary>
-    private static GeneratedSource EmitCarrierConverter(UnionPlan union)
+    private static GeneratedSource EmitCarrierConverter(UnionPlan union, ModelPlacement placement)
     {
         var converterName = $"{union.UnknownTypeName}JsonConverter";
         var readStatements = new List<StatementSyntax>();
@@ -291,15 +292,15 @@ internal static class UnionEmitter
                     TypeSyntaxEmitter.EmitNamed(union.UnknownTypeName))))))
             .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([read, write]));
         var unit = EmissionSyntax.CompilationUnit(
-            "OpenCode.Sdk.Internal.Serialization",
+            GeneratedNamespace.Internal,
             [
-                "OpenCode.Sdk.Models",
+                GeneratedNamespace.Models,
                 "System",
                 "System.Text.Json",
                 "System.Text.Json.Serialization",
             ],
             [declaration]);
-        return EmissionSyntax.CreateSource($"Internal/Serialization/{converterName}.cs", unit);
+        return EmissionSyntax.CreateSource(GeneratedPlacement.ConverterPathOf(placement, union.Name, converterName), unit);
     }
 
     private static ReturnStatementSyntax EmitUnknownReturn(UnionPlan union) =>
@@ -479,7 +480,7 @@ internal static class UnionEmitter
                     .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)))))
             .WithLeadingTrivia(EmissionSyntax.Documentation("Gets the preserved raw JSON payload."));
 
-    private static GeneratedSource EmitConverter(UnionPlan union)
+    private static GeneratedSource EmitConverter(UnionPlan union, ModelPlacement placement)
     {
         var converterName = $"{union.ConceptName}JsonConverter";
         var declaration = SyntaxFactory
@@ -497,9 +498,9 @@ internal static class UnionEmitter
                 EmitWrite(union),
             ]));
         var unit = EmissionSyntax.CompilationUnit(
-            "OpenCode.Sdk.Internal.Serialization",
+            GeneratedNamespace.Internal,
             [
-                "OpenCode.Sdk.Models",
+                GeneratedNamespace.Models,
                 "System",
                 "System.Collections.Frozen",
                 "System.Collections.Generic",
@@ -507,7 +508,7 @@ internal static class UnionEmitter
                 "System.Text.Json.Serialization",
             ],
             [declaration]);
-        return EmissionSyntax.CreateSource($"Internal/Serialization/{converterName}.cs", unit);
+        return EmissionSyntax.CreateSource(GeneratedPlacement.ConverterPathOf(placement, union.Name, converterName), unit);
     }
 
     /// <summary>

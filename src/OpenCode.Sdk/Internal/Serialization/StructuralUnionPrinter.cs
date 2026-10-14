@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Formats a structural union for its record's <c>ToString()</c>. A union's inactive arm

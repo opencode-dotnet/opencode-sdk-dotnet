@@ -59,31 +59,22 @@ internal sealed class SpecBinder(
         var typeNames = _schemaNames.Resolve(document, reachable, selected, curation, errors);
         var schemaResult = _schemaPlans.Bind(document, reachable, curation, typeNames, errors);
         var clients = _operationPlans.Bind(document, selected, curation, typeNames, errors);
-        var selectedIds = selected.Select(static operation => operation.OperationId).ToHashSet(StringComparer.Ordinal);
-        // A transport-owned operation is neither selected nor pending. Leaving it out of the
-        // pending set hides no drift only because the curation validator above proves every
-        // row on every bind — existence, reason, and the subtree fingerprint are that wall.
-        var transportOwnedIds = curation.TransportOwned.Select(static row => row.OperationId).ToHashSet(StringComparer.Ordinal);
-        // A declined operation is likewise neither selected nor pending: a standing wall refuses
-        // it and the maintainer decided the wall stands. The validator above proves every row
-        // (existence, reason, no overlap with selection or a transport-owned row); the
-        // coordinator's probe proves the remaining claim — that the wall is real.
-        var declinedIds = curation.Declined.Select(static row => row.OperationId).ToHashSet(StringComparer.Ordinal);
-        var pending = document
-            .Operations
-            .Where(operation => !selectedIds.Contains(operation.OperationId)
-                                && !transportOwnedIds.Contains(operation.OperationId)
-                                && !declinedIds.Contains(operation.OperationId))
-            .OrderBy(static operation => operation.OperationId, StringComparer.Ordinal)
-            .Select(static operation => new PendingOperationPlan
-            {
-                OperationId = operation.OperationId,
-            })
-            .ToArray();
+        var pending = PendingOperations(document, selected, curation);
 
         var models = AttachRequestQueryProperties(schemaResult.Models, clients, errors);
         var masked = SecretMemberPolicy.MaskUnknownPayloads(SecretMemberPolicy.Apply(models, curation, errors), schemaResult.Unions);
         CheckDtoNameCollisions(schemaResult.Registry, clients, errors);
+        var candidates = new OwnershipCandidates
+        {
+            Models = masked.Models,
+            Unions = masked.Unions,
+            HoistedInterfaces = schemaResult.HoistedInterfaces,
+        };
+        InternalNameCollisionCheck.Check(candidates, clients, errors);
+        // An unplaced model never refuses a bind: it is the generate command's wall, so the
+        // pending-operation probe still judges bindability under its synthetic curation.
+        var placement = ModelOwnershipPolicy.Place(candidates, clients, curation, errors);
+        var reach = ModelReachCollector.Collect(_reachableSchemas, new ReachScope(document, selected, clients, typeNames), candidates, errors);
         errors.ThrowIfAny();
         return new EmitPlan
         {
@@ -94,7 +85,7 @@ internal sealed class SpecBinder(
             Registry = ComposeRegistry(schemaResult.Registry, clients),
             Clients = clients,
             PendingOperations = pending,
-            TransportOwnedOperationIds = [.. transportOwnedIds.Order(StringComparer.Ordinal)],
+            TransportOwnedOperationIds = [.. curation.TransportOwned.Select(static row => row.OperationId).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)],
             DeclinedOperations =
             [
                 .. curation
@@ -104,7 +95,38 @@ internal sealed class SpecBinder(
                     .Select(static row => new DeclinedOperationPlan { OperationId = row.OperationId, Reason = row.Reason })
             ],
             ImplicitAliases = collapse,
+            Placement = placement,
+            ModelReach = reach,
         };
+    }
+
+    /// <summary>Every operation the selection, a transport-owned row and a declined row all leave out, ordinal-sorted.</summary>
+    private static PendingOperationPlan[] PendingOperations(SpecDocument document, IReadOnlyList<SpecOperation> selected,
+        GenerationCuration curation)
+    {
+        var selectedIds = selected.Select(static operation => operation.OperationId).ToHashSet(StringComparer.Ordinal);
+        // A transport-owned operation is neither selected nor pending. Leaving it out of the
+        // pending set hides no drift only because the curation validator proves every
+        // row on every bind — existence, reason, and the subtree fingerprint are that wall.
+        var transportOwnedIds = curation.TransportOwned.Select(static row => row.OperationId).ToHashSet(StringComparer.Ordinal);
+        // A declined operation is likewise neither selected nor pending: a standing wall refuses
+        // it and the maintainer decided the wall stands. The curation validator proves every row
+        // (existence, reason, no overlap with selection or a transport-owned row); the
+        // coordinator's probe proves the remaining claim — that the wall is real.
+        var declinedIds = curation.Declined.Select(static row => row.OperationId).ToHashSet(StringComparer.Ordinal);
+        return
+        [
+            .. document
+                .Operations
+                .Where(operation => !selectedIds.Contains(operation.OperationId)
+                                    && !transportOwnedIds.Contains(operation.OperationId)
+                                    && !declinedIds.Contains(operation.OperationId))
+                .OrderBy(static operation => operation.OperationId, StringComparer.Ordinal)
+                .Select(static operation => new PendingOperationPlan
+                {
+                    OperationId = operation.OperationId,
+                }),
+        ];
     }
 
     /// <summary>

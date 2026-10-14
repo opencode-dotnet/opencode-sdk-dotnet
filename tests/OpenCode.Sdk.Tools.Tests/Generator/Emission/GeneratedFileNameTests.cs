@@ -86,11 +86,8 @@ public sealed class GeneratedFileNameTests
         await Assert.That(mismatches).IsEmpty();
     }
 
-    private static string FileStem(string relativePath)
-    {
-        var name = relativePath.Split('/')[^1];
-        return name.EndsWith(".cs", StringComparison.Ordinal) ? name[..^3] : name;
-    }
+    /// <summary>MA0048's rule: the file name up to its first dot names the type, so a partial part may be <c>Type.Part.cs</c>.</summary>
+    private static string FileStem(string relativePath) => relativePath.Split('/')[^1].Split('.')[0];
 
     private static string? FirstDeclaredTypeName(GeneratedSource source) => SyntaxFactory
         .ParseCompilationUnit(Encoding.UTF8.GetString(source.Utf8Source.ToArray()))

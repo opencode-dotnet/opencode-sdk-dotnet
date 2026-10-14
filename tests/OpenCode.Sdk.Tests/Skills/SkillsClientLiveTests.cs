@@ -3,7 +3,7 @@ using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Skills;
 
 /// <summary>
 /// Skill discovery from a workspace's own <c>.opencode</c> directory is project configuration,

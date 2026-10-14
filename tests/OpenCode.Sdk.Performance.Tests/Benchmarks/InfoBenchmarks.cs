@@ -1,8 +1,6 @@
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.ResponseAdapters;
-using OpenCode.Sdk.Internal.Serialization;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Performance.Tests.Support;
 

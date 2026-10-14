@@ -3,7 +3,7 @@ using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Sessions;
 
 /// <summary>
 /// The owned Drive tool's failure and interruption arms through the real server: a failed tool

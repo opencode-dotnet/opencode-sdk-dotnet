@@ -79,7 +79,7 @@ internal static class EmitterPlanFixture
             PendingOperations = [],
             DeclinedOperations = [],
             TransportOwnedOperationIds = [],
-        };
+        }.WithSingleSlice();
     }
 
     public static IReadOnlyList<ClientPlan> CreateClientPlans() =>
@@ -158,7 +158,7 @@ internal static class EmitterPlanFixture
         new ClientPlan
         {
             Name = "PtyRawClient",
-            Namespace = "OpenCode.Sdk",
+            Namespace = "OpenCode.Sdk.Internal",
             Role = ClientRole.Handle,
             ContainerName = "Ptys",
             Emission = EmissionMode.InternalRaw,
@@ -169,7 +169,7 @@ internal static class EmitterPlanFixture
         new ClientPlan
         {
             Name = "PtysRawClient",
-            Namespace = "OpenCode.Sdk",
+            Namespace = "OpenCode.Sdk.Internal",
             Role = ClientRole.Collection,
             ContainerName = "Ptys",
             Emission = EmissionMode.InternalRaw,
@@ -1057,7 +1057,7 @@ internal static class EmitterPlanFixture
             PendingOperations = [],
             DeclinedOperations = [],
             TransportOwnedOperationIds = [],
-        };
+        }.WithSingleSlice();
     }
 
     private static GenerationCuration HoistCuration() =>

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>Prevents a hand-constructed unknown carrier from replaying a payload with different markers.</summary>
 internal sealed class UnionPayloadGuard

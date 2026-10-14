@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.ResponseAdapters;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;

@@ -4,7 +4,7 @@ using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Events;
 
 /// <summary>
 /// The rpc family's live event proof against the pinned server: the repository-owned plugin's

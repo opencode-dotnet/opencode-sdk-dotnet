@@ -8,24 +8,53 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 internal static class RoutesEmitter
 {
-    public static GeneratedSource Emit(IReadOnlyList<ClientPlan> clients, IReadOnlyList<ModelPlan> models)
+    /// <summary>
+    /// Emits the public route surface as one part of a partial class per family, each in its
+    /// family's folder. An enum query converter is emitted once, in the part of the first family
+    /// (ordinal) whose operations use it, so an enum two families share is still converted in
+    /// exactly one place.
+    /// </summary>
+    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients, IReadOnlyList<ModelPlan> models)
     {
         ArgumentNullException.ThrowIfNull(clients);
         ArgumentNullException.ThrowIfNull(models);
 
-        var operations = clients.SelectMany(static client => client.Operations).ToArray();
-        var hasQueryEnums = QueryEnumWireValueEmitter.EnumTypeNames(operations).Any();
-        var members = new List<MemberDeclarationSyntax>(operations
+        var containers = clients
+            .SelectMany(static client => client.Operations)
             .GroupBy(static operation => operation.RouteContainerName, StringComparer.Ordinal)
             .OrderBy(static container => container.Key, StringComparer.Ordinal)
-            .Select(EmitContainer));
-        members.AddRange(QueryEnumWireValueEmitter.Emit(operations, models));
+            .ToArray();
+        var convertedEnums = new HashSet<string>(StringComparer.Ordinal);
+        var result = new List<GeneratedSource>(containers.Length);
+        foreach (var container in containers)
+        {
+            var ownedEnums = QueryEnumWireValueEmitter.EnumTypeNames([.. container]).Where(convertedEnums.Add).ToArray();
+            result.Add(EmitPart(container, ownedEnums, models, documented: result.Count is 0));
+        }
+
+        return Array.AsReadOnly([.. result]);
+    }
+
+    private static GeneratedSource EmitPart(IGrouping<string, OperationPlan> container, string[] ownedEnums,
+        IReadOnlyList<ModelPlan> models, bool documented)
+    {
+        var operations = container.ToArray();
+        var hasQueryEnums = ownedEnums.Length > 0 || QueryEnumWireValueEmitter.EnumTypeNames(operations).Any();
+        var members = new List<MemberDeclarationSyntax> { EmitContainer(container) };
+        members.AddRange(QueryEnumWireValueEmitter.Emit(ownedEnums, models));
         var declaration = SyntaxFactory.ClassDeclaration("OpenCodeRoutes")
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
-            .WithMembers(SyntaxFactory.List(members))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Defines the wire route of every generated operation."));
+                SyntaxFactory.Token(SyntaxKind.StaticKeyword),
+                SyntaxFactory.Token(SyntaxKind.PartialKeyword)))
+            .WithMembers(SyntaxFactory.List(members));
+
+        // A partial type takes its documentation from one part; the others would concatenate onto it.
+        if (documented)
+        {
+            declaration = declaration.WithLeadingTrivia(EmissionSyntax.Documentation("Defines the wire route of every generated operation."));
+        }
+
         var usings = new List<string>();
 
         // System carries the route-value guards, the required-request guard, and the
@@ -39,18 +68,20 @@ internal static class RoutesEmitter
 
         if (operations.Any(static operation => operation.QueryRequest is not null || operation.Parameters.Count > 0))
         {
-            usings.Add("OpenCode.Sdk.Internal");
+            usings.Add(GeneratedNamespace.Internal);
         }
 
         // A merged request types its route builder with the body model, and an enum query
         // member types its converter with the generated enum.
         if (hasQueryEnums || operations.Any(static operation => operation.QueryRequest is { RidesRequestBody: true }))
         {
-            usings.Add("OpenCode.Sdk.Models");
+            usings.Add(GeneratedNamespace.Models);
         }
 
-        var unit = EmissionSyntax.CompilationUnit("OpenCode.Sdk", usings, [declaration]);
-        return EmissionSyntax.CreateSource("OpenCodeRoutes.cs", unit);
+        var unit = EmissionSyntax.CompilationUnit(GeneratedNamespace.Public, usings, [declaration]);
+        return EmissionSyntax.CreateSource(
+            GeneratedPlacement.PathOf(GeneratedKind.Routes, TypeHome.Family(container.Key), "OpenCodeRoutes"),
+            unit);
     }
 
     private static ClassDeclarationSyntax EmitContainer(IGrouping<string, OperationPlan> container)

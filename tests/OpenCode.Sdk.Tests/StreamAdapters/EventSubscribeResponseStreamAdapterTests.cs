@@ -1,5 +1,4 @@
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.StreamAdapters;
 
 namespace OpenCode.Sdk.Tests.StreamAdapters;
 

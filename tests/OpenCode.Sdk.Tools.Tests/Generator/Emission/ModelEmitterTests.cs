@@ -63,7 +63,7 @@ public sealed class ModelEmitterTests
         var sources = ModelEmitter.Emit(EmitterPlanFixture.CreateModelSnapshot());
         var model = EmitterSnapshot.Content(sources, "Models/OpenSettings.cs");
 
-        await Assert.That(model).Contains("using OpenCode.Sdk.Internal.Serialization;");
+        await Assert.That(model).Contains("using OpenCode.Sdk.Internal;");
         await Assert.That(model).Contains("using System;");
         await Assert.That(model).Contains("using System.Collections.Generic;");
         await Assert.That(model).Contains("using System.Linq;");

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using OpenCode.Sdk.Internal.Serialization;
 using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk.Internal;

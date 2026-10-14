@@ -3,7 +3,7 @@ using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Ptys;
 
 public sealed class PtysClientContractTests
 {

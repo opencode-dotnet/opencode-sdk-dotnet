@@ -3,7 +3,7 @@
 using System.Text.Json.Serialization;
 using OpenCode.Sdk.Models;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 
 [JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Metadata, RespectNullableAnnotations = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip)]
 [JsonSerializable(typeof(AgentInfo))]

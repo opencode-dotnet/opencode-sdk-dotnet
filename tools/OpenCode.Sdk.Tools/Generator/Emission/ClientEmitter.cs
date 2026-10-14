@@ -67,12 +67,21 @@ internal static class ClientEmitter
         }
 
         var unit = EmissionSyntax.CompilationUnit(client.Namespace, EmitUsings(client), [declaration]);
-        return EmissionSyntax.CreateSource(
-            client.ContainerName is null ? $"{client.Name}.cs" : $"{client.ContainerName}/{client.Name}.cs",
-            unit);
+        return EmissionSyntax.CreateSource(PathOf(client), unit);
     }
 
-    /// <summary>Adapter and collection namespaces exist only where an operation kind needs one.</summary>
+    private static string PathOf(ClientPlan client)
+    {
+        if (client.ContainerName is null)
+        {
+            return GeneratedPlacement.PathOf(GeneratedKind.RootClient, null, client.Name);
+        }
+
+        var kind = client.Emission is EmissionMode.InternalRaw ? GeneratedKind.RawClient : GeneratedKind.Client;
+        return GeneratedPlacement.PathOf(kind, TypeHome.Family(client.ContainerName), client.Name);
+    }
+
+    /// <summary>Collection and I/O namespaces exist only where an operation kind needs one.</summary>
     private static List<string> EmitUsings(ClientPlan client)
     {
         var usings = new List<string>
@@ -81,22 +90,13 @@ internal static class ClientEmitter
             "System.Net.Http",
             "System.Threading",
             "System.Threading.Tasks",
-            "OpenCode.Sdk.Internal",
+            GeneratedNamespace.Internal,
+            GeneratedNamespace.Models,
         };
-        if (client.Operations.Any(static operation => operation.Envelope is not null))
-        {
-            usings.Add("OpenCode.Sdk.Internal.ResponseAdapters");
-        }
-
         if (client.Operations.Any(static operation =>
                 operation.Stream is not null || operation.Pagination is not null || operation.DeclaredHeaders.Count > 0))
         {
             usings.Add("System.Collections.Generic");
-        }
-
-        if (client.Operations.Any(static operation => operation.Stream is not null))
-        {
-            usings.Add("OpenCode.Sdk.Internal.StreamAdapters");
         }
 
         if (client.Operations.Any(static operation => operation.RequestBody is { IsBinary: true }))
@@ -104,13 +104,6 @@ internal static class ClientEmitter
             usings.Add("System.IO");
         }
 
-        if (client.Operations.Any(static operation => operation.Pagination is not null))
-        {
-            usings.Add("OpenCode.Sdk.Internal.Pagination");
-        }
-
-        usings.Add("OpenCode.Sdk.Internal.Serialization");
-        usings.Add("OpenCode.Sdk.Models");
         return usings;
     }
 

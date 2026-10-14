@@ -1,5 +1,4 @@
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.ResponseAdapters;
 
 namespace OpenCode.Sdk.Tests.ResponseAdapters;
 

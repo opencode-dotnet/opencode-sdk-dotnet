@@ -91,7 +91,8 @@ public sealed class SecretMemberEmissionTests
     [Test]
     public async Task Emit_Should_Override_ToString_Only_On_A_Flagged_Unknown_Carrier()
     {
-        var sources = UnionEmitter.Emit([.. EmitterPlanFixture.CreateUnionSnapshot().Select(static union => MaskUnknown(union, "IExamplePhase"))]);
+        UnionPlan[] unions = [.. EmitterPlanFixture.CreateUnionSnapshot().Select(static union => MaskUnknown(union, "IExamplePhase"))];
+        var sources = UnionEmitter.Emit(unions, ModelPlacementFixture.SingleSlice(unions));
 
         await Assert.That(EmitterSnapshot.Content(sources, "Models/UnknownExamplePhase.cs")).Contains(
             "public override string ToString() => RecordPrinter.Format(nameof(UnknownExamplePhase), (\"Status\", Status), (\"Type\", Type), (\"Payload\", RecordPrinter.Redact(Payload)));");
@@ -103,8 +104,10 @@ public sealed class SecretMemberEmissionTests
     {
         var plan = await EmitterPlanFixture.CreateStructuralUnionPlanAsync();
 
-        var masked = StructuralUnionEmitter.Emit([.. MaskStructural(plan).Models.OfType<StructuralUnionModelPlan>()]);
-        var plain = StructuralUnionEmitter.Emit([.. plan.Models.OfType<StructuralUnionModelPlan>()]);
+        StructuralUnionModelPlan[] maskedUnions = [.. MaskStructural(plan).Models.OfType<StructuralUnionModelPlan>()];
+        StructuralUnionModelPlan[] plainUnions = [.. plan.Models.OfType<StructuralUnionModelPlan>()];
+        var masked = StructuralUnionEmitter.Emit(maskedUnions, ModelPlacementFixture.SingleSlice(maskedUnions));
+        var plain = StructuralUnionEmitter.Emit(plainUnions, ModelPlacementFixture.SingleSlice(plainUnions));
 
         await Assert.That(EmitterSnapshot.Content(masked, "Models/StructuralValue.cs")).Contains(
             "StructuralUnionPrinter.Format(nameof(StructuralValue), Kind.ToString(), Kind is StructuralValueKind.Unknown ? RecordPrinter.Redacted : _value);");
@@ -151,7 +154,7 @@ public sealed class SecretMemberEmissionTests
     private static EmitPlan WithErrorSpine(EmitPlan plan)
     {
         var spine = EmitterPlanFixture.Create();
-        return plan with
+        var spined = plan with
         {
             Models = [.. plan.Models, .. spine.Models.Where(static model => model.Name == "BadRequestError")],
             Unions = [.. plan.Unions, .. spine.Unions.Where(static union => union.Name == "IOpenCodeError")],
@@ -163,6 +166,7 @@ public sealed class SecretMemberEmissionTests
                 ],
             },
         };
+        return spined.WithSingleSlice();
     }
 
     private static UnionPlan MaskUnknown(UnionPlan union, string unionName) =>
@@ -190,7 +194,7 @@ public sealed class SecretMemberEmissionTests
 
     private static JsonTypeInfo TypeInfo(Assembly assembly, Type type)
     {
-        var contextType = assembly.GetType("OpenCode.Sdk.Internal.Serialization.OpenCodeJsonContext", throwOnError: true)!;
+        var contextType = assembly.GetType("OpenCode.Sdk.Internal.OpenCodeJsonContext", throwOnError: true)!;
         var context = (JsonSerializerContext)(contextType.GetProperty("Default")?.GetValue(null)
                                               ?? throw new InvalidOperationException("Generated JSON context has no Default instance."));
         return context.GetTypeInfo(type) ?? throw new InvalidOperationException($"Generated JSON context has no {type.Name} metadata.");
@@ -233,7 +237,7 @@ public sealed class SecretMemberEmissionTests
         };
         var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(SourceEmitter.Emit(registered));
         var modelType = assembly.GetType($"OpenCode.Sdk.Models.{modelName}", throwOnError: true)!;
-        var contextType = assembly.GetType("OpenCode.Sdk.Internal.Serialization.OpenCodeJsonContext", throwOnError: true)!;
+        var contextType = assembly.GetType("OpenCode.Sdk.Internal.OpenCodeJsonContext", throwOnError: true)!;
         var context = (JsonSerializerContext)(contextType.GetProperty("Default")?.GetValue(null)
                                               ?? throw new InvalidOperationException("Generated JSON context has no Default instance."));
         var typeInfo = context.GetTypeInfo(modelType)

@@ -2,7 +2,7 @@ using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>Reads top-level union markers without materializing the known payload as a JSON DOM.</summary>
 internal sealed class UnionDiscriminatorReader

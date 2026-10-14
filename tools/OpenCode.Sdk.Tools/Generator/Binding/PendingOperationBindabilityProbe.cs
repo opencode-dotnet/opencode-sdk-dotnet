@@ -135,5 +135,7 @@ internal sealed class PendingOperationBindabilityProbe(ISpecBinder binder)
             RedactedMembers = [],
             RedactedOpenMembers = [],
             SecretLookingNames = [],
+            ModelOwners = [],
+            SessionAreas = [],
         };
 }

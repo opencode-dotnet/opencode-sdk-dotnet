@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Tests.Support;
 
 internal sealed class GeneratedJsonSerializer
 {
-    private const string ContextTypeName = "OpenCode.Sdk.Internal.Serialization.OpenCodeJsonContext";
+    private const string ContextTypeName = "OpenCode.Sdk.Internal.OpenCodeJsonContext";
     private readonly JsonSerializerContext _context = LoadContext();
 
     public T Deserialize<T>(string json)

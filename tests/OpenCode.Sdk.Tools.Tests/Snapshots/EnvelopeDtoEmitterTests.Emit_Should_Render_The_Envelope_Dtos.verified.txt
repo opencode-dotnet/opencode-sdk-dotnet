@@ -4,7 +4,7 @@
 using System.Text.Json.Serialization;
 using OpenCode.Sdk.Models;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// Carries the wire body of &apos;WidgetCreateResponse&apos; through one deserialization pass.
 /// </summary>
@@ -20,7 +20,7 @@ internal sealed record WidgetCreateResponseEnvelope
 using System.Text.Json.Serialization;
 using OpenCode.Sdk.Models;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// Carries the wire body of &apos;WidgetItemListResponse&apos; through one deserialization pass.
 /// </summary>
@@ -39,7 +39,7 @@ internal sealed record WidgetItemListResponseEnvelope
 using System.Text.Json.Serialization;
 using OpenCode.Sdk.Models;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// Carries the wire body of &apos;WidgetItemResponse&apos; through one deserialization pass.
 /// </summary>
@@ -55,7 +55,7 @@ internal sealed record WidgetItemResponseEnvelope
 using System.Text.Json.Serialization;
 using OpenCode.Sdk.Models;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// Carries the wire body of &apos;WidgetListResponse&apos; through one deserialization pass.
 /// </summary>
@@ -74,7 +74,7 @@ internal sealed record WidgetListResponseEnvelope
 using System.Text.Json.Serialization;
 using OpenCode.Sdk.Models;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// Carries the wire body of &apos;WidgetSpotListResponse&apos; through one deserialization pass.
 /// </summary>
@@ -93,7 +93,7 @@ internal sealed record WidgetSpotListResponseEnvelope
 using System.Text.Json.Serialization;
 using OpenCode.Sdk.Models;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// Carries the wire body of &apos;WidgetSpotResponse&apos; through one deserialization pass.
 /// </summary>

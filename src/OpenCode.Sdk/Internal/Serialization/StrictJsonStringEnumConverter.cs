@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The string-enum converter for every generated enum: wire values are strings by contract,

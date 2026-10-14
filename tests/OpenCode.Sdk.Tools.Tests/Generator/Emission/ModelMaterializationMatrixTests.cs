@@ -451,7 +451,7 @@ public sealed class ModelMaterializationMatrixTests
 
     private static JsonTypeInfo ResolveTypeInfo(Assembly assembly, string typeName)
     {
-        var contextType = assembly.GetType("OpenCode.Sdk.Internal.Serialization.OpenCodeJsonContext", throwOnError: true)!;
+        var contextType = assembly.GetType("OpenCode.Sdk.Internal.OpenCodeJsonContext", throwOnError: true)!;
         var context = contextType.GetProperty("Default", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) as JsonSerializerContext
                       ?? throw new InvalidOperationException("The generated JSON context has no Default instance.");
         var type = assembly.GetType(typeName, throwOnError: true)!;
@@ -478,7 +478,7 @@ public sealed class ModelMaterializationMatrixTests
         var operation = plan.Clients.SelectMany(static client => client.Operations)
             .Single(static candidate => candidate.Envelope?.PayloadType is NamedTypeReferencePlan { Name: "IMatrixChoice" });
         var adapterType = assembly.GetType(
-            $"OpenCode.Sdk.Internal.ResponseAdapters.{operation.Envelope!.AdapterTypeName}",
+            $"OpenCode.Sdk.Internal.{operation.Envelope!.AdapterTypeName}",
             throwOnError: true)!;
         var adapter = adapterType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null)
                       ?? throw new InvalidOperationException("The generated response adapter has no Instance.");
@@ -1001,7 +1001,7 @@ public sealed class ModelMaterializationMatrixTests
 
     private static (object Adapter, MethodInfo Adapt) ResolveAdapter(Assembly assembly, EnvelopePlan envelope)
     {
-        var adapterType = assembly.GetType($"OpenCode.Sdk.Internal.ResponseAdapters.{envelope.AdapterTypeName}", throwOnError: true)!;
+        var adapterType = assembly.GetType($"OpenCode.Sdk.Internal.{envelope.AdapterTypeName}", throwOnError: true)!;
         var adapter = adapterType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static)?.GetValue(null)
                       ?? throw new InvalidOperationException("The generated response adapter has no Instance.");
         var adapt = adapterType.GetMethod("Adapt", BindingFlags.Public | BindingFlags.Instance)

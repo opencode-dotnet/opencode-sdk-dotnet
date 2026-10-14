@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using OpenCode.Sdk.Models;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 
 internal sealed class UnknownCredentialValueJsonConverter : JsonConverter<UnknownCredentialValue>
 {

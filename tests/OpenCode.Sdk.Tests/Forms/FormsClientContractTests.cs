@@ -2,7 +2,7 @@ using System.Net;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Forms;
 
 public sealed class FormsClientContractTests
 {

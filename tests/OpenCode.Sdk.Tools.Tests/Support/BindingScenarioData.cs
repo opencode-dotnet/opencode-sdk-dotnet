@@ -22,7 +22,9 @@ internal static class BindingScenarioData
         IReadOnlyList<EnumMemberNameCuration>? enumMemberNames = null,
         IReadOnlyList<RedactedMemberCuration>? redactedMembers = null,
         IReadOnlyList<SecretLookingNameCuration>? secretLookingNames = null,
-        IReadOnlyList<RedactedOpenMembersCuration>? redactedOpenMembers = null) =>
+        IReadOnlyList<RedactedOpenMembersCuration>? redactedOpenMembers = null,
+        IReadOnlyList<ModelOwnerCuration>? modelOwners = null,
+        IReadOnlyList<SessionAreaCuration>? sessionAreas = null) =>
         new()
         {
             Groups = groups,
@@ -38,6 +40,17 @@ internal static class BindingScenarioData
             RedactedMembers = redactedMembers ?? [],
             RedactedOpenMembers = redactedOpenMembers ?? [],
             SecretLookingNames = secretLookingNames ?? [],
+            ModelOwners = modelOwners ?? [],
+            SessionAreas = sessionAreas ?? [],
+        };
+
+    public static ModelOwnerCuration Owner(string match, string owner,
+        string reason = "The model carries no family prefix; the row places it with the family that owns its operations.") =>
+        new()
+        {
+            Match = match,
+            Owner = owner,
+            Reason = reason,
         };
 
     public static DeclinedCuration Declined(string operationId,

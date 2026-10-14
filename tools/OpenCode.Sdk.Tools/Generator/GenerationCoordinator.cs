@@ -37,6 +37,7 @@ internal sealed class GenerationCoordinator(
         var selection = await _selectionLoader.LoadAsync(request.ProfilePath, cancellationToken).ConfigureAwait(false);
 
         var plan = _binder.Bind(document, selection, curation);
+        RefuseUnplacedModels(plan.Placement);
 
         var pending = plan
             .PendingOperations
@@ -66,27 +67,9 @@ internal sealed class GenerationCoordinator(
             ? CreatePartialMarker(plan.SelectedOperationIds, pendingMarks, declined, declinedMarks, plan.TransportOwnedOperationIds)
             : null;
 
-        // The admitted family folders are the plan's own container names — never an open glob.
-        var familyFolders = plan.Clients
-            .SelectMany(static client => client.Operations)
-            .Select(static operation => operation.RouteContainerName)
-            .Distinct(StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal)
-            .ToArray();
-
+        var reach = ModelReachReport.Compose(plan.Placement, plan.ModelReach);
         var writeResult = await _writer
-            .WriteAsync(
-                new GenerationWriteRequest
-                {
-                    OutputRoot = request.OutputRoot,
-                    ProjectPath = request.ProjectPath,
-                    Sources = SourceEmitter.Emit(plan),
-                    FamilyFolders = familyFolders,
-                    ImplicitAliases = plan.ImplicitAliases.Aliases,
-                    PartialMarkerContent = marker,
-                    Verify = request.Verify,
-                },
-                cancellationToken)
+            .WriteAsync(CreateWriteRequest(request, plan, marker, reach), cancellationToken)
             .ConfigureAwait(false);
 
         return new GenerationReport
@@ -96,8 +79,42 @@ internal sealed class GenerationCoordinator(
             TransportOwnedOperationIds = plan.TransportOwnedOperationIds,
             DeclinedOperationIds = [.. declined.Select(static operation => operation.OperationId)],
             WriteResult = writeResult,
+            ModelsReachedBeyondOwner = reach.ReachedBeyondOwner,
         };
     }
+
+    /// <summary>
+    /// The admitted family folders are the plan's own container names, and the model area folders
+    /// the placement's own areas — never an open glob.
+    /// </summary>
+    private static GenerationWriteRequest CreateWriteRequest(GenerationRequest request, EmitPlan plan, string? marker,
+        ModelReachReport reach) =>
+        new()
+        {
+            OutputRoot = request.OutputRoot,
+            ProjectPath = request.ProjectPath,
+            Sources = SourceEmitter.Emit(plan),
+            FamilyFolders =
+            [
+                .. plan.Clients
+                    .SelectMany(static client => client.Operations)
+                    .Select(static operation => operation.RouteContainerName)
+                    .Distinct(StringComparer.Ordinal)
+                    .Order(StringComparer.Ordinal),
+            ],
+            ModelAreaFolders =
+            [
+                .. plan.Placement.Homes.Values
+                    .Where(static home => home.Area is not null)
+                    .Select(static home => $"{home.Slice}/Models/{home.Area}")
+                    .Distinct(StringComparer.Ordinal)
+                    .Order(StringComparer.Ordinal),
+            ],
+            ImplicitAliases = plan.ImplicitAliases.Aliases,
+            PartialMarkerContent = marker,
+            ReachReportContent = reach.Content,
+            Verify = request.Verify,
+        };
 
     /// <summary>
     /// A decline states that a wall stands over the operation. The probe binds it through the real
@@ -113,6 +130,24 @@ internal sealed class GenerationCoordinator(
                 BindingErrorCategory.Curation,
                 mark.OperationId,
                 "a bindable operation cannot be declined — select it or leave it pending");
+        }
+
+        errors.ThrowIfAny();
+    }
+
+    /// <summary>
+    /// A model with no family prefix needs an owner row before it can be placed: a refresh that
+    /// brings one stops here until the row, with its reason, decides the model's folder.
+    /// </summary>
+    private static void RefuseUnplacedModels(ModelPlacement placement)
+    {
+        var errors = new BindingErrorCollector();
+        foreach (var model in placement.Unplaced)
+        {
+            errors.Add(
+                BindingErrorCategory.Curation,
+                model,
+                "the model has no family prefix and no modelOwners row: add a row naming its owner, with its reason");
         }
 
         errors.ThrowIfAny();

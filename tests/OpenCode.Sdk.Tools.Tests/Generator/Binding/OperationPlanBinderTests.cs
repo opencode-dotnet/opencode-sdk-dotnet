@@ -117,7 +117,9 @@ public sealed class OperationPlanBinderTests
                 .Clients.Select(static client => client.Name)
                 .SequenceEqual(ExpectedClientNames, StringComparer.Ordinal))
             .IsTrue();
-        await Assert.That(plan.Clients.All(static client => client.Namespace == "OpenCode.Sdk")).IsTrue();
+        await Assert
+            .That(plan.Clients.All(static client => client.Namespace == (client.Emission is EmissionMode.InternalRaw ? "OpenCode.Sdk.Internal" : "OpenCode.Sdk")))
+            .IsTrue();
 
         var root = plan.Clients.Single(static client => client.Role == ClientRole.Root);
         await Assert.That(root.Name).IsEqualTo("OpenCodeClient");

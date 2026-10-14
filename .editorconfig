@@ -861,25 +861,22 @@ dotnet_diagnostic.MA0045.severity = none
 # file. The Permissions container also part-matches the legacy CAS namespace
 # System.Security.Permissions; the protocol's own group name wins over a retired
 # .NET Framework namespace, so CA1724 yields here too.
-[src/OpenCode.Sdk/OpenCodeRoutes.cs]
+[src/OpenCode.Sdk/*/OpenCodeRoutes.*.cs]
 dotnet_diagnostic.CA1034.severity = none
 dotnet_diagnostic.CA1724.severity = none
 
 # The pinned OpenAPI schemas declare these wire members as plain strings without
 # format: uri. Winner: the sole protocol input's declared type; CA1056's name
 # inference remains enabled for every other property.
-[src/OpenCode.Sdk/Models/{ConfigInfoEnterprise,ConnectionStatus,ExperimentalIntegrationWellknownAddRequest,FormExternalField,IntegrationAttempt,McpOAuthConfig,McpRemoteConfig,McpResource,McpResourceTemplate,ProjectIcon,PromptFileSourceUri,PromptInputFileAttachment,ToolFileContent,WebSearchResult}.cs]
+[src/OpenCode.Sdk/**/{ConfigInfoEnterprise,ConnectionStatus,ExperimentalIntegrationWellknownAddRequest,FormExternalField,IntegrationAttempt,McpOAuthConfig,McpRemoteConfig,McpResource,McpResourceTemplate,ProjectIcon,PromptFileSourceUri,PromptInputFileAttachment,ToolFileContent,WebSearchResult}.cs]
 dotnet_diagnostic.CA1056.severity = none
 
-# The shipped SDK slices by client family with flat public namespaces:
-# client-family folders are placement, a namespace is API surface, and the
-# test project mirrors the layout with equally flat test namespaces. Winner: the
-# flat-namespace contract; IDE0130 remains error for every other folder, tools included.
-# A new family folder extends these globs deliberately - curation changes are API reviews.
-[src/OpenCode.Sdk/{Agents,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Generation,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Skills,Vcs,Websearch,Health,Pagination,Shells,Workspaces,Worktrees}/**.cs]
-dotnet_diagnostic.IDE0130.severity = none
-
-[tests/OpenCode.Sdk.Tests/{Agents,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Generation,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Skills,Vcs,Websearch,Health,Pagination,Shells,Workspaces,Worktrees}/**.cs]
+# The SDK's namespaces are API surface, not placement: a public type declares OpenCode.Sdk or
+# OpenCode.Sdk.Models wherever its file lives, and every internal type declares
+# OpenCode.Sdk.Internal, so moving a file never changes a namespace. Winner: the SDK
+# namespace-policy test, which checks every SDK file against that rule in both directions;
+# IDE0130 remains error for every other project, the SDK's tests included.
+[src/OpenCode.Sdk/**.cs]
 dotnet_diagnostic.IDE0130.severity = none
 
 # DI extension methods live in the Microsoft.Extensions.DependencyInjection namespace so
@@ -1012,14 +1009,6 @@ dotnet_diagnostic.MA0076.severity = none
 # bridge for the readiness signal; VSTHRD003 remains enabled for every other file.
 [src/OpenCode.Sdk/OpenCodeServer.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
-
-# The drain must call the parameterless WaitForExit(), not WaitForExitAsync(): Polyfill's
-# downlevel WaitForExitAsync is Exited-event-only and never waits for the event readers to reach
-# EOF, while the synchronous WaitForExit() does drain them before returning. It runs under
-# BoundedDrain's hard bound, after the child was ended. Winner: the cross-TFM diagnostics-drain
-# contract; MA0045 remains enabled elsewhere.
-[src/OpenCode.Sdk/Internal/ProcessEventOutputPump.cs]
-dotnet_diagnostic.MA0045.severity = none
 
 # The progress window's expiry is a timer callback, synchronous by the ITimer contract, already
 # running on a pool thread of its own, as a source's own CancelAfter timer cancels it. There is no

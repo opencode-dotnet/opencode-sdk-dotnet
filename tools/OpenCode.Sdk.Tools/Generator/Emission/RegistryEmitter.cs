@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Emission;
@@ -47,19 +48,19 @@ internal static class RegistryEmitter
                 EmissionSyntax.StringArgument(accessor).WithNameEquals(SyntaxFactory.NameEquals("TypeInfoPropertyName"))));
         }
 
-        var usings = new List<string> { "OpenCode.Sdk.Models", "System.Text.Json.Serialization" };
+        var usings = new List<string> { GeneratedNamespace.Models, "System.Text.Json.Serialization" };
         if (plan.PayloadEntries.Count > 0)
         {
             usings.Add("System.Collections.Generic");
         }
 
         var unit = EmissionSyntax.CompilationUnit(
-            "OpenCode.Sdk.Internal.Serialization",
+            GeneratedNamespace.Internal,
             usings,
             [declaration]);
         return Array.AsReadOnly(
         [
-            EmissionSyntax.CreateSource("Internal/Serialization/OpenCodeJsonContext.cs", unit),
+            EmissionSyntax.CreateSource(GeneratedPlacement.PathOf(GeneratedKind.SharedSerialization, null, "OpenCodeJsonContext"), unit),
         ]);
     }
 }

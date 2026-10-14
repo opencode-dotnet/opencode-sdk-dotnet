@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
@@ -23,8 +24,9 @@ internal static class ModelEmitter
 
             result.Add(model switch
             {
-                ObjectModelPlan objectModel => EmitObject(objectModel, ResolveImplementedUnions(objectModel, unions), unions),
-                EnumModelPlan enumModel => EmitEnum(enumModel),
+                ObjectModelPlan objectModel => EmitObject(objectModel, ResolveImplementedUnions(objectModel, unions), unions,
+                    GeneratedPlacement.ModelPathOf(plan.Placement, model.Name)),
+                EnumModelPlan enumModel => EmitEnum(enumModel, GeneratedPlacement.ModelPathOf(plan.Placement, model.Name)),
                 _ => throw new InvalidOperationException($"Unknown model plan '{model.GetType().Name}'."),
             });
         }
@@ -33,7 +35,7 @@ internal static class ModelEmitter
     }
 
     private static GeneratedSource EmitObject(ObjectModelPlan model, IReadOnlyList<UnionPlan> implemented,
-        IReadOnlyDictionary<string, UnionPlan> unions)
+        IReadOnlyDictionary<string, UnionPlan> unions, string relativePath)
     {
         // A variant overrides one abstract marker per level of its union chain: a nested
         // union's variant carries both its own tag and the fixed outer tag. A union's one
@@ -75,10 +77,10 @@ internal static class ModelEmitter
 
         var guardsPrefix = chainMarkers.Any(static marker => marker.Prefix is not null);
         var unit = EmissionSyntax.CompilationUnit(model.Namespace, CollectUsings(model, guardsPrefix), [declaration]);
-        return EmissionSyntax.CreateSource($"Models/{model.Name}.cs", unit);
+        return EmissionSyntax.CreateSource(relativePath, unit);
     }
 
-    private static GeneratedSource EmitEnum(EnumModelPlan model)
+    private static GeneratedSource EmitEnum(EnumModelPlan model, string relativePath)
     {
         // Strict by contract: the schema types enum values as strings, so the permissive
         // default's integer tolerance would admit malformed bodies as undefined members.
@@ -95,9 +97,9 @@ internal static class ModelEmitter
             .WithLeadingTrivia(EmissionSyntax.Documentation(model.Description ?? $"Defines the supported {GeneratedDisplayName.Of(model.Name)} values."));
         var unit = EmissionSyntax.CompilationUnit(
             model.Namespace,
-            ["System.Text.Json.Serialization", "OpenCode.Sdk.Internal.Serialization"],
+            ["System.Text.Json.Serialization", GeneratedNamespace.Internal],
             [declaration]);
-        return EmissionSyntax.CreateSource($"Models/{model.Name}.cs", unit);
+        return EmissionSyntax.CreateSource(relativePath, unit);
     }
 
     /// <summary>
@@ -437,13 +439,13 @@ internal static class ModelEmitter
         // nests under, so it needs no using.
         if (model.Properties.Any(static property => property.EmitsOptionalWrapper))
         {
-            _ = result.Add("OpenCode.Sdk.Internal.Serialization");
+            _ = result.Add(GeneratedNamespace.Internal);
         }
 
         // A model with a secret member prints through the runtime's record printer.
         if (model.RedactsExtensionData || model.Properties.Any(static property => property.IsRedacted))
         {
-            _ = result.Add("OpenCode.Sdk.Internal.Serialization");
+            _ = result.Add(GeneratedNamespace.Internal);
         }
 
         // The extension-data members name the dictionary types, JsonElement, the ordinal
@@ -451,7 +453,7 @@ internal static class ModelEmitter
         // empty view the runtime keeps for a bag the serializer has not created.
         if (model.EmitsExtensionData)
         {
-            _ = result.Add("OpenCode.Sdk.Internal.Serialization");
+            _ = result.Add(GeneratedNamespace.Internal);
             _ = result.Add("System");
             _ = result.Add("System.Collections.Generic");
             _ = result.Add("System.Linq");

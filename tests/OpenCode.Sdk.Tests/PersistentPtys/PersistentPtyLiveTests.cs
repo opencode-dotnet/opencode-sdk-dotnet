@@ -3,7 +3,7 @@ using System.Text;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.TestSupport;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.PersistentPtys;
 
 /// <summary>
 /// The persistent PTY family's live proof against the pinned server (ADR-0021, ADR-0022): one

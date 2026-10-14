@@ -4,7 +4,7 @@ using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Ptys;
 
 /// <summary>
 /// Proves the normal PTY family's HTTP lifecycle and live WebSocket replay contract against the

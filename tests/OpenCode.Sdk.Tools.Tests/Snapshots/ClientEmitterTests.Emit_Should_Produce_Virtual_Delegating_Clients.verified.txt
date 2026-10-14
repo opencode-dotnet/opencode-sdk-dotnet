@@ -6,8 +6,6 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.ResponseAdapters;
-using OpenCode.Sdk.Internal.Serialization;
 using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
@@ -99,9 +97,6 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.Pagination;
-using OpenCode.Sdk.Internal.ResponseAdapters;
-using OpenCode.Sdk.Internal.Serialization;
 using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
@@ -195,8 +190,6 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.ResponseAdapters;
-using OpenCode.Sdk.Internal.Serialization;
 using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;

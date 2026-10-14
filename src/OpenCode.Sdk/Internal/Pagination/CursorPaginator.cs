@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace OpenCode.Sdk.Internal.Pagination;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>Lazily traverses generated cursor-list operations through their ordinary one-page methods.</summary>
 internal static class CursorPaginator

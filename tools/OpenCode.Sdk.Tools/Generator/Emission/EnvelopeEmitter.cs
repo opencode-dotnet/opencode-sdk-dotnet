@@ -41,14 +41,16 @@ internal static class EnvelopeEmitter
                 $"Represents the response of the '{operation.HttpMethod.ToUpperInvariant()} {operation.RouteTemplate}' operation."));
         IReadOnlyList<string> usings = envelope.Kind switch
         {
-            EnvelopeKind.NoContent => ["System.Diagnostics.CodeAnalysis", "OpenCode.Sdk.Models"],
+            EnvelopeKind.NoContent => ["System.Diagnostics.CodeAnalysis", GeneratedNamespace.Models],
             EnvelopeKind.CursorList or EnvelopeKind.DataLocationList =>
-                ["System", "System.Diagnostics.CodeAnalysis", "System.Text", "OpenCode.Sdk.Models"],
+                ["System", "System.Diagnostics.CodeAnalysis", "System.Text", GeneratedNamespace.Models],
             EnvelopeKind.Bare or EnvelopeKind.Data or EnvelopeKind.DataLocation or EnvelopeKind.Binary or _ =>
-                ["System", "System.Diagnostics.CodeAnalysis", "System.Text", "OpenCode.Sdk.Models"],
+                ["System", "System.Diagnostics.CodeAnalysis", "System.Text", GeneratedNamespace.Models],
         };
-        var unit = EmissionSyntax.CompilationUnit("OpenCode.Sdk", usings, [declaration]);
-        return EmissionSyntax.CreateSource($"{operation.RouteContainerName}/{envelope.ResponseTypeName}.cs", unit);
+        var unit = EmissionSyntax.CompilationUnit(GeneratedNamespace.Public, usings, [declaration]);
+        return EmissionSyntax.CreateSource(
+            GeneratedPlacement.PathOf(GeneratedKind.OperationRecord, TypeHome.Family(operation.RouteContainerName), envelope.ResponseTypeName),
+            unit);
     }
 
     private static List<MemberDeclarationSyntax> EmitNoContentMembers(EnvelopePlan envelope) =>

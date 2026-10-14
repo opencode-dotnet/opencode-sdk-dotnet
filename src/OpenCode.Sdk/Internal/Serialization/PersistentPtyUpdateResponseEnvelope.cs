@@ -3,7 +3,7 @@
 using System.Text.Json.Serialization;
 using OpenCode.Sdk.Models;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// Carries the wire body of &apos;PersistentPtyUpdateResponse&apos; through one deserialization pass.
 /// </summary>

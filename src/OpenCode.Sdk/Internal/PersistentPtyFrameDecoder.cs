@@ -1,6 +1,5 @@
 using System.Net.WebSockets;
 using System.Text.Json;
-using OpenCode.Sdk.Internal.Serialization;
 
 namespace OpenCode.Sdk.Internal;
 

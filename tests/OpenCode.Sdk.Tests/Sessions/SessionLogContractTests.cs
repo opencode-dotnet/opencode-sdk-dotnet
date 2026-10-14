@@ -3,7 +3,7 @@ using System.Text.Json;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Sessions;
 
 /// <summary>
 /// The durable log's representative runtime corpus exercises two of 40 durable branches,

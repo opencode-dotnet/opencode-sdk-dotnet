@@ -3,7 +3,7 @@ using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Vcs;
 
 [ClassDataSource<SimulatedDriveServerFixture>(Shared = SharedType.PerTestSession)]
 [NotInParallel(ParallelConstraintKeys.ServerProcess)]
