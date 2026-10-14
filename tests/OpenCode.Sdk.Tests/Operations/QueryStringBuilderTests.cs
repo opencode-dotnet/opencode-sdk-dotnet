@@ -1,6 +1,6 @@
 using OpenCode.Sdk.Internal;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Operations;
 
 public sealed class QueryStringBuilderTests
 {

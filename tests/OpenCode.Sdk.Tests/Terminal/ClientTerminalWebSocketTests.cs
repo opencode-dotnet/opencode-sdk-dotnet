@@ -1,7 +1,7 @@
 using System.Net.WebSockets;
 using OpenCode.Sdk.Internal;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Terminal;
 
 /// <summary>
 /// The shipped adapter's upgrade contract. The adapter is family-neutral, so the wording of a

@@ -3,7 +3,7 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Transport;
 
 [NotInParallel]
 public sealed class OwnedTransportTests

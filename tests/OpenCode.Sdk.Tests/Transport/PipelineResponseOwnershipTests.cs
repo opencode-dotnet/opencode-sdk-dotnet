@@ -3,7 +3,7 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Transport;
 
 public sealed class PipelineResponseOwnershipTests
 {
