@@ -24,7 +24,9 @@ stderr pipe, and an explicit inherited-handle list; `posix_spawnp` on Unix with
 `POSIX_SPAWN_SETSID`, `/dev/null` on 0 and 1, and a stderr pipe on 2 — `LibraryImport` on the
 modern targets, `DllImport` on the `netstandard2.0` asset where that generator is unavailable.
 The executable is the one the shipped launcher resolution produced, launched through `cmd.exe`
-on the launcher's own `BatchCommandLine` line when it is a batch shim. The seam refuses when the platform cannot provide the session-detach
+on the launcher's own `BatchCommandLine` line when it is a batch shim; that `cmd.exe` starts with
+a console that has no window rather than detached, because a detached `cmd.exe` would give the
+program it runs a visible console of its own. The seam refuses when the platform cannot provide the session-detach
 flag; it never falls back to `Process.Start`, a shell, or a managed `fork()`. This is the spawn
 counterpart of ADR-0026's `kill(2)`, and ADR-0001's "no process library" stands: it binds
 functions of the C library and the Windows process API every process already has loaded. ADR-0032

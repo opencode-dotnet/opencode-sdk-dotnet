@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-10-12
+Date: 2026-10-14
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -800,7 +800,11 @@ agree with the registration the call reads, or the call waits out the bound. Con
 by the SDK as they exit. On Windows a contender starts the way libuv starts a Node child spawned
 `detached` and `windowsHide` with no standard stream inherited: `DETACHED_PROCESS |
 CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW` with `STARTF_USESHOWWINDOW` and `SW_HIDE`, so it has no
-console, roots a process group of its own, and any window it opens starts hidden. `OnStart` fires
+console, roots a process group of its own, and any window it opens starts hidden. A batch shim,
+such as npm's `opencode.cmd`, is the exception: its `cmd.exe` starts with `CREATE_NO_WINDOW` and
+not detached, because a detached `cmd.exe` has no console to hand the program it runs, which would
+then take a new console with a visible window and standard streams of its own in place of the
+stderr pipe; that program inherits a console with no window, shared with no other process. `OnStart` fires
 at most once. The returned handle is the same non-owning
 shape discovery returns. Persistent-terminal sidecar I/O is behind `IServicePtyHandoff`: `prepare`
 requests the handoff ticket under the request bound through the SDK's own request pipeline and keeps

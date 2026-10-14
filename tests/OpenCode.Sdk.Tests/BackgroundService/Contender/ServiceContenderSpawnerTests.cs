@@ -256,6 +256,64 @@ public sealed class ServiceContenderSpawnerTests
         }
     }
 
+    /// <summary>
+    /// A batch shim runs under <c>cmd.exe</c>, and the program it starts is the real contender. A
+    /// detached <c>cmd.exe</c> has no console, so Windows gives that program a new console of its
+    /// own, which opens a visible window and takes the program's standard streams away from the
+    /// stderr pipe; npm's <c>opencode.cmd</c> would then keep a terminal window open for the
+    /// daemon's whole life and leave the SDK none of its startup output. The shim's program must
+    /// find a console without a window, and write its report into the pipe.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    public async Task Spawn_Should_Give_A_Batch_Shims_Program_No_Console_Window_On_Windows(CancellationToken cancellationToken)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Console.WriteLine("branch: Unix (" + RuntimeInformation.OSDescription + ") — no batch shim and no console window; the batch-shim refusal test covers Unix");
+            return;
+        }
+
+        var directory = FileSystem.Path.Combine(FileSystem.Path.GetTempPath(), "opencode-contender-" + Guid.NewGuid().ToString("N"));
+        _ = FileSystem.Directory.CreateDirectory(directory);
+        try
+        {
+            var command = FixtureCommand();
+            var script = FileSystem.Path.Combine(directory, "oc.cmd");
+            using (var stream = FileSystem.FileStream.New(script, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                var line = "@\"" + command[0] + "\" \"" + command[1] + "\" contender-probe console-report\r\n";
+                await stream.WriteAsync(Encoding.UTF8.GetBytes(line), cancellationToken);
+            }
+
+            var startInfo = new IServiceContenderSpawner.ContenderStartInfo(
+                new ResolvedExecutable("oc", script, IsBatchScript: true),
+                [],
+                new Dictionary<string, string?>(StringComparer.Ordinal));
+
+            using var contender = Spawner.Start(startInfo);
+            try
+            {
+                await Assert.That(await WaitForTheProbeAsync(contender, "the shim's console report", cancellationToken)).IsTrue()
+                    .Because(contender.Stderr);
+                await Assert.That(contender.Stderr).Contains("\"window\"")
+                    .Because("the shim's program writes its console report to the stderr it was given");
+                var report = ParseConsoleReport(contender.Stderr);
+
+                await Assert.That(report.Window).IsFalse().Because(contender.Stderr);
+                Console.WriteLine("branch: Windows — the shim's program reported " + contender.Stderr.Trim());
+            }
+            finally
+            {
+                ProcessObservation.KillIfRunning(contender.ProcessId);
+            }
+        }
+        finally
+        {
+            FileSystem.Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Test]
     [Timeout(120_000)]
     public async Task Spawn_Should_Start_The_Child_With_Default_Signal_State(CancellationToken cancellationToken)
