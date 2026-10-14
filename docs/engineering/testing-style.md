@@ -184,6 +184,14 @@ true; the fixture hands the boundary to the child process it starts.
   stopped reading one of the variables would do silently. Which server an owned fixture starts
   (`OPENCODE_SDK_TESTS_SERVER_COMMAND`, `OPENCODE_SDK_TESTS_ENDPOINT`) is a separate choice and not
   part of the boundary.
+- **Machine-wide configuration is moved or refused.** The pinned server also reads a system
+  configuration directory and, on macOS, MDM managed-preference plists, and loads them last, as
+  managed settings that override every source the map sets, its empty seed included. On Windows
+  the directory follows `ProgramData`, so the map gives each server an empty `ProgramData` inside
+  its run root. On Linux (`/etc/opencode`) and macOS (`/Library/Application Support/opencode` and
+  the `ai.opencode.managed.plist` files under `/Library/Managed Preferences`) no variable moves
+  them, so `ServerIsolation.For` refuses an owned launch while one exists
+  (`tests/Shared/SystemConfigurationSources.cs`).
 - **The host's own environment is scrubbed first.** A child inherits whatever the isolation map
   does not set, so `tests/Shared/InheritedEnvironment.cs` runs once per test session, before any
   fixture starts a child: it removes every `OPENCODE_*` variable except the suite's own
