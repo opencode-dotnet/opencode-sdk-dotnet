@@ -46,6 +46,64 @@
   </Target>
 
   <!--
+    A package's README links the repository at the commit the package was built from, not at
+    master, so the files it points to match the package for as long as the package exists. The
+    release tag is created on that same commit after the publish, so a commit link and a tag link
+    show the same content, and a nightly package, which gets no tag, links correctly too. The
+    repository's own README keeps its master links; only the packed copy is rewritten. A pack with
+    no known commit refuses rather than shipping master links. The copy is written by a small task
+    of its own, byte for byte apart from the links: WriteLinesToFile would pass the text through an
+    item list, and on Linux and macOS MSBuild turns every backslash in an item into a slash, which
+    would break the shell examples' line continuations (PackedReadmeTests compares the copy byte
+    for byte on all three operating systems).
+  -->
+  <UsingTask TaskName="WritePackedReadme"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Source ParameterType="System.String" Required="true" />
+      <Destination ParameterType="System.String" Required="true" />
+      <RepositoryUrl ParameterType="System.String" Required="true" />
+      <Commit ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var text = System.IO.File.ReadAllText(Source)
+            .Replace(RepositoryUrl + "/blob/master/", RepositoryUrl + "/blob/" + Commit + "/")
+            .Replace(RepositoryUrl + "/tree/master/", RepositoryUrl + "/tree/" + Commit + "/");
+        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Destination));
+        System.IO.File.WriteAllText(Destination, text, new System.Text.UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="PackReadmeLinkedToTheCommit"
+          BeforeTargets="_GetPackageFiles"
+          DependsOnTargets="InitializeSourceControlInformation"
+          Condition="'$(IsPackable)' == 'true'">
+    <PropertyGroup>
+      <_PackedReadmeCommit>$(SourceRevisionId)</_PackedReadmeCommit>
+      <_PackedReadmeCommit Condition="'$(_PackedReadmeCommit)' == ''">$(RepositoryCommit)</_PackedReadmeCommit>
+      <_PackedReadmeSource>$(MSBuildThisFileDirectory)README.md</_PackedReadmeSource>
+      <_PackedReadmeFile>$(BaseIntermediateOutputPath)README.md</_PackedReadmeFile>
+    </PropertyGroup>
+
+    <Error Condition="'$(_PackedReadmeCommit)' == ''"
+           Text="The package README cannot be linked to its commit: neither SourceRevisionId nor RepositoryCommit is set. Pack from a git checkout with source control information enabled." />
+
+    <WritePackedReadme Source="$(_PackedReadmeSource)"
+                       Destination="$(_PackedReadmeFile)"
+                       RepositoryUrl="$(RepositoryUrl)"
+                       Commit="$(_PackedReadmeCommit)" />
+
+    <ItemGroup>
+      <FileWrites Include="$(_PackedReadmeFile)" />
+      <None Remove="$(_PackedReadmeSource)" />
+      <None Include="$(_PackedReadmeFile)" Pack="true" PackagePath="" Visible="false" />
+    </ItemGroup>
+  </Target>
+
+  <!--
     The packages carry a netstandard2.0 asset as a compatibility bridge, not as a supported runtime
     (ADR-0002). A consumer whose target framework resolves to it on a runtime the packages do not
     target - .NET Core below the default target, .NET Framework below 4.7.2 - gets a build warning,

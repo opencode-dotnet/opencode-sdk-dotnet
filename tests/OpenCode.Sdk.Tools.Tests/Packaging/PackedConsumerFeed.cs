@@ -37,6 +37,9 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
     /// <summary>Gets the version every packed package carries.</summary>
     public string Version { get; private set; } = string.Empty;
 
+    /// <summary>Gets the directory the packed packages are in.</summary>
+    public string FeedDirectory => FileSystem.Path.Combine(Root, "feed");
+
     private string Root => _root ?? throw new InvalidOperationException("The feed is not initialized.");
 
     /// <inheritdoc />
