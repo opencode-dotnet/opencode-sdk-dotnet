@@ -11,7 +11,8 @@ surface only, as any consumer does, where a project reference would let it reach
 gaps from the surface review before `1.0.0`. The organization exists to hold sibling projects like
 it, and this repository's CI, gates, and canon stay scoped to the library.
 
-This supersedes the repository-placement half of ADR-0006; independent versioning stands.
+This supersedes the repository placement ADR-0006 recorded; ADR-0006 keeps the versioning, and the
+MCP server versions on its own in its repository.
 
 ## Considered Options
 
