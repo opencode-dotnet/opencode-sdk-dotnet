@@ -36,7 +36,6 @@ internal static class ReservedNamePolicy
         [
             "CursorSequence",
             "ErrorBehavior",
-            "IOpenCodeClientOptions",
             EffectStreamTypeNamePolicy.CauseMarkerInterface,
             "ListCursor",
             "ListOrder",

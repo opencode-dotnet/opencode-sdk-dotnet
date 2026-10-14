@@ -9,6 +9,14 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 💥 Breaking changes
+
+- **`IOpenCodeClientOptions` is removed.** No public API accepted it, and every option added
+  later would have broken its implementers, because `net472` and `netstandard2.0` have no default
+  interface members. Configure clients through `OpenCodeClientOptions`, which a client still
+  snapshots at construction. Code that declared a variable or parameter as
+  `IOpenCodeClientOptions` uses `OpenCodeClientOptions` instead.
+
 ### ✨ Added
 
 - **The accepted snapshot moved to upstream release tag `v2.0.29`**

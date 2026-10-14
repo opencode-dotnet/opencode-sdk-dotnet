@@ -2,10 +2,10 @@ namespace OpenCode.Sdk;
 
 /// <summary>
 /// Configures an opencode client for its whole lifetime. The class stays settable for the
-/// options and configuration-binding patterns; clients snapshot it at construction through
-/// <see cref="IOpenCodeClientOptions"/>, so later mutation never reaches a built client.
+/// options and configuration-binding patterns; a client snapshots it at construction, so later
+/// mutation never reaches a built client.
 /// </summary>
-public sealed class OpenCodeClientOptions : IOpenCodeClientOptions
+public sealed class OpenCodeClientOptions
 {
     /// <summary>Gets or sets the absolute HTTP or HTTPS server endpoint; required to build a client.</summary>
     public Uri? Endpoint { get; set; }
