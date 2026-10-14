@@ -16,6 +16,8 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 [MemoryDiagnoser]
 public class MessageGetBenchmarks : IDisposable
 {
+    private const string SessionId = "ses_bench0000000000000000001";
+    private const string MessageId = "msg_bench00000000000000000001";
     private const int MediumParts = 120;
     private const int LargeParts = 2400;
 
@@ -50,7 +52,7 @@ public class MessageGetBenchmarks : IDisposable
         _handler = new CannedResponseHandler(_envelope);
         _httpClient = new HttpClient(_handler);
         _client = new OpenCodeClient(_httpClient, Options);
-        _session = _client.Sessions.GetSessionClient("ses_bench0000000000000000001");
+        _session = _client.Sessions.GetSessionClient(SessionId);
         _pipeline = new Pipeline(_httpClient, ownsHttpClient: false, Options);
 
         var response = await GetMessageAsync().ConfigureAwait(false);
@@ -62,12 +64,12 @@ public class MessageGetBenchmarks : IDisposable
 
     /// <summary>The complete generated operation.</summary>
     [Benchmark]
-    public Task<SessionMessageResponse> GetMessageAsync() => _session!.GetMessageAsync("msg_bench00000000000000000001");
+    public Task<SessionMessageResponse> GetMessageAsync() => _session!.GetMessageAsync(MessageId);
 
     /// <summary>The same pipeline through a no-op adapter: request, send, buffer, and UTF-8 validation only.</summary>
     [Benchmark]
     public Task<NoOpResponse> ExecuteWithoutAdapterAsync() =>
-        _pipeline!.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Server.GetInfo, NoOpResponseAdapter.Instance, options: null, CancellationToken.None);
+        _pipeline!.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.GetMessage(SessionId, MessageId), NoOpResponseAdapter.Instance, options: null, CancellationToken.None);
 
     /// <summary>The generated adapter over validated UTF-8: envelope materialization plus the response record.</summary>
     [Benchmark]
