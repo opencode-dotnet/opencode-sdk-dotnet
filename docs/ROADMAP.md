@@ -160,6 +160,9 @@ These do not block `1.0.0` and run beside the road.
 
 - Retry, telemetry, and hooks themselves, added through the extension points `1.0.0` fixes
   ([#199](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/199)).
+- C# 15 unions as sibling types over the generated records, for consumers on C# 15
+  ([#200](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/200)). The interfaces and
+  carriers stay the representation; existing types are never retrofitted (ADR-0036).
 - A Hosting package, if a concrete consumer — the MCP server or a first external host — needs
   host-owned process lifecycle.
 - Research: turning the service's remote access on and off from .NET. Upstream exposes it only
