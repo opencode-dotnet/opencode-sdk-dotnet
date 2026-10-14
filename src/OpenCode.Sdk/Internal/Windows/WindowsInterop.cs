@@ -326,11 +326,6 @@ internal static partial class WindowsInterop
     internal static partial bool RegisterWaitForSingleObject(
         out IntPtr registration, SafeWaitHandle waited, IntPtr callback, IntPtr context, uint milliseconds, uint flags);
 
-    [LibraryImport("kernel32", EntryPoint = "UnregisterWait", SetLastError = true)]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool UnregisterWait(IntPtr registration);
-
     [LibraryImport("kernel32", EntryPoint = "UnregisterWaitEx", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -462,11 +457,6 @@ internal static partial class WindowsInterop
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool RegisterWaitForSingleObject(
         out IntPtr registration, SafeWaitHandle waited, IntPtr callback, IntPtr context, uint milliseconds, uint flags);
-
-    [DllImport("kernel32", EntryPoint = "UnregisterWait", SetLastError = true)]
-    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool UnregisterWait(IntPtr registration);
 
     [DllImport("kernel32", EntryPoint = "UnregisterWaitEx", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]

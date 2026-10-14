@@ -16,26 +16,27 @@ namespace OpenCode.Sdk.Internal.Windows;
 /// exit the kernel has already reported. Once the handle signals, the code comes from
 /// <c>GetExitCodeProcess</c> in its full 32 bits (<c>0xC0000005</c> reads as <c>-1073741819</c>,
 /// the bits <c>Process.ExitCode</c> gives), so a code that happens to equal <c>STILL_ACTIVE</c> is
-/// never mistaken for a running child. Two parties must both be done before the registration, the
-/// wait handle, and the process handle are released: the exit, and the watch's disposal. One
-/// interlocked state records which came first, and whichever comes second releases; the exit
-/// callback reads the code before it marks its arrival, so it never touches a released handle.
+/// never mistaken for a running child. Two parties must both arrive before the registration, the
+/// wait handle, and the process handle are released: the exit, and the watch's disposal. Each
+/// arrival sets its own bit once and for good, and the one arrival that finds the other's bit
+/// already set releases, so the release runs exactly once whatever the order and however often the
+/// watch is disposed.
 /// </summary>
 /// <remarks>
 /// The callback is the one place native code calls into the SDK, so it stays minimal and never
-/// blocks the wait thread: the exit code, the state change, and the task's completion, whose
+/// blocks the wait thread: the exit code, its arrival, and the task's completion, whose
 /// continuations run asynchronously. Nothing escapes it: an exception crossing back into native
-/// code ends the process, so a failure completes the exit as unknown. A release outside the
-/// callback unregisters with <c>UnregisterWaitEx</c> and <c>INVALID_HANDLE_VALUE</c>, which returns
-/// once a callback still running has finished; a release inside the callback cannot wait for
-/// itself, so it unregisters with the non-blocking <c>UnregisterWait</c> and leaves the closing of
-/// the handles to the pool, after the callback has returned.
+/// code ends the process, so a failed read completes the exit as unknown and the arrival still
+/// happens. The release unregisters with <c>UnregisterWaitEx</c> and <c>INVALID_HANDLE_VALUE</c>,
+/// which returns only once a callback still running has finished, and closes the handles after it.
+/// The callback cannot wait for itself, so when its arrival is the releasing one it hands the
+/// release to the pool, where that wait is legal; no handle closes while the callback runs.
 /// </remarks>
 internal sealed class WindowsExitWatch : IWindowsExitWatch
 {
-    private const int Running = 0;
-    private const int ExitObserved = 1;
-    private const int Disposed = 2;
+    private const int ExitArrived = 1;
+    private const int DisposalArrived = 2;
+    private const int BothArrived = ExitArrived | DisposalArrived;
 
 #if !NET
     /// <summary>The callback for the downlevel targets, alive for the process's lifetime, so no registration outlives it.</summary>
@@ -48,16 +49,18 @@ internal sealed class WindowsExitWatch : IWindowsExitWatch
 
     private readonly SafeProcessHandle _process;
     private readonly SafeWaitHandle _signal;
+    private readonly IExitWaitKernel _kernel;
     private readonly TaskCompletionSource<ChildExitStatus> _exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private GCHandle _self;
     private IntPtr _registration;
-    private int _state = Running;
+    private int _arrivals;
     private int _released;
 
-    private WindowsExitWatch(SafeProcessHandle process, SafeWaitHandle signal)
+    private WindowsExitWatch(SafeProcessHandle process, SafeWaitHandle signal, IExitWaitKernel kernel)
     {
         _process = process;
         _signal = signal;
+        _kernel = kernel;
     }
 
 #if !NET
@@ -90,9 +93,17 @@ internal sealed class WindowsExitWatch : IWindowsExitWatch
     /// <param name="process">The child's process handle.</param>
     /// <returns>The running watch.</returns>
     /// <exception cref="Win32Exception">The handle could not be duplicated for the wait, or the wait could not be registered; the caller still owns the process handle.</exception>
-    public static WindowsExitWatch Start(SafeProcessHandle process)
+    public static WindowsExitWatch Start(SafeProcessHandle process) => Start(process, ExitWaitKernel.Instance);
+
+    /// <summary>Starts watching a child through the given kernel calls.</summary>
+    /// <param name="process">The child's process handle.</param>
+    /// <param name="kernel">The kernel calls the watch makes.</param>
+    /// <returns>The running watch.</returns>
+    /// <exception cref="Win32Exception">The handle could not be duplicated for the wait, or the wait could not be registered; the caller still owns the process handle.</exception>
+    internal static WindowsExitWatch Start(SafeProcessHandle process, IExitWaitKernel kernel)
     {
         ArgumentNullException.ThrowIfNull(process);
+        ArgumentNullException.ThrowIfNull(kernel);
 
         if (!WindowsInterop.DuplicateProcessHandle(
                 WindowsInterop.CurrentProcess,
@@ -108,18 +119,17 @@ internal sealed class WindowsExitWatch : IWindowsExitWatch
             throw failure;
         }
 
-        var watch = new WindowsExitWatch(process, waitable);
+        var watch = new WindowsExitWatch(process, waitable, kernel);
         watch._self = GCHandle.Alloc(watch);
 
         // The callback may run before this call returns, when the child has already exited; it
         // reads nothing the registration's result sets, and the release that needs the result
         // waits for the watch's disposal, which cannot come before this method returns.
-        if (!WindowsInterop.RegisterWaitForSingleObject(
+        if (!kernel.Register(
                 out var registration,
                 waitable,
                 CallbackAddress(),
                 GCHandle.ToIntPtr(watch._self),
-                WindowsInterop.InfiniteWait,
                 WindowsInterop.ExecuteInWaitThread | WindowsInterop.ExecuteOnlyOnce))
         {
             // Nothing waits on the duplicate, so it is closed here; the process handle stays the caller's.
@@ -138,14 +148,18 @@ internal sealed class WindowsExitWatch : IWindowsExitWatch
     }
 
     /// <summary>
-    /// Releases the watch now when the child has exited; otherwise the exit callback releases it
-    /// when the child exits. The task keeps its result either way.
+    /// Releases the watch now when the child has exited; otherwise the exit releases it when the
+    /// child exits. A second disposal does nothing. The task keeps its result either way.
     /// </summary>
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _state, Disposed) == ExitObserved)
+        // A disposal that completes both arrivals releases on the caller's thread, and the release
+        // waits for the callback to finish. That thread is never the wait thread the callback runs
+        // on: the callback completes the task with its continuations run asynchronously, so no
+        // caller code runs inside it, and nothing in the callback disposes the watch.
+        if (Arrive(DisposalArrived))
         {
-            Release(insideCallback: false);
+            Release();
         }
     }
 
@@ -183,52 +197,63 @@ internal sealed class WindowsExitWatch : IWindowsExitWatch
 
     [SlopwatchSuppress(
         "SW003",
-        "A handle closed under the callback is the one way the code becomes unreadable; the exit is then reported as unknown rather than raised on the wait thread, where it would end the host.")]
+        "The read runs on the wait thread, where nothing may escape: a read that fails in any way reports the exit as unknown, and the exit's arrival below still happens, so the watch is still released.")]
     private void OnExited()
     {
-        ChildExitStatus status;
+        var status = ChildExitStatus.Unknown;
         try
         {
-            status = WindowsInterop.GetExitCodeProcess(_process, out var code)
-                ? new ChildExitStatus { ExitCode = unchecked((int)code) }
-                : ChildExitStatus.Unknown;
+            if (_kernel.TryReadExitCode(_process, out var code))
+            {
+                status = new ChildExitStatus { ExitCode = unchecked((int)code) };
+            }
         }
-        catch (ObjectDisposedException)
+        catch (Exception)
         {
-            // The code is no longer readable; the exit itself is certain.
-            status = ChildExitStatus.Unknown;
+            // The code is unreadable; the exit itself is certain.
         }
 
-        // The exit is marked before the task completes, so a caller that saw the exit and then
-        // disposes the watch always finds it marked and releases at once.
-        if (Interlocked.Exchange(ref _state, ExitObserved) == Disposed)
+        // The exit arrives before the task completes, so a caller that saw the exit and then
+        // disposes the watch always finds it arrived and releases at once.
+        if (Arrive(ExitArrived))
         {
-            Release(insideCallback: true);
+            // The callback cannot wait for its own end, so the release runs on the pool, where the
+            // unregistration waits for this callback to return before anything is closed.
+            _ = ThreadPool.UnsafeQueueUserWorkItem(static state => (state as WindowsExitWatch)?.Release(), this);
         }
 
         CompletedOnPoolThread = Thread.CurrentThread.IsThreadPoolThread;
         _ = _exited.TrySetResult(status);
     }
 
-    private void Release(bool insideCallback)
+    /// <summary>
+    /// Records one party's arrival, once: true for the arrival that completes both, which is the
+    /// one that releases; false for the first arrival and for any repeat of either.
+    /// </summary>
+    private bool Arrive(int party)
     {
-        var registration = Volatile.Read(ref _registration);
-        if (!insideCallback)
+        var current = Volatile.Read(ref _arrivals);
+        while (true)
         {
-            // Returns once a callback still running has finished, so nothing below races it.
-            _ = WindowsInterop.UnregisterWaitEx(registration, WindowsInterop.InvalidHandleValue);
-            CloseHandles();
-            return;
-        }
+            if ((current & party) != 0)
+            {
+                return false;
+            }
 
-        // This callback is the one still running, so the unregistration completes when it returns;
-        // the handles close after that, on the pool, where a late close holds nothing back.
-        _ = WindowsInterop.UnregisterWait(registration);
-        _ = ThreadPool.UnsafeQueueUserWorkItem(static state => (state as WindowsExitWatch)?.CloseHandles(), this);
+            var observed = Interlocked.CompareExchange(ref _arrivals, current | party, current);
+            if (observed == current)
+            {
+                return (current | party) == BothArrived;
+            }
+
+            current = observed;
+        }
     }
 
-    private void CloseHandles()
+    private void Release()
     {
+        // Returns once a callback still running has finished, so nothing below races it.
+        _kernel.Unregister(Volatile.Read(ref _registration));
         _signal.Dispose();
         _process.Dispose();
         _self.Free();

@@ -3,6 +3,7 @@ using System.Globalization;
 using Microsoft.Win32.SafeHandles;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Internal.Launcher;
+using OpenCode.Sdk.Internal.Posix;
 using OpenCode.Sdk.Internal.Windows;
 using OpenCode.Sdk.Internal.Windows.Abstractions;
 using OpenCode.Sdk.Tests.Support;
@@ -143,8 +144,11 @@ public sealed class WindowsExitWatchTests
     }
 
     /// <summary>
-    /// The exit completes on the operating system's wait thread, never in the .NET thread pool's
-    /// queue, so a busy pool cannot hold back an exit the kernel has already reported.
+    /// The wait is registered to run its callback on the operating system's wait thread, once, and
+    /// the exit completes there, never in the .NET thread pool's queue, so a busy pool cannot hold
+    /// back an exit the kernel has already reported. The flags are read where the watch hands them
+    /// to the kernel: a native worker thread is not a pool thread either, so the thread alone could
+    /// not tell the wait thread from a native worker.
     /// </summary>
     [Test]
     [Timeout(120_000)]
@@ -156,13 +160,87 @@ public sealed class WindowsExitWatchTests
             return;
         }
 
+        var kernel = new RecordingKernel();
         var child = Spawn("exit-code", "0");
-        using var watch = WindowsExitWatch.Start(child.Process);
+        using var watch = WindowsExitWatch.Start(child.Process, kernel);
 
         _ = await watch.Exited.WaitAsync(Bound, cancellationToken);
 
+        await Assert.That(kernel.RegisteredFlags).IsEqualTo(WindowsInterop.ExecuteInWaitThread | WindowsInterop.ExecuteOnlyOnce);
         await Assert.That(watch.CompletedOnPoolThread).IsNotNull();
         await Assert.That(watch.CompletedOnPoolThread!.Value).IsFalse();
+    }
+
+    /// <summary>
+    /// Whatever the order of the exit and the disposals, the registration is unregistered exactly
+    /// once, while the handles are still open, and only then are they closed: a second disposal
+    /// after the release does nothing.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    [Arguments(ReleaseOrder.DisposeThenExit)]
+    [Arguments(ReleaseOrder.ExitThenDispose)]
+    [Arguments(ReleaseOrder.DisposeExitDispose)]
+    public async Task Release_Should_Unregister_Exactly_Once_Before_Closing_The_Handles(ReleaseOrder order, CancellationToken cancellationToken)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            BranchReport.Print("POSIX — the exit watch is a thread that ends with its child there");
+            return;
+        }
+
+        string[] mode = order == ReleaseOrder.ExitThenDispose ? ["exit-code", "0"] : ["idle"];
+        var child = Spawn(mode);
+        var kernel = new RecordingKernel { Process = child.Process };
+        var watch = WindowsExitWatch.Start(child.Process, kernel);
+        if (order == ReleaseOrder.ExitThenDispose)
+        {
+            _ = await watch.Exited.WaitAsync(Bound, cancellationToken);
+            watch.Dispose();
+        }
+        else
+        {
+            watch.Dispose();
+            _ = WindowsInterop.TerminateProcess(child.Process, 0);
+            _ = await watch.Exited.WaitAsync(Bound, cancellationToken);
+            await Assert.That(await WatchReleasedWithinAsync(watch, cancellationToken)).IsTrue();
+            if (order == ReleaseOrder.DisposeExitDispose)
+            {
+                watch.Dispose();
+            }
+        }
+
+        await Assert.That(await WatchReleasedWithinAsync(watch, cancellationToken)).IsTrue();
+        await Assert.That(kernel.Unregistrations).IsEqualTo(1);
+        await Assert.That(kernel.HandlesOpenAtEveryUnregistration).IsTrue();
+        await Assert.That(child.Process.IsClosed).IsTrue();
+    }
+
+    /// <summary>
+    /// An exit code that cannot be read reports the exit as unknown, and the exit still arrives: the
+    /// disposal that follows releases the registration and the handles, once.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    public async Task Exited_Should_Report_Unknown_And_Still_Release_When_The_Code_Cannot_Be_Read(CancellationToken cancellationToken)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            BranchReport.Print("POSIX — the exit watch decodes a waitpid status there");
+            return;
+        }
+
+        var child = Spawn("exit-code", "0");
+        var kernel = new RecordingKernel { Process = child.Process, FailRead = true };
+        var watch = WindowsExitWatch.Start(child.Process, kernel);
+
+        var exit = await watch.Exited.WaitAsync(Bound, cancellationToken);
+        watch.Dispose();
+
+        await Assert.That(exit).IsEqualTo(ChildExitStatus.Unknown);
+        await Assert.That(await WatchReleasedWithinAsync(watch, cancellationToken)).IsTrue();
+        await Assert.That(kernel.Unregistrations).IsEqualTo(1);
+        await Assert.That(child.Process.IsClosed).IsTrue();
     }
 
     /// <summary>
@@ -223,6 +301,62 @@ public sealed class WindowsExitWatchTests
         }
 
         return watch.IsReleased;
+    }
+
+    /// <summary>The orders in which a watch's exit and its disposals can arrive.</summary>
+    public enum ReleaseOrder
+    {
+        /// <summary>Disposed while the child runs; the exit releases.</summary>
+        DisposeThenExit,
+
+        /// <summary>The child exits first; the disposal releases.</summary>
+        ExitThenDispose,
+
+        /// <summary>Disposed, then the exit releases, then disposed again, which must do nothing.</summary>
+        DisposeExitDispose,
+    }
+
+    /// <summary>
+    /// The shipped kernel calls, recorded: the flags a wait is registered with, how often it is
+    /// unregistered and whether the watched process's handle was still open each time, and, on
+    /// request, a read of the exit code that fails.
+    /// </summary>
+    private sealed class RecordingKernel : IExitWaitKernel
+    {
+        private int _unregistrations;
+        private int _closedAtUnregistration;
+
+        public SafeProcessHandle? Process { get; init; }
+
+        public bool FailRead { get; init; }
+
+        public uint? RegisteredFlags { get; private set; }
+
+        public int Unregistrations => Volatile.Read(ref _unregistrations);
+
+        public bool HandlesOpenAtEveryUnregistration => Volatile.Read(ref _closedAtUnregistration) == 0;
+
+        public bool Register(out IntPtr registration, SafeWaitHandle waited, IntPtr callback, IntPtr context, uint flags)
+        {
+            RegisteredFlags = flags;
+            return ExitWaitKernel.Instance.Register(out registration, waited, callback, context, flags);
+        }
+
+        public void Unregister(IntPtr registration)
+        {
+            _ = Interlocked.Increment(ref _unregistrations);
+            if (Process is { IsClosed: true })
+            {
+                _ = Interlocked.Increment(ref _closedAtUnregistration);
+            }
+
+            ExitWaitKernel.Instance.Unregister(registration);
+        }
+
+        public bool TryReadExitCode(SafeProcessHandle process, out uint exitCode) =>
+            FailRead
+                ? throw new InvalidOperationException("The test's injected read failure.")
+                : ExitWaitKernel.Instance.TryReadExitCode(process, out exitCode);
     }
 
     /// <summary>The shipped exit watch, recorded so a test can follow a watch the launcher started.</summary>
