@@ -1,5 +1,5 @@
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Sessions;
 
 public sealed class SessionParentFilterTests
 {

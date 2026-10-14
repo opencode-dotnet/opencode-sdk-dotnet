@@ -47,6 +47,17 @@ internal sealed record GenerationWriteRequest
         }
     }
 
+    /// <summary>Gets the model area folders (<c>&lt;Family&gt;/Models/&lt;Area&gt;</c>) new sources may live in, from the curated area table.</summary>
+    public IReadOnlyList<string> ModelAreaFolders
+    {
+        get;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = Array.AsReadOnly([.. value]);
+        }
+    } = Array.AsReadOnly(Array.Empty<string>());
+
     /// <summary>Gets the stabilize duplicates the binder folded mechanically, recorded in the manifest as a telltale.</summary>
     public required IReadOnlyDictionary<string, string> ImplicitAliases
     {
@@ -72,6 +83,9 @@ internal sealed record GenerationWriteRequest
             field = value;
         }
     }
+
+    /// <summary>Gets the reach report content, or <see langword="null"/> when the run writes none.</summary>
+    public string? ReachReportContent { get; init; }
 
     public required bool Verify { get; init; }
 }

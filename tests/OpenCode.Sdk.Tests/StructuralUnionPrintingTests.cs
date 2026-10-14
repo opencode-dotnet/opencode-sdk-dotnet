@@ -1,6 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
-using OpenCode.Sdk.Internal.Serialization;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk.Tests;

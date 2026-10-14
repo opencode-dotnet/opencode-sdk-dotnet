@@ -43,7 +43,7 @@ public sealed class ClientEmitterTests
     [Test]
     public async Task Emit_Should_Close_Every_Door_On_An_Internal_Raw_Client()
     {
-        var source = EmitInternalRawSource("Ptys/PtyRawClient.cs");
+        var source = EmitInternalRawSource("Ptys/Internal/PtyRawClient.cs");
 
         await Assert.That(source).Contains("internal sealed class PtyRawClient");
         await Assert.That(source).Contains("internal Task<PtyConnectTokenResponse> CreateConnectTokenAsync(");
@@ -55,7 +55,7 @@ public sealed class ClientEmitterTests
     [Test]
     public async Task Emit_Should_Keep_An_Internal_Raw_Handle_Factory_Internal()
     {
-        var source = EmitInternalRawSource("Ptys/PtysRawClient.cs");
+        var source = EmitInternalRawSource("Ptys/Internal/PtysRawClient.cs");
 
         await Assert.That(source).Contains("internal sealed class PtysRawClient");
         await Assert.That(source).Contains("internal PtyRawClient GetPtyRawClient(string ptyId)");
@@ -66,7 +66,7 @@ public sealed class ClientEmitterTests
     [Test]
     public async Task Emit_Should_Pass_A_Declared_Header_Into_The_Pipeline()
     {
-        var source = EmitInternalRawSource("Ptys/PtyRawClient.cs");
+        var source = EmitInternalRawSource("Ptys/Internal/PtyRawClient.cs");
 
         await Assert.That(source).Contains("string? xOpencodeTicket = null");
         await Assert.That(source).Contains("var declaredHeaders = new List<DeclaredHeader>(1);");

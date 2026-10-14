@@ -3,7 +3,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace OpenCode.Sdk.Internal.Serialization;
+namespace OpenCode.Sdk.Internal;
 
 internal sealed class OptionalOfBooleanJsonConverter : JsonConverter<Optional<bool?>>
 {

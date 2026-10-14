@@ -48,19 +48,19 @@ internal static class GeneratedSourceCompiler
     /// </summary>
     internal static readonly (string Consumer, string RequiredEmission)[] GeneratedSurfaceConsumers =
     [
-        ("Internal/BackgroundService/Handoff/ServicePtyHandoff.cs", "PersistentPtys/PersistentPtysRawClient.cs"),
-        ("Internal/BackgroundService/Stop/ServicePtyShutdown.cs", "PersistentPtys/PersistentPtysRawClient.cs"),
-        ("Internal/PersistentPtyFrameDecoder.cs", "Models/PersistentPtyInfo.cs"),
-        ("OpenCodeServer.cs", "PersistentPtys/PersistentPtysRawClient.cs"),
-        ("PersistentPtys/PersistentPtyAttachedFrame.cs", "Models/PersistentPtyInfo.cs"),
-        ("PersistentPtys/PersistentPtyAttachment.cs", "Models/PersistentPtyInfo.cs"),
-        ("PersistentPtys/PersistentPtyClient.cs", "Models/PersistentPtyInfo.cs"),
-        ("PersistentPtys/PersistentPtyClient.cs", "PersistentPtys/PersistentPtyRawClient.cs"),
-        ("PersistentPtys/PersistentPtySession.cs", "Models/PersistentPtyInfo.cs"),
-        ("PersistentPtys/PersistentPtysClient.cs", "Models/PersistentPtyInfo.cs"),
-        ("PersistentPtys/PersistentPtysClient.cs", "PersistentPtys/PersistentPtysRawClient.cs"),
-        ("Ptys/PtyClient.cs", "Ptys/PtyRawClient.cs"),
-        ("Ptys/PtysClient.cs", "Ptys/PtysRawClient.cs"),
+        ("Internal/BackgroundService/Handoff/ServicePtyHandoff.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Internal/BackgroundService/Stop/ServicePtyShutdown.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Internal/PersistentPtyFrameDecoder.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
+        ("OpenCodeServer.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("PersistentPtys/PersistentPtyAttachedFrame.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
+        ("PersistentPtys/PersistentPtyAttachment.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
+        ("PersistentPtys/PersistentPtyClient.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
+        ("PersistentPtys/PersistentPtyClient.cs", "PersistentPtys/Internal/PersistentPtyRawClient.cs"),
+        ("PersistentPtys/PersistentPtySession.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
+        ("PersistentPtys/PersistentPtysClient.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
+        ("PersistentPtys/PersistentPtysClient.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Ptys/PtyClient.cs", "Ptys/Internal/PtyRawClient.cs"),
+        ("Ptys/PtysClient.cs", "Ptys/Internal/PtysRawClient.cs"),
     ];
 
     /// <summary>

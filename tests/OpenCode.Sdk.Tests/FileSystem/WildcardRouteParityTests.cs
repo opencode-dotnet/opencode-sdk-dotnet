@@ -3,7 +3,7 @@ using System.Text.Json;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.FileSystem;
 
 /// <summary>
 /// Upstream's generated client fills <c>/api/fs/read/*</c> with <c>encodePath</c>: each

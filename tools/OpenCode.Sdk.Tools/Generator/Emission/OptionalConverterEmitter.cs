@@ -49,8 +49,8 @@ internal static class OptionalConverterEmitter
                 EmitRead(inner, wrapper),
                 EmitWrite(inner, wrapper),
             ]));
-        var unit = EmissionSyntax.CompilationUnit("OpenCode.Sdk.Internal.Serialization", CollectUsings(inner), [declaration]);
-        return EmissionSyntax.CreateSource($"Internal/Serialization/{name}.cs", unit);
+        var unit = EmissionSyntax.CompilationUnit(GeneratedNamespace.Internal, CollectUsings(inner), [declaration]);
+        return EmissionSyntax.CreateSource(GeneratedPlacement.PathOf(GeneratedKind.SharedSerialization, null, name), unit);
     }
 
     /// <summary><c>Optional&lt;T?&gt;</c>, the exact property type the record declares.</summary>
@@ -234,7 +234,7 @@ internal static class OptionalConverterEmitter
         TypeUsingCollector.Collect(inner, result);
         if (ReferencesGeneratedModel(inner))
         {
-            _ = result.Add("OpenCode.Sdk.Models");
+            _ = result.Add(GeneratedNamespace.Models);
         }
 
         return [.. result.Order(StringComparer.Ordinal)];

@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-10-12
+Date: 2026-10-14
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -75,6 +75,17 @@ evidence and may contain superseded positions.
   and their generated diffs (ADR-0003).
 - Generated files are changed through the generator, never by hand. The output manifest, not a
   folder or filename convention, identifies generator-owned files.
+- Generated and hand-written files share the slice folders (ADR-0033). One placement rule maps
+  each generated file's kind and owning slice to its folder: models under the family's `Models/`
+  (Sessions models in their curated area subfolders), body requests, operation records and
+  clients at the family root, adapters, envelope DTOs, converters and internal-raw clients under
+  the family's `Internal/`, the shared error spine under `Common/Errors/` and `Common/Internal/`,
+  and the serializer registry under the root `Internal/Serialization/`. The writer reserves the
+  folder names `Common`, `Internal`, `Hosting` and `Properties`, and marks every manifest entry
+  `linguist-generated` in a writer-owned `.gitattributes` beside the manifest.
+- A writer-owned `.generated-reach.txt` beside the manifest lists each generated type's owning
+  slice and the families whose operations reach it, so a refresh shows reach changes in its
+  diff; reach never moves a file. Neither file ships in a package.
 - Pending (unselected and not transport-owned) operations are recorded in the committed
   `.generation-incomplete` marker, each carrying the bindability the same selection-path binder
   finds today — `[bindable]`, or `[refused: <verbatim wall messages>]` — so wall-free drift among
@@ -96,6 +107,12 @@ Curation may:
   HTTP method is never a name source, in method, request, response, or payload names (ADR-0008);
 - declare that a family emits an internal raw layer rather than a public surface, where
   hand-written code owns that family's public doors (ADR-0021);
+- place a model in a slice where its name carries no family prefix, through a reason-bearing
+  `modelOwners` row; a family's prefixes are its name, its singular, its group key and the
+  group's `prefixAliases`, and a model with no prefix and no row fails generation. A
+  reason-bearing `sessionAreas` row names a Sessions model area by name prefixes; a Sessions model
+  no row matches stays in the family's `Models/`. A row, pattern or alias that places nothing
+  refuses as stale (ADR-0033);
 - collapse OpenAPI shapes proven structurally equivalent;
 - fingerprint exclusions already evidenced by the pinned document; and
 - map an operation whose upstream identity violates upstream's own conventions onto its intended

@@ -15,6 +15,7 @@
   <ItemGroup>
     <PackageReference Include="TUnit"/>
     <PackageReference Include="NSubstitute"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
     <PackageReference Include="PublicApiGenerator"/>
     <PackageReference Include="Verify.TUnit"/>
     <PackageReference Include="Testably.Abstractions"/>

@@ -7,7 +7,6 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 
 internal sealed class OperationPlanBinder
 {
-    private const string ClientNamespace = "OpenCode.Sdk";
     private const string RootClientName = "OpenCodeClient";
 
     private readonly StringComparer _comparer = StringComparer.Ordinal;
@@ -74,7 +73,7 @@ internal sealed class OperationPlanBinder
         clients.Add(new ClientPlan
         {
             Name = RootClientName,
-            Namespace = ClientNamespace,
+            Namespace = GeneratedNamespace.Public,
             Role = ClientRole.Root,
             SubClients = [.. subClients.OrderBy(static reference => reference.PropertyName, _comparer)],
             Operations = rootOperations,
@@ -87,6 +86,10 @@ internal sealed class OperationPlanBinder
                 .ThenBy(static client => client.Name, StringComparer.Ordinal),
         ];
     }
+
+    /// <summary>An internal-raw family's clients are internal types, so they declare the internal namespace.</summary>
+    private static string ClientNamespace(EmissionMode emission) =>
+        emission is EmissionMode.InternalRaw ? GeneratedNamespace.Internal : GeneratedNamespace.Public;
 
     /// <summary>
     /// Builds a family's clients. An internal-raw family takes raw type names throughout
@@ -111,7 +114,7 @@ internal sealed class OperationPlanBinder
         yield return new ClientPlan
         {
             Name = collectionTypeName,
-            Namespace = ClientNamespace,
+            Namespace = ClientNamespace(row.Emission),
             Role = ClientRole.Collection,
             Emission = row.Emission,
             ContainerName = row.ClientName,
@@ -132,7 +135,7 @@ internal sealed class OperationPlanBinder
             yield return new ClientPlan
             {
                 Name = handleTypeName!,
-                Namespace = ClientNamespace,
+                Namespace = ClientNamespace(row.Emission),
                 Role = ClientRole.Handle,
                 Emission = row.Emission,
                 ContainerName = row.ClientName,

@@ -33,6 +33,22 @@ public sealed class SourceEmitterTests
             .IsTrue();
     }
 
+    /// <summary>
+    /// Generated internal types share the hand-written internal namespace, and every generated file
+    /// imports it, so a generated type named like a hand-written internal type is refused at emission.
+    /// </summary>
+    [Test]
+    public async Task Emit_Should_Refuse_A_Generated_Type_Named_Like_A_HandWritten_Internal_Type()
+    {
+        var plan = EmitterPlanFixture.Create();
+        var twin = plan.Models.OfType<EnumModelPlan>().First() with { Name = "Pipeline" };
+        var withTwin = (plan with { Models = [.. plan.Models, twin] }).WithSingleSlice();
+
+        var exception = await Assert.That(() => SourceEmitter.Emit(withTwin)).Throws<InvalidOperationException>();
+
+        await Assert.That(exception!.Message).Contains("hand-written internal type 'Pipeline'");
+    }
+
     [Test]
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Emit_Should_Preserve_All_Bound_Union_And_Registry_Evidence_Through_Source_Generation_And_Compilation()
@@ -42,8 +58,8 @@ public sealed class SourceEmitterTests
 
         foreach (var union in plan.Unions)
         {
-            var source = sources.Single(candidate => candidate.RelativePath ==
-                                                     $"Internal/Serialization/{union.ConceptName}JsonConverter.cs");
+            var source = sources.Single(candidate => candidate.RelativePath.EndsWith(
+                $"/Internal/{union.ConceptName}JsonConverter.cs", StringComparison.Ordinal));
             var expected = union
                 .Variants
                 .OrderBy(static variant => variant.Tag, StringComparer.Ordinal)
@@ -53,8 +69,8 @@ public sealed class SourceEmitterTests
 
         foreach (var structural in plan.Models.OfType<StructuralUnionModelPlan>())
         {
-            var source = sources.Single(candidate => candidate.RelativePath ==
-                                                     $"Internal/Serialization/{structural.Name}JsonConverter.cs");
+            var source = sources.Single(candidate => candidate.RelativePath.EndsWith(
+                $"/Internal/{structural.Name}JsonConverter.cs", StringComparison.Ordinal));
             var expected = structural.Arms.Where(static arm => arm.Claim is null).SelectMany(arm => arm.Tokens.Select(token =>
                 new KeyValuePair<string, string>(token.ToString(), arm.Name)));
             await Assert.That(ReadStructuralConverterMappings(source).SequenceEqual(expected)).IsTrue();
@@ -142,7 +158,7 @@ public sealed class SourceEmitterTests
         var durableType = assembly.GetType("OpenCode.Sdk.Models.ISessionEventDurable", throwOnError: true)!;
         var liveType = assembly.GetType("OpenCode.Sdk.Models.IEvent", throwOnError: true)!;
         var leafType = assembly.GetType("OpenCode.Sdk.Models.SessionCreated", throwOnError: true)!;
-        var contextType = assembly.GetType("OpenCode.Sdk.Internal.Serialization.OpenCodeJsonContext", throwOnError: true)!;
+        var contextType = assembly.GetType("OpenCode.Sdk.Internal.OpenCodeJsonContext", throwOnError: true)!;
         var context = (JsonSerializerContext)(contextType.GetProperty("Default")?.GetValue(null)
                                               ?? throw new InvalidOperationException("Generated JSON context has no Default instance."));
         var payload = new FixtureLoader().Load("Serialization.shared-live-durable-event.json");
@@ -168,7 +184,7 @@ public sealed class SourceEmitterTests
         var plan = await new BindingTestHost().BindPinnedAsync();
         var sources = SourceEmitter.Emit(plan);
         var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(sources);
-        var contextType = assembly.GetType("OpenCode.Sdk.Internal.Serialization.OpenCodeJsonContext", throwOnError: true)!;
+        var contextType = assembly.GetType("OpenCode.Sdk.Internal.OpenCodeJsonContext", throwOnError: true)!;
         var context = (JsonSerializerContext)(contextType.GetProperty("Default")?.GetValue(null)
                                               ?? throw new InvalidOperationException("Generated JSON context has no Default instance."));
 
@@ -190,9 +206,8 @@ public sealed class SourceEmitterTests
         var sources = SourceEmitter.Emit(EmitterPlanFixture.Create());
 
         await Assert
-            .That(sources.Select(static source => source.RelativePath))
-            .DoesNotContain(
-                "Internal/Serialization/OptionalCollectionInput.cs");
+            .That(sources.Select(static source => source.RelativePath.Split('/')[^1]))
+            .DoesNotContain("OptionalCollectionInput.cs");
         var content = EmitterSnapshot.Create(sources);
         await Assert.That(content).DoesNotContain("WireNullRejecting");
         await Assert.That(content).DoesNotContain("NullElementRejectingListJsonConverter");

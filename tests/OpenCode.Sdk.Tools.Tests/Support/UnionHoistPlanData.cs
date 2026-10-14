@@ -145,7 +145,7 @@ internal static class UnionHoistPlanData
             PendingOperations = [],
             DeclinedOperations = [],
             TransportOwnedOperationIds = [],
-        };
+        }.WithSingleSlice();
     }
 
     private static string PascalCase(string wireName) =>

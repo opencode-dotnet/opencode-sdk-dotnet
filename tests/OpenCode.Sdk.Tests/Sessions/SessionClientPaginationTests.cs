@@ -1,7 +1,7 @@
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Sessions;
 
 public sealed class SessionClientPaginationTests
 {

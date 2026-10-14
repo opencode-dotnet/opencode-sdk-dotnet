@@ -40,6 +40,7 @@ internal static class EmissionSyntax
         var compilationUnit = SyntaxFactory.CompilationUnit()
             .WithUsings(SyntaxFactory.List(usingNames
                 .Distinct(StringComparer.Ordinal)
+                .Where(name => !IsEnclosingNamespace(name, namespaceName))
                 .OrderBy(static name => name is "System" || name.StartsWith("System.", StringComparison.Ordinal) ? 0 : 1)
                 .ThenBy(static name => name, StringComparer.Ordinal)
                 .Select(static name => SyntaxFactory.UsingDirective(QualifiedName(name)))))
@@ -52,6 +53,14 @@ internal static class EmissionSyntax
             LineFeed,
             LineFeed);
     }
+
+    /// <summary>
+    /// A file's own namespace and the namespaces enclosing it are in scope without a directive, so
+    /// emitters can name a type's namespace without knowing which file declares the reference.
+    /// </summary>
+    private static bool IsEnclosingNamespace(string usingName, string namespaceName) =>
+        string.Equals(usingName, namespaceName, StringComparison.Ordinal)
+        || namespaceName.StartsWith($"{usingName}.", StringComparison.Ordinal);
 
     public static NameSyntax QualifiedName(string dottedName)
     {

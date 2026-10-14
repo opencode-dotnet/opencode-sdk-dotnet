@@ -31,6 +31,11 @@ internal static class GenerationTestData
     private const string ProfilePath = "tools/generation-profile.txt";
     private const string CurationPath = "tools/curation.json";
 
+    /// <summary>A reach report as the coordinator composes it, and a stale one a refresh would replace.</summary>
+    public const string ReachReport = "# reach\nExampleHealth owner=Health reached-by=Health\n";
+
+    public const string StaleReachReport = "# reach\nExampleHealth owner=Health reached-by=Events,Health\n";
+
     /// <summary>Provenance-headed content for a generated file that already sits on disk.</summary>
     public static string OwnedContent(string content) => $"{GenerationProvenance.Header}{content}";
 
@@ -103,6 +108,14 @@ internal static class GenerationTestData
         return fileSystem;
     }
 
+    /// <summary>The command roots without the owner row, so the selected operation's unprefixed model stands unplaced.</summary>
+    public static MockFileSystem CreateUnplacedModelCommandFileSystem()
+    {
+        var fileSystem = CreateCommandRoots(extend: null);
+        WriteCuration(fileSystem, Curation(Groups("health", RootGroup())));
+        return fileSystem;
+    }
+
     public static GeneratedSource Source(string relativePath, string source) =>
         new()
         {
@@ -145,13 +158,22 @@ internal static class GenerationTestData
         return fileSystem;
     }
 
-    /// <summary>Writes the command curation as the loader reads it: the root-placed health group plus the given non-selected admission rows.</summary>
+    /// <summary>Writes the command curation as the loader reads it: the root-placed health group, the owner row its model needs, and the given non-selected admission rows.</summary>
     private static void WriteCuration(MockFileSystem fileSystem, IReadOnlyList<TransportOwnedCuration> transportOwned,
         IReadOnlyList<DeclinedCuration>? declined = null)
     {
-        var curation = Curation(Groups("health", RootGroup()), transportOwned: transportOwned, declined: declined);
+        var curation = Curation(
+            Groups("health", RootGroup()),
+            transportOwned: transportOwned,
+            declined: declined,
+            modelOwners: [Owner("ExampleHealth", "Health")]);
         fileSystem
             .Initialize()
             .With(new FileDescription(CurationPath, JsonSerializer.Serialize(curation, ToolJsonContext.Default.GenerationCuration)));
     }
+
+    private static void WriteCuration(MockFileSystem fileSystem, GenerationCuration curation) =>
+        fileSystem
+            .Initialize()
+            .With(new FileDescription(CurationPath, JsonSerializer.Serialize(curation, ToolJsonContext.Default.GenerationCuration)));
 }

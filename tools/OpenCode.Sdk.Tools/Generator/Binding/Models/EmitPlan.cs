@@ -98,4 +98,14 @@ internal sealed record EmitPlan
     /// generation manifest carries in place of the curated rows the convention retires.
     /// </summary>
     public required StabilizeDuplicateCollapse ImplicitAliases { get; init; }
+
+    /// <summary>
+    /// Gets the slice each generated model lives in. Emission places model files from it; the
+    /// generate command refuses while any model is unplaced.
+    /// </summary>
+    public ModelPlacement Placement { get; init; } = ModelPlacement.Empty;
+
+    /// <summary>Gets the families whose selected operations reach each generated type; a report, never a placement input.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> ModelReach { get; init; } =
+        new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
 }

@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.PersistentPtys;
 
 public sealed class PersistentPtyConnectOptionsTests
 {

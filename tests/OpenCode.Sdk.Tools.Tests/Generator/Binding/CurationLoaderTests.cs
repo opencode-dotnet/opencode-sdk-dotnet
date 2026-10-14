@@ -73,8 +73,9 @@ public sealed class CurationLoaderTests
         await Assert
             .That(sections)
             .IsEquivalentTo([
-                "declined", "enumMemberNames", "envelopePayloadNames", "groups", "hoistedMemberNames", "operationIdentities",
-                "operationNames", "redactedMembers", "redactedOpenMembers", "schemaAliases", "schemaNames", "secretLookingNames", "transportOwned"
+                "declined", "enumMemberNames", "envelopePayloadNames", "groups", "hoistedMemberNames", "modelOwners", "operationIdentities",
+                "operationNames", "redactedMembers", "redactedOpenMembers", "schemaAliases", "schemaNames", "secretLookingNames", "sessionAreas",
+                "transportOwned"
             ]);
     }
 

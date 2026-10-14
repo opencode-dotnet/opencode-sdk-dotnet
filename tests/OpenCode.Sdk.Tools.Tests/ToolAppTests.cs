@@ -243,6 +243,36 @@ public sealed class ToolAppTests
     }
 
     [Test]
+    public async Task RunAsync_Should_Refuse_A_Model_With_No_Family_Prefix_And_No_Owner_Row()
+    {
+        var fileSystem = GenerationTestData.CreateUnplacedModelCommandFileSystem();
+        using var registrar = ToolApp.CreateRegistrar(services =>
+        {
+            services.AddSingleton<IFileSystem>(fileSystem);
+            services.AddSingleton<IAnsiConsole, TestConsole>();
+            services.AddSingleton<IProjectFormatter>(new RecordingProjectFormatter(fileSystem));
+        });
+        var tester = new CommandAppTester(registrar);
+        tester.Configure(configurator =>
+        {
+            ToolApp.Configure(configurator);
+            configurator.PropagateExceptions();
+        });
+
+        // ExampleHealth matches no prefix of its Health family and no row names its owner, so the
+        // model has no declared slice and generation refuses before writing anything.
+        var exception = await Assert
+            .That(async () => _ = await tester.RunAsync(["generate"]))
+            .Throws<BindingException>();
+
+        var error = exception!.Errors.Single();
+        await Assert.That(error.Category).IsEqualTo(BindingErrorCategory.Curation);
+        await Assert.That(error.Subject).IsEqualTo("ExampleHealth");
+        await Assert.That(error.Problem).Contains("the model has no family prefix and no modelOwners row");
+        await Assert.That(fileSystem.File.Exists(GenerationTestData.ManifestPath)).IsFalse();
+    }
+
+    [Test]
     public async Task RunAsync_Should_Return_Zero_When_Verify_Is_Clean()
     {
         var fileSystem = GenerationTestData.CreateCommandFileSystem();

@@ -1,7 +1,7 @@
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.TestSupport;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Experimental;
 
 /// <summary>
 /// The V1 migration status is a union whose members all start with a JSON object and are told

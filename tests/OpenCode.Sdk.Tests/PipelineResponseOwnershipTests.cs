@@ -1,5 +1,5 @@
 using System.Net;
-using OpenCode.Sdk.Internal.ResponseAdapters;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 

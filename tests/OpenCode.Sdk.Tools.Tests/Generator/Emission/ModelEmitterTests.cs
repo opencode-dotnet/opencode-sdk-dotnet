@@ -40,7 +40,7 @@ public sealed class ModelEmitterTests
     public async Task Emit_Should_Emit_A_Prefix_Discriminator_As_A_Guarded_Required_String()
     {
         var sources = ModelEmitter.Emit(EmitterPlanFixture.Create());
-        var arm = EmitterSnapshot.Content(sources, "Models/RpcEvent.cs");
+        var arm = EmitterSnapshot.Content(sources, "Example/Models/RpcEvent.cs");
 
         await Assert.That(arm).Contains("[JsonPropertyName(\"type\")]");
         await Assert.That(arm).Contains("public required string Type");
@@ -61,9 +61,9 @@ public sealed class ModelEmitterTests
     public async Task Emit_Should_Render_An_Extension_Data_Member_For_An_Open_Model()
     {
         var sources = ModelEmitter.Emit(EmitterPlanFixture.CreateModelSnapshot());
-        var model = EmitterSnapshot.Content(sources, "Models/OpenSettings.cs");
+        var model = EmitterSnapshot.Content(sources, "Example/Models/OpenSettings.cs");
 
-        await Assert.That(model).Contains("using OpenCode.Sdk.Internal.Serialization;");
+        await Assert.That(model).Contains("using OpenCode.Sdk.Internal;");
         await Assert.That(model).Contains("using System;");
         await Assert.That(model).Contains("using System.Collections.Generic;");
         await Assert.That(model).Contains("using System.Linq;");

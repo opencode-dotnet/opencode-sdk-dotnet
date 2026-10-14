@@ -154,4 +154,28 @@ internal sealed record GenerationCuration
             field = Array.AsReadOnly([.. value]);
         }
     } = Array.AsReadOnly(Array.Empty<DeclinedCuration>());
+
+    /// <summary>Owners of the models no family prefix places, each with its reason.</summary>
+    [JsonPropertyName("modelOwners")]
+    public required IReadOnlyList<ModelOwnerCuration> ModelOwners
+    {
+        get;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = Array.AsReadOnly([.. value]);
+        }
+    } = Array.AsReadOnly(Array.Empty<ModelOwnerCuration>());
+
+    /// <summary>The areas the Sessions family's models split into, each with its reason.</summary>
+    [JsonPropertyName("sessionAreas")]
+    public required IReadOnlyList<SessionAreaCuration> SessionAreas
+    {
+        get;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = Array.AsReadOnly([.. value]);
+        }
+    } = Array.AsReadOnly(Array.Empty<SessionAreaCuration>());
 }

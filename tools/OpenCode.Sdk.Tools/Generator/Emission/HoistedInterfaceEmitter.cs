@@ -13,15 +13,18 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 /// </summary>
 internal static class HoistedInterfaceEmitter
 {
-    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<HoistedInterfacePlan> interfaces)
+    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<HoistedInterfacePlan> interfaces, ModelPlacement placement)
     {
         ArgumentNullException.ThrowIfNull(interfaces);
+        ArgumentNullException.ThrowIfNull(placement);
         return Array.AsReadOnly([
-            .. interfaces.OrderBy(static plan => plan.Name, StringComparer.Ordinal).Select(Emit),
+            .. interfaces
+                .OrderBy(static plan => plan.Name, StringComparer.Ordinal)
+                .Select(plan => Emit(plan, GeneratedPlacement.ModelPathOf(placement, plan.Name))),
         ]);
     }
 
-    private static GeneratedSource Emit(HoistedInterfacePlan plan)
+    private static GeneratedSource Emit(HoistedInterfacePlan plan, string relativePath)
     {
         var declaration = SyntaxFactory
             .InterfaceDeclaration(plan.Name)
@@ -29,7 +32,7 @@ internal static class HoistedInterfaceEmitter
             .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([.. plan.Members.Select(EmitMember)]))
             .WithLeadingTrivia(EmissionSyntax.Documentation(plan.Description ?? $"Represents a {plan.Name} value."));
         var unit = EmissionSyntax.CompilationUnit(plan.Namespace, CollectUsings(plan), [declaration]);
-        return EmissionSyntax.CreateSource($"Models/{plan.Name}.cs", unit);
+        return EmissionSyntax.CreateSource(relativePath, unit);
     }
 
     private static PropertyDeclarationSyntax EmitMember(HoistedMemberPlan member) =>

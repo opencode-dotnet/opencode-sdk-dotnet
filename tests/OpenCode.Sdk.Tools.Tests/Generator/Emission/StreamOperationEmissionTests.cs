@@ -43,11 +43,11 @@ public sealed class StreamOperationEmissionTests
         var clientSource = EmitterSnapshot.Create(
             [sources.Single(static source => source.RelativePath == "OpenCodeClient.cs")]);
         var adapterSource = EmitterSnapshot.Create(
-            [sources.Single(static source => source.RelativePath == "Internal/StreamAdapters/ExampleEventsResponseStreamAdapter.cs")]);
+            [sources.Single(static source => source.RelativePath == "Example/Internal/ExampleEventsResponseStreamAdapter.cs")]);
         var causeConverterSource = EmitterSnapshot.Create(
-            [sources.Single(static source => source.RelativePath == "Internal/Serialization/StreamFailureCauseJsonConverter.cs")]);
+            [sources.Single(static source => source.RelativePath == "Example/Internal/StreamFailureCauseJsonConverter.cs")]);
         var routeSource = EmitterSnapshot.Create(
-            [sources.Single(static source => source.RelativePath == "OpenCodeRoutes.cs")]);
+            [sources.Single(static source => source.RelativePath == "Example/OpenCodeRoutes.Example.cs")]);
         await Assert
             .That(clientSource)
             .Contains(
@@ -56,7 +56,7 @@ public sealed class StreamOperationEmissionTests
             .That(clientSource)
             .Contains(
                 "return Pipeline.ExecuteStreamAsync(HttpMethod.Get, OpenCodeRoutes.Example.GetEvents(exampleId), ExampleEventsResponseStreamAdapter.Instance, cancellationToken);");
-        await Assert.That(clientSource).DoesNotContain("OpenCode.Sdk.Internal.ResponseAdapters");
+        await Assert.That(clientSource).DoesNotContain("ResponseAdapter.Instance");
         await Assert.That(clientSource).DoesNotContain("requestOptions");
         await Assert.That(clientSource).DoesNotContain("NoThrow");
         await Assert.That(clientSource).Contains("OpenCodeStreamFailureException");

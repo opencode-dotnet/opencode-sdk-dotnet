@@ -3,7 +3,7 @@ using System.Text.Json;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.PersistentPtys;
 
 public sealed class PersistentPtySessionTests
 {

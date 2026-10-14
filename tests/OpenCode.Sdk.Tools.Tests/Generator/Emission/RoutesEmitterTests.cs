@@ -10,8 +10,8 @@ public sealed class RoutesEmitterTests
     {
         var plan = EmitterPlanFixture.Create();
 
-        var source = RoutesEmitter.Emit(plan.Clients, plan.Models);
+        var sources = RoutesEmitter.Emit(plan.Clients, plan.Models);
 
-        await Verify(EmitterSnapshot.Create([source]));
+        await Verify(EmitterSnapshot.Create(sources));
     }
 }

@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Emission;
@@ -13,7 +14,7 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 /// </summary>
 internal static class StreamAdapterEmitter
 {
-    private const string AdapterNamespace = "OpenCode.Sdk.Internal.StreamAdapters";
+    private const string AdapterNamespace = GeneratedNamespace.Internal;
 
     public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients)
     {
@@ -68,9 +69,11 @@ internal static class StreamAdapterEmitter
 
         var unit = EmissionSyntax.CompilationUnit(
             AdapterNamespace,
-            ["System", "System.Text.Json.Serialization.Metadata", "OpenCode.Sdk.Internal.Serialization", "OpenCode.Sdk.Models"],
+            ["System", "System.Text.Json.Serialization.Metadata", GeneratedNamespace.Internal, GeneratedNamespace.Models],
             [declaration]);
-        return EmissionSyntax.CreateSource($"Internal/StreamAdapters/{stream.AdapterTypeName}.cs", unit);
+        return EmissionSyntax.CreateSource(
+            GeneratedPlacement.PathOf(GeneratedKind.StreamAdapter, TypeHome.Family(operation.RouteContainerName), stream.AdapterTypeName),
+            unit);
     }
 
     private static FieldDeclarationSyntax EmitTagSet(ErrorStatusPlan status) =>

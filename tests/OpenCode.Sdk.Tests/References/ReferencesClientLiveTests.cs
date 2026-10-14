@@ -4,7 +4,7 @@ using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.References;
 
 [ClassDataSource<SimulatedDriveServerFixture>(Shared = SharedType.PerTestSession)]
 [NotInParallel(ParallelConstraintKeys.ServerProcess)]

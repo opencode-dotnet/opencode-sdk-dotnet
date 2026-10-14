@@ -28,9 +28,14 @@ internal sealed class BindingTestHost
     /// <summary>The production binder pipeline, exposed for callers that drive it themselves (e.g. the pending-operation probe).</summary>
     public ISpecBinder Binder => _binder;
 
+    /// <summary>
+    /// Binds through the production pipeline. Scenario specs name their models freely, so the
+    /// models a scenario's curation leaves unplaced go to the fixture slice; ownership itself is
+    /// tested against <see cref="ModelOwnershipPolicy"/> and the generate command.
+    /// </summary>
     public EmitPlan Bind(SpecDocument document, OperationSelection selection, GenerationCuration curation)
     {
-        return _binder.Bind(document, selection, curation);
+        return _binder.Bind(document, selection, curation).WithUnplacedInSingleSlice();
     }
 
     public static async Task<SpecDocument> IngestAsync(SpecScenario scenario, CancellationToken cancellationToken = default)

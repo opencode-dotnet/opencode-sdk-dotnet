@@ -14,7 +14,7 @@ public sealed class StructuralUnionEmissionTests
         var sources = SourceEmitter.Emit(await EmitterPlanFixture.CreateStructuralUnionPlanAsync());
         var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(sources);
         var valueType = assembly.GetType("OpenCode.Sdk.Models.StructuralValue", throwOnError: true)!;
-        var contextType = assembly.GetType("OpenCode.Sdk.Internal.Serialization.OpenCodeJsonContext", throwOnError: true)!;
+        var contextType = assembly.GetType("OpenCode.Sdk.Internal.OpenCodeJsonContext", throwOnError: true)!;
         var context = (JsonSerializerContext)(contextType.GetProperty("Default")?.GetValue(null)
                                               ?? throw new InvalidOperationException("Generated JSON context has no Default instance."));
         var typeInfo = context.GetTypeInfo(valueType)
@@ -54,7 +54,7 @@ public sealed class StructuralUnionEmissionTests
         var sources = SourceEmitter.Emit(await EmitterPlanFixture.CreateStructuralUnionPlanAsync());
         var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(sources);
         var valueType = assembly.GetType("OpenCode.Sdk.Models.StructuralValue", throwOnError: true)!;
-        var contextType = assembly.GetType("OpenCode.Sdk.Internal.Serialization.OpenCodeJsonContext", throwOnError: true)!;
+        var contextType = assembly.GetType("OpenCode.Sdk.Internal.OpenCodeJsonContext", throwOnError: true)!;
         var context = (JsonSerializerContext)(contextType.GetProperty("Default")?.GetValue(null)
                                               ?? throw new InvalidOperationException("Generated JSON context has no Default instance."));
         var typeInfo = context.GetTypeInfo(valueType)
@@ -85,7 +85,7 @@ public sealed class StructuralUnionEmissionTests
         var sources = SourceEmitter.Emit(await EmitterPlanFixture.CreateStructuralUnionPlanAsync());
         var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(sources);
         var valueType = assembly.GetType("OpenCode.Sdk.Models.StructuralValue", throwOnError: true)!;
-        var contextType = assembly.GetType("OpenCode.Sdk.Internal.Serialization.OpenCodeJsonContext", throwOnError: true)!;
+        var contextType = assembly.GetType("OpenCode.Sdk.Internal.OpenCodeJsonContext", throwOnError: true)!;
         var context = (JsonSerializerContext)(contextType.GetProperty("Default")?.GetValue(null)
                                               ?? throw new InvalidOperationException("Generated JSON context has no Default instance."));
         var typeInfo = context.GetTypeInfo(valueType)

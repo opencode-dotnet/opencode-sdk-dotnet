@@ -3,7 +3,7 @@ using System.Text.Json;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Events;
 
 /// <summary>
 /// The live bus keeps a representative runtime corpus: one shared durable/live leaf,

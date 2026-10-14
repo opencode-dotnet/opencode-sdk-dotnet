@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Pagination;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>Projects one generated cursor-list operation onto the shared traversal core.</summary>
 internal interface ICursorPageAdapter<TRequest, in TResponse, out TItem>

@@ -71,7 +71,7 @@ public sealed class FirstMatchUnionEmissionTests
 
     private static JsonTypeInfo TypeInfo(Assembly assembly, string union)
     {
-        var contextType = assembly.GetType("OpenCode.Sdk.Internal.Serialization.OpenCodeJsonContext", throwOnError: true)!;
+        var contextType = assembly.GetType("OpenCode.Sdk.Internal.OpenCodeJsonContext", throwOnError: true)!;
         var context = (JsonSerializerContext)(contextType.GetProperty("Default")?.GetValue(null)
                                               ?? throw new InvalidOperationException("Generated JSON context has no Default instance."));
         var type = assembly.GetType($"OpenCode.Sdk.Models.{union}", throwOnError: true)!;

@@ -1,6 +1,6 @@
 # Testing Style — authoring tests
 
-Date: 2026-09-26
+Date: 2026-10-14
 
 Binding authorship style for every test in this repository. `quality-gates.md` owns the
 current assurance posture and completion gates; operational build-out state belongs in
@@ -45,14 +45,27 @@ sized to need:
   (Type names illustrative — the concrete infrastructure is named at slice planning.)
 - **Domain-aware fluent builders.** Scenario state is expressed in domain verbs
   (`WithSchema(...)`, `WithOperation(...)`, `WithResponse(...)`), not raw file writes
-  scattered through test bodies. Builders live in the owning test project's `Support/`
-  area, compose over the canonical filesystem fake, and follow coding-style rules
-  (sealed, no tuple returns, no concrete-collection parameters).
+  scattered through test bodies. Builders compose over the canonical filesystem fake and
+  follow coding-style rules (sealed, no tuple returns, no concrete-collection parameters);
+  where they live follows the test layout below.
 - **Grow on demand.** The scenario mechanism, context, and builder are the pattern; named
   scenarios, test hosts, and builder vocabulary grow only when a promotion/reuse signal
   fires. No speculative infrastructure, and no infrastructure duplication either: the
   second copy-paste of an arrange block first grows a reusable builder verb or preset;
   class promotion follows the rule above rather than file-count convention.
+
+### Test layout
+
+- A test mirrors its subject's source path with every `Internal` segment dropped:
+  `Sessions/Internal/X.cs` is tested in `Sessions/XTests.cs`, `Internal/Transport/Pipeline.cs`
+  in `Transport/PipelineTests.cs`. Test namespaces follow test folders, so a test folder named
+  like a BCL type shadows it there: tests under `Debug/` declare `OpenCode.Sdk.Tests.Debug` and
+  qualify `System.Diagnostics.Debug`. A guard test refuses two source types that project onto
+  one test path.
+- A helper or fixture one slice uses lives in that test slice's `Support/` or `Fixtures/`;
+  helpers several slices share stay in the test project's root `Support/`. Live-server harness
+  code lives in `OpenCode.Sdk.Tests/Harness/`; the files linked into the service fixture stay in
+  `tests/Shared/`. There is no separate test-support project.
 
 ## 2. Filesystem rule
 

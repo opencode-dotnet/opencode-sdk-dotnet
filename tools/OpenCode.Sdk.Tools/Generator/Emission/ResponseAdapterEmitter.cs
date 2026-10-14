@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Emission;
@@ -88,16 +89,16 @@ internal static class ResponseAdapterEmitter
         if (operation.Pagination is not null)
         {
             usings.Add("System.Collections.Generic");
-            usings.Add("OpenCode.Sdk.Internal.Pagination");
-            usings.Add("OpenCode.Sdk.Models");
+            usings.Add(GeneratedNamespace.Models);
         }
 
-        usings.Add("OpenCode.Sdk.Internal.Serialization");
         var unit = EmissionSyntax.CompilationUnit(
-            "OpenCode.Sdk.Internal.ResponseAdapters",
+            GeneratedNamespace.Internal,
             usings,
             [declaration]);
-        return EmissionSyntax.CreateSource($"Internal/ResponseAdapters/{envelope.AdapterTypeName}.cs", unit);
+        return EmissionSyntax.CreateSource(
+            GeneratedPlacement.PathOf(GeneratedKind.ResponseAdapter, TypeHome.Family(operation.RouteContainerName), envelope.AdapterTypeName),
+            unit);
     }
 
     private static FieldDeclarationSyntax EmitTagSet(ErrorStatusPlan status)

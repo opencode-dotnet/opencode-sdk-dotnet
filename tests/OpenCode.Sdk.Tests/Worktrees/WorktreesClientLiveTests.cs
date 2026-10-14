@@ -3,7 +3,7 @@ using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Worktrees;
 
 /// <summary>
 /// The worktree family's live proof against the simulated server over an owned local Git

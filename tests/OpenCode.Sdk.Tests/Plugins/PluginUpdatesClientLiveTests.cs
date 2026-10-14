@@ -3,7 +3,7 @@ using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Plugins;
 
 /// <summary>
 /// The update probes' inventory-only arms against a forced-owned server: no target (200), no

@@ -45,4 +45,7 @@ internal sealed record GenerationReport
     } = Array.AsReadOnly(Array.Empty<string>());
 
     public required WriteResult WriteResult { get; init; }
+
+    /// <summary>Gets the number of models a family other than their owner reaches, or their owner does not reach.</summary>
+    public int ModelsReachedBeyondOwner { get; init; }
 }

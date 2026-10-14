@@ -1,6 +1,6 @@
 # Coding Style — hand-written code
 
-Date: 2026-08-31
+Date: 2026-10-14
 
 Binding authoring style for every hand-written line in this repository — product code,
 `tools/`, and tests. Generated output is governed by the generator's emitters (ADR-0003);
@@ -118,29 +118,24 @@ for a pile of static steps.
   folder (`Generator/Ingestion/`, `Generator/Binding/`, …), never in horizontal
   type-kind buckets spanning the project.
 - **Within a slice, conventional groups**: `Models/` (or the slice's domain-record
-  folder) for data shapes, `Abstractions/` for its seams, implementation classes at
-  the slice root. Similar things sit together; a reader predicts where a type lives
-  before opening the tree.
-- **The shipped SDK slices by client family with flat public namespaces** (maintainer,
-  2026-08-14): client families are folders (`Sessions/`, `Server/`), the pagination
-  spine sits under `Pagination/`, wire models under `Models/`, runtime internals under
-  `Internal/`, and the root client with the response/exception spine at the project
-  root. Public namespaces stay `OpenCode.Sdk` and `OpenCode.Sdk.Models` — a namespace
-  is API surface, folders are placement (Stripe/Azure precedent) — so IDE0130's
-  folder-matches-namespace rule is arbitrated for the SDK's public folders through the
-  standing per-rule pattern. Admitting a brand-new family folder additionally requires
-  extending the IDE0130 arbitration globs in `.editorconfig` (both the
-  `src/OpenCode.Sdk/{...}` list and its `tests/OpenCode.Sdk.Tests/{...}` mirror) before
-  running `generate`: the writer accepts the new folder, but the post-generation
-  `dotnet format` pass otherwise crashes with `System.NotSupportedException: Changing
-  document properties is not supported` while trying to auto-fix the resulting IDE0130
-  diagnostic on a folder the glob doesn't yet cover, rather than reporting it as a style
-  diagnostic.
+  folder) for data shapes, `Abstractions/` for its seams, `Internal/` for the slice's
+  implementation where the slice also has a public surface. Similar things sit together; a
+  reader predicts where a type lives before opening the tree.
+- **The shipped SDK slices by feature with flat namespaces.** Each client family is a
+  folder at the project root holding its client, its operation records, its models under
+  `Models/` and its implementation under `Internal/`; `Common/` holds the cross-family
+  public vocabulary, a root `Internal/` the machinery several slices share, and `Hosting/`
+  the server launcher and the background-service doors. Namespaces are API surface and
+  folders are placement: a public type declares `OpenCode.Sdk` or `OpenCode.Sdk.Models`
+  wherever its file lives, and a file under any `Internal/` folder is internal and declares
+  `OpenCode.Sdk.Internal`, with no sub-namespaces. A fail-closed namespace-policy test
+  enforces both directions for the SDK project, where IDE0130 is off, so moving a file
+  never changes a namespace (ADR-0033).
 - **A test project mirrors the layout of the project under test**: the folder path of a
-  SUT predicts the folder path of its tests.
+  SUT predicts the folder path of its tests (`testing-style.md` owns the rule).
 - File = type (MA0048) is mechanical everywhere; folder = namespace (IDE0130) is
-  mechanical outside the SDK's arbitrated public folders. This document adds the
-  *placement* discipline analyzers cannot see.
+  mechanical in every project except the SDK, whose namespace-policy test replaces it.
+  This document adds the *placement* discipline analyzers cannot see.
 - **Split before it hurts:** a class approaching a few hundred lines, or a folder
   flattening into dozens of siblings, is a slice asking to be verticalized. Growth is
   handled by extraction and sub-foldering at the moment of pressure, not by a rewrite

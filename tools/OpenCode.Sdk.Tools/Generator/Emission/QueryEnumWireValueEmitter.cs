@@ -20,15 +20,14 @@ internal static class QueryEnumWireValueEmitter
     public static string ConverterName => MethodName;
 
     /// <summary>
-    /// Emits one converter per distinct enum a selected operation's query carries. The
-    /// converters live on the routes root rather than on a route container so an enum shared
-    /// by two families is converted in exactly one place; nested containers reach the
-    /// enclosing type's private members.
+    /// Emits one converter per named enum. The converters are private members of the routes
+    /// root, so every family's nested container reaches them, and the routes emitter names each
+    /// enum once so an enum two families share is converted in exactly one place.
     /// </summary>
-    public static IReadOnlyList<MemberDeclarationSyntax> Emit(IReadOnlyList<OperationPlan> operations,
+    public static IReadOnlyList<MemberDeclarationSyntax> Emit(IReadOnlyList<string> enumTypeNames,
         IReadOnlyList<ModelPlan> models)
     {
-        ArgumentNullException.ThrowIfNull(operations);
+        ArgumentNullException.ThrowIfNull(enumTypeNames);
         ArgumentNullException.ThrowIfNull(models);
 
         var enums = models.OfType<EnumModelPlan>().ToDictionary(static model => model.Name, StringComparer.Ordinal);
@@ -39,7 +38,7 @@ internal static class QueryEnumWireValueEmitter
             // has one. It stays a throw rather than a skip because the alternative is emitting a
             // converter set that silently omits one enum, which fails at run time in the caller's
             // process instead of here.
-            .. EnumTypeNames(operations).Select(typeName => EmitConverter(
+            .. enumTypeNames.Order(StringComparer.Ordinal).Select(typeName => EmitConverter(
                 enums.TryGetValue(typeName, out var model)
                     ? model
                     : throw new InvalidOperationException($"Query enum '{typeName}' has no generated model."))),

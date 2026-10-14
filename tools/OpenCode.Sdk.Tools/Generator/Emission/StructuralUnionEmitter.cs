@@ -10,22 +10,23 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 internal static class StructuralUnionEmitter
 {
-    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<StructuralUnionModelPlan> unions)
+    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<StructuralUnionModelPlan> unions, ModelPlacement placement)
     {
         ArgumentNullException.ThrowIfNull(unions);
+        ArgumentNullException.ThrowIfNull(placement);
 
         var result = new List<GeneratedSource>(unions.Count * 3);
         foreach (var union in unions.OrderBy(static union => union.Name, StringComparer.Ordinal))
         {
-            result.Add(EmitKind(union));
-            result.Add(EmitCarrier(union));
-            result.Add(EmitConverter(union));
+            result.Add(EmitKind(union, GeneratedPlacement.ModelPathOf(placement, union.KindTypeName)));
+            result.Add(EmitCarrier(union, GeneratedPlacement.ModelPathOf(placement, union.Name)));
+            result.Add(EmitConverter(union, GeneratedPlacement.ConverterPathOf(placement, union.Name, $"{union.Name}JsonConverter")));
         }
 
         return Array.AsReadOnly([.. result]);
     }
 
-    private static GeneratedSource EmitKind(StructuralUnionModelPlan union)
+    private static GeneratedSource EmitKind(StructuralUnionModelPlan union, string relativePath)
     {
         var members = union
             .Arms.Select(static arm => arm.Name)
@@ -39,10 +40,10 @@ internal static class StructuralUnionEmitter
             .WithMembers(SyntaxFactory.SeparatedList(members))
             .WithLeadingTrivia(EmissionSyntax.Documentation($"Identifies the active arm of {union.Name}."));
         var unit = EmissionSyntax.CompilationUnit(union.Namespace, [], [declaration]);
-        return EmissionSyntax.CreateSource($"Models/{union.KindTypeName}.cs", unit);
+        return EmissionSyntax.CreateSource(relativePath, unit);
     }
 
-    private static GeneratedSource EmitCarrier(StructuralUnionModelPlan union)
+    private static GeneratedSource EmitCarrier(StructuralUnionModelPlan union, string relativePath)
     {
         var members = new List<MemberDeclarationSyntax>
         {
@@ -78,14 +79,14 @@ internal static class StructuralUnionEmitter
         var unit = EmissionSyntax.CompilationUnit(
             union.Namespace,
             [
-                "OpenCode.Sdk.Internal.Serialization",
+                GeneratedNamespace.Internal,
                 "System",
                 "System.Collections.Generic",
                 "System.Text.Json",
                 "System.Text.Json.Serialization",
             ],
             [declaration]);
-        return EmissionSyntax.CreateSource($"Models/{union.Name}.cs", unit);
+        return EmissionSyntax.CreateSource(relativePath, unit);
     }
 
     /// <summary>
@@ -298,7 +299,7 @@ internal static class StructuralUnionEmitter
     private static MemberAccessExpressionSyntax KindMember(StructuralUnionModelPlan union, string name) =>
         EmissionSyntax.MemberAccess(TypeSyntaxEmitter.EmitNamed(union.KindTypeName), name);
 
-    private static GeneratedSource EmitConverter(StructuralUnionModelPlan union)
+    private static GeneratedSource EmitConverter(StructuralUnionModelPlan union, string relativePath)
     {
         var declaration = SyntaxFactory
             .ClassDeclaration($"{union.Name}JsonConverter")
@@ -311,15 +312,15 @@ internal static class StructuralUnionEmitter
                     TypeSyntaxEmitter.EmitNamed(union.Name))))))
             .WithMembers(SyntaxFactory.List(ConverterMembers(union)));
         var unit = EmissionSyntax.CompilationUnit(
-            "OpenCode.Sdk.Internal.Serialization",
+            GeneratedNamespace.Internal,
             [
-                "OpenCode.Sdk.Models",
+                GeneratedNamespace.Models,
                 "System",
                 "System.Text.Json",
                 "System.Text.Json.Serialization",
             ],
             [declaration]);
-        return EmissionSyntax.CreateSource($"Internal/Serialization/{union.Name}JsonConverter.cs", unit);
+        return EmissionSyntax.CreateSource(relativePath, unit);
     }
 
     private static IEnumerable<MemberDeclarationSyntax> ConverterMembers(StructuralUnionModelPlan union)

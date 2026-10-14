@@ -90,6 +90,7 @@
     "model": {
       "placement": "client",
       "clientName": "LanguageModels",
+      "prefixAliases": ["Models"],
       "reason": "The Models folder and namespace belong to the generated model layer; LanguageModels names the provider model catalog without shadowing either (ADR-0019 flat)."
     },
     "plugin": {
@@ -828,6 +829,180 @@
     {
       "property": "tokens",
       "reason": "Token usage counts reported for a message, step, or session."
+    }
+  ],
+  "modelOwners": [
+    {
+      "match": "Prompt",
+      "owner": "Sessions",
+      "reason": "Prompt parts and attachments are the session prompt's vocabulary; only session operations send or return them."
+    },
+    {
+      "match": "Tool",
+      "owner": "Sessions",
+      "reason": "Tool content is the content of a session tool call; only session messages and log items carry it."
+    },
+    {
+      "match": "Token",
+      "owner": "Sessions",
+      "reason": "Token usage is reported per session message and step; only the session surface returns it."
+    },
+    {
+      "match": "IDurableEnvelope",
+      "owner": "Sessions",
+      "reason": "The durable envelope wraps the session log's durable items; the session log stream is its only producer."
+    },
+    {
+      "match": "MessageNotFoundError",
+      "owner": "Sessions",
+      "reason": "Only session message operations answer with it; the message group it was named after folded into Sessions."
+    },
+    {
+      "match": "InvalidCursorError",
+      "owner": "Sessions",
+      "reason": "Only the session log's cursor reads answer with it."
+    },
+    {
+      "match": "Tui",
+      "owner": "Events",
+      "reason": "TUI notifications reach callers only as events on the global event stream."
+    },
+    {
+      "match": "Installation",
+      "owner": "Events",
+      "reason": "Installation notifications reach callers only as events on the global event stream."
+    },
+    {
+      "match": "Connection",
+      "owner": "Integrations",
+      "reason": "Connection status and credentials describe an integration's connection; the integration operations own them."
+    },
+    {
+      "match": "Pairing",
+      "owner": "Server",
+      "reason": "Pairing codes and sessions belong to the server's pairing operations."
+    },
+    {
+      "match": "FileNotFoundError",
+      "owner": "FileSystem",
+      "reason": "It is the file system operations' not-found error."
+    },
+    {
+      "match": "ModelsDevRefreshed",
+      "owner": "LanguageModels",
+      "reason": "The models.dev catalog refresh notifies about the language model catalog; the Models alias places it too, and the row records the decision."
+    },
+    {
+      "match": "InstructionEntry",
+      "owner": "Experimental",
+      "reason": "The three instruction entry models stay together: upstream defines them in one schema module, and Experimental reaches two of them alone."
+    },
+    {
+      "match": "FileDiffInfo",
+      "owner": "Vcs",
+      "reason": "A file diff is a VCS concept that Sessions also consumes; Sessions, Vcs, Events and Experimental all reach it."
+    },
+    {
+      "match": "UnauthorizedError",
+      "owner": "Common",
+      "reason": "A cross-cutting HTTP error any operation can answer with; it belongs to the shared error spine in Common/Errors."
+    },
+    {
+      "match": "InvalidRequestError",
+      "owner": "Common",
+      "reason": "A cross-cutting HTTP error any operation can answer with; it belongs to the shared error spine in Common/Errors."
+    },
+    {
+      "match": "ForbiddenError",
+      "owner": "Common",
+      "reason": "A cross-cutting HTTP error any operation can answer with; it belongs to the shared error spine in Common/Errors."
+    },
+    {
+      "match": "ServiceUnavailableError",
+      "owner": "Common",
+      "reason": "A cross-cutting HTTP error any operation can answer with; it belongs to the shared error spine in Common/Errors."
+    },
+    {
+      "match": "ConflictError",
+      "owner": "Common",
+      "reason": "A cross-cutting HTTP error any operation can answer with; it belongs to the shared error spine in Common/Errors."
+    },
+    {
+      "match": "UnknownError",
+      "owner": "Common",
+      "reason": "A wire-declared arm of the error union, so it belongs with the error spine in Common/Errors; that only session operations answer with it today is incidental."
+    },
+    {
+      "match": "IOpenCodeError",
+      "owner": "Common",
+      "reason": "The error union every operation's error path decodes through is the shared error spine in Common/Errors."
+    },
+    {
+      "match": "StreamFailureCause",
+      "owner": "Common",
+      "reason": "The stream failure cause union and its two arms are the error and stream spine every stream shares, the Events stream included, so they live in Common/Errors."
+    }
+  ],
+  "sessionAreas": [
+    {
+      "area": "Messages",
+      "matches": ["SessionMessage"],
+      "reason": "Session messages and their parts are the largest Sessions area."
+    },
+    {
+      "area": "Turn",
+      "matches": ["SessionStep", "SessionText", "SessionReasoning", "SessionTool", "SessionUsage", "Tool"],
+      "reason": "The events and content of one assistant turn: steps, text, reasoning, tool calls and usage."
+    },
+    {
+      "area": "Inbox",
+      "matches": ["SessionInbox"],
+      "reason": "The session inbox's items and events."
+    },
+    {
+      "area": "Status",
+      "matches": ["SessionStatus", "SessionIdle", "SessionActive", "SessionBusy", "SessionRetry", "SessionInterrupt"],
+      "reason": "Session status and its transitions."
+    },
+    {
+      "area": "Compaction",
+      "matches": ["SessionCompaction"],
+      "reason": "Session compaction events."
+    },
+    {
+      "area": "Execution",
+      "matches": ["SessionExecution"],
+      "reason": "Session execution events."
+    },
+    {
+      "area": "Stats",
+      "matches": ["SessionStats"],
+      "reason": "Session statistics."
+    },
+    {
+      "area": "Revert",
+      "matches": ["SessionRevert"],
+      "reason": "Session revert state and events."
+    },
+    {
+      "area": "Prompt",
+      "matches": ["Prompt"],
+      "reason": "Prompt parts and attachments."
+    },
+    {
+      "area": "Fork",
+      "matches": ["SessionFork"],
+      "reason": "Fork boundaries; the SessionForked event is a lifecycle event and matches no Fork pattern."
+    },
+    {
+      "area": "Shell",
+      "matches": ["SessionShell"],
+      "reason": "Session shell events."
+    },
+    {
+      "area": "Lifecycle",
+      "matches": ["SessionCreated", "SessionDeleted", "SessionForked", "SessionRenamed", "SessionMoved", "SessionViewed", "SessionAgentSelected", "SessionModelSelected", "SessionSkillActivated", "SessionInstructionsUpdated", "SessionMetadataUpdated", "SessionSynthetic", "SessionPermissions"],
+      "reason": "The session lifecycle events, with their data and durable companions."
     }
   ],
   "declined": [],
