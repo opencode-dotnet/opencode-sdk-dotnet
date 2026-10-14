@@ -142,6 +142,13 @@ election away; a pass of its own can. CI's second pass always runs, so the test 
 count both passes, and it leaves TUnit's HTML report upload to the first pass, whose artifact names
 it would repeat.
 
+Each CI test pass is asserted against the committed `tests/test-roster.json`: the
+`verify-test-roster` tool command fails the job unless every module the roster lists for the pass
+and the runner's OS has a TRX in the pass's results directory that executed at least one test, with
+no unexpected or duplicate modules. The roster is deliberately explicit rather than derived — it
+cannot shrink together with the coverage it guards — so adding or removing a test project or a test
+target framework updates it in the same change.
+
 ## Distributed-build consumer leg
 
 Every gate above exercises the server built from the pinned commit: the `external/opencode`

@@ -222,6 +222,19 @@ jobs:
           TUNIT_ARTIFACT_RETENTION_DAYS: 7
           TUNIT_DISABLE_ARTIFACT_UPLOAD: true
 
+      # Fail-closed roster assertion: every module and target framework the committed
+      # tests/test-roster.json lists for this OS must have run in the pass and executed at least one
+      # test, so a dropped test project, a dropped target framework, or broken test discovery
+      # cannot stay green with less coverage (docs/engineering/quality-gates.md). Adding or
+      # removing a test module updates the roster in the same change.
+      - name: Verify test roster (main)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: dotnet run --file tools/opencode-tool.cs -- verify-test-roster --roster tests/test-roster.json --pass main --os ${{ runner.os }} --results "${{ github.workspace }}/test-results/main"
+
+      - name: Verify test roster (service elections)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: dotnet run --file tools/opencode-tool.cs -- verify-test-roster --roster tests/test-roster.json --pass service-elections --os ${{ runner.os }} --results "${{ github.workspace }}/test-results/service-elections"
+
       - name: Publish test results
         id: test-results
         uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
