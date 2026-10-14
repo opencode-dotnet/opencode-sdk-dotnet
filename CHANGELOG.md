@@ -25,6 +25,13 @@ Nightly builds of `master` are on
 
 ### 🐛 Fixes
 
+- **`OpenCodeServer.EnsureAsync` started through a `.cmd` or `.bat` shim on Windows opens no
+  console window.** With a batch shim such as npm's `opencode.cmd` as the command, the background
+  service took a new console of its own, with a visible terminal window that took the focus and
+  stayed open for the service's life, and its startup output went to that window instead of to
+  the SDK. The shim now starts with a console that has no window, which the service inherits, so
+  its window stays hidden and its startup output reaches the SDK again. A service started from an
+  `.exe` still starts detached, with no console.
 - **On Unix under Mono, a failed `chmod` of an owner-only file fails its write.** The
   `netstandard2.0` and `net472` assets set mode `0600` on the files discovery and `EnsureAsync`
   write through a `chmod` child process after the create. That process now receives a quoted path,

@@ -10,7 +10,11 @@ namespace OpenCode.Sdk.Internal.BackgroundService.Contender;
 /// Node spawns <c>detached</c> and <c>windowsHide</c> with no standard stream inherited
 /// (<c>DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW</c>, <c>SW_HIDE</c>): NUL stdin
 /// and stdout, and the stderr pipe, whose child end is inheritable only while the contender is
-/// created, under the lock every SDK spawn takes.
+/// created, under the lock every SDK spawn takes. A batch shim is the exception: its contender is
+/// the program <c>cmd.exe</c> starts, and a detached <c>cmd.exe</c> has no console to hand it, so
+/// that program would take a new console, with a visible window and its own standard streams in
+/// place of the pipe. The shim's <c>cmd.exe</c> therefore gets a console without a window
+/// (<c>CREATE_NO_WINDOW</c>), which the program inherits and shares with no other process.
 /// </summary>
 internal sealed partial class ServiceContenderSpawner
 {
@@ -34,7 +38,7 @@ internal sealed partial class ServiceContenderSpawner
                     Output = ChildStreamRoute.Null,
                     Error = ChildStreamRoute.Pipe,
                 },
-                Detached = true,
+                Detached = !startInfo.Executable.IsBatchScript,
             });
         }
         catch (Win32Exception failure)
