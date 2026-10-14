@@ -1,0 +1,12 @@
+﻿namespace Microsoft.Extensions.DependencyInjection
+{
+    public static class OpenCodeServiceCollectionExtensions
+    {
+        [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Configuration binding uses reflection over the options type; prefer the configure" +
+            "-action overload on native AOT.")]
+        [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Configuration binding may require members trimming removes; prefer the configure-" +
+            "action overload when trimming.")]
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddOpenCode(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, Microsoft.Extensions.Configuration.IConfiguration configuration) { }
+        public static Microsoft.Extensions.DependencyInjection.IServiceCollection AddOpenCode(this Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Action<OpenCode.Sdk.OpenCodeClientOptions> configure) { }
+    }
+}

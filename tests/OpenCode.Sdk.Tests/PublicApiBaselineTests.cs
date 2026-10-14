@@ -10,6 +10,9 @@ public sealed class PublicApiBaselineTests
         var api = typeof(OpenCodeClient).Assembly.GeneratePublicApi(new ApiGeneratorOptions
         {
             IncludeAssemblyAttributes = false,
+            // The generator skips System and Microsoft namespaces by default; a public type there is
+            // still part of the package's surface.
+            AllowNamespacePrefixes = ["System", "Microsoft"],
         });
 
         // Every target framework compiles the same public surface; one reviewed baseline
