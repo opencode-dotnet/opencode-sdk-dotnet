@@ -13,9 +13,13 @@ public sealed class LayoutGuardTests
         new("Models", "the owning family's Models/ folder, or Common/Errors/ for the shared error spine"),
         new("Pagination", "Common/Pagination/"),
         new("Internal/Abstractions", "the seam's area folder under Internal/, such as Internal/Terminal/"),
+        new("Internal/BackgroundService", "Hosting/BackgroundService/Internal/"),
+        new("Internal/Launcher", "Hosting/Launcher/Internal/"),
         new("Internal/Pagination", "Common/Internal/"),
+        new("Internal/Posix", "Hosting/Internal/Platform/Posix/"),
         new("Internal/ResponseAdapters", "the owning family's Internal/ folder"),
         new("Internal/StreamAdapters", "the owning family's Internal/ folder"),
+        new("Internal/Windows", "Hosting/Internal/Platform/Windows/"),
     ];
 
     [Test]
@@ -31,6 +35,10 @@ public sealed class LayoutGuardTests
     [Arguments("Models/Intruder.cs")]
     [Arguments("Pagination/IntruderCursor.cs")]
     [Arguments("Internal/Abstractions/IIntruderSeam.cs")]
+    [Arguments("Internal/BackgroundService/Stop/IntruderStopper.cs")]
+    [Arguments("Internal/Launcher/IntruderLadder.cs")]
+    [Arguments("Internal/Posix/IntruderSpawn.cs")]
+    [Arguments("Internal/Windows/Abstractions/IIntruderJob.cs")]
     [Arguments("Internal/Pagination/IntruderPaginator.cs")]
     [Arguments("Internal/ResponseAdapters/IntruderResponseAdapter.cs")]
     [Arguments("Internal/StreamAdapters/IntruderStreamAdapter.cs")]

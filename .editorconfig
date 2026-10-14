@@ -1009,7 +1009,7 @@ dotnet_diagnostic.MA0076.severity = none
 # is the same shape: it awaits the Closed task of the child this handle spawned and owns. Winner: the
 # event-to-async bridge for the readiness signal and the owned child's end; VSTHRD003 remains enabled
 # for every other file.
-[src/OpenCode.Sdk/OpenCodeServer.Launcher.cs]
+[src/OpenCode.Sdk/Hosting/Launcher/OpenCodeServer.Launcher.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
 # The progress window's expiry is a timer callback, synchronous by the ITimer contract, already
@@ -1031,7 +1031,7 @@ dotnet_diagnostic.CA2000.severity = none
 # service-<sha1(channel)>.json (packages/util/src/hash.ts, createHash("sha1") over the raw channel
 # name): a filename derivation over a public string, not a security primitive. Winner: byte-for-byte
 # parity with the pinned CLI; CA5350 and its Sonar twin S4790 stay enabled for every other file.
-[src/OpenCode.Sdk/Internal/BackgroundService/Registration/ServiceLegacyFilename.cs]
+[src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Registration/ServiceLegacyFilename.cs]
 dotnet_diagnostic.CA5350.severity = none
 dotnet_diagnostic.S4790.severity = none
 
@@ -1041,7 +1041,7 @@ dotnet_diagnostic.S4790.severity = none
 # one scope with no await interleaving a half-written password-bearing file, and the partial-file
 # cleanup is one catch over that scope. The async seam member wraps the result in Task.FromResult.
 # Winner: the single-scope exclusive-create contract; MA0045 remains enabled for every other file.
-[src/OpenCode.Sdk/Internal/BackgroundService/ServiceFileSystem.cs]
+[src/OpenCode.Sdk/Hosting/BackgroundService/Internal/ServiceFileSystem.cs]
 dotnet_diagnostic.MA0045.severity = none
 
 # The two native spawns hand a pipe's child end to the platform as a raw value: the contender's
@@ -1052,11 +1052,11 @@ dotnet_diagnostic.MA0045.severity = none
 # failure throws from Spawn itself), so the pipes' cleanup on a failed spawn is a
 # synchronous Dispose in a finally (MA0045). Winner: the synchronous native-spawn contract; S3869
 # and MA0045 remain enabled for every other file.
-[src/OpenCode.Sdk/Internal/BackgroundService/Contender/ServiceContenderSpawner.Windows.cs]
+[src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Contender/ServiceContenderSpawner.Windows.cs]
 dotnet_diagnostic.S3869.severity = none
 dotnet_diagnostic.MA0045.severity = none
 
-[src/OpenCode.Sdk/Internal/Posix/PosixSpawn.cs]
+[src/OpenCode.Sdk/Hosting/Internal/Platform/Posix/PosixSpawn.cs]
 dotnet_diagnostic.S3869.severity = none
 dotnet_diagnostic.MA0045.severity = none
 
@@ -1064,7 +1064,7 @@ dotnet_diagnostic.MA0045.severity = none
 # the process handle, and the election loop and the spawner are synchronous callers. The drain owns
 # the stream on its own async path and closes it there; disposal is the second, idempotent close.
 # Winner: the synchronous disposal contract; MA0045 remains enabled for every other file.
-[src/OpenCode.Sdk/Internal/BackgroundService/Contender/ServiceContender.cs]
+[src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Contender/ServiceContender.cs]
 dotnet_diagnostic.MA0045.severity = none
 
 # ServiceProcessControl.TrySnapshot reads /proc/<pid>/stat on Linux to tell a zombie from a live
@@ -1072,7 +1072,7 @@ dotnet_diagnostic.MA0045.severity = none
 # is synchronous by contract — the stop ladder and the election poll it between timer waits, and a
 # process identity is a value, not an operation. Winner: the synchronous process-identity seam;
 # MA0045 remains enabled for every other file.
-[src/OpenCode.Sdk/Internal/BackgroundService/ProcessControl/ServiceProcessControl.cs]
+[src/OpenCode.Sdk/Hosting/BackgroundService/Internal/ProcessControl/ServiceProcessControl.cs]
 dotnet_diagnostic.MA0045.severity = none
 
 # ProcessMark.TryRead reads /proc/<pid>/stat on Linux for the start marker and the zombie state: a
@@ -1197,19 +1197,19 @@ dotnet_diagnostic.CA2225.severity = none
 # inside them declines context capture, so no foreign synchronization context is involved, and
 # BoundedWait takes exactly those owned tasks. Winner: owned child observation; VSTHRD003 remains
 # enabled for every other file. Each entry names one file.
-[src/OpenCode.Sdk/Internal/Launcher/BoundedWait.cs]
+[src/OpenCode.Sdk/Hosting/Launcher/Internal/BoundedWait.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
-[src/OpenCode.Sdk/Internal/Launcher/PipeOutputPump.cs]
+[src/OpenCode.Sdk/Hosting/Launcher/Internal/PipeOutputPump.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
-[src/OpenCode.Sdk/Internal/Launcher/OwnedServerChild.cs]
+[src/OpenCode.Sdk/Hosting/Launcher/Internal/OwnedServerChild.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
-[src/OpenCode.Sdk/Internal/Launcher/PosixServerLadder.cs]
+[src/OpenCode.Sdk/Hosting/Launcher/Internal/PosixServerLadder.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
-[src/OpenCode.Sdk/Internal/Launcher/WindowsServerLadder.cs]
+[src/OpenCode.Sdk/Hosting/Launcher/Internal/WindowsServerLadder.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
 # The POSIX exit watch is a dedicated background thread that blocks in waitid by design: a
@@ -1217,7 +1217,7 @@ dotnet_diagnostic.VSTHRD003.severity = none
 # the kernel reaps the child itself, the same thread sleeps between probes, which is the bounded
 # fallback the watch documents. Winner: the dedicated exit-watch thread; MA0045 remains enabled
 # for every other file.
-[src/OpenCode.Sdk/Internal/Posix/PosixChildExitWatch.cs]
+[src/OpenCode.Sdk/Hosting/Internal/Platform/Posix/PosixChildExitWatch.cs]
 dotnet_diagnostic.MA0045.severity = none
 
 # ChildExitObservation is the one bounded await on a launched child's exit watch, whose task a

@@ -49,19 +49,19 @@ internal static class GeneratedSourceCompiler
     /// </summary>
     internal static readonly (string Consumer, string RequiredEmission)[] GeneratedSurfaceConsumers =
     [
-        ("Internal/BackgroundService/Handoff/ServicePtyHandoff.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
-        ("Internal/BackgroundService/Stop/ServicePtyShutdown.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/BackgroundService/Internal/Handoff/ServicePtyHandoff.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/BackgroundService/Internal/Stop/ServicePtyShutdown.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/BackgroundService/OpenCodeServer.BackgroundService.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/Launcher/OpenCodeServer.Launcher.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("Hosting/OpenCodeServer.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Internal/PersistentPtyFrameDecoder.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
-        ("OpenCodeServer.BackgroundService.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
-        ("OpenCodeServer.Launcher.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
-        ("OpenCodeServer.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("PersistentPtys/PersistentPtyAttachedFrame.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
         ("PersistentPtys/PersistentPtyAttachment.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
-        ("PersistentPtys/PersistentPtyClient.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
         ("PersistentPtys/PersistentPtyClient.cs", "PersistentPtys/Internal/PersistentPtyRawClient.cs"),
+        ("PersistentPtys/PersistentPtyClient.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
         ("PersistentPtys/PersistentPtySession.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
-        ("PersistentPtys/PersistentPtysClient.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
         ("PersistentPtys/PersistentPtysClient.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("PersistentPtys/PersistentPtysClient.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
         ("Ptys/PtyClient.cs", "Ptys/Internal/PtyRawClient.cs"),
         ("Ptys/PtysClient.cs", "Ptys/Internal/PtysRawClient.cs"),
     ];
