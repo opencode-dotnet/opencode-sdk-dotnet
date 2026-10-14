@@ -11,9 +11,9 @@ Nightly builds of `master` are on
 
 ### ✨ Added
 
-- **The accepted snapshot moved to upstream release tag `v2.0.28`**
-  (`026b106bc5d41b679ffc413264229c340871e4d3`), published as `@opencode/cli@2.0.28`; install it
-  with `npm install -g @opencode/cli@2.0.28`. It adds and changes no operation, so all 142 remain
+- **The accepted snapshot moved to upstream release tag `v2.0.29`**
+  (`042d0832f5f3a73eaa039a58a7d565776f6d4290`), published as `@opencode/cli@2.0.29`; install it
+  with `npm install -g @opencode/cli@2.0.29`. It adds and changes no operation, so all 142 remain
   callable.
 - **Provider compatibility defaults.** `ProviderInfo.Compatibility` and
   `ConfigProvider.Compatibility` carry a `ProviderCompatibility`, the defaults a provider's models
@@ -25,6 +25,12 @@ Nightly builds of `master` are on
 - **Request-body encoding.** `ProviderSettings.Encoding`, `ConfigProviderSettings.Encoding`,
   `ModelSettings.Encoding`, and `ConfigModelSettings.Encoding` name the compression upstream applies
   to the provider request body, as the new `ProviderEncoding` enum (`Zstd`, `Gzip`, `None`).
+- **Top-level config policies.** `ConfigInfo.Policies` carries the ordered policies that control
+  access to providers, tools, and integrations, as the new `ConfigInfoPolicies` (`Action`,
+  `Resource`, `Effect`) with the new `ConfigInfoPoliciesAction` (`ProviderUse`, `ToolUse`,
+  `IntegrationUse`) and `ConfigInfoPoliciesEffect` (`Allow`, `Deny`) enums. Upstream deprecates
+  `experimental.policies`: a 2.0.29 server reports those policies here, and
+  `ConfigInfoExperimental.Policies` stays `null`.
 
 ### 🔧 Changes
 
@@ -60,13 +66,6 @@ Nightly builds of `master` are on
   write through a `chmod` child process after the create. That process now receives a quoted path,
   and a nonzero exit removes the file and fails the create, as the modern targets' atomic
   owner-only create does. Behaviour change: such a file was kept at the process umask before.
-
-### 📋 Important Notes
-
-- **Upstream's committed OpenAPI document lags its own generator at `v2.0.28`.** It lacks
-  `Provider.Encoding` and the four `encoding` settings members, so a diff against it shows
-  members this SDK has and that document lacks. The snapshot comes from upstream's pinned
-  generator, never from that file.
 
 ## [0.9.0-preview.9] - 2026-10-13
 

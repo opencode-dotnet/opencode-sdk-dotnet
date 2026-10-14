@@ -13,13 +13,13 @@ their hash-pinned manifests.
 | Fact | Value |
 |---|---|
 | Upstream file | `packages/protocol/openapi.json` |
-| Upstream release tag | `v2.0.28` |
-| Commit | `026b106bc5d41b679ffc413264229c340871e4d3` |
-| Upstream product channel | npm `@opencode/cli@latest` (channel `latest`); this tag published as `2.0.28`, installing the `opencode` command (plus the transitional `opencode2` alias) |
+| Upstream release tag | `v2.0.29` |
+| Commit | `042d0832f5f3a73eaa039a58a7d565776f6d4290` |
+| Upstream product channel | npm `@opencode/cli@latest` (channel `latest`); this tag published as `2.0.29`, installing the `opencode` command (plus the transitional `opencode2` alias) |
 
 Upstream publishes from the `@opencode/cli` npm scope on the `latest` channel, versioned as
-semver release tags (`v2.0.0`…). This pin is the release tag `v2.0.28`, so
-`npm install -g @opencode/cli@2.0.28` installs a server built from exactly this commit; later
+semver release tags (`v2.0.0`…). This pin is the release tag `v2.0.29`, so
+`npm install -g @opencode/cli@2.0.29` installs a server built from exactly this commit; later
 releases usually work but are not what this repository tests. `beta` and `dev` tags still exist
 upstream but are not the release channel. The former `@opencode-ai/cli` scope is frozen: its
 `next` and `latest` tags stopped at `0.0.0-beta-17823` (published 2026-08-21) and the scope

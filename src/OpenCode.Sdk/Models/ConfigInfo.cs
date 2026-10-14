@@ -72,6 +72,13 @@ public sealed record ConfigInfo
     public IReadOnlyList<PermissionRule>? Permissions { get; init; }
 
     /// <summary>
+    /// Gets the policies value.
+    /// </summary>
+    [JsonPropertyName("policies")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<ConfigInfoPolicies>? Policies { get; init; }
+
+    /// <summary>
     /// Gets the agents value.
     /// </summary>
     [JsonPropertyName("agents")]

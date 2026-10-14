@@ -2347,6 +2347,9 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("plugins")]
         public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.ConfigInfoPlugins>? Plugins { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("policies")]
+        public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.ConfigInfoPolicies>? Policies { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("providers")]
         public System.Collections.Generic.IReadOnlyDictionary<string, OpenCode.Sdk.Models.ConfigProvider>? Providers { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -2556,6 +2559,34 @@ namespace OpenCode.Sdk.Models
         Text = 0,
         ConfigPluginEntry = 1,
         Unknown = 2,
+    }
+    public sealed class ConfigInfoPolicies : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoPolicies>
+    {
+        public ConfigInfoPolicies() { }
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public required OpenCode.Sdk.Models.ConfigInfoPoliciesAction Action { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("effect")]
+        public required OpenCode.Sdk.Models.ConfigInfoPoliciesEffect Effect { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("resource")]
+        public required string Resource { get; init; }
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ConfigInfoPoliciesAction>))]
+    public enum ConfigInfoPoliciesAction
+    {
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("provider.use")]
+        ProviderUse = 0,
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("tool.use")]
+        ToolUse = 1,
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("integration.use")]
+        IntegrationUse = 2,
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ConfigInfoPoliciesEffect>))]
+    public enum ConfigInfoPoliciesEffect
+    {
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("allow")]
+        Allow = 0,
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("deny")]
+        Deny = 1,
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.Serialization.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ConfigInfoShare>))]
     public enum ConfigInfoShare
