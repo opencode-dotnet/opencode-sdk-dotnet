@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-08-20
+Date: 2026-10-14
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
