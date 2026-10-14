@@ -5,39 +5,89 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Defines the supported session step ended data finish values.
+/// The session step ended data finish. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
-[JsonConverter(typeof(StrictJsonStringEnumConverter<SessionStepEndedDataFinish>))]
-public enum SessionStepEndedDataFinish
+[JsonConverter(typeof(SessionStepEndedDataFinishJsonConverter))]
+public readonly struct SessionStepEndedDataFinish : IEquatable<SessionStepEndedDataFinish>
 {
+    private readonly string? _value;
     /// <summary>
-    /// Represents the &apos;stop&apos; wire value.
+    /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
     /// </summary>
-    [JsonStringEnumMemberName("stop")]
-    Stop,
+    /// <param name = "value">The wire spelling.</param>
+    public SessionStepEndedDataFinish(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        _value = value;
+    }
+
     /// <summary>
-    /// Represents the &apos;length&apos; wire value.
+    /// Gets the &apos;stop&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("length")]
-    Length,
+    public static SessionStepEndedDataFinish Stop { get; } = new("stop");
     /// <summary>
-    /// Represents the &apos;tool-calls&apos; wire value.
+    /// Gets the &apos;length&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("tool-calls")]
-    ToolCalls,
+    public static SessionStepEndedDataFinish Length { get; } = new("length");
     /// <summary>
-    /// Represents the &apos;content-filter&apos; wire value.
+    /// Gets the &apos;tool-calls&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("content-filter")]
-    ContentFilter,
+    public static SessionStepEndedDataFinish ToolCalls { get; } = new("tool-calls");
     /// <summary>
-    /// Represents the &apos;error&apos; wire value.
+    /// Gets the &apos;content-filter&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("error")]
-    Error,
+    public static SessionStepEndedDataFinish ContentFilter { get; } = new("content-filter");
     /// <summary>
-    /// Represents the &apos;unknown&apos; wire value.
+    /// Gets the &apos;error&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("unknown")]
-    Unknown
+    public static SessionStepEndedDataFinish Error { get; } = new("error");
+    /// <summary>
+    /// Gets the &apos;unknown&apos; wire value.
+    /// </summary>
+    public static SessionStepEndedDataFinish Unknown { get; } = new("unknown");
+    /// <summary>
+    /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
+    /// </summary>
+    public bool IsKnown => _value is "stop" or "length" or "tool-calls" or "content-filter" or "error" or "unknown";
+
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator ==(SessionStepEndedDataFinish left, SessionStepEndedDataFinish right) => left.Equals(right);
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally for inequality.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator !=(SessionStepEndedDataFinish left, SessionStepEndedDataFinish right) => !left.Equals(right);
+    /// <summary>
+    /// Converts a wire spelling to a value.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static implicit operator SessionStepEndedDataFinish(string value) => new(value);
+    /// <summary>
+    /// Creates a value from its wire spelling, as the implicit conversion does.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static SessionStepEndedDataFinish FromString(string value) => new(value);
+    /// <summary>
+    /// Compares wire spellings ordinally: upstream compares string literals exactly.
+    /// </summary>
+    /// <param name = "other">The other value.</param>
+    public bool Equals(SessionStepEndedDataFinish other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+    /// <summary>
+    /// Compares with another object: equal only to a value with the same wire spelling.
+    /// </summary>
+    /// <param name = "obj">The other object.</param>
+    public override bool Equals(object? obj) => obj is SessionStepEndedDataFinish other && Equals(other);
+    /// <summary>
+    /// Hashes the wire spelling ordinally, as equality compares it.
+    /// </summary>
+    public override int GetHashCode() => _value is null ? 0 : StringComparer.Ordinal.GetHashCode(_value);
+    /// <summary>
+    /// Returns the wire spelling, or an empty string for a default value, which has none.
+    /// </summary>
+    public override string ToString() => _value ?? string.Empty;
 }

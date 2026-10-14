@@ -102,16 +102,35 @@ public sealed class OpenCodeRoutesTests
         await Assert.That(route).IsEqualTo("/api/vcs/diff?mode=committed&base=main");
     }
 
+    public static IEnumerable<(VcsMode Mode, string WireValue)> PinnedModes() =>
+    [
+        (VcsMode.Working, "working"),
+        (VcsMode.Branch, "branch"),
+        (VcsMode.Committed, "committed"),
+    ];
+
     [Test]
-    [Arguments(VcsMode.Working, "working")]
-    [Arguments(VcsMode.Branch, "branch")]
-    [Arguments(VcsMode.Committed, "committed")]
+    [MethodDataSource(nameof(PinnedModes))]
     public async Task GetDiff_Should_Spell_Every_Mode_The_Way_The_Wire_Declares_It(VcsMode mode, string wireValue)
     {
         var route = OpenCodeRoutes.Vcs.GetDiff(new VcsDiffRequest { Mode = mode });
 
         await Assert.That(route).IsEqualTo($"/api/vcs/diff?mode={wireValue}");
     }
+
+    /// <summary>A value the pinned server does not define is spelled as it was given (ADR-0035).</summary>
+    [Test]
+    public async Task GetDiff_Should_Spell_A_Mode_The_Pin_Does_Not_Define_As_Given()
+    {
+        var route = OpenCodeRoutes.Vcs.GetDiff(new VcsDiffRequest { Mode = new VcsMode("staged") });
+
+        await Assert.That(route).IsEqualTo("/api/vcs/diff?mode=staged");
+    }
+
+    /// <summary>A default value has no spelling; the builder refuses it instead of sending an empty one.</summary>
+    [Test]
+    public async Task GetDiff_Should_Refuse_A_Default_Mode() =>
+        _ = await Assert.That(() => OpenCodeRoutes.Vcs.GetDiff(new VcsDiffRequest { Mode = new VcsMode() })).Throws<ArgumentException>();
 
     [Test]
     public async Task GetStats_Should_Spell_The_Tools_Detail_Value()

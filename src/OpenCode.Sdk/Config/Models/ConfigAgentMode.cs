@@ -5,24 +5,77 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Defines the supported config agent mode values.
+/// The config agent mode. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
-[JsonConverter(typeof(StrictJsonStringEnumConverter<ConfigAgentMode>))]
-public enum ConfigAgentMode
+[JsonConverter(typeof(ConfigAgentModeJsonConverter))]
+public readonly struct ConfigAgentMode : IEquatable<ConfigAgentMode>
 {
+    private readonly string? _value;
     /// <summary>
-    /// Represents the &apos;subagent&apos; wire value.
+    /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
     /// </summary>
-    [JsonStringEnumMemberName("subagent")]
-    Subagent,
+    /// <param name = "value">The wire spelling.</param>
+    public ConfigAgentMode(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        _value = value;
+    }
+
     /// <summary>
-    /// Represents the &apos;primary&apos; wire value.
+    /// Gets the &apos;subagent&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("primary")]
-    Primary,
+    public static ConfigAgentMode Subagent { get; } = new("subagent");
     /// <summary>
-    /// Represents the &apos;all&apos; wire value.
+    /// Gets the &apos;primary&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("all")]
-    All
+    public static ConfigAgentMode Primary { get; } = new("primary");
+    /// <summary>
+    /// Gets the &apos;all&apos; wire value.
+    /// </summary>
+    public static ConfigAgentMode All { get; } = new("all");
+    /// <summary>
+    /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
+    /// </summary>
+    public bool IsKnown => _value is "subagent" or "primary" or "all";
+
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator ==(ConfigAgentMode left, ConfigAgentMode right) => left.Equals(right);
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally for inequality.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator !=(ConfigAgentMode left, ConfigAgentMode right) => !left.Equals(right);
+    /// <summary>
+    /// Converts a wire spelling to a value.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static implicit operator ConfigAgentMode(string value) => new(value);
+    /// <summary>
+    /// Creates a value from its wire spelling, as the implicit conversion does.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static ConfigAgentMode FromString(string value) => new(value);
+    /// <summary>
+    /// Compares wire spellings ordinally: upstream compares string literals exactly.
+    /// </summary>
+    /// <param name = "other">The other value.</param>
+    public bool Equals(ConfigAgentMode other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+    /// <summary>
+    /// Compares with another object: equal only to a value with the same wire spelling.
+    /// </summary>
+    /// <param name = "obj">The other object.</param>
+    public override bool Equals(object? obj) => obj is ConfigAgentMode other && Equals(other);
+    /// <summary>
+    /// Hashes the wire spelling ordinally, as equality compares it.
+    /// </summary>
+    public override int GetHashCode() => _value is null ? 0 : StringComparer.Ordinal.GetHashCode(_value);
+    /// <summary>
+    /// Returns the wire spelling, or an empty string for a default value, which has none.
+    /// </summary>
+    public override string ToString() => _value ?? string.Empty;
 }

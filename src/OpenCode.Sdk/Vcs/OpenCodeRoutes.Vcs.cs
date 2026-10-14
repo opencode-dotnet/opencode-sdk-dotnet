@@ -148,14 +148,7 @@ public static partial class OpenCodeRoutes
     }
 
     /// <summary>
-    /// Spells one &apos;VcsMode&apos; member the way the wire query expects it.
+    /// Spells one &apos;VcsMode&apos; value the way the wire query expects it.
     /// </summary>
-    private static string? ToWireValue(VcsMode? value) => value switch
-    {
-        VcsMode.Working => "working",
-        VcsMode.Branch => "branch",
-        VcsMode.Committed => "committed",
-        null => null,
-        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown VcsMode value.")
-    };
+    private static string? ToWireValue(VcsMode? value) => value is not { } member ? null : member.Equals(default) ? throw new ArgumentException("A default VcsMode has no wire value.", nameof(value)) : member.ToString();
 }

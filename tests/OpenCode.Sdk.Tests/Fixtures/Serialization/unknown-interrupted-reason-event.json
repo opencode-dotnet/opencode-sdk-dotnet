@@ -1,0 +1,7 @@
+{
+  "id": "evt_interrupted",
+  "created": 1760000000000,
+  "type": "session.execution.interrupted",
+  "durable": { "aggregateID": "ses_enum", "seq": 7, "version": 1 },
+  "data": { "sessionID": "ses_enum", "reason": "watchdog" }
+}

@@ -209,9 +209,12 @@ The runtime validates transport and framing, parses JSON, and performs the check
 materialize the declared .NET shape or dispatch a protocol union. It does not replay server-side
 OpenAPI validation for a value already representable in that shape (ADR-0014).
 
-Required members, top-level payload presence, represented token conversion, strict enum parsing,
-union dispatch, response-status selection, SSE framing, and source-generated serializer metadata
-remain hard walls. Declared no-content responses drain and ignore unexpected bodies; ordinary one-shot JSON
+Required members, top-level payload presence, represented token conversion, the string token kind
+of a generated enum, union dispatch, response-status selection, SSE framing, and source-generated
+serializer metadata remain hard walls. A generated string enum is extensible (ADR-0035): an
+extensible readonly struct whose pinned values are static properties, whose generated converter
+reads any string as a value and writes it back unchanged, refuses a non-string token, and refuses
+to write a default value, and whose equality is ordinal. Declared no-content responses drain and ignore unexpected bodies; ordinary one-shot JSON
 success decoding preserves `HttpContent` charset, BOM, and replacement-decoding behavior while
 materializing valid UTF-8 directly (ADR-0014).
 
@@ -315,9 +318,9 @@ dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).
 - A query parameter binds by shape: a required parameter becomes a `required`, non-nullable
   request property and makes the request itself a required method and route argument; an optional
   parameter binds nullable and is omitted from the wire when unset, whether or not its schema
-  admits JSON null; a string enum outside the spine's own value sets becomes a generated C# enum
-  whose wire spelling the route builder writes through a generated switch; every other query
-  shape refuses by name.
+  admits JSON null; a string enum outside the spine's own value sets becomes a generated
+  extensible enum whose spelling the route builder writes as given, refusing a default value;
+  every other query shape refuses by name.
 - The SSE engine remains hand-written runtime behavior; generated stream methods bind their route,
   payload, frame, declared failure event, typed cause, and statuses from the pin. Cause models,
   converters, array metadata, and adapter metadata pass through the same emitted registry and

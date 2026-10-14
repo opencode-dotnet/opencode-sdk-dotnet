@@ -28,9 +28,10 @@ rather than normalizing absence to empty. Generated collections are shallow `ini
 caller-supplied collections, and callers own later mutation.
 
 Union discriminator checks remain because they select the concrete C# type; unknown tags retain
-their explicit raw-payload carriers. Required members, non-null top-level payloads, strict enum
-token conversion, SSE framing, response-status dispatch, and generated-source/AOT metadata remain
-materialization or protocol walls rather than schema revalidation.
+their explicit raw-payload carriers. Required members, non-null top-level payloads, enum token
+kinds, SSE framing, response-status dispatch, and generated-source/AOT metadata remain
+materialization or protocol walls rather than schema revalidation. Unknown values of generated
+string enums: ADR-0035.
 
 ## Consequences
 

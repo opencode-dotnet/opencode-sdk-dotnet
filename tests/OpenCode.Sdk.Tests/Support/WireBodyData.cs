@@ -157,6 +157,12 @@ internal static class WireBodyData
         "{\"id\":\"evt_3\",\"created\":3,\"type\":\"session.invented.tomorrow\","
         + "\"durable\":{\"aggregateID\":\"ses_9\",\"seq\":3,\"version\":1},\"data\":{}}";
 
+    /// <summary>A typed event whose enum member carries a value the pinned document does not define.</summary>
+    public const string UnknownReasonInterruptedEvent =
+        "{\"id\":\"evt_4\",\"created\":4,\"type\":\"session.execution.interrupted\","
+        + "\"durable\":{\"aggregateID\":\"ses_9\",\"seq\":4,\"version\":1},"
+        + "\"data\":{\"sessionID\":\"ses_9\",\"reason\":\"watchdog\"}}";
+
     /// <summary>The cause a mid-stream failure frame carries under the declared failure event.</summary>
     public const string StreamFailureCause = "[{\"_tag\":\"Die\",\"defect\":\"boom\"}]";
 

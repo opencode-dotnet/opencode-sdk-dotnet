@@ -5,29 +5,81 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Defines the supported tui toast show data variant values.
+/// The tui toast show data variant. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
-[JsonConverter(typeof(StrictJsonStringEnumConverter<TuiToastShowDataVariant>))]
-public enum TuiToastShowDataVariant
+[JsonConverter(typeof(TuiToastShowDataVariantJsonConverter))]
+public readonly struct TuiToastShowDataVariant : IEquatable<TuiToastShowDataVariant>
 {
+    private readonly string? _value;
     /// <summary>
-    /// Represents the &apos;info&apos; wire value.
+    /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
     /// </summary>
-    [JsonStringEnumMemberName("info")]
-    Info,
+    /// <param name = "value">The wire spelling.</param>
+    public TuiToastShowDataVariant(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        _value = value;
+    }
+
     /// <summary>
-    /// Represents the &apos;success&apos; wire value.
+    /// Gets the &apos;info&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("success")]
-    Success,
+    public static TuiToastShowDataVariant Info { get; } = new("info");
     /// <summary>
-    /// Represents the &apos;warning&apos; wire value.
+    /// Gets the &apos;success&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("warning")]
-    Warning,
+    public static TuiToastShowDataVariant Success { get; } = new("success");
     /// <summary>
-    /// Represents the &apos;error&apos; wire value.
+    /// Gets the &apos;warning&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("error")]
-    Error
+    public static TuiToastShowDataVariant Warning { get; } = new("warning");
+    /// <summary>
+    /// Gets the &apos;error&apos; wire value.
+    /// </summary>
+    public static TuiToastShowDataVariant Error { get; } = new("error");
+    /// <summary>
+    /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
+    /// </summary>
+    public bool IsKnown => _value is "info" or "success" or "warning" or "error";
+
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator ==(TuiToastShowDataVariant left, TuiToastShowDataVariant right) => left.Equals(right);
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally for inequality.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator !=(TuiToastShowDataVariant left, TuiToastShowDataVariant right) => !left.Equals(right);
+    /// <summary>
+    /// Converts a wire spelling to a value.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static implicit operator TuiToastShowDataVariant(string value) => new(value);
+    /// <summary>
+    /// Creates a value from its wire spelling, as the implicit conversion does.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static TuiToastShowDataVariant FromString(string value) => new(value);
+    /// <summary>
+    /// Compares wire spellings ordinally: upstream compares string literals exactly.
+    /// </summary>
+    /// <param name = "other">The other value.</param>
+    public bool Equals(TuiToastShowDataVariant other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+    /// <summary>
+    /// Compares with another object: equal only to a value with the same wire spelling.
+    /// </summary>
+    /// <param name = "obj">The other object.</param>
+    public override bool Equals(object? obj) => obj is TuiToastShowDataVariant other && Equals(other);
+    /// <summary>
+    /// Hashes the wire spelling ordinally, as equality compares it.
+    /// </summary>
+    public override int GetHashCode() => _value is null ? 0 : StringComparer.Ordinal.GetHashCode(_value);
+    /// <summary>
+    /// Returns the wire spelling, or an empty string for a default value, which has none.
+    /// </summary>
+    public override string ToString() => _value ?? string.Empty;
 }

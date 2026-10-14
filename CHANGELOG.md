@@ -9,6 +9,43 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 💥 Breaking changes
+
+- **Generated string enums are extensible value types (ADR-0035).**
+  - Every enum the API defines, such as `VcsMode`, `PermissionEffect`, `SessionInboxDelivery` and
+    `AgentInfoMode`, is now a `readonly struct`, not a C# `enum`.
+  - Previously a server newer than the SDK broke reading whenever it sent a value the SDK did not
+    know, on a response or on an event stream frame. That value now reads as it was sent, and it is
+    written back unchanged.
+  - The pinned values are static properties with the same names, so `VcsMode.Committed` still
+    compiles.
+  - `IsKnown` reports whether this SDK's pin defines a value. `new VcsMode("…")`, the implicit
+    conversion from `string`, and `FromString` create a value from any spelling.
+  - Equality is ordinal.
+  - `ToString()` now returns the wire spelling (`running`), not the C# member name (`Running`).
+    Logs and string comparisons built on it change.
+  - A `default` value has no spelling. A request body or query refuses it.
+  - What breaks: enum values used as constant patterns, and code that relied on `enum` behaviour
+    (numeric casts, `Enum.GetValues`, `[Flags]`). Compare with `==` instead:
+
+    ```csharp
+    // Before
+    switch (mode) { case VcsMode.Committed: /* … */ break; }
+    if (rule is { Effect: PermissionEffect.Allow }) { /* … */ }
+
+    // After
+    if (mode == VcsMode.Committed) { /* … */ }
+    if (rule.Effect == PermissionEffect.Allow) { /* … */ }
+    ```
+
+### 🐛 Fixes
+
+- **An event stream no longer ends on an enum value the SDK does not know.** Before, a frame with
+  such a value, such as a new `reason` on `session.execution.interrupted`, failed to materialize and
+  ended the subscription with `OpenCodeTransportException`. The frame now reads as its typed event,
+  with the value kept (`IsKnown` is false). One-shot responses read the same way. See the Breaking
+  entry on extensible enums.
+
 ## [0.9.0-preview.10] - 2026-10-14
 
 **The packages target `netstandard2.0`, `net472`, `net10.0`, and `net11.0`: `net8.0` and `net9.0`

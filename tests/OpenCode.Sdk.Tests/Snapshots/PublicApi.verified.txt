@@ -2116,15 +2116,22 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("system")]
         public string? System { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.AgentInfoMode>))]
-    public enum AgentInfoMode
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.AgentInfoModeJsonConverter))]
+    public readonly struct AgentInfoMode : System.IEquatable<OpenCode.Sdk.Models.AgentInfoMode>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("subagent")]
-        Subagent = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("primary")]
-        Primary = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("all")]
-        All = 2,
+        public AgentInfoMode(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.AgentInfoMode All { get; }
+        public static OpenCode.Sdk.Models.AgentInfoMode Primary { get; }
+        public static OpenCode.Sdk.Models.AgentInfoMode Subagent { get; }
+        public bool Equals(OpenCode.Sdk.Models.AgentInfoMode other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.AgentInfoMode FromString(string value) { }
+        public static OpenCode.Sdk.Models.AgentInfoMode op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.AgentInfoMode left, OpenCode.Sdk.Models.AgentInfoMode right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.AgentInfoMode left, OpenCode.Sdk.Models.AgentInfoMode right) { }
     }
     public sealed class AgentNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.AgentNotFoundError>
     {
@@ -2235,15 +2242,22 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("system")]
         public string? System { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ConfigAgentMode>))]
-    public enum ConfigAgentMode
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigAgentModeJsonConverter))]
+    public readonly struct ConfigAgentMode : System.IEquatable<OpenCode.Sdk.Models.ConfigAgentMode>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("subagent")]
-        Subagent = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("primary")]
-        Primary = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("all")]
-        All = 2,
+        public ConfigAgentMode(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ConfigAgentMode All { get; }
+        public static OpenCode.Sdk.Models.ConfigAgentMode Primary { get; }
+        public static OpenCode.Sdk.Models.ConfigAgentMode Subagent { get; }
+        public bool Equals(OpenCode.Sdk.Models.ConfigAgentMode other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ConfigAgentMode FromString(string value) { }
+        public static OpenCode.Sdk.Models.ConfigAgentMode op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ConfigAgentMode left, OpenCode.Sdk.Models.ConfigAgentMode right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ConfigAgentMode left, OpenCode.Sdk.Models.ConfigAgentMode right) { }
     }
     public sealed class ConfigAgentRequest : System.IEquatable<OpenCode.Sdk.Models.ConfigAgentRequest>
     {
@@ -2454,23 +2468,38 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("resource")]
         public required string Resource { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction>))]
-    public enum ConfigInfoExperimentalPoliciesAction
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigInfoExperimentalPoliciesActionJsonConverter))]
+    public readonly struct ConfigInfoExperimentalPoliciesAction : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("provider.use")]
-        ProviderUse = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("tool.use")]
-        ToolUse = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("integration.use")]
-        IntegrationUse = 2,
+        public ConfigInfoExperimentalPoliciesAction(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction IntegrationUse { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction ProviderUse { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction ToolUse { get; }
+        public bool Equals(OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction FromString(string value) { }
+        public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction left, OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction left, OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction right) { }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect>))]
-    public enum ConfigInfoExperimentalPoliciesEffect
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigInfoExperimentalPoliciesEffectJsonConverter))]
+    public readonly struct ConfigInfoExperimentalPoliciesEffect : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("allow")]
-        Allow = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("deny")]
-        Deny = 1,
+        public ConfigInfoExperimentalPoliciesEffect(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect Allow { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect Deny { get; }
+        public bool Equals(OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect FromString(string value) { }
+        public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect left, OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect left, OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect right) { }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigInfoFormatterJsonConverter))]
     public sealed class ConfigInfoFormatter : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoFormatter>
@@ -2582,33 +2611,55 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("resource")]
         public required string Resource { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ConfigInfoPoliciesAction>))]
-    public enum ConfigInfoPoliciesAction
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigInfoPoliciesActionJsonConverter))]
+    public readonly struct ConfigInfoPoliciesAction : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoPoliciesAction>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("provider.use")]
-        ProviderUse = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("tool.use")]
-        ToolUse = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("integration.use")]
-        IntegrationUse = 2,
+        public ConfigInfoPoliciesAction(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoPoliciesAction IntegrationUse { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoPoliciesAction ProviderUse { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoPoliciesAction ToolUse { get; }
+        public bool Equals(OpenCode.Sdk.Models.ConfigInfoPoliciesAction other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ConfigInfoPoliciesAction FromString(string value) { }
+        public static OpenCode.Sdk.Models.ConfigInfoPoliciesAction op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ConfigInfoPoliciesAction left, OpenCode.Sdk.Models.ConfigInfoPoliciesAction right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ConfigInfoPoliciesAction left, OpenCode.Sdk.Models.ConfigInfoPoliciesAction right) { }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ConfigInfoPoliciesEffect>))]
-    public enum ConfigInfoPoliciesEffect
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigInfoPoliciesEffectJsonConverter))]
+    public readonly struct ConfigInfoPoliciesEffect : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoPoliciesEffect>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("allow")]
-        Allow = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("deny")]
-        Deny = 1,
+        public ConfigInfoPoliciesEffect(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoPoliciesEffect Allow { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoPoliciesEffect Deny { get; }
+        public bool Equals(OpenCode.Sdk.Models.ConfigInfoPoliciesEffect other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ConfigInfoPoliciesEffect FromString(string value) { }
+        public static OpenCode.Sdk.Models.ConfigInfoPoliciesEffect op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ConfigInfoPoliciesEffect left, OpenCode.Sdk.Models.ConfigInfoPoliciesEffect right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ConfigInfoPoliciesEffect left, OpenCode.Sdk.Models.ConfigInfoPoliciesEffect right) { }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ConfigInfoShare>))]
-    public enum ConfigInfoShare
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigInfoShareJsonConverter))]
+    public readonly struct ConfigInfoShare : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoShare>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("manual")]
-        Manual = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("auto")]
-        Auto = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("disabled")]
-        Disabled = 2,
+        public ConfigInfoShare(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoShare Auto { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoShare Disabled { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoShare Manual { get; }
+        public bool Equals(OpenCode.Sdk.Models.ConfigInfoShare other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ConfigInfoShare FromString(string value) { }
+        public static OpenCode.Sdk.Models.ConfigInfoShare op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ConfigInfoShare left, OpenCode.Sdk.Models.ConfigInfoShare right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ConfigInfoShare left, OpenCode.Sdk.Models.ConfigInfoShare right) { }
     }
     public sealed class ConfigInfoToolOutput : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoToolOutput>
     {
@@ -2620,15 +2671,22 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("max_lines")]
         public long? MaxLines { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ConfigInfoUpdate>))]
-    public enum ConfigInfoUpdate
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigInfoUpdateJsonConverter))]
+    public readonly struct ConfigInfoUpdate : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoUpdate>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("disable")]
-        Disable = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("notify")]
-        Notify = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("auto")]
-        Auto = 2,
+        public ConfigInfoUpdate(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoUpdate Auto { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoUpdate Disable { get; }
+        public static OpenCode.Sdk.Models.ConfigInfoUpdate Notify { get; }
+        public bool Equals(OpenCode.Sdk.Models.ConfigInfoUpdate other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ConfigInfoUpdate FromString(string value) { }
+        public static OpenCode.Sdk.Models.ConfigInfoUpdate op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ConfigInfoUpdate left, OpenCode.Sdk.Models.ConfigInfoUpdate right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ConfigInfoUpdate left, OpenCode.Sdk.Models.ConfigInfoUpdate right) { }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigInfoWarmingJsonConverter))]
     public sealed class ConfigInfoWarming : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoWarming>
@@ -3141,15 +3199,22 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ConnectionCredentialInfoMethod>))]
-    public enum ConnectionCredentialInfoMethod
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConnectionCredentialInfoMethodJsonConverter))]
+    public readonly struct ConnectionCredentialInfoMethod : System.IEquatable<OpenCode.Sdk.Models.ConnectionCredentialInfoMethod>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("key")]
-        Key = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("oauth")]
-        Oauth = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("external")]
-        External = 2,
+        public ConnectionCredentialInfoMethod(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ConnectionCredentialInfoMethod External { get; }
+        public static OpenCode.Sdk.Models.ConnectionCredentialInfoMethod Key { get; }
+        public static OpenCode.Sdk.Models.ConnectionCredentialInfoMethod Oauth { get; }
+        public bool Equals(OpenCode.Sdk.Models.ConnectionCredentialInfoMethod other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ConnectionCredentialInfoMethod FromString(string value) { }
+        public static OpenCode.Sdk.Models.ConnectionCredentialInfoMethod op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ConnectionCredentialInfoMethod left, OpenCode.Sdk.Models.ConnectionCredentialInfoMethod right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ConnectionCredentialInfoMethod left, OpenCode.Sdk.Models.ConnectionCredentialInfoMethod right) { }
     }
     public sealed class ConnectionEnvInfo : OpenCode.Sdk.Models.IConnectionInfo, System.IEquatable<OpenCode.Sdk.Models.ConnectionEnvInfo>
     {
@@ -3408,13 +3473,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public required OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus Status { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus>))]
-    public enum ExperimentalMigrationV1StatusIdleStatus
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ExperimentalMigrationV1StatusIdleStatusJsonConverter))]
+    public readonly struct ExperimentalMigrationV1StatusIdleStatus : System.IEquatable<OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("required")]
-        Required = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("completed")]
-        Completed = 1,
+        public ExperimentalMigrationV1StatusIdleStatus(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus Completed { get; }
+        public static OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus Required { get; }
+        public bool Equals(OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus FromString(string value) { }
+        public static OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus left, OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus left, OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus right) { }
     }
     public enum ExperimentalMigrationV1StatusKind
     {
@@ -3471,15 +3544,22 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("resume")]
         public OpenCode.Sdk.Optional<bool?> Resume { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools>))]
-    public enum ExperimentalSessionStatsRequestTools
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ExperimentalSessionStatsRequestToolsJsonConverter))]
+    public readonly struct ExperimentalSessionStatsRequestTools : System.IEquatable<OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("none")]
-        None = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("summary")]
-        Summary = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("detail")]
-        Detail = 2,
+        public ExperimentalSessionStatsRequestTools(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools Detail { get; }
+        public static OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools None { get; }
+        public static OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools Summary { get; }
+        public bool Equals(OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools FromString(string value) { }
+        public static OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools left, OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools left, OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools right) { }
     }
     public sealed class FileDiffInfo : System.IEquatable<OpenCode.Sdk.Models.FileDiffInfo>
     {
@@ -3495,15 +3575,22 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public required OpenCode.Sdk.Models.FileDiffInfoStatus Status { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.FileDiffInfoStatus>))]
-    public enum FileDiffInfoStatus
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.FileDiffInfoStatusJsonConverter))]
+    public readonly struct FileDiffInfoStatus : System.IEquatable<OpenCode.Sdk.Models.FileDiffInfoStatus>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("added")]
-        Added = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("deleted")]
-        Deleted = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("modified")]
-        Modified = 2,
+        public FileDiffInfoStatus(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.FileDiffInfoStatus Added { get; }
+        public static OpenCode.Sdk.Models.FileDiffInfoStatus Deleted { get; }
+        public static OpenCode.Sdk.Models.FileDiffInfoStatus Modified { get; }
+        public bool Equals(OpenCode.Sdk.Models.FileDiffInfoStatus other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.FileDiffInfoStatus FromString(string value) { }
+        public static OpenCode.Sdk.Models.FileDiffInfoStatus op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.FileDiffInfoStatus left, OpenCode.Sdk.Models.FileDiffInfoStatus right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.FileDiffInfoStatus left, OpenCode.Sdk.Models.FileDiffInfoStatus right) { }
     }
     public sealed class FileNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.FileNotFoundError>
     {
@@ -3523,13 +3610,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public required OpenCode.Sdk.Models.FileSystemEntryType Type { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.FileSystemEntryType>))]
-    public enum FileSystemEntryType
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.FileSystemEntryTypeJsonConverter))]
+    public readonly struct FileSystemEntryType : System.IEquatable<OpenCode.Sdk.Models.FileSystemEntryType>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("file")]
-        File = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("directory")]
-        Directory = 1,
+        public FileSystemEntryType(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.FileSystemEntryType Directory { get; }
+        public static OpenCode.Sdk.Models.FileSystemEntryType File { get; }
+        public bool Equals(OpenCode.Sdk.Models.FileSystemEntryType other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.FileSystemEntryType FromString(string value) { }
+        public static OpenCode.Sdk.Models.FileSystemEntryType op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.FileSystemEntryType left, OpenCode.Sdk.Models.FileSystemEntryType right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.FileSystemEntryType left, OpenCode.Sdk.Models.FileSystemEntryType right) { }
     }
     public sealed class FileSystemWrite : System.IEquatable<OpenCode.Sdk.Models.FileSystemWrite>
     {
@@ -3563,15 +3658,22 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("file")]
         public required string File { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.FilesystemChangedDataEvent>))]
-    public enum FilesystemChangedDataEvent
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.FilesystemChangedDataEventJsonConverter))]
+    public readonly struct FilesystemChangedDataEvent : System.IEquatable<OpenCode.Sdk.Models.FilesystemChangedDataEvent>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("add")]
-        Add = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("change")]
-        Change = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("unlink")]
-        Unlink = 2,
+        public FilesystemChangedDataEvent(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.FilesystemChangedDataEvent Add { get; }
+        public static OpenCode.Sdk.Models.FilesystemChangedDataEvent Change { get; }
+        public static OpenCode.Sdk.Models.FilesystemChangedDataEvent Unlink { get; }
+        public bool Equals(OpenCode.Sdk.Models.FilesystemChangedDataEvent other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.FilesystemChangedDataEvent FromString(string value) { }
+        public static OpenCode.Sdk.Models.FilesystemChangedDataEvent op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.FilesystemChangedDataEvent left, OpenCode.Sdk.Models.FilesystemChangedDataEvent right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.FilesystemChangedDataEvent left, OpenCode.Sdk.Models.FilesystemChangedDataEvent right) { }
     }
     public sealed class ForbiddenError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.ForbiddenError>
     {
@@ -3951,17 +4053,23 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("when")]
         public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.FormWhen>? When { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.FormStringFieldFormat>))]
-    public enum FormStringFieldFormat
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.FormStringFieldFormatJsonConverter))]
+    public readonly struct FormStringFieldFormat : System.IEquatable<OpenCode.Sdk.Models.FormStringFieldFormat>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("email")]
-        Email = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("uri")]
-        Uri = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("date")]
-        Date = 2,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("date-time")]
-        DateTime = 3,
+        public FormStringFieldFormat(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.FormStringFieldFormat Date { get; }
+        public static OpenCode.Sdk.Models.FormStringFieldFormat DateTime { get; }
+        public static OpenCode.Sdk.Models.FormStringFieldFormat Email { get; }
+        public static OpenCode.Sdk.Models.FormStringFieldFormat Uri { get; }
+        public bool Equals(OpenCode.Sdk.Models.FormStringFieldFormat other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.FormStringFieldFormat FromString(string value) { }
+        public static OpenCode.Sdk.Models.FormStringFieldFormat op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.FormStringFieldFormat left, OpenCode.Sdk.Models.FormStringFieldFormat right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.FormStringFieldFormat left, OpenCode.Sdk.Models.FormStringFieldFormat right) { }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.FormValueJsonConverter))]
     public sealed class FormValue : System.IEquatable<OpenCode.Sdk.Models.FormValue>
@@ -3997,13 +4105,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("value")]
         public required OpenCode.Sdk.Models.FormWhenValue Value { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.FormWhenOp>))]
-    public enum FormWhenOp
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.FormWhenOpJsonConverter))]
+    public readonly struct FormWhenOp : System.IEquatable<OpenCode.Sdk.Models.FormWhenOp>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("eq")]
-        Eq = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("neq")]
-        Neq = 1,
+        public FormWhenOp(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.FormWhenOp Eq { get; }
+        public static OpenCode.Sdk.Models.FormWhenOp Neq { get; }
+        public bool Equals(OpenCode.Sdk.Models.FormWhenOp other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.FormWhenOp FromString(string value) { }
+        public static OpenCode.Sdk.Models.FormWhenOp op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.FormWhenOp left, OpenCode.Sdk.Models.FormWhenOp right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.FormWhenOp left, OpenCode.Sdk.Models.FormWhenOp right) { }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.FormWhenValueJsonConverter))]
     public sealed class FormWhenValue : System.IEquatable<OpenCode.Sdk.Models.FormWhenValue>
@@ -4026,13 +4142,21 @@ namespace OpenCode.Sdk.Models
         Boolean = 2,
         Unknown = 3,
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.FsFindRequestType>))]
-    public enum FsFindRequestType
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.FsFindRequestTypeJsonConverter))]
+    public readonly struct FsFindRequestType : System.IEquatable<OpenCode.Sdk.Models.FsFindRequestType>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("file")]
-        File = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("directory")]
-        Directory = 1,
+        public FsFindRequestType(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.FsFindRequestType Directory { get; }
+        public static OpenCode.Sdk.Models.FsFindRequestType File { get; }
+        public bool Equals(OpenCode.Sdk.Models.FsFindRequestType other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.FsFindRequestType FromString(string value) { }
+        public static OpenCode.Sdk.Models.FsFindRequestType op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.FsFindRequestType left, OpenCode.Sdk.Models.FsFindRequestType right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.FsFindRequestType left, OpenCode.Sdk.Models.FsFindRequestType right) { }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigEntryJsonConverter))]
     public interface IConfigEntry
@@ -4407,13 +4531,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("url")]
         public required string Url { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.IntegrationAttemptMode>))]
-    public enum IntegrationAttemptMode
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.IntegrationAttemptModeJsonConverter))]
+    public readonly struct IntegrationAttemptMode : System.IEquatable<OpenCode.Sdk.Models.IntegrationAttemptMode>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("auto")]
-        Auto = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("code")]
-        Code = 1,
+        public IntegrationAttemptMode(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.IntegrationAttemptMode Auto { get; }
+        public static OpenCode.Sdk.Models.IntegrationAttemptMode Code { get; }
+        public bool Equals(OpenCode.Sdk.Models.IntegrationAttemptMode other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.IntegrationAttemptMode FromString(string value) { }
+        public static OpenCode.Sdk.Models.IntegrationAttemptMode op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.IntegrationAttemptMode left, OpenCode.Sdk.Models.IntegrationAttemptMode right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.IntegrationAttemptMode left, OpenCode.Sdk.Models.IntegrationAttemptMode right) { }
     }
     public sealed class IntegrationAttemptNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.IntegrationAttemptNotFoundError>
     {
@@ -4936,15 +5068,22 @@ namespace OpenCode.Sdk.Models
         public string? Scope { get; init; }
         public override string ToString() { }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.McpProtocol>))]
-    public enum McpProtocol
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.McpProtocolJsonConverter))]
+    public readonly struct McpProtocol : System.IEquatable<OpenCode.Sdk.Models.McpProtocol>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("legacy")]
-        Legacy = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("auto")]
-        Auto = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("2026-07-28")]
-        Revision20260728 = 2,
+        public McpProtocol(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.McpProtocol Auto { get; }
+        public static OpenCode.Sdk.Models.McpProtocol Legacy { get; }
+        public static OpenCode.Sdk.Models.McpProtocol Revision20260728 { get; }
+        public bool Equals(OpenCode.Sdk.Models.McpProtocol other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.McpProtocol FromString(string value) { }
+        public static OpenCode.Sdk.Models.McpProtocol op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.McpProtocol left, OpenCode.Sdk.Models.McpProtocol right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.McpProtocol left, OpenCode.Sdk.Models.McpProtocol right) { }
     }
     public sealed class McpRemoteConfig : OpenCode.Sdk.Models.IMcp, System.IEquatable<OpenCode.Sdk.Models.McpRemoteConfig>
     {
@@ -5159,13 +5298,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("_tag")]
         public string Tag { get; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ModelCacheFormat>))]
-    public enum ModelCacheFormat
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ModelCacheFormatJsonConverter))]
+    public readonly struct ModelCacheFormat : System.IEquatable<OpenCode.Sdk.Models.ModelCacheFormat>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("anthropic")]
-        Anthropic = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("alibaba")]
-        Alibaba = 1,
+        public ModelCacheFormat(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ModelCacheFormat Alibaba { get; }
+        public static OpenCode.Sdk.Models.ModelCacheFormat Anthropic { get; }
+        public bool Equals(OpenCode.Sdk.Models.ModelCacheFormat other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ModelCacheFormat FromString(string value) { }
+        public static OpenCode.Sdk.Models.ModelCacheFormat op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ModelCacheFormat left, OpenCode.Sdk.Models.ModelCacheFormat right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ModelCacheFormat left, OpenCode.Sdk.Models.ModelCacheFormat right) { }
     }
     public sealed class ModelCapabilities : System.IEquatable<OpenCode.Sdk.Models.ModelCapabilities>
     {
@@ -5296,17 +5443,23 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("output")]
         public required long Output { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ModelInfoStatus>))]
-    public enum ModelInfoStatus
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ModelInfoStatusJsonConverter))]
+    public readonly struct ModelInfoStatus : System.IEquatable<OpenCode.Sdk.Models.ModelInfoStatus>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("alpha")]
-        Alpha = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("beta")]
-        Beta = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("deprecated")]
-        Deprecated = 2,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("active")]
-        Active = 3,
+        public ModelInfoStatus(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ModelInfoStatus Active { get; }
+        public static OpenCode.Sdk.Models.ModelInfoStatus Alpha { get; }
+        public static OpenCode.Sdk.Models.ModelInfoStatus Beta { get; }
+        public static OpenCode.Sdk.Models.ModelInfoStatus Deprecated { get; }
+        public bool Equals(OpenCode.Sdk.Models.ModelInfoStatus other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ModelInfoStatus FromString(string value) { }
+        public static OpenCode.Sdk.Models.ModelInfoStatus op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ModelInfoStatus left, OpenCode.Sdk.Models.ModelInfoStatus right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ModelInfoStatus left, OpenCode.Sdk.Models.ModelInfoStatus right) { }
     }
     public sealed class ModelInfoTime : System.IEquatable<OpenCode.Sdk.Models.ModelInfoTime>
     {
@@ -5314,13 +5467,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("released")]
         public required double Released { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ModelMaxTokensField>))]
-    public enum ModelMaxTokensField
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ModelMaxTokensFieldJsonConverter))]
+    public readonly struct ModelMaxTokensField : System.IEquatable<OpenCode.Sdk.Models.ModelMaxTokensField>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("max_completion_tokens")]
-        MaxCompletionTokens = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("max_tokens")]
-        MaxTokens = 1,
+        public ModelMaxTokensField(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ModelMaxTokensField MaxCompletionTokens { get; }
+        public static OpenCode.Sdk.Models.ModelMaxTokensField MaxTokens { get; }
+        public bool Equals(OpenCode.Sdk.Models.ModelMaxTokensField other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ModelMaxTokensField FromString(string value) { }
+        public static OpenCode.Sdk.Models.ModelMaxTokensField op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ModelMaxTokensField left, OpenCode.Sdk.Models.ModelMaxTokensField right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ModelMaxTokensField left, OpenCode.Sdk.Models.ModelMaxTokensField right) { }
     }
     public sealed class ModelRef : System.IEquatable<OpenCode.Sdk.Models.ModelRef>
     {
@@ -5456,15 +5617,22 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("source")]
         public OpenCode.Sdk.Models.PermissionSourceTool? Source { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.PermissionEffect>))]
-    public enum PermissionEffect
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.PermissionEffectJsonConverter))]
+    public readonly struct PermissionEffect : System.IEquatable<OpenCode.Sdk.Models.PermissionEffect>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("allow")]
-        Allow = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("deny")]
-        Deny = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("ask")]
-        Ask = 2,
+        public PermissionEffect(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.PermissionEffect Allow { get; }
+        public static OpenCode.Sdk.Models.PermissionEffect Ask { get; }
+        public static OpenCode.Sdk.Models.PermissionEffect Deny { get; }
+        public bool Equals(OpenCode.Sdk.Models.PermissionEffect other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.PermissionEffect FromString(string value) { }
+        public static OpenCode.Sdk.Models.PermissionEffect op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.PermissionEffect left, OpenCode.Sdk.Models.PermissionEffect right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.PermissionEffect left, OpenCode.Sdk.Models.PermissionEffect right) { }
     }
     public sealed class PermissionNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.PermissionNotFoundError>
     {
@@ -5504,15 +5672,22 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
         public required string SessionId { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.PermissionReply>))]
-    public enum PermissionReply
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.PermissionReplyJsonConverter))]
+    public readonly struct PermissionReply : System.IEquatable<OpenCode.Sdk.Models.PermissionReply>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("once")]
-        Once = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("always")]
-        Always = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("reject")]
-        Reject = 2,
+        public PermissionReply(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.PermissionReply Always { get; }
+        public static OpenCode.Sdk.Models.PermissionReply Once { get; }
+        public static OpenCode.Sdk.Models.PermissionReply Reject { get; }
+        public bool Equals(OpenCode.Sdk.Models.PermissionReply other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.PermissionReply FromString(string value) { }
+        public static OpenCode.Sdk.Models.PermissionReply op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.PermissionReply left, OpenCode.Sdk.Models.PermissionReply right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.PermissionReply left, OpenCode.Sdk.Models.PermissionReply right) { }
     }
     public sealed class PermissionRequest : System.IEquatable<OpenCode.Sdk.Models.PermissionRequest>
     {
@@ -5692,13 +5867,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("rows")]
         public required long Rows { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.PersistentPtyInfoStatus>))]
-    public enum PersistentPtyInfoStatus
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.PersistentPtyInfoStatusJsonConverter))]
+    public readonly struct PersistentPtyInfoStatus : System.IEquatable<OpenCode.Sdk.Models.PersistentPtyInfoStatus>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("running")]
-        Running = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("exited")]
-        Exited = 1,
+        public PersistentPtyInfoStatus(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.PersistentPtyInfoStatus Exited { get; }
+        public static OpenCode.Sdk.Models.PersistentPtyInfoStatus Running { get; }
+        public bool Equals(OpenCode.Sdk.Models.PersistentPtyInfoStatus other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.PersistentPtyInfoStatus FromString(string value) { }
+        public static OpenCode.Sdk.Models.PersistentPtyInfoStatus op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.PersistentPtyInfoStatus left, OpenCode.Sdk.Models.PersistentPtyInfoStatus right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.PersistentPtyInfoStatus left, OpenCode.Sdk.Models.PersistentPtyInfoStatus right) { }
     }
     public sealed class PersistentPtyReadResult : System.IEquatable<OpenCode.Sdk.Models.PersistentPtyReadResult>
     {
@@ -6165,15 +6348,22 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("supportsPromptCacheKey")]
         public bool? SupportsPromptCacheKey { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ProviderEncoding>))]
-    public enum ProviderEncoding
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ProviderEncodingJsonConverter))]
+    public readonly struct ProviderEncoding : System.IEquatable<OpenCode.Sdk.Models.ProviderEncoding>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("zstd")]
-        Zstd = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("gzip")]
-        Gzip = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("none")]
-        None = 2,
+        public ProviderEncoding(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ProviderEncoding Gzip { get; }
+        public static OpenCode.Sdk.Models.ProviderEncoding None { get; }
+        public static OpenCode.Sdk.Models.ProviderEncoding Zstd { get; }
+        public bool Equals(OpenCode.Sdk.Models.ProviderEncoding other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ProviderEncoding FromString(string value) { }
+        public static OpenCode.Sdk.Models.ProviderEncoding op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ProviderEncoding left, OpenCode.Sdk.Models.ProviderEncoding right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ProviderEncoding left, OpenCode.Sdk.Models.ProviderEncoding right) { }
     }
     public sealed class ProviderInfo : System.IEquatable<OpenCode.Sdk.Models.ProviderInfo>
     {
@@ -6206,15 +6396,22 @@ namespace OpenCode.Sdk.Models
         public OpenCode.Sdk.Models.ProviderSettings? Settings { get; init; }
         public override string ToString() { }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ProviderInfoActivation>))]
-    public enum ProviderInfoActivation
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ProviderInfoActivationJsonConverter))]
+    public readonly struct ProviderInfoActivation : System.IEquatable<OpenCode.Sdk.Models.ProviderInfoActivation>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("auto")]
-        Auto = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("enabled")]
-        Enabled = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("disabled")]
-        Disabled = 2,
+        public ProviderInfoActivation(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ProviderInfoActivation Auto { get; }
+        public static OpenCode.Sdk.Models.ProviderInfoActivation Disabled { get; }
+        public static OpenCode.Sdk.Models.ProviderInfoActivation Enabled { get; }
+        public bool Equals(OpenCode.Sdk.Models.ProviderInfoActivation other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ProviderInfoActivation FromString(string value) { }
+        public static OpenCode.Sdk.Models.ProviderInfoActivation op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ProviderInfoActivation left, OpenCode.Sdk.Models.ProviderInfoActivation right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ProviderInfoActivation left, OpenCode.Sdk.Models.ProviderInfoActivation right) { }
     }
     public sealed class ProviderNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.ProviderNotFoundError>
     {
@@ -6316,13 +6513,21 @@ namespace OpenCode.Sdk.Models
         Boolean = 1,
         Unknown = 2,
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ProviderTransport>))]
-    public enum ProviderTransport
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ProviderTransportJsonConverter))]
+    public readonly struct ProviderTransport : System.IEquatable<OpenCode.Sdk.Models.ProviderTransport>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("http")]
-        Http = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("websocket")]
-        Websocket = 1,
+        public ProviderTransport(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ProviderTransport Http { get; }
+        public static OpenCode.Sdk.Models.ProviderTransport Websocket { get; }
+        public bool Equals(OpenCode.Sdk.Models.ProviderTransport other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ProviderTransport FromString(string value) { }
+        public static OpenCode.Sdk.Models.ProviderTransport op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ProviderTransport left, OpenCode.Sdk.Models.ProviderTransport right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ProviderTransport left, OpenCode.Sdk.Models.ProviderTransport right) { }
     }
     public sealed class ProviderUpdated : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.ProviderUpdated>
     {
@@ -6469,13 +6674,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("_tag")]
         public string Tag { get; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.PtyStatus>))]
-    public enum PtyStatus
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.PtyStatusJsonConverter))]
+    public readonly struct PtyStatus : System.IEquatable<OpenCode.Sdk.Models.PtyStatus>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("running")]
-        Running = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("exited")]
-        Exited = 1,
+        public PtyStatus(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.PtyStatus Exited { get; }
+        public static OpenCode.Sdk.Models.PtyStatus Running { get; }
+        public bool Equals(OpenCode.Sdk.Models.PtyStatus other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.PtyStatus FromString(string value) { }
+        public static OpenCode.Sdk.Models.PtyStatus op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.PtyStatus left, OpenCode.Sdk.Models.PtyStatus right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.PtyStatus left, OpenCode.Sdk.Models.PtyStatus right) { }
     }
     public sealed class PtyTicketConnectToken : System.IEquatable<OpenCode.Sdk.Models.PtyTicketConnectToken>
     {
@@ -6617,13 +6830,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public required OpenCode.Sdk.Models.RpcInternalErrorType Type { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.RpcInternalErrorType>))]
-    public enum RpcInternalErrorType
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.RpcInternalErrorTypeJsonConverter))]
+    public readonly struct RpcInternalErrorType : System.IEquatable<OpenCode.Sdk.Models.RpcInternalErrorType>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("rpc.internal")]
-        RpcInternal = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("rpc.invalid_output")]
-        RpcInvalidOutput = 1,
+        public RpcInternalErrorType(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.RpcInternalErrorType RpcInternal { get; }
+        public static OpenCode.Sdk.Models.RpcInternalErrorType RpcInvalidOutput { get; }
+        public bool Equals(OpenCode.Sdk.Models.RpcInternalErrorType other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.RpcInternalErrorType FromString(string value) { }
+        public static OpenCode.Sdk.Models.RpcInternalErrorType op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.RpcInternalErrorType left, OpenCode.Sdk.Models.RpcInternalErrorType right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.RpcInternalErrorType left, OpenCode.Sdk.Models.RpcInternalErrorType right) { }
     }
     public sealed class RpcOutput : System.IEquatable<OpenCode.Sdk.Models.RpcOutput>
     {
@@ -6834,13 +7055,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("tokens")]
         public OpenCode.Sdk.Models.TokenUsageInfo? Tokens { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionCompactionEndedDataReason>))]
-    public enum SessionCompactionEndedDataReason
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionCompactionEndedDataReasonJsonConverter))]
+    public readonly struct SessionCompactionEndedDataReason : System.IEquatable<OpenCode.Sdk.Models.SessionCompactionEndedDataReason>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("auto")]
-        Auto = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("manual")]
-        Manual = 1,
+        public SessionCompactionEndedDataReason(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionCompactionEndedDataReason Auto { get; }
+        public static OpenCode.Sdk.Models.SessionCompactionEndedDataReason Manual { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionCompactionEndedDataReason other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionCompactionEndedDataReason FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionCompactionEndedDataReason op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionCompactionEndedDataReason left, OpenCode.Sdk.Models.SessionCompactionEndedDataReason right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionCompactionEndedDataReason left, OpenCode.Sdk.Models.SessionCompactionEndedDataReason right) { }
     }
     public sealed class SessionCompactionEndedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionCompactionEndedDurable>
     {
@@ -6891,13 +7120,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("tokens")]
         public OpenCode.Sdk.Models.TokenUsageInfo? Tokens { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionCompactionFailedDataReason>))]
-    public enum SessionCompactionFailedDataReason
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionCompactionFailedDataReasonJsonConverter))]
+    public readonly struct SessionCompactionFailedDataReason : System.IEquatable<OpenCode.Sdk.Models.SessionCompactionFailedDataReason>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("auto")]
-        Auto = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("manual")]
-        Manual = 1,
+        public SessionCompactionFailedDataReason(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionCompactionFailedDataReason Auto { get; }
+        public static OpenCode.Sdk.Models.SessionCompactionFailedDataReason Manual { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionCompactionFailedDataReason other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionCompactionFailedDataReason FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionCompactionFailedDataReason op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionCompactionFailedDataReason left, OpenCode.Sdk.Models.SessionCompactionFailedDataReason right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionCompactionFailedDataReason left, OpenCode.Sdk.Models.SessionCompactionFailedDataReason right) { }
     }
     public sealed class SessionCompactionFailedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionCompactionFailedDurable>
     {
@@ -6942,13 +7179,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
         public required string SessionId { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionCompactionStartedDataReason>))]
-    public enum SessionCompactionStartedDataReason
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionCompactionStartedDataReasonJsonConverter))]
+    public readonly struct SessionCompactionStartedDataReason : System.IEquatable<OpenCode.Sdk.Models.SessionCompactionStartedDataReason>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("auto")]
-        Auto = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("manual")]
-        Manual = 1,
+        public SessionCompactionStartedDataReason(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionCompactionStartedDataReason Auto { get; }
+        public static OpenCode.Sdk.Models.SessionCompactionStartedDataReason Manual { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionCompactionStartedDataReason other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionCompactionStartedDataReason FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionCompactionStartedDataReason op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionCompactionStartedDataReason left, OpenCode.Sdk.Models.SessionCompactionStartedDataReason right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionCompactionStartedDataReason left, OpenCode.Sdk.Models.SessionCompactionStartedDataReason right) { }
     }
     public sealed class SessionCompactionStartedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionCompactionStartedDurable>
     {
@@ -7170,17 +7415,23 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
         public required string SessionId { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason>))]
-    public enum SessionExecutionInterruptedDataReason
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionExecutionInterruptedDataReasonJsonConverter))]
+    public readonly struct SessionExecutionInterruptedDataReason : System.IEquatable<OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("user")]
-        User = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("shutdown")]
-        Shutdown = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("superseded")]
-        Superseded = 2,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("inactivity")]
-        Inactivity = 3,
+        public SessionExecutionInterruptedDataReason(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason Inactivity { get; }
+        public static OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason Shutdown { get; }
+        public static OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason Superseded { get; }
+        public static OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason User { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason left, OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason left, OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason right) { }
     }
     public sealed class SessionExecutionInterruptedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionExecutionInterruptedDurable>
     {
@@ -7489,13 +7740,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionInboxDelivery>))]
-    public enum SessionInboxDelivery
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionInboxDeliveryJsonConverter))]
+    public readonly struct SessionInboxDelivery : System.IEquatable<OpenCode.Sdk.Models.SessionInboxDelivery>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("steer")]
-        Steer = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("queue")]
-        Queue = 1,
+        public SessionInboxDelivery(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionInboxDelivery Queue { get; }
+        public static OpenCode.Sdk.Models.SessionInboxDelivery Steer { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionInboxDelivery other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionInboxDelivery FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionInboxDelivery op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionInboxDelivery left, OpenCode.Sdk.Models.SessionInboxDelivery right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionInboxDelivery left, OpenCode.Sdk.Models.SessionInboxDelivery right) { }
     }
     public sealed class SessionInboxDeliveryChanged : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionInboxDeliveryChanged>
     {
@@ -7795,15 +8054,22 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
         public required string SessionId { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionInfoOutcome>))]
-    public enum SessionInfoOutcome
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionInfoOutcomeJsonConverter))]
+    public readonly struct SessionInfoOutcome : System.IEquatable<OpenCode.Sdk.Models.SessionInfoOutcome>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("succeeded")]
-        Succeeded = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("failed")]
-        Failed = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("interrupted")]
-        Interrupted = 2,
+        public SessionInfoOutcome(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionInfoOutcome Failed { get; }
+        public static OpenCode.Sdk.Models.SessionInfoOutcome Interrupted { get; }
+        public static OpenCode.Sdk.Models.SessionInfoOutcome Succeeded { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionInfoOutcome other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionInfoOutcome FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionInfoOutcome op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionInfoOutcome left, OpenCode.Sdk.Models.SessionInfoOutcome right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionInfoOutcome left, OpenCode.Sdk.Models.SessionInfoOutcome right) { }
     }
     public sealed class SessionInfoTime : System.IEquatable<OpenCode.Sdk.Models.SessionInfoTime>
     {
@@ -7936,21 +8202,25 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionMessageAssistantFinish>))]
-    public enum SessionMessageAssistantFinish
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionMessageAssistantFinishJsonConverter))]
+    public readonly struct SessionMessageAssistantFinish : System.IEquatable<OpenCode.Sdk.Models.SessionMessageAssistantFinish>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("stop")]
-        Stop = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("length")]
-        Length = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("tool-calls")]
-        ToolCalls = 2,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("content-filter")]
-        ContentFilter = 3,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("error")]
-        Error = 4,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("unknown")]
-        Unknown = 5,
+        public SessionMessageAssistantFinish(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionMessageAssistantFinish ContentFilter { get; }
+        public static OpenCode.Sdk.Models.SessionMessageAssistantFinish Error { get; }
+        public static OpenCode.Sdk.Models.SessionMessageAssistantFinish Length { get; }
+        public static OpenCode.Sdk.Models.SessionMessageAssistantFinish Stop { get; }
+        public static OpenCode.Sdk.Models.SessionMessageAssistantFinish ToolCalls { get; }
+        public static OpenCode.Sdk.Models.SessionMessageAssistantFinish Unknown { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionMessageAssistantFinish other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionMessageAssistantFinish FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionMessageAssistantFinish op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionMessageAssistantFinish left, OpenCode.Sdk.Models.SessionMessageAssistantFinish right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionMessageAssistantFinish left, OpenCode.Sdk.Models.SessionMessageAssistantFinish right) { }
     }
     public sealed class SessionMessageAssistantReasoning : OpenCode.Sdk.Models.ISessionMessageAssistantContent, OpenCode.Sdk.Models.ISessionMessageAssistantContentEncoded, System.IEquatable<OpenCode.Sdk.Models.SessionMessageAssistantReasoning>
     {
@@ -8092,13 +8362,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason>))]
-    public enum SessionMessageCompactionCompletedReason
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionMessageCompactionCompletedReasonJsonConverter))]
+    public readonly struct SessionMessageCompactionCompletedReason : System.IEquatable<OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("auto")]
-        Auto = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("manual")]
-        Manual = 1,
+        public SessionMessageCompactionCompletedReason(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason Auto { get; }
+        public static OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason Manual { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason left, OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason left, OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason right) { }
     }
     public sealed class SessionMessageCompactionCompletedTime : OpenCode.Sdk.Models.ISessionMessageCompactionTime, System.IEquatable<OpenCode.Sdk.Models.SessionMessageCompactionCompletedTime>
     {
@@ -8131,13 +8409,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionMessageCompactionFailedReason>))]
-    public enum SessionMessageCompactionFailedReason
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionMessageCompactionFailedReasonJsonConverter))]
+    public readonly struct SessionMessageCompactionFailedReason : System.IEquatable<OpenCode.Sdk.Models.SessionMessageCompactionFailedReason>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("auto")]
-        Auto = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("manual")]
-        Manual = 1,
+        public SessionMessageCompactionFailedReason(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionMessageCompactionFailedReason Auto { get; }
+        public static OpenCode.Sdk.Models.SessionMessageCompactionFailedReason Manual { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionMessageCompactionFailedReason other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionMessageCompactionFailedReason FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionMessageCompactionFailedReason op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionMessageCompactionFailedReason left, OpenCode.Sdk.Models.SessionMessageCompactionFailedReason right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionMessageCompactionFailedReason left, OpenCode.Sdk.Models.SessionMessageCompactionFailedReason right) { }
     }
     public sealed class SessionMessageCompactionFailedTime : OpenCode.Sdk.Models.ISessionMessageCompactionTime, System.IEquatable<OpenCode.Sdk.Models.SessionMessageCompactionFailedTime>
     {
@@ -8166,13 +8452,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionMessageCompactionRunningReason>))]
-    public enum SessionMessageCompactionRunningReason
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionMessageCompactionRunningReasonJsonConverter))]
+    public readonly struct SessionMessageCompactionRunningReason : System.IEquatable<OpenCode.Sdk.Models.SessionMessageCompactionRunningReason>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("auto")]
-        Auto = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("manual")]
-        Manual = 1,
+        public SessionMessageCompactionRunningReason(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionMessageCompactionRunningReason Auto { get; }
+        public static OpenCode.Sdk.Models.SessionMessageCompactionRunningReason Manual { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionMessageCompactionRunningReason other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionMessageCompactionRunningReason FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionMessageCompactionRunningReason op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionMessageCompactionRunningReason left, OpenCode.Sdk.Models.SessionMessageCompactionRunningReason right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionMessageCompactionRunningReason left, OpenCode.Sdk.Models.SessionMessageCompactionRunningReason right) { }
     }
     public sealed class SessionMessageCompactionRunningTime : OpenCode.Sdk.Models.ISessionMessageCompactionTime, System.IEquatable<OpenCode.Sdk.Models.SessionMessageCompactionRunningTime>
     {
@@ -8238,15 +8532,22 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionMessageIdleOutcome>))]
-    public enum SessionMessageIdleOutcome
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionMessageIdleOutcomeJsonConverter))]
+    public readonly struct SessionMessageIdleOutcome : System.IEquatable<OpenCode.Sdk.Models.SessionMessageIdleOutcome>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("succeeded")]
-        Succeeded = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("failed")]
-        Failed = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("interrupted")]
-        Interrupted = 2,
+        public SessionMessageIdleOutcome(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionMessageIdleOutcome Failed { get; }
+        public static OpenCode.Sdk.Models.SessionMessageIdleOutcome Interrupted { get; }
+        public static OpenCode.Sdk.Models.SessionMessageIdleOutcome Succeeded { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionMessageIdleOutcome other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionMessageIdleOutcome FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionMessageIdleOutcome op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionMessageIdleOutcome left, OpenCode.Sdk.Models.SessionMessageIdleOutcome right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionMessageIdleOutcome left, OpenCode.Sdk.Models.SessionMessageIdleOutcome right) { }
     }
     public sealed class SessionMessageIdleTime : System.IEquatable<OpenCode.Sdk.Models.SessionMessageIdleTime>
     {
@@ -8254,29 +8555,29 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("created")]
         public required double Created { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionMessageListRequestType>))]
-    public enum SessionMessageListRequestType
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionMessageListRequestTypeJsonConverter))]
+    public readonly struct SessionMessageListRequestType : System.IEquatable<OpenCode.Sdk.Models.SessionMessageListRequestType>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("agent-switched")]
-        AgentSwitched = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("model-switched")]
-        ModelSwitched = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("location-switched")]
-        LocationSwitched = 2,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("user")]
-        User = 3,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("synthetic")]
-        Synthetic = 4,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("system")]
-        System = 5,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("skill")]
-        Skill = 6,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("shell")]
-        Shell = 7,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("assistant")]
-        Assistant = 8,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("compaction")]
-        Compaction = 9,
+        public SessionMessageListRequestType(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionMessageListRequestType AgentSwitched { get; }
+        public static OpenCode.Sdk.Models.SessionMessageListRequestType Assistant { get; }
+        public static OpenCode.Sdk.Models.SessionMessageListRequestType Compaction { get; }
+        public static OpenCode.Sdk.Models.SessionMessageListRequestType LocationSwitched { get; }
+        public static OpenCode.Sdk.Models.SessionMessageListRequestType ModelSwitched { get; }
+        public static OpenCode.Sdk.Models.SessionMessageListRequestType Shell { get; }
+        public static OpenCode.Sdk.Models.SessionMessageListRequestType Skill { get; }
+        public static OpenCode.Sdk.Models.SessionMessageListRequestType Synthetic { get; }
+        public static OpenCode.Sdk.Models.SessionMessageListRequestType System { get; }
+        public static OpenCode.Sdk.Models.SessionMessageListRequestType User { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionMessageListRequestType other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionMessageListRequestType FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionMessageListRequestType op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionMessageListRequestType left, OpenCode.Sdk.Models.SessionMessageListRequestType right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionMessageListRequestType left, OpenCode.Sdk.Models.SessionMessageListRequestType right) { }
     }
     public sealed class SessionMessageLocationSwitched : OpenCode.Sdk.Models.ISessionMessageInfo, System.IEquatable<OpenCode.Sdk.Models.SessionMessageLocationSwitched>
     {
@@ -8383,17 +8684,23 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("truncated")]
         public required bool Truncated { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionMessageShellStatus>))]
-    public enum SessionMessageShellStatus
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionMessageShellStatusJsonConverter))]
+    public readonly struct SessionMessageShellStatus : System.IEquatable<OpenCode.Sdk.Models.SessionMessageShellStatus>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("running")]
-        Running = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("exited")]
-        Exited = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("timeout")]
-        Timeout = 2,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("killed")]
-        Killed = 3,
+        public SessionMessageShellStatus(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionMessageShellStatus Exited { get; }
+        public static OpenCode.Sdk.Models.SessionMessageShellStatus Killed { get; }
+        public static OpenCode.Sdk.Models.SessionMessageShellStatus Running { get; }
+        public static OpenCode.Sdk.Models.SessionMessageShellStatus Timeout { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionMessageShellStatus other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionMessageShellStatus FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionMessageShellStatus op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionMessageShellStatus left, OpenCode.Sdk.Models.SessionMessageShellStatus right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionMessageShellStatus left, OpenCode.Sdk.Models.SessionMessageShellStatus right) { }
     }
     public sealed class SessionMessageShellTime : System.IEquatable<OpenCode.Sdk.Models.SessionMessageShellTime>
     {
@@ -9537,21 +9844,25 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("tokens")]
         public required OpenCode.Sdk.Models.TokenUsageInfo Tokens { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionStepEndedDataFinish>))]
-    public enum SessionStepEndedDataFinish
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionStepEndedDataFinishJsonConverter))]
+    public readonly struct SessionStepEndedDataFinish : System.IEquatable<OpenCode.Sdk.Models.SessionStepEndedDataFinish>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("stop")]
-        Stop = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("length")]
-        Length = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("tool-calls")]
-        ToolCalls = 2,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("content-filter")]
-        ContentFilter = 3,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("error")]
-        Error = 4,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("unknown")]
-        Unknown = 5,
+        public SessionStepEndedDataFinish(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionStepEndedDataFinish ContentFilter { get; }
+        public static OpenCode.Sdk.Models.SessionStepEndedDataFinish Error { get; }
+        public static OpenCode.Sdk.Models.SessionStepEndedDataFinish Length { get; }
+        public static OpenCode.Sdk.Models.SessionStepEndedDataFinish Stop { get; }
+        public static OpenCode.Sdk.Models.SessionStepEndedDataFinish ToolCalls { get; }
+        public static OpenCode.Sdk.Models.SessionStepEndedDataFinish Unknown { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionStepEndedDataFinish other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionStepEndedDataFinish FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionStepEndedDataFinish op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionStepEndedDataFinish left, OpenCode.Sdk.Models.SessionStepEndedDataFinish right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionStepEndedDataFinish left, OpenCode.Sdk.Models.SessionStepEndedDataFinish right) { }
     }
     public sealed class SessionStepEndedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionStepEndedDurable>
     {
@@ -10275,13 +10586,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("tokens")]
         public required OpenCode.Sdk.Models.TokenUsageInfo Tokens { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.SessionUsageRecordedDataSource>))]
-    public enum SessionUsageRecordedDataSource
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionUsageRecordedDataSourceJsonConverter))]
+    public readonly struct SessionUsageRecordedDataSource : System.IEquatable<OpenCode.Sdk.Models.SessionUsageRecordedDataSource>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("title")]
-        Title = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("compaction")]
-        Compaction = 1,
+        public SessionUsageRecordedDataSource(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.SessionUsageRecordedDataSource Compaction { get; }
+        public static OpenCode.Sdk.Models.SessionUsageRecordedDataSource Title { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionUsageRecordedDataSource other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionUsageRecordedDataSource FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionUsageRecordedDataSource op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionUsageRecordedDataSource left, OpenCode.Sdk.Models.SessionUsageRecordedDataSource right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionUsageRecordedDataSource left, OpenCode.Sdk.Models.SessionUsageRecordedDataSource right) { }
     }
     public sealed class SessionUsageRecordedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionUsageRecordedDurable>
     {
@@ -10459,17 +10778,23 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public required OpenCode.Sdk.Models.ShellExitedDataStatus Status { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ShellExitedDataStatus>))]
-    public enum ShellExitedDataStatus
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ShellExitedDataStatusJsonConverter))]
+    public readonly struct ShellExitedDataStatus : System.IEquatable<OpenCode.Sdk.Models.ShellExitedDataStatus>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("running")]
-        Running = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("exited")]
-        Exited = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("timeout")]
-        Timeout = 2,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("killed")]
-        Killed = 3,
+        public ShellExitedDataStatus(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ShellExitedDataStatus Exited { get; }
+        public static OpenCode.Sdk.Models.ShellExitedDataStatus Killed { get; }
+        public static OpenCode.Sdk.Models.ShellExitedDataStatus Running { get; }
+        public static OpenCode.Sdk.Models.ShellExitedDataStatus Timeout { get; }
+        public bool Equals(OpenCode.Sdk.Models.ShellExitedDataStatus other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ShellExitedDataStatus FromString(string value) { }
+        public static OpenCode.Sdk.Models.ShellExitedDataStatus op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ShellExitedDataStatus left, OpenCode.Sdk.Models.ShellExitedDataStatus right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ShellExitedDataStatus left, OpenCode.Sdk.Models.ShellExitedDataStatus right) { }
     }
     public sealed class ShellInfo : System.IEquatable<OpenCode.Sdk.Models.ShellInfo>
     {
@@ -10500,17 +10825,23 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("time")]
         public required OpenCode.Sdk.Models.ShellInfoTime Time { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.ShellInfoStatus>))]
-    public enum ShellInfoStatus
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ShellInfoStatusJsonConverter))]
+    public readonly struct ShellInfoStatus : System.IEquatable<OpenCode.Sdk.Models.ShellInfoStatus>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("running")]
-        Running = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("exited")]
-        Exited = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("timeout")]
-        Timeout = 2,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("killed")]
-        Killed = 3,
+        public ShellInfoStatus(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.ShellInfoStatus Exited { get; }
+        public static OpenCode.Sdk.Models.ShellInfoStatus Killed { get; }
+        public static OpenCode.Sdk.Models.ShellInfoStatus Running { get; }
+        public static OpenCode.Sdk.Models.ShellInfoStatus Timeout { get; }
+        public bool Equals(OpenCode.Sdk.Models.ShellInfoStatus other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ShellInfoStatus FromString(string value) { }
+        public static OpenCode.Sdk.Models.ShellInfoStatus op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ShellInfoStatus left, OpenCode.Sdk.Models.ShellInfoStatus right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ShellInfoStatus left, OpenCode.Sdk.Models.ShellInfoStatus right) { }
     }
     public sealed class ShellInfoTime : System.IEquatable<OpenCode.Sdk.Models.ShellInfoTime>
     {
@@ -10751,17 +11082,23 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("variant")]
         public required OpenCode.Sdk.Models.TuiToastShowDataVariant Variant { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.TuiToastShowDataVariant>))]
-    public enum TuiToastShowDataVariant
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.TuiToastShowDataVariantJsonConverter))]
+    public readonly struct TuiToastShowDataVariant : System.IEquatable<OpenCode.Sdk.Models.TuiToastShowDataVariant>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("info")]
-        Info = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("success")]
-        Success = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("warning")]
-        Warning = 2,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("error")]
-        Error = 3,
+        public TuiToastShowDataVariant(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.TuiToastShowDataVariant Error { get; }
+        public static OpenCode.Sdk.Models.TuiToastShowDataVariant Info { get; }
+        public static OpenCode.Sdk.Models.TuiToastShowDataVariant Success { get; }
+        public static OpenCode.Sdk.Models.TuiToastShowDataVariant Warning { get; }
+        public bool Equals(OpenCode.Sdk.Models.TuiToastShowDataVariant other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.TuiToastShowDataVariant FromString(string value) { }
+        public static OpenCode.Sdk.Models.TuiToastShowDataVariant op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.TuiToastShowDataVariant left, OpenCode.Sdk.Models.TuiToastShowDataVariant right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.TuiToastShowDataVariant left, OpenCode.Sdk.Models.TuiToastShowDataVariant right) { }
     }
     public sealed class UnauthorizedError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.UnauthorizedError>
     {
@@ -11076,13 +11413,21 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("source")]
         public required OpenCode.Sdk.Models.VcsBaseSource Source { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.VcsBaseSource>))]
-    public enum VcsBaseSource
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.VcsBaseSourceJsonConverter))]
+    public readonly struct VcsBaseSource : System.IEquatable<OpenCode.Sdk.Models.VcsBaseSource>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("reflog")]
-        Reflog = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("default")]
-        Default = 1,
+        public VcsBaseSource(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.VcsBaseSource Default { get; }
+        public static OpenCode.Sdk.Models.VcsBaseSource Reflog { get; }
+        public bool Equals(OpenCode.Sdk.Models.VcsBaseSource other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.VcsBaseSource FromString(string value) { }
+        public static OpenCode.Sdk.Models.VcsBaseSource op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.VcsBaseSource left, OpenCode.Sdk.Models.VcsBaseSource right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.VcsBaseSource left, OpenCode.Sdk.Models.VcsBaseSource right) { }
     }
     public sealed class VcsBranch : System.IEquatable<OpenCode.Sdk.Models.VcsBranch>
     {
@@ -11131,15 +11476,22 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public required OpenCode.Sdk.Models.VcsFileStatusStatus Status { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.VcsFileStatusStatus>))]
-    public enum VcsFileStatusStatus
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.VcsFileStatusStatusJsonConverter))]
+    public readonly struct VcsFileStatusStatus : System.IEquatable<OpenCode.Sdk.Models.VcsFileStatusStatus>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("added")]
-        Added = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("deleted")]
-        Deleted = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("modified")]
-        Modified = 2,
+        public VcsFileStatusStatus(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.VcsFileStatusStatus Added { get; }
+        public static OpenCode.Sdk.Models.VcsFileStatusStatus Deleted { get; }
+        public static OpenCode.Sdk.Models.VcsFileStatusStatus Modified { get; }
+        public bool Equals(OpenCode.Sdk.Models.VcsFileStatusStatus other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.VcsFileStatusStatus FromString(string value) { }
+        public static OpenCode.Sdk.Models.VcsFileStatusStatus op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.VcsFileStatusStatus left, OpenCode.Sdk.Models.VcsFileStatusStatus right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.VcsFileStatusStatus left, OpenCode.Sdk.Models.VcsFileStatusStatus right) { }
     }
     public sealed class VcsInfo : System.IEquatable<OpenCode.Sdk.Models.VcsInfo>
     {
@@ -11160,15 +11512,22 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("_tag")]
         public string Tag { get; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StrictJsonStringEnumConverter<OpenCode.Sdk.Models.VcsMode>))]
-    public enum VcsMode
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.VcsModeJsonConverter))]
+    public readonly struct VcsMode : System.IEquatable<OpenCode.Sdk.Models.VcsMode>
     {
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("working")]
-        Working = 0,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("branch")]
-        Branch = 1,
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("committed")]
-        Committed = 2,
+        public VcsMode(string value) { }
+        public bool IsKnown { get; }
+        public static OpenCode.Sdk.Models.VcsMode Branch { get; }
+        public static OpenCode.Sdk.Models.VcsMode Committed { get; }
+        public static OpenCode.Sdk.Models.VcsMode Working { get; }
+        public bool Equals(OpenCode.Sdk.Models.VcsMode other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.VcsMode FromString(string value) { }
+        public static OpenCode.Sdk.Models.VcsMode op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.VcsMode left, OpenCode.Sdk.Models.VcsMode right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.VcsMode left, OpenCode.Sdk.Models.VcsMode right) { }
     }
     public sealed class WebSearchProvider : System.IEquatable<OpenCode.Sdk.Models.WebSearchProvider>
     {

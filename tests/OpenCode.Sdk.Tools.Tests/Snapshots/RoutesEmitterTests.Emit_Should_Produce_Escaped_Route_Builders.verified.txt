@@ -174,12 +174,7 @@ public static partial class OpenCodeRoutes
     }
 
     /// <summary>
-    /// Spells one &apos;ExampleMode&apos; member the way the wire query expects it.
+    /// Spells one &apos;ExampleMode&apos; value the way the wire query expects it.
     /// </summary>
-    private static string? ToWireValue(ExampleMode? value) => value switch
-    {
-        ExampleMode.FastMode => "fast-mode",
-        ExampleMode.Safe => "safe",
-        null => null,
-        _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown ExampleMode value.")};
+    private static string? ToWireValue(ExampleMode? value) => value is not { } member ? null : member.Equals(default) ? throw new ArgumentException("A default ExampleMode has no wire value.", nameof(value)) : member.ToString();
 }

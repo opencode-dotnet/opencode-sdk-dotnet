@@ -5,24 +5,77 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Defines the supported agent info mode values.
+/// The agent info mode. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
-[JsonConverter(typeof(StrictJsonStringEnumConverter<AgentInfoMode>))]
-public enum AgentInfoMode
+[JsonConverter(typeof(AgentInfoModeJsonConverter))]
+public readonly struct AgentInfoMode : IEquatable<AgentInfoMode>
 {
+    private readonly string? _value;
     /// <summary>
-    /// Represents the &apos;subagent&apos; wire value.
+    /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
     /// </summary>
-    [JsonStringEnumMemberName("subagent")]
-    Subagent,
+    /// <param name = "value">The wire spelling.</param>
+    public AgentInfoMode(string value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        _value = value;
+    }
+
     /// <summary>
-    /// Represents the &apos;primary&apos; wire value.
+    /// Gets the &apos;subagent&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("primary")]
-    Primary,
+    public static AgentInfoMode Subagent { get; } = new("subagent");
     /// <summary>
-    /// Represents the &apos;all&apos; wire value.
+    /// Gets the &apos;primary&apos; wire value.
     /// </summary>
-    [JsonStringEnumMemberName("all")]
-    All
+    public static AgentInfoMode Primary { get; } = new("primary");
+    /// <summary>
+    /// Gets the &apos;all&apos; wire value.
+    /// </summary>
+    public static AgentInfoMode All { get; } = new("all");
+    /// <summary>
+    /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
+    /// </summary>
+    public bool IsKnown => _value is "subagent" or "primary" or "all";
+
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator ==(AgentInfoMode left, AgentInfoMode right) => left.Equals(right);
+    /// <summary>
+    /// Compares two values&apos; wire spellings ordinally for inequality.
+    /// </summary>
+    /// <param name = "left">The first value.</param>
+    /// <param name = "right">The second value.</param>
+    public static bool operator !=(AgentInfoMode left, AgentInfoMode right) => !left.Equals(right);
+    /// <summary>
+    /// Converts a wire spelling to a value.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static implicit operator AgentInfoMode(string value) => new(value);
+    /// <summary>
+    /// Creates a value from its wire spelling, as the implicit conversion does.
+    /// </summary>
+    /// <param name = "value">The wire spelling.</param>
+    public static AgentInfoMode FromString(string value) => new(value);
+    /// <summary>
+    /// Compares wire spellings ordinally: upstream compares string literals exactly.
+    /// </summary>
+    /// <param name = "other">The other value.</param>
+    public bool Equals(AgentInfoMode other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+    /// <summary>
+    /// Compares with another object: equal only to a value with the same wire spelling.
+    /// </summary>
+    /// <param name = "obj">The other object.</param>
+    public override bool Equals(object? obj) => obj is AgentInfoMode other && Equals(other);
+    /// <summary>
+    /// Hashes the wire spelling ordinally, as equality compares it.
+    /// </summary>
+    public override int GetHashCode() => _value is null ? 0 : StringComparer.Ordinal.GetHashCode(_value);
+    /// <summary>
+    /// Returns the wire spelling, or an empty string for a default value, which has none.
+    /// </summary>
+    public override string ToString() => _value ?? string.Empty;
 }

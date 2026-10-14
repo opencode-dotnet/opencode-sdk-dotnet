@@ -22,11 +22,11 @@ internal static class ModelEmitter
                 continue;
             }
 
-            result.Add(model switch
+            result.AddRange(model switch
             {
-                ObjectModelPlan objectModel => EmitObject(objectModel, ResolveImplementedUnions(objectModel, unions), unions,
-                    GeneratedPlacement.ModelPathOf(plan.Placement, model.Name)),
-                EnumModelPlan enumModel => EmitEnum(enumModel, GeneratedPlacement.ModelPathOf(plan.Placement, model.Name)),
+                ObjectModelPlan objectModel => [EmitObject(objectModel, ResolveImplementedUnions(objectModel, unions), unions,
+                    GeneratedPlacement.ModelPathOf(plan.Placement, model.Name))],
+                EnumModelPlan enumModel => ExtensibleEnumEmitter.Emit(enumModel, plan.Placement),
                 _ => throw new InvalidOperationException($"Unknown model plan '{model.GetType().Name}'."),
             });
         }
@@ -77,28 +77,6 @@ internal static class ModelEmitter
 
         var guardsPrefix = chainMarkers.Any(static marker => marker.Prefix is not null);
         var unit = EmissionSyntax.CompilationUnit(model.Namespace, CollectUsings(model, guardsPrefix), [declaration]);
-        return EmissionSyntax.CreateSource(relativePath, unit);
-    }
-
-    private static GeneratedSource EmitEnum(EnumModelPlan model, string relativePath)
-    {
-        // Strict by contract: the schema types enum values as strings, so the permissive
-        // default's integer tolerance would admit malformed bodies as undefined members.
-        var converterType = TypeSyntaxEmitter.Generic("StrictJsonStringEnumConverter", TypeSyntaxEmitter.EmitNamed(model.Name));
-        var declaration = SyntaxFactory
-            .EnumDeclaration(model.Name)
-            .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
-            .AddAttributeLists(EmissionSyntax.Attribute("JsonConverter", SyntaxFactory.AttributeArgument(
-                SyntaxFactory.TypeOfExpression(converterType))))
-            .WithMembers(SyntaxFactory.SeparatedList(model.Values.Select(static value => SyntaxFactory
-                .EnumMemberDeclaration(value.Name)
-                .AddAttributeLists(EmissionSyntax.Attribute("JsonStringEnumMemberName", EmissionSyntax.StringArgument(value.WireValue)))
-                .WithLeadingTrivia(EmissionSyntax.Documentation($"Represents the '{value.WireValue}' wire value.")))))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(model.Description ?? $"Defines the supported {GeneratedDisplayName.Of(model.Name)} values."));
-        var unit = EmissionSyntax.CompilationUnit(
-            model.Namespace,
-            ["System.Text.Json.Serialization", GeneratedNamespace.Internal],
-            [declaration]);
         return EmissionSyntax.CreateSource(relativePath, unit);
     }
 

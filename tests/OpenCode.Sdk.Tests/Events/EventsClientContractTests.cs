@@ -41,6 +41,24 @@ public sealed class EventsClientContractTests
         await Assert.That(unknown.Payload.GetProperty("id").GetString()).IsEqualTo("evt_3");
     }
 
+    /// <summary>
+    /// An enum value the SDK does not know no longer fails its frame, so the subscription keeps
+    /// reading: the frame after it arrives too.
+    /// </summary>
+    [Test]
+    public async Task SubscribeAsync_Should_Continue_Past_An_Event_With_An_Unknown_Enum_Value()
+    {
+        using var scenario = ContractScenario.RespondingWithFrames(
+            WireBodyData.Frames(WireBodyData.UnknownReasonInterruptedEvent, WireBodyData.SessionCreatedEvent));
+
+        var items = await CollectAsync(scenario);
+
+        await Assert.That(items).Count().IsEqualTo(2);
+        var interrupted = (SessionExecutionInterrupted)items[0];
+        await Assert.That(interrupted.Data.Reason.IsKnown).IsFalse();
+        await Assert.That(items[1]).IsTypeOf<SessionCreated>();
+    }
+
     [Test]
     public async Task SubscribeAsync_Should_Expose_A_Typed_Mid_Stream_Failure_Cause()
     {

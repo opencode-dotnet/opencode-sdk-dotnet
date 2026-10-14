@@ -170,7 +170,6 @@ internal static class ReservedNamePolicy
             "ServerSentEventReader",
             "StatusVerdict",
             "StatusVerdictFailures",
-            "StrictJsonStringEnumConverter",
             "StructuralUnionClaim",
             "StructuralUnionPrinter",
             "TerminalCancellationSource",
