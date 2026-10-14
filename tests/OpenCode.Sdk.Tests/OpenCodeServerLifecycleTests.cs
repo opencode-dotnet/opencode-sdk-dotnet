@@ -138,6 +138,7 @@ public sealed class OpenCodeServerLifecycleTests
             async () => _ = await scenario.WaitForStartupAsync(cancellationToken)).Throws<OpenCodeServerException>();
 
         await Assert.That(failure!.Message).Contains("did not report readiness");
+        await Assert.That(failure.InnerException).IsTypeOf<OperationCanceledException>();
         await AssertFailedStartEndedTheTreeAsync(scenario, cancellationToken);
     }
 

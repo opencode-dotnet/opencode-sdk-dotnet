@@ -52,7 +52,9 @@ internal sealed class PosixChildExitWatch
     }
 
     /// <summary>Gets the child's exit, completed once it has been observed (and, where possible, reaped).</summary>
+#pragma warning disable VSTHRD003 // The watch thread completes this exit, asynchronously to its continuations; exposing it is the watch's contract.
     public Task<ChildExitStatus> Exited => _exited.Task;
+#pragma warning restore VSTHRD003
 
     /// <summary>
     /// Gets how many watch threads started in this process have not ended yet; friend-assembly

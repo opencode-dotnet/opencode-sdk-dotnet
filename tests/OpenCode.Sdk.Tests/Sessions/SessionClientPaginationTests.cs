@@ -80,7 +80,7 @@ public sealed class SessionClientPaginationTests
         var items = 0;
         var pages = 0;
 
-        await foreach (var _ in sequence)
+        await foreach (var _ in sequence.WithCancellation(CancellationToken.None))
         {
             items++;
         }

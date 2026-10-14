@@ -72,7 +72,8 @@ internal sealed class DriveController : IAsyncDisposable
             if (exception is OperationCanceledException)
             {
                 throw new TimeoutException(
-                    $"Could not reach the drive backend at {backendEndpoint} within {timeout.TotalSeconds.ToString("F0", CultureInfo.InvariantCulture)}s.");
+                    $"Could not reach the drive backend at {backendEndpoint} within {timeout.TotalSeconds.ToString("F0", CultureInfo.InvariantCulture)}s.",
+                    exception);
             }
 
             throw;

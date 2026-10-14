@@ -33,7 +33,9 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
 
     public Uri Endpoint { get; }
 
+#pragma warning disable VSTHRD003 // Test signals complete on their own source and resume asynchronously; exposing the task is the signal's contract.
     public Task ClientDisconnected => _clientDisconnected.Task;
+#pragma warning restore VSTHRD003
 
     public IReadOnlyList<string> RequestPaths => [.. _requests.Select(static request => request.Path)];
 

@@ -12,9 +12,11 @@ internal sealed class BlockingContent : HttpContent
 
     public bool IsDisposed => _disposed;
 
+#pragma warning disable VSTHRD003 // Test signals complete on their own source and resume asynchronously; exposing the task is the signal's contract.
     public Task ReadCompleted => _readCompleted.Task;
 
     public Task ReadStarted => _readStarted.Task;
+#pragma warning restore VSTHRD003
 
     protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
         WaitAsync(CancellationToken.None);

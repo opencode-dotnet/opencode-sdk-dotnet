@@ -46,7 +46,9 @@ internal sealed class WindowsExitWatch : IWindowsExitWatch
     public static int LiveWatches => Volatile.Read(ref s_liveWatches);
 
     /// <inheritdoc />
+#pragma warning disable VSTHRD003 // The registered wait completes this exit, asynchronously to its continuations; exposing it is the watch's contract.
     public Task<ChildExitStatus> Exited => _exited.Task;
+#pragma warning restore VSTHRD003
 
     /// <summary>Starts watching a child; the watch owns its process handle from here.</summary>
     /// <param name="process">The child's process handle.</param>

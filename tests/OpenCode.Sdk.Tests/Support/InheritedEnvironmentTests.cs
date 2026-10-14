@@ -316,14 +316,15 @@ public sealed class InheritedEnvironmentTests
             await process.WaitForExitAsync(cancellationToken);
             return output;
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested)
         {
             _ = TestProcessTreeKill.TryKill(process);
             if (!await ProcessObservation.ObserveExitWithinAsync(process, ChildExitBound, CancellationToken.None))
             {
                 throw new InvalidOperationException(
                     "The child shell " + process.Id.ToString(CultureInfo.InvariantCulture) + " was ended but did not exit within "
-                    + ChildExitBound.TotalSeconds.ToString(CultureInfo.InvariantCulture) + " seconds.");
+                    + ChildExitBound.TotalSeconds.ToString(CultureInfo.InvariantCulture) + " seconds.",
+                    exception);
             }
 
             throw;

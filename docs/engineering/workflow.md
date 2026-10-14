@@ -1,6 +1,6 @@
 # Repository Workflow
 
-Date: 2026-10-13
+Date: 2026-10-14
 
 Canonical working agreements for research, implementation, temporary work, verification, and Git
 history.
@@ -38,8 +38,8 @@ complete diff; it is never hand-edited.
 
 Versions live in `Directory.Packages.props`, the SDK in `global.json`, and repository tools in
 `dotnet-tools.json`. A refresh takes the latest stable versions; a prerelease arrives only with the
-work that needs it. It lands as one pull request per class, in this order, each through the full
-completion gate:
+work that needs it. It lands as one pull request with one commit per class, in this order, so a
+class can be reverted alone, and the pull request passes the full completion gate:
 
 1. **Servicing and shipped dependencies** — the SDK feature band, the runtime's servicing packages,
    and Polyfill. The CHANGELOG names every raised dependency floor of a shipped package and the
@@ -47,8 +47,9 @@ completion gate:
 2. **Generator and tooling** — `generate --verify` and `refresh-spec --verify` stay byte-identical.
 3. **Analyzers** — every new diagnostic is decided per rule under the analyzer policy in
    `quality-gates.md`, never by a blanket suppression.
-4. **Test stack** — last, so a test-host regression can be reverted alone; a snapshot format change
-   is reviewed as a complete diff.
+4. **Test stack** — last, so a test-host regression is the last commit; a snapshot format change
+   is reviewed as a complete diff. Verify's open-source maintenance-fee exemption in
+   `tests/Directory.Build.props` runs at most 12 months, and every refresh moves its end month.
 
 ## Documentation sessions
 

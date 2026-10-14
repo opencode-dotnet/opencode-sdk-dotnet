@@ -32,7 +32,9 @@ internal sealed class PipeLineReader : IAsyncDisposable
     /// Gets a task that completes once the reader has ended: true when the stream reached
     /// end-of-stream, false when the read was released or failed.
     /// </summary>
+#pragma warning disable VSTHRD003 // The reader's own pool task is the completion this handle exposes; nothing in it needs a caller's context.
     public Task<bool> Completion => _completion;
+#pragma warning restore VSTHRD003
 
     /// <summary>Starts delivering every line of <paramref name="stream"/> to <paramref name="onLine"/>.</summary>
     /// <param name="stream">The parent's read end of the pipe; the reader closes it when it ends.</param>

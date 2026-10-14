@@ -36,7 +36,9 @@ internal sealed class PtyDiagnosticServer : IAsyncDisposable
 
     public LoopbackHttpServer Server { get; }
 
+#pragma warning disable VSTHRD003 // Test signals complete on their own source and resume asynchronously; exposing the task is the signal's contract.
     public Task Requested => _requested.Task;
+#pragma warning restore VSTHRD003
 
     public async ValueTask DisposeAsync() => await Server.DisposeAsync();
 }

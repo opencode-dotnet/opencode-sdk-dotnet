@@ -88,7 +88,7 @@ public sealed class ServiceEnsurerTests
         // By default a spawn stays live and never registers.
         _spawner.Spawn(Arg.Any<IServiceContenderSpawner.ContenderStartInfo>()).Returns(call =>
         {
-            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>()!);
+            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>());
             return LiveContender();
         });
     }
@@ -691,7 +691,7 @@ public sealed class ServiceEnsurerTests
         var spawns = 0;
         _spawner.Spawn(Arg.Any<IServiceContenderSpawner.ContenderStartInfo>()).Returns(call =>
         {
-            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>()!);
+            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>());
             switch (++spawns)
             {
                 case 1:
@@ -733,7 +733,7 @@ public sealed class ServiceEnsurerTests
         var spawns = 0;
         _spawner.Spawn(Arg.Any<IServiceContenderSpawner.ContenderStartInfo>()).Returns(call =>
         {
-            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>()!);
+            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>());
             return ++spawns == 2 ? FinishedContender(failure) : LiveContender();
         });
         DeadlineAfter(clockReads: 200);
@@ -759,7 +759,7 @@ public sealed class ServiceEnsurerTests
         var spawns = 0;
         _spawner.Spawn(Arg.Any<IServiceContenderSpawner.ContenderStartInfo>()).Returns(call =>
         {
-            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>()!);
+            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>());
             switch (++spawns)
             {
                 case 1:
@@ -869,7 +869,7 @@ public sealed class ServiceEnsurerTests
         _probe.ProbeAsync(WithPid(ElectedPid), Arg.Any<CancellationToken>()).Returns(Ready);
         _spawner.Spawn(Arg.Any<IServiceContenderSpawner.ContenderStartInfo>()).Returns(call =>
         {
-            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>()!);
+            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>());
             _spawnedAt.Add(_now);
             var contender = LiveContender();
             if (_starts.Count == electedSpawn)
@@ -896,7 +896,7 @@ public sealed class ServiceEnsurerTests
             .Returns(new ServiceProbeResult(ServiceState.Ready, version, TimedOut: false, Compatible: true));
         _spawner.Spawn(Arg.Any<IServiceContenderSpawner.ContenderStartInfo>()).Returns(call =>
         {
-            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>()!);
+            _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>());
             Seed(SharedRegistrationPath(), ServiceRegistrationDocument.Compose("srv_elected", version, ElectedEndpoint, ElectedPid, "elected-p455"));
             return LiveContender();
         });

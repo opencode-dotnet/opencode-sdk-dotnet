@@ -552,7 +552,8 @@ public class OpenCodeServer : IAsyncDisposable
             }
 
             throw new OpenCodeServerException(
-                $"The server did not report readiness within {readinessTimeout.TotalSeconds.ToString("F0", CultureInfo.InvariantCulture)}s.{DescribeStderr(stderrGate, stderrTail)}");
+                $"The server did not report readiness within {readinessTimeout.TotalSeconds.ToString("F0", CultureInfo.InvariantCulture)}s.{DescribeStderr(stderrGate, stderrTail)}",
+                exception);
         }
 
         if (outcome.ReadyLine is { } line)
