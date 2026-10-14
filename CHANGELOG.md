@@ -19,6 +19,13 @@ Nightly builds of `master` are on
 
 ### ✨ Added
 
+- **`OpenCodeServer.Exited` reports how a started server ended.** The task completes with an
+  `OpenCodeServerExit`. It holds an exit code (on Windows the full 32-bit code), a terminating
+  signal by name and number, or `Unknown` when something else reaped the server. It completes
+  whether the server ended on its own or disposal ended it, once its output has ended or one
+  second after the exit, as upstream's `exited` does. It never faults. On a handle from
+  `DiscoverAsync` or `EnsureAsync` it throws `InvalidOperationException`, because that handle owns
+  no process.
 - **The accepted snapshot moved to upstream release tag `v2.0.29`**
   (`042d0832f5f3a73eaa039a58a7d565776f6d4290`), published as `@opencode/cli@2.0.29`; install it
   with `npm install -g @opencode/cli@2.0.29`. It adds and changes no operation, so all 142 remain

@@ -42,6 +42,7 @@ public class OpenCodeServer : IAsyncDisposable
     private static readonly string[] LauncherArguments = ["--stdio", "--port", "0"];
 
     private readonly OwnedServerChild? _child;
+    private readonly Task<OpenCodeServerExit>? _exited;
     private readonly Uri? _endpoint;
     private readonly string? _password;
     private readonly int? _processId;
@@ -56,6 +57,7 @@ public class OpenCodeServer : IAsyncDisposable
         // Captured while the child is live: the identity stays readable for diagnostics after
         // disposal has released the process handle.
         _processId = child.ProcessId;
+        _exited = TranslateAsync(child.Closed);
     }
 
     /// <summary>
@@ -107,6 +109,22 @@ public class OpenCodeServer : IAsyncDisposable
     /// </summary>
     internal Task<ChildExitStatus> ChildExited =>
         _child?.Exited ?? throw new InvalidOperationException("This handle owns no process.");
+
+    /// <summary>
+    /// Gets a task that completes once the server <see cref="StartAsync"/> started has ended,
+    /// whether it ended on its own or disposal ended it, with how it ended: an exit code, a
+    /// terminating signal, or an unknown status. It is a task, not an event: await it, or
+    /// <c>WaitAsync</c> it with a token. It completes once the exit is observed and the server's
+    /// output has ended, or one second after the exit when a descendant still holds the output
+    /// open, as upstream's standalone server reports <c>exited</c>. It never faults and is never
+    /// canceled: a signal that ends the server is a value, not an exception.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">This handle owns no process (<see cref="OwnsProcess"/> is false): a
+    /// service <see cref="DiscoverAsync"/> or <see cref="EnsureAsync"/> found is shared, and its end is not observed.</exception>
+    public virtual Task<OpenCodeServerExit> Exited =>
+        _exited ?? throw (_endpoint is null
+            ? MockSeam.CreateError("OpenCodeServer", "Exited")
+            : new InvalidOperationException("This handle owns no process, so its end is not observed: only a server StartAsync started reports Exited."));
 
     /// <summary>Gets the endpoint: the port-zero binding of a started server, or the URL a registration published.</summary>
     public virtual Uri Endpoint => _endpoint ?? throw MockSeam.CreateError("OpenCodeServer", "Endpoint");
@@ -465,6 +483,9 @@ public class OpenCodeServer : IAsyncDisposable
             await _child.DisposeAsync().ConfigureAwait(false);
         }
     }
+
+    private static async Task<OpenCodeServerExit> TranslateAsync(Task<ChildExitStatus> closed) =>
+        OpenCodeServerExit.From(await closed.ConfigureAwait(false), PosixSignalNames.ForCurrentProcess);
 
     private static OpenCodeServerOutput? BindOutput(OpenCodeServerOptions options)
     {

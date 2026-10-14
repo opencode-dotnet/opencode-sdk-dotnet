@@ -574,6 +574,20 @@ ends the server on Windows, however the owner died; the stdin lease, which the o
 closes with the owner, remains the fallback for a server the job does not hold (a tolerated refusal,
 a batch shim's child).
 
+`OpenCodeServer.Exited` reports the end of an owned server, upstream's `exited`: a
+`Task<OpenCodeServerExit>` that completes once the root's exit is observed and its output has
+ended, or one second after the exit when a descendant still holds a pipe open, which is upstream's
+`close`, or `exit` plus one second. The task starts that wait at the exit itself, so it completes
+after a natural exit with no disposal, and disposal's release of the readers ends the wait at once.
+It never faults and is never canceled. The end is an exit code, a terminating signal, or unknown:
+`Kind` names which, and exactly its members are set. A code is the one the exit watch reads, in
+full 32 bits on Windows. A signal carries its standard name for the host's numbering, such as
+`SIGTERM`, as upstream reports it, and its number. A signal number with no standard name, such as
+a Linux real-time signal, keeps the number with no name, and no name is made up. Unknown is the
+status of an exit something else reaped. A handle from `DiscoverAsync` or `EnsureAsync` owns no
+process, so its `Exited` throws `InvalidOperationException`: upstream's attach endpoint carries no
+exit either.
+
 On Linux and macOS the ladder follows upstream's rungs; where the two end in a different place, the
 difference is one of the recorded divergences below.
 
@@ -612,8 +626,8 @@ The launcher's recorded divergences from upstream on Linux and macOS (ADR-0031, 
 
 | Divergence | Upstream | Launcher | Reason |
 |---|---|---|---|
-| Exit report | Reports an exit up to a second late when a descendant holds stdout | Reports the root's exit as soon as it is observed, after one drain of at most a second | Earlier and exact. |
 | Forced-exit wait | Waits on the root's exit alone after `SIGKILL` | Bounds it at 10 seconds | Disposal never hangs on a process the kernel cannot end. |
+| Signal end | Fails `exited` with `KilledBySignal`, carrying the signal's name | Completes `Exited` with the signal as a value: its name and its number | A task that never faults is the idiomatic form, and the number is a superset. |
 | Stderr | Discards it | Drains it into a bounded tail for startup diagnostics, and honours `OPENCODE_PRINT_LOGS=1` by handing over the host's stderr | A superset of upstream's behaviour. |
 | Signals to the owner | Closes the scope on `SIGINT` and `SIGTERM` | Installs no process-wide signal handler | A library does not take over its host's signal handling; the host ends the server through `DisposeAsync`. |
 | Waiting for the group | Waits for the root's own output pipes to close | Waits for the root's exit, then probes the group until it is empty | No dependency on who holds the pipes. Three consequences at the edges: a same-group member that ignores `SIGTERM` but holds none of the root's pipes is ended by `SIGKILL`, where upstream leaves it running; a detached descendant that holds the root's stdout does not delay the close beyond a collector's one-second drain, where upstream waits the full grace and then sends `SIGKILL` to the group; a root that exits with code 0 while its stdout is still open leaves the group untouched, where upstream sends `SIGTERM` to it within its one-second output deadline. |
@@ -623,7 +637,6 @@ The launcher's recorded divergences from upstream on Windows (ADR-0031, ADR-0032
 | Divergence | Upstream | Launcher | Reason |
 |---|---|---|---|
 | Already-exited root | Can run `taskkill` on the dead pid while it waits for the output deadline | Runs no tree kill | `taskkill` finds only live processes, so the run reaches none of the root's descendants and only costs time. |
-| Exit report | Reports an exit up to a second late when a descendant holds stdout | Reports the root's exit as soon as it is observed, after one drain of at most a second | Earlier and exact. |
 | Waiting for the root | Waits for the root's own output pipes to close | Waits for the root's own exit | No dependency on who holds the pipes: a detached descendant that holds the root's stdout does not hold the close open. |
 | Exit code | Bun truncates it to 8 bits | Reports the operating system's code in full, as a signed 32-bit value | The exact value. |
 | Stderr | Discards it | Drains it into a bounded tail for startup diagnostics, and honours `OPENCODE_PRINT_LOGS=1` by handing over the host's stderr | A superset of upstream's behaviour. |
