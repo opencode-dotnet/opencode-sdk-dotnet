@@ -55,6 +55,7 @@ internal static class UnionEmitter
         members.AddRange(union.HoistedMembers.Select(member => EmitHoistedMember(union, member)));
         var declaration = SyntaxFactory
             .InterfaceDeclaration(union.Name)
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(union.ExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .AddAttributeLists(EmissionSyntax.Attribute(
                 "JsonConverter",
@@ -171,6 +172,7 @@ internal static class UnionEmitter
         // write the carrier as an ordinary record.
         var declaration = SyntaxFactory
             .RecordDeclaration(SyntaxFactory.Token(SyntaxKind.RecordKeyword), union.UnknownTypeName)
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(union.ExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.SealedKeyword)))

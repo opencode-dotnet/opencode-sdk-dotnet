@@ -6,6 +6,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents a session usage recorded durable value.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
 public sealed record SessionUsageRecordedDurable : IDurableEnvelope
 {
     /// <summary>

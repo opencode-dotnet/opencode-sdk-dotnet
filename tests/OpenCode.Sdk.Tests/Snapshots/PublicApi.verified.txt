@@ -140,6 +140,8 @@ namespace OpenCode.Sdk
         protected EventsClient() { }
         public virtual System.Collections.Generic.IAsyncEnumerable<OpenCode.Sdk.Models.IEvent> SubscribeAsync(System.Threading.CancellationToken cancellationToken = default) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public class ExperimentalClient
     {
         protected ExperimentalClient() { }
@@ -161,16 +163,22 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionWaitResponse> WaitForSessionAsync(string sessionId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalFsWriteResponse> WriteFileAsync(OpenCode.Sdk.ExperimentalFsWriteRequest request, System.IO.Stream content, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalConfigUpdateResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalConfigUpdateResponse>
     {
         public ExperimentalConfigUpdateResponse() { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalFsWriteRequest : System.IEquatable<OpenCode.Sdk.ExperimentalFsWriteRequest>
     {
         public ExperimentalFsWriteRequest() { }
         public OpenCode.Sdk.LocationSelector? Location { get; init; }
         public required string Path { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalFsWriteResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalFsWriteResponse>
     {
         public ExperimentalFsWriteResponse() { }
@@ -178,88 +186,124 @@ namespace OpenCode.Sdk
         public required OpenCode.Sdk.Models.LocationPublicRef Location { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalGenerateTextResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalGenerateTextResponse>
     {
         public ExperimentalGenerateTextResponse() { }
         public required OpenCode.Sdk.Models.ExperimentalGenerateTextData GenerateText { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalIntegrationWellknownAddResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalIntegrationWellknownAddResponse>
     {
         public ExperimentalIntegrationWellknownAddResponse() { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalMcpAddResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalMcpAddResponse>
     {
         public ExperimentalMcpAddResponse() { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalMcpConnectRequest : System.IEquatable<OpenCode.Sdk.ExperimentalMcpConnectRequest>
     {
         public ExperimentalMcpConnectRequest() { }
         public OpenCode.Sdk.LocationSelector? Location { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalMcpConnectResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalMcpConnectResponse>
     {
         public ExperimentalMcpConnectResponse() { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalMcpDisconnectRequest : System.IEquatable<OpenCode.Sdk.ExperimentalMcpDisconnectRequest>
     {
         public ExperimentalMcpDisconnectRequest() { }
         public OpenCode.Sdk.LocationSelector? Location { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalMcpDisconnectResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalMcpDisconnectResponse>
     {
         public ExperimentalMcpDisconnectResponse() { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalMcpRemoveRequest : System.IEquatable<OpenCode.Sdk.ExperimentalMcpRemoveRequest>
     {
         public ExperimentalMcpRemoveRequest() { }
         public OpenCode.Sdk.LocationSelector? Location { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalMcpRemoveResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalMcpRemoveResponse>
     {
         public ExperimentalMcpRemoveResponse() { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalMigrationV1StatusResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalMigrationV1StatusResponse>
     {
         public ExperimentalMigrationV1StatusResponse() { }
         public required OpenCode.Sdk.Models.ExperimentalMigrationV1Status MigrationV1Status { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalSessionExportRequest : System.IEquatable<OpenCode.Sdk.ExperimentalSessionExportRequest>
     {
         public ExperimentalSessionExportRequest() { }
         public OpenCode.Sdk.QueryBoolean? Sanitize { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalSessionExportResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalSessionExportResponse>
     {
         public ExperimentalSessionExportResponse() { }
         public required OpenCode.Sdk.Models.SessionTransferData SessionExport { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalSessionImportResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalSessionImportResponse>
     {
         public ExperimentalSessionImportResponse() { }
         public required OpenCode.Sdk.Models.SessionInfo SessionImport { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalSessionInstructionsEntryListResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalSessionInstructionsEntryListResponse>
     {
         public ExperimentalSessionInstructionsEntryListResponse() { }
         public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.InstructionEntryInfo> SessionInstructionsEntry { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalSessionInstructionsEntryRemoveResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalSessionInstructionsEntryRemoveResponse>
     {
         public ExperimentalSessionInstructionsEntryRemoveResponse() { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalSessionInstructionsEntryResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalSessionInstructionsEntryResponse>
     {
         public ExperimentalSessionInstructionsEntryResponse() { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalSessionSkillResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalSessionSkillResponse>
     {
         public ExperimentalSessionSkillResponse() { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalSessionStatsRequest : System.IEquatable<OpenCode.Sdk.ExperimentalSessionStatsRequest>
     {
         public ExperimentalSessionStatsRequest() { }
@@ -269,12 +313,16 @@ namespace OpenCode.Sdk
         public string? To { get; init; }
         public OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools? Tools { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalSessionStatsResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalSessionStatsResponse>
     {
         public ExperimentalSessionStatsResponse() { }
         public required OpenCode.Sdk.Models.SessionStatsInfo SessionStats { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalSessionWaitResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalSessionWaitResponse>
     {
         public ExperimentalSessionWaitResponse() { }
@@ -576,6 +624,8 @@ namespace OpenCode.Sdk
         public virtual OpenCode.Sdk.CredentialsClient Credentials { get; }
         public virtual OpenCode.Sdk.DebugClient Debug { get; }
         public virtual OpenCode.Sdk.EventsClient Events { get; }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode001")]
         public virtual OpenCode.Sdk.ExperimentalClient Experimental { get; }
         public virtual OpenCode.Sdk.FileSystemClient FileSystem { get; }
         public virtual OpenCode.Sdk.FormsClient Forms { get; }
@@ -583,6 +633,8 @@ namespace OpenCode.Sdk
         public virtual OpenCode.Sdk.LanguageModelsClient LanguageModels { get; }
         public virtual OpenCode.Sdk.McpServersClient McpServers { get; }
         public virtual OpenCode.Sdk.PermissionsClient Permissions { get; }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode002")]
         public virtual OpenCode.Sdk.PersistentPtysClient PersistentPtys { get; }
         public virtual OpenCode.Sdk.PluginsClient Plugins { get; }
         public virtual OpenCode.Sdk.ProjectsClient Projects { get; }
@@ -673,6 +725,8 @@ namespace OpenCode.Sdk
         {
             public const string Subscribe = "/api/event";
         }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode001")]
         public static class Experimental
         {
             public const string ActivateSessionSkillTemplate = "/api/experimental/session/{sessionID}/skill";
@@ -774,6 +828,8 @@ namespace OpenCode.Sdk
             public static string ListSaved(OpenCode.Sdk.PermissionSavedListRequest? request = null) { }
             public static string RemoveSaved(string savedPermissionId) { }
         }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode002")]
         public static class PersistentPtys
         {
             public const string CreateConnectTokenTemplate = "/api/experimental/persistent-pty/{ptyID}/connect-token";
@@ -867,6 +923,8 @@ namespace OpenCode.Sdk
             public const string GetContextTemplate = "/api/session/{sessionID}/context";
             public const string GetDiffTemplate = "/api/session/{sessionID}/diff";
             public const string GetFormTemplate = "/api/session/{sessionID}/form/{formID}";
+            [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+                "erimental.md#opencode003")]
             public const string GetLogTemplate = "/api/experimental/session/{sessionID}/log";
             public const string GetMessageTemplate = "/api/session/{sessionID}/message/{messageID}";
             public const string GetPermissionTemplate = "/api/session/{sessionID}/permission/{requestID}";
@@ -906,6 +964,8 @@ namespace OpenCode.Sdk
             public static string GetContext(string sessionId) { }
             public static string GetDiff(string sessionId, OpenCode.Sdk.SessionDiffRequest? request = null) { }
             public static string GetForm(string sessionId, string formId) { }
+            [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+                "erimental.md#opencode003")]
             public static string GetLog(string sessionId, OpenCode.Sdk.SessionLogRequest? request = null) { }
             public static string GetMessage(string sessionId, string messageId) { }
             public static string GetPermission(string sessionId, string requestId) { }
@@ -1141,11 +1201,15 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PermissionSavedListResponse> ListSavedAsync(OpenCode.Sdk.PermissionSavedListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PermissionSavedRemoveResponse> RemoveSavedAsync(string savedPermissionId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyAttachedFrame : OpenCode.Sdk.PersistentPtyFrame
     {
         public PersistentPtyAttachedFrame(OpenCode.Sdk.PersistentPtyAttachment attachment) { }
         public OpenCode.Sdk.PersistentPtyAttachment Attachment { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyAttachment : System.IEquatable<OpenCode.Sdk.PersistentPtyAttachment>
     {
         public PersistentPtyAttachment() { }
@@ -1156,6 +1220,8 @@ namespace OpenCode.Sdk
         public required OpenCode.Sdk.PersistentPtyReplayBounds Replay { get; init; }
         public required OpenCode.Sdk.PersistentPtyRole Role { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public class PersistentPtyClient
     {
         protected PersistentPtyClient() { }
@@ -1166,6 +1232,8 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PersistentPtyRemoveResponse> RemoveAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PersistentPtyUpdateResponse> UpdateAsync(OpenCode.Sdk.Models.PersistentPtyUpdateRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyConnectOptions : System.IEquatable<OpenCode.Sdk.PersistentPtyConnectOptions>
     {
         public PersistentPtyConnectOptions() { }
@@ -1175,68 +1243,94 @@ namespace OpenCode.Sdk
         public System.TimeSpan SendTimeout { get; init; }
         public bool Takeover { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyConnectTokenResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.PersistentPtyConnectTokenResponse>
     {
         public PersistentPtyConnectTokenResponse() { }
         public required OpenCode.Sdk.Models.PtyTicketConnectToken ConnectToken { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyControllerChangedFrame : OpenCode.Sdk.PersistentPtyFrame
     {
         public PersistentPtyControllerChangedFrame(string? attachmentId, long generation) { }
         public string? AttachmentId { get; }
         public long Generation { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyCreateResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.PersistentPtyCreateResponse>
     {
         public PersistentPtyCreateResponse() { }
         public required OpenCode.Sdk.Models.PersistentPtyInfo PersistentPty { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyExitedFrame : OpenCode.Sdk.PersistentPtyFrame
     {
         public PersistentPtyExitedFrame(int? exitCode, long finalOffset) { }
         public int? ExitCode { get; }
         public long FinalOffset { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyForegroundProcessChangedFrame : OpenCode.Sdk.PersistentPtyFrame
     {
         public PersistentPtyForegroundProcessChangedFrame(string? process) { }
         public string? Process { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public abstract class PersistentPtyFrame { }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyHandoffResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.PersistentPtyHandoffResponse>
     {
         public PersistentPtyHandoffResponse() { }
         public required OpenCode.Sdk.Models.PersistentPtyHandoff? Handoff { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyListResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.PersistentPtyListResponse>
     {
         public PersistentPtyListResponse() { }
         public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.PersistentPtyInfo> PersistentPtys { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyOutputFrame : OpenCode.Sdk.PersistentPtyFrame
     {
         public PersistentPtyOutputFrame(System.ReadOnlyMemory<byte> data) { }
         public System.ReadOnlyMemory<byte> Data { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyReadRequest : System.IEquatable<OpenCode.Sdk.PersistentPtyReadRequest>
     {
         public PersistentPtyReadRequest() { }
         public string? Lines { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyReadResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.PersistentPtyReadResponse>
     {
         public PersistentPtyReadResponse() { }
         public required OpenCode.Sdk.Models.PersistentPtyReadResult? Read { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyRemoveResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.PersistentPtyRemoveResponse>
     {
         public PersistentPtyRemoveResponse() { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyReplayBounds : System.IEquatable<OpenCode.Sdk.PersistentPtyReplayBounds>
     {
         public PersistentPtyReplayBounds(long requestedOffset, long availableOffset, long endOffset, bool truncated) { }
@@ -1246,11 +1340,15 @@ namespace OpenCode.Sdk
         public bool Truncated { get; init; }
         public void Deconstruct(out long requestedOffset, out long availableOffset, out long endOffset, out bool truncated) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyReplayCompleteFrame : OpenCode.Sdk.PersistentPtyFrame
     {
         public PersistentPtyReplayCompleteFrame(long endOffset) { }
         public long EndOffset { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyResizedFrame : OpenCode.Sdk.PersistentPtyFrame
     {
         public PersistentPtyResizedFrame(int cols, int rows, long generation, System.ReadOnlyMemory<byte> checkpoint) { }
@@ -1259,17 +1357,23 @@ namespace OpenCode.Sdk
         public long Generation { get; }
         public int Rows { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.PersistentPtyResponse>
     {
         public PersistentPtyResponse() { }
         public required OpenCode.Sdk.Models.PersistentPtyInfo PersistentPty { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public enum PersistentPtyRole
     {
         Controller = 0,
         Observer = 1,
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public class PersistentPtySession : System.IAsyncDisposable
     {
         protected PersistentPtySession() { }
@@ -1280,33 +1384,45 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task SubmitAsync(string line, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task WriteAsync(System.ReadOnlyMemory<byte> input, System.Threading.CancellationToken cancellationToken = default) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyShutdownResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.PersistentPtyShutdownResponse>
     {
         public PersistentPtyShutdownResponse() { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtySnapshotResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.PersistentPtySnapshotResponse>
     {
         public PersistentPtySnapshotResponse() { }
         public required OpenCode.Sdk.Models.PersistentPtySnapshot Snapshot { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyTitleChangedFrame : OpenCode.Sdk.PersistentPtyFrame
     {
         public PersistentPtyTitleChangedFrame(string title) { }
         public string Title { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyUnknownFrame : OpenCode.Sdk.PersistentPtyFrame
     {
         public PersistentPtyUnknownFrame(string type, System.Text.Json.JsonElement payload) { }
         public System.Text.Json.JsonElement Payload { get; }
         public string Type { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyUpdateResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.PersistentPtyUpdateResponse>
     {
         public PersistentPtyUpdateResponse() { }
         public required OpenCode.Sdk.Models.PersistentPtyInfo PersistentPty { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public class PersistentPtysClient
     {
         protected PersistentPtysClient() { }
@@ -1587,6 +1703,8 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionContextResponse> GetContextAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionDiffResponse> GetDiffAsync(OpenCode.Sdk.SessionDiffRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionFormResponse> GetFormAsync(string formId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode003")]
         public virtual System.Collections.Generic.IAsyncEnumerable<OpenCode.Sdk.Models.ISessionLogItem> GetLogAsync(OpenCode.Sdk.SessionLogRequest? request = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionMessageResponse> GetMessageAsync(string messageId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionPermissionResponse> GetPermissionAsync(string requestId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
@@ -1734,6 +1852,8 @@ namespace OpenCode.Sdk
         public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.SessionInfo> Sessions { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode003")]
     public sealed class SessionLogRequest : System.IEquatable<OpenCode.Sdk.SessionLogRequest>
     {
         public SessionLogRequest() { }
@@ -3363,6 +3483,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode003")]
     public sealed class EventLogSynced : OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.EventLogSynced>
     {
         public EventLogSynced() { }
@@ -3407,18 +3529,24 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalConfigUpdateRequest : System.IEquatable<OpenCode.Sdk.Models.ExperimentalConfigUpdateRequest>
     {
         public ExperimentalConfigUpdateRequest() { }
         [System.Text.Json.Serialization.JsonPropertyName("shell")]
         public required string? Shell { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalGenerateTextData : System.IEquatable<OpenCode.Sdk.Models.ExperimentalGenerateTextData>
     {
         public ExperimentalGenerateTextData() { }
         [System.Text.Json.Serialization.JsonPropertyName("text")]
         public required string Text { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalGenerateTextRequest : System.IEquatable<OpenCode.Sdk.Models.ExperimentalGenerateTextRequest>
     {
         public ExperimentalGenerateTextRequest() { }
@@ -3429,6 +3557,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("prompt")]
         public required string Prompt { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalIntegrationWellknownAddRequest : System.IEquatable<OpenCode.Sdk.Models.ExperimentalIntegrationWellknownAddRequest>
     {
         public ExperimentalIntegrationWellknownAddRequest() { }
@@ -3437,6 +3567,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("url")]
         public required string Url { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalMcpAddRequest : System.IEquatable<OpenCode.Sdk.Models.ExperimentalMcpAddRequest>
     {
         public ExperimentalMcpAddRequest() { }
@@ -3445,6 +3577,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore]
         public OpenCode.Sdk.LocationSelector? Location { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ExperimentalMigrationV1StatusJsonConverter))]
     public sealed class ExperimentalMigrationV1Status : System.IEquatable<OpenCode.Sdk.Models.ExperimentalMigrationV1Status>
     {
@@ -3459,6 +3593,8 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ExperimentalMigrationV1Status FromExperimentalMigrationV1StatusRunning(OpenCode.Sdk.Models.ExperimentalMigrationV1StatusRunning value) { }
         public static OpenCode.Sdk.Models.ExperimentalMigrationV1Status FromUnknown(System.Text.Json.JsonElement value) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalMigrationV1StatusError : System.IEquatable<OpenCode.Sdk.Models.ExperimentalMigrationV1StatusError>
     {
         public ExperimentalMigrationV1StatusError() { }
@@ -3467,12 +3603,16 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public required string Status { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalMigrationV1StatusIdle : System.IEquatable<OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdle>
     {
         public ExperimentalMigrationV1StatusIdle() { }
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public required OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus Status { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ExperimentalMigrationV1StatusIdleStatusJsonConverter))]
     public readonly struct ExperimentalMigrationV1StatusIdleStatus : System.IEquatable<OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus>
     {
@@ -3489,6 +3629,8 @@ namespace OpenCode.Sdk.Models
         public static bool operator !=(OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus left, OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus left, OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus right) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public enum ExperimentalMigrationV1StatusKind
     {
         ExperimentalMigrationV1StatusIdle = 0,
@@ -3496,6 +3638,8 @@ namespace OpenCode.Sdk.Models
         ExperimentalMigrationV1StatusError = 2,
         Unknown = 3,
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalMigrationV1StatusRunning : System.IEquatable<OpenCode.Sdk.Models.ExperimentalMigrationV1StatusRunning>
     {
         public ExperimentalMigrationV1StatusRunning() { }
@@ -3504,6 +3648,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public required string Status { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalMigrationV1StatusRunningProgress : System.IEquatable<OpenCode.Sdk.Models.ExperimentalMigrationV1StatusRunningProgress>
     {
         public ExperimentalMigrationV1StatusRunningProgress() { }
@@ -3516,6 +3662,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("numerator")]
         public long? Numerator { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalSessionImportRequest : System.IEquatable<OpenCode.Sdk.Models.ExperimentalSessionImportRequest>
     {
         public ExperimentalSessionImportRequest() { }
@@ -3528,12 +3676,16 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("messages")]
         public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.ISessionMessageInfo> Messages { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalSessionInstructionsEntryRequest : System.IEquatable<OpenCode.Sdk.Models.ExperimentalSessionInstructionsEntryRequest>
     {
         public ExperimentalSessionInstructionsEntryRequest() { }
         [System.Text.Json.Serialization.JsonPropertyName("value")]
         public required System.Text.Json.JsonElement Value { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class ExperimentalSessionSkillRequest : System.IEquatable<OpenCode.Sdk.Models.ExperimentalSessionSkillRequest>
     {
         public ExperimentalSessionSkillRequest() { }
@@ -3544,6 +3696,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("resume")]
         public OpenCode.Sdk.Optional<bool?> Resume { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ExperimentalSessionStatsRequestToolsJsonConverter))]
     public readonly struct ExperimentalSessionStatsRequestTools : System.IEquatable<OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools>
     {
@@ -3626,6 +3780,8 @@ namespace OpenCode.Sdk.Models
         public static bool operator !=(OpenCode.Sdk.Models.FileSystemEntryType left, OpenCode.Sdk.Models.FileSystemEntryType right) { }
         public static bool operator ==(OpenCode.Sdk.Models.FileSystemEntryType left, OpenCode.Sdk.Models.FileSystemEntryType right) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class FileSystemWrite : System.IEquatable<OpenCode.Sdk.Models.FileSystemWrite>
     {
         public FileSystemWrite() { }
@@ -4415,6 +4571,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         string Status { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionStatsToolsJsonConverter))]
     public interface ISessionStatsTools
     {
@@ -4487,6 +4645,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required string Version { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class InstructionEntryInfo : System.IEquatable<OpenCode.Sdk.Models.InstructionEntryInfo>
     {
         public InstructionEntryInfo() { }
@@ -4505,6 +4665,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("value")]
         public required System.Text.Json.JsonElement Value { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class InstructionEntryValueTooLargeError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.InstructionEntryValueTooLargeError>
     {
         public InstructionEntryValueTooLargeError() { }
@@ -5218,6 +5380,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public required OpenCode.Sdk.Models.IMcpStatus Status { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class McpServerNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.McpServerNotFoundError>
     {
         public McpServerNotFoundError() { }
@@ -5781,6 +5945,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("terminal")]
         public required OpenCode.Sdk.Models.PersistentPtyInfo Terminal { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyCreateInputSize : System.IEquatable<OpenCode.Sdk.Models.PersistentPtyCreateInputSize>
     {
         public PersistentPtyCreateInputSize() { }
@@ -5789,6 +5955,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("rows")]
         public required long Rows { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyCreateRequest : System.IEquatable<OpenCode.Sdk.Models.PersistentPtyCreateRequest>
     {
         public PersistentPtyCreateRequest() { }
@@ -5809,6 +5977,8 @@ namespace OpenCode.Sdk.Models
         public required string Title { get; init; }
         public override string ToString() { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyHandoff : System.IEquatable<OpenCode.Sdk.Models.PersistentPtyHandoff>
     {
         public PersistentPtyHandoff() { }
@@ -5883,6 +6053,8 @@ namespace OpenCode.Sdk.Models
         public static bool operator !=(OpenCode.Sdk.Models.PersistentPtyInfoStatus left, OpenCode.Sdk.Models.PersistentPtyInfoStatus right) { }
         public static bool operator ==(OpenCode.Sdk.Models.PersistentPtyInfoStatus left, OpenCode.Sdk.Models.PersistentPtyInfoStatus right) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyReadResult : System.IEquatable<OpenCode.Sdk.Models.PersistentPtyReadResult>
     {
         public PersistentPtyReadResult() { }
@@ -5897,6 +6069,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("title")]
         public required string Title { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyReadResultScreen : System.IEquatable<OpenCode.Sdk.Models.PersistentPtyReadResultScreen>
     {
         public PersistentPtyReadResultScreen() { }
@@ -5909,6 +6083,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("text")]
         public required string Text { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyReadResultScreenCursor : System.IEquatable<OpenCode.Sdk.Models.PersistentPtyReadResultScreenCursor>
     {
         public PersistentPtyReadResultScreenCursor() { }
@@ -5943,6 +6119,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
         public required string SessionId { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtySnapshot : System.IEquatable<OpenCode.Sdk.Models.PersistentPtySnapshot>
     {
         public PersistentPtySnapshot() { }
@@ -5955,6 +6133,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("text")]
         public required string Text { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtySnapshotCursor : System.IEquatable<OpenCode.Sdk.Models.PersistentPtySnapshotCursor>
     {
         public PersistentPtySnapshotCursor() { }
@@ -5963,6 +6143,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("y")]
         public required long Y { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyUpdateInputSize : System.IEquatable<OpenCode.Sdk.Models.PersistentPtyUpdateInputSize>
     {
         public PersistentPtyUpdateInputSize() { }
@@ -5971,6 +6153,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("rows")]
         public required long Rows { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode002")]
     public sealed class PersistentPtyUpdateRequest : System.IEquatable<OpenCode.Sdk.Models.PersistentPtyUpdateRequest>
     {
         public PersistentPtyUpdateRequest() { }
@@ -8474,6 +8658,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("created")]
         public required double Created { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode003")]
     public sealed class SessionMessageContentUpdated : OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionMessageContentUpdated>
     {
         public SessionMessageContentUpdated() { }
@@ -8494,6 +8680,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode003")]
     public sealed class SessionMessageContentUpdatedData : System.IEquatable<OpenCode.Sdk.Models.SessionMessageContentUpdatedData>
     {
         public SessionMessageContentUpdatedData() { }
@@ -8504,6 +8692,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
         public required string SessionId { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode003")]
     public sealed class SessionMessageContentUpdatedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionMessageContentUpdatedDurable>
     {
         public SessionMessageContentUpdatedDurable() { }
@@ -9619,6 +9809,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class SessionStatsActivity : System.IEquatable<OpenCode.Sdk.Models.SessionStatsActivity>
     {
         public SessionStatsActivity() { }
@@ -9627,6 +9819,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("steps")]
         public required long Steps { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class SessionStatsInfo : System.IEquatable<OpenCode.Sdk.Models.SessionStatsInfo>
     {
         public SessionStatsInfo() { }
@@ -9655,6 +9849,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("tools")]
         public required OpenCode.Sdk.Models.ISessionStatsTools Tools { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class SessionStatsInfoRange : System.IEquatable<OpenCode.Sdk.Models.SessionStatsInfoRange>
     {
         public SessionStatsInfoRange() { }
@@ -9663,6 +9859,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("to")]
         public required double To { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class SessionStatsModelUsage : System.IEquatable<OpenCode.Sdk.Models.SessionStatsModelUsage>
     {
         public SessionStatsModelUsage() { }
@@ -9675,6 +9873,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("tokens")]
         public required OpenCode.Sdk.Models.TokenUsageInfo Tokens { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class SessionStatsToolTotals : System.IEquatable<OpenCode.Sdk.Models.SessionStatsToolTotals>
     {
         public SessionStatsToolTotals() { }
@@ -9687,6 +9887,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("unfinished")]
         public required long Unfinished { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class SessionStatsToolUsage : System.IEquatable<OpenCode.Sdk.Models.SessionStatsToolUsage>
     {
         public SessionStatsToolUsage() { }
@@ -9704,6 +9906,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("unfinished")]
         public required long Unfinished { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class SessionStatsToolsDetail : OpenCode.Sdk.Models.ISessionStatsTools, System.IEquatable<OpenCode.Sdk.Models.SessionStatsToolsDetail>
     {
         public SessionStatsToolsDetail() { }
@@ -9714,12 +9918,16 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("usage")]
         public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.SessionStatsToolUsage> Usage { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class SessionStatsToolsNone : OpenCode.Sdk.Models.ISessionStatsTools, System.IEquatable<OpenCode.Sdk.Models.SessionStatsToolsNone>
     {
         public SessionStatsToolsNone() { }
         [System.Text.Json.Serialization.JsonPropertyName("mode")]
         public string Mode { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class SessionStatsToolsSummary : OpenCode.Sdk.Models.ISessionStatsTools, System.IEquatable<OpenCode.Sdk.Models.SessionStatsToolsSummary>
     {
         public SessionStatsToolsSummary() { }
@@ -10530,6 +10738,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class SessionTransferData : System.IEquatable<OpenCode.Sdk.Models.SessionTransferData>
     {
         public SessionTransferData() { }
@@ -10554,6 +10764,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("title")]
         public OpenCode.Sdk.Optional<string?> Title { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode003")]
     public sealed class SessionUsageRecorded : OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionUsageRecorded>
     {
         public SessionUsageRecorded() { }
@@ -10574,6 +10786,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode003")]
     public sealed class SessionUsageRecordedData : System.IEquatable<OpenCode.Sdk.Models.SessionUsageRecordedData>
     {
         public SessionUsageRecordedData() { }
@@ -10586,6 +10800,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("tokens")]
         public required OpenCode.Sdk.Models.TokenUsageInfo Tokens { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode003")]
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionUsageRecordedDataSourceJsonConverter))]
     public readonly struct SessionUsageRecordedDataSource : System.IEquatable<OpenCode.Sdk.Models.SessionUsageRecordedDataSource>
     {
@@ -10602,6 +10818,8 @@ namespace OpenCode.Sdk.Models
         public static bool operator !=(OpenCode.Sdk.Models.SessionUsageRecordedDataSource left, OpenCode.Sdk.Models.SessionUsageRecordedDataSource right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionUsageRecordedDataSource left, OpenCode.Sdk.Models.SessionUsageRecordedDataSource right) { }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode003")]
     public sealed class SessionUsageRecordedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionUsageRecordedDurable>
     {
         public SessionUsageRecordedDurable() { }
@@ -10892,6 +11110,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("path")]
         public required string Path { get; init; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     public sealed class SkillNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.SkillNotFoundError>
     {
         public SkillNotFoundError() { }
@@ -11367,6 +11587,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public string Status { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownSessionStatsToolsJsonConverter))]
     public sealed class UnknownSessionStatsTools : OpenCode.Sdk.Models.ISessionStatsTools, System.IEquatable<OpenCode.Sdk.Models.UnknownSessionStatsTools>
     {

@@ -7,6 +7,7 @@ namespace OpenCode.Sdk;
 /// <summary>
 /// Represents the response of the &apos;DELETE /api/experimental/persistent-pty/{ptyID}&apos; operation.
 /// </summary>
+[Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
 public sealed record PersistentPtyRemoveResponse : OpenCodeResponse
 {
     /// <summary>

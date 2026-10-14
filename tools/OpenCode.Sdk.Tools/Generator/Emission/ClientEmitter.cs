@@ -58,6 +58,7 @@ internal static class ClientEmitter
 
         var declaration = SyntaxFactory.ClassDeclaration(client.Name)
             .WithModifiers(EmissionModifiers.Type(client.Emission))
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(client.Emission is EmissionMode.Public ? client.ExperimentalDiagnostic : null))
             .WithMembers(SyntaxFactory.List(members))
             .WithLeadingTrivia(EmissionSyntax.Documentation(Summary(client)));
         if (client.Role is ClientRole.Root)
@@ -119,10 +120,10 @@ internal static class ClientEmitter
     {
         foreach (var operation in client.Operations)
         {
-            yield return OperationMethodEmitter.Emit(operation, client.Emission);
+            yield return OperationMethodEmitter.Emit(operation, client.Emission, client.ExperimentalDiagnostic is not null);
             if (operation.Pagination is not null)
             {
-                yield return PaginationMethodEmitter.Emit(operation, client.Emission);
+                yield return PaginationMethodEmitter.Emit(operation, client.Emission, client.ExperimentalDiagnostic is not null);
             }
         }
     }
@@ -328,6 +329,7 @@ internal static class ClientEmitter
 
     private static PropertyDeclarationSyntax EmitSubClientProperty(ClientPlan client, ClientReferencePlan reference) =>
         SyntaxFactory.PropertyDeclaration(TypeSyntaxEmitter.EmitNamed(reference.TypeName), reference.PropertyName)
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(reference.ExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.VirtualKeyword)))
@@ -349,6 +351,7 @@ internal static class ClientEmitter
             ])))));
         return SyntaxFactory.MethodDeclaration(TypeSyntaxEmitter.EmitNamed(factory.HandleTypeName), factory.MethodName)
             .WithModifiers(EmissionModifiers.Member(client.Emission))
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(client.Emission is EmissionMode.Public ? factory.ExperimentalDiagnostic : null))
             .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList(
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier(factory.Parameter.Name))
                     .WithType(TypeSyntaxEmitter.EmitNamed(factory.Parameter.TypeName)))))

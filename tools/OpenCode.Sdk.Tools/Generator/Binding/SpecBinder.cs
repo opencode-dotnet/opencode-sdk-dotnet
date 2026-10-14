@@ -75,13 +75,14 @@ internal sealed class SpecBinder(
         // pending-operation probe still judges bindability under its synthetic curation.
         var placement = ModelOwnershipPolicy.Place(candidates, clients, curation, errors);
         var reach = ModelReachCollector.Collect(_reachableSchemas, new ReachScope(document, selected, clients, typeNames), candidates, errors);
+        var experimental = ExperimentalModelPolicy.Collect(_reachableSchemas, new ReachScope(document, selected, clients, typeNames), candidates, errors);
         errors.ThrowIfAny();
         return new EmitPlan
         {
             SelectedOperationIds = selection.OperationIds,
-            Models = masked.Models,
-            Unions = masked.Unions,
-            HoistedInterfaces = schemaResult.HoistedInterfaces,
+            Models = [.. masked.Models.Select(model => model with { ExperimentalDiagnostic = experimental.GetValueOrDefault(model.Name) })],
+            Unions = [.. masked.Unions.Select(union => union with { ExperimentalDiagnostic = experimental.GetValueOrDefault(union.Name) })],
+            HoistedInterfaces = [.. schemaResult.HoistedInterfaces.Select(plan => plan with { ExperimentalDiagnostic = experimental.GetValueOrDefault(plan.Name) })],
             Registry = ComposeRegistry(schemaResult.Registry, clients),
             Clients = clients,
             PendingOperations = pending,

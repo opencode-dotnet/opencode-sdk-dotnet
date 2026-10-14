@@ -7,6 +7,7 @@ namespace OpenCode.Sdk;
 /// <summary>
 /// Represents the response of the &apos;PUT /api/experimental/session/{sessionID}/instructions/entries/{key}&apos; operation.
 /// </summary>
+[Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record ExperimentalSessionInstructionsEntryResponse : OpenCodeResponse
 {
     /// <summary>

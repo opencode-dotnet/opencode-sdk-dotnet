@@ -36,6 +36,7 @@ internal static class StructuralUnionEmitter
                 .WithLeadingTrivia(EmissionSyntax.Documentation($"Represents the {DisplayName(name)} arm.")));
         var declaration = SyntaxFactory
             .EnumDeclaration(union.KindTypeName)
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(union.ExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithMembers(SyntaxFactory.SeparatedList(members))
             .WithLeadingTrivia(EmissionSyntax.Documentation($"Identifies the active arm of {union.Name}."));
@@ -64,6 +65,7 @@ internal static class StructuralUnionEmitter
 
         var declaration = SyntaxFactory
             .RecordDeclaration(SyntaxFactory.Token(SyntaxKind.RecordKeyword), union.Name)
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(union.ExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.SealedKeyword)))

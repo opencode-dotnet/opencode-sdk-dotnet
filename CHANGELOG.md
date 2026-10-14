@@ -20,8 +20,8 @@ Nightly builds of `master` are on
     session, options and frames);
   - `OPENCODE003`: the Session family's experimental operations, today `SessionClient.GetLogAsync`.
 
-  Nothing on the wire changes. See [Experimental APIs](docs/guide/experimental.md); the getting
-  started guide now waits for a turn on the event bus, which is not experimental.
+  Nothing on the wire changes. See [Experimental APIs](docs/guide/experimental.md). Waiting for a
+  turn on the event bus, as the getting-started guide shows, needs no opt-in.
 - **Every generated name spells `OAuth` as the brand does.** Names built from operation ids and wire
   members said `Oauth`, beside the schema-derived `CredentialOAuth` and `McpOAuthConfig`. They are now
   `BeginOAuthConnectionAsync`, `CancelOAuthConnectionAsync`, `CompleteOAuthConnectionAsync`,

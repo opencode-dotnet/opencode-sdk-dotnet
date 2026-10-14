@@ -11,6 +11,9 @@ internal sealed record HoistedInterfacePlan
 
     public required string Namespace { get; init; }
 
+    /// <summary>Gets the id the type carries when only experimental operations of one family reach it.</summary>
+    public string? ExperimentalDiagnostic { get; init; }
+
     /// <summary>Gets the records this interface was derived from, in emission order.</summary>
     public required IReadOnlyList<string> ImplementedBy
     {

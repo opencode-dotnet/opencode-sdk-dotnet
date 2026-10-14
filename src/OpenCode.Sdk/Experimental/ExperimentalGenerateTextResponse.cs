@@ -8,6 +8,7 @@ namespace OpenCode.Sdk;
 /// <summary>
 /// Represents the response of the &apos;POST /api/experimental/generate&apos; operation.
 /// </summary>
+[Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record ExperimentalGenerateTextResponse : OpenCodeResponse
 {
     private readonly ExperimentalGenerateTextData? _generateText;

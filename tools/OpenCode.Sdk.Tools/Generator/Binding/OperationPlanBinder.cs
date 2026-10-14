@@ -36,7 +36,7 @@ internal sealed class OperationPlanBinder
             return [];
         }
 
-        var clients = AssembleClients(bound);
+        var clients = ExperimentalClientPolicy.Apply(AssembleClients(bound), errors);
         CheckMemberCollisions(clients, errors);
         CheckTypeNameCollisions(clients, bound, typeNames, errors);
         return clients;
@@ -337,6 +337,7 @@ internal sealed class OperationPlanBinder
                     MethodName = methodName,
                     HttpMethod = _context.Operation.Method,
                     RouteTemplate = _context.Operation.Path,
+                    ExperimentalDiagnostic = ExperimentalRoutePolicy.IsExperimental(_context.Operation.Path) ? row.ExperimentalDiagnostic : null,
                     RouteContainerName = row.ClientName ?? CSharpNamePolicy.ToPascalCase(group),
                     RouteMemberName = routeMemberName,
                     Parameters = parameters,

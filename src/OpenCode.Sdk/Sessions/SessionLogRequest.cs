@@ -4,6 +4,7 @@ namespace OpenCode.Sdk;
 /// <summary>
 /// Shapes the &apos;GET /api/experimental/session/{sessionID}/log&apos; query.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
 public sealed record SessionLogRequest
 {
     /// <summary>

@@ -50,6 +50,7 @@ internal static class ModelEmitter
 
         var declaration = SyntaxFactory
             .RecordDeclaration(SyntaxFactory.Token(SyntaxKind.RecordKeyword), model.Name)
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(model.ExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.SealedKeyword)))

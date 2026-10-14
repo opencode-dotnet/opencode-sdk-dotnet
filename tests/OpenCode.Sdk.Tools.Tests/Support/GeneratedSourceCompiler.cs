@@ -74,6 +74,14 @@ internal static class GeneratedSourceCompiler
     /// <summary>Serializes the one-time read of the hand-written SDK sources.</summary>
     private static readonly SemaphoreSlim CoreTreesLoad = new(1, 1);
 
+    /// <summary>The experimental ids the SDK suppresses for itself; the compiler reports them as errors by default.</summary>
+    private static readonly Dictionary<string, ReportDiagnostic> ExperimentalSuppressions = new(StringComparer.Ordinal)
+    {
+        ["OPENCODE001"] = ReportDiagnostic.Suppress,
+        ["OPENCODE002"] = ReportDiagnostic.Suppress,
+        ["OPENCODE003"] = ReportDiagnostic.Suppress,
+    };
+
     /// <summary>The hand-written SDK sources, read and parsed once; each compilation filters them.</summary>
     private static List<CoreTree>? coreTrees;
 
@@ -109,6 +117,31 @@ internal static class GeneratedSourceCompiler
         }
 
         return probe.Assembly;
+    }
+
+    /// <summary>Compiles a consumer against the generated surface, with or without the experimental opt-in, and returns what it reports.</summary>
+    public static async Task<Diagnostic[]> CompileConsumerAsync(IReadOnlyList<GeneratedSource> sources,
+        SyntaxTree consumer, bool suppressExperimental)
+    {
+        ArgumentNullException.ThrowIfNull(sources);
+        ArgumentNullException.ThrowIfNull(consumer);
+
+        var probe = await ProbeAsync(sources);
+        if (probe.Diagnostics.Length > 0)
+        {
+            throw new InvalidOperationException(string.Join(Environment.NewLine, probe.Diagnostics.Select(static diagnostic => diagnostic.ToString())));
+        }
+
+        var options = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable);
+        if (suppressExperimental)
+        {
+            options = options.WithSpecificDiagnosticOptions(ExperimentalSuppressions);
+        }
+
+        var compilation = CSharpCompilation.Create($"ConsumerProbe_{Guid.NewGuid():N}", [consumer],
+            [.. References, MetadataReference.CreateFromImage(probe.Image)], options);
+        using var stream = new MemoryStream();
+        return [.. compilation.Emit(stream).Diagnostics.Where(static diagnostic => diagnostic.Severity is DiagnosticSeverity.Warning or DiagnosticSeverity.Error)];
     }
 
     private static async Task<CompiledProbe> ProbeAsync(IReadOnlyList<GeneratedSource> sources)
@@ -237,7 +270,9 @@ internal static class GeneratedSourceCompiler
                 nullableContextOptions: NullableContextOptions.Enable,
                 deterministic: true,
                 // The SDK project's AllowUnsafeBlocks: the LibraryImport generator emits its stub as unsafe code.
-                allowUnsafe: true));
+                allowUnsafe: true,
+                // The SDK project's NoWarn: the core implements its own experimental families.
+                specificDiagnosticOptions: ExperimentalSuppressions));
         GeneratorDriver driver = CSharpGeneratorDriver.Create(
             SourceGenerators.SelectMany(static reference => reference.GetGenerators(LanguageNames.CSharp)),
             parseOptions: ParseOptions);
@@ -310,16 +345,20 @@ internal static class GeneratedSourceCompiler
     private sealed class CompiledProbe
     {
         private readonly Lazy<Assembly>? _assembly;
+        private readonly byte[]? _image;
 
         public CompiledProbe(Diagnostic[] diagnostics, byte[]? image)
         {
             Diagnostics = diagnostics;
+            _image = image;
             _assembly = image is null
                 ? null
                 : new Lazy<Assembly>(() => AssemblyLoadContext.Default.LoadFromStream(new MemoryStream(image, writable: false)));
         }
 
         public Diagnostic[] Diagnostics { get; }
+
+        public byte[] Image => _image ?? throw new InvalidOperationException("A compilation with diagnostics has no image.");
 
         public Assembly Assembly => _assembly?.Value
                                     ?? throw new InvalidOperationException("A compilation with diagnostics has no image to load.");

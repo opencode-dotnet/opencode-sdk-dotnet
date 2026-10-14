@@ -8,6 +8,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Preserves an unknown session stats tools payload.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 [JsonConverter(typeof(UnknownSessionStatsToolsJsonConverter))]
 public sealed record UnknownSessionStatsTools : ISessionStatsTools
 {

@@ -162,7 +162,7 @@ internal static class BindingScenarioData
         };
 
     public static GroupCuration ClientGroup(string clientName = "Sessions", string? handleName = "SessionClient",
-        string? handleParameter = "sessionID", EmissionMode emission = EmissionMode.Public) =>
+        string? handleParameter = "sessionID", EmissionMode emission = EmissionMode.Public, string? experimentalDiagnostic = null) =>
         new()
         {
             Placement = GroupPlacement.Client,
@@ -170,6 +170,7 @@ internal static class BindingScenarioData
             HandleName = handleName,
             HandleParameter = handleParameter,
             Emission = emission,
+            ExperimentalDiagnostic = experimentalDiagnostic,
             Reason = "Scenario places the group on a family client.",
         };
 }

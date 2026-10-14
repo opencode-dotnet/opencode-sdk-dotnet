@@ -30,6 +30,12 @@ internal sealed class PendingOperationBindabilityProbe(ISpecBinder binder)
     private const string SyntheticGroupReason =
         "Synthetic single-operation probe curation for the pending-operation bindability telltale; never a real curation row.";
 
+    /// <summary>
+    /// The probe judges bindability only, and an experimental route binds only with a well-formed
+    /// id, so it gets one that names no family; nothing the probe binds is emitted.
+    /// </summary>
+    private const string SyntheticExperimentalDiagnostic = "OPENCODE000";
+
     private const string SyntheticMethodName = "ProbeAsync";
 
     /// <summary>Problems a missing curation row raises, never a shape wall: a bind only they refuse still probes as bindable.</summary>
@@ -113,7 +119,12 @@ internal sealed class PendingOperationBindabilityProbe(ISpecBinder binder)
         {
             Groups = new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
             {
-                [operation.Segments[0]] = new GroupCuration { Placement = GroupPlacement.Root, Reason = SyntheticGroupReason },
+                [operation.Segments[0]] = new GroupCuration
+                {
+                    Placement = GroupPlacement.Root,
+                    Reason = SyntheticGroupReason,
+                    ExperimentalDiagnostic = ExperimentalRoutePolicy.IsExperimental(operation.Path) ? SyntheticExperimentalDiagnostic : null,
+                },
             },
             OperationIdentities = [],
             OperationNames =

@@ -9,6 +9,10 @@ internal static class ExperimentalDiagnostics
 {
     public const string PersistentPty = "OPENCODE002";
 
+    // The published guide's address is the value the attribute carries, not a resource the SDK
+    // reaches; the attribute needs it as a constant. The contract wins over S1075.
+#pragma warning disable S1075
     public const string PersistentPtyUrl =
         "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002";
+#pragma warning restore S1075
 }

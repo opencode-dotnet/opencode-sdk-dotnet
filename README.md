@@ -81,7 +81,7 @@ its own when you use dependency injection.
 | Server info and pairing | `client.Server` | [Connection modes](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/connection-modes.md) |
 | Locations | `client.GetLocationAsync`, `client.ReloadLocationsAsync`, `client.Debug` | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md) |
 | Web search and RPC | `client.Websearch`, `client.Rpc` | — |
-| Operations upstream marks experimental | `client.Experimental` | — |
+| Operations upstream marks experimental | `client.Experimental` | [Experimental APIs](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md) |
 
 The two terminal connections (`pty.connect`, `persistentPty.connect`) are WebSocket upgrades that
 the HTTP pipeline cannot carry. They are fully usable through the hand-written `PtySession` and
@@ -264,6 +264,7 @@ binding uses reflection, so that overload is annotated `[RequiresDynamicCode]` a
 | [Errors and responses](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/errors-and-responses.md) | Throwing versus `NoThrow`, and the typed error model |
 | [Pagination](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/pagination.md) | Cursor-carrying list envelopes, `Enumerate*Async`, and its `Pages` |
 | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md) | Request records, the absent/null/set states of `Optional<T>`, query members, per-call location, and the permission, worktree, and shell-timeout members |
+| [Experimental APIs](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md) | What upstream serves as experimental, the `OPENCODE001`–`OPENCODE003` diagnostics, and how to opt in |
 
 Architecture, decision records, and engineering policy live under
 [`docs/`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/tree/master/docs). Start at

@@ -4,6 +4,7 @@ namespace OpenCode.Sdk;
 /// <summary>
 /// Shapes the &apos;GET /api/experimental/session/{sessionID}/terminal/read&apos; query.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
 public sealed record PersistentPtyReadRequest
 {
     /// <summary>

@@ -291,6 +291,7 @@ public class SessionClient
     /// <remarks>
     /// Operation <c>session.log</c>: <c>GET /api/experimental/session/{sessionID}/log</c>.
     /// </remarks>
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
     public virtual IAsyncEnumerable<ISessionLogItem> GetLogAsync(SessionLogRequest? request = null, CancellationToken cancellationToken = default)
     {
         return Pipeline.ExecuteStreamAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.GetLog(SessionId, request), SessionLogResponseStreamAdapter.Instance, cancellationToken);

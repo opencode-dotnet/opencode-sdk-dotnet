@@ -6,6 +6,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents a persistent pty snapshot value.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
 public sealed record PersistentPtySnapshot
 {
     /// <summary>
