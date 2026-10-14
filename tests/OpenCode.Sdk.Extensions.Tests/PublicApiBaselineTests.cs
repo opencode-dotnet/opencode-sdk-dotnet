@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Extensions.Tests;
 /// <summary>
 /// The Extensions package's public surface against its reviewed baseline, as the core package's is
 /// against its own: a change to it is reviewed as a diff of this file. It runs on .NET only: the
-/// net472 assembly renders without the trimming annotations, the one reviewed difference
+/// net472 assembly renders without the trimming annotations, one of the reviewed differences
 /// <see cref="ShippedAssetPublicApiTests"/> holds every shipped asset to.
 /// </summary>
 public sealed class PublicApiBaselineTests

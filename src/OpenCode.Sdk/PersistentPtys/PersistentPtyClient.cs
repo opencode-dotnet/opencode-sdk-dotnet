@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 
@@ -11,6 +12,7 @@ namespace OpenCode.Sdk;
 /// represented response still rides the generic envelope machinery, so route, status, and schema
 /// drift breaks compilation through the raw twin.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public class PersistentPtyClient
 {
     private readonly ConnectionSnapshot? _connection;

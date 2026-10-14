@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using OpenCode.Sdk.Internal;
+
 namespace OpenCode.Sdk;
 
 /// <summary>
@@ -8,6 +11,7 @@ namespace OpenCode.Sdk;
 /// <see cref="PersistentPtySession.Attachment"/> still reports the grant the connection opened
 /// with.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public sealed class PersistentPtyAttachedFrame : PersistentPtyFrame
 {
     /// <summary>

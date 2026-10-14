@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Extensions.Tests;
 /// Every asset the Extensions package ships exposes the reviewed public API baseline: the netstandard2.0
 /// compatibility asset, the .NET Framework asset and each modern one, each read from the build
 /// output, so a target framework that compiled a different surface fails here rather than reaching a
-/// consumer on that framework. The one reviewed difference between assets is
+/// consumer on that framework. The reviewed differences between assets are
 /// <see cref="ShippedAssetSurface.ExpectedAsync"/>'s.
 /// </summary>
 public sealed class ShippedAssetPublicApiTests

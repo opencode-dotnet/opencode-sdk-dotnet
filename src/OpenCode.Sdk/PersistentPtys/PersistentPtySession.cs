@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.WebSockets;
 using System.Text;
@@ -12,6 +13,7 @@ namespace OpenCode.Sdk;
 /// input carrying the current viewport, resize, and dispose to close. The session owns its
 /// socket. Output rides as bytes; a caller feeding an emulator writes them as they are.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public class PersistentPtySession : IAsyncDisposable
 {
     /// <summary>The framed input protocol; a server negotiating anything else is refused at attach.</summary>

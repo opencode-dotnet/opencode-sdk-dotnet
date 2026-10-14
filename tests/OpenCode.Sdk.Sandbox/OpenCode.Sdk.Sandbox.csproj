@@ -4,6 +4,8 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>false</IsPackable>
+    <!-- Exercises the SDK's experimental families (OPENCODE001-003) on purpose. -->
+    <NoWarn>$(NoWarn);OPENCODE001;OPENCODE002;OPENCODE003</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,9 +1,13 @@
+using System.Diagnostics.CodeAnalysis;
+using OpenCode.Sdk.Internal;
+
 namespace OpenCode.Sdk;
 
 /// <summary>
 /// The terminal's title changed. Knowledge source: upstream-observed — the daemon reports the
 /// title the shell set through its escape sequence, so this is what a tab or pane label shows.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public sealed class PersistentPtyTitleChangedFrame : PersistentPtyFrame
 {
     /// <summary>

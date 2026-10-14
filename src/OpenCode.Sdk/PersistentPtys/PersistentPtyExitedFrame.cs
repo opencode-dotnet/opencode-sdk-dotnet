@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using OpenCode.Sdk.Internal;
+
 namespace OpenCode.Sdk;
 
 /// <summary>
@@ -6,6 +9,7 @@ namespace OpenCode.Sdk;
 /// signalled or the code is unknown. The server closes the socket normally right after, and a
 /// terminal that exits while attached is removed by the server rather than lingering.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public sealed class PersistentPtyExitedFrame : PersistentPtyFrame
 {
     /// <summary>

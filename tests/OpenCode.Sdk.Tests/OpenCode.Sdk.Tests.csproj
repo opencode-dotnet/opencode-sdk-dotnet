@@ -10,6 +10,8 @@
     <TargetFrameworks Condition="'$(BuildOs)' == 'windows' Or '$(IncludeNet472Tests)' == 'true'">net472;$(TargetFrameworks)</TargetFrameworks>
     <!-- .NET Framework reads feature switches from App.config rather than runtimeconfig.json. -->
     <AppConfig Condition="'$(TargetFramework)' == 'net472'">App.net472.config</AppConfig>
+    <!-- Exercises the SDK's experimental families (OPENCODE001-003) on purpose. -->
+    <NoWarn>$(NoWarn);OPENCODE001;OPENCODE002;OPENCODE003</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

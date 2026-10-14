@@ -117,7 +117,9 @@ degrading into a full replay.
 ## 🧷 Persistent PTYs
 
 These terminals belong to the `opencode-pty` daemon, are keyed to a **session**, and survive a
-server restart. Creation is session-keyed; everything id-keyed sits on a handle:
+server restart. Upstream serves the family as experimental, so it needs an
+[opt-in](experimental.md#opencode002) (`OPENCODE002`). Creation is session-keyed; everything
+id-keyed sits on a handle:
 
 ```csharp
 var created = await client.PersistentPtys.CreatePersistentPtyAsync(sessionId, new PersistentPtyCreateRequest

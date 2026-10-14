@@ -2,10 +2,11 @@
 
 Date: 2026-09-24
 
-Seven pages for people **calling** the SDK. Read them in order the first time: install the package
+Eight pages for people **calling** the SDK. Read them in order the first time: install the package
 and make a call, decide how you reach a server, then how you shape what you send, then the three
 subsystems that behave differently from ordinary request/response calls — event streams, terminals,
-and cursor lists — plus the error model that runs underneath all of them.
+and cursor lists — plus the error model that runs underneath all of them, and the experimental APIs
+you opt into.
 
 Every C# snippet on these pages is compiled against the shipped public surface before it is written
 down, and every type is spelled exactly as the package spells it. If a page shows a member, that
@@ -20,6 +21,7 @@ member exists.
 | [Terminals](terminals.md) | PTY and persistent-PTY sessions over the WebSocket doors, frames, input, resize, and the Windows platform note |
 | [Errors and responses](errors-and-responses.md) | The response spine, throwing versus `NoThrow`, the typed error family, and transport failures |
 | [Pagination](pagination.md) | The two cursor-carrying list envelopes, manual paging, and the `EnumerateMessagesAsync` companion |
+| [Experimental APIs](experimental.md) | What upstream serves as experimental, the `OPENCODE001`–`OPENCODE003` diagnostics, and how to opt in |
 
 New here? [Getting started](getting-started.md) is the shortest path to a working call, and the
 root [README](../../README.md) carries the badges, the compatibility matrix, the API-coverage
