@@ -120,22 +120,26 @@ var texts = new Dictionary<(string AssistantMessageId, long Ordinal), string>();
 var turnEnded = false;
 while (!turnEnded && await events.MoveNextAsync())
 {
+    // Keep only this session's events; each of them names its session.
+    if (events.Current is not ISessionScopedEvent { SessionId: var id } || id != sessionId)
+    {
+        continue;
+    }
+
     switch (events.Current)
     {
-        case SessionInboxDelivered { Data: var data } when data.SessionId == sessionId && data.InboxId == promptId:
+        case SessionInboxDelivered { Data.InboxId: var inboxId } when inboxId == promptId:
             delivered = true;
             break;
-        case SessionTextDelta { Data: var delta } when delivered && delta.SessionId == sessionId:
+        case SessionTextDelta { Data: var delta } when delivered:
             var part = (delta.AssistantMessageId, delta.Ordinal);
             texts[part] = texts.TryGetValue(part, out var sofar) ? sofar + delta.Delta : delta.Delta;
             Console.Write(delta.Delta);
             break;
-        case SessionTextEnded { Data: var ended } when delivered && ended.SessionId == sessionId:
+        case SessionTextEnded { Data: var ended } when delivered:
             texts[(ended.AssistantMessageId, ended.Ordinal)] = ended.Text;
             break;
-        case SessionExecutionSucceeded { Data: var succeeded } when delivered && succeeded.SessionId == sessionId:
-        case SessionExecutionFailed { Data: var failed } when delivered && failed.SessionId == sessionId:
-        case SessionExecutionInterrupted { Data: var interrupted } when delivered && interrupted.SessionId == sessionId:
+        case SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted when delivered:
             turnEnded = true;
             break;
     }
@@ -146,6 +150,9 @@ while (!turnEnded && await events.MoveNextAsync())
   subscriber before anything else, so once it has arrived, nothing the session publishes is missed.
   Upstream's client fails a stream that starts with anything else, and its CLI waits for this event
   before it sends a prompt.
+- **Filter by session once.** Every event that belongs to a session implements
+  `ISessionScopedEvent`, so one check keeps this session's events and the `switch` below it needs
+  no session test of its own.
 - **Your own `Id` is how you find your prompt.** Upstream's CLI passes one too. The server requires
   only that it start with `msg_`; make it unique, as the `Guid` above does. When the session takes
   your prompt from its inbox, `SessionInboxDelivered` arrives with your id as its `InboxId`. Text the
