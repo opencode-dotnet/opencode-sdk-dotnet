@@ -12,7 +12,15 @@ namespace OpenCode.Sdk.TestSupport;
 /// attached drive controller. Simulation denies all unregistered outbound network by
 /// construction (backend/index.ts:29-35), so the workflow runs with no provider credentials.
 /// </summary>
-public sealed class SimulatedDriveServerFixture : IAsyncInitializer, IAsyncDisposable, ITestEndEventReceiver
+/// <remarks>
+/// The fixture is shared by every test of the session, so a model invocation one test leaves
+/// pending would surface as another test's failure. It fails closed instead: it reads the pending
+/// invocation ids before and after each test, and a test that otherwise passed fails when its run
+/// added an id it did not end, naming the test and the id. The attribution is exact because every
+/// class on this fixture carries <c>[NotInParallel(ParallelConstraintKeys.ServerProcess)]</c>, so
+/// no other test runs against the fixture between the two reads.
+/// </remarks>
+public sealed class SimulatedDriveServerFixture : IAsyncInitializer, IAsyncDisposable, ITestStartEventReceiver, ITestEndEventReceiver
 {
     private static readonly TimeSpan ControllerTimeout = TimeSpan.FromSeconds(30);
 
@@ -32,6 +40,7 @@ public sealed class SimulatedDriveServerFixture : IAsyncInitializer, IAsyncDispo
     private bool _retainLogs;
     private ServerFailureArtifacts? _artifacts;
     private int _disposed;
+    private IReadOnlyList<string> _pendingAtStart = [];
     public Uri Endpoint => Server.Endpoint;
 
     public int Order => 0;
@@ -126,10 +135,20 @@ public sealed class SimulatedDriveServerFixture : IAsyncInitializer, IAsyncDispo
         _ = Artifacts.Mark(exception, test, details, TestContext.Current?.Id);
     }
 
-    public ValueTask OnTestEnd(TestContext context)
+    public async ValueTask OnTestStart(TestContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        if (context.Execution.Result?.Exception is { } failure)
+        if (_controller is not null)
+        {
+            _pendingAtStart = await _controller.PendingInvocationIdsAsync();
+        }
+    }
+
+    public async ValueTask OnTestEnd(TestContext context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        var failure = context.Execution.Result?.Exception;
+        if (failure is not null)
         {
             var path = Artifacts.Mark(
                 failure,
@@ -142,7 +161,39 @@ public sealed class SimulatedDriveServerFixture : IAsyncInitializer, IAsyncDispo
             }
         }
 
-        return default;
+        await EnsureNoInvocationLeftPendingAsync(context, failure);
+    }
+
+    /// <summary>
+    /// Fails a test that passed but left a model invocation of its own pending. A test that already
+    /// failed keeps its own failure; the leftover is named in its output instead, and the next test
+    /// reads it as part of its starting set, so no later test is blamed for it.
+    /// </summary>
+    private async Task EnsureNoInvocationLeftPendingAsync(TestContext context, Exception? failure)
+    {
+        if (_controller is null)
+        {
+            return;
+        }
+
+        var leftover = (await _controller.PendingInvocationIdsAsync())
+            .Except(_pendingAtStart, StringComparer.Ordinal)
+            .ToArray();
+        if (leftover.Length == 0)
+        {
+            return;
+        }
+
+        var message = context.Metadata.TestDetails.ClassType.Name + "." + context.Metadata.TestName +
+            " left the simulated model invocation(s) " + string.Join(", ", leftover) +
+            " pending on the shared fixture; end every invocation a test starts.";
+        if (failure is not null)
+        {
+            context.Output.WriteError(message);
+            return;
+        }
+
+        throw new InvalidOperationException(message);
     }
 
     public async ValueTask DisposeAsync()

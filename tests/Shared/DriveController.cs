@@ -169,10 +169,16 @@ internal sealed class DriveController : IAsyncDisposable
         EnsureOk(response, "llm.disconnect");
     }
 
-    public async Task<int> PendingCountAsync()
+    /// <summary>
+    /// Reads the ids of the invocations the simulated provider holds pending. The fixture is
+    /// shared by every test of the session, so a test asserts on its own invocation ids, or on
+    /// what it added to a set it read first, never on a count that another test's leftover shares.
+    /// </summary>
+    public async Task<IReadOnlyList<string>> PendingInvocationIdsAsync()
     {
         using var response = await RoundTripAsync(DriveProtocol.Pending, "llm.pending");
-        return response.RootElement.GetProperty("result").GetProperty("invocations").GetArrayLength();
+        return [.. response.RootElement.GetProperty("result").GetProperty("invocations").EnumerateArray()
+            .Select(static invocation => invocation.GetProperty("id").GetString()!)];
     }
 
     /// <summary>
