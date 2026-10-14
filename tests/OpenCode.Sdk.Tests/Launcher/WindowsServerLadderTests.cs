@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using Microsoft.Win32.SafeHandles;
 using NSubstitute;
@@ -36,7 +37,7 @@ public sealed class WindowsServerLadderTests
         var treeKill = Substitute.For<IWindowsTreeKill>();
         using var root = new SafeProcessHandle(IntPtr.Zero, ownsHandle: false);
 
-        await new WindowsServerLadder(ProcessId, root, Task.FromResult(new ChildExitStatus { ExitCode = 7 }), treeKill, Bounds).RunAsync(Grace);
+        await new WindowsServerLadder(ProcessId, root, Task.FromResult(new ChildExitStatus { ExitCode = 7 }), treeKill, Bounds, TimeProvider.System).RunAsync(Grace);
 
         _ = await treeKill.DidNotReceive().KillTreeAsync(Arg.Any<int>(), Arg.Any<TimeSpan>());
     }
@@ -55,7 +56,7 @@ public sealed class WindowsServerLadderTests
         _ = treeKill.KillTreeAsync(ProcessId, Arg.Any<TimeSpan>()).Returns(Task.FromResult(TreeKillOutcome.Ended));
         using var root = new SafeProcessHandle(IntPtr.Zero, ownsHandle: false);
 
-        var ladder = new WindowsServerLadder(ProcessId, root, exited.Task, treeKill, Bounds).RunAsync(unwaitedGrace);
+        var ladder = new WindowsServerLadder(ProcessId, root, exited.Task, treeKill, Bounds, TimeProvider.System).RunAsync(unwaitedGrace);
         var killsBeforeAnyWait = treeKill.ReceivedCalls().ToList();
         _ = exited.TrySetResult(new ChildExitStatus { ExitCode = 1 });
         await ladder;
@@ -85,7 +86,7 @@ public sealed class WindowsServerLadderTests
         var treeKill = Substitute.For<IWindowsTreeKill>();
         _ = treeKill.KillTreeAsync(ProcessId, Arg.Any<TimeSpan>()).Returns(Task.FromResult(TreeKillOutcome.Failed));
         using var root = new SafeProcessHandle(IntPtr.Zero, ownsHandle: false);
-        var ladder = new WindowsServerLadder(ProcessId, root, exited.Task, treeKill, Bounds).RunAsync(unwaitedGrace);
+        var ladder = new WindowsServerLadder(ProcessId, root, exited.Task, treeKill, Bounds, TimeProvider.System).RunAsync(unwaitedGrace);
         var waitingAfterTheFirstRung = !ladder.IsCompleted;
         var killsBeforeTheExit = treeKill.ReceivedCalls().ToList();
 
@@ -98,31 +99,45 @@ public sealed class WindowsServerLadderTests
     }
 
     /// <summary>
-    /// The root outlives the grace: the pair runs again once the grace, which started with the first
-    /// kill, has passed, and then the ladder waits for the root at most its forced-exit bound.
+    /// The root outlives the grace: the pair runs again once the grace, which starts with the first
+    /// kill, has passed on the ladder's clock, and not a tick earlier; then the ladder waits for the
+    /// root at most its forced-exit bound. The clock moves only when the test moves it, so the interval
+    /// asserted is the one the ladder enforced, whatever the host's load.
     /// </summary>
     [Test]
     public async Task RunAsync_Should_Run_The_Second_Rung_Once_The_Grace_Passed()
     {
+        var hangGuard = TimeSpan.FromSeconds(30);
+        var time = new ManualTimeProvider();
         var exited = new TaskCompletionSource<ChildExitStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var clock = Stopwatch.StartNew();
-        var calls = new List<TimeSpan>();
+        var kills = new ConcurrentQueue<DateTimeOffset>();
         var treeKill = Substitute.For<IWindowsTreeKill>();
-        _ = treeKill.KillTreeAsync(ProcessId, Arg.Any<TimeSpan>()).Returns(call =>
+        _ = treeKill.KillTreeAsync(ProcessId, Arg.Any<TimeSpan>()).Returns(_ =>
         {
-            calls.Add(clock.Elapsed);
+            kills.Enqueue(time.GetUtcNow());
             return Task.FromResult(TreeKillOutcome.Ended);
         });
         using var root = new SafeProcessHandle(IntPtr.Zero, ownsHandle: false);
+        var started = time.GetUtcNow();
 
-        await new WindowsServerLadder(ProcessId, root, exited.Task, treeKill, Bounds).RunAsync(Grace);
-        var elapsed = clock.Elapsed;
+        var ladder = new WindowsServerLadder(ProcessId, root, exited.Task, treeKill, Bounds, time).RunAsync(Grace);
+        await time.WaitForTimerAsync(hangGuard);
+        time.Advance(Grace - TimeSpan.FromTicks(1));
+        var killsBeforeTheGracePassed = kills.Count;
+        time.Advance(TimeSpan.FromTicks(1));
+        await time.WaitForTimerAsync(hangGuard);
+        var endedBeforeTheForcedExitBound = ladder.IsCompleted;
+        time.Advance(Bounds.ForcedExit);
+        await ladder.WaitAsync(hangGuard);
 
-        await Assert.That(calls.Count).IsEqualTo(2);
-        await Assert.That(calls[1] - calls[0]).IsGreaterThanOrEqualTo(Grace - TimerSlack);
+        await Assert.That(killsBeforeTheGracePassed).IsEqualTo(1);
+        var killedAt = kills.ToArray();
+        await Assert.That(killedAt).Count().IsEqualTo(2);
+        await Assert.That(killedAt[0]).IsEqualTo(started);
+        await Assert.That(killedAt[1]).IsEqualTo(started + Grace);
+        await Assert.That(endedBeforeTheForcedExitBound).IsFalse();
         _ = await treeKill.Received(1).KillTreeAsync(ProcessId, Grace);
         _ = await treeKill.Received(1).KillTreeAsync(ProcessId, Bounds.TreeKill);
-        await Assert.That(elapsed).IsGreaterThanOrEqualTo(Grace + Bounds.ForcedExit - TimerSlack);
     }
 
     /// <summary>A grace of zero leaves no time for the first rung: the second runs at once, alone.</summary>
@@ -138,7 +153,7 @@ public sealed class WindowsServerLadderTests
         });
         using var root = new SafeProcessHandle(IntPtr.Zero, ownsHandle: false);
 
-        await new WindowsServerLadder(ProcessId, root, exited.Task, treeKill, Bounds).RunAsync(TimeSpan.Zero);
+        await new WindowsServerLadder(ProcessId, root, exited.Task, treeKill, Bounds, TimeProvider.System).RunAsync(TimeSpan.Zero);
 
         _ = await treeKill.Received(1).KillTreeAsync(Arg.Any<int>(), Arg.Any<TimeSpan>());
         _ = await treeKill.Received(1).KillTreeAsync(ProcessId, Bounds.TreeKill);
@@ -166,7 +181,7 @@ public sealed class WindowsServerLadderTests
         using var root = new SafeProcessHandle(IntPtr.Zero, ownsHandle: false);
         var run = Stopwatch.StartNew();
 
-        await new WindowsServerLadder(ProcessId, root, stillRunning.Task, treeKill, Bounds).RunAsync(Grace).WaitAsync(cancellationToken);
+        await new WindowsServerLadder(ProcessId, root, stillRunning.Task, treeKill, Bounds, TimeProvider.System).RunAsync(Grace).WaitAsync(cancellationToken);
         var elapsed = run.Elapsed;
 
         var worstCase = Grace + Bounds.TreeKill + Bounds.ForcedExit;

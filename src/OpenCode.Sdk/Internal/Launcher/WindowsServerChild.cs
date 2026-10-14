@@ -174,7 +174,7 @@ internal static class WindowsServerChild
         {
             watch = seams.WindowsExits.Watch(spawned.Process);
             var pump = PipeOutputPump.Start(standardOutput, spawned.StandardError, start.OnStandardOutput, start.OnStandardError);
-            var ladder = new WindowsServerLadder(spawned.ProcessId, spawned.Process, watch.Exited, seams.TreeKill, WindowsLadderBounds.Default);
+            var ladder = new WindowsServerLadder(spawned.ProcessId, spawned.Process, watch.Exited, seams.TreeKill, WindowsLadderBounds.Default, seams.Time);
             return new OwnedServerChild(
                 new OwnedServerProcess
                 {
