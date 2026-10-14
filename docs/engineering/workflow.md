@@ -48,7 +48,8 @@ class can be reverted alone, and the pull request passes the full completion gat
 3. **Analyzers** — every new diagnostic is decided per rule under the analyzer policy in
    `quality-gates.md`, never by a blanket suppression.
 4. **Test stack** — last, so a test-host regression is the last commit; a snapshot format change
-   is reviewed as a complete diff.
+   is reviewed as a complete diff. Verify's open-source maintenance-fee exemption in
+   `tests/Directory.Build.props` runs at most 12 months, and every refresh moves its end month.
 
 ## Documentation sessions
 

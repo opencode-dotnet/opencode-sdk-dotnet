@@ -53,7 +53,7 @@ public sealed class GitRepositoryWorkspaceTests
         var inner = new MockFileSystem();
         var directory = Substitute.For<IDirectory>();
         directory.CreateDirectory(Arg.Any<string>()).Returns(call =>
-            inner.Directory.CreateDirectory(call.Arg<string>()!));
+            inner.Directory.CreateDirectory(call.Arg<string>()));
         directory.When(value => value.Delete(Arg.Any<string>(), recursive: true)).Do(_ => throw cleanupFailure);
         var fileSystem = Substitute.For<IFileSystem>();
         fileSystem.Directory.Returns(directory);

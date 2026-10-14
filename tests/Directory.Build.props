@@ -6,5 +6,10 @@
     <!-- The repo-wide Polyfill reference (root props) already covers downlevel TFMs; TUnit's
          own injection duplicates it under CPM during restore (NU1504), so switch it off. -->
     <EnableTUnitPolyfills>false</EnableTUnitPolyfills>
+    <!-- Verify 33+ requires a maintenance-fee declaration; this MIT project generates no revenue,
+         which the fee exempts. The exemption runs at most 12 months: the dependency refresh
+         renews it. -->
+    <Verify_SponsorshipExemption>OpenSource</Verify_SponsorshipExemption>
+    <Verify_SponsorshipExemptionUntil>2027-09</Verify_SponsorshipExemptionUntil>
   </PropertyGroup>
 </Project>

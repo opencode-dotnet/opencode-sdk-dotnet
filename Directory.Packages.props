@@ -37,13 +37,13 @@
     <PackageVersion Include="Spectre.Console" Version="0.57.2" />
     <PackageVersion Include="Spectre.Console.Cli" Version="0.57.2" />
     <PackageVersion Include="Spectre.Console.Cli.Extensions.DependencyInjection" Version="0.30.0" />
-    <PackageVersion Include="Testably.Abstractions" Version="10.3.0" />
+    <PackageVersion Include="Testably.Abstractions" Version="10.4.0" />
     <!-- test packages -->
-    <PackageVersion Include="NSubstitute" Version="6.0.0" />
+    <PackageVersion Include="NSubstitute" Version="6.2.0" />
     <PackageVersion Include="Spectre.Console.Cli.Testing" Version="0.57.2" />
-    <PackageVersion Include="Testably.Abstractions.Testing" Version="7.0.2" />
-    <PackageVersion Include="TUnit" Version="1.63.25" />
+    <PackageVersion Include="Testably.Abstractions.Testing" Version="7.1.1" />
+    <PackageVersion Include="TUnit" Version="1.75.0" />
     <PackageVersion Include="PublicApiGenerator" Version="11.5.4" />
-    <PackageVersion Include="Verify.TUnit" Version="31.28.0" />
+    <PackageVersion Include="Verify.TUnit" Version="33.3.3" />
   </ItemGroup>
 </Project>
