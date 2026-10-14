@@ -338,7 +338,6 @@ public class OpenCodeServer : IAsyncDisposable
 
         options ??= new OpenCodeServerOptions();
         var command = SnapshotCommand(options);
-        ValidateTimeouts(options);
         var readinessTimeout = options.ReadinessTimeout;
         var output = BindOutput(options);
 
@@ -498,19 +497,6 @@ public class OpenCodeServer : IAsyncDisposable
         }
 
         return output;
-    }
-
-    private static void ValidateTimeouts(OpenCodeServerOptions options)
-    {
-        if (options.ReadinessTimeout <= TimeSpan.Zero)
-        {
-            throw new ArgumentException("OpenCodeServerOptions.ReadinessTimeout must be positive.", nameof(options));
-        }
-
-        if (options.GracefulShutdownTimeout < TimeSpan.Zero)
-        {
-            throw new ArgumentException("OpenCodeServerOptions.GracefulShutdownTimeout cannot be negative.", nameof(options));
-        }
     }
 
     private static (Action<string> StandardOutput, Action<string> StandardError) CreateOutputHandlers(
