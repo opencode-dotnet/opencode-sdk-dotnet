@@ -117,7 +117,7 @@ public sealed class SessionLogContractTests
             .That(async () => _ = await CollectAsync(scenario))
             .Throws<OpenCodeStreamFailureException>();
 
-        var cause = (StreamFailureCauseDie)exception!.Cause.Single();
+        var cause = (StreamFailureCauseDie)exception!.Causes.Single();
         await Assert.That(cause.Defect.ValueKind).IsEqualTo(JsonValueKind.String);
         await Assert.That(cause.Defect.GetString()).IsEqualTo("boom");
     }
@@ -132,7 +132,7 @@ public sealed class SessionLogContractTests
             .That(async () => _ = await CollectAsync(scenario))
             .Throws<OpenCodeStreamFailureException>();
 
-        var cause = (UnknownStreamFailureCause)exception!.Cause.Single();
+        var cause = (UnknownStreamFailureCause)exception!.Causes.Single();
         await Assert.That(cause.Tag).IsEqualTo("FutureCause");
         await Assert.That(cause.Payload.GetProperty("detail").GetString()).IsEqualTo("later");
     }
@@ -164,7 +164,7 @@ public sealed class SessionLogContractTests
             .That(async () => _ = await CollectAsync(scenario))
             .Throws<OpenCodeStreamFailureException>();
 
-        var cause = (StreamFailureCauseInterrupt)exception!.Cause.Single();
+        var cause = (StreamFailureCauseInterrupt)exception!.Causes.Single();
         await Assert.That(cause.FiberId).IsEqualTo(expectedFiberId);
     }
 
@@ -178,9 +178,9 @@ public sealed class SessionLogContractTests
             .That(async () => _ = await CollectAsync(scenario))
             .Throws<OpenCodeStreamFailureException>();
 
-        await Assert.That(exception!.Cause).Count().IsEqualTo(2);
-        await Assert.That(exception.Cause[0]).IsTypeOf<StreamFailureCauseDie>();
-        await Assert.That(exception.Cause[1]).IsTypeOf<StreamFailureCauseInterrupt>();
+        await Assert.That(exception!.Causes).Count().IsEqualTo(2);
+        await Assert.That(exception.Causes[0]).IsTypeOf<StreamFailureCauseDie>();
+        await Assert.That(exception.Causes[1]).IsTypeOf<StreamFailureCauseInterrupt>();
     }
 
     [Test]
@@ -193,7 +193,7 @@ public sealed class SessionLogContractTests
             .That(async () => _ = await CollectAsync(scenario))
             .Throws<OpenCodeStreamFailureException>();
 
-        await Assert.That(exception!.Cause).IsEmpty();
+        await Assert.That(exception!.Causes).IsEmpty();
     }
 
     [Test]

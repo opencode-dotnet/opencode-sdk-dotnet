@@ -295,7 +295,7 @@ section it concerns (ADR-0031).
   throwing and `NoThrow` paths retain exact `RawBody`. Declared no-content successes drain an
   unexpected body with the buffered response and ignore it (ADR-0007, ADR-0014).
 - A schema-valid reserved failure frame throws `OpenCodeStreamFailureException`, a subtype of
-  `OpenCodeTransportException`, with typed causes on its non-null `Cause` collection. Invalid cause
+  `OpenCodeTransportException`, with typed causes on its non-null `Causes` collection. Invalid cause
   JSON, null materialization, and declared-but-impossible cause tags remain base transport/protocol
   failures rather than partially typed exceptions (ADR-0015).
 

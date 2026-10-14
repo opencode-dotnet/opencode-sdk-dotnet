@@ -16,6 +16,13 @@ Nightly builds of `master` are on
   interface members. Configure clients through `OpenCodeClientOptions`, which a client still
   snapshots at construction. Code that declared a variable or parameter as
   `IOpenCodeClientOptions` uses `OpenCodeClientOptions` instead.
+- **`OpenCodeStreamFailureException.Cause` is now `Causes`.** It is a list of causes, so the name
+  is now plural. The constructor parameter is now `causes` as well. Read `failure.Causes` where
+  you read `failure.Cause`, and pass `causes:` where you named the argument.
+- **`PersistentPtyReplayBounds` takes camelCase constructor parameters.** They are
+  `requestedOffset`, `availableOffset`, `endOffset` and `truncated`, like the other frame types'
+  constructors. The properties keep their names, and positional construction, `with` and
+  deconstruction are unchanged. Only a call that named an argument (`RequestedOffset: 0`) changes.
 
 ### ✨ Added
 
