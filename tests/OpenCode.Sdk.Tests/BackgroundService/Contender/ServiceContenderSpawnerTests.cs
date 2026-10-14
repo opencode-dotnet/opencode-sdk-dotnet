@@ -40,7 +40,7 @@ public sealed class ServiceContenderSpawnerTests
     /// <summary>The fixture's default fill: 256 blocks, so the final 8 KiB cuts across numbered block boundaries.</summary>
     private const int DefaultFillBytes = 16 * 1024;
 
-    /// <summary>The release-drain fill: far over the pipe buffer, paced by the fixture, so a drain that stopped would wedge the contender.</summary>
+    /// <summary>The release-drain fill: far over every pipe buffer, so a drain that stopped would wedge the contender.</summary>
     private const int DrainFillBytes = 4 * 1024 * 1024;
 
     /// <summary>The fixture's stdout flood; the seam must give the contender NUL stdout for the flood to complete.</summary>
@@ -56,9 +56,9 @@ public sealed class ServiceContenderSpawnerTests
     private const ulong StandardSignals = 0x7FFF_FFFF;
 
     private static readonly TimeSpan ExitBound = TimeSpan.FromSeconds(15);
-    /// <summary>The release-drain proof's finish bound: the paced writer needs about eight
-    /// seconds unloaded, and sixty covers the timer lag the three-vCPU macOS leg adds under
-    /// module overlap while staying far under the test's own two-minute timeout.</summary>
+    /// <summary>The release-drain proof's hang guard: the released writer's 4 MiB drain takes well
+    /// under a second, so only a drain that stopped reaches it, far under the test's own
+    /// two-minute timeout.</summary>
     private static readonly TimeSpan DrainBound = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan SurvivalBound = TimeSpan.FromSeconds(1);
     private static readonly RealFileSystem FileSystem = new();
@@ -555,7 +555,12 @@ public sealed class ServiceContenderSpawnerTests
     [Timeout(120_000)]
     public async Task Release_Should_Keep_Draining_Standard_Error_So_The_Contender_Finishes(CancellationToken cancellationToken)
     {
-        using var contender = Spawner.Start(FixtureProbe("contender-probe", "stderr-fill", DrainFillBytes.ToString(CultureInfo.InvariantCulture)));
+        // The writer holds after its first chunk until the hold file exists, so it is alive across
+        // the release by construction, and the rest of the fill, far over every pipe buffer, only
+        // starts once the contender has been released.
+        var holdFile = FileSystem.Path.Combine(FileSystem.Path.GetTempPath(), "opencode-contender-hold-" + Guid.NewGuid().ToString("N"));
+        using var contender = Spawner.Start(FixtureProbe(
+            "contender-probe", "stderr-fill", DrainFillBytes.ToString(CultureInfo.InvariantCulture), holdFile));
         try
         {
             _ = await LiveReadiness.WaitAsync(
@@ -567,15 +572,21 @@ public sealed class ServiceContenderSpawnerTests
             contender.Release();
             await Assert.That(contender.Stderr).IsEqualTo(string.Empty);
 
-            // Not killed at release, not dead of a closed pipe: alive across a bound far under
-            // the time the remaining write still needs, then gone from the process table when the
-            // drain carried it — reaped by the contender itself, with nobody polling it.
+            // Not killed at release: alive across a bound while it holds. Then, released, the fill
+            // runs through the drain and the writer is gone from the process table, reaped by the
+            // contender itself with nobody polling it, and it exited 0: a pipe closed at release
+            // would have failed its write.
             await Assert.That(await ProcessObservation.ObserveExitWithinAsync(contender.ProcessId, SurvivalBound, cancellationToken)).IsFalse();
+            await FileSystem.File.Create(holdFile).DisposeAsync();
             await Assert.That(await ProcessObservation.ObserveExitWithinAsync(contender.ProcessId, DrainBound, cancellationToken)).IsTrue();
+            await Assert.That(await WaitForTheProbeAsync(contender, "the released fill to finish", cancellationToken)).IsTrue();
+            await Assert.That(contender.TryGetFailure()).IsNull();
+            await Assert.That(contender.ExitedZero).IsTrue();
         }
         finally
         {
             ProcessObservation.KillIfRunning(contender.ProcessId);
+            FileSystem.File.Delete(holdFile);
         }
     }
 

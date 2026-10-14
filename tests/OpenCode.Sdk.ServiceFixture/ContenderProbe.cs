@@ -2,8 +2,11 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Win32.SafeHandles;
+using Testably.Abstractions;
 
 namespace OpenCode.Sdk.ServiceFixture;
 
@@ -21,8 +24,11 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// prints one JSON line on stderr carrying this process's own arguments (everything after the mode
 /// name) and the value of each named environment variable (<c>null</c> for one that is absent),
 /// together with what the process can see of its standard streams; it exits 0.
-/// <c>stderr-fill [bytes]</c> writes <c>bytes</c> (16 KiB by default) of a position-numbered,
-/// whitespace-free pattern to stderr in 4 KiB chunks paced five milliseconds apart, and exits 0.
+/// <c>stderr-fill [bytes [hold-file]]</c> writes <c>bytes</c> (16 KiB by default) of a
+/// position-numbered, whitespace-free pattern to stderr in 4 KiB chunks, and exits 0; given a
+/// <c>hold-file</c>, it holds after the first chunk until that file exists, then writes the rest at
+/// once. It writes through the raw stderr handle, so a pipe closed under it fails the write and the
+/// probe exits <see cref="ClosedStandardErrorExitCode"/>.
 /// <c>daemon-sleep</c> prints <c>ready pid=&lt;pid&gt;</c> on stderr and then sleeps until a signal
 /// ends it. <c>daemon-parent</c> starts a <c>daemon-sleep</c> of its own that writes to this
 /// process's stderr, prints <c>spawned pid=&lt;pid&gt;</c> naming it, and exits at once: the short-lived
@@ -52,8 +58,19 @@ internal static class ContenderProbe
 
     private const int ChunkBytes = 4 * 1024;
 
-    /// <summary>The pacing between stderr-fill chunks: fast enough for the tail proof, slow enough for the release-drain proof to stay inside its survival window.</summary>
-    private static readonly TimeSpan ChunkDelay = TimeSpan.FromMilliseconds(5);
+    /// <summary>stderr-fill's exit when its stderr pipe was closed under it: what a contender whose reader stopped would meet.</summary>
+    public const int ClosedStandardErrorExitCode = 3;
+
+    /// <summary><c>STD_ERROR_HANDLE</c>.</summary>
+    private const int StandardErrorHandle = -12;
+
+    /// <summary>The Unix standard error descriptor.</summary>
+    private const int StandardErrorDescriptor = 2;
+
+    /// <summary>How often a held stderr-fill looks for its hold file; it decides nothing but how soon the hold ends.</summary>
+    private static readonly TimeSpan HoldPoll = TimeSpan.FromMilliseconds(10);
+
+    private static readonly RealFileSystem FileSystem = new();
 
     /// <summary>
     /// The stdin probe's hang guard: a NUL stdin answers end-of-file at once, so only a stdin that
@@ -151,26 +168,45 @@ internal static class ContenderProbe
         }
     }
 
-    [SlopwatchSuppress(
-        "SW004",
-        "The delay paces the fill inside the test's survival window: unpaced output would still prove the tail, but the release-drain proof needs the writer alive across Release, and pipe backpressure alone does not schedule that.")]
     private static async Task<int> FillStandardErrorAsync(IReadOnlyList<string> arguments)
     {
         var bytes = DefaultFillBytes;
         if (arguments.Count > 0
-            && (arguments.Count > 1
+            && (arguments.Count > 2
                 || !int.TryParse(arguments[0], NumberStyles.None, CultureInfo.InvariantCulture, out bytes)
                 || bytes <= 0))
         {
             return await UsageAsync().ConfigureAwait(false);
         }
 
-        // Numbered 64-byte blocks, flushed in 4 KiB chunks five milliseconds apart: the numbers
-        // make the final tail's boundary checkable byte for byte, and the pace keeps the release
-        // proof from finishing before its survival window closes.
+        // Numbered 64-byte blocks, flushed in 4 KiB chunks: the numbers make the final tail's
+        // boundary checkable byte for byte. A hold file keeps the writer alive after its first
+        // chunk until the test says so, so the release proof decides when the bulk of the fill
+        // starts, and the clock never does.
+        var holdFile = arguments.Count == 2 ? arguments[1] : null;
+        using var handle = RawStandardErrorHandle();
+        var stderr = FileSystem.FileStream.New(handle, FileAccess.Write, bufferSize: 1);
+        await using (stderr.ConfigureAwait(false))
+        {
+            try
+            {
+                await FillAsync(stderr, bytes, holdFile).ConfigureAwait(false);
+            }
+            catch (IOException)
+            {
+                return ClosedStandardErrorExitCode;
+            }
+        }
+
+        return 0;
+    }
+
+    private static async Task FillAsync(Stream stderr, int bytes, string? holdFile)
+    {
         var builder = new StringBuilder(ChunkBytes);
         var remaining = bytes;
         var block = 0;
+        var chunks = 0;
         while (remaining > 0)
         {
             var count = Math.Min(BlockBytes, remaining);
@@ -180,15 +216,31 @@ internal static class ContenderProbe
             block++;
             if (builder.Length >= ChunkBytes || remaining == 0)
             {
-                await Console.Error.WriteAsync(builder).ConfigureAwait(false);
+                await stderr.WriteAsync(Encoding.ASCII.GetBytes(builder.ToString())).ConfigureAwait(false);
                 _ = builder.Clear();
-                await Console.Error.FlushAsync().ConfigureAwait(false);
-                await Task.Delay(ChunkDelay).ConfigureAwait(false);
+                if (++chunks == 1 && holdFile is not null)
+                {
+                    await HoldUntilExistsAsync(holdFile).ConfigureAwait(false);
+                }
             }
         }
-
-        return 0;
     }
+
+    /// <summary>
+    /// The process's raw stderr handle, which this process does not own, for an unbuffered stream.
+    /// <see cref="Console.Error"/>'s stream swallows a broken pipe (<c>ERROR_BROKEN_PIPE</c> and
+    /// <c>ERROR_NO_DATA</c> on Windows, <c>EPIPE</c> on Unix), so a writer whose reader closed the
+    /// pipe would exit 0 as if it had been drained; a stream on the raw handle throws instead. The
+    /// runtime ignores <c>SIGPIPE</c>, so on Unix the closed pipe surfaces as an
+    /// <see cref="IOException"/> for <c>EPIPE</c>, not as a signal; either way the probe exits
+    /// nonzero, as a contender that dies of the closed pipe would.
+    /// </summary>
+    private static SafeFileHandle RawStandardErrorHandle() =>
+        new(OperatingSystem.IsWindows() ? GetStdHandle(StandardErrorHandle) : new IntPtr(StandardErrorDescriptor), ownsHandle: false);
+
+    [DllImport("kernel32", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern IntPtr GetStdHandle(int standardHandle);
 
     /// <summary>
     /// Prints the ready line naming this process's pid on the one channel the contender seam
@@ -235,10 +287,21 @@ internal static class ContenderProbe
         return 0;
     }
 
+    [SlopwatchSuppress(
+        "SW004",
+        "The poll looks for the test's hold file, which the test creates when it releases the writer; the interval decides only how soon the writer notices, never whether a proof passes.")]
+    private static async Task HoldUntilExistsAsync(string holdFile)
+    {
+        while (!FileSystem.File.Exists(holdFile))
+        {
+            await Task.Delay(HoldPoll).ConfigureAwait(false);
+        }
+    }
+
     private static async Task<int> UsageAsync()
     {
         await Console.Error
-            .WriteLineAsync("Usage: contender-probe echo-argv-env [name …] | stderr-fill [bytes] | daemon-sleep | daemon-parent | stall | stale | console-report | group-report | group-member")
+            .WriteLineAsync("Usage: contender-probe echo-argv-env [name …] | stderr-fill [bytes [hold-file]] | daemon-sleep | daemon-parent | stall | stale | console-report | group-report | group-member")
             .ConfigureAwait(false);
         return 2;
     }
