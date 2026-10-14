@@ -77,7 +77,7 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    `net8.0` and `net9.0` leave now, ahead of their end of support on 2026-11-10, across packages,
    tests, CI legs, the public API check, and the docs; no non-preview package is built on a
    pre-GA SDK. A consumer whose target falls back to the `netstandard2.0` asset on an unsupported
-   runtime gets a build warning. It follows `0.9.0-preview.9`. Launcher parity work rides the same
+   runtime gets a build warning. It ships in `0.9.0-preview.10`. Launcher parity work rides the same
    workstream (ADR-0032): on Linux and macOS the launcher places its server in a session of its own
    and ends it on upstream's ladder (a SIGTERM to the process group before the SIGKILL); on Windows
    it places its server in a kill-on-close job, passes it only its standard handles, reads its

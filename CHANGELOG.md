@@ -9,6 +9,19 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+## [0.9.0-preview.10] - 2026-10-14
+
+**The packages target `netstandard2.0`, `net472`, `net10.0`, and `net11.0`: `net8.0` and `net9.0`
+leave ahead of their end of support, and `net11.0` joins on its go-live release candidate.** A
+project on .NET 8 or 9 still installs the packages through the `netstandard2.0` asset, now with a
+build warning. The pin moves to upstream release tag `v2.0.29`, which adds provider compatibility
+defaults, request-body encoding and top-level config policies. `OpenCodeServer.Exited` reports how
+a started server ended, and on Windows a server's exit is observed on the operating system's own
+wait thread, so a busy host no longer reports a crashed start as a closed stdout. The breaking
+changes come first: besides the target frameworks, `OpenCodeServerOptions` refuses an out-of-range
+timeout when it is set, `IOpenCodeClientOptions` is removed, and
+`OpenCodeStreamFailureException.Cause` is now `Causes`.
+
 ### 💥 Breaking changes
 
 - **The packages target `netstandard2.0`, `net472`, `net10.0`, and `net11.0`.** `net8.0` and
@@ -110,6 +123,12 @@ Nightly builds of `master` are on
   write through a `chmod` child process after the create. That process now receives a quoted path,
   and a nonzero exit removes the file and fails the create, as the modern targets' atomic
   owner-only create does. Behaviour change: such a file was kept at the process umask before.
+
+### 📋 Important Notes
+
+- **This release is built on the .NET 11 release-candidate SDK.** A preview package may build on a
+  go-live release candidate (ADR-0002); the first non-preview package waits for the GA SDK. The
+  `net11.0` asset needs the .NET 11 runtime, and a `net10.0` app keeps using the `net10.0` asset.
 
 ## [0.9.0-preview.9] - 2026-10-13
 
@@ -1334,6 +1353,7 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[0.9.0-preview.10]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.10
 [0.9.0-preview.9]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.9
 [0.9.0-preview.8]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.8
 [0.9.0-preview.7]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.7
