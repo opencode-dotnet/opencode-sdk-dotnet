@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents a session tool input delta value.
 /// </summary>
-public sealed record SessionToolInputDelta : IEvent
+public sealed record SessionToolInputDelta : IEvent, ISessionScopedEvent
 {
     /// <summary>
     /// Gets the id value.
@@ -46,4 +46,6 @@ public sealed record SessionToolInputDelta : IEvent
     /// </summary>
     [JsonPropertyName("data")]
     public required SessionToolInputDeltaData Data { get; init; }
+
+    string ISessionScopedEvent.SessionId => Data.SessionId;
 }

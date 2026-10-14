@@ -61,6 +61,15 @@ Nightly builds of `master` are on
     if (rule.Effect == PermissionEffect.Allow) { /* … */ }
     ```
 
+### ✨ Added
+
+- **`ISessionScopedEvent` routes an event by its session.** Every event whose payload names the
+  session it happened in (58 at the pin: the `session.*` events, `permission.asked`/`replied`,
+  `persistent-pty.added`/`removed` and `tui.session.select`) implements it, so
+  `e is ISessionScopedEvent { SessionId: var id }` replaces a switch over every type. The member is
+  implemented explicitly, so the events gain no public member and serialize as before. The form
+  events are not session-scoped: a form's session id can be `"global"`.
+
 ### 🐛 Fixes
 
 - **An event stream no longer ends on an enum value the SDK does not know.** Before, a frame with

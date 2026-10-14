@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents a persistent pty removed value.
 /// </summary>
-public sealed record PersistentPtyRemoved : IEvent
+public sealed record PersistentPtyRemoved : IEvent, ISessionScopedEvent
 {
     /// <summary>
     /// Gets the id value.
@@ -46,4 +46,6 @@ public sealed record PersistentPtyRemoved : IEvent
     /// </summary>
     [JsonPropertyName("data")]
     public required PersistentPtyRemovedData Data { get; init; }
+
+    string ISessionScopedEvent.SessionId => Data.SessionId;
 }

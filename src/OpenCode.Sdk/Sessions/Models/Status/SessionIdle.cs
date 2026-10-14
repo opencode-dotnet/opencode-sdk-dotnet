@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents a session idle value.
 /// </summary>
-public sealed record SessionIdle : IEvent
+public sealed record SessionIdle : IEvent, ISessionScopedEvent
 {
     /// <summary>
     /// Gets the id value.
@@ -46,4 +46,6 @@ public sealed record SessionIdle : IEvent
     /// </summary>
     [JsonPropertyName("data")]
     public required SessionIdleData Data { get; init; }
+
+    string ISessionScopedEvent.SessionId => Data.SessionId;
 }

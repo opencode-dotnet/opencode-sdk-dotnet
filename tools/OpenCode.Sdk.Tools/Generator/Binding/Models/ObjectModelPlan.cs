@@ -2,6 +2,9 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 internal sealed record ObjectModelPlan : ModelPlan
 {
+    /// <summary>Gets the session identifier projection, only for a qualifying event record.</summary>
+    public SessionScopedEventPlan? SessionScopedEvent { get; init; }
+
     /// <summary>The public read-only view of an open model's extension data; no named property may take the name.</summary>
     public const string ExtensionDataMemberName = "AdditionalProperties";
 

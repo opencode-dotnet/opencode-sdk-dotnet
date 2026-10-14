@@ -1,0 +1,24 @@
+{
+  "sessionScopedEvent": {
+    "unions": ["IEvent"],
+    "payloadMember": "data",
+    "member": "sessionID",
+    "identifier": "Session.ID"
+  },
+  "groups": {},
+  "operationIdentities": [],
+  "operationNames": [],
+  "parameterNames": [],
+  "schemaNames": [],
+  "envelopePayloadNames": {},
+  "schemaAliases": [],
+  "enumMemberNames": [],
+  "hoistedMemberNames": [],
+  "transportOwned": [],
+  "redactedMembers": [],
+  "redactedOpenMembers": [],
+  "secretLookingNames": [],
+  "declined": [],
+  "modelOwners": [],
+  "sessionAreas": []
+}

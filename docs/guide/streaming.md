@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-10-14
+Date: 2026-10-15
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **global event bus** for everything happening in the server
@@ -41,11 +41,34 @@ await foreach (var @event in client.Events.SubscribeAsync(window.Token))
 type adds its own payload, so a `switch` on the type is the way in; `@event.Type` is there for
 logging and for the frames you have not written a case for.
 
+### 🧭 Routing by session
+
+Every event that belongs to one session implements `ISessionScopedEvent`, whose `SessionId` names
+that session, so you can keep the events of one session without listing their types:
+
+```csharp
+await foreach (var @event in client.Events.SubscribeAsync(window.Token))
+{
+    if (@event is ISessionScopedEvent { SessionId: var id } && id == sessionId)
+    {
+        Console.WriteLine($"{@event.Type} in {id}");
+    }
+}
+```
+
+The form events are not among them: a form's session id can be `"global"` rather than a session,
+and `form.created` carries it inside the form. Read `Data.SessionId` on `FormCancelled` and
+`FormReplied`, and `Data.Form.SessionId` on `FormCreated`.
+
 ### ⏳ Waiting for a turn to end
 
 A session's turn ends with exactly one of three events: `SessionExecutionSucceeded`,
 `SessionExecutionFailed`, or `SessionExecutionInterrupted`. The server publishes one each time the
-session goes from working to idle, however many prompts it worked through. Open the bus **before**
+session goes from working to idle, however many prompts it worked through. The samples here stop
+on any `SessionExecutionInterrupted`, including one whose `Reason` is `Shutdown`. That interrupt means
+the server is stopping: the stream ends with it, and the server resumes the turn after it restarts,
+with a new `SessionExecutionStarted`. To follow the resumed turn, subscribe again once the server is
+back and wait the same way. Open the bus **before**
 you prompt, because an event published before you listen is gone; the first event,
 `EventServerConnected`, says the stream is live:
 
@@ -61,14 +84,8 @@ await session.PromptAsync(new SessionPromptRequest { Text = "Summarize this repo
 
 while (await events.MoveNextAsync())
 {
-    var ended = events.Current switch
-    {
-        SessionExecutionSucceeded succeeded => succeeded.Data.SessionId,
-        SessionExecutionFailed failed => failed.Data.SessionId,
-        SessionExecutionInterrupted interrupted => interrupted.Data.SessionId,
-        _ => null,
-    };
-    if (ended == sessionId)
+    if (events.Current is SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted
+        && events.Current is ISessionScopedEvent { SessionId: var id } && id == sessionId)
     {
         break;
     }
@@ -105,22 +122,26 @@ var texts = new Dictionary<(string AssistantMessageId, long Ordinal), string>();
 var turnEnded = false;
 while (!turnEnded && await events.MoveNextAsync())
 {
+    // Keep only this session's events; each of them names its session.
+    if (events.Current is not ISessionScopedEvent { SessionId: var id } || id != sessionId)
+    {
+        continue;
+    }
+
     switch (events.Current)
     {
-        case SessionInboxDelivered { Data: var data } when data.SessionId == sessionId && data.InboxId == promptId:
+        case SessionInboxDelivered { Data.InboxId: var inboxId } when inboxId == promptId:
             delivered = true;
             break;
-        case SessionTextDelta { Data: var delta } when delivered && delta.SessionId == sessionId:
+        case SessionTextDelta { Data: var delta } when delivered:
             var part = (delta.AssistantMessageId, delta.Ordinal);
             texts[part] = texts.TryGetValue(part, out var sofar) ? sofar + delta.Delta : delta.Delta;
             Console.Write(delta.Delta);
             break;
-        case SessionTextEnded { Data: var ended } when delivered && ended.SessionId == sessionId:
+        case SessionTextEnded { Data: var ended } when delivered:
             texts[(ended.AssistantMessageId, ended.Ordinal)] = ended.Text;
             break;
-        case SessionExecutionSucceeded { Data: var succeeded } when delivered && succeeded.SessionId == sessionId:
-        case SessionExecutionFailed { Data: var failed } when delivered && failed.SessionId == sessionId:
-        case SessionExecutionInterrupted { Data: var interrupted } when delivered && interrupted.SessionId == sessionId:
+        case SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted when delivered:
             turnEnded = true;
             break;
     }
@@ -131,6 +152,9 @@ while (!turnEnded && await events.MoveNextAsync())
   subscriber before anything else, so once it has arrived, nothing the session publishes is missed.
   Upstream's client fails a stream that starts with anything else, and its CLI waits for this event
   before it sends a prompt.
+- **Filter by session once.** Every event that belongs to a session implements
+  `ISessionScopedEvent`, so one check keeps this session's events and the `switch` below it needs
+  no session test of its own.
 - **Your own `Id` is how you find your prompt.** Upstream's CLI passes one too. The server requires
   only that it start with `msg_`; make it unique, as the `Guid` above does. When the session takes
   your prompt from its inbox, `SessionInboxDelivered` arrives with your id as its `InboxId`. Text the

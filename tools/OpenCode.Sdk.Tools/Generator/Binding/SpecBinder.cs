@@ -62,6 +62,9 @@ internal sealed class SpecBinder(
         var pending = PendingOperations(document, selected, curation);
 
         var models = AttachRequestQueryProperties(schemaResult.Models, clients, errors);
+        models = BindSessionScopedEvents(document, typeNames, schemaResult with { Models = models }, clients,
+            curation, SchemaAliasApplier.Compose(collapse, curation.SchemaAliases), errors);
+
         var masked = SecretMemberPolicy.MaskUnknownPayloads(SecretMemberPolicy.Apply(models, curation, errors), schemaResult.Unions);
         CheckDtoNameCollisions(schemaResult.Registry, clients, errors);
         var candidates = new OwnershipCandidates
@@ -134,6 +137,33 @@ internal sealed class SpecBinder(
     /// A merged operation's query properties ride its body model; the model plan gains
     /// them here because schema binding cannot see operation placement.
     /// </summary>
+    /// <summary>
+    /// Marks the session-scoped event records when the curation names the rule. The row's identifier
+    /// is read through the same alias map the schemas were bound with, so a stabilized duplicate of
+    /// the identifier schema is the identifier too.
+    /// </summary>
+    private static IReadOnlyList<ModelPlan> BindSessionScopedEvents(SpecDocument document,
+        IReadOnlyDictionary<string, string> typeNames, SchemaBindingResult schemas, IReadOnlyList<ClientPlan> clients,
+        GenerationCuration curation, IReadOnlyDictionary<string, string> aliases, BindingErrorCollector errors)
+    {
+        if (curation.SessionScopedEvent is not { } row)
+        {
+            return schemas.Models;
+        }
+
+        var identifier = !string.IsNullOrWhiteSpace(row.Identifier) && aliases.TryGetValue(row.Identifier, out var target)
+            ? target
+            : row.Identifier;
+        return SessionScopedEventBinder.Bind(new SessionScopedEventBindingContext
+        {
+            Document = document,
+            TypeNames = typeNames,
+            Schemas = schemas,
+            Clients = clients,
+            Row = row with { Identifier = identifier },
+        }, errors);
+    }
+
     private static IReadOnlyList<ModelPlan> AttachRequestQueryProperties(IReadOnlyList<ModelPlan> models,
         IReadOnlyList<ClientPlan> clients, BindingErrorCollector errors)
     {

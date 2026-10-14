@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents a session compaction delta value.
 /// </summary>
-public sealed record SessionCompactionDelta : IEvent
+public sealed record SessionCompactionDelta : IEvent, ISessionScopedEvent
 {
     /// <summary>
     /// Gets the id value.
@@ -46,4 +46,6 @@ public sealed record SessionCompactionDelta : IEvent
     /// </summary>
     [JsonPropertyName("data")]
     public required SessionCompactionDeltaData Data { get; init; }
+
+    string ISessionScopedEvent.SessionId => Data.SessionId;
 }

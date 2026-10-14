@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Models;
 /// Represents a session usage recorded value.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
-public sealed record SessionUsageRecorded : ISessionEventDurable
+public sealed record SessionUsageRecorded : ISessionEventDurable, ISessionScopedEvent
 {
     /// <summary>
     /// Gets the id value.
@@ -57,4 +57,6 @@ public sealed record SessionUsageRecorded : ISessionEventDurable
     double? ISessionEventDurable.Created => Created;
 
     IDurableEnvelope? ISessionEventDurable.Durable => Durable;
+
+    string ISessionScopedEvent.SessionId => Data.SessionId;
 }

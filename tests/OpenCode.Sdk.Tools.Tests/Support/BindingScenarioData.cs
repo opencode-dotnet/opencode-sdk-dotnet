@@ -25,7 +25,8 @@ internal static class BindingScenarioData
         IReadOnlyList<SecretLookingNameCuration>? secretLookingNames = null,
         IReadOnlyList<RedactedOpenMembersCuration>? redactedOpenMembers = null,
         IReadOnlyList<ModelOwnerCuration>? modelOwners = null,
-        IReadOnlyList<SessionAreaCuration>? sessionAreas = null) =>
+        IReadOnlyList<SessionAreaCuration>? sessionAreas = null,
+        SessionScopedEventCuration? sessionScopedEvent = null) =>
         new()
         {
             Groups = groups,
@@ -44,6 +45,7 @@ internal static class BindingScenarioData
             SecretLookingNames = secretLookingNames ?? [],
             ModelOwners = modelOwners ?? [],
             SessionAreas = sessionAreas ?? [],
+            SessionScopedEvent = sessionScopedEvent,
         };
 
     public static ParameterNameCuration ParameterName(string operationId, string parameter, string dotnetName,

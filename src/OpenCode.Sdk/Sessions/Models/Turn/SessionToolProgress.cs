@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents a session tool progress value.
 /// </summary>
-public sealed record SessionToolProgress : IEvent
+public sealed record SessionToolProgress : IEvent, ISessionScopedEvent
 {
     /// <summary>
     /// Gets the id value.
@@ -46,4 +46,6 @@ public sealed record SessionToolProgress : IEvent
     /// </summary>
     [JsonPropertyName("data")]
     public required SessionToolProgressData Data { get; init; }
+
+    string ISessionScopedEvent.SessionId => Data.SessionId;
 }

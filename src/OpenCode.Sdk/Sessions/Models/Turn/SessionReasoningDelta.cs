@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents a session reasoning delta value.
 /// </summary>
-public sealed record SessionReasoningDelta : IEvent
+public sealed record SessionReasoningDelta : IEvent, ISessionScopedEvent
 {
     /// <summary>
     /// Gets the id value.
@@ -46,4 +46,6 @@ public sealed record SessionReasoningDelta : IEvent
     /// </summary>
     [JsonPropertyName("data")]
     public required SessionReasoningDeltaData Data { get; init; }
+
+    string ISessionScopedEvent.SessionId => Data.SessionId;
 }

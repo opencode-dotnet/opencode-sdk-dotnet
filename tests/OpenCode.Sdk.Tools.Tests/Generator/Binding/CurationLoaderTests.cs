@@ -34,6 +34,26 @@ public sealed class CurationLoaderTests
         await Assert.That(hoisted.Property).IsEqualTo("durable");
         await Assert.That(hoisted.DotNetName).IsEqualTo("IDurableEnvelope");
         await Assert.That(hoisted.Reason).Contains("durable envelope");
+
+        var sessionScoped = curation.SessionScopedEvent;
+        await Assert.That(sessionScoped).IsNotNull();
+        await Assert.That(sessionScoped!.Unions).IsEquivalentTo(["IEvent", "ISessionEventDurable"]);
+        await Assert.That(sessionScoped.PayloadMember).IsEqualTo("data");
+        await Assert.That(sessionScoped.Member).IsEqualTo("sessionID");
+        await Assert.That(sessionScoped.Identifier).IsEqualTo("Session.ID");
+        await Assert.That(sessionScoped.Reason).Contains("session");
+    }
+
+    [Test]
+    public async Task LoadAsync_Should_Refuse_A_Session_Scoped_Event_Row_Without_A_Reason()
+    {
+        var fileSystem = CreateFileSystem("Binding.session-scoped-event-missing-reason-curation.json");
+
+        var exception = await Assert
+            .That(async () => _ = await new CurationLoader(fileSystem).LoadAsync(CurationPath, CancellationToken.None))
+            .Throws<BindingException>();
+
+        await Assert.That(exception!.Errors.Single().Problem).Contains("reason");
     }
 
     [Test]
@@ -75,7 +95,7 @@ public sealed class CurationLoaderTests
             .IsEquivalentTo([
                 "declined", "enumMemberNames", "envelopePayloadNames", "groups", "hoistedMemberNames", "modelOwners", "operationIdentities", "parameterNames",
                 "operationNames", "redactedMembers", "redactedOpenMembers", "schemaAliases", "schemaNames", "secretLookingNames", "sessionAreas",
-                "transportOwned"
+                "sessionScopedEvent", "transportOwned"
             ]);
     }
 

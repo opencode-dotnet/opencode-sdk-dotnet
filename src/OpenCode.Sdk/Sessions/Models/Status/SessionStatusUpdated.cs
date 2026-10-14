@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents a session status updated value.
 /// </summary>
-public sealed record SessionStatusUpdated : IEvent
+public sealed record SessionStatusUpdated : IEvent, ISessionScopedEvent
 {
     /// <summary>
     /// Gets the id value.
@@ -46,4 +46,6 @@ public sealed record SessionStatusUpdated : IEvent
     /// </summary>
     [JsonPropertyName("data")]
     public required SessionStatusUpdatedData Data { get; init; }
+
+    string ISessionScopedEvent.SessionId => Data.SessionId;
 }
