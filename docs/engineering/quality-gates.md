@@ -149,6 +149,17 @@ no unexpected or duplicate modules. The roster is deliberately explicit rather t
 cannot shrink together with the coverage it guards — so adding or removing a test project or a test
 target framework updates it in the same change.
 
+## Package compatibility
+
+The lint job packs both packages with validation on for every code pull request, and the release
+workflow's pack is the final check. Cross-asset validation checks compatible target frameworks even
+without a baseline. From `1.0.0-rc.2`, the same packs also compare against the previous published
+release, named by `PackageValidationBaselineVersion` in `Directory.Build.props`; previews and
+`1.0.0-rc.1` have no baseline. The Tools suppression test enforces ADR-0034: patch steps accept no
+breaks, minor steps accept only generated-type breaks, and major steps may break the hand-written
+surface; cross-asset suppressions are never accepted. The local gate does not pack with validation:
+the packed-consumer fixture turns it off, so this check never needs nuget.org locally.
+
 ## Distributed-build consumer leg
 
 Every gate above exercises the server built from the pinned commit: the `external/opencode`

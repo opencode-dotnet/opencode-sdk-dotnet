@@ -58,9 +58,10 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
 
         foreach (var project in PackedProjects)
         {
+            // The local packed-consumer gate stays offline: baseline validation may need nuget.org.
             var packed = await RunAsync(
                 ["pack", FileSystem.Path.Combine(repository, project), "--configuration", "Release", "--no-build",
-                    "--output", feed, "-p:VersionSuffix=" + VersionSuffix, "-nodeReuse:false"],
+                    "--output", feed, "-p:VersionSuffix=" + VersionSuffix, "-p:EnablePackageValidation=false", "-nodeReuse:false"],
                 repository).ConfigureAwait(false);
             if (packed.ExitCode != 0)
             {

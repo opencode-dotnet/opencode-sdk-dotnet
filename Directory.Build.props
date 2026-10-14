@@ -50,6 +50,13 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'OpenCode.Sdk' Or '$(MSBuildProjectName)' == 'OpenCode.Sdk.Extensions'">
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <!-- No baseline for previews or 1.0.0-rc.1. From rc.2, use the previous published release;
+         the release cut moves this baseline. Without it, validation still compares package assets. -->
+    <PackageValidationBaselineVersion></PackageValidationBaselineVersion>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
