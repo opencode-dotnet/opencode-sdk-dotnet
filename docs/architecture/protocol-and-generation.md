@@ -81,8 +81,10 @@ evidence and may contain superseded positions.
   clients at the family root, adapters, envelope DTOs, converters and internal-raw clients under
   the family's `Internal/`, the shared error spine under `Common/Errors/` and `Common/Internal/`,
   and the serializer registry under the root `Internal/Serialization/`. The writer reserves the
-  folder names `Common`, `Internal`, `Hosting` and `Properties`, and marks every manifest entry
-  `linguist-generated` in a writer-owned `.gitattributes` beside the manifest.
+  folder names `Common`, `Internal`, `Hosting` and `Properties` for the shared homes, and `Models`
+  and `Pagination` because the slice layout has no such root folder and a family may never
+  recreate one; it marks every manifest entry `linguist-generated` in a writer-owned
+  `.gitattributes` beside the manifest.
 - A writer-owned `.generated-reach.txt` beside the manifest lists each generated type's owning
   slice and the families whose operations reach it, so a refresh shows reach changes in its
   diff; reach never moves a file. Neither file ships in a package.
