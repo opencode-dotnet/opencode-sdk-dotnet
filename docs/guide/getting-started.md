@@ -1,6 +1,6 @@
 # 🚀 Getting started
 
-Date: 2026-09-24
+Date: 2026-10-14
 
 Install the package, point a client at a server, and make three calls. Ten minutes, and the last
 one talks to a model.
@@ -210,10 +210,12 @@ if (model is not null)
 - **Neither create nor prompt validates the ref.** A wrong provider/catalog-id pair surfaces later
   as a failed turn rather than a typed model error at the call.
 
-Every call above resolves its location the same way the rest of the client does: from the client's
-ambient `Location`, or the server's own working directory when you set none. Each request type
-carries its own `Location` if you want to read one location's catalog from a client pointed at
-another.
+The catalog calls above resolve their location the same way the rest of the client does: from the
+client's ambient `Location`, or the server's own working directory when you set none. Each request
+type carries its own `Location` if you want to read one location's catalog from a client pointed at
+another. Creating a session is different: its directory comes from the request body, so
+`SessionCreateRequest.Location` is a `LocationPublicRef`, not a `LocationSelector`. See
+[per-call location](requests.md#-per-call-location).
 
 And **provider inventory is the machine's ambient opencode configuration**, not something the SDK
 or the launcher supplies. A host with no provider credentials configured lists nothing, and

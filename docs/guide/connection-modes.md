@@ -348,8 +348,9 @@ Three things throw; everything else is null.
 > serve flag disables authentication. A client for a CLI-started server therefore always needs
 > `Password`. Leaving it `null` is right only for a host that genuinely runs without one: a server
 > embedded through the opencode server library, as this repository's own simulation host does for
-> its tests. Point a passwordless client at `opencode serve` and every call answers **401 with an
-> empty body** — the SDK says so in the exception message, see
+> its tests. Point a passwordless client at `opencode serve` and every call answers **401 with the
+> typed `UnauthorizedError`** (`Authentication required`), the same answer a wrong password gets.
+> The SDK adds a sentence to the exception message when no password was configured; see
 > [a 401 with no credential](errors-and-responses.md#a-401-with-no-credential).
 
 ### 🛑 Stopping the background service
@@ -527,16 +528,25 @@ same door — hand its identity to the configure-action overload, and the contai
 the client and the 27 families exactly as it would for an endpoint you typed in:
 
 ```csharp
-var server = await OpenCodeServer.DiscoverAsync()
+await using var server = await OpenCodeServer.DiscoverAsync()
     ?? await OpenCodeServer.StartAsync();
 
+var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddOpenCode(options =>
 {
     options.Endpoint = server.Endpoint;
     options.Password = server.Password;
 });
+
+using var host = builder.Build();
+await host.RunAsync();
 ```
 
-Registering `server.CreateClient()` as a singleton instead would register one bare client with no
-families behind it. Either way the `OpenCodeServer` handle stays yours: dispose it when the host
-stops, and a started child ends while a discovered service does not.
+The `OpenCodeServer` handle stays yours, and the `await using` around `RunAsync` is what ends it:
+the server is disposed after the host has stopped, so no hosted service loses its server while it
+shuts down. Disposal ends a started child; a discovered service keeps running.
+
+Do not hand the handle to the container with `AddSingleton(server)` instead. A container disposes
+only the instances it created, never one you registered, so a started server would outlive the host
+until the launcher's own process-death protection ends it. Registering `server.CreateClient()` as a
+singleton would also register one bare client with no families behind it.

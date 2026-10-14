@@ -44,6 +44,17 @@ Setting a value needs no ceremony — an implicit conversion takes the plain val
 "Revised title"` is what you write. `default` is the absent state, which is why an unassigned member is
 absent for free.
 
+A collection expression is the exception: C# does not let one target an `Optional` collection
+member, so `Permissions = [rule]` fails with CS9174. Build the collection first, and the implicit
+conversion takes it from there:
+
+```csharp
+await client.Sessions.CreateSessionAsync(new SessionCreateRequest
+{
+    Permissions = new List<PermissionRule> { rule },
+});
+```
+
 The session update request illustrates the three wire states:
 
 ```csharp
@@ -160,6 +171,21 @@ var plugins = await client.Plugins.ListPluginsAsync(new PluginListRequest
     Location = new LocationSelector { Directory = "/repo/service" },
 });
 ```
+
+Creating a session is the third channel. The directory a new session works in is part of what
+you create, so `SessionCreateRequest.Location` is a body member of a different type,
+`LocationPublicRef`, whose `Directory` is required. The ambient and per-call headers do not choose
+it. Without one the session starts in the server's own working directory. A child session, created
+with `ParentId`, takes its parent's directory and ignores `Location`:
+
+```csharp
+var created = await client.Sessions.CreateSessionAsync(new SessionCreateRequest
+{
+    Location = new LocationPublicRef { Directory = "/repo/service" },
+});
+```
+
+Calls on that session afterwards address the session's own directory.
 
 The options object also carries [`NoThrow`](errors-and-responses.md#-ask-for-the-failure-as-data-instead),
 so one per-call argument selects both it and the header override.
