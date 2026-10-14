@@ -4,7 +4,6 @@ using System.Globalization;
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using Microsoft.Win32.SafeHandles;
 using OpenCode.Sdk.Internal.Windows;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;
@@ -34,7 +33,8 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// (<see cref="LauncherHandleCensus"/>), and <c>handles=</c> with this process's whole handle count
 /// at the same points, for the record.
 /// <c>handle-census &lt;foreign pid&gt;</c> runs the census's own controls against that process and
-/// prints <c>before=</c>, <c>open=</c>, <c>closed=</c>, <c>parked=</c> censuses and <c>raw=</c>
+/// prints <c>before=</c>, <c>open=</c>, <c>closed=</c>, <c>mine-open=</c>, <c>mine-closed=</c>,
+/// <c>parked=</c> censuses and <c>raw=</c>
 /// whole handle counts (<see cref="ProveCensusAsync"/>).
 /// </remarks>
 [SupportedOSPlatform("windows")]
@@ -186,26 +186,82 @@ internal static class WindowsLauncherProbe
         // for the process's lifetime (measured: one more after both ends closed, never again after),
         // so one pipe opened and closed first keeps it out of the counted window, as the launcher's
         // warm-up round does in handle-cycles.
-        await new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.None).DisposeAsync().ConfigureAwait(false);
+        CloseAll(OpenPipe());
 
         var before = LauncherHandleCensus.Take();
+        var mine = OpenOneOfEachKind(foreignProcessId, threadId);
         LauncherHandles open;
-        using (var process = Open(OpenProcess(ProcessQueryLimitedInformation, inherit: false, (uint)foreignProcessId)))
-        using (var exitWait = Open(OpenProcess(WindowsInterop.Synchronize, inherit: false, (uint)foreignProcessId)))
-        using (var thread = OpenForeignThread(threadId))
-        using (var pipe = new AnonymousPipeServerStream(PipeDirection.Out, HandleInheritability.None))
-        using (var job = WindowsInterop.CreateJobObject(IntPtr.Zero, name: null))
+        LauncherHandles mineOpen;
+        try
         {
-            if (job.IsInvalid)
-            {
-                throw new Win32Exception(Marshal.GetLastWin32Error());
-            }
-
             open = LauncherHandleCensus.Take();
+            mineOpen = LauncherHandleCensus.Count(mine);
+        }
+        finally
+        {
+            CloseAll(mine);
         }
 
+        // The same values once closed: the race a census meets when the finalizer closes a handle
+        // between the snapshot and the questions about it.
+        var mineClosed = LauncherHandleCensus.Count(mine);
         var closed = LauncherHandleCensus.Take();
+        var (whileParked, rawBefore, rawParked) = CensusWhileThreadsParked();
 
+        await Console.Out.WriteLineAsync("before=" + before).ConfigureAwait(false);
+        await Console.Out.WriteLineAsync("open=" + open).ConfigureAwait(false);
+        await Console.Out.WriteLineAsync("closed=" + closed).ConfigureAwait(false);
+        await Console.Out.WriteLineAsync("mine-open=" + mineOpen).ConfigureAwait(false);
+        await Console.Out.WriteLineAsync("mine-closed=" + mineClosed).ConfigureAwait(false);
+        await Console.Out.WriteLineAsync("parked=" + whileParked).ConfigureAwait(false);
+        await Console.Out.WriteLineAsync(
+            "raw=" + rawBefore.ToString(CultureInfo.InvariantCulture) + ", " + rawParked.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
+        await Console.Out.FlushAsync().ConfigureAwait(false);
+        return 0;
+    }
+
+    /// <summary>
+    /// Opens, as raw handle values, one handle of each kind the census counts: one on the foreign
+    /// process, a <c>SYNCHRONIZE</c>-only one, one on its thread, both ends of a pipe, and a job.
+    /// </summary>
+    private static (IntPtr Handle, uint Access)[] OpenOneOfEachKind(int foreignProcessId, int threadId)
+    {
+        var opened = new List<(IntPtr Handle, uint Access)>(6);
+        try
+        {
+            opened.Add((Opened(OpenProcess(ProcessQueryLimitedInformation, inherit: false, (uint)foreignProcessId)), ProcessQueryLimitedInformation));
+            opened.Add((Opened(OpenProcess(WindowsInterop.Synchronize, inherit: false, (uint)foreignProcessId)), WindowsInterop.Synchronize));
+            opened.Add((Opened(OpenThread(ThreadQueryLimitedInformation, inherit: false, (uint)threadId)), ThreadQueryLimitedInformation));
+            opened.AddRange(OpenPipe());
+            opened.Add((Opened(CreateJobObject(IntPtr.Zero, IntPtr.Zero)), 0));
+            return [.. opened];
+        }
+        catch
+        {
+            CloseAll(opened);
+            throw;
+        }
+    }
+
+    private static (IntPtr Handle, uint Access)[] OpenPipe() =>
+        CreatePipe(out var read, out var write, IntPtr.Zero, 0)
+            ? [(read, 0), (write, 0)]
+            : throw new Win32Exception(Marshal.GetLastWin32Error());
+
+    private static IntPtr Opened(IntPtr handle) =>
+        handle == IntPtr.Zero ? throw new Win32Exception(Marshal.GetLastWin32Error()) : handle;
+
+    private static void CloseAll(IEnumerable<(IntPtr Handle, uint Access)> handles)
+    {
+        foreach (var (handle, _) in handles)
+        {
+            _ = CloseHandle(handle);
+        }
+    }
+
+    /// <summary>Parks two threads, counts while they wait, and releases them.</summary>
+    private static (LauncherHandles Census, int RawBefore, int RawParked) CensusWhileThreadsParked()
+    {
         using var release = new ManualResetEventSlim();
         var parked = Enumerable.Range(0, 2).Select(_ => new Thread(() => release.Wait())).ToArray();
         int rawBefore;
@@ -219,7 +275,7 @@ internal static class WindowsLauncherProbe
             worker.Start();
         }
 
-        var whileParked = LauncherHandleCensus.Take();
+        var census = LauncherHandleCensus.Take();
         int rawParked;
         using (var self = Process.GetCurrentProcess())
         {
@@ -232,23 +288,7 @@ internal static class WindowsLauncherProbe
             worker.Join();
         }
 
-        await Console.Out.WriteLineAsync("before=" + before).ConfigureAwait(false);
-        await Console.Out.WriteLineAsync("open=" + open).ConfigureAwait(false);
-        await Console.Out.WriteLineAsync("closed=" + closed).ConfigureAwait(false);
-        await Console.Out.WriteLineAsync("parked=" + whileParked).ConfigureAwait(false);
-        await Console.Out.WriteLineAsync(
-            "raw=" + rawBefore.ToString(CultureInfo.InvariantCulture) + ", " + rawParked.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
-        await Console.Out.FlushAsync().ConfigureAwait(false);
-        return 0;
-
-        static SafeProcessHandle Open(IntPtr handle) =>
-            handle == IntPtr.Zero ? throw new Win32Exception(Marshal.GetLastWin32Error()) : new SafeProcessHandle(handle, ownsHandle: true);
-
-        static SafeThreadHandle OpenForeignThread(int id)
-        {
-            var handle = OpenThread(ThreadQueryLimitedInformation, inherit: false, (uint)id);
-            return handle == IntPtr.Zero ? throw new Win32Exception(Marshal.GetLastWin32Error()) : new SafeThreadHandle(handle);
-        }
+        return (census, rawBefore, rawParked);
     }
 
     private static async Task RunCyclesAsync(IReadOnlyList<string> command, int cycles)
@@ -320,6 +360,15 @@ internal static class WindowsLauncherProbe
     [DllImport("kernel32", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     private static extern IntPtr OpenProcess(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, uint processId);
+
+    [DllImport("kernel32", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool CreatePipe(out IntPtr read, out IntPtr write, IntPtr attributes, uint size);
+
+    [DllImport("kernel32", EntryPoint = "CreateJobObjectW", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern IntPtr CreateJobObject(IntPtr attributes, IntPtr name);
 
     [DllImport("kernel32", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]

@@ -53,6 +53,14 @@ public sealed class LauncherHandleCensusTests
         };
         await Assert.That(LauncherHandles.Parse(lines["open"])).IsEqualTo(expectedOpen).Because(report);
         await Assert.That(LauncherHandles.Parse(lines["closed"])).IsEqualTo(before).Because(report);
+
+        // The opened handles' own values, counted while open and again once closed: a value that no
+        // longer names a handle counts as nothing, so a handle the finalizer closes mid-census is
+        // never taken for a foreign one.
+        await Assert.That(LauncherHandles.Parse(lines["mine-open"]))
+            .IsEqualTo(new LauncherHandles(Processes: 1, ExitWaits: 1, Threads: 1, Pipes: 2, Jobs: 1)).Because(report);
+        await Assert.That(LauncherHandles.Parse(lines["mine-closed"]))
+            .IsEqualTo(new LauncherHandles(Processes: 0, ExitWaits: 0, Threads: 0, Pipes: 0, Jobs: 0)).Because(report);
         await Assert.That(LauncherHandles.Parse(lines["parked"])).IsEqualTo(before).Because(report);
 
         // Each parked thread holds at least its own thread handle; the census must not see one.

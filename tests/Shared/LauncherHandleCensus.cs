@@ -14,11 +14,14 @@ namespace OpenCode.Sdk.TestSupport;
 /// the POSIX host descriptor reader, which counts pipes only.
 /// </summary>
 /// <remarks>
-/// One snapshot of the handle table (<c>ProcessHandleInformation</c>) gives each handle's granted
-/// access and object type index; each type index is named once, by a type-only
-/// <c>NtQueryObject</c>, which never waits, unlike a name query, which hangs on a synchronous pipe.
-/// A handle closed between the snapshot and a question about it is skipped: it no longer exists.
-/// The pipe question (<c>GetFileType</c>) waits behind a synchronous read pending on the same file
+/// One snapshot of the handle table (<c>ProcessHandleInformation</c>) gives each handle's value and
+/// granted access. Each handle is then asked its type by a type-only <c>NtQueryObject</c>, which
+/// never waits, unlike a name query, which hangs on a synchronous pipe. A handle can close between
+/// the snapshot and a question about it, at any time, from the finalizer, and its value can be
+/// reused: the type comes from the handle as it is now rather than from the snapshot, a handle
+/// that answers no type is skipped, and an owner question that fails with
+/// <c>ERROR_INVALID_HANDLE</c> skips the handle too, while any other failure, such as a handle
+/// without the query right, still counts it as foreign. The pipe question (<c>GetFileType</c>) waits behind a synchronous read pending on the same file
 /// object; the launcher's pipe ends are overlapped, and a census is taken while nothing reads a
 /// synchronous handle of this process. The snapshot layout read here is the 64-bit one.
 /// </remarks>
@@ -47,7 +50,8 @@ internal static class LauncherHandleCensus
 
     private const int GrantedAccessOffset = 24;
 
-    private const int ObjectTypeIndexOffset = 28;
+    /// <summary><c>ERROR_INVALID_HANDLE</c>: the handle closed after the snapshot listed it.</summary>
+    private const int InvalidHandle = 6;
 
     private static readonly IntPtr CurrentProcess = new(-1);
 
@@ -61,33 +65,34 @@ internal static class LauncherHandleCensus
             throw new PlatformNotSupportedException("The census reads a 64-bit Windows process's handle table.");
         }
 
+        return Count(Snapshot());
+    }
+
+    /// <summary>
+    /// Counts the launcher-kind handles among these handle values as they are now: a value that no
+    /// longer names an open handle counts as nothing.
+    /// </summary>
+    /// <param name="handles">Handle values of this process with the access the snapshot listed.</param>
+    /// <returns>The counts.</returns>
+    public static LauncherHandles Count(IEnumerable<(IntPtr Handle, uint Access)> handles)
+    {
+        ArgumentNullException.ThrowIfNull(handles);
+
         var self = GetCurrentProcessId();
-        var types = new Dictionary<int, string>();
         int processes = 0, exitWaits = 0, threads = 0, pipes = 0, jobs = 0;
-        foreach (var (handle, access, typeIndex) in Snapshot())
+        foreach (var (handle, access) in handles)
         {
-            if (!types.TryGetValue(typeIndex, out var type))
+            switch (TypeName(handle))
             {
-                if (TypeName(handle) is not { } named)
-                {
-                    continue;
-                }
-
-                type = named;
-                types[typeIndex] = named;
-            }
-
-            switch (type)
-            {
-                // GetProcessId needs a query right a SYNCHRONIZE duplicate lacks, and answers 0 for
-                // it, so the duplicate is told apart by its access before the owner is asked.
+                // GetProcessId needs a query right a SYNCHRONIZE duplicate lacks, so the duplicate
+                // is told apart by its access before the owner is asked.
                 case "Process" when access == Synchronize:
                     exitWaits++;
                     break;
-                case "Process" when GetProcessId(handle) != self:
+                case "Process" when IsForeign(GetProcessId(handle), self) is true:
                     processes++;
                     break;
-                case "Thread" when GetProcessIdOfThread(handle) != self:
+                case "Thread" when IsForeign(GetProcessIdOfThread(handle), self) is true:
                     threads++;
                     break;
                 case "File" when GetFileType(handle) == FileTypePipe:
@@ -104,7 +109,22 @@ internal static class LauncherHandleCensus
         return new LauncherHandles(processes, exitWaits, threads, pipes, jobs);
     }
 
-    private static List<(IntPtr Handle, uint Access, int TypeIndex)> Snapshot()
+    /// <summary>
+    /// Reads an owner answer: true for another process, false for this one, and null for a handle
+    /// that closed after it was listed, which counts as nothing.
+    /// </summary>
+    private static bool? IsForeign(uint owner, uint self)
+    {
+        if (owner != 0)
+        {
+            return owner != self;
+        }
+
+        // Any other failure, a handle without the query right among them, stays foreign.
+        return Marshal.GetLastWin32Error() == InvalidHandle ? null : true;
+    }
+
+    private static List<(IntPtr Handle, uint Access)> Snapshot()
     {
         var size = 1 << 16;
         while (true)
@@ -125,14 +145,11 @@ internal static class LauncherHandleCensus
                 }
 
                 var count = Marshal.ReadInt64(buffer);
-                var entries = new List<(IntPtr, uint, int)>((int)count);
+                var entries = new List<(IntPtr, uint)>((int)count);
                 for (long index = 0; index < count; index++)
                 {
                     var entry = IntPtr.Add(buffer, SnapshotHeaderSize + (int)(index * EntrySize));
-                    entries.Add((
-                        Marshal.ReadIntPtr(entry),
-                        unchecked((uint)Marshal.ReadInt32(entry, GrantedAccessOffset)),
-                        Marshal.ReadInt32(entry, ObjectTypeIndexOffset)));
+                    entries.Add((Marshal.ReadIntPtr(entry), unchecked((uint)Marshal.ReadInt32(entry, GrantedAccessOffset))));
                 }
 
                 return entries;
@@ -182,11 +199,11 @@ internal static class LauncherHandleCensus
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     private static extern uint GetCurrentProcessId();
 
-    [DllImport("kernel32", EntryPoint = "GetProcessId")]
+    [DllImport("kernel32", EntryPoint = "GetProcessId", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     private static extern uint GetProcessId(IntPtr process);
 
-    [DllImport("kernel32", EntryPoint = "GetProcessIdOfThread")]
+    [DllImport("kernel32", EntryPoint = "GetProcessIdOfThread", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     private static extern uint GetProcessIdOfThread(IntPtr thread);
 
