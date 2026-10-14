@@ -46,6 +46,48 @@
   </Target>
 
   <!--
+    A package's README links the repository at the commit the package was built from, not at
+    master, so the files it points to match the package for as long as the package exists. The
+    release tag is created on that same commit after the publish, so a commit link and a tag link
+    show the same content, and a nightly package, which gets no tag, links correctly too. The
+    repository's own README keeps its master links; only the packed copy is rewritten. A pack with
+    no known commit refuses rather than shipping master links. The text comes from a property
+    function, whose result MSBuild keeps escaped, so WriteLinesToFile writes it whole: semicolons do
+    not split it and percent sequences stay as written (PackedReadmeTests compares it byte for byte).
+  -->
+  <Target Name="PackReadmeLinkedToTheCommit"
+          BeforeTargets="_GetPackageFiles"
+          DependsOnTargets="InitializeSourceControlInformation"
+          Condition="'$(IsPackable)' == 'true'">
+    <PropertyGroup>
+      <_PackedReadmeCommit>$(SourceRevisionId)</_PackedReadmeCommit>
+      <_PackedReadmeCommit Condition="'$(_PackedReadmeCommit)' == ''">$(RepositoryCommit)</_PackedReadmeCommit>
+      <_PackedReadmeSource>$(MSBuildThisFileDirectory)README.md</_PackedReadmeSource>
+      <_PackedReadmeFile>$(BaseIntermediateOutputPath)README.md</_PackedReadmeFile>
+    </PropertyGroup>
+
+    <Error Condition="'$(_PackedReadmeCommit)' == ''"
+           Text="The package README cannot be linked to its commit: neither SourceRevisionId nor RepositoryCommit is set. Pack from a git checkout with source control information enabled." />
+
+    <PropertyGroup>
+      <_PackedReadmeText>$([System.IO.File]::ReadAllText('$(_PackedReadmeSource)'))</_PackedReadmeText>
+      <_PackedReadmeText>$(_PackedReadmeText.Replace('$(RepositoryUrl)/blob/master/', '$(RepositoryUrl)/blob/$(_PackedReadmeCommit)/'))</_PackedReadmeText>
+      <_PackedReadmeText>$(_PackedReadmeText.Replace('$(RepositoryUrl)/tree/master/', '$(RepositoryUrl)/tree/$(_PackedReadmeCommit)/'))</_PackedReadmeText>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(_PackedReadmeFile)"
+                      Lines="$(_PackedReadmeText)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+
+    <ItemGroup>
+      <FileWrites Include="$(_PackedReadmeFile)" />
+      <None Remove="$(_PackedReadmeSource)" />
+      <None Include="$(_PackedReadmeFile)" Pack="true" PackagePath="" Visible="false" />
+    </ItemGroup>
+  </Target>
+
+  <!--
     The packages carry a netstandard2.0 asset as a compatibility bridge, not as a supported runtime
     (ADR-0002). A consumer whose target framework resolves to it on a runtime the packages do not
     target - .NET Core below the default target, .NET Framework below 4.7.2 - gets a build warning,
