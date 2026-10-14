@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a persistent pty removed value.
+/// The &apos;persistent-pty.removed&apos; event.
 /// </summary>
 public sealed record PersistentPtyRemoved : IEvent, ISessionScopedEvent
 {

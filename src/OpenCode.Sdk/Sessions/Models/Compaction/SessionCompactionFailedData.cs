@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session compaction failed data value.
+/// The data of the &apos;session.compaction.failed&apos; event.
 /// </summary>
 public sealed record SessionCompactionFailedData
 {

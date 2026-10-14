@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session step ended value.
+/// The &apos;session.step.ended&apos; event.
 /// </summary>
 public sealed record SessionStepEnded : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

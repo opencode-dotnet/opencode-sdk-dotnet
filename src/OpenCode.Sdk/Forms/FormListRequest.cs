@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/form&apos; query.
+/// The query of &apos;form.list&apos; (GET /api/form).
 /// </summary>
 public sealed record FormListRequest
 {

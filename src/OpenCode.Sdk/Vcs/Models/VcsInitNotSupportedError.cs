@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a vcs init not supported error value.
+/// The &apos;VcsInitNotSupportedError&apos; error.
 /// </summary>
 public sealed record VcsInitNotSupportedError : IOpenCodeError
 {

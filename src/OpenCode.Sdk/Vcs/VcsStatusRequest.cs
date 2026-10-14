@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/vcs/status&apos; query.
+/// The query of &apos;vcs.status&apos; (GET /api/vcs/status).
 /// </summary>
 public sealed record VcsStatusRequest
 {

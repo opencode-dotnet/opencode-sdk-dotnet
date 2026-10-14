@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/experimental/session/{sessionID}/wait&apos; operation.
+/// The response of &apos;experimental.session.wait&apos; (POST /api/experimental/session/{sessionID}/wait).
 /// </summary>
 [Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record ExperimentalSessionWaitResponse : OpenCodeResponse

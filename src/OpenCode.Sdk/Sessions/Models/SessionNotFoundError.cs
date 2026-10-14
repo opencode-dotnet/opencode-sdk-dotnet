@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session not found error value.
+/// The &apos;SessionNotFoundError&apos; error.
 /// </summary>
 public sealed record SessionNotFoundError : IOpenCodeError
 {

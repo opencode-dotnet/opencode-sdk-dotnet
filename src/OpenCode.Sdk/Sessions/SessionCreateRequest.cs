@@ -6,12 +6,12 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session create request value.
+/// A new session, or, when Id names an existing one, that session returned unchanged.
 /// </summary>
 public sealed record SessionCreateRequest
 {
     /// <summary>
-    /// Gets the id value.
+    /// An optional session id of your own; when a session with it exists, that session is returned and the other members are ignored.
     /// </summary>
     [JsonPropertyName("id")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -19,8 +19,11 @@ public sealed record SessionCreateRequest
     public Optional<string?> Id { get; init; }
 
     /// <summary>
-    /// Gets the parent id value.
+    /// Makes this a child session, such as a subagent&apos;s, of an existing parent. The child always works in the parent&apos;s location and inherits its metadata and permissions unless you set them.
     /// </summary>
+    /// <remarks>
+    /// Agent and model are not inherited.
+    /// </remarks>
     [JsonPropertyName("parentID")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [JsonConverter(typeof(OptionalOfStringJsonConverter))]
@@ -35,7 +38,7 @@ public sealed record SessionCreateRequest
     public Optional<string?> Title { get; init; }
 
     /// <summary>
-    /// Gets the agent value.
+    /// The agent to use. When it is absent, the server chooses its default agent at the start of every turn.
     /// </summary>
     [JsonPropertyName("agent")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -43,7 +46,7 @@ public sealed record SessionCreateRequest
     public Optional<string?> Agent { get; init; }
 
     /// <summary>
-    /// Gets the model value.
+    /// The model to use. When it is absent, the server chooses its default model at the start of every turn; an unavailable model is reported only when a turn runs.
     /// </summary>
     [JsonPropertyName("model")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -51,7 +54,7 @@ public sealed record SessionCreateRequest
     public Optional<ModelRef?> Model { get; init; }
 
     /// <summary>
-    /// Gets the location value.
+    /// The directory the session works in; the server&apos;s working directory when absent. It is ignored when ParentId is set.
     /// </summary>
     [JsonPropertyName("location")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -67,7 +70,7 @@ public sealed record SessionCreateRequest
     public Optional<IReadOnlyDictionary<string, JsonElement>?> Metadata { get; init; }
 
     /// <summary>
-    /// Gets the permissions value.
+    /// Session permission rules, checked after the agent&apos;s own; the last rule that matches wins, so they override the agent. Anything no rule matches asks.
     /// </summary>
     [JsonPropertyName("permissions")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]

@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/mcp/resource&apos; query.
+/// The query of &apos;mcp.resource.catalog&apos; (GET /api/mcp/resource).
 /// </summary>
 public sealed record McpResourceCatalogRequest
 {

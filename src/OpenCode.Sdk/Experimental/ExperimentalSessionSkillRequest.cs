@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a experimental session skill request value.
+/// The body of &apos;experimental.session.skill&apos; (POST /api/experimental/session/{sessionID}/skill).
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record ExperimentalSessionSkillRequest

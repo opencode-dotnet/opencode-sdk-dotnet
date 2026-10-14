@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;POST /api/session/{sessionID}/interrupt&apos; query.
+/// The query of &apos;session.interrupt&apos; (POST /api/session/{sessionID}/interrupt).
 /// </summary>
 public sealed record SessionInterruptRequest
 {

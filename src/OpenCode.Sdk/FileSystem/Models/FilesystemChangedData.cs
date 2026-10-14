@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a filesystem changed data value.
+/// The data of the &apos;filesystem.changed&apos; event.
 /// </summary>
 public sealed record FilesystemChangedData
 {

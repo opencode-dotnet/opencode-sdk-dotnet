@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session compaction started value.
+/// The &apos;session.compaction.started&apos; event.
 /// </summary>
 public sealed record SessionCompactionStarted : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

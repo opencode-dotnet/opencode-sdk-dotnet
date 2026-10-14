@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/rpc/{rpcID}/{method}&apos; operation.
+/// The response of &apos;rpc.call&apos; (POST /api/rpc/{rpcID}/{method}).
 /// </summary>
 public sealed record RpcCallResponse : OpenCodeResponse
 {

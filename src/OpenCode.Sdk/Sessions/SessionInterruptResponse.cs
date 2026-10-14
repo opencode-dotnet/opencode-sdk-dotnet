@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/session/{sessionID}/interrupt&apos; operation.
+/// The response of &apos;session.interrupt&apos; (POST /api/session/{sessionID}/interrupt).
 /// </summary>
 public sealed record SessionInterruptResponse : OpenCodeResponse
 {

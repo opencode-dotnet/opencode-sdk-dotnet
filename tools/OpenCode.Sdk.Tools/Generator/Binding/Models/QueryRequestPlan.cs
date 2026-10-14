@@ -2,6 +2,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 internal sealed record QueryRequestPlan
 {
+    public TypeDocumentationPlan Documentation { get; init; } = new();
+
     public required string TypeName { get; init; }
 
     /// <summary>Gets a value indicating whether the record derives from the <c>ListRequest</c> base.</summary>

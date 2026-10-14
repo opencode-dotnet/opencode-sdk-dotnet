@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a form created data value.
+/// The data of the &apos;form.created&apos; event.
 /// </summary>
 public sealed record FormCreatedData
 {

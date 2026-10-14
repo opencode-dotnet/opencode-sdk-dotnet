@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session permissions data value.
+/// The data of the &apos;session.permissions&apos; event.
 /// </summary>
 public sealed record SessionPermissionsData
 {

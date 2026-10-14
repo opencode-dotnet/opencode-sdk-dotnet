@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/pty&apos; operation.
+/// The response of &apos;pty.list&apos; (GET /api/pty).
 /// </summary>
 public sealed record PtyListResponse : OpenCodeResponse
 {

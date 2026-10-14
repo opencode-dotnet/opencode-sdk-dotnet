@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session created data value.
+/// The data of the &apos;session.created&apos; event.
 /// </summary>
 public sealed record SessionCreatedData
 {

@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/permission/saved&apos; query.
+/// The query of &apos;permission.saved.list&apos; (GET /api/permission/saved).
 /// </summary>
 public sealed record PermissionSavedListRequest
 {

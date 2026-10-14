@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session viewed value.
+/// The &apos;session.viewed&apos; event.
 /// </summary>
 public sealed record SessionViewed : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

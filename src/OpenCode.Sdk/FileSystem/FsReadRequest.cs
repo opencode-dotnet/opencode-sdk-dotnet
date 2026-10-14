@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/fs/read/*&apos; query.
+/// The query of &apos;fs.read&apos; (GET /api/fs/read/*).
 /// </summary>
 public sealed record FsReadRequest
 {

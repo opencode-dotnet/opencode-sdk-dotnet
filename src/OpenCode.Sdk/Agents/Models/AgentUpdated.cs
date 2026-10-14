@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a agent updated value.
+/// The &apos;agent.updated&apos; event.
 /// </summary>
 public sealed record AgentUpdated : IEvent
 {

@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a rpc error value.
+/// The &apos;RpcError&apos; error.
 /// </summary>
 public sealed record RpcError : IOpenCodeError
 {

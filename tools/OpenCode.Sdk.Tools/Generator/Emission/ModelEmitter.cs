@@ -79,6 +79,7 @@ internal static class ModelEmitter
         }
 
         var guardsPrefix = chainMarkers.Any(static marker => marker.Prefix is not null);
+        declaration = EmissionSyntax.DocumentedType(declaration, model.Documentation);
         var unit = EmissionSyntax.CompilationUnit(model.Namespace, CollectUsings(model, guardsPrefix), [declaration]);
         return EmissionSyntax.CreateSource(relativePath, unit);
     }

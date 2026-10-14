@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Emission;
 
@@ -82,6 +83,40 @@ internal static class EmissionSyntax
         var text = $"/// <summary>\n/// {EscapeXml(normalized)}\n/// </summary>\n";
         return SyntaxFactory.ParseLeadingTrivia(text);
     }
+
+    public static SyntaxTriviaList Documentation(string summary, string? remarks) =>
+        MemberDocumentation(summary, [], remarks: ProseRemarks(remarks));
+
+    /// <summary>Applies bound text to a type and its directly declared properties, without interpreting wire roles.</summary>
+    public static T DocumentedType<T>(T declaration, TypeDocumentationPlan documentation,
+        IReadOnlyList<DocumentationRun>? existingRemarks = null) where T : TypeDeclarationSyntax
+    {
+        ArgumentNullException.ThrowIfNull(declaration);
+        ArgumentNullException.ThrowIfNull(documentation);
+
+        var members = declaration.Members.Select(member => member is PropertyDeclarationSyntax { ExplicitInterfaceSpecifier: null } property
+            && documentation.Members.TryGetValue(property.Identifier.ValueText, out var text)
+                ? property.WithLeadingTrivia(MemberDocumentation(text.Summary, [], remarks: ProseRemarks(text.Remarks)))
+                : member);
+        var result = (T)declaration.WithMembers(SyntaxFactory.List(members));
+        if (documentation.Summary is { } summary)
+        {
+            var remarks = existingRemarks ?? [];
+            if (!string.IsNullOrWhiteSpace(documentation.Remarks))
+            {
+                remarks = remarks.Count > 0
+                    ? [.. remarks, DocumentationRun.Prose(" "), .. ProseRemarks(documentation.Remarks)]
+                    : ProseRemarks(documentation.Remarks);
+            }
+
+            result = result.WithLeadingTrivia(MemberDocumentation(summary, [], remarks: remarks));
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyList<DocumentationRun> ProseRemarks(string? remarks) =>
+        string.IsNullOrWhiteSpace(remarks) ? [] : [DocumentationRun.Prose(NormalizeDocumentation(remarks))];
 
     public static SyntaxTriviaList MemberDocumentation(string summary, IReadOnlyList<DocumentedParameter> parameters,
         string? returns = null, IReadOnlyList<DocumentedException>? exceptions = null,

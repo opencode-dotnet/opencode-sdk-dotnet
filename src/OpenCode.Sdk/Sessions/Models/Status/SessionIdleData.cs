@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session idle data value.
+/// The data of the &apos;session.idle&apos; event.
 /// </summary>
 public sealed record SessionIdleData
 {

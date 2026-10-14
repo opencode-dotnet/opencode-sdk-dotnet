@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session tool failed value.
+/// The &apos;session.tool.failed&apos; event.
 /// </summary>
 public sealed record SessionToolFailed : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

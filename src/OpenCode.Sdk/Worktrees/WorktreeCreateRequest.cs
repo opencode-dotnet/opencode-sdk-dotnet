@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a worktree create request value.
+/// The body of &apos;worktree.create&apos; (POST /api/worktree).
 /// </summary>
 public sealed record WorktreeCreateRequest
 {

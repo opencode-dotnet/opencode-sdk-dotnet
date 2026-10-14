@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a project not found error value.
+/// The &apos;ProjectNotFoundError&apos; error.
 /// </summary>
 public sealed record ProjectNotFoundError : IOpenCodeError
 {

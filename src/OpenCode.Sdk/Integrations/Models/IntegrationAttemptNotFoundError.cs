@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a integration attempt not found error value.
+/// The &apos;IntegrationAttemptNotFoundError&apos; error.
 /// </summary>
 public sealed record IntegrationAttemptNotFoundError : IOpenCodeError
 {

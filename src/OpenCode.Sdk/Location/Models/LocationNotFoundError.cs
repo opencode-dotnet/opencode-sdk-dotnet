@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a location not found error value.
+/// The &apos;LocationNotFoundError&apos; error.
 /// </summary>
 public sealed record LocationNotFoundError : IOpenCodeError
 {

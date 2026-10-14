@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session execution succeeded value.
+/// The session finished all its pending work and went idle.
 /// </summary>
 public sealed record SessionExecutionSucceeded : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

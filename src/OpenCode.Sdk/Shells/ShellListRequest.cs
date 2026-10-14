@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/shell&apos; query.
+/// The query of &apos;shell.list&apos; (GET /api/shell).
 /// </summary>
 public sealed record ShellListRequest
 {

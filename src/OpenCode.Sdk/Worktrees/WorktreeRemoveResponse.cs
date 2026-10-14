@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;DELETE /api/worktree&apos; operation.
+/// The response of &apos;worktree.remove&apos; (DELETE /api/worktree).
 /// </summary>
 public sealed record WorktreeRemoveResponse : OpenCodeResponse
 {

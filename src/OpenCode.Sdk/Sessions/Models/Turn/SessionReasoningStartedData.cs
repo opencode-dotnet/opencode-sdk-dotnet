@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session reasoning started data value.
+/// The data of the &apos;session.reasoning.started&apos; event.
 /// </summary>
 public sealed record SessionReasoningStartedData
 {

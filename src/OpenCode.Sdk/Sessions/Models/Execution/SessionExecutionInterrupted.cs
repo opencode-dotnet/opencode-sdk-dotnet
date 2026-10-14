@@ -5,8 +5,11 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session execution interrupted value.
+/// The session&apos;s work stopped before it finished; its Data.Reason says why.
 /// </summary>
+/// <remarks>
+/// With the shutdown reason the turn is not over: the server keeps it in progress and resumes it after it restarts, with a new SessionExecutionStarted.
+/// </remarks>
 public sealed record SessionExecutionInterrupted : ISessionEventDurable, IEvent, ISessionScopedEvent
 {
     /// <summary>

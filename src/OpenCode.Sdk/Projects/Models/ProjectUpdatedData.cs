@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a project updated data value.
+/// The data of the &apos;project.updated&apos; event.
 /// </summary>
 public sealed record ProjectUpdatedData
 {

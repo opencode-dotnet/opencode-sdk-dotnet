@@ -7,6 +7,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// </summary>
 internal sealed record HoistedInterfacePlan
 {
+    public TypeDocumentationPlan Documentation { get; init; } = new();
+
     public required string Name { get; init; }
 
     public required string Namespace { get; init; }

@@ -2,8 +2,11 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/session&apos; query. &apos;limit&apos;: Maximum number of sessions to return. Defaults to the newest 50 sessions. &apos;order&apos;: Session order for the first page. Use desc for newest first or asc for oldest first. &apos;cursor&apos;: Opaque pagination cursor returned as cursor.previous or cursor.next in the previous response.
+/// The query of &apos;session.list&apos; (GET /api/session).
 /// </summary>
+/// <remarks>
+/// &apos;limit&apos;: Maximum number of sessions to return. Defaults to the newest 50 sessions. &apos;order&apos;: Session order for the first page. Use desc for newest first or asc for oldest first. &apos;cursor&apos;: Opaque pagination cursor returned as cursor.previous or cursor.next in the previous response.
+/// </remarks>
 public sealed record SessionListRequest : ListRequest
 {
     /// <summary>

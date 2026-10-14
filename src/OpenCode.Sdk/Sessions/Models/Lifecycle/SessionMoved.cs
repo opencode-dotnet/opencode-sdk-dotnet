@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session moved value.
+/// The &apos;session.moved&apos; event.
 /// </summary>
 public sealed record SessionMoved : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

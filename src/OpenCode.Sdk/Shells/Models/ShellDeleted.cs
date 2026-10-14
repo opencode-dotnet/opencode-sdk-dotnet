@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a shell deleted value.
+/// The &apos;shell.deleted&apos; event.
 /// </summary>
 public sealed record ShellDeleted : IEvent
 {

@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session compact request value.
+/// The body of &apos;session.compact&apos; (POST /api/session/{sessionID}/compact).
 /// </summary>
 public sealed record SessionCompactRequest
 {

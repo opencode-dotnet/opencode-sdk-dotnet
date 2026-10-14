@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session execution started value.
+/// The server began working on the session after it was woken while idle. Exactly one of SessionExecutionSucceeded, SessionExecutionFailed or SessionExecutionInterrupted follows, however many prompts arrive meanwhile.
 /// </summary>
 public sealed record SessionExecutionStarted : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

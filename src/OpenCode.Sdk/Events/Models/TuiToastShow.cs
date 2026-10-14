@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a tui toast show value.
+/// The &apos;tui.toast.show&apos; event.
 /// </summary>
 public sealed record TuiToastShow : IEvent
 {

@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/integration/{integrationID}/connect/command&apos; operation.
+/// The response of &apos;integration.command.connect&apos; (POST /api/integration/{integrationID}/connect/command).
 /// </summary>
 public sealed record IntegrationCommandConnectResponse : OpenCodeResponse
 {

@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session synthetic value.
+/// The &apos;session.synthetic&apos; event.
 /// </summary>
 public sealed record SessionSynthetic : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

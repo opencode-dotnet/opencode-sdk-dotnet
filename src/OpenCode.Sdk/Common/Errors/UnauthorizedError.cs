@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a unauthorized error value.
+/// The &apos;UnauthorizedError&apos; error.
 /// </summary>
 public sealed record UnauthorizedError : IOpenCodeError
 {

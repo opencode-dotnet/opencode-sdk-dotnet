@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session skill activated value.
+/// The &apos;session.skill.activated&apos; event.
 /// </summary>
 public sealed record SessionSkillActivated : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

@@ -4,6 +4,10 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 internal sealed record UnionPlan
 {
+    public TypeDocumentationPlan Documentation { get; init; } = new();
+
+    public TypeDocumentationPlan UnknownDocumentation { get; init; } = new();
+
     /// <summary>Gets the emitted interface name, which is what every reference binds to.</summary>
     public required string Name { get; init; }
 

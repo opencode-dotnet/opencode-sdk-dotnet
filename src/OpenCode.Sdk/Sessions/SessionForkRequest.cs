@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session fork request value.
+/// The body of &apos;session.fork&apos; (POST /api/session/{sessionID}/fork).
 /// </summary>
 public sealed record SessionForkRequest
 {

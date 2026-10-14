@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a form cancelled data value.
+/// The data of the &apos;form.cancelled&apos; event.
 /// </summary>
 public sealed record FormCancelledData
 {

@@ -35,6 +35,7 @@ internal static class HoistedInterfaceEmitter
                 plan.Description ?? $"Represents a {plan.Name} value.",
                 [],
                 remarks: PinBoundInterfaceRemarks.Runs));
+        declaration = EmissionSyntax.DocumentedType(declaration, plan.Documentation, PinBoundInterfaceRemarks.Runs);
         var unit = EmissionSyntax.CompilationUnit(plan.Namespace, CollectUsings(plan), [declaration]);
         return EmissionSyntax.CreateSource(relativePath, unit);
     }

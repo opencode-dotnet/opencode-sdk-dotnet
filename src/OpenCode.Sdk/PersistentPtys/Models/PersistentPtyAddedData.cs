@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a persistent pty added data value.
+/// The data of the &apos;persistent-pty.added&apos; event.
 /// </summary>
 public sealed record PersistentPtyAddedData
 {

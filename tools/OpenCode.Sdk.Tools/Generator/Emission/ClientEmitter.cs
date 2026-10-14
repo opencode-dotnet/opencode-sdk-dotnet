@@ -67,6 +67,7 @@ internal static class ClientEmitter
                 SyntaxFactory.SimpleBaseType(TypeSyntaxEmitter.EmitNamed("IDisposable")))));
         }
 
+        declaration = EmissionSyntax.DocumentedType(declaration, client.Documentation);
         var unit = EmissionSyntax.CompilationUnit(client.Namespace, EmitUsings(client), [declaration]);
         return EmissionSyntax.CreateSource(PathOf(client), unit);
     }

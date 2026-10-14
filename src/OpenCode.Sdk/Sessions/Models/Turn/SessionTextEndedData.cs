@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session text ended data value.
+/// The data of the &apos;session.text.ended&apos; event.
 /// </summary>
 public sealed record SessionTextEndedData
 {
@@ -28,13 +28,13 @@ public sealed record SessionTextEndedData
     public required long Ordinal { get; init; }
 
     /// <summary>
-    /// Gets the text value.
+    /// The complete text of the part; it replaces whatever was built up from deltas.
     /// </summary>
     [JsonPropertyName("text")]
     public required string Text { get; init; }
 
     /// <summary>
-    /// Gets the state value.
+    /// Opaque provider metadata for the part, kept so it can be sent back to the provider; do not interpret it.
     /// </summary>
     [JsonPropertyName("state")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

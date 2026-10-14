@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session busy error value.
+/// The &apos;SessionBusyError&apos; error.
 /// </summary>
 public sealed record SessionBusyError : IOpenCodeError
 {

@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/experimental/session/{sessionID}/terminal/read&apos; query.
+/// The query of &apos;persistentPty.read&apos; (GET /api/experimental/session/{sessionID}/terminal/read).
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
 public sealed record PersistentPtyReadRequest

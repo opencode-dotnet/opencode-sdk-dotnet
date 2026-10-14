@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;DELETE /api/permission/saved/{id}&apos; operation.
+/// The response of &apos;permission.saved.remove&apos; (DELETE /api/permission/saved/{id}).
 /// </summary>
 public sealed record PermissionSavedRemoveResponse : OpenCodeResponse
 {

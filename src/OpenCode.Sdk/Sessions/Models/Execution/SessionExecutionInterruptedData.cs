@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session execution interrupted data value.
+/// The data of the &apos;session.execution.interrupted&apos; event.
 /// </summary>
 public sealed record SessionExecutionInterruptedData
 {

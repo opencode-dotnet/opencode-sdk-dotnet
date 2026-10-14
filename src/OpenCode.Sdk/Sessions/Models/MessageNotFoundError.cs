@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a message not found error value.
+/// The &apos;MessageNotFoundError&apos; error.
 /// </summary>
 public sealed record MessageNotFoundError : IOpenCodeError
 {

@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session permission reply request value.
+/// The body of &apos;session.permission.reply&apos; (POST /api/session/{sessionID}/permission/{requestID}/reply).
 /// </summary>
 public sealed record SessionPermissionReplyRequest
 {

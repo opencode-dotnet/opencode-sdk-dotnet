@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a form replied value.
+/// The &apos;form.replied&apos; event.
 /// </summary>
 public sealed record FormReplied : IEvent
 {

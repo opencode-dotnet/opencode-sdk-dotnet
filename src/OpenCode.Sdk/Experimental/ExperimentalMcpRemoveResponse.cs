@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;DELETE /api/experimental/mcp/{server}&apos; operation.
+/// The response of &apos;experimental.mcp.remove&apos; (DELETE /api/experimental/mcp/{server}).
 /// </summary>
 [Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record ExperimentalMcpRemoveResponse : OpenCodeResponse

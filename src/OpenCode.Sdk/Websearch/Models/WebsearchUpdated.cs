@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a websearch updated value.
+/// The &apos;websearch.updated&apos; event.
 /// </summary>
 public sealed record WebsearchUpdated : IEvent
 {

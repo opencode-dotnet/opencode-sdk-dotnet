@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a invalid request error value.
+/// The &apos;InvalidRequestError&apos; error.
 /// </summary>
 public sealed record InvalidRequestError : IOpenCodeError
 {

@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a installation updated data value.
+/// The data of the &apos;installation.updated&apos; event.
 /// </summary>
 public sealed record InstallationUpdatedData
 {

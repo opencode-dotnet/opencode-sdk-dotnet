@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;POST /api/vcs/init&apos; query.
+/// The query of &apos;vcs.init&apos; (POST /api/vcs/init).
 /// </summary>
 public sealed record VcsInitRequest
 {

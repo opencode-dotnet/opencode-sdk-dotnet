@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session inbox enqueued data value.
+/// The data of the &apos;session.inbox.enqueued&apos; event.
 /// </summary>
 public sealed record SessionInboxEnqueuedData
 {

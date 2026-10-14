@@ -80,7 +80,7 @@ internal sealed class SpecBinder(
         var reach = ModelReachCollector.Collect(_reachableSchemas, new ReachScope(document, selected, clients, typeNames), candidates, errors);
         var experimental = ExperimentalModelPolicy.Collect(_reachableSchemas, new ReachScope(document, selected, clients, typeNames), candidates, errors);
         errors.ThrowIfAny();
-        return new EmitPlan
+        var plan = new EmitPlan
         {
             SelectedOperationIds = selection.OperationIds,
             Models = [.. masked.Models.Select(model => model with { ExperimentalDiagnostic = experimental.GetValueOrDefault(model.Name) })],
@@ -102,6 +102,9 @@ internal sealed class SpecBinder(
             Placement = placement,
             ModelReach = reach,
         };
+        plan = DescriptionCurationBinder.Apply(WireDocumentationPolicy.Apply(plan), curation.Descriptions, errors);
+        errors.ThrowIfAny();
+        return plan;
     }
 
     /// <summary>Every operation the selection, a transport-owned row and a declined row all leave out, ordinal-sorted.</summary>

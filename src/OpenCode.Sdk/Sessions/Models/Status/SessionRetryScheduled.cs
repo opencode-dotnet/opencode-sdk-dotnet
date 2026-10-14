@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session retry scheduled value.
+/// The &apos;session.retry.scheduled&apos; event.
 /// </summary>
 public sealed record SessionRetryScheduled : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

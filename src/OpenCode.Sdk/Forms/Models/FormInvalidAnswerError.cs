@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a form invalid answer error value.
+/// The &apos;FormInvalidAnswerError&apos; error.
 /// </summary>
 public sealed record FormInvalidAnswerError : IOpenCodeError
 {

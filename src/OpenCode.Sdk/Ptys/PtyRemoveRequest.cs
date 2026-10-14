@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;DELETE /api/pty/{ptyID}&apos; query.
+/// The query of &apos;pty.remove&apos; (DELETE /api/pty/{ptyID}).
 /// </summary>
 public sealed record PtyRemoveRequest
 {

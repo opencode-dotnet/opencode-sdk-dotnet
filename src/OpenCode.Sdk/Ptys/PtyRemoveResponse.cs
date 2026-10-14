@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;DELETE /api/pty/{ptyID}&apos; operation.
+/// The response of &apos;pty.remove&apos; (DELETE /api/pty/{ptyID}).
 /// </summary>
 public sealed record PtyRemoveResponse : OpenCodeResponse
 {

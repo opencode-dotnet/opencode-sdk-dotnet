@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a config updated value.
+/// The &apos;config.updated&apos; event.
 /// </summary>
 public sealed record ConfigUpdated : IEvent
 {

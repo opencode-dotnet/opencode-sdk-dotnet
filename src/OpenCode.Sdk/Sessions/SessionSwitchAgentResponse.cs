@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/session/{sessionID}/agent&apos; operation.
+/// The response of &apos;session.switchAgent&apos; (POST /api/session/{sessionID}/agent).
 /// </summary>
 public sealed record SessionSwitchAgentResponse : OpenCodeResponse
 {

@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/pty&apos; query.
+/// The query of &apos;pty.list&apos; (GET /api/pty).
 /// </summary>
 public sealed record PtyListRequest
 {

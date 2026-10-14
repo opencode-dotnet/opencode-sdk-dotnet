@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/shell/{id}/output&apos; operation.
+/// The response of &apos;shell.output&apos; (GET /api/shell/{id}/output).
 /// </summary>
 public sealed record ShellOutputResponse : OpenCodeResponse
 {

@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;POST /api/pty/{ptyID}/connect-token&apos; query.
+/// The query of &apos;pty.connect.token&apos; (POST /api/pty/{ptyID}/connect-token).
 /// </summary>
 public sealed record PtyConnectTokenRequest
 {

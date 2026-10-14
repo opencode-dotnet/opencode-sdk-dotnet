@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /auth/connect/{code}&apos; operation.
+/// The response of &apos;server.connect&apos; (GET /auth/connect/{code}).
 /// </summary>
 public sealed record ServerConnectResponse : OpenCodeResponse
 {

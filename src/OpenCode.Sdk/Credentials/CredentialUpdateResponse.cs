@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;PATCH /api/credential/{credentialID}&apos; operation.
+/// The response of &apos;credential.update&apos; (PATCH /api/credential/{credentialID}).
 /// </summary>
 public sealed record CredentialUpdateResponse : OpenCodeResponse
 {

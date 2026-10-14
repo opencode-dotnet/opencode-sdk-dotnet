@@ -54,6 +54,7 @@ internal static class QueryRequestEmitter
         var usings = queryRequest.Properties.Any(static property => property.Kind is QueryValueKind.Enum)
             ? new[] { GeneratedNamespace.Models, }
             : [];
+        declaration = EmissionSyntax.DocumentedType(declaration, queryRequest.Documentation);
         var unit = EmissionSyntax.CompilationUnit(GeneratedNamespace.Public, usings, [declaration]);
         return EmissionSyntax.CreateSource(
             GeneratedPlacement.PathOf(GeneratedKind.OperationRecord, TypeHome.Family(operation.RouteContainerName), queryRequest.TypeName),

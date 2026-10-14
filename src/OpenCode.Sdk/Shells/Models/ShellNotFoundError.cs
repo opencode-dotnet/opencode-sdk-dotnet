@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a shell not found error value.
+/// The &apos;ShellNotFoundError&apos; error.
 /// </summary>
 public sealed record ShellNotFoundError : IOpenCodeError
 {

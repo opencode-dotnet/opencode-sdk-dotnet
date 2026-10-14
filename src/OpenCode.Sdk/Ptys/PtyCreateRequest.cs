@@ -10,15 +10,21 @@ namespace OpenCode.Sdk.Models;
 public sealed record PtyCreateRequest
 {
     /// <summary>
-    /// Gets the command value.
+    /// The program to run, an executable rather than a command line. When it is absent the server picks a shell: the configured shell, then $SHELL, then a per-platform fallback.
     /// </summary>
+    /// <remarks>
+    /// The fallback is the first of pwsh, powershell, Git Bash, %COMSPEC% and cmd.exe found on Windows, /bin/zsh on macOS, and bash on PATH or else /bin/sh elsewhere. A configured shell that is not executable skips $SHELL and goes straight to the fallback. PowerShell starts with no added arguments, so its profile loads; pass -NoProfile in Args for a clean one.
+    /// </remarks>
     [JsonPropertyName("command")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Command { get; init; }
 
     /// <summary>
-    /// Gets the args value.
+    /// Arguments passed as they are to the program, with no shell parsing.
     /// </summary>
+    /// <remarks>
+    /// When the program is bash, dash, fish, ksh, sh or zsh, the server appends -l after these arguments, so bash -c &quot;cmd&quot; receives -l as $0; the returned info shows it.
+    /// </remarks>
     [JsonPropertyName("args")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<string>? Args { get; init; }

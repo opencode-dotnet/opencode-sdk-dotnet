@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a pty updated value.
+/// The &apos;pty.updated&apos; event.
 /// </summary>
 public sealed record PtyUpdated : IEvent
 {

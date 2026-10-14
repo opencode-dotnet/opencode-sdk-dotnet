@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session shell request value.
+/// The body of &apos;session.shell&apos; (POST /api/session/{sessionID}/shell).
 /// </summary>
 public sealed record SessionShellRequest
 {

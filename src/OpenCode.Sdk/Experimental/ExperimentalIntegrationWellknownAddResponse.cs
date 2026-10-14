@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/experimental/integration/wellknown&apos; operation.
+/// The response of &apos;experimental.integration.wellknown.add&apos; (POST /api/experimental/integration/wellknown).
 /// </summary>
 [Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record ExperimentalIntegrationWellknownAddResponse : OpenCodeResponse

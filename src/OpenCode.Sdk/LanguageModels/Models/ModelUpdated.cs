@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a model updated value.
+/// The &apos;model.updated&apos; event.
 /// </summary>
 public sealed record ModelUpdated : IEvent
 {

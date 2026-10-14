@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/experimental/migration/v1&apos; operation.
+/// The response of &apos;experimental.migration.v1.status&apos; (GET /api/experimental/migration/v1).
 /// </summary>
 [Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record ExperimentalMigrationV1StatusResponse : OpenCodeResponse

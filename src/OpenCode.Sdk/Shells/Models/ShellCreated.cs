@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a shell created value.
+/// The &apos;shell.created&apos; event.
 /// </summary>
 public sealed record ShellCreated : IEvent
 {

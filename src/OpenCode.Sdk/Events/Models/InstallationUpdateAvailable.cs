@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a installation update available value.
+/// The &apos;installation.update-available&apos; event.
 /// </summary>
 public sealed record InstallationUpdateAvailable : IEvent
 {

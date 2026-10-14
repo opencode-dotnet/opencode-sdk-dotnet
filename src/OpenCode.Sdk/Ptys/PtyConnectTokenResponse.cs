@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/pty/{ptyID}/connect-token&apos; operation.
+/// The response of &apos;pty.connect.token&apos; (POST /api/pty/{ptyID}/connect-token).
 /// </summary>
 public sealed record PtyConnectTokenResponse : OpenCodeResponse
 {

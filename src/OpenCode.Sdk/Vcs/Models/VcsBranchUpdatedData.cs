@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a vcs branch updated data value.
+/// The data of the &apos;vcs.branch.updated&apos; event.
 /// </summary>
 public sealed record VcsBranchUpdatedData
 {

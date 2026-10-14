@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a form not found error value.
+/// The &apos;FormNotFoundError&apos; error.
 /// </summary>
 public sealed record FormNotFoundError : IOpenCodeError
 {

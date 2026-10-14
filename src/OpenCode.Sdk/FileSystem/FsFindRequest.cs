@@ -4,7 +4,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/fs/find&apos; query.
+/// The query of &apos;fs.find&apos; (GET /api/fs/find).
 /// </summary>
 public sealed record FsFindRequest
 {

@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session form create request value.
+/// The body of &apos;session.form.create&apos; (POST /api/session/{sessionID}/form).
 /// </summary>
 public sealed record SessionFormCreateRequest
 {

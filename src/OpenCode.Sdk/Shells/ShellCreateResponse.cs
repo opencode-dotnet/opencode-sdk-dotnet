@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/shell&apos; operation.
+/// The response of &apos;shell.create&apos; (POST /api/shell).
 /// </summary>
 public sealed record ShellCreateResponse : OpenCodeResponse
 {

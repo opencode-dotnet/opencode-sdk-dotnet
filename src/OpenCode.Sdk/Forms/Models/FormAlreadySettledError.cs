@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a form already settled error value.
+/// The &apos;FormAlreadySettledError&apos; error.
 /// </summary>
 public sealed record FormAlreadySettledError : IOpenCodeError
 {

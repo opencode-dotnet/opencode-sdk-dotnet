@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session message assistant value.
+/// One model step&apos;s response within a turn. A single prompt can produce several, for example one per round of tool calls; a step that failed keeps its message, with Error set and any partial content.
 /// </summary>
 public sealed record SessionMessageAssistant : ISessionMessageInfo
 {
@@ -47,7 +47,7 @@ public sealed record SessionMessageAssistant : ISessionMessageInfo
     public required ModelRef Model { get; init; }
 
     /// <summary>
-    /// Gets the content value.
+    /// The step&apos;s output parts in the order they streamed: text, reasoning and tool calls.
     /// </summary>
     [JsonPropertyName("content")]
     public required IReadOnlyList<ISessionMessageAssistantContent> Content { get; init; }
@@ -60,14 +60,17 @@ public sealed record SessionMessageAssistant : ISessionMessageInfo
     public SessionMessageAssistantSnapshot? Snapshot { get; init; }
 
     /// <summary>
-    /// Gets the finish value.
+    /// Why the step ended: stop, length, tool-calls, content-filter, error or unknown; null while the step is still running.
     /// </summary>
+    /// <remarks>
+    /// A step that failed reports error, or content-filter when the provider blocked the response.
+    /// </remarks>
     [JsonPropertyName("finish")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public SessionMessageAssistantFinish? Finish { get; init; }
 
     /// <summary>
-    /// Gets the raw finish value.
+    /// The provider&apos;s own finish-reason string, kept verbatim for diagnostics; often null. Use Finish for logic.
     /// </summary>
     [JsonPropertyName("rawFinish")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -81,29 +84,35 @@ public sealed record SessionMessageAssistant : ISessionMessageInfo
     public IReadOnlyDictionary<string, JsonElement>? ProviderState { get; init; }
 
     /// <summary>
-    /// Gets the cost value.
+    /// The cost in US dollars of this step alone, computed by the server from the model&apos;s configured prices; null until the step finishes, and it may stay null when the step fails.
     /// </summary>
     [JsonPropertyName("cost")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Cost { get; init; }
 
     /// <summary>
-    /// Gets the tokens value.
+    /// The token usage of this step alone; null until the step finishes, and it may stay null when the step fails.
     /// </summary>
     [JsonPropertyName("tokens")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public TokenUsageInfo? Tokens { get; init; }
 
     /// <summary>
-    /// Gets the error value.
+    /// Set when this step failed, for example a provider error, a content filter or an interruption; the message and its partial content stay in the session.
     /// </summary>
+    /// <remarks>
+    /// It is cleared again when the same step is retried successfully.
+    /// </remarks>
     [JsonPropertyName("error")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public SessionStructuredError? Error { get; init; }
 
     /// <summary>
-    /// Gets the retry value.
+    /// Set while a retry of this step is scheduled after a retryable provider error: the attempt number (the first retry is 2), when it runs, and the error that caused it.
     /// </summary>
+    /// <remarks>
+    /// It is cleared when the retry starts or the session goes idle.
+    /// </remarks>
     [JsonPropertyName("retry")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public SessionMessageAssistantRetry? Retry { get; init; }

@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session tool success data value.
+/// The data of the &apos;session.tool.success&apos; event.
 /// </summary>
 public sealed record SessionToolSuccessData
 {

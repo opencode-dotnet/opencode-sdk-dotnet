@@ -2,6 +2,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 internal sealed record EnvelopePlan
 {
+    public TypeDocumentationPlan Documentation { get; init; } = new();
+
     public required string ResponseTypeName { get; init; }
 
     public required string AdapterTypeName { get; init; }

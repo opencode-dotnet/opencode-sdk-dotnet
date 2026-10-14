@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a credential create request value.
+/// The body of &apos;credential.create&apos; (POST /api/credential).
 /// </summary>
 public sealed record CredentialCreateRequest
 {

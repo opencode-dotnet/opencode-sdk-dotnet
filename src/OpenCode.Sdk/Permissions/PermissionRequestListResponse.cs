@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/permission/request&apos; operation.
+/// The response of &apos;permission.request.list&apos; (GET /api/permission/request).
 /// </summary>
 public sealed record PermissionRequestListResponse : OpenCodeResponse
 {

@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session revert staged data value.
+/// The data of the &apos;session.revert.staged&apos; event.
 /// </summary>
 public sealed record SessionRevertStagedData
 {

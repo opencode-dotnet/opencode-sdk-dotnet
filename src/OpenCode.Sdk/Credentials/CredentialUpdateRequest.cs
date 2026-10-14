@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a credential update request value.
+/// The body of &apos;credential.update&apos; (PATCH /api/credential/{credentialID}).
 /// </summary>
 public sealed record CredentialUpdateRequest
 {

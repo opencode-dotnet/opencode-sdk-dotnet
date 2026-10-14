@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a service unavailable error value.
+/// The &apos;ServiceUnavailableError&apos; error.
 /// </summary>
 public sealed record ServiceUnavailableError : IOpenCodeError
 {

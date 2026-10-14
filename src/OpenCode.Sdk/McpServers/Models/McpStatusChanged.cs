@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp status changed value.
+/// The &apos;mcp.status.changed&apos; event.
 /// </summary>
 public sealed record McpStatusChanged : IEvent
 {

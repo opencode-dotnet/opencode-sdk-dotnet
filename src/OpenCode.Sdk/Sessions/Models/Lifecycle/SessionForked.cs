@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session forked value.
+/// The &apos;session.forked&apos; event.
 /// </summary>
 public sealed record SessionForked : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;DELETE /api/integration/{integrationID}/connect/command/{attemptID}&apos; operation.
+/// The response of &apos;integration.command.cancel&apos; (DELETE /api/integration/{integrationID}/connect/command/{attemptID}).
 /// </summary>
 public sealed record IntegrationCommandCancelResponse : OpenCodeResponse
 {

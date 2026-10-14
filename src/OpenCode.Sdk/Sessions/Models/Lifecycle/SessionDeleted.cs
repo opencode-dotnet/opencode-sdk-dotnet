@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session deleted value.
+/// The &apos;session.deleted&apos; event.
 /// </summary>
 public sealed record SessionDeleted : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

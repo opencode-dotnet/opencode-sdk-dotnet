@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a stream failure cause die value.
+/// The &apos;Die&apos; error.
 /// </summary>
 public sealed record StreamFailureCauseDie : IStreamFailureCause
 {

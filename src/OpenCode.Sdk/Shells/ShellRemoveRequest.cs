@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;DELETE /api/shell/{id}&apos; query.
+/// The query of &apos;shell.remove&apos; (DELETE /api/shell/{id}).
 /// </summary>
 public sealed record ShellRemoveRequest
 {

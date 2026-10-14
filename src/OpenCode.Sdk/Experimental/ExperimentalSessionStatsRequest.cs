@@ -4,7 +4,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/experimental/session/stats&apos; query.
+/// The query of &apos;experimental.session.stats&apos; (GET /api/experimental/session/stats).
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record ExperimentalSessionStatsRequest

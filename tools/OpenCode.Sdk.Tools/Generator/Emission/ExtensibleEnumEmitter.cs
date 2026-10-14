@@ -65,6 +65,7 @@ internal static class ExtensibleEnumEmitter
                 SyntaxFactory.TypeOfExpression(TypeSyntaxEmitter.EmitNamed(converterName)))))
             .WithMembers(SyntaxFactory.List(members))
             .WithLeadingTrivia(EmissionSyntax.Documentation(StructSummary(model)));
+        declaration = EmissionSyntax.DocumentedType(declaration, model.Documentation);
         var unit = EmissionSyntax.CompilationUnit(
             model.Namespace,
             ["System", "System.Text.Json.Serialization", GeneratedNamespace.Internal],

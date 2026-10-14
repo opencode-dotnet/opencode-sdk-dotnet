@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a tui session select data value.
+/// The data of the &apos;tui.session.select&apos; event.
 /// </summary>
 public sealed record TuiSessionSelectData
 {

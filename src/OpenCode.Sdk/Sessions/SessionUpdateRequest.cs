@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session update request value.
+/// The body of &apos;session.update&apos; (PATCH /api/session/{sessionID}).
 /// </summary>
 public sealed record SessionUpdateRequest
 {

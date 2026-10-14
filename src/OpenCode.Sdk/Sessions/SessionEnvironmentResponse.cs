@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;PUT /api/session/{sessionID}/environment&apos; operation.
+/// The response of &apos;session.environment&apos; (PUT /api/session/{sessionID}/environment).
 /// </summary>
 public sealed record SessionEnvironmentResponse : OpenCodeResponse
 {

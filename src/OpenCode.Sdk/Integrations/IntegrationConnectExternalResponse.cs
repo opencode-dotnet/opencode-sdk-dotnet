@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/integration/{integrationID}/connect/external&apos; operation.
+/// The response of &apos;integration.connect.external&apos; (POST /api/integration/{integrationID}/connect/external).
 /// </summary>
 public sealed record IntegrationConnectExternalResponse : OpenCodeResponse
 {

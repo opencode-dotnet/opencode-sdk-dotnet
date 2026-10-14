@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/websearch/provider&apos; query.
+/// The query of &apos;websearch.providers&apos; (GET /api/websearch/provider).
 /// </summary>
 public sealed record WebsearchProvidersRequest
 {

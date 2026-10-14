@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session step failed data value.
+/// The data of the &apos;session.step.failed&apos; event.
 /// </summary>
 public sealed record SessionStepFailedData
 {

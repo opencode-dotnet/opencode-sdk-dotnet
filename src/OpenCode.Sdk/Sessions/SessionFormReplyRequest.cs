@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session form reply request value.
+/// The body of &apos;session.form.reply&apos; (POST /api/session/{sessionID}/form/{formID}/reply).
 /// </summary>
 public sealed record SessionFormReplyRequest
 {

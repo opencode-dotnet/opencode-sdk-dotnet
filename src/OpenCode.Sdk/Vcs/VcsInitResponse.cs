@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/vcs/init&apos; operation.
+/// The response of &apos;vcs.init&apos; (POST /api/vcs/init).
 /// </summary>
 public sealed record VcsInitResponse : OpenCodeResponse
 {

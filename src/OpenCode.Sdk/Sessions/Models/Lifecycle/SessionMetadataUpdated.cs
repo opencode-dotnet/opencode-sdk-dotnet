@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session metadata updated value.
+/// The &apos;session.metadata.updated&apos; event.
 /// </summary>
 public sealed record SessionMetadataUpdated : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

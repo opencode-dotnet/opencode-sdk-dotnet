@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/worktree&apos; operation.
+/// The response of &apos;worktree.list&apos; (GET /api/worktree).
 /// </summary>
 public sealed record WorktreeListResponse : OpenCodeResponse
 {
