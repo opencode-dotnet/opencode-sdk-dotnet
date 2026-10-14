@@ -2,8 +2,10 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Win32.SafeHandles;
 using Testably.Abstractions;
 
 namespace OpenCode.Sdk.ServiceFixture;
@@ -25,7 +27,8 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// <c>stderr-fill [bytes [hold-file]]</c> writes <c>bytes</c> (16 KiB by default) of a
 /// position-numbered, whitespace-free pattern to stderr in 4 KiB chunks, and exits 0; given a
 /// <c>hold-file</c>, it holds after the first chunk until that file exists, then writes the rest at
-/// once.
+/// once. It writes through the raw stderr handle, so a pipe closed under it fails the write and the
+/// probe exits <see cref="ClosedStandardErrorExitCode"/>.
 /// <c>daemon-sleep</c> prints <c>ready pid=&lt;pid&gt;</c> on stderr and then sleeps until a signal
 /// ends it. <c>daemon-parent</c> starts a <c>daemon-sleep</c> of its own that writes to this
 /// process's stderr, prints <c>spawned pid=&lt;pid&gt;</c> naming it, and exits at once: the short-lived
@@ -54,6 +57,15 @@ internal static class ContenderProbe
     public const int DefaultFillBytes = 16 * 1024;
 
     private const int ChunkBytes = 4 * 1024;
+
+    /// <summary>stderr-fill's exit when its stderr pipe was closed under it: what a contender whose reader stopped would meet.</summary>
+    public const int ClosedStandardErrorExitCode = 3;
+
+    /// <summary><c>STD_ERROR_HANDLE</c>.</summary>
+    private const int StandardErrorHandle = -12;
+
+    /// <summary>The Unix standard error descriptor.</summary>
+    private const int StandardErrorDescriptor = 2;
 
     /// <summary>How often a held stderr-fill looks for its hold file; it decides nothing but how soon the hold ends.</summary>
     private static readonly TimeSpan HoldPoll = TimeSpan.FromMilliseconds(10);
@@ -172,6 +184,25 @@ internal static class ContenderProbe
         // chunk until the test says so, so the release proof decides when the bulk of the fill
         // starts, and the clock never does.
         var holdFile = arguments.Count == 2 ? arguments[1] : null;
+        using var handle = RawStandardErrorHandle();
+        var stderr = FileSystem.FileStream.New(handle, FileAccess.Write, bufferSize: 1);
+        await using (stderr.ConfigureAwait(false))
+        {
+            try
+            {
+                await FillAsync(stderr, bytes, holdFile).ConfigureAwait(false);
+            }
+            catch (IOException)
+            {
+                return ClosedStandardErrorExitCode;
+            }
+        }
+
+        return 0;
+    }
+
+    private static async Task FillAsync(Stream stderr, int bytes, string? holdFile)
+    {
         var builder = new StringBuilder(ChunkBytes);
         var remaining = bytes;
         var block = 0;
@@ -185,18 +216,31 @@ internal static class ContenderProbe
             block++;
             if (builder.Length >= ChunkBytes || remaining == 0)
             {
-                await Console.Error.WriteAsync(builder).ConfigureAwait(false);
+                await stderr.WriteAsync(Encoding.ASCII.GetBytes(builder.ToString())).ConfigureAwait(false);
                 _ = builder.Clear();
-                await Console.Error.FlushAsync().ConfigureAwait(false);
                 if (++chunks == 1 && holdFile is not null)
                 {
                     await HoldUntilExistsAsync(holdFile).ConfigureAwait(false);
                 }
             }
         }
-
-        return 0;
     }
+
+    /// <summary>
+    /// The process's raw stderr handle, which this process does not own, for an unbuffered stream.
+    /// <see cref="Console.Error"/>'s stream swallows a broken pipe (<c>ERROR_BROKEN_PIPE</c> and
+    /// <c>ERROR_NO_DATA</c> on Windows, <c>EPIPE</c> on Unix), so a writer whose reader closed the
+    /// pipe would exit 0 as if it had been drained; a stream on the raw handle throws instead. The
+    /// runtime ignores <c>SIGPIPE</c>, so on Unix the closed pipe surfaces as an
+    /// <see cref="IOException"/> for <c>EPIPE</c>, not as a signal; either way the probe exits
+    /// nonzero, as a contender that dies of the closed pipe would.
+    /// </summary>
+    private static SafeFileHandle RawStandardErrorHandle() =>
+        new(OperatingSystem.IsWindows() ? GetStdHandle(StandardErrorHandle) : new IntPtr(StandardErrorDescriptor), ownsHandle: false);
+
+    [DllImport("kernel32", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern IntPtr GetStdHandle(int standardHandle);
 
     /// <summary>
     /// Prints the ready line naming this process's pid on the one channel the contender seam
