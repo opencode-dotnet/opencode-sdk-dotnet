@@ -14,6 +14,7 @@ using OpenCode.Sdk.Tools.Infrastructure;
 using OpenCode.Sdk.Tools.Infrastructure.Logging;
 using OpenCode.Sdk.Tools.Output;
 using OpenCode.Sdk.Tools.Output.Abstractions;
+using OpenCode.Sdk.Tools.TestRoster;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Spectre.Console.Cli.Extensions.DependencyInjection;
@@ -60,6 +61,8 @@ public static class ToolApp
         services.AddSingleton<WatchedSourceReader>();
         services.AddSingleton<SnapshotSynchronizer>();
         services.AddSingleton<BenchmarkRunReader>();
+        services.AddSingleton<TestRosterLoader>();
+        services.AddSingleton<TrxRunReader>();
         services.AddSingleton<ICommandInterceptor, GlobalOptionsInterceptor>();
 
         overrideServices?.Invoke(services);
@@ -87,6 +90,9 @@ public static class ToolApp
         configurator
             .AddCommand<RefreshSpecCommand>("refresh-spec")
             .WithDescription("Prepare, verify, or apply a receipt-governed snapshot refresh (ADR-0020).");
+        configurator
+            .AddCommand<VerifyTestRosterCommand>("verify-test-roster")
+            .WithDescription("Verify a CI test pass's TRX results against the committed tests/test-roster.json, fail-closed.");
     }
 
     /// <summary>Entry point used by tools/opencode-tool.cs.</summary>

@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Refresh.Models;
 using OpenCode.Sdk.Tools.Output;
+using OpenCode.Sdk.Tools.TestRoster.Models;
 
 namespace OpenCode.Sdk.Tools.Serialization;
 
@@ -19,4 +20,5 @@ namespace OpenCode.Sdk.Tools.Serialization;
 [JsonSerializable(typeof(PatchManifest))]
 [JsonSerializable(typeof(SnapshotReceipt))]
 [JsonSerializable(typeof(SourceWatch))]
+[JsonSerializable(typeof(TestRosterDocument))]
 internal sealed partial class ToolJsonContext : JsonSerializerContext;

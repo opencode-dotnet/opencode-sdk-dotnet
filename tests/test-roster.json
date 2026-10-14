@@ -1,0 +1,44 @@
+{
+  "passes": {
+    "main": {
+      "windows": [
+        "OpenCode.Sdk.Extensions.Tests/net10.0",
+        "OpenCode.Sdk.Extensions.Tests/net11.0",
+        "OpenCode.Sdk.Extensions.Tests/net472",
+        "OpenCode.Sdk.Tests/net10.0",
+        "OpenCode.Sdk.Tests/net11.0",
+        "OpenCode.Sdk.Tests/net472",
+        "OpenCode.Sdk.Tools.Tests/net10.0"
+      ],
+      "linux": [
+        "OpenCode.Sdk.Extensions.Tests/net10.0",
+        "OpenCode.Sdk.Extensions.Tests/net11.0",
+        "OpenCode.Sdk.Tests/net10.0",
+        "OpenCode.Sdk.Tests/net11.0",
+        "OpenCode.Sdk.Tools.Tests/net10.0"
+      ],
+      "macos": [
+        "OpenCode.Sdk.Extensions.Tests/net10.0",
+        "OpenCode.Sdk.Extensions.Tests/net11.0",
+        "OpenCode.Sdk.Tests/net10.0",
+        "OpenCode.Sdk.Tests/net11.0",
+        "OpenCode.Sdk.Tools.Tests/net10.0"
+      ]
+    },
+    "service-elections": {
+      "windows": [
+        "OpenCode.Sdk.Tests/net10.0",
+        "OpenCode.Sdk.Tests/net11.0",
+        "OpenCode.Sdk.Tests/net472"
+      ],
+      "linux": [
+        "OpenCode.Sdk.Tests/net10.0",
+        "OpenCode.Sdk.Tests/net11.0"
+      ],
+      "macos": [
+        "OpenCode.Sdk.Tests/net10.0",
+        "OpenCode.Sdk.Tests/net11.0"
+      ]
+    }
+  }
+}
