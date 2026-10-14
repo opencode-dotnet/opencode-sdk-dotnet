@@ -220,7 +220,7 @@ public sealed class VerifyTestRosterCommandTests
     {
         using var registrar = ToolApp.CreateRegistrar(services =>
         {
-            services.AddSingleton<IFileSystem>(fileSystem);
+            services.AddSingleton(fileSystem);
             services.AddSingleton<IAnsiConsole, TestConsole>();
         });
         var tester = new CommandAppTester(registrar);
