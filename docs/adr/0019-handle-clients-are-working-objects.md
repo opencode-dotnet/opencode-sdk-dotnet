@@ -33,8 +33,8 @@ for mocking (`dotnet-subclient-mocking`) — all shapes the generated handle cli
 emit, alongside the guidelines' virtual service methods, virtual client accessors, and
 `Get<client>Client()` factory naming. The single guideline not yet adopted is
 `dotnet-subclient-properties` ("YOU SHOULD expose resource identifiers as properties on the
-resource client"): the handle clients hold the id privately today, and surfacing it is an
-additive follow-up recorded in the roadmap's freeze-time surface review.
+resource client"): the handle clients hold the id privately today, and surfacing it is
+additive.
 
 Consequences: placement changes are free until the public surface freezes before `1.0.0`;
 after the freeze a placement change is breaking, so a refresh that reshapes a family's per-id

@@ -1,6 +1,6 @@
 # 🔌 Connection modes
 
-Date: 2026-09-17
+Date: 2026-10-14
 
 There are three ways to get a client bound to a running opencode server: **let the SDK start one**,
 **point it at one you already have**, or **discover the background service the opencode CLI runs
@@ -64,7 +64,7 @@ await using var server = await OpenCodeServer.StartAsync(new OpenCodeServerOptio
 | `WorkingDirectory` | `null` | The child's working directory; `null` inherits yours. |
 | `Environment` | `null` | Extra environment entries for the child. |
 | `ReadinessTimeout` | 60 s | How long to wait for the readiness line before failing and ending the child. |
-| `GracefulShutdownTimeout` | 3 s | The grace between releasing the ownership lease and the forced kill. |
+| `GracefulShutdownTimeout` | 3 s | The grace before disposal forces the end again. On Windows it starts with the first `taskkill /T /F` of the server's tree and bounds it; a server still running when it runs out is killed again. On Linux and macOS it runs from `SIGTERM` to the server's process group to `SIGKILL` to whatever is left of the group. |
 | `Output` | `null` | An `OpenCodeServerOutput` collector that keeps a bounded tail of the child's stdout and stderr; read its snapshot whenever you like, even after a failed start. |
 
 > **🔒 Your `Environment` entries can never shadow the credential.** The launcher writes its own
@@ -151,9 +151,13 @@ using var client = server.CreateClient(options => options.Location = new Locatio
 ```
 
 Each call builds a new client over its own transport, so dispose each one. Disposing the *server*
-stops the child: it releases the ownership lease, waits out `GracefulShutdownTimeout`, then kills
-the whole process tree — every step bounded, so disposal never hangs your shutdown. If your process
-dies before disposal runs, the operating system closes the lease and the child exits anyway.
+ends the child the way upstream's own launcher does: on Windows it ends the server's whole process
+tree at once with `taskkill /T /F`; on Linux and macOS it sends `SIGTERM` to the server's process
+group and `SIGKILL` to whatever is left when `GracefulShutdownTimeout` runs out. Every step is
+bounded, so disposal never hangs your shutdown, and stdin, the ownership lease, closes last. If your
+process dies before disposal runs, the server still ends: on Windows the job the launcher placed it
+in ends it with your process (a batch shim's server, which runs outside that job, ends through the
+lease), and on Linux and macOS the operating system closes the lease and the server exits.
 
 Startup failures throw `OpenCodeServerException`, carrying a bounded tail of the child's stderr
 whenever a child actually ran — see
