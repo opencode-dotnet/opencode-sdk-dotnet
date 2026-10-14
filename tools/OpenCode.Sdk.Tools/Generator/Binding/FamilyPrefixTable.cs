@@ -54,17 +54,26 @@ internal sealed class FamilyPrefixTable
     }
 
     /// <summary>Gets the family whose longest prefix starts the concept at a word boundary, or <see langword="null"/>.</summary>
-    public string? FamilyOf(string concept)
+    public string? FamilyOf(string concept) => Match(concept)?.Family;
+
+    /// <summary>
+    /// Records where the concept was finally placed. An alias counts as used only when the family it
+    /// names is that home, so an alias whose every match an owner row sends elsewhere is reported dead.
+    /// </summary>
+    public void RecordPlacement(string concept, string slice)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(slice);
+
+        if (Match(concept) is { IsAlias: true } alias && string.Equals(alias.Family, slice, StringComparison.Ordinal))
+        {
+            _ = _usedAliases.Add(alias);
+        }
+    }
+
+    private PrefixEntry? Match(string concept)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(concept);
-
-        var match = _entries.FirstOrDefault(entry => NamePrefix.Matches(concept, entry.Prefix));
-        if (match is { IsAlias: true })
-        {
-            _ = _usedAliases.Add(match);
-        }
-
-        return match?.Family;
+        return _entries.FirstOrDefault(entry => NamePrefix.Matches(concept, entry.Prefix));
     }
 
     /// <summary>An alias that places nothing is stale: the refresh that emptied it surfaces it instead of carrying it.</summary>

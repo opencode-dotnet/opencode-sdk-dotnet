@@ -26,6 +26,7 @@ public sealed class ModelOwnershipPolicyTests
     private const string SessionLoginRequest = "SessionLoginRequest";
     private const string SessionInfo = "SessionInfo";
     private const string ModelsDevRefreshed = "ModelsDevRefreshed";
+    private const string OtherFamily = "Vcs";
     private const string BlankReason = " ";
     private const string BlankAlias = " ";
     private const string ModelInfo = "ModelInfo";
@@ -55,6 +56,19 @@ public sealed class ModelOwnershipPolicyTests
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(placement.HomeOf(ModelsDevRefreshed)).IsEqualTo(TypeHome.Family(LanguageModels));
+    }
+
+    /// <summary>An owner row that sends the alias's only model elsewhere leaves the alias placing nothing.</summary>
+    [Test]
+    public async Task Place_Should_Refuse_A_Prefix_Alias_When_An_Owner_Row_Places_Its_Model_In_Another_Family()
+    {
+        var errors = new BindingErrorCollector();
+
+        var placement = Place(errors, Models(ModelsDevRefreshed),
+            Ownership(FamiliesWithModelAlias(), owners: [Owner("ModelsDev", OtherFamily)]));
+
+        await Assert.That(placement.HomeOf(ModelsDevRefreshed)).IsEqualTo(TypeHome.Family(OtherFamily));
+        await AssertRefusedAsync(errors, ModelsAlias, $"the prefix alias of '{LanguageModels}' places no generated model");
     }
 
     [Test]

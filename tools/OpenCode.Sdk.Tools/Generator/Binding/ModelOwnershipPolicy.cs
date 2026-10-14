@@ -37,16 +37,17 @@ internal static class ModelOwnershipPolicy
         var unplaced = new List<string>();
         foreach (var subject in Subjects(candidates))
         {
-            // The prefix is read for every model, so an alias a row confirms still counts as placing it.
-            var prefixFamily = prefixes.FamilyOf(subject.Concept);
             var slice = bodyFamilies.TryGetValue(subject.Name, out var bodyFamily)
                 ? bodyFamily
-                : ownerRows.OwnerOf(subject, errors) ?? prefixFamily;
+                : ownerRows.OwnerOf(subject, errors) ?? prefixes.FamilyOf(subject.Concept);
             if (slice is null)
             {
                 unplaced.Add(subject.Name);
                 continue;
             }
+
+            // An alias a row confirms still places the model; one a row overrides does not.
+            prefixes.RecordPlacement(subject.Concept, slice);
 
             // A body request sits at its family root, so it takes no model area.
             var area = string.Equals(slice, SessionAreaRows.AreaFamily, StringComparison.Ordinal) && bodyFamily is null

@@ -16,6 +16,7 @@ public sealed class FamilyPrefixTableTests
     private const string LanguageModels = "LanguageModels";
     private const string Vcs = "Vcs";
     private const string ModelsDevRefreshed = "ModelsDevRefreshed";
+    private const string OtherSlice = "Events";
     private const string ModelInfo = "ModelInfo";
 
     [Test]
@@ -85,7 +86,7 @@ public sealed class FamilyPrefixTableTests
     {
         var errors = new BindingErrorCollector();
         var table = PrefixTable(errors, FamiliesWithModelAlias());
-        _ = table.FamilyOf(ModelInfo);
+        table.RecordPlacement(ModelInfo, LanguageModels);
 
         table.ReportDeadAliases(errors);
 
@@ -100,10 +101,25 @@ public sealed class FamilyPrefixTableTests
     {
         var errors = new BindingErrorCollector();
         var table = PrefixTable(errors, FamiliesWithModelAlias());
-        _ = table.FamilyOf(ModelsDevRefreshed);
+        table.RecordPlacement(ModelsDevRefreshed, LanguageModels);
 
         table.ReportDeadAliases(errors);
 
         await Assert.That(errors.Count).IsEqualTo(0);
+    }
+
+    /// <summary>An alias placed nothing when the model it matches ended up in another slice.</summary>
+    [Test]
+    public async Task ReportDeadAliases_Should_Report_An_Alias_Whose_Match_Was_Placed_In_Another_Slice()
+    {
+        var errors = new BindingErrorCollector();
+        var table = PrefixTable(errors, FamiliesWithModelAlias());
+        table.RecordPlacement(ModelsDevRefreshed, OtherSlice);
+
+        table.ReportDeadAliases(errors);
+
+        var exception = Assert.Throws<BindingException>(errors.ThrowIfAny);
+        await Assert.That(exception.Errors).Count().IsEqualTo(1);
+        await Assert.That(exception.Errors[0].Subject).IsEqualTo(ModelsAlias);
     }
 }

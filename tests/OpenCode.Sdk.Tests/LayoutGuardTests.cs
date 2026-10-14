@@ -35,12 +35,23 @@ public sealed class LayoutGuardTests
     [Arguments("Models/Intruder.cs")]
     [Arguments("Internal/ResponseAdapters/IntruderResponseAdapter.cs")]
     [Arguments("Internal/StreamAdapters/IntruderStreamAdapter.cs")]
+    [Arguments("Models/Sub/Intruder.cs")]
+    [Arguments("Internal/ResponseAdapters/Sub/IntruderResponseAdapter.cs")]
     public async Task Intruders_Should_Name_A_File_Added_To_A_Vacated_Folder(string relativePath)
     {
         var intruders = Intruders([new SdkSourceFile(relativePath, []), new SdkSourceFile(Resident, [])]);
 
         await Assert.That(intruders).HasSingleItem();
         await Assert.That(intruders[0]).StartsWith(relativePath);
+    }
+
+    /// <summary>A folder that only shares a vacated folder's name prefix is not inside it.</summary>
+    [Test]
+    public async Task Intruders_Should_Ignore_A_Sibling_Folder_That_Shares_The_Name_Prefix()
+    {
+        var intruders = Intruders([new SdkSourceFile("ModelsCatalog/Catalog.cs", []), new SdkSourceFile(Resident, [])]);
+
+        await Assert.That(intruders).IsEmpty();
     }
 
     [Test]
@@ -58,9 +69,13 @@ public sealed class LayoutGuardTests
         .. files
             .Where(static file => !Residents.Contains(file.RelativePath, StringComparer.Ordinal))
             .SelectMany(static file => VacatedFolders
-                .Where(folder => string.Equals(string.Join('/', file.Folders), folder.Path, StringComparison.Ordinal))
+                .Where(folder => IsWithin(string.Join('/', file.Folders), folder.Path))
                 .Select(folder => $"{file.RelativePath} belongs in {folder.NewHome}")),
     ];
+
+    /// <summary>A folder holds its own files and every file below it, never a sibling that merely shares its name prefix.</summary>
+    private static bool IsWithin(string fileFolder, string folder) =>
+        string.Equals(fileFolder, folder, StringComparison.Ordinal) || fileFolder.StartsWith($"{folder}/", StringComparison.Ordinal);
 
     private sealed record VacatedFolder(string Path, string NewHome);
 }

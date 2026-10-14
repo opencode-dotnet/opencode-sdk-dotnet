@@ -90,6 +90,23 @@ public sealed class NamespacePolicyTests
         await Assert.That(SdkNamespacePolicy.Violation(file)).IsNotNull();
     }
 
+    /// <summary>A modifier on its own line still makes the type public; the policy reads the syntax, not one line.</summary>
+    [Test]
+    public async Task Violation_Should_Refuse_An_Internal_Folder_File_When_Its_Type_Is_Public_Across_Lines()
+    {
+        var file = SourceFile(InternalFolderFile, SdkNamespacePolicy.InternalNamespace, Public, $"sealed class {TypeName}");
+
+        await Assert.That(SdkNamespacePolicy.Violation(file)).IsNotNull();
+    }
+
+    [Test]
+    public async Task Violation_Should_Admit_A_Public_Folder_File_When_Its_Type_Is_Public_Across_Lines()
+    {
+        var file = SourceFile(PublicFolderFile, PublicNamespace, Public, $"sealed class {TypeName}");
+
+        await Assert.That(SdkNamespacePolicy.Violation(file)).IsNull();
+    }
+
     [Test]
     public async Task Violation_Should_Refuse_A_File_When_It_Declares_No_Namespace()
     {

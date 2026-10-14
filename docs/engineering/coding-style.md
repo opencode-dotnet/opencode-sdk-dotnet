@@ -1,6 +1,6 @@
 # Coding Style — hand-written code
 
-Date: 2026-08-31
+Date: 2026-10-14
 
 Binding authoring style for every hand-written line in this repository — product code,
 `tools/`, and tests. Generated output is governed by the generator's emitters (ADR-0003);

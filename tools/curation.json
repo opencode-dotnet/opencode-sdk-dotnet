@@ -930,7 +930,7 @@
     {
       "match": "UnknownError",
       "owner": "Common",
-      "reason": "The error union's unknown carrier belongs with the error spine in Common/Errors; that only session operations produce it today is incidental."
+      "reason": "A wire-declared arm of the error union, so it belongs with the error spine in Common/Errors; that only session operations answer with it today is incidental."
     },
     {
       "match": "IOpenCodeError",

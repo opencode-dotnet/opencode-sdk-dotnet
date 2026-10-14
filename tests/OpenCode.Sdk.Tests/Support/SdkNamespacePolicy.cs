@@ -1,3 +1,7 @@
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
 namespace OpenCode.Sdk.Tests.Support;
 
 /// <summary>
@@ -16,10 +20,6 @@ internal static class SdkNamespacePolicy
     private const string InternalFolder = "Internal";
 
     private static readonly string[] PublicNamespaces = [RootNamespace, "OpenCode.Sdk.Models"];
-
-    private static readonly string[] TypeKeywords = ["class", "struct", "interface", "enum", "record", "delegate"];
-
-    private static readonly char[] WordSeparators = [' ', '(', '<', ':'];
 
     /// <summary>Gets the files that declare no namespace and no type by design.</summary>
     public static IReadOnlyList<string> ExemptFiles { get; } = ["Properties/AssemblyInfo.cs"];
@@ -69,9 +69,30 @@ internal static class SdkNamespacePolicy
         return [.. LegacyNamespaceFolders.Where(folder => !legacyPaths.Any(path => IsUnder(path, folder)))];
     }
 
-    /// <summary>Reads the file-scoped namespace and the top-level types a file declares.</summary>
-    public static SourceDeclarations Parse(SdkSourceFile file) =>
-        new(FileScopedNamespace(file.Lines), [.. file.Lines.Select(TopLevelTypeOf).OfType<TopLevelType>()]);
+    /// <summary>
+    /// Reads the namespace and the top-level types a file declares from its syntax tree, so modifiers
+    /// on their own lines and attributes between them classify the same as a one-line declaration.
+    /// </summary>
+    public static SourceDeclarations Parse(SdkSourceFile file)
+    {
+        var root = CSharpSyntaxTree.ParseText(string.Join('\n', file.Lines)).GetCompilationUnitRoot();
+        var namespaceDeclaration = root.Members.OfType<BaseNamespaceDeclarationSyntax>().FirstOrDefault();
+        var members = namespaceDeclaration?.Members ?? root.Members;
+        return new SourceDeclarations(
+            namespaceDeclaration?.Name.ToString(),
+            [
+                .. members
+                    .Where(static member => member is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax)
+                    .Select(static member => new TopLevelType(
+                        member switch
+                        {
+                            BaseTypeDeclarationSyntax type => type.Identifier.ValueText,
+                            DelegateDeclarationSyntax del => del.Identifier.ValueText,
+                            _ => throw new InvalidOperationException("Only type and delegate declarations reach here."),
+                        },
+                        member.Modifiers.Any(SyntaxKind.PublicKeyword))),
+            ]);
+    }
 
     private static string? InternalFileViolation(SdkSourceFile file, string declaredNamespace, IReadOnlyList<TopLevelType> types)
     {
@@ -105,42 +126,6 @@ internal static class SdkNamespacePolicy
 
     private static bool IsUnder(string relativePath, string folder) =>
         relativePath.StartsWith($"{folder}/", StringComparison.Ordinal);
-
-    private static string? FileScopedNamespace(IEnumerable<string> lines) => lines
-        .Select(static line => line.TrimEnd('\r'))
-        .Where(static line => line.StartsWith("namespace ", StringComparison.Ordinal) && line[^1] is ';')
-        .Select(static line => line["namespace ".Length..^1].Trim())
-        .FirstOrDefault();
-
-    /// <summary>
-    /// File-scoped namespaces put every top-level declaration at column zero, so a line that starts
-    /// with a modifier or a type keyword there declares a top-level type.
-    /// </summary>
-    private static TopLevelType? TopLevelTypeOf(string line)
-    {
-        if (line.Length is 0 || char.IsWhiteSpace(line[0]) || !char.IsLetter(line[0]))
-        {
-            return null;
-        }
-
-        var words = line.TrimEnd('\r').Split(WordSeparators, StringSplitOptions.RemoveEmptyEntries);
-        var keyword = Array.FindIndex(words, static word => TypeKeywords.Contains(word, StringComparer.Ordinal));
-        if (keyword < 0 || words.Take(keyword).Any(static word => word is "namespace" or "using"))
-        {
-            return null;
-        }
-
-        // 'record struct' and 'record class' name the type one word later; a delegate names it before its parameters.
-        var nameIndex = words[keyword] switch
-        {
-            "record" when keyword + 1 < words.Length && words[keyword + 1] is "struct" or "class" => keyword + 2,
-            "delegate" => keyword + 2,
-            _ => keyword + 1,
-        };
-        return nameIndex < words.Length
-            ? new TopLevelType(words[nameIndex], words.Take(keyword).Contains("public", StringComparer.Ordinal))
-            : null;
-    }
 
     /// <summary>The file-scoped namespace and the top-level types one source file declares.</summary>
     internal sealed record SourceDeclarations(string? Namespace, IReadOnlyList<TopLevelType> TopLevelTypes);

@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-10-12
+Date: 2026-10-14
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
