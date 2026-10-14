@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
-using OpenCode.Sdk.Internal.Diagnostics;
 using OpenCode.Sdk.Internal.Posix;
 using OpenCode.Sdk.Internal.Windows.Abstractions;
 

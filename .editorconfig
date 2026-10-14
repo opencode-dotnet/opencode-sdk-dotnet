@@ -794,14 +794,14 @@ dotnet_diagnostic.CA1720.severity = none
 # generated response adapters, and default interface members cannot carry shared
 # behavior on the net472/netstandard2.0 targets (CS8701). Winner: the
 # abstract adapter base; S1694 remains enabled for every other file.
-[src/OpenCode.Sdk/Internal/ResponseAdapter.cs]
+[src/OpenCode.Sdk/Internal/Operations/ResponseAdapter.cs]
 dotnet_diagnostic.S1694.severity = none
 
 # The owned downlevel handler changes redirect behavior only. CA5399 would require forcing
 # certificate-revocation checks on, but that is a separate TLS policy and the property is absent
 # from older .NET Framework implementations that can load the netstandard2.0 asset. Winner: the
 # cross-runtime compatibility and unchanged TLS contract; CA5399 remains enabled elsewhere.
-[src/OpenCode.Sdk/Internal/Pipeline.cs]
+[src/OpenCode.Sdk/Internal/Transport/Pipeline.cs]
 dotnet_diagnostic.CA5399.severity = none
 
 # TerminalSocketCore deliberately never disposes its send-gate SemaphoreSlim. The BCL only requires
@@ -810,14 +810,14 @@ dotnet_diagnostic.CA5399.severity = none
 # failure, and a writer already parked in WaitAsync would never wake, because Dispose does not
 # complete pending async waiters. Winner: the disposal-race contract; CA2213 remains enabled for
 # every other file.
-[src/OpenCode.Sdk/Internal/TerminalSocketCore.cs]
+[src/OpenCode.Sdk/Internal/Terminal/TerminalSocketCore.cs]
 dotnet_diagnostic.CA2213.severity = none
 
 # CallerStreamContent holds two disposables it does not own: the caller's request-body stream,
 # which the SDK promises never to dispose or rewind, and the pipeline message whose progress
 # window it restarts, which the pipeline disposes after the exchange. Disposing either would break
 # that ownership. Winner: the ownership contract; CA2213 remains enabled for every other file.
-[src/OpenCode.Sdk/Internal/CallerStreamContent.cs]
+[src/OpenCode.Sdk/Internal/Transport/CallerStreamContent.cs]
 dotnet_diagnostic.CA2213.severity = none
 
 # DriveController deliberately never disposes its send-gate and invocation-signal semaphores.
@@ -1014,7 +1014,7 @@ dotnet_diagnostic.VSTHRD003.severity = none
 # running on a pool thread of its own, as a source's own CancelAfter timer cancels it. There is no
 # caller to make async and no caller worker for CancelOnWorkerAsync to spare. Winner: the
 # synchronous timer-callback contract; MA0045 remains enabled for every other file.
-[src/OpenCode.Sdk/Internal/ProgressWindow.cs]
+[src/OpenCode.Sdk/Internal/Transport/ProgressWindow.cs]
 dotnet_diagnostic.MA0045.severity = none
 
 # OpenCodeServerContractTests exercises the processless friend-assembly seam

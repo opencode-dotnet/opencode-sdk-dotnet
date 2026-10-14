@@ -31,9 +31,7 @@ internal static class SdkNamespacePolicy
     /// </summary>
     public static IReadOnlyList<string> LegacyNamespaceFolders { get; } =
     [
-        "Internal/Abstractions", // root Internal machinery
         "Internal/BackgroundService", // Hosting background service
-        "Internal/Diagnostics", // root Internal machinery
         "Internal/Launcher", // Hosting launcher
         "Internal/Posix", // Hosting platform interop
         "Internal/Windows", // Hosting platform interop

@@ -1,7 +1,7 @@
 using System.Net.WebSockets;
 using OpenCode.Sdk.Internal;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Transport;
 
 public sealed class FailureClassificationTests
 {

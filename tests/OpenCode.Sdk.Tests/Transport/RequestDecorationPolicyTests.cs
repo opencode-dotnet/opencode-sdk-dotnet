@@ -2,7 +2,7 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Transport;
 
 /// <summary>
 /// Exercises <c>RequestDecorationPolicy</c>'s per-call/ambient location merge and its

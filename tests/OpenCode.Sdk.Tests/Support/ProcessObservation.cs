@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.TestSupport;
 
 namespace OpenCode.Sdk.Tests.Support;

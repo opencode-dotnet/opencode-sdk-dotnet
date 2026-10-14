@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>Creates the connection's per-operation cancellation timers.</summary>
 internal interface ITerminalDeadlineFactory

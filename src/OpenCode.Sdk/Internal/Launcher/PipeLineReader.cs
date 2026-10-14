@@ -1,5 +1,4 @@
 using System.Text;
-using OpenCode.Sdk.Internal.Diagnostics;
 
 namespace OpenCode.Sdk.Internal.Launcher;
 

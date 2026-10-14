@@ -1,5 +1,3 @@
-using OpenCode.Sdk.Internal.Abstractions;
-
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>Owns one fixed send budget and the caller/connection/timeout failure precedence.</summary>

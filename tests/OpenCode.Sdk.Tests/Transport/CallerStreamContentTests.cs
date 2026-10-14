@@ -2,7 +2,7 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Transport;
 
 /// <summary>
 /// A raw-byte body is the caller's stream: the SDK reads it once from where it stands, never

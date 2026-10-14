@@ -12,6 +12,7 @@ public sealed class LayoutGuardTests
     [
         new("Models", "the owning family's Models/ folder, or Common/Errors/ for the shared error spine"),
         new("Pagination", "Common/Pagination/"),
+        new("Internal/Abstractions", "the seam's area folder under Internal/, such as Internal/Terminal/"),
         new("Internal/Pagination", "Common/Internal/"),
         new("Internal/ResponseAdapters", "the owning family's Internal/ folder"),
         new("Internal/StreamAdapters", "the owning family's Internal/ folder"),
@@ -29,6 +30,7 @@ public sealed class LayoutGuardTests
     [Test]
     [Arguments("Models/Intruder.cs")]
     [Arguments("Pagination/IntruderCursor.cs")]
+    [Arguments("Internal/Abstractions/IIntruderSeam.cs")]
     [Arguments("Internal/Pagination/IntruderPaginator.cs")]
     [Arguments("Internal/ResponseAdapters/IntruderResponseAdapter.cs")]
     [Arguments("Internal/StreamAdapters/IntruderStreamAdapter.cs")]

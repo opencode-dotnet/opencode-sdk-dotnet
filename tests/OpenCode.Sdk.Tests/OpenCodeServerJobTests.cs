@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Internal.Launcher;
 using OpenCode.Sdk.Internal.Windows;
 using OpenCode.Sdk.Internal.Windows.Abstractions;

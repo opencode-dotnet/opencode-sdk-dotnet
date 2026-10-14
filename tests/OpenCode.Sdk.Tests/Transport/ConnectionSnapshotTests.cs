@@ -2,7 +2,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using OpenCode.Sdk.Internal;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Transport;
 
 public sealed class ConnectionSnapshotTests
 {
