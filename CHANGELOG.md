@@ -11,6 +11,17 @@ Nightly builds of `master` are on
 
 ### 💥 Breaking changes
 
+- **The upstream-experimental surface is marked `[Experimental]`.** Every member that calls an
+  operation upstream serves under `/api/experimental/`, and every type only those operations use,
+  now reports a diagnostic when you use it. It is a compile **error** until you opt in with
+  `#pragma warning disable` or `<NoWarn>` for its id:
+  - `OPENCODE001`: `client.Experimental` (`ExperimentalClient`);
+  - `OPENCODE002`: the persistent-PTY family (`client.PersistentPtys`, its handle, connect door,
+    session, options and frames);
+  - `OPENCODE003`: the Session family's experimental operations, today `SessionClient.GetLogAsync`.
+
+  Nothing on the wire changes. See [Experimental APIs](docs/guide/experimental.md). Waiting for a
+  turn on the event bus, as the getting-started guide shows, needs no opt-in.
 - **Every generated name spells `OAuth` as the brand does.** Names built from operation ids and wire
   members said `Oauth`, beside the schema-derived `CredentialOAuth` and `McpOAuthConfig`. They are now
   `BeginOAuthConnectionAsync`, `CancelOAuthConnectionAsync`, `CompleteOAuthConnectionAsync`,

@@ -171,8 +171,8 @@ working to idle, and the deadline is yours to set. [Streaming](streaming.md#-wai
 explains the order and why `SessionIdle` is not the event to wait for.
 
 `client.Experimental.WaitForSessionAsync(created.Session.Id)` waits for the same moment in one
-call, without the bus. Upstream marks that route experimental, which is why it lives on
-`client.Experimental` and may still move.
+call, without the bus. Upstream serves it as an experimental route, so it needs an
+[opt-in](experimental.md#opencode001) and may still move.
 
 ### Choosing a model
 

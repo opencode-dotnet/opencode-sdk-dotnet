@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using OpenCode.Sdk.Internal;
+
 namespace OpenCode.Sdk;
 
 /// <summary>
@@ -7,6 +10,7 @@ namespace OpenCode.Sdk;
 /// how a later connection resumes exactly here through
 /// <see cref="PersistentPtyConnectOptions.Cursor"/>.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public sealed class PersistentPtyReplayCompleteFrame : PersistentPtyFrame
 {
     /// <summary>

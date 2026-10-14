@@ -7,6 +7,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// The session usage recorded data source. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
 [JsonConverter(typeof(SessionUsageRecordedDataSourceJsonConverter))]
 public readonly struct SessionUsageRecordedDataSource : IEquatable<SessionUsageRecordedDataSource>
 {

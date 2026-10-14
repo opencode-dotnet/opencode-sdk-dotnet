@@ -15,6 +15,12 @@ internal sealed record OperationPlan
 
     public required string RouteTemplate { get; init; }
 
+    /// <summary>Gets the diagnostic id of the experimental family the operation's route belongs to; <see langword="null"/> for a stable route.</summary>
+    public string? ExperimentalDiagnostic { get; init; }
+
+    /// <summary>Gets the id the operation's whole route container carries, which spares its members their own.</summary>
+    public string? RouteContainerExperimentalDiagnostic { get; init; }
+
     /// <summary>Gets the nested container the route members live in (client name, or the group for root placement).</summary>
     public required string RouteContainerName { get; init; }
 

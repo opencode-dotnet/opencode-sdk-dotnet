@@ -8,6 +8,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents a experimental migration v 1 status structural union.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 [JsonConverter(typeof(ExperimentalMigrationV1StatusJsonConverter))]
 public sealed record ExperimentalMigrationV1Status
 {

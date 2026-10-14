@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using OpenCode.Sdk.Internal;
+
 namespace OpenCode.Sdk;
 
 /// <summary>
@@ -5,6 +8,7 @@ namespace OpenCode.Sdk;
 /// told, so a connection learns it lost control here rather than by noticing its input stopped
 /// having an effect. A null attachment means the terminal is left with no controller at all.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public sealed class PersistentPtyControllerChangedFrame : PersistentPtyFrame
 {
     /// <summary>

@@ -7,6 +7,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents a session message content updated value.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
 public sealed record SessionMessageContentUpdated : ISessionEventDurable
 {
     /// <summary>

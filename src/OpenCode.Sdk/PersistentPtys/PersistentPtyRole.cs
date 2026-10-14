@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using OpenCode.Sdk.Internal;
+
 namespace OpenCode.Sdk;
 
 /// <summary>
@@ -5,6 +8,7 @@ namespace OpenCode.Sdk;
 /// server grants the role, so a connection that asked to control can still be attached as an
 /// observer, and the granted role rides the <c>attached</c> frame rather than the request.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public enum PersistentPtyRole
 {
     /// <summary>The connection may write input and resize the terminal.</summary>

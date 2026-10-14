@@ -10,7 +10,8 @@
       "clientName": "Sessions",
       "handleName": "SessionClient",
       "handleParameter": "sessionID",
-      "reason": "The session is the SDK's primary working object: two dozen operations chain on one sessionID (ADR-0019)."
+      "experimentalDiagnostic": "OPENCODE003",
+      "reason": "The session is the SDK's primary working object: two dozen operations chain on one sessionID (ADR-0019); its upstream experimental routes, today session.log, carry OPENCODE003."
     },
     "shell": {
       "placement": "client",
@@ -45,7 +46,8 @@
       "handleName": "PersistentPtyClient",
       "handleParameter": "ptyID",
       "emission": "internalRaw",
-      "reason": "A persistent terminal is a live daemon-owned process worked over its id: get, update, snapshot, remove, connect-token, and the WebSocket connect chain on ptyID (ADR-0019); the session-keyed list, create, and read and the bare handoff and shutdown stay on the collection client with their route values as arguments, exactly as upstream flattens the group with sessionID as an input field. Every public door of the family is hand-written over these raw clients because the connect-token handshake and the WebSocket session need knowledge generation may not import (ADR-0021, extended to this family)."
+      "experimentalDiagnostic": "OPENCODE002",
+      "reason": "A persistent terminal is a live daemon-owned process worked over its id: get, update, snapshot, remove, connect-token, and the WebSocket connect chain on ptyID (ADR-0019); the session-keyed list, create, and read and the bare handoff and shutdown stay on the collection client with their route values as arguments, exactly as upstream flattens the group with sessionID as an input field. Every public door of the family is hand-written over these raw clients because the connect-token handshake and the WebSocket session need knowledge generation may not import (ADR-0021, extended to this family); its upstream experimental routes carry OPENCODE002."
     },
     "agent": {
       "placement": "client",
@@ -85,7 +87,8 @@
     "experimental": {
       "placement": "client",
       "clientName": "Experimental",
-      "reason": "Experimental operations share a flat client that flags their stability; route identifiers are explicit method arguments rather than session handles."
+      "experimentalDiagnostic": "OPENCODE001",
+      "reason": "Experimental operations share a flat client that flags their stability; route identifiers are explicit method arguments rather than session handles, and its upstream experimental routes carry OPENCODE001."
     },
     "model": {
       "placement": "client",

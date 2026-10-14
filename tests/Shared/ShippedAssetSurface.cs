@@ -23,10 +23,10 @@ internal static class ShippedAssetSurface
         [.. Assets().Select(static asset => TargetFrameworkOf(asset))];
 
     /// <summary>
-    /// Reads what one shipped asset must expose: the reviewed baseline, less the one reviewed
-    /// difference between assets. The trimming and native AOT annotations are public attributes only
-    /// on .NET; the netstandard2.0 and net472 assets carry internal copies of them, which are not part
-    /// of their public API, so those two render the same members without the annotations.
+    /// Reads what one shipped asset must expose: the reviewed baseline, less the reviewed differences
+    /// between assets. The trimming and native AOT annotations and the experimental marks are public
+    /// attributes only on .NET; the netstandard2.0 and net472 assets carry internal copies of them,
+    /// which are not part of their public API, so those two render the same members without them.
     /// </summary>
     /// <param name="targetFramework">The asset's target framework.</param>
     /// <returns>The expected public API, with LF line ends.</returns>
@@ -39,7 +39,7 @@ internal static class ShippedAssetSurface
             baseline = Lf(await reader.ReadToEndAsync().ConfigureAwait(false));
         }
 
-        return targetFramework is "netstandard2.0" or "net472" ? WithoutTrimmingAnnotations(baseline) : baseline;
+        return targetFramework is "netstandard2.0" or "net472" ? WithoutDownlevelInternalAttributes(baseline) : baseline;
     }
 
     /// <summary>Renders one shipped asset's public API, LF-terminated as the baseline is.</summary>
@@ -197,7 +197,7 @@ internal static class ShippedAssetSurface
             .FirstOrDefault(FileSystem.Directory.Exists)
         ?? throw new InvalidOperationException($"No '{relative}' was found under '{packageRoot}'.");
 
-    private static string WithoutTrimmingAnnotations(string api)
+    private static string WithoutDownlevelInternalAttributes(string api)
     {
         var kept = new List<string>();
         var inAnnotation = false;
@@ -205,7 +205,8 @@ internal static class ShippedAssetSurface
         {
             var trimmed = line.TrimStart();
             inAnnotation |= trimmed.StartsWith("[System.Diagnostics.CodeAnalysis.RequiresDynamicCode(", StringComparison.Ordinal)
-                || trimmed.StartsWith("[System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode(", StringComparison.Ordinal);
+                || trimmed.StartsWith("[System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode(", StringComparison.Ordinal)
+                || trimmed.StartsWith("[System.Diagnostics.CodeAnalysis.Experimental(", StringComparison.Ordinal);
             if (!inAnnotation)
             {
                 kept.Add(line);

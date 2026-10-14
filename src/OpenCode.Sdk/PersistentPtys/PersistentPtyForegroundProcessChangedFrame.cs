@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using OpenCode.Sdk.Internal;
+
 namespace OpenCode.Sdk;
 
 /// <summary>
@@ -6,6 +9,7 @@ namespace OpenCode.Sdk;
 /// shell itself is back in the foreground, which is how a caller tells "still running" from
 /// "back at the prompt".
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public sealed class PersistentPtyForegroundProcessChangedFrame : PersistentPtyFrame
 {
     /// <summary>

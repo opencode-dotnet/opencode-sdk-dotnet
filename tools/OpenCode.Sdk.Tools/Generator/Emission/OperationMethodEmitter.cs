@@ -10,7 +10,7 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 /// <summary>Emits one operation method delegating once into the pipeline.</summary>
 internal static class OperationMethodEmitter
 {
-    public static MethodDeclarationSyntax Emit(OperationPlan operation, EmissionMode emission)
+    public static MethodDeclarationSyntax Emit(OperationPlan operation, EmissionMode emission, bool classMarked = false)
     {
         ArgumentNullException.ThrowIfNull(operation);
 
@@ -50,6 +50,7 @@ internal static class OperationMethodEmitter
         return SyntaxFactory
             .MethodDeclaration(returnType, operation.MethodName)
             .WithModifiers(EmissionModifiers.Member(emission))
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(emission is EmissionMode.Public && !classMarked ? operation.ExperimentalDiagnostic : null))
             .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(EmitParameters(operation, methodParameters))))
             .WithBody(SyntaxFactory.Block(statements))
             .WithLeadingTrivia(EmitDocumentation(operation, methodParameters));

@@ -161,9 +161,11 @@ public class OpenCodeClient : IDisposable
     /// Gets the &apos;Events&apos; collection client.
     /// </summary>
     public virtual EventsClient Events => _events ?? throw MockSeam.CreateError("OpenCodeClient", "Events");
+
     /// <summary>
     /// Gets the &apos;Experimental&apos; collection client.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
     public virtual ExperimentalClient Experimental => _experimental ?? throw MockSeam.CreateError("OpenCodeClient", "Experimental");
     /// <summary>
     /// Gets the &apos;FileSystem&apos; collection client.
@@ -189,9 +191,11 @@ public class OpenCodeClient : IDisposable
     /// Gets the &apos;Permissions&apos; collection client.
     /// </summary>
     public virtual PermissionsClient Permissions => _permissions ?? throw MockSeam.CreateError("OpenCodeClient", "Permissions");
+
     /// <summary>
     /// Gets the &apos;PersistentPtys&apos; collection client.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
     public virtual PersistentPtysClient PersistentPtys => _persistentPtys ?? throw MockSeam.CreateError("OpenCodeClient", "PersistentPtys");
     /// <summary>
     /// Gets the &apos;Plugins&apos; collection client.

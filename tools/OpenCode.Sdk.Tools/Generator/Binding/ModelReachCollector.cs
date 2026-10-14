@@ -38,20 +38,42 @@ internal static class ModelReachCollector
         return reach.ToDictionary(static entry => entry.Key, static entry => (IReadOnlyList<string>)[.. entry.Value], StringComparer.Ordinal);
     }
 
+    public static IReadOnlySet<string> CollectSubset(ReachableSchemaCollector reachableSchemas, ReachScope scope,
+        OwnershipCandidates candidates, BindingErrorCollector errors)
+    {
+        ArgumentNullException.ThrowIfNull(reachableSchemas);
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentNullException.ThrowIfNull(candidates);
+        ArgumentNullException.ThrowIfNull(errors);
+
+        var reachable = reachableSchemas.Collect(scope.Document, scope.Selected, errors);
+        var reach = reachable.GraphKeys.Where(scope.TypeNames.ContainsKey).Select(key => scope.TypeNames[key])
+            .Distinct(StringComparer.Ordinal)
+            .ToDictionary(static name => name, static _ => new SortedSet<string>(StringComparer.Ordinal) { "subset" }, StringComparer.Ordinal);
+        AddDerivedReach(candidates, reach);
+        return reach.Where(static entry => entry.Value.Count > 0).Select(static entry => entry.Key).ToHashSet(StringComparer.Ordinal);
+    }
+
     private static void AddDerivedReach(OwnershipCandidates candidates, Dictionary<string, SortedSet<string>> reach)
     {
-        foreach (var union in candidates.Unions)
+        int previousCount;
+        do
         {
-            var arms = union.Variants.Select(static variant => variant.TypeName)
-                .Concat(union.PrefixVariant is null ? [] : [union.PrefixVariant.TypeName]);
-            var unionReach = Reached(reach, union.Name);
-            foreach (var arm in arms.Where(reach.ContainsKey))
+            previousCount = reach.Values.Sum(static families => families.Count);
+            foreach (var union in candidates.Unions)
             {
-                unionReach.UnionWith(reach[arm]);
-            }
+                var arms = union.Variants.Select(static variant => variant.TypeName)
+                    .Concat(union.PrefixVariant is null ? [] : [union.PrefixVariant.TypeName]);
+                var unionReach = Reached(reach, union.Name);
+                foreach (var arm in arms.Where(reach.ContainsKey))
+                {
+                    unionReach.UnionWith(reach[arm]);
+                }
 
-            Reached(reach, union.UnknownTypeName).UnionWith(unionReach);
+                Reached(reach, union.UnknownTypeName).UnionWith(unionReach);
+            }
         }
+        while (reach.Values.Sum(static families => families.Count) != previousCount);
 
         foreach (var structural in candidates.Models.OfType<StructuralUnionModelPlan>())
         {

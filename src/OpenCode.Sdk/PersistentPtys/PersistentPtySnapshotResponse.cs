@@ -8,6 +8,7 @@ namespace OpenCode.Sdk;
 /// <summary>
 /// Represents the response of the &apos;GET /api/experimental/persistent-pty/{ptyID}/snapshot&apos; operation.
 /// </summary>
+[Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
 public sealed record PersistentPtySnapshotResponse : OpenCodeResponse
 {
     private readonly PersistentPtySnapshot? _snapshot;

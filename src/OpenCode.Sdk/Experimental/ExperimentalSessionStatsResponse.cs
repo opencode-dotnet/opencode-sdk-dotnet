@@ -8,6 +8,7 @@ namespace OpenCode.Sdk;
 /// <summary>
 /// Represents the response of the &apos;GET /api/experimental/session/stats&apos; operation.
 /// </summary>
+[Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record ExperimentalSessionStatsResponse : OpenCodeResponse
 {
     private readonly SessionStatsInfo? _sessionStats;

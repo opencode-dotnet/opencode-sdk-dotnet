@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using OpenCode.Sdk.Internal;
+
 namespace OpenCode.Sdk;
 
 /// <summary>
@@ -6,6 +9,7 @@ namespace OpenCode.Sdk;
 /// the terminal no longer holds is silently advanced to the oldest retained byte;
 /// <see cref="Truncated"/> is how a caller learns that output between the two offsets is gone.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public sealed record PersistentPtyReplayBounds
 {
     /// <summary>Initializes the bounds of one replay.</summary>

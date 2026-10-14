@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
@@ -6,6 +7,7 @@ namespace OpenCode.Sdk;
 /// Shapes one persistent PTY WebSocket connection and its local send budget. The send timeout
 /// stays in the SDK; the other options ride the upgrade query. The SDK always negotiates framed input.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public sealed record PersistentPtyConnectOptions
 {
     private readonly TerminalSendTimeout _sendTimeout = TerminalSendTimeout.Default;

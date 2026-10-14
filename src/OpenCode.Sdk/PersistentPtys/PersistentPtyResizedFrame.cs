@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using OpenCode.Sdk.Internal;
+
 namespace OpenCode.Sdk;
 
 /// <summary>
@@ -7,6 +10,7 @@ namespace OpenCode.Sdk;
 /// emulator resizes it to the new viewport and writes those bytes. The session tracks the new
 /// viewport itself, so later writes carry it without the caller repeating the resize.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public sealed class PersistentPtyResizedFrame : PersistentPtyFrame
 {
     /// <summary>

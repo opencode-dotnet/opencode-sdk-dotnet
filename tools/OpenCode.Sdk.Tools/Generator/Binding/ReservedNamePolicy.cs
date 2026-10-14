@@ -121,6 +121,7 @@ internal static class ReservedNamePolicy
             "EndpointPolicy",
             "ExecutableResolver",
             "ExecutableSearchEnvironment",
+            "ExperimentalDiagnostics",
             "FailureClassification",
             "FailurePhase",
             "FrameDispatch",

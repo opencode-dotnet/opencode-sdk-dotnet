@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
@@ -8,6 +10,7 @@ namespace OpenCode.Sdk;
 /// replay, and everything a session needs to speak the wire correctly (the negotiated input
 /// protocol, the granted role, the viewport, the replay anchor) arrives only there.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public sealed record PersistentPtyAttachment
 {
     /// <summary>

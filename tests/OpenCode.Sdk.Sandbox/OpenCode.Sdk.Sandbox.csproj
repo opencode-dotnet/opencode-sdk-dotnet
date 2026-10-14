@@ -4,6 +4,8 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>
     <IsPackable>false</IsPackable>
+    <!-- slopwatch-ignore: SW005 experimental-family arbitration: these tests exercise the SDK's experimental families (OPENCODE001-003) on purpose -->
+    <NoWarn>$(NoWarn);OPENCODE001;OPENCODE002;OPENCODE003</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,3 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
+using OpenCode.Sdk.Internal;
+
 namespace OpenCode.Sdk;
 
 /// <summary>
@@ -7,6 +10,7 @@ namespace OpenCode.Sdk;
 /// terminal emulator writes them as they are; a caller that wants text decodes the concatenated
 /// stream itself, with replacement.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public sealed class PersistentPtyOutputFrame : PersistentPtyFrame
 {
     /// <summary>

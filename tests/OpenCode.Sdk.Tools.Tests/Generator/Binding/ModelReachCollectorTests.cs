@@ -109,6 +109,18 @@ public sealed class ModelReachCollectorTests
     }
 
     [Test]
+    public async Task Collect_Should_Propagate_Nested_Union_Arm_Reach_Regardless_Of_Plan_Order()
+    {
+        var outer = Union("Outer") with { Variants = [Arm(PartInterface) with { IsNestedUnion = true }] };
+        var inner = Union(PartConcept) with { Variants = [Arm(Widget)] };
+
+        var reach = await CollectAsync(Candidates(unions: [outer, inner]), SessionWidget);
+
+        await Assert.That(ReachOf(reach, "IOuter")).IsEqualTo(InOrder(Sessions));
+        await Assert.That(ReachOf(reach, "UnknownOuter")).IsEqualTo(InOrder(Sessions));
+    }
+
+    [Test]
     public async Task Collect_Should_Give_A_Structural_Union_Kind_The_Reach_Of_Its_Union()
     {
         var reach = await CollectAsync(Candidates(models: [StructuralUnion(Gadget, GadgetKind)]), SessionGadget, McpGadget);

@@ -8,6 +8,7 @@ namespace OpenCode.Sdk;
 /// <summary>
 /// Represents the response of the &apos;GET /api/experimental/session/{sessionID}/terminal&apos; operation.
 /// </summary>
+[Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
 public sealed record PersistentPtyListResponse : OpenCodeResponse
 {
     private readonly IReadOnlyList<PersistentPtyInfo>? _persistentPtys;

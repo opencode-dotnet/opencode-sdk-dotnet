@@ -28,6 +28,7 @@ internal static class HoistedInterfaceEmitter
     {
         var declaration = SyntaxFactory
             .InterfaceDeclaration(plan.Name)
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(plan.ExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([.. plan.Members.Select(EmitMember)]))
             .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(

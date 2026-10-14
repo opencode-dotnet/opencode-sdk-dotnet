@@ -344,6 +344,7 @@ public static partial class OpenCodeRoutes
         /// <summary>
         /// The &apos;GET /api/experimental/session/{sessionID}/log&apos; route template.
         /// </summary>
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
         public const string GetLogTemplate = "/api/experimental/session/{sessionID}/log";
         /// <summary>
         /// Builds the &apos;/api/experimental/session/{sessionID}/log&apos; route.
@@ -351,6 +352,7 @@ public static partial class OpenCodeRoutes
         /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>
         /// <param name = "request">The request shaping the query.</param>
         /// <returns>The escaped route.</returns>
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
         public static string GetLog(string sessionId, SessionLogRequest? request = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);

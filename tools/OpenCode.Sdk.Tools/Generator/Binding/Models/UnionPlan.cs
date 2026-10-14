@@ -12,6 +12,9 @@ internal sealed record UnionPlan
 
     public required string Namespace { get; init; }
 
+    /// <summary>Gets the id the type carries when only experimental operations of one family reach it.</summary>
+    public string? ExperimentalDiagnostic { get; init; }
+
     public required string UnknownTypeName { get; init; }
 
     public required string MarkerWireName { get; init; }

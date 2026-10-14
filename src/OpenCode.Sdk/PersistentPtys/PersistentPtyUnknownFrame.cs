@@ -1,4 +1,6 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 
@@ -8,6 +10,7 @@ namespace OpenCode.Sdk;
 /// exist when this SDK was built, and dropping the connection over it would be worse than
 /// carrying it. The raw body rides along so a caller can read a kind the SDK cannot name yet.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public sealed class PersistentPtyUnknownFrame : PersistentPtyFrame
 {
     /// <summary>

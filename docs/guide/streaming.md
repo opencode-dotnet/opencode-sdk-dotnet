@@ -95,7 +95,8 @@ guarantees below has the whole story.
 ## 📜 A single session's log
 
 `SessionClient.GetLogAsync(SessionLogRequest?, CancellationToken)` yields `ISessionLogItem` for one
-session:
+session. Upstream serves it as an experimental route, so it needs an
+[opt-in](experimental.md#opencode003) (`OPENCODE003`).
 
 ```csharp
 var session = client.Sessions.GetSessionClient(sessionId);

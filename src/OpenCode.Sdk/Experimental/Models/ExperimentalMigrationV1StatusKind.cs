@@ -4,6 +4,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Identifies the active arm of ExperimentalMigrationV1Status.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public enum ExperimentalMigrationV1StatusKind
 {
     /// <summary>

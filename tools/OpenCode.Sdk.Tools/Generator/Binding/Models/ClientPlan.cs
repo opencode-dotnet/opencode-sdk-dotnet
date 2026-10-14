@@ -11,6 +11,9 @@ internal sealed record ClientPlan
     /// <summary>Gets how the client reaches callers; the root client always emits public.</summary>
     public EmissionMode Emission { get; init; }
 
+    /// <summary>Gets the id a public client carries when every operation it emits is experimental under it.</summary>
+    public string? ExperimentalDiagnostic { get; init; }
+
     /// <summary>Gets the feature folder the family's files live in; <see langword="null"/> keeps the root client at the project root.</summary>
     public string? ContainerName { get; init; }
 

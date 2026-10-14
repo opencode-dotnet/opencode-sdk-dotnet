@@ -15,6 +15,8 @@
     <AppConfig Condition="'$(TargetFramework)' == 'net472'">App.net472.config</AppConfig>
     <!-- slopwatch-ignore: SW005 benchmark-harness arbitration: the canned endpoint/credential ARE the fixture, not a real address or secret (S1075, S2068) -->
     <NoWarn>$(NoWarn);S1075;S2068</NoWarn>
+    <!-- slopwatch-ignore: SW005 experimental-family arbitration: these tests exercise the SDK's experimental families (OPENCODE001-003) on purpose -->
+    <NoWarn>$(NoWarn);OPENCODE001;OPENCODE002;OPENCODE003</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

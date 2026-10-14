@@ -7,6 +7,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// The experimental migration v 1 status idle status. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 [JsonConverter(typeof(ExperimentalMigrationV1StatusIdleStatusJsonConverter))]
 public readonly struct ExperimentalMigrationV1StatusIdleStatus : IEquatable<ExperimentalMigrationV1StatusIdleStatus>
 {

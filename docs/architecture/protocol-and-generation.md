@@ -27,6 +27,12 @@ evidence and may contain superseded positions.
   its own identifier leaks `server.<name>.<endpoint>`; any such group-qualified identity is refused
   until an explicit reason-bearing identity repair names it, and well-formed identities cannot be
   remapped (ADR-0005).
+- An operation upstream serves under `/api/experimental/` is experimental. Its group's curation row
+  names the family's diagnostic id (`OPENCODE` and three digits), and the generator marks with
+  `[Experimental]` every public member that calls such an operation and every public type that only
+  such operations reach; the hand-written doors over an experimental family carry the same id. A
+  group with an experimental route and no id, or with an id and no experimental route, fails
+  generation, and so does a type reached only by experimental operations of two different ids.
 - Derived model names strip Effect's encode-side `*Encoded` component suffix unless the unsuffixed
   component itself exists in the document — a mechanical projection-artifact rule owned by
   `ProjectionArtifactNamePolicy`, never a per-row curation act (maintainer-sealed

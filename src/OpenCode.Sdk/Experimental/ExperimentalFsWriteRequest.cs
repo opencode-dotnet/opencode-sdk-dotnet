@@ -4,6 +4,7 @@ namespace OpenCode.Sdk;
 /// <summary>
 /// Shapes the &apos;POST /api/experimental/fs/write&apos; query.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record ExperimentalFsWriteRequest
 {
     /// <summary>

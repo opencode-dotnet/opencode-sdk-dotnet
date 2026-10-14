@@ -30,6 +30,7 @@ internal static class QueryRequestEmitter
     {
         var queryRequest = operation.QueryRequest!;
         var declaration = SyntaxFactory.RecordDeclaration(SyntaxFactory.Token(SyntaxKind.RecordKeyword), queryRequest.TypeName)
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(operation.ExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.SealedKeyword)))

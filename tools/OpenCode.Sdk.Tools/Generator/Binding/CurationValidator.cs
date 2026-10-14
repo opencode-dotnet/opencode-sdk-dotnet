@@ -275,6 +275,7 @@ internal sealed class CurationValidator
 
             ValidateGroupShape(wireName, group, selected, errors);
             ValidateGroupEmission(wireName, group, selected, errors);
+            ValidateExperimentalDiagnostic(wireName, group, selected, errors);
         }
 
         // Groups sharing a client name merge into one client family whose configuration is
@@ -287,7 +288,7 @@ internal sealed class CurationValidator
                      .Where(static pair => pair.Value is { Placement: GroupPlacement.Client, ClientName: not null })
                      .GroupBy(static pair => pair.Value.ClientName!, StringComparer.Ordinal)
                      .Where(static family => family
-                         .Select(static pair => (pair.Value.HandleName, pair.Value.HandleParameter, pair.Value.Emission))
+                         .Select(static pair => (pair.Value.HandleName, pair.Value.HandleParameter, pair.Value.Emission, pair.Value.ExperimentalDiagnostic))
                          .Distinct()
                          .Skip(1)
                          .Any())
@@ -297,7 +298,50 @@ internal sealed class CurationValidator
             errors.Add(
                 BindingErrorCategory.Curation,
                 clientName,
-                $"groups sharing client '{clientName}' must declare identical handle and emission configuration");
+                $"groups sharing client '{clientName}' must declare identical handle and emission configuration and the same experimentalDiagnostic");
+        }
+
+        // An id names one family, so groups that share it must be one merged client.
+        foreach (var diagnostic in curation.Groups
+                     .Where(static pair => pair.Value.ExperimentalDiagnostic is not null)
+                     .GroupBy(static pair => pair.Value.ExperimentalDiagnostic!, StringComparer.Ordinal)
+                     .Where(static groups => groups
+                         .Select(static pair => (pair.Value.Placement,
+                             Family: pair.Value.Placement is GroupPlacement.Client ? pair.Value.ClientName ?? pair.Key : pair.Key))
+                         .Distinct().Skip(1).Any())
+                     .Select(static groups => groups.Key)
+                     .Order(StringComparer.Ordinal))
+        {
+            errors.Add(BindingErrorCategory.Curation, diagnostic,
+                $"experimentalDiagnostic '{diagnostic}' is shared by groups that are not one merged family");
+        }
+    }
+
+    private static void ValidateExperimentalDiagnostic(string wireName, GroupCuration group,
+        IReadOnlyList<SpecOperation> selected, BindingErrorCollector errors)
+    {
+        var experimental = selected.Any(operation => string.Equals(GetGroup(operation), wireName, StringComparison.Ordinal)
+            && ExperimentalRoutePolicy.IsExperimental(operation.Path));
+        if (experimental && group.ExperimentalDiagnostic is null)
+        {
+            errors.Add(BindingErrorCategory.Curation, wireName, "selected experimental route requires experimentalDiagnostic");
+        }
+
+        if (group.ExperimentalDiagnostic is not { } id)
+        {
+            return;
+        }
+
+        if (!experimental)
+        {
+            errors.Add(BindingErrorCategory.Curation, wireName, "experimentalDiagnostic requires a selected experimental route");
+        }
+
+        if (id.Length != 11 || !id.StartsWith("OPENCODE", StringComparison.Ordinal)
+            || !id.Skip(8).All(static character => character is >= '0' and <= '9'))
+        {
+            errors.Add(BindingErrorCategory.Curation, wireName,
+                $"experimentalDiagnostic '{id}' must match ^OPENCODE[0-9]{{3}}$");
         }
     }
 

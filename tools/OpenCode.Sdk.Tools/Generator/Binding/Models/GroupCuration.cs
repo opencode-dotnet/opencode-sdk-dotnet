@@ -20,6 +20,10 @@ internal sealed record GroupCuration
     [JsonPropertyName("emission")]
     public EmissionMode Emission { get; init; }
 
+    /// <summary>Gets the diagnostic id the group's experimental-routed operations carry; the group's reason covers it.</summary>
+    [JsonPropertyName("experimentalDiagnostic")]
+    public string? ExperimentalDiagnostic { get; init; }
+
     /// <summary>
     /// Gets extra name prefixes that place models in this family, beside the group key, the family
     /// name and its singular; the group's reason covers them.

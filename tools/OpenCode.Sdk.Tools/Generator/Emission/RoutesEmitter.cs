@@ -89,23 +89,25 @@ internal static class RoutesEmitter
         var members = new List<MemberDeclarationSyntax>();
         foreach (var operation in container.OrderBy(static operation => operation.RouteMemberName, StringComparer.Ordinal))
         {
+            var diagnostic = operation.RouteContainerExperimentalDiagnostic is null ? operation.ExperimentalDiagnostic : null;
             if (operation.Parameters.Count is 0 && operation.QueryRequest is null)
             {
                 members.Add(EmitConst(
                     operation.RouteMemberName,
                     operation.RouteTemplate,
-                    $"The '{operation.HttpMethod.ToUpperInvariant()} {operation.RouteTemplate}' route."));
+                    $"The '{operation.HttpMethod.ToUpperInvariant()} {operation.RouteTemplate}' route.", diagnostic));
                 continue;
             }
 
             members.Add(EmitConst(
                 $"{operation.RouteMemberName}Template",
                 operation.RouteTemplate,
-                $"The '{operation.HttpMethod.ToUpperInvariant()} {operation.RouteTemplate}' route template."));
-            members.Add(EmitBuilder(operation));
+                $"The '{operation.HttpMethod.ToUpperInvariant()} {operation.RouteTemplate}' route template.", diagnostic));
+            members.Add(EmitBuilder(operation, diagnostic));
         }
 
         return SyntaxFactory.ClassDeclaration(container.Key)
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(container.First().RouteContainerExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
@@ -113,7 +115,7 @@ internal static class RoutesEmitter
             .WithLeadingTrivia(EmissionSyntax.Documentation($"Defines the '{container.Key}' routes."));
     }
 
-    private static FieldDeclarationSyntax EmitConst(string name, string value, string documentation) =>
+    private static FieldDeclarationSyntax EmitConst(string name, string value, string documentation, string? diagnostic) =>
         SyntaxFactory.FieldDeclaration(SyntaxFactory.VariableDeclaration(
                 SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
                 SyntaxFactory.SingletonSeparatedList(SyntaxFactory.VariableDeclarator(name)
@@ -123,9 +125,10 @@ internal static class RoutesEmitter
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.ConstKeyword)))
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(diagnostic))
             .WithLeadingTrivia(EmissionSyntax.Documentation(documentation));
 
-    private static MethodDeclarationSyntax EmitBuilder(OperationPlan operation)
+    private static MethodDeclarationSyntax EmitBuilder(OperationPlan operation, string? diagnostic)
     {
         var statements = new List<StatementSyntax>();
         foreach (var parameter in operation.Parameters)
@@ -167,6 +170,7 @@ internal static class RoutesEmitter
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
             .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(EmitBuilderParameters(operation))))
             .WithBody(SyntaxFactory.Block(statements))
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(diagnostic))
             .WithLeadingTrivia(documentation);
     }
 

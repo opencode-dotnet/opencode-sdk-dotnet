@@ -55,6 +55,7 @@ internal static class ExtensibleEnumEmitter
 
         var declaration = SyntaxFactory
             .StructDeclaration(model.Name)
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(model.ExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword)))

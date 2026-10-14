@@ -10,7 +10,7 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 /// <summary>Emits an automatic item traversal delegating into the hand-written cursor paginator.</summary>
 internal static class PaginationMethodEmitter
 {
-    public static MethodDeclarationSyntax Emit(OperationPlan operation, EmissionMode emission)
+    public static MethodDeclarationSyntax Emit(OperationPlan operation, EmissionMode emission, bool classMarked = false)
     {
         ArgumentNullException.ThrowIfNull(operation);
         var pagination = operation.Pagination
@@ -31,6 +31,7 @@ internal static class PaginationMethodEmitter
                     TypeSyntaxEmitter.EmitNamed(pagination.ItemTypeName)),
                 pagination.MethodName)
             .WithModifiers(EmissionModifiers.Member(emission))
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(emission is EmissionMode.Public && !classMarked ? operation.ExperimentalDiagnostic : null))
             .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(
             [
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier(ReservedNamePolicy.RequestParameter))

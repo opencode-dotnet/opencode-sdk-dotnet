@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 
@@ -12,6 +13,7 @@ namespace OpenCode.Sdk;
 /// <see cref="PersistentPtysRawClient"/>. The session-keyed operations take the session id as an
 /// argument, exactly as upstream flattens the group.
 /// </summary>
+[Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public class PersistentPtysClient
 {
     private readonly ConnectionSnapshot? _connection;

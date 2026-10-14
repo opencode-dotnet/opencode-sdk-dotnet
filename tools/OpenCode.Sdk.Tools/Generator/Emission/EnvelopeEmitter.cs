@@ -29,6 +29,7 @@ internal static class EnvelopeEmitter
             ? EmitNoContentMembers(envelope)
             : EmitPayloadMembers(envelope);
         var declaration = SyntaxFactory.RecordDeclaration(SyntaxFactory.Token(SyntaxKind.RecordKeyword), envelope.ResponseTypeName)
+            .AddAttributeLists(ExperimentalAttributeSyntax.Emit(operation.ExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.SealedKeyword)))
