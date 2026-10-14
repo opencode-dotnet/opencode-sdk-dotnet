@@ -19,6 +19,13 @@ Nightly builds of `master` are on
   `<SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>` to silence it, or move
   the project to `net10.0` or later. A project that treats warnings as errors fails its build on it
   until it does one or the other.
+- **`OpenCodeServerOptions` refuses an out-of-range timeout when it is set.** `ReadinessTimeout`
+  takes a value above zero and at most `int.MaxValue` milliseconds, or
+  `Timeout.InfiniteTimeSpan` to wait until the start's cancellation token fires;
+  `GracefulShutdownTimeout` takes zero to `int.MaxValue` milliseconds. A value outside that range
+  throws `ArgumentOutOfRangeException` from the setter. A zero or negative readiness timeout and a
+  negative grace were refused by `OpenCodeServer.StartAsync` before; a value past the ceiling was
+  accepted and failed only after the server had been spawned.
 - **`IOpenCodeClientOptions` is removed.** No public API accepted it, and every option added
   later would have broken its implementers, because `net472` and `netstandard2.0` have no default
   interface members. Configure clients through `OpenCodeClientOptions`, which a client still

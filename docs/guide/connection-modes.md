@@ -83,8 +83,8 @@ await using var server = await OpenCodeServer.StartAsync(new OpenCodeServerOptio
 | `Command` | `["opencode", "serve"]` | The executable plus its leading arguments. The launcher resolves `Command[0]` the way a shell would — see [How the command is resolved](#how-the-command-is-resolved) — and appends `--stdio --port 0` itself. |
 | `WorkingDirectory` | `null` | The child's working directory; `null` inherits yours. |
 | `Environment` | `null` | Extra environment entries for the child. |
-| `ReadinessTimeout` | 60 s | How long to wait for the readiness line before failing and ending the child. |
-| `GracefulShutdownTimeout` | 3 s | The grace before disposal forces the end again. On Windows it starts with the first `taskkill /T /F` of the server's tree and bounds it; a server still running when it runs out is killed again. On Linux and macOS it runs from `SIGTERM` to the server's process group to `SIGKILL` to whatever is left of the group. |
+| `ReadinessTimeout` | 60 s | How long to wait for the readiness line before failing and ending the child: above zero and at most `int.MaxValue` milliseconds (about 24.8 days), or `Timeout.InfiniteTimeSpan` to wait until your cancellation token fires. |
+| `GracefulShutdownTimeout` | 3 s | The grace before disposal forces the end again. On Windows it starts with the first `taskkill /T /F` of the server's tree and bounds it; a server still running when it runs out is killed again. On Linux and macOS it runs from `SIGTERM` to the server's process group to `SIGKILL` to whatever is left of the group. Zero to at most `int.MaxValue` milliseconds. |
 | `Output` | `null` | An `OpenCodeServerOutput` collector that keeps a bounded tail of the child's stdout and stderr; read its snapshot whenever you like, even after a failed start. |
 
 > **🔒 Your `Environment` entries can never shadow the credential.** The launcher writes its own

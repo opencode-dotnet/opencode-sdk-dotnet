@@ -7,6 +7,12 @@ namespace OpenCode.Sdk;
 /// </summary>
 public sealed class OpenCodeServerOptions
 {
+    /// <summary>The longest duration every supported timer can represent.</summary>
+    private static readonly TimeSpan TimerCeiling = TimeSpan.FromMilliseconds(int.MaxValue);
+
+    private TimeSpan _readinessTimeout = TimeSpan.FromSeconds(60);
+    private TimeSpan _gracefulShutdownTimeout = TimeSpan.FromSeconds(3);
+
     /// <summary>
     /// Gets or sets the server command: the executable followed by its leading arguments. The
     /// launcher appends <c>--stdio --port 0</c> — the reference client's exact standalone argv.
@@ -52,10 +58,17 @@ public sealed class OpenCodeServerOptions
 
     /// <summary>
     /// Gets or sets how long the start waits for the JSON readiness line before failing and
-    /// ending the child; must be positive. The default is 60 seconds — source-run servers boot
-    /// slowly on cold CI runners.
+    /// ending the child: above zero and at most <see cref="int.MaxValue"/> milliseconds, the
+    /// longest every supported timer can represent, or <see cref="Timeout.InfiniteTimeSpan"/> to
+    /// wait until the start's cancellation token fires. The default is 60 seconds — source-run
+    /// servers boot slowly on cold CI runners.
     /// </summary>
-    public TimeSpan ReadinessTimeout { get; set; } = TimeSpan.FromSeconds(60);
+    /// <exception cref="ArgumentOutOfRangeException">The value is zero, negative other than <see cref="Timeout.InfiniteTimeSpan"/>, or longer than <see cref="int.MaxValue"/> milliseconds.</exception>
+    public TimeSpan ReadinessTimeout
+    {
+        get => _readinessTimeout;
+        set => _readinessTimeout = value == Timeout.InfiniteTimeSpan ? value : WithinTimerRange(value, TimeSpan.FromTicks(1));
+    }
 
     /// <summary>
     /// Gets or sets the grace before the forced end; zero means immediate escalation. On Windows it
@@ -63,9 +76,16 @@ public sealed class OpenCodeServerOptions
     /// second, which runs only when the server is still alive. On Linux and macOS it runs
     /// from <c>SIGTERM</c> to the server's process group to <c>SIGKILL</c> to the group: within it
     /// the server has to exit, and then every other member of its group. A failed start uses the
-    /// same grace. The default mirrors the reference client's 3-second force-kill window.
+    /// same grace. The default mirrors the reference client's 3-second force-kill window. It is
+    /// zero to at most <see cref="int.MaxValue"/> milliseconds, the longest every supported timer
+    /// can represent; the end of a server is always bounded, so there is no infinite grace.
     /// </summary>
-    public TimeSpan GracefulShutdownTimeout { get; set; } = TimeSpan.FromSeconds(3);
+    /// <exception cref="ArgumentOutOfRangeException">The value is negative or longer than <see cref="int.MaxValue"/> milliseconds.</exception>
+    public TimeSpan GracefulShutdownTimeout
+    {
+        get => _gracefulShutdownTimeout;
+        set => _gracefulShutdownTimeout = WithinTimerRange(value, TimeSpan.Zero);
+    }
 
     /// <summary>
     /// Gets or sets an optional caller-created collector that retains a bounded tail of the
@@ -75,4 +95,11 @@ public sealed class OpenCodeServerOptions
     /// diagnostics, not retained.
     /// </summary>
     public OpenCodeServerOutput? Output { get; set; }
+
+    private static TimeSpan WithinTimerRange(TimeSpan value, TimeSpan minimum)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(value, minimum);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(value, TimerCeiling);
+        return value;
+    }
 }

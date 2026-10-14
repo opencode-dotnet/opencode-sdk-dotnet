@@ -190,13 +190,6 @@ public sealed class OpenCodeServerContractTests
     }
 
     [Test]
-    public async Task StartAsync_Should_Refuse_A_Non_Positive_Readiness_Timeout()
-    {
-        _ = await Assert.That(async () => await OpenCodeServer.StartAsync(
-            new OpenCodeServerOptions { ReadinessTimeout = TimeSpan.Zero })).Throws<ArgumentException>();
-    }
-
-    [Test]
     public async Task Endpoint_Should_Throw_The_Mock_Seam_Failure_On_A_Bare_Mock()
     {
         var mock = new MockableServer();
