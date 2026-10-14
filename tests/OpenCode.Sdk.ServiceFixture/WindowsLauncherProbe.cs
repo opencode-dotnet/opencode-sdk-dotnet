@@ -29,7 +29,8 @@ namespace OpenCode.Sdk.ServiceFixture;
 /// the server runs, and only that server meets the probe's hang guard and the <c>False</c> report.
 /// <c>handle-cycles &lt;command…&gt;</c> starts and disposes servers with that command, and fails starts
 /// on purpose, in three rounds, and prints <c>census=&lt;after warm-up&gt;; &lt;after one round&gt;; &lt;after two&gt;</c>,
-/// the census of the launcher's handle kinds once every exit watch and its duplicate were released
+/// the census of the launcher's handle kinds once every exit watch and its duplicate were released,
+/// after <c>baseline=</c>, the same census before the first launch
 /// (<see cref="LauncherHandleCensus"/>), and <c>handles=</c> with this process's whole handle count
 /// at the same points, for the record.
 /// <c>handle-census &lt;foreign pid&gt;</c> runs the census's own controls against that process and
@@ -150,6 +151,9 @@ internal static class WindowsLauncherProbe
 
     public static async Task<int> CountHandlesAsync(IReadOnlyList<string> command)
     {
+        // Before any launch: what this host holds of the counted kinds that no launcher path made,
+        // such as a handle its own parent let it inherit.
+        var baseline = LauncherHandleCensus.Take();
         var censuses = new List<LauncherHandles>(3);
         var counts = new List<int>(3);
         for (var round = 0; round < 3; round++)
@@ -160,6 +164,7 @@ internal static class WindowsLauncherProbe
             counts.Add(self.HandleCount);
         }
 
+        await Console.Out.WriteLineAsync("baseline=" + baseline).ConfigureAwait(false);
         await Console.Out.WriteLineAsync("census=" + string.Join("; ", censuses)).ConfigureAwait(false);
         await Console.Out.WriteLineAsync("handles=" + string.Join(", ", counts.Select(static count => count.ToString(CultureInfo.InvariantCulture)))).ConfigureAwait(false);
         await Console.Out.FlushAsync().ConfigureAwait(false);
