@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-10-14
+Date: 2026-10-15
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -73,8 +73,9 @@ dotnet tool run slopwatch analyze --exclude ".scratchpad/**,external/**" --fail-
 dotnet build --configuration Release
 dotnet format whitespace --verify-no-changes --no-restore
 dotnet format style --verify-no-changes --no-restore --severity warn
-dotnet test --configuration Release --no-build -- --treenode-filter "/*/*/*/*[Category!=ServiceElection]"
+dotnet test --configuration Release --no-build -- --treenode-filter "/*/*/*/*[(Category!=ServiceElection)&(Category!=NativeAot)]"
 dotnet test --project "$PWD/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --treenode-filter "/*/*/*/*[Category=ServiceElection]"
+dotnet test --project "$PWD/tests/OpenCode.Sdk.Tools.Tests/OpenCode.Sdk.Tools.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --treenode-filter "/*/*/*/*[Category=NativeAot]"
 ```
 
 The project path is absolute because the .NET 11 release-candidate SDK resolves a relative
@@ -132,15 +133,20 @@ and four, nine runs (run 36342010141); macOS at three and four, six runs (run 36
 The local gate on a workstation needs no cap, and a live test whose proof rides a wall-clock bound
 the host can miss carries the keyless `[NotInParallel]` (`tests/Shared/ParallelConstraintKeys.cs`).
 
-The suite runs in two passes, locally and in CI. The background-service election classes carry the
-`ServiceElection` category (`tests/Shared/TestCategories.cs`) and run in the second pass, one host at
-a time, after every other test. A ten-caller election starts some twenty to thirty-four source-run
-servers, and a timed test in another host that ran in those seconds missed its bound: on Windows and
-macOS every such failure lined up with an election in another host, and no run without that overlap
-failed. TUnit's parallel keys order tests inside one host only, so no key can keep another host's
-election away; a pass of its own can. CI's second pass always runs, so the test report and the badge
-count both passes, and it leaves TUnit's HTML report upload to the first pass, whose artifact names
-it would repeat.
+The suite runs in three passes, locally and in CI. The main pass runs every test except two
+categories. The background-service election classes carry the `ServiceElection` category
+(`tests/Shared/TestCategories.cs`) and run in a pass of their own, one host at a time, after every
+other test. A ten-caller election starts some twenty to thirty-four source-run servers, and a timed
+test in another host that ran in those seconds missed its bound: on Windows and macOS every such
+failure lined up with an election in another host, and no run without that overlap failed. The
+packed-consumer native AOT tests carry the `NativeAot` category (same file) and run in a pass of
+their own after that: publishing the consumer runs one ILC compile that loads every core of the
+runner for about a minute, which the timing-sensitive launcher tests cannot run beside, and the
+pass publishes once and shares the result across its tests. TUnit's parallel keys order tests
+inside one host only, so no key can keep another host's election or compile away; a pass of its own
+can. Every CI pass after the first always runs, so the test report and the badge count every pass,
+and the later passes leave TUnit's HTML report upload to the first, whose artifact names they
+would repeat.
 
 Each CI test pass is asserted against the committed `tests/test-roster.json`: the
 `verify-test-roster` tool command fails the job unless every module the roster lists for the pass

@@ -39,6 +39,17 @@
         "OpenCode.Sdk.Tests/net10.0",
         "OpenCode.Sdk.Tests/net11.0"
       ]
+    },
+    "native-aot": {
+      "windows": [
+        "OpenCode.Sdk.Tools.Tests/net10.0"
+      ],
+      "linux": [
+        "OpenCode.Sdk.Tools.Tests/net10.0"
+      ],
+      "macos": [
+        "OpenCode.Sdk.Tools.Tests/net10.0"
+      ]
     }
   }
 }

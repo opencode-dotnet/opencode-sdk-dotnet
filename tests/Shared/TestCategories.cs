@@ -13,4 +13,12 @@ internal static class TestCategories
     /// (<c>docs/engineering/quality-gates.md</c>).
     /// </summary>
     public const string ServiceElection = "ServiceElection";
+
+    /// <summary>
+    /// The packed-consumer native AOT publish. Its ILC compile loads every core of the machine for
+    /// about a minute, which the timing-sensitive launcher tests cannot run beside, so the
+    /// documented gate runs these tests in a pass of their own, after every other test
+    /// (<c>docs/engineering/quality-gates.md</c>).
+    /// </summary>
+    public const string NativeAot = "NativeAot";
 }

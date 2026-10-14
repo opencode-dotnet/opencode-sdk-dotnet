@@ -208,22 +208,34 @@ jobs:
       # rather than left to MTP's processor-count default (docs/engineering/quality-gates.md):
       # Windows 4, Linux 4, macOS 3 (four saves only about 3% there).
       #
-      # The background-service elections run in a pass of their own after every other test. A
-      # ten-caller election starts some twenty to thirty-four source-run servers, and a timed test
-      # in another host that ran in those seconds missed its bound on Windows and macOS alike;
-      # TUnit's keys order tests inside one host only (tests/Shared/TestCategories.cs). The
-      # election pass runs its hosts one at a time for the same reason. It runs after a failed first
-      # pass (not after a failed build), so the report sees both passes, and it leaves the HTML
-      # report upload to the first pass, whose artifact names (assembly, OS, framework) it would
-      # repeat.
+      # The background-service elections and the native AOT packed-consumer publish run in passes
+      # of their own after every other test. A ten-caller election starts some twenty to thirty-four
+      # source-run servers, and a timed test in another host that ran in those seconds missed its
+      # bound on Windows and macOS alike; the native AOT publish runs one ILC compile that loads
+      # every core of the runner for about a minute, which the timing-sensitive launcher tests
+      # cannot run beside either. TUnit's keys order tests inside one host only
+      # (tests/Shared/TestCategories.cs). Each later pass runs its hosts one at a time for the same
+      # reason. They run after a failed first pass (not after a failed build), so the report sees
+      # every pass, and they leave the HTML report upload to the first pass, whose artifact names
+      # (assembly, OS, framework) they would repeat.
       - name: Test
-        run: dotnet test --configuration Release --no-build --max-parallel-test-modules ${{ matrix.test-modules }} -- --report-trx --results-directory "${{ github.workspace }}/test-results/main" --treenode-filter "/*/*/*/*[Category!=ServiceElection]" --minimum-expected-tests 1
+        run: dotnet test --configuration Release --no-build --max-parallel-test-modules ${{ matrix.test-modules }} -- --report-trx --results-directory "${{ github.workspace }}/test-results/main" --treenode-filter "/*/*/*/*[(Category!=ServiceElection)&(Category!=NativeAot)]" --minimum-expected-tests 1
         env:
           TUNIT_ARTIFACT_RETENTION_DAYS: 7
 
       - name: Test (service elections)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: dotnet test --project "${{ github.workspace }}/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --report-trx --results-directory "${{ github.workspace }}/test-results/service-elections" --treenode-filter "/*/*/*/*[Category=ServiceElection]" --minimum-expected-tests 1
+        env:
+          TUNIT_ARTIFACT_RETENTION_DAYS: 7
+          TUNIT_DISABLE_ARTIFACT_UPLOAD: true
+
+      # One packed-consumer publish, shared by the pass's three tests through the session fixture
+      # (tests/OpenCode.Sdk.Tools.Tests/Packaging/PackedConsumerFeed.cs); the ILC compile needs the
+      # host's native toolchain and runs the host's own runtime identifier.
+      - name: Test (native AOT)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: dotnet test --project "${{ github.workspace }}/tests/OpenCode.Sdk.Tools.Tests/OpenCode.Sdk.Tools.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --report-trx --results-directory "${{ github.workspace }}/test-results/native-aot" --treenode-filter "/*/*/*/*[Category=NativeAot]" --minimum-expected-tests 1
         env:
           TUNIT_ARTIFACT_RETENTION_DAYS: 7
           TUNIT_DISABLE_ARTIFACT_UPLOAD: true
@@ -240,6 +252,10 @@ jobs:
       - name: Verify test roster (service elections)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: dotnet run --file tools/opencode-tool.cs -- verify-test-roster --roster tests/test-roster.json --pass service-elections --os ${{ runner.os }} --results "${{ github.workspace }}/test-results/service-elections"
+
+      - name: Verify test roster (native AOT)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: dotnet run --file tools/opencode-tool.cs -- verify-test-roster --roster tests/test-roster.json --pass native-aot --os ${{ runner.os }} --results "${{ github.workspace }}/test-results/native-aot"
 
       - name: Publish test results
         id: test-results
