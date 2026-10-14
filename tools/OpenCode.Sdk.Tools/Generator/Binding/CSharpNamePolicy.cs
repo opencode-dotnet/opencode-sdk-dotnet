@@ -1,9 +1,19 @@
+using System.Collections.Frozen;
 using System.Text;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
 internal static class CSharpNamePolicy
 {
+    /// <summary>
+    /// Brand spellings the plain PascalCase rule would flatten (ADR-0004): a word that spells one,
+    /// in any case, is written the brand's way, so an operation-derived <c>oauth</c> reads
+    /// <c>OAuth</c> exactly as the schema-derived names already do.
+    /// </summary>
+    private static readonly FrozenDictionary<string, string> BrandSpellings =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["oauth"] = "OAuth" }
+            .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+
     public static string ToPascalCase(string wireName)
     {
         var result = PascalWords(wireName);
@@ -146,6 +156,12 @@ internal static class CSharpNamePolicy
 
     private static void AppendPascalWord(StringBuilder result, string word)
     {
+        if (BrandSpellings.TryGetValue(word, out var brand))
+        {
+            _ = result.Append(brand);
+            return;
+        }
+
         _ = result.Append(char.ToUpperInvariant(word[0]));
         if (word.Length > 1)
         {

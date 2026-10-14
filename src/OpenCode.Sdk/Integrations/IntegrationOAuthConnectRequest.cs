@@ -5,9 +5,9 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a integration oauth connect request value.
+/// Represents a integration o auth connect request value.
 /// </summary>
-public sealed record IntegrationOauthConnectRequest
+public sealed record IntegrationOAuthConnectRequest
 {
     /// <summary>
     /// Gets the method id value.

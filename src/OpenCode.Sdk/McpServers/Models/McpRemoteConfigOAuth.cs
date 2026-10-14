@@ -6,13 +6,13 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp remote config oauth structural union.
+/// Represents a mcp remote config o auth structural union.
 /// </summary>
-[JsonConverter(typeof(McpRemoteConfigOauthJsonConverter))]
-public sealed record McpRemoteConfigOauth
+[JsonConverter(typeof(McpRemoteConfigOAuthJsonConverter))]
+public sealed record McpRemoteConfigOAuth
 {
     private readonly object _value;
-    private McpRemoteConfigOauth(McpRemoteConfigOauthKind kind, object value)
+    private McpRemoteConfigOAuth(McpRemoteConfigOAuthKind kind, object value)
     {
         Kind = kind;
         _value = value;
@@ -21,53 +21,53 @@ public sealed record McpRemoteConfigOauth
     /// <summary>
     /// Gets the active structural union arm.
     /// </summary>
-    public McpRemoteConfigOauthKind Kind { get; }
+    public McpRemoteConfigOAuthKind Kind { get; }
     /// <summary>
     /// Gets the mcp o auth config value.
     /// </summary>
-    public McpOAuthConfig McpOAuthConfig => GetValue<McpOAuthConfig>(McpRemoteConfigOauthKind.McpOAuthConfig);
+    public McpOAuthConfig McpOAuthConfig => GetValue<McpOAuthConfig>(McpRemoteConfigOAuthKind.McpOAuthConfig);
 
     /// <summary>
-    /// Creates a mcp remote config oauth from its mcp o auth config arm.
+    /// Creates a mcp remote config o auth from its mcp o auth config arm.
     /// </summary>
-    public static McpRemoteConfigOauth FromMcpOAuthConfig(McpOAuthConfig value)
+    public static McpRemoteConfigOAuth FromMcpOAuthConfig(McpOAuthConfig value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        return new McpRemoteConfigOauth(McpRemoteConfigOauthKind.McpOAuthConfig, value);
+        return new McpRemoteConfigOAuth(McpRemoteConfigOAuthKind.McpOAuthConfig, value);
     }
 
     /// <summary>
     /// Gets the boolean value.
     /// </summary>
-    public bool Boolean => GetValue<bool>(McpRemoteConfigOauthKind.Boolean);
+    public bool Boolean => GetValue<bool>(McpRemoteConfigOAuthKind.Boolean);
 
     /// <summary>
-    /// Creates a mcp remote config oauth from its boolean arm.
+    /// Creates a mcp remote config o auth from its boolean arm.
     /// </summary>
-    public static McpRemoteConfigOauth FromBoolean(bool value)
+    public static McpRemoteConfigOAuth FromBoolean(bool value)
     {
-        return new McpRemoteConfigOauth(McpRemoteConfigOauthKind.Boolean, value);
+        return new McpRemoteConfigOAuth(McpRemoteConfigOAuthKind.Boolean, value);
     }
 
     /// <summary>
     /// Gets the preserved raw payload for an unrecognized token kind.
     /// </summary>
-    public JsonElement Unknown => GetValue<JsonElement>(McpRemoteConfigOauthKind.Unknown);
+    public JsonElement Unknown => GetValue<JsonElement>(McpRemoteConfigOAuthKind.Unknown);
 
     /// <summary>
     /// Creates a structural union value preserving an unrecognized JSON token.
     /// </summary>
-    public static McpRemoteConfigOauth FromUnknown(JsonElement value)
+    public static McpRemoteConfigOAuth FromUnknown(JsonElement value)
     {
         if (value.ValueKind == JsonValueKind.Undefined)
         {
             throw new ArgumentException("The unknown value must be a parsed JSON element.", nameof(value));
         }
 
-        return new McpRemoteConfigOauth(McpRemoteConfigOauthKind.Unknown, value.Clone());
+        return new McpRemoteConfigOAuth(McpRemoteConfigOAuthKind.Unknown, value.Clone());
     }
 
-    private T GetValue<T>(McpRemoteConfigOauthKind expected)
+    private T GetValue<T>(McpRemoteConfigOAuthKind expected)
     {
         if (Kind != expected)
         {
@@ -80,5 +80,5 @@ public sealed record McpRemoteConfigOauth
     /// <summary>
     /// Prints the kind and the active arm, an unrecognized token masked; the inactive arms throw by design.
     /// </summary>
-    public override string ToString() => StructuralUnionPrinter.Format(nameof(McpRemoteConfigOauth), Kind.ToString(), Kind is McpRemoteConfigOauthKind.Unknown ? RecordPrinter.Redacted : _value);
+    public override string ToString() => StructuralUnionPrinter.Format(nameof(McpRemoteConfigOAuth), Kind.ToString(), Kind is McpRemoteConfigOAuthKind.Unknown ? RecordPrinter.Redacted : _value);
 }

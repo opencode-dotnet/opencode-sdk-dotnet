@@ -5,12 +5,12 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk.Internal;
 /// <summary>
-/// Carries the wire body of &apos;IntegrationOauthConnectResponse&apos; through one deserialization pass.
+/// Carries the wire body of &apos;IntegrationOAuthStatusResponse&apos; through one deserialization pass.
 /// </summary>
-internal sealed record IntegrationOauthConnectResponseEnvelope
+internal sealed record IntegrationOAuthStatusResponseEnvelope
 {
     [JsonPropertyName("data")]
-    public required IntegrationAttempt Data { get; init; }
+    public required IIntegrationAttemptStatus Data { get; init; }
 
     [JsonPropertyName("location")]
     public required LocationPublicRef Location { get; init; }

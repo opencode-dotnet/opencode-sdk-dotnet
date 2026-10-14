@@ -8,6 +8,9 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents a credential value union.
 /// </summary>
+/// <remarks>
+/// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin, which a minor version may do.
+/// </remarks>
 [JsonConverter(typeof(CredentialValueJsonConverter))]
 public interface ICredentialValue
 {

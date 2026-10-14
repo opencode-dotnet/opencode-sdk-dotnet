@@ -60,7 +60,10 @@ internal static class UnionEmitter
                 "JsonConverter",
                 SyntaxFactory.AttributeArgument(SyntaxFactory.TypeOfExpression(TypeSyntaxEmitter.EmitNamed(converterTypeName)))))
             .WithMembers(SyntaxFactory.List(members))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(union.Description ?? $"Represents a {GeneratedDisplayName.Of(union.ConceptName)} union."));
+            .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+                union.Description ?? $"Represents a {GeneratedDisplayName.Of(union.ConceptName)} union.",
+                [],
+                remarks: PinBoundInterfaceRemarks.Runs));
         if (union.BaseTypeName is not null)
         {
             declaration = declaration.WithBaseList(SyntaxFactory.BaseList(SyntaxFactory.SingletonSeparatedList<BaseTypeSyntax>(

@@ -286,6 +286,11 @@ gracelessly; the binder validates the identifier and every collision.
 A reason-bearing curation row naming the C# member one enum value becomes where the mechanical
 casing is graceless (`2026-07-28` → `Revision20260728`, not `Value20260728`).
 
+**Parameter-name row**:
+A reason-bearing curation row naming the C# parameter one route value becomes where the mechanical
+name says less than the rest of the surface (`shell.get`'s `id` → `shellId`); the wire name still
+fills the route.
+
 **Model layer**:
 The generated types and serializer registry shipped inside `OpenCode.Sdk`.
 

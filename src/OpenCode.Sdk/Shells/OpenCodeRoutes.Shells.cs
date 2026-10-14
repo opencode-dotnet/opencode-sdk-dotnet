@@ -41,18 +41,18 @@ public static partial class OpenCodeRoutes
         /// <summary>
         /// Builds the &apos;/api/shell/{id}&apos; route.
         /// </summary>
-        /// <param name = "id">The &apos;id&apos; route value.</param>
+        /// <param name = "shellId">The &apos;id&apos; route value.</param>
         /// <param name = "request">The request shaping the query.</param>
         /// <returns>The escaped route.</returns>
-        public static string Get(string id, ShellRequest? request = null)
+        public static string Get(string shellId, ShellRequest? request = null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(id);
-            if (id is "." or "..")
+            ArgumentException.ThrowIfNullOrWhiteSpace(shellId);
+            if (shellId is "." or "..")
             {
-                throw new ArgumentException("Route values must not be dot segments.", nameof(id));
+                throw new ArgumentException("Route values must not be dot segments.", nameof(shellId));
             }
 
-            var path = "/api/shell/" + RouteValuePolicy.Escape(id, nameof(id));
+            var path = "/api/shell/" + RouteValuePolicy.Escape(shellId, nameof(shellId));
             if (request is null)
             {
                 return path;
@@ -70,18 +70,18 @@ public static partial class OpenCodeRoutes
         /// <summary>
         /// Builds the &apos;/api/shell/{id}/output&apos; route.
         /// </summary>
-        /// <param name = "id">The &apos;id&apos; route value.</param>
+        /// <param name = "shellId">The &apos;id&apos; route value.</param>
         /// <param name = "request">The request shaping the query.</param>
         /// <returns>The escaped route.</returns>
-        public static string GetOutput(string id, ShellOutputRequest? request = null)
+        public static string GetOutput(string shellId, ShellOutputRequest? request = null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(id);
-            if (id is "." or "..")
+            ArgumentException.ThrowIfNullOrWhiteSpace(shellId);
+            if (shellId is "." or "..")
             {
-                throw new ArgumentException("Route values must not be dot segments.", nameof(id));
+                throw new ArgumentException("Route values must not be dot segments.", nameof(shellId));
             }
 
-            var path = "/api/shell/" + RouteValuePolicy.Escape(id, nameof(id)) + "/output";
+            var path = "/api/shell/" + RouteValuePolicy.Escape(shellId, nameof(shellId)) + "/output";
             if (request is null)
             {
                 return path;
@@ -123,18 +123,18 @@ public static partial class OpenCodeRoutes
         /// <summary>
         /// Builds the &apos;/api/shell/{id}&apos; route.
         /// </summary>
-        /// <param name = "id">The &apos;id&apos; route value.</param>
+        /// <param name = "shellId">The &apos;id&apos; route value.</param>
         /// <param name = "request">The request shaping the query.</param>
         /// <returns>The escaped route.</returns>
-        public static string Remove(string id, ShellRemoveRequest? request = null)
+        public static string Remove(string shellId, ShellRemoveRequest? request = null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(id);
-            if (id is "." or "..")
+            ArgumentException.ThrowIfNullOrWhiteSpace(shellId);
+            if (shellId is "." or "..")
             {
-                throw new ArgumentException("Route values must not be dot segments.", nameof(id));
+                throw new ArgumentException("Route values must not be dot segments.", nameof(shellId));
             }
 
-            var path = "/api/shell/" + RouteValuePolicy.Escape(id, nameof(id));
+            var path = "/api/shell/" + RouteValuePolicy.Escape(shellId, nameof(shellId));
             if (request is null)
             {
                 return path;

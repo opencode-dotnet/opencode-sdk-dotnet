@@ -41,7 +41,7 @@ public sealed class SecretMemberPrintingTests
     [Test]
     public async Task The_Union_Arm_Should_Print_The_Masked_Config()
     {
-        var oauth = McpRemoteConfigOauth.FromMcpOAuthConfig(new McpOAuthConfig { ClientSecret = Secret });
+        var oauth = McpRemoteConfigOAuth.FromMcpOAuthConfig(new McpOAuthConfig { ClientSecret = Secret });
 
         await Assert.That(oauth.ToString()).DoesNotContain(Secret);
         await Assert.That(oauth.ToString()).Contains("ClientSecret = [REDACTED]");
@@ -155,13 +155,13 @@ public sealed class SecretMemberPrintingTests
     }
 
     [Test]
-    public async Task McpRemoteConfigOauth_Should_Print_An_Unknown_Token_Masked()
+    public async Task McpRemoteConfigOAuth_Should_Print_An_Unknown_Token_Masked()
     {
         using var document = JsonDocument.Parse(_fixtures.LoadJson("Serialization.unknown-mcp-oauth-token.json"));
 
-        var oauth = McpRemoteConfigOauth.FromUnknown(document.RootElement);
+        var oauth = McpRemoteConfigOAuth.FromUnknown(document.RootElement);
 
-        await Assert.That(oauth.ToString()).IsEqualTo("McpRemoteConfigOauth { Kind = Unknown, Unknown = [REDACTED] }");
+        await Assert.That(oauth.ToString()).IsEqualTo("McpRemoteConfigOAuth { Kind = Unknown, Unknown = [REDACTED] }");
     }
 
     [Test]

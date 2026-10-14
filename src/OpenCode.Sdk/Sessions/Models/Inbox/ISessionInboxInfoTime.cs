@@ -6,6 +6,9 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents the shared time shape of every session inbox info variant.
 /// </summary>
+/// <remarks>
+/// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin, which a minor version may do.
+/// </remarks>
 public interface ISessionInboxInfoTime
 {
     /// <summary>

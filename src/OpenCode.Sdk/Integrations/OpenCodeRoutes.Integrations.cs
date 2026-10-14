@@ -44,14 +44,14 @@ public static partial class OpenCodeRoutes
         /// <summary>
         /// The &apos;POST /api/integration/{integrationID}/connect/oauth&apos; route template.
         /// </summary>
-        public const string BeginOauthConnectionTemplate = "/api/integration/{integrationID}/connect/oauth";
+        public const string BeginOAuthConnectionTemplate = "/api/integration/{integrationID}/connect/oauth";
         /// <summary>
         /// Builds the &apos;/api/integration/{integrationID}/connect/oauth&apos; route.
         /// </summary>
         /// <param name = "integrationId">The &apos;integrationID&apos; route value.</param>
         /// <param name = "request">The request shaping the query.</param>
         /// <returns>The escaped route.</returns>
-        public static string BeginOauthConnection(string integrationId, IntegrationOauthConnectRequest? request = null)
+        public static string BeginOAuthConnection(string integrationId, IntegrationOAuthConnectRequest? request = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(integrationId);
             if (integrationId is "." or "..")
@@ -109,7 +109,7 @@ public static partial class OpenCodeRoutes
         /// <summary>
         /// The &apos;DELETE /api/integration/{integrationID}/connect/oauth/{attemptID}&apos; route template.
         /// </summary>
-        public const string CancelOauthConnectionTemplate = "/api/integration/{integrationID}/connect/oauth/{attemptID}";
+        public const string CancelOAuthConnectionTemplate = "/api/integration/{integrationID}/connect/oauth/{attemptID}";
         /// <summary>
         /// Builds the &apos;/api/integration/{integrationID}/connect/oauth/{attemptID}&apos; route.
         /// </summary>
@@ -117,7 +117,7 @@ public static partial class OpenCodeRoutes
         /// <param name = "attemptId">The &apos;attemptID&apos; route value.</param>
         /// <param name = "request">The request shaping the query.</param>
         /// <returns>The escaped route.</returns>
-        public static string CancelOauthConnection(string integrationId, string attemptId, IntegrationOauthCancelRequest? request = null)
+        public static string CancelOAuthConnection(string integrationId, string attemptId, IntegrationOAuthCancelRequest? request = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(integrationId);
             if (integrationId is "." or "..")
@@ -145,7 +145,7 @@ public static partial class OpenCodeRoutes
         /// <summary>
         /// The &apos;POST /api/integration/{integrationID}/connect/oauth/{attemptID}/complete&apos; route template.
         /// </summary>
-        public const string CompleteOauthConnectionTemplate = "/api/integration/{integrationID}/connect/oauth/{attemptID}/complete";
+        public const string CompleteOAuthConnectionTemplate = "/api/integration/{integrationID}/connect/oauth/{attemptID}/complete";
         /// <summary>
         /// Builds the &apos;/api/integration/{integrationID}/connect/oauth/{attemptID}/complete&apos; route.
         /// </summary>
@@ -153,7 +153,7 @@ public static partial class OpenCodeRoutes
         /// <param name = "attemptId">The &apos;attemptID&apos; route value.</param>
         /// <param name = "request">The request shaping the query.</param>
         /// <returns>The escaped route.</returns>
-        public static string CompleteOauthConnection(string integrationId, string attemptId, IntegrationOauthCompleteRequest? request = null)
+        public static string CompleteOAuthConnection(string integrationId, string attemptId, IntegrationOAuthCompleteRequest? request = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(integrationId);
             if (integrationId is "." or "..")
@@ -304,7 +304,7 @@ public static partial class OpenCodeRoutes
         /// <summary>
         /// The &apos;GET /api/integration/{integrationID}/connect/oauth/{attemptID}&apos; route template.
         /// </summary>
-        public const string GetOauthStatusTemplate = "/api/integration/{integrationID}/connect/oauth/{attemptID}";
+        public const string GetOAuthStatusTemplate = "/api/integration/{integrationID}/connect/oauth/{attemptID}";
         /// <summary>
         /// Builds the &apos;/api/integration/{integrationID}/connect/oauth/{attemptID}&apos; route.
         /// </summary>
@@ -312,7 +312,7 @@ public static partial class OpenCodeRoutes
         /// <param name = "attemptId">The &apos;attemptID&apos; route value.</param>
         /// <param name = "request">The request shaping the query.</param>
         /// <returns>The escaped route.</returns>
-        public static string GetOauthStatus(string integrationId, string attemptId, IntegrationOauthStatusRequest? request = null)
+        public static string GetOAuthStatus(string integrationId, string attemptId, IntegrationOAuthStatusRequest? request = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(integrationId);
             if (integrationId is "." or "..")

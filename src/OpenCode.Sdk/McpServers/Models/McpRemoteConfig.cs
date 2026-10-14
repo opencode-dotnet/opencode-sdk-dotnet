@@ -29,11 +29,11 @@ public sealed record McpRemoteConfig : IMcp
     public IReadOnlyDictionary<string, string>? Headers { get; init; }
 
     /// <summary>
-    /// Gets the oauth value.
+    /// Gets the o auth value.
     /// </summary>
     [JsonPropertyName("oauth")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public McpRemoteConfigOauth? Oauth { get; init; }
+    public McpRemoteConfigOAuth? OAuth { get; init; }
 
     /// <summary>
     /// Gets the disabled value.
@@ -68,5 +68,5 @@ public sealed record McpRemoteConfig : IMcp
     /// <summary>
     /// Prints the record&apos;s members with its secret members masked.
     /// </summary>
-    public override string ToString() => RecordPrinter.Format(nameof(McpRemoteConfig), ("Type", Type), ("Url", Url), ("Headers", RecordPrinter.Redact(Headers)), ("Oauth", Oauth), ("Disabled", Disabled), ("Codemode", Codemode), ("Timeout", Timeout), ("Protocol", Protocol));
+    public override string ToString() => RecordPrinter.Format(nameof(McpRemoteConfig), ("Type", Type), ("Url", Url), ("Headers", RecordPrinter.Redact(Headers)), ("OAuth", OAuth), ("Disabled", Disabled), ("Codemode", Codemode), ("Timeout", Timeout), ("Protocol", Protocol));
 }

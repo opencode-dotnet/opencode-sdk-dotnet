@@ -2,21 +2,21 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk.Internal;
 /// <summary>
-/// Adapts the &apos;GET /api/integration/{integrationID}/connect/oauth/{attemptID}&apos; responses onto &apos;IntegrationOauthStatusResponse&apos;.
+/// Adapts the &apos;GET /api/integration/{integrationID}/connect/oauth/{attemptID}&apos; responses onto &apos;IntegrationOAuthStatusResponse&apos;.
 /// </summary>
-internal sealed class IntegrationOauthStatusResponseAdapter : ResponseAdapter<IntegrationOauthStatusResponse>
+internal sealed class IntegrationOAuthStatusResponseAdapter : ResponseAdapter<IntegrationOAuthStatusResponse>
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
     private static readonly string[] Status404Tags = ["IntegrationAttemptNotFoundError", "IntegrationNotFoundError", "LocationNotFoundError"];
-    private IntegrationOauthStatusResponseAdapter()
+    private IntegrationOAuthStatusResponseAdapter()
     {
     }
 
     /// <summary>
     /// Gets the shared adapter instance.
     /// </summary>
-    public static IntegrationOauthStatusResponseAdapter Instance { get; } = new IntegrationOauthStatusResponseAdapter();
+    public static IntegrationOAuthStatusResponseAdapter Instance { get; } = new IntegrationOAuthStatusResponseAdapter();
 
     /// <summary>
     /// Classifies a status under this operation&apos;s pinned contract.
@@ -33,28 +33,28 @@ internal sealed class IntegrationOauthStatusResponseAdapter : ResponseAdapter<In
     /// <summary>
     /// Maps the declared UTF-8 success body onto the typed envelope.
     /// </summary>
-    public override IntegrationOauthStatusResponse AdaptSuccess(int status, ReadOnlySpan<byte> utf8Body) => CreateSuccess(status, ReadBarePayload(utf8Body, OpenCodeJsonContext.Default.IntegrationOauthStatusResponseEnvelope));
+    public override IntegrationOAuthStatusResponse AdaptSuccess(int status, ReadOnlySpan<byte> utf8Body) => CreateSuccess(status, ReadBarePayload(utf8Body, OpenCodeJsonContext.Default.IntegrationOAuthStatusResponseEnvelope));
     /// <summary>
     /// Maps one buffered response onto the typed envelope.
     /// </summary>
-    public override IntegrationOauthStatusResponse Adapt(int status, string rawBody)
+    public override IntegrationOAuthStatusResponse Adapt(int status, string rawBody)
     {
         ArgumentNullException.ThrowIfNull(rawBody);
         return status switch
         {
-            200 => CreateSuccess(status, ReadBarePayload(rawBody, OpenCodeJsonContext.Default.IntegrationOauthStatusResponseEnvelope)),
+            200 => CreateSuccess(status, ReadBarePayload(rawBody, OpenCodeJsonContext.Default.IntegrationOAuthStatusResponseEnvelope)),
             >= 200 and < 300 => throw StatusVerdictFailures.UndeclaredSuccess(status),
-            400 => new IntegrationOauthStatusResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
-            401 => new IntegrationOauthStatusResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
-            404 => new IntegrationOauthStatusResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
-            _ => new IntegrationOauthStatusResponse(status, ReadTolerantError(rawBody, null), rawBody)
+            400 => new IntegrationOAuthStatusResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
+            401 => new IntegrationOAuthStatusResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
+            404 => new IntegrationOAuthStatusResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
+            _ => new IntegrationOAuthStatusResponse(status, ReadTolerantError(rawBody, null), rawBody)
         };
     }
 
-    private static IntegrationOauthStatusResponse CreateSuccess(int status, IntegrationOauthStatusResponseEnvelope envelope) => new()
+    private static IntegrationOAuthStatusResponse CreateSuccess(int status, IntegrationOAuthStatusResponseEnvelope envelope) => new()
     {
         Status = status,
-        OauthStatus = envelope.Data,
+        OAuthStatus = envelope.Data,
         Location = envelope.Location
     };
 }

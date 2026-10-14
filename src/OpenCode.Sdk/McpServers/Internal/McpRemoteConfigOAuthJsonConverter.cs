@@ -6,17 +6,17 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk.Internal;
 
-internal sealed class McpRemoteConfigOauthJsonConverter : JsonConverter<McpRemoteConfigOauth>
+internal sealed class McpRemoteConfigOAuthJsonConverter : JsonConverter<McpRemoteConfigOAuth>
 {
-    public override McpRemoteConfigOauth Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override McpRemoteConfigOAuth Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
         return reader.TokenType switch
         {
-            JsonTokenType.StartObject => McpRemoteConfigOauth.FromMcpOAuthConfig(ReadKnown<McpOAuthConfig>(ref reader)),
-            JsonTokenType.True => McpRemoteConfigOauth.FromBoolean(reader.GetBoolean()),
-            JsonTokenType.False => McpRemoteConfigOauth.FromBoolean(reader.GetBoolean()),
+            JsonTokenType.StartObject => McpRemoteConfigOAuth.FromMcpOAuthConfig(ReadKnown<McpOAuthConfig>(ref reader)),
+            JsonTokenType.True => McpRemoteConfigOAuth.FromBoolean(reader.GetBoolean()),
+            JsonTokenType.False => McpRemoteConfigOAuth.FromBoolean(reader.GetBoolean()),
             JsonTokenType.None => throw new JsonException("JSON token 'None' cannot start this structural union value."),
             JsonTokenType.EndObject => throw new JsonException("JSON token 'EndObject' cannot start this structural union value."),
             JsonTokenType.StartArray => ReadUnknown(ref reader),
@@ -30,20 +30,20 @@ internal sealed class McpRemoteConfigOauthJsonConverter : JsonConverter<McpRemot
         };
     }
 
-    public override void Write(Utf8JsonWriter writer, McpRemoteConfigOauth value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, McpRemoteConfigOAuth value, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(value);
         ArgumentNullException.ThrowIfNull(options);
         switch (value.Kind)
         {
-            case McpRemoteConfigOauthKind.McpOAuthConfig:
+            case McpRemoteConfigOAuthKind.McpOAuthConfig:
                 WriteKnown(writer, value.McpOAuthConfig);
                 break;
-            case McpRemoteConfigOauthKind.Boolean:
+            case McpRemoteConfigOAuthKind.Boolean:
                 writer.WriteBooleanValue(value.Boolean);
                 break;
-            case McpRemoteConfigOauthKind.Unknown:
+            case McpRemoteConfigOAuthKind.Unknown:
                 value.Unknown.WriteTo(writer);
                 break;
             default:
@@ -66,9 +66,9 @@ internal sealed class McpRemoteConfigOauthJsonConverter : JsonConverter<McpRemot
         JsonSerializer.Serialize(writer, value, typeInfo);
     }
 
-    private static McpRemoteConfigOauth ReadUnknown(ref Utf8JsonReader reader)
+    private static McpRemoteConfigOAuth ReadUnknown(ref Utf8JsonReader reader)
     {
         using var document = JsonDocument.ParseValue(ref reader);
-        return McpRemoteConfigOauth.FromUnknown(document.RootElement);
+        return McpRemoteConfigOAuth.FromUnknown(document.RootElement);
     }
 }

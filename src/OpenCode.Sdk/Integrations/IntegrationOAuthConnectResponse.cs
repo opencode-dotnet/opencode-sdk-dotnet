@@ -6,16 +6,16 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/integration/{integrationID}/connect/oauth/{attemptID}&apos; operation.
+/// Represents the response of the &apos;POST /api/integration/{integrationID}/connect/oauth&apos; operation.
 /// </summary>
-public sealed record IntegrationOauthStatusResponse : OpenCodeResponse
+public sealed record IntegrationOAuthConnectResponse : OpenCodeResponse
 {
-    private readonly IIntegrationAttemptStatus? _oauthStatus;
+    private readonly IntegrationAttempt? _oAuthConnect;
     private readonly LocationPublicRef? _location;
     /// <summary>
-    /// Initializes a success instance of the &apos;IntegrationOauthStatusResponse&apos; envelope.
+    /// Initializes a success instance of the &apos;IntegrationOAuthConnectResponse&apos; envelope.
     /// </summary>
-    public IntegrationOauthStatusResponse()
+    public IntegrationOAuthConnectResponse()
     {
     }
 
@@ -23,20 +23,20 @@ public sealed record IntegrationOauthStatusResponse : OpenCodeResponse
     /// Initializes an error-path instance; the payload stays unset behind its guard.
     /// </summary>
     [SetsRequiredMembers]
-    internal IntegrationOauthStatusResponse(int status, IOpenCodeError? error, string? rawBody)
+    internal IntegrationOAuthConnectResponse(int status, IOpenCodeError? error, string? rawBody)
     {
         Status = status;
         IsError = true;
         Error = error;
         RawBody = rawBody;
-        OauthStatus = null!;
+        OAuthConnect = null!;
         Location = null!;
     }
 
     /// <summary>
-    /// Gets the OauthStatus payload; guarded on the error path.
+    /// Gets the OAuthConnect payload; guarded on the error path.
     /// </summary>
-    public required IIntegrationAttemptStatus OauthStatus { get => _oauthStatus ?? throw new InvalidOperationException("The response is an error; check IsError before accessing OauthStatus."); init => _oauthStatus = value; }
+    public required IntegrationAttempt OAuthConnect { get => _oAuthConnect ?? throw new InvalidOperationException("The response is an error; check IsError before accessing OAuthConnect."); init => _oAuthConnect = value; }
     /// <summary>
     /// Gets the location the server resolved for the request; guarded on the error path.
     /// </summary>
@@ -49,7 +49,7 @@ public sealed record IntegrationOauthStatusResponse : OpenCodeResponse
     {
         ArgumentNullException.ThrowIfNull(builder);
         var printed = base.PrintMembers(builder);
-        if (_oauthStatus is null)
+        if (_oAuthConnect is null)
         {
             return printed;
         }
@@ -59,7 +59,7 @@ public sealed record IntegrationOauthStatusResponse : OpenCodeResponse
             _ = builder.Append(", ");
         }
 
-        _ = builder.Append("OauthStatus = ").Append(_oauthStatus);
+        _ = builder.Append("OAuthConnect = ").Append(_oAuthConnect);
         return true;
     }
 }

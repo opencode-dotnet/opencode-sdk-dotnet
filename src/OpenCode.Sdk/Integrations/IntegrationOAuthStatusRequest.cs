@@ -4,7 +4,7 @@ namespace OpenCode.Sdk;
 /// <summary>
 /// Shapes the &apos;GET /api/integration/{integrationID}/connect/oauth/{attemptID}&apos; query.
 /// </summary>
-public sealed record IntegrationOauthStatusRequest
+public sealed record IntegrationOAuthStatusRequest
 {
     /// <summary>
     /// Gets the &apos;location&apos; query value; the server default applies when unset.

@@ -483,18 +483,18 @@
     },
     {
       "operationId": "integration.oauth.cancel",
-      "methodName": "CancelOauthConnectionAsync",
-      "reason": "Upstream summary 'Cancel OAuth connection': the operation cancels an OAuth attempt and releases its resources; its status is GetOauthStatusAsync in the same client family."
+      "methodName": "CancelOAuthConnectionAsync",
+      "reason": "Upstream summary 'Cancel OAuth connection': the operation cancels an OAuth attempt and releases its resources; its status is GetOAuthStatusAsync in the same client family."
     },
     {
       "operationId": "integration.oauth.complete",
-      "methodName": "CompleteOauthConnectionAsync",
+      "methodName": "CompleteOAuthConnectionAsync",
       "reason": "Upstream summary 'Complete OAuth connection': the operation completes a code-based OAuth attempt and stores the resulting credential."
     },
     {
       "operationId": "integration.oauth.connect",
-      "methodName": "BeginOauthConnectionAsync",
-      "reason": "Upstream summary 'Begin OAuth connection': the operation starts an OAuth attempt and returns the authorization details; its status is GetOauthStatusAsync in the same client family."
+      "methodName": "BeginOAuthConnectionAsync",
+      "reason": "Upstream summary 'Begin OAuth connection': the operation starts an OAuth attempt and returns the authorization details; its status is GetOAuthStatusAsync in the same client family."
     },
     {
       "operationId": "experimental.session.import",
@@ -540,6 +540,32 @@
       "operationId": "vcs.init",
       "methodName": "InitializeRepositoryAsync",
       "reason": "Upstream summary 'Initialize VCS repository': the operation initializes a repository with the selected provider in a markerless project's directory; 'init' is not a naming verb."
+    }
+  ],
+  "parameterNames": [
+    {
+      "operationId": "shell.get",
+      "parameter": "id",
+      "dotnetName": "shellId",
+      "reason": "The route value is the shell's id; the other handle families name theirs after the resource (sessionId, ptyId, integrationId), and a bare id says less."
+    },
+    {
+      "operationId": "shell.remove",
+      "parameter": "id",
+      "dotnetName": "shellId",
+      "reason": "The route value is the shell's id; the other handle families name theirs after the resource (sessionId, ptyId, integrationId), and a bare id says less."
+    },
+    {
+      "operationId": "shell.output",
+      "parameter": "id",
+      "dotnetName": "shellId",
+      "reason": "The route value is the shell's id; the other handle families name theirs after the resource (sessionId, ptyId, integrationId), and a bare id says less."
+    },
+    {
+      "operationId": "permission.saved.remove",
+      "parameter": "id",
+      "dotnetName": "savedPermissionId",
+      "reason": "The route value is a saved permission's id; the other operations name their ids after the resource (credentialId, integrationId), and a bare id says less."
     }
   ],
   "schemaNames": [

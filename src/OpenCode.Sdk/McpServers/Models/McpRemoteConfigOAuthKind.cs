@@ -2,9 +2,9 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Identifies the active arm of McpRemoteConfigOauth.
+/// Identifies the active arm of McpRemoteConfigOAuth.
 /// </summary>
-public enum McpRemoteConfigOauthKind
+public enum McpRemoteConfigOAuthKind
 {
     /// <summary>
     /// Represents the mcp o auth config arm.

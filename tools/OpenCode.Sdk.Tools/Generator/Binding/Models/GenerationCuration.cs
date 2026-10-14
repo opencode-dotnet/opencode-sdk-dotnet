@@ -38,6 +38,17 @@ internal sealed record GenerationCuration
         }
     } = Array.AsReadOnly(Array.Empty<OperationNameCuration>());
 
+    [JsonPropertyName("parameterNames")]
+    public required IReadOnlyList<ParameterNameCuration> ParameterNames
+    {
+        get;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = Array.AsReadOnly([.. value]);
+        }
+    } = Array.AsReadOnly(Array.Empty<ParameterNameCuration>());
+
     [JsonPropertyName("schemaNames")]
     public required IReadOnlyList<SchemaNameCuration> SchemaNames
     {

@@ -101,8 +101,11 @@ Curation may:
 - choose .NET names and placement for represented OpenAPI constructs — handle placement
   follows ADR-0019, and every curation row, group rows included, carries its reason — including
   the name of the carrier interface a hoisted union member is declared with, where the mechanical
-  name is correct but graceless, and the member name of one enum value where the mechanical
-  casing is (an `enumMemberNames` row);
+  name is correct but graceless, the member name of one enum value where the mechanical
+  casing is (an `enumMemberNames` row), and the C# parameter name of one route value where the
+  mechanical one says less than the rest of the surface (a `parameterNames` row; a handle
+  family's parameter takes one name across the family). Brand spellings (`OAuth`) are fixed in
+  the name policy, so a word that spells one, in any case, is written the brand's way;
 - name an operation the closed verb grammar cannot name: the closing identifier segment is the
   verb only when the grammar lists it, a `GET` without one reads as `Get<Subject>Async`, and any
   other operation without one refuses until a reason-bearing `operationNames` row names it — the

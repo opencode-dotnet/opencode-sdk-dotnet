@@ -10,6 +10,7 @@
   "envelopePayloadNames": {},
   "schemaAliases": [],
   "enumMemberNames": [],
+  "parameterNames": [],
   "hoistedMemberNames": [
     {
       "owner": "ISessionEventDurable",
