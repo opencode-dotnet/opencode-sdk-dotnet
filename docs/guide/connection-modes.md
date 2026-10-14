@@ -50,7 +50,8 @@ it started:
 faults: a signal that ends the server is a value, not an exception. `Kind` says which members are
 set. `ExitCode` is the code; on Windows it is the full 32-bit code, as `Process.ExitCode` gives it.
 `Signal` is the signal's name, such as `SIGTERM`, and `SignalNumber` is its number on the host.
-`Unknown` means something other than the launcher reaped the server.
+`Unknown` means the exit status could not be read, for example because something other than the
+launcher reaped the server.
 
 ```csharp
 var exit = await server.Exited;

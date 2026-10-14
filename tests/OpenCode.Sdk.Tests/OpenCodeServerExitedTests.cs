@@ -1,6 +1,7 @@
 using OpenCode.Sdk.Internal.Launcher;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
+using Testably.Abstractions;
 
 namespace OpenCode.Sdk.Tests;
 
@@ -9,7 +10,10 @@ namespace OpenCode.Sdk.Tests;
 /// when the server's exit is observed and its output has ended, or one second after the exit when
 /// a descendant holds the output open, as upstream's <c>exited</c> does; it drains on its own after
 /// a natural exit; and it reports the end disposal gave. The bound runs on the test's clock, which
-/// moves only when the test moves it, so the clock decides no verdict by itself.
+/// moves only when the test moves it, so the clock decides no verdict by itself. A root that exits
+/// while a descendant holds its output exits on a marker file the test writes once the start has
+/// returned: an exit that beat the readiness line would send the start into its own drain on the
+/// test's clock, which nothing moves while the start is pending.
 /// </summary>
 [NotInParallel(ParallelConstraintKeys.ServerProcess)]
 public sealed class OpenCodeServerExitedTests
@@ -27,7 +31,11 @@ public sealed class OpenCodeServerExitedTests
     /// <summary>Bounds an exit or a timer that never comes; it decides nothing else.</summary>
     private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(60);
 
+    private static readonly RealFileSystem FileSystem = new();
+
     private static readonly string NaturalExit = "exit-after-ready=" + NaturalExitCode.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    private static readonly string ExitOnMarker = "exit-on-marker=" + NaturalExitCode.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>
     /// The server exits on its own and its output ends with it, so <c>Exited</c> completes with the
@@ -68,13 +76,20 @@ public sealed class OpenCodeServerExitedTests
     {
         var time = new ManualTimeProvider();
         var output = new OpenCodeServerOutput();
+        using var runRoot = new TestRunRoot(FileSystem);
+        var marker = FileSystem.Path.Combine(runRoot.Path, "exit");
         OpenCodeServer? server = null;
         try
         {
             server = await OpenCodeServer.StartWithSeamsAsync(
-                LadderTree.Options(output, Grace, "hold-stdout", NaturalExit),
+                LadderTree.OptionsWithMarker(output, Grace, marker, "hold-stdout", ExitOnMarker),
                 LauncherSeams.ForCurrentProcess() with { Time = time },
                 cancellationToken);
+#if NET
+            await FileSystem.File.WriteAllTextAsync(marker, string.Empty, cancellationToken);
+#else
+            FileSystem.File.WriteAllText(marker, string.Empty);
+#endif
             var rootExit = await server.ChildExited.WaitAsync(HangGuard, cancellationToken);
             await time.WaitForTimerAsync(HangGuard);
 
@@ -85,6 +100,49 @@ public sealed class OpenCodeServerExitedTests
 
             await Assert.That(rootExit.ExitCode).IsEqualTo(NaturalExitCode);
             await Assert.That(completedBeforeTheBound).IsFalse();
+            await Assert.That(exit).IsEqualTo(OpenCodeServerExit.FromExitCode(NaturalExitCode));
+        }
+        finally
+        {
+            await EndAsync(server, output);
+        }
+    }
+
+    /// <summary>
+    /// The server exits on its own while a detached descendant holds its stderr, so stdout ends with
+    /// the exit and stderr does not: <c>Exited</c> waits for both pipes, and once the holder is gone
+    /// it completes without the clock moving. A close that waited for stdout alone would complete
+    /// while stderr is still held.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    public async Task Exited_Should_Wait_For_Stderr_When_A_Descendant_Holds_It(CancellationToken cancellationToken)
+    {
+        var time = new ManualTimeProvider();
+        var output = new OpenCodeServerOutput();
+        using var runRoot = new TestRunRoot(FileSystem);
+        var marker = FileSystem.Path.Combine(runRoot.Path, "exit");
+        OpenCodeServer? server = null;
+        try
+        {
+            server = await OpenCodeServer.StartWithSeamsAsync(
+                LadderTree.OptionsWithMarker(output, Grace, marker, "hold-stderr", ExitOnMarker),
+                LauncherSeams.ForCurrentProcess() with { Time = time },
+                cancellationToken);
+#if NET
+            await FileSystem.File.WriteAllTextAsync(marker, string.Empty, cancellationToken);
+#else
+            FileSystem.File.WriteAllText(marker, string.Empty);
+#endif
+            _ = await server.ChildExited.WaitAsync(HangGuard, cancellationToken);
+
+            // The bound starts while stderr is held; a close that ignored stderr completes instead.
+            _ = await Task.WhenAny(time.WaitForTimerAsync(HangGuard), server.Exited).WaitAsync(HangGuard, cancellationToken);
+            var completedWhileHeld = server.Exited.IsCompleted;
+            ProcessObservation.KillIfRunning(LadderTree.Pid(output, LadderTree.StderrHolder));
+            var exit = await server.Exited.WaitAsync(HangGuard, cancellationToken);
+
+            await Assert.That(completedWhileHeld).IsFalse();
             await Assert.That(exit).IsEqualTo(OpenCodeServerExit.FromExitCode(NaturalExitCode));
         }
         finally

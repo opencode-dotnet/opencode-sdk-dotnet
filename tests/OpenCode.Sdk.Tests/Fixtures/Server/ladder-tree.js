@@ -6,6 +6,7 @@
 //   detached                  a child in a session of its own (setsid); on Windows a detached child,
 //                             outside every job
 //   hold-stdout               a detached child that holds the stand-in's stdout open
+//   hold-stderr               a detached child that holds the stand-in's stderr open
 //   watch-stdin               the stand-in exits with code 0 on stdin's end-of-stream, as the real
 //                             server does; without it the stand-in never reads stdin
 //   root-ignores-term         the stand-in itself ignores SIGTERM
@@ -14,10 +15,12 @@
 //   close-stdout              close stdout instead of reporting readiness, and keep running
 //   kill-self-before-ready    end itself with SIGKILL instead of reporting readiness
 //   exit-at-ready=N           exit with code N right after the readiness line
+//   exit-on-marker=N          exit with code N once the file OPENCODE_SDK_TEST_LADDER_MARKER names
+//                             exists, so the test decides when the exit comes
 // Every pid is reported on stderr as "ladder-tree role=<role> pid=<pid>" before readiness, so the
 // test can end each process by its pid whatever the stand-in did.
 import { spawn } from "node:child_process";
-import { closeSync } from "node:fs";
+import { closeSync, existsSync } from "node:fs";
 
 const flags = (process.env.OPENCODE_SDK_TEST_LADDER ?? "").split(",").filter(Boolean);
 const has = (flag) => flags.includes(flag);
@@ -34,10 +37,10 @@ const childScript =
   "setInterval(() => {}, 1000);" +
   "if (process.env.LADDER_CHILD_REPORT === '1') process.stdout.write('armed\\n');";
 
-async function start(role, { detached = false, ignoreTerm = false, holdStdout = false } = {}) {
+async function start(role, { detached = false, ignoreTerm = false, holdStdout = false, holdStderr = false } = {}) {
   const child = spawn(process.execPath, ["-e", childScript], {
     detached,
-    stdio: ["ignore", holdStdout ? "inherit" : "pipe", "ignore"],
+    stdio: ["ignore", holdStdout ? "inherit" : "pipe", holdStderr ? "inherit" : "ignore"],
     env: { ...process.env, LADDER_CHILD_IGNORE_TERM: ignoreTerm ? "1" : "0", LADDER_CHILD_REPORT: holdStdout ? "0" : "1" },
   });
   report(role, child.pid);
@@ -66,6 +69,7 @@ if (has("group-child")) await start("group-child");
 if (has("group-child-ignores-term")) await start("group-child", { ignoreTerm: true });
 if (has("detached")) await start("detached", { detached: true });
 if (has("hold-stdout")) await start("holder", { detached: true, holdStdout: true });
+if (has("hold-stderr")) await start("stderr-holder", { detached: true, holdStderr: true });
 
 setInterval(() => {}, 1000);
 const before = value("exit-before-ready");
@@ -81,4 +85,11 @@ if (before !== undefined) {
   const after = value("exit-after-ready");
   if (at !== undefined) process.exit(at);
   if (after !== undefined) setTimeout(() => process.exit(after), 200);
+  const onMarker = value("exit-on-marker");
+  if (onMarker !== undefined) {
+    const marker = process.env.OPENCODE_SDK_TEST_LADDER_MARKER;
+    setInterval(() => {
+      if (existsSync(marker)) process.exit(onMarker);
+    }, 20);
+  }
 }

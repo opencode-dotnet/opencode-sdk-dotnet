@@ -583,10 +583,10 @@ It never faults and is never canceled. The end is an exit code, a terminating si
 `Kind` names which, and exactly its members are set. A code is the one the exit watch reads, in
 full 32 bits on Windows. A signal carries its standard name for the host's numbering, such as
 `SIGTERM`, as upstream reports it, and its number. A signal number with no standard name, such as
-a Linux real-time signal, keeps the number with no name, and no name is made up. Unknown is the
-status of an exit something else reaped. A handle from `DiscoverAsync` or `EnsureAsync` owns no
-process, so its `Exited` throws `InvalidOperationException`: upstream's attach endpoint carries no
-exit either.
+a Linux real-time signal, keeps the number with no name, and no name is made up. Unknown is an
+exit whose status could not be read, such as one something else reaped. A handle from
+`DiscoverAsync` or `EnsureAsync` owns no process, so its `Exited` throws
+`InvalidOperationException`: upstream's attach endpoint carries no exit either.
 
 On Linux and macOS the ladder follows upstream's rungs; where the two end in a different place, the
 difference is one of the recorded divergences below.

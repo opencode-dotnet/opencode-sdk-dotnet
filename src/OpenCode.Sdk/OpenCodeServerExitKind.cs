@@ -7,9 +7,9 @@ namespace OpenCode.Sdk;
 public enum OpenCodeServerExitKind
 {
     /// <summary>
-    /// The end could not be read: on Linux and macOS something other than the launcher reaped the
-    /// server (a host that ignores <c>SIGCHLD</c>, or a runtime running as pid 1 that reaps every
-    /// child), so no status was left to read.
+    /// The exit status could not be read: for example, on Linux and macOS something other than the
+    /// launcher reaped the server (a host that ignores <c>SIGCHLD</c>, or a runtime running as pid 1
+    /// that reaps every child), or the exit code could not be queried.
     /// </summary>
     Unknown = 0,
 

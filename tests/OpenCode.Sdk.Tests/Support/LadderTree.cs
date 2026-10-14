@@ -15,6 +15,7 @@ internal static class LadderTree
     public const string GroupChild = "group-child";
     public const string Detached = "detached";
     public const string Holder = "holder";
+    public const string StderrHolder = "stderr-holder";
 
     private const string Prefix = "ladder-tree role=";
 
@@ -37,6 +38,26 @@ internal static class LadderTree
             GracefulShutdownTimeout = grace,
             Output = output,
         };
+
+    /// <summary>
+    /// The launch options for one tree whose root exits, with the code an <c>exit-on-marker=N</c>
+    /// flag names, once the marker file exists, so the test decides when the exit comes.
+    /// </summary>
+    /// <param name="output">The collector the pids are read from.</param>
+    /// <param name="grace">The shutdown grace.</param>
+    /// <param name="marker">The file whose existence ends the root.</param>
+    /// <param name="flags">The fixture flags.</param>
+    /// <returns>The options.</returns>
+    public static OpenCodeServerOptions OptionsWithMarker(OpenCodeServerOutput output, TimeSpan grace, string marker, params string[] flags)
+    {
+        var options = Options(output, grace, flags);
+        options.Environment = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["OPENCODE_SDK_TEST_LADDER"] = string.Join(',', flags),
+            ["OPENCODE_SDK_TEST_LADDER_MARKER"] = marker,
+        };
+        return options;
+    }
 
     /// <summary>Reads the one pid the tree reported for a role.</summary>
     /// <param name="output">The start's collector.</param>

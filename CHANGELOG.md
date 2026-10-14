@@ -21,9 +21,10 @@ Nightly builds of `master` are on
 
 - **`OpenCodeServer.Exited` reports how a started server ended.** The task completes with an
   `OpenCodeServerExit`. It holds an exit code (on Windows the full 32-bit code), a terminating
-  signal by name and number, or `Unknown` when something else reaped the server. It completes
-  whether the server ended on its own or disposal ended it, once its output has ended or one
-  second after the exit, as upstream's `exited` does. It never faults. On a handle from
+  signal by name and number, or `Unknown` when the exit status could not be read, for example
+  because something else reaped the server. It completes whether the server ended on its own or
+  disposal ended it, once its output has ended or one second after the exit, as upstream's
+  `exited` does. It never faults. On a handle from
   `DiscoverAsync` or `EnsureAsync` it throws `InvalidOperationException`, because that handle owns
   no process.
 - **The accepted snapshot moved to upstream release tag `v2.0.29`**
