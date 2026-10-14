@@ -32,11 +32,6 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
     /// <summary>The shared homes generated files may live in beside the families.</summary>
     private static readonly string[] SharedFolders = ["Internal/Serialization/", "Common/Errors/", "Common/Internal/"];
 
-    /// <summary>
-    /// The folders generated files lived in before the vertical-slice layout. A regeneration still
-    /// writes and deletes there until the layout move empties them.
-    /// </summary>
-    private static readonly string[] LegacyFolders = ["Models/", "Internal/ResponseAdapters/", "Internal/StreamAdapters/"];
     private readonly IFileSystem _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
     private readonly IProjectFormatter _formatter = formatter ?? throw new ArgumentNullException(nameof(formatter));
 
@@ -332,7 +327,7 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
     {
         if (!relativePath.EndsWith(".cs", StringComparison.Ordinal)
             || !(!relativePath.Contains('/', StringComparison.Ordinal)
-                 || IsSharedOrLegacyPath(relativePath)
+                 || IsSharedPath(relativePath)
                  || IsAdmittedFamilyPath(relativePath, familyFolders, areaFolders)))
         {
             throw new InvalidOperationException($"Generated source path '{relativePath}' is outside the owned source directories.");
@@ -349,7 +344,7 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
         var shaped = segments.Length switch
         {
             1 or 2 => true,
-            3 => segments[1] is "Models" or "Internal" || IsSharedOrLegacyPath(relativePath),
+            3 => segments[1] is "Models" or "Internal" || IsSharedPath(relativePath),
             4 => segments[1] is "Models",
             _ => false,
         };
@@ -359,10 +354,9 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
         }
     }
 
-    /// <summary>A file directly inside a shared home or a pre-layout folder.</summary>
-    private static bool IsSharedOrLegacyPath(string relativePath) =>
+    /// <summary>A file directly inside a shared home.</summary>
+    private static bool IsSharedPath(string relativePath) =>
         SharedFolders
-            .Concat(LegacyFolders)
             .Any(folder => relativePath.StartsWith(folder, StringComparison.Ordinal)
                            && !relativePath[folder.Length..].Contains('/', StringComparison.Ordinal));
 

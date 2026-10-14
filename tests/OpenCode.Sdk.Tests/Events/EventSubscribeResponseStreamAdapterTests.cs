@@ -1,6 +1,6 @@
 using OpenCode.Sdk.Internal;
 
-namespace OpenCode.Sdk.Tests.StreamAdapters;
+namespace OpenCode.Sdk.Tests.Events;
 
 public sealed class EventSubscribeResponseStreamAdapterTests
 {

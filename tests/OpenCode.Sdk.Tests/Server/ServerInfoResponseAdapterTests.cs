@@ -1,6 +1,6 @@
 using OpenCode.Sdk.Internal;
 
-namespace OpenCode.Sdk.Tests.ResponseAdapters;
+namespace OpenCode.Sdk.Tests.Server;
 
 public sealed class ServerInfoResponseAdapterTests
 {

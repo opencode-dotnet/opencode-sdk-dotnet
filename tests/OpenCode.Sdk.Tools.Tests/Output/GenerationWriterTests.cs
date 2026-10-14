@@ -75,7 +75,7 @@ public sealed class GenerationWriterTests
     [Test]
     public async Task WriteAsync_Should_Refuse_Case_Only_Owned_Path_Changes()
     {
-        const string oldPath = "Models/Widget.cs";
+        const string oldPath = "Common/Errors/Widget.cs";
         var fileSystem = GenerationTestData.CreateFileSystem();
         var manifest = JsonSerializer.Serialize(new GenerationManifest { Files = [oldPath], });
         fileSystem.Initialize().With(
@@ -84,7 +84,7 @@ public sealed class GenerationWriterTests
         var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
 
         var exception = await Assert.That(async () => await writer.WriteAsync(
-                Request([GenerationTestData.Source("Models/widget.cs", "new")]),
+                Request([GenerationTestData.Source("Common/Errors/widget.cs", "new")]),
                 CancellationToken.None))
             .Throws<InvalidOperationException>();
 
@@ -94,10 +94,10 @@ public sealed class GenerationWriterTests
     [Test]
     public async Task WriteAsync_Should_Delete_Only_Stale_Manifest_Files()
     {
-        const string stalePath = "src/OpenCode.Sdk/Models/Stale.cs";
+        const string stalePath = "src/OpenCode.Sdk/Common/Errors/Stale.cs";
         const string unrelatedPath = "src/OpenCode.Sdk/Manual.cs";
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var manifest = JsonSerializer.Serialize(new GenerationManifest { Files = ["Models/Stale.cs"], });
+        var manifest = JsonSerializer.Serialize(new GenerationManifest { Files = ["Common/Errors/Stale.cs"], });
         fileSystem.Initialize().With(
             new FileDescription(GenerationTestData.ManifestPath, manifest),
             new FileDescription(stalePath, GenerationTestData.OwnedContent("stale")),
@@ -105,19 +105,19 @@ public sealed class GenerationWriterTests
         var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
 
         var result = await writer.WriteAsync(
-            Request([GenerationTestData.Source("Models/Fresh.cs", "fresh")]),
+            Request([GenerationTestData.Source("Common/Errors/Fresh.cs", "fresh")]),
             CancellationToken.None);
 
         await Assert.That(fileSystem.File.Exists(stalePath)).IsFalse();
         await Assert.That(fileSystem.File.Exists(unrelatedPath)).IsTrue();
-        await Assert.That(result.DeletedPaths).Contains("Models/Stale.cs");
-        await Assert.That(result.CreatedPaths).Contains("Models/Fresh.cs");
+        await Assert.That(result.DeletedPaths).Contains("Common/Errors/Stale.cs");
+        await Assert.That(result.CreatedPaths).Contains("Common/Errors/Fresh.cs");
     }
 
     [Test]
     public async Task WriteAsync_Should_Be_Idempotent_After_Project_Formatting()
     {
-        const string relativePath = "Models/Example.cs";
+        const string relativePath = "Common/Errors/Example.cs";
         var fileSystem = GenerationTestData.CreateFileSystem();
         var formatter = new RecordingProjectFormatter(fileSystem, async (currentFileSystem, _, _, cancellationToken) =>
         {
@@ -142,7 +142,7 @@ public sealed class GenerationWriterTests
     [Test]
     public async Task WriteAsync_Should_Report_And_Repair_Verify_Drift()
     {
-        const string relativePath = "Models/Example.cs";
+        const string relativePath = "Common/Errors/Example.cs";
         var fileSystem = GenerationTestData.CreateFileSystem();
         var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
         var sources = new[] { GenerationTestData.Source(relativePath, "expected\n"), };
@@ -168,12 +168,12 @@ public sealed class GenerationWriterTests
             Request(
             [
                 GenerationTestData.Source("ExampleClient.cs", "client"),
-                GenerationTestData.Source("Internal/ResponseAdapters/ExampleAdapter.cs", "adapter"),
+                GenerationTestData.Source("Common/Internal/ExampleAdapter.cs", "adapter"),
             ]),
             CancellationToken.None);
 
         await Assert.That(result.CreatedPaths).Contains("ExampleClient.cs");
-        await Assert.That(result.CreatedPaths).Contains("Internal/ResponseAdapters/ExampleAdapter.cs");
+        await Assert.That(result.CreatedPaths).Contains("Common/Internal/ExampleAdapter.cs");
     }
 
     [Test]
@@ -319,15 +319,15 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Refuse_Overwriting_A_Manifest_Entry_Without_Provenance()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var manifest = JsonSerializer.Serialize(new GenerationManifest { Files = ["Models/Example.cs"], });
+        var manifest = JsonSerializer.Serialize(new GenerationManifest { Files = ["Common/Errors/Example.cs"], });
         fileSystem.Initialize().With(
             new FileDescription(GenerationTestData.ManifestPath, manifest),
-            new FileDescription("src/OpenCode.Sdk/Models/Example.cs", "hand-edited without a header"));
+            new FileDescription("src/OpenCode.Sdk/Common/Errors/Example.cs", "hand-edited without a header"));
         var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
 
         var exception = await Assert
             .That(async () => _ = await writer.WriteAsync(
-                Request([GenerationTestData.Source("Models/Example.cs", "generated")]),
+                Request([GenerationTestData.Source("Common/Errors/Example.cs", "generated")]),
                 CancellationToken.None))
             .Throws<InvalidOperationException>();
 
@@ -338,20 +338,20 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Refuse_Deleting_A_Manifest_Entry_Without_Provenance()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var manifest = JsonSerializer.Serialize(new GenerationManifest { Files = ["Models/Stale.cs"], });
+        var manifest = JsonSerializer.Serialize(new GenerationManifest { Files = ["Common/Errors/Stale.cs"], });
         fileSystem.Initialize().With(
             new FileDescription(GenerationTestData.ManifestPath, manifest),
-            new FileDescription("src/OpenCode.Sdk/Models/Stale.cs", "hand-edited without a header"));
+            new FileDescription("src/OpenCode.Sdk/Common/Errors/Stale.cs", "hand-edited without a header"));
         var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
 
         var exception = await Assert
             .That(async () => _ = await writer.WriteAsync(
-                Request([GenerationTestData.Source("Models/Fresh.cs", "generated")]),
+                Request([GenerationTestData.Source("Common/Errors/Fresh.cs", "generated")]),
                 CancellationToken.None))
             .Throws<InvalidOperationException>();
 
         await Assert.That(exception!.Message).Contains("provenance");
-        await Assert.That(fileSystem.File.Exists("src/OpenCode.Sdk/Models/Stale.cs")).IsTrue();
+        await Assert.That(fileSystem.File.Exists("src/OpenCode.Sdk/Common/Errors/Stale.cs")).IsTrue();
     }
 
     [Test]
@@ -361,7 +361,7 @@ public sealed class GenerationWriterTests
         var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
         var headerless = new GeneratedSource
         {
-            RelativePath = "Models/Example.cs",
+            RelativePath = "Common/Errors/Example.cs",
             Utf8Source = "no header"u8.ToArray(),
         };
 
@@ -397,7 +397,7 @@ public sealed class GenerationWriterTests
 
         _ = await writer.WriteAsync(
             Request(
-                [GenerationTestData.Source("Models/Widget.cs", "widget")],
+                [GenerationTestData.Source("Common/Errors/Widget.cs", "widget")],
                 implicitAliases: new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     ["Widget_2"] = "Widget",
@@ -425,7 +425,7 @@ public sealed class GenerationWriterTests
         var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
 
         _ = await writer.WriteAsync(
-            Request([GenerationTestData.Source("Models/Widget.cs", "widget")]),
+            Request([GenerationTestData.Source("Common/Errors/Widget.cs", "widget")]),
             CancellationToken.None);
 
         var manifest = await fileSystem.File.ReadAllTextAsync(GenerationTestData.ManifestPath, CancellationToken.None);
@@ -455,9 +455,6 @@ public sealed class GenerationWriterTests
     [Arguments("Internal/Serialization/SessionConverter.cs")]
     [Arguments("Common/Errors/OpenCodeError.cs")]
     [Arguments("Common/Internal/ErrorReader.cs")]
-    [Arguments("Models/Widget.cs")]
-    [Arguments("Internal/ResponseAdapters/WidgetAdapter.cs")]
-    [Arguments("Internal/StreamAdapters/WidgetStreamAdapter.cs")]
     public async Task WriteAsync_Should_Write_A_Source_In_An_Owned_Directory(string relativePath)
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
@@ -480,6 +477,9 @@ public sealed class GenerationWriterTests
     [Arguments("Internal/Serialization/Deep/X.cs")]
     [Arguments("Common/Errors/Sub/X.cs")]
     [Arguments("Models/Sub/X.cs")]
+    [Arguments("Models/Widget.cs")]
+    [Arguments("Internal/ResponseAdapters/WidgetAdapter.cs")]
+    [Arguments("Internal/StreamAdapters/WidgetStreamAdapter.cs")]
     public async Task WriteAsync_Should_Refuse_A_Source_Outside_The_Owned_Layout(string relativePath)
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
@@ -561,10 +561,10 @@ public sealed class GenerationWriterTests
             Request(
             [
                 GenerationTestData.Source("Sessions/SessionsClient.cs", "client"),
-                GenerationTestData.Source("Models/alias.cs", "alias"),
-                GenerationTestData.Source("Models/Widget.cs", "widget"),
+                GenerationTestData.Source("Common/Errors/alias.cs", "alias"),
+                GenerationTestData.Source("Common/Errors/Widget.cs", "widget"),
                 GenerationTestData.Source("ExampleClient.cs", "root"),
-                GenerationTestData.Source("Internal/ResponseAdapters/WidgetAdapter.cs", "adapter"),
+                GenerationTestData.Source("Common/Internal/WidgetAdapter.cs", "adapter"),
             ],
             familyFolders: [SessionsFamily]),
             CancellationToken.None);
@@ -572,10 +572,10 @@ public sealed class GenerationWriterTests
         var attributes = await fileSystem.File.ReadAllTextAsync(AttributesPath, CancellationToken.None);
         await Assert.That(attributes).IsEqualTo(ExpectedAttributes(
         [
+            "Common/Errors/Widget.cs",
+            "Common/Errors/alias.cs",
+            "Common/Internal/WidgetAdapter.cs",
             "ExampleClient.cs",
-            "Internal/ResponseAdapters/WidgetAdapter.cs",
-            "Models/Widget.cs",
-            "Models/alias.cs",
             "Sessions/SessionsClient.cs",
         ]));
     }
@@ -589,7 +589,7 @@ public sealed class GenerationWriterTests
         var writer = CreateWriter(fileSystem);
 
         var exception = await Assert.That(async () => _ = await writer.WriteAsync(
-                Request([GenerationTestData.Source("Models/Widget.cs", "widget")]),
+                Request([GenerationTestData.Source("Common/Errors/Widget.cs", "widget")]),
                 CancellationToken.None))
             .Throws<InvalidOperationException>();
 
@@ -601,12 +601,12 @@ public sealed class GenerationWriterTests
     [Test]
     public async Task WriteAsync_Should_Report_Drifted_Attributes_As_Changed_When_Verifying()
     {
-        const string relativePath = "Models/Widget.cs";
+        const string relativePath = "Common/Errors/Widget.cs";
         var fileSystem = GenerationTestData.CreateFileSystem();
         var writer = CreateWriter(fileSystem);
         var sources = new[] { GenerationTestData.Source(relativePath, "widget"), };
         _ = await writer.WriteAsync(Request(sources), CancellationToken.None);
-        await fileSystem.File.WriteAllTextAsync(AttributesPath, ExpectedAttributes(["Models/Retired.cs"]), CancellationToken.None);
+        await fileSystem.File.WriteAllTextAsync(AttributesPath, ExpectedAttributes(["Common/Errors/Retired.cs"]), CancellationToken.None);
 
         var result = await writer.WriteAsync(Request(sources, verify: true), CancellationToken.None);
 
@@ -643,18 +643,18 @@ public sealed class GenerationWriterTests
     }
 
     [Test]
-    public async Task WriteAsync_Should_Move_Legacy_Sources_Into_The_Family_Layout()
+    public async Task WriteAsync_Should_Move_Sources_Between_Slice_Folders()
     {
-        const string legacyModel = "Models/A.cs";
-        const string legacyAdapter = "Internal/ResponseAdapters/B.cs";
+        const string rootModel = "Example/A.cs";
+        const string rootAdapter = "Example/B.cs";
         const string familyModel = "Example/Models/A.cs";
         const string familyAdapter = "Example/Internal/B.cs";
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var manifest = JsonSerializer.Serialize(new GenerationManifest { Files = [legacyModel, legacyAdapter], });
+        var manifest = JsonSerializer.Serialize(new GenerationManifest { Files = [rootModel, rootAdapter], });
         fileSystem.Initialize().With(
             new FileDescription(GenerationTestData.ManifestPath, manifest),
-            new FileDescription(OwnedPath(fileSystem, legacyModel), GenerationTestData.OwnedContent("model")),
-            new FileDescription(OwnedPath(fileSystem, legacyAdapter), GenerationTestData.OwnedContent("adapter")));
+            new FileDescription(OwnedPath(fileSystem, rootModel), GenerationTestData.OwnedContent("model")),
+            new FileDescription(OwnedPath(fileSystem, rootAdapter), GenerationTestData.OwnedContent("adapter")));
         var writer = CreateWriter(fileSystem);
         var request = Request(
             [GenerationTestData.Source(familyModel, "model"), GenerationTestData.Source(familyAdapter, "adapter")],
@@ -663,9 +663,9 @@ public sealed class GenerationWriterTests
         var move = await writer.WriteAsync(request, CancellationToken.None);
         var rerun = await writer.WriteAsync(request, CancellationToken.None);
 
-        await Assert.That(move.DeletedPaths).IsEquivalentTo([legacyAdapter, legacyModel]);
-        await Assert.That(fileSystem.File.Exists(OwnedPath(fileSystem, legacyModel))).IsFalse();
-        await Assert.That(fileSystem.File.Exists(OwnedPath(fileSystem, legacyAdapter))).IsFalse();
+        await Assert.That(move.DeletedPaths).IsEquivalentTo([rootAdapter, rootModel]);
+        await Assert.That(fileSystem.File.Exists(OwnedPath(fileSystem, rootModel))).IsFalse();
+        await Assert.That(fileSystem.File.Exists(OwnedPath(fileSystem, rootAdapter))).IsFalse();
         await Assert.That(fileSystem.File.Exists(OwnedPath(fileSystem, familyModel))).IsTrue();
         await Assert.That(fileSystem.File.Exists(OwnedPath(fileSystem, familyAdapter))).IsTrue();
         var written = JsonSerializer.Deserialize(
