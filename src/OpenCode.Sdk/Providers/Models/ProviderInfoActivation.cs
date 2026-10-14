@@ -10,9 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(ProviderInfoActivationJsonConverter))]
 public readonly struct ProviderInfoActivation : IEquatable<ProviderInfoActivation>
 {
-    private const string AutoValue = "auto";
-    private const string EnabledValue = "enabled";
-    private const string DisabledValue = "disabled";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -27,19 +24,19 @@ public readonly struct ProviderInfoActivation : IEquatable<ProviderInfoActivatio
     /// <summary>
     /// Gets the &apos;auto&apos; wire value.
     /// </summary>
-    public static ProviderInfoActivation Auto { get; } = new(AutoValue);
+    public static ProviderInfoActivation Auto { get; } = new("auto");
     /// <summary>
     /// Gets the &apos;enabled&apos; wire value.
     /// </summary>
-    public static ProviderInfoActivation Enabled { get; } = new(EnabledValue);
+    public static ProviderInfoActivation Enabled { get; } = new("enabled");
     /// <summary>
     /// Gets the &apos;disabled&apos; wire value.
     /// </summary>
-    public static ProviderInfoActivation Disabled { get; } = new(DisabledValue);
+    public static ProviderInfoActivation Disabled { get; } = new("disabled");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is AutoValue or EnabledValue or DisabledValue;
+    public bool IsKnown => _value is "auto" or "enabled" or "disabled";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

@@ -10,9 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(SessionMessageIdleOutcomeJsonConverter))]
 public readonly struct SessionMessageIdleOutcome : IEquatable<SessionMessageIdleOutcome>
 {
-    private const string SucceededValue = "succeeded";
-    private const string FailedValue = "failed";
-    private const string InterruptedValue = "interrupted";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -27,19 +24,19 @@ public readonly struct SessionMessageIdleOutcome : IEquatable<SessionMessageIdle
     /// <summary>
     /// Gets the &apos;succeeded&apos; wire value.
     /// </summary>
-    public static SessionMessageIdleOutcome Succeeded { get; } = new(SucceededValue);
+    public static SessionMessageIdleOutcome Succeeded { get; } = new("succeeded");
     /// <summary>
     /// Gets the &apos;failed&apos; wire value.
     /// </summary>
-    public static SessionMessageIdleOutcome Failed { get; } = new(FailedValue);
+    public static SessionMessageIdleOutcome Failed { get; } = new("failed");
     /// <summary>
     /// Gets the &apos;interrupted&apos; wire value.
     /// </summary>
-    public static SessionMessageIdleOutcome Interrupted { get; } = new(InterruptedValue);
+    public static SessionMessageIdleOutcome Interrupted { get; } = new("interrupted");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is SucceededValue or FailedValue or InterruptedValue;
+    public bool IsKnown => _value is "succeeded" or "failed" or "interrupted";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

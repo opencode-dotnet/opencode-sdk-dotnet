@@ -10,8 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(FileSystemEntryTypeJsonConverter))]
 public readonly struct FileSystemEntryType : IEquatable<FileSystemEntryType>
 {
-    private const string FileValue = "file";
-    private const string DirectoryValue = "directory";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -26,15 +24,15 @@ public readonly struct FileSystemEntryType : IEquatable<FileSystemEntryType>
     /// <summary>
     /// Gets the &apos;file&apos; wire value.
     /// </summary>
-    public static FileSystemEntryType File { get; } = new(FileValue);
+    public static FileSystemEntryType File { get; } = new("file");
     /// <summary>
     /// Gets the &apos;directory&apos; wire value.
     /// </summary>
-    public static FileSystemEntryType Directory { get; } = new(DirectoryValue);
+    public static FileSystemEntryType Directory { get; } = new("directory");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is FileValue or DirectoryValue;
+    public bool IsKnown => _value is "file" or "directory";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

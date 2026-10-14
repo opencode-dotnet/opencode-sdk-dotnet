@@ -45,5 +45,5 @@ older clients do not know, or if C# gains an extensible enum construct that keep
 patterns.
 
 Evidence:
-- internal research, 2026-10-14, "Enum growth over the past pins" (memo B evidence);
+- internal research, 2026-10-14, "Enum growth over the past pins";
 - internal research, 2026-10-14, "Extensible enum emitter spike".

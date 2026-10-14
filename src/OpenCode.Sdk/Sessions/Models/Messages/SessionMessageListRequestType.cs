@@ -10,16 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(SessionMessageListRequestTypeJsonConverter))]
 public readonly struct SessionMessageListRequestType : IEquatable<SessionMessageListRequestType>
 {
-    private const string AgentSwitchedValue = "agent-switched";
-    private const string ModelSwitchedValue = "model-switched";
-    private const string LocationSwitchedValue = "location-switched";
-    private const string UserValue = "user";
-    private const string SyntheticValue = "synthetic";
-    private const string SystemValue = "system";
-    private const string SkillValue = "skill";
-    private const string ShellValue = "shell";
-    private const string AssistantValue = "assistant";
-    private const string CompactionValue = "compaction";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -34,47 +24,47 @@ public readonly struct SessionMessageListRequestType : IEquatable<SessionMessage
     /// <summary>
     /// Gets the &apos;agent-switched&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType AgentSwitched { get; } = new(AgentSwitchedValue);
+    public static SessionMessageListRequestType AgentSwitched { get; } = new("agent-switched");
     /// <summary>
     /// Gets the &apos;model-switched&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType ModelSwitched { get; } = new(ModelSwitchedValue);
+    public static SessionMessageListRequestType ModelSwitched { get; } = new("model-switched");
     /// <summary>
     /// Gets the &apos;location-switched&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType LocationSwitched { get; } = new(LocationSwitchedValue);
+    public static SessionMessageListRequestType LocationSwitched { get; } = new("location-switched");
     /// <summary>
     /// Gets the &apos;user&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType User { get; } = new(UserValue);
+    public static SessionMessageListRequestType User { get; } = new("user");
     /// <summary>
     /// Gets the &apos;synthetic&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType Synthetic { get; } = new(SyntheticValue);
+    public static SessionMessageListRequestType Synthetic { get; } = new("synthetic");
     /// <summary>
     /// Gets the &apos;system&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType System { get; } = new(SystemValue);
+    public static SessionMessageListRequestType System { get; } = new("system");
     /// <summary>
     /// Gets the &apos;skill&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType Skill { get; } = new(SkillValue);
+    public static SessionMessageListRequestType Skill { get; } = new("skill");
     /// <summary>
     /// Gets the &apos;shell&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType Shell { get; } = new(ShellValue);
+    public static SessionMessageListRequestType Shell { get; } = new("shell");
     /// <summary>
     /// Gets the &apos;assistant&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType Assistant { get; } = new(AssistantValue);
+    public static SessionMessageListRequestType Assistant { get; } = new("assistant");
     /// <summary>
     /// Gets the &apos;compaction&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType Compaction { get; } = new(CompactionValue);
+    public static SessionMessageListRequestType Compaction { get; } = new("compaction");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is AgentSwitchedValue or ModelSwitchedValue or LocationSwitchedValue or UserValue or SyntheticValue or SystemValue or SkillValue or ShellValue or AssistantValue or CompactionValue;
+    public bool IsKnown => _value is "agent-switched" or "model-switched" or "location-switched" or "user" or "synthetic" or "system" or "skill" or "shell" or "assistant" or "compaction";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

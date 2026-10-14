@@ -10,10 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(SessionMessageShellStatusJsonConverter))]
 public readonly struct SessionMessageShellStatus : IEquatable<SessionMessageShellStatus>
 {
-    private const string RunningValue = "running";
-    private const string ExitedValue = "exited";
-    private const string TimeoutValue = "timeout";
-    private const string KilledValue = "killed";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -28,23 +24,23 @@ public readonly struct SessionMessageShellStatus : IEquatable<SessionMessageShel
     /// <summary>
     /// Gets the &apos;running&apos; wire value.
     /// </summary>
-    public static SessionMessageShellStatus Running { get; } = new(RunningValue);
+    public static SessionMessageShellStatus Running { get; } = new("running");
     /// <summary>
     /// Gets the &apos;exited&apos; wire value.
     /// </summary>
-    public static SessionMessageShellStatus Exited { get; } = new(ExitedValue);
+    public static SessionMessageShellStatus Exited { get; } = new("exited");
     /// <summary>
     /// Gets the &apos;timeout&apos; wire value.
     /// </summary>
-    public static SessionMessageShellStatus Timeout { get; } = new(TimeoutValue);
+    public static SessionMessageShellStatus Timeout { get; } = new("timeout");
     /// <summary>
     /// Gets the &apos;killed&apos; wire value.
     /// </summary>
-    public static SessionMessageShellStatus Killed { get; } = new(KilledValue);
+    public static SessionMessageShellStatus Killed { get; } = new("killed");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is RunningValue or ExitedValue or TimeoutValue or KilledValue;
+    public bool IsKnown => _value is "running" or "exited" or "timeout" or "killed";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

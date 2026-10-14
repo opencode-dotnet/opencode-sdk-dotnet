@@ -10,8 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(IntegrationAttemptModeJsonConverter))]
 public readonly struct IntegrationAttemptMode : IEquatable<IntegrationAttemptMode>
 {
-    private const string AutoValue = "auto";
-    private const string CodeValue = "code";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -26,15 +24,15 @@ public readonly struct IntegrationAttemptMode : IEquatable<IntegrationAttemptMod
     /// <summary>
     /// Gets the &apos;auto&apos; wire value.
     /// </summary>
-    public static IntegrationAttemptMode Auto { get; } = new(AutoValue);
+    public static IntegrationAttemptMode Auto { get; } = new("auto");
     /// <summary>
     /// Gets the &apos;code&apos; wire value.
     /// </summary>
-    public static IntegrationAttemptMode Code { get; } = new(CodeValue);
+    public static IntegrationAttemptMode Code { get; } = new("code");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is AutoValue or CodeValue;
+    public bool IsKnown => _value is "auto" or "code";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

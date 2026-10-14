@@ -10,8 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(ProviderTransportJsonConverter))]
 public readonly struct ProviderTransport : IEquatable<ProviderTransport>
 {
-    private const string HttpValue = "http";
-    private const string WebsocketValue = "websocket";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -26,15 +24,15 @@ public readonly struct ProviderTransport : IEquatable<ProviderTransport>
     /// <summary>
     /// Gets the &apos;http&apos; wire value.
     /// </summary>
-    public static ProviderTransport Http { get; } = new(HttpValue);
+    public static ProviderTransport Http { get; } = new("http");
     /// <summary>
     /// Gets the &apos;websocket&apos; wire value.
     /// </summary>
-    public static ProviderTransport Websocket { get; } = new(WebsocketValue);
+    public static ProviderTransport Websocket { get; } = new("websocket");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is HttpValue or WebsocketValue;
+    public bool IsKnown => _value is "http" or "websocket";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

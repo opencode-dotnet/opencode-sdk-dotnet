@@ -10,9 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(ConfigInfoUpdateJsonConverter))]
 public readonly struct ConfigInfoUpdate : IEquatable<ConfigInfoUpdate>
 {
-    private const string DisableValue = "disable";
-    private const string NotifyValue = "notify";
-    private const string AutoValue = "auto";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -27,19 +24,19 @@ public readonly struct ConfigInfoUpdate : IEquatable<ConfigInfoUpdate>
     /// <summary>
     /// Gets the &apos;disable&apos; wire value.
     /// </summary>
-    public static ConfigInfoUpdate Disable { get; } = new(DisableValue);
+    public static ConfigInfoUpdate Disable { get; } = new("disable");
     /// <summary>
     /// Gets the &apos;notify&apos; wire value.
     /// </summary>
-    public static ConfigInfoUpdate Notify { get; } = new(NotifyValue);
+    public static ConfigInfoUpdate Notify { get; } = new("notify");
     /// <summary>
     /// Gets the &apos;auto&apos; wire value.
     /// </summary>
-    public static ConfigInfoUpdate Auto { get; } = new(AutoValue);
+    public static ConfigInfoUpdate Auto { get; } = new("auto");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is DisableValue or NotifyValue or AutoValue;
+    public bool IsKnown => _value is "disable" or "notify" or "auto";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

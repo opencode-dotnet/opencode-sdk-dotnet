@@ -10,9 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(McpProtocolJsonConverter))]
 public readonly struct McpProtocol : IEquatable<McpProtocol>
 {
-    private const string LegacyValue = "legacy";
-    private const string AutoValue = "auto";
-    private const string Revision20260728Value = "2026-07-28";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -27,19 +24,19 @@ public readonly struct McpProtocol : IEquatable<McpProtocol>
     /// <summary>
     /// Gets the &apos;legacy&apos; wire value.
     /// </summary>
-    public static McpProtocol Legacy { get; } = new(LegacyValue);
+    public static McpProtocol Legacy { get; } = new("legacy");
     /// <summary>
     /// Gets the &apos;auto&apos; wire value.
     /// </summary>
-    public static McpProtocol Auto { get; } = new(AutoValue);
+    public static McpProtocol Auto { get; } = new("auto");
     /// <summary>
     /// Gets the &apos;2026-07-28&apos; wire value.
     /// </summary>
-    public static McpProtocol Revision20260728 { get; } = new(Revision20260728Value);
+    public static McpProtocol Revision20260728 { get; } = new("2026-07-28");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is LegacyValue or AutoValue or Revision20260728Value;
+    public bool IsKnown => _value is "legacy" or "auto" or "2026-07-28";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

@@ -10,9 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(ConnectionCredentialInfoMethodJsonConverter))]
 public readonly struct ConnectionCredentialInfoMethod : IEquatable<ConnectionCredentialInfoMethod>
 {
-    private const string KeyValue = "key";
-    private const string OauthValue = "oauth";
-    private const string ExternalValue = "external";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -27,19 +24,19 @@ public readonly struct ConnectionCredentialInfoMethod : IEquatable<ConnectionCre
     /// <summary>
     /// Gets the &apos;key&apos; wire value.
     /// </summary>
-    public static ConnectionCredentialInfoMethod Key { get; } = new(KeyValue);
+    public static ConnectionCredentialInfoMethod Key { get; } = new("key");
     /// <summary>
     /// Gets the &apos;oauth&apos; wire value.
     /// </summary>
-    public static ConnectionCredentialInfoMethod Oauth { get; } = new(OauthValue);
+    public static ConnectionCredentialInfoMethod Oauth { get; } = new("oauth");
     /// <summary>
     /// Gets the &apos;external&apos; wire value.
     /// </summary>
-    public static ConnectionCredentialInfoMethod External { get; } = new(ExternalValue);
+    public static ConnectionCredentialInfoMethod External { get; } = new("external");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is KeyValue or OauthValue or ExternalValue;
+    public bool IsKnown => _value is "key" or "oauth" or "external";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

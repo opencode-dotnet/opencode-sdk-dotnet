@@ -10,8 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(SessionUsageRecordedDataSourceJsonConverter))]
 public readonly struct SessionUsageRecordedDataSource : IEquatable<SessionUsageRecordedDataSource>
 {
-    private const string TitleValue = "title";
-    private const string CompactionValue = "compaction";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -26,15 +24,15 @@ public readonly struct SessionUsageRecordedDataSource : IEquatable<SessionUsageR
     /// <summary>
     /// Gets the &apos;title&apos; wire value.
     /// </summary>
-    public static SessionUsageRecordedDataSource Title { get; } = new(TitleValue);
+    public static SessionUsageRecordedDataSource Title { get; } = new("title");
     /// <summary>
     /// Gets the &apos;compaction&apos; wire value.
     /// </summary>
-    public static SessionUsageRecordedDataSource Compaction { get; } = new(CompactionValue);
+    public static SessionUsageRecordedDataSource Compaction { get; } = new("compaction");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is TitleValue or CompactionValue;
+    public bool IsKnown => _value is "title" or "compaction";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

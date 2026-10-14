@@ -10,9 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(ProviderEncodingJsonConverter))]
 public readonly struct ProviderEncoding : IEquatable<ProviderEncoding>
 {
-    private const string ZstdValue = "zstd";
-    private const string GzipValue = "gzip";
-    private const string NoneValue = "none";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -27,19 +24,19 @@ public readonly struct ProviderEncoding : IEquatable<ProviderEncoding>
     /// <summary>
     /// Gets the &apos;zstd&apos; wire value.
     /// </summary>
-    public static ProviderEncoding Zstd { get; } = new(ZstdValue);
+    public static ProviderEncoding Zstd { get; } = new("zstd");
     /// <summary>
     /// Gets the &apos;gzip&apos; wire value.
     /// </summary>
-    public static ProviderEncoding Gzip { get; } = new(GzipValue);
+    public static ProviderEncoding Gzip { get; } = new("gzip");
     /// <summary>
     /// Gets the &apos;none&apos; wire value.
     /// </summary>
-    public static ProviderEncoding None { get; } = new(NoneValue);
+    public static ProviderEncoding None { get; } = new("none");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is ZstdValue or GzipValue or NoneValue;
+    public bool IsKnown => _value is "zstd" or "gzip" or "none";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

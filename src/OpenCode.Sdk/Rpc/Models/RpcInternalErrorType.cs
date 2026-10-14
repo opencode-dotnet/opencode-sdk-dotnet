@@ -10,8 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(RpcInternalErrorTypeJsonConverter))]
 public readonly struct RpcInternalErrorType : IEquatable<RpcInternalErrorType>
 {
-    private const string RpcInternalValue = "rpc.internal";
-    private const string RpcInvalidOutputValue = "rpc.invalid_output";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -26,15 +24,15 @@ public readonly struct RpcInternalErrorType : IEquatable<RpcInternalErrorType>
     /// <summary>
     /// Gets the &apos;rpc.internal&apos; wire value.
     /// </summary>
-    public static RpcInternalErrorType RpcInternal { get; } = new(RpcInternalValue);
+    public static RpcInternalErrorType RpcInternal { get; } = new("rpc.internal");
     /// <summary>
     /// Gets the &apos;rpc.invalid_output&apos; wire value.
     /// </summary>
-    public static RpcInternalErrorType RpcInvalidOutput { get; } = new(RpcInvalidOutputValue);
+    public static RpcInternalErrorType RpcInvalidOutput { get; } = new("rpc.invalid_output");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is RpcInternalValue or RpcInvalidOutputValue;
+    public bool IsKnown => _value is "rpc.internal" or "rpc.invalid_output";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

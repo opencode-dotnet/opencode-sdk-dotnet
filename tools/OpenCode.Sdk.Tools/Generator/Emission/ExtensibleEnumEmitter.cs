@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 /// <summary>
 /// Emits a string enum of the pinned document as an extensible, string-backed readonly struct
-/// (ADR-0035) and the converter it carries: the pinned values are static properties, any other
+/// and the converter it carries: the pinned values are static properties, any other
 /// wire string a newer server sends is kept as it arrived and written back unchanged, and equality
 /// compares spellings ordinally, as upstream compares string literals. A <see langword="default"/>
 /// value has no spelling and the converter refuses to write it.
@@ -17,9 +17,6 @@ internal static class ExtensibleEnumEmitter
 {
     private const string ValueField = "_value";
     private const string ValueParameter = "value";
-
-    /// <summary>The name of the member that reports a pinned value.</summary>
-    private const string IsKnownName = "IsKnown";
 
     public static IReadOnlyList<GeneratedSource> Emit(EnumModelPlan model, ModelPlacement placement)
     {
@@ -40,20 +37,21 @@ internal static class ExtensibleEnumEmitter
     private static GeneratedSource EmitStruct(EnumModelPlan model, string converterName, string relativePath)
     {
         var type = TypeSyntaxEmitter.EmitNamed(model.Name);
-        var members = new List<MemberDeclarationSyntax>();
-        members.AddRange(model.Values.Select(static value => SpellingConstant(value)));
-        members.Add(ValueFieldDeclaration());
-        members.Add(Constructor(model));
-        members.AddRange(model.Values.Select(value => KnownValueProperty(model, value)));
-        members.Add(IsKnownProperty(model));
-        members.Add(EqualityOperator(type, SyntaxKind.EqualsEqualsToken, negate: false));
-        members.Add(EqualityOperator(type, SyntaxKind.ExclamationEqualsToken, negate: true));
-        members.Add(ImplicitConversion(model, type));
-        members.Add(FromString(model, type));
-        members.Add(TypedEquals(type));
-        members.Add(ObjectEquals(type));
-        members.Add(HashCode());
-        members.Add(SpellingToString());
+        List<MemberDeclarationSyntax> members =
+        [
+            ValueFieldDeclaration(),
+            Constructor(model),
+            .. model.Values.Select(value => KnownValueProperty(model, value)),
+            IsKnownProperty(model),
+            EqualityOperator(type, SyntaxKind.EqualsEqualsToken, negate: false),
+            EqualityOperator(type, SyntaxKind.ExclamationEqualsToken, negate: true),
+            ImplicitConversion(model, type),
+            FromString(model, type),
+            TypedEquals(type),
+            ObjectEquals(type),
+            HashCode(),
+            SpellingToString(),
+        ];
 
         var declaration = SyntaxFactory
             .StructDeclaration(model.Name)
@@ -76,20 +74,8 @@ internal static class ExtensibleEnumEmitter
     private static string StructSummary(EnumModelPlan model)
     {
         var description = model.Description ?? $"The {GeneratedDisplayName.Of(model.Name)}.";
-        return $"{description} The pinned server's values are the static properties; a value a newer server sends is kept as it arrived, and {IsKnownName} tells the two apart.";
+        return $"{description} The pinned server's values are the static properties; a value a newer server sends is kept as it arrived, and {ExtensibleEnumMemberPolicy.IsKnown} tells the two apart.";
     }
-
-    private static FieldDeclarationSyntax SpellingConstant(EnumValuePlan value) => SyntaxFactory
-        .FieldDeclaration(SyntaxFactory
-            .VariableDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)))
-            .WithVariables(SyntaxFactory.SingletonSeparatedList(SyntaxFactory
-                .VariableDeclarator(SpellingName(value))
-                .WithInitializer(SyntaxFactory.EqualsValueClause(StringLiteral(value.WireValue))))))
-        .WithModifiers(SyntaxFactory.TokenList(
-            SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
-            SyntaxFactory.Token(SyntaxKind.ConstKeyword)));
-
-    private static string SpellingName(EnumValuePlan value) => $"{value.Name}Value";
 
     private static FieldDeclarationSyntax ValueFieldDeclaration() => SyntaxFactory
         .FieldDeclaration(SyntaxFactory
@@ -124,17 +110,17 @@ internal static class ExtensibleEnumEmitter
         .WithInitializer(SyntaxFactory.EqualsValueClause(SyntaxFactory
             .ImplicitObjectCreationExpression()
             .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
-                SyntaxFactory.Argument(SyntaxFactory.IdentifierName(SpellingName(value))))))))
+                SyntaxFactory.Argument(StringLiteral(value.WireValue)))))))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
         .WithLeadingTrivia(EmissionSyntax.Documentation($"Gets the '{value.WireValue}' wire value."));
 
     private static PropertyDeclarationSyntax IsKnownProperty(EnumModelPlan model)
     {
         var pinned = model.Values
-            .Select(static value => (PatternSyntax)SyntaxFactory.ConstantPattern(SyntaxFactory.IdentifierName(SpellingName(value))))
+            .Select(static value => (PatternSyntax)SyntaxFactory.ConstantPattern(StringLiteral(value.WireValue)))
             .Aggregate((left, right) => SyntaxFactory.BinaryPattern(SyntaxKind.OrPattern, left, right));
         return SyntaxFactory
-            .PropertyDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)), IsKnownName)
+            .PropertyDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)), ExtensibleEnumMemberPolicy.IsKnown)
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(
                 SyntaxFactory.IsPatternExpression(SyntaxFactory.IdentifierName(ValueField), pinned)))
@@ -181,7 +167,7 @@ internal static class ExtensibleEnumEmitter
 
     /// <summary>The named alternate of the implicit conversion (CA2225).</summary>
     private static MethodDeclarationSyntax FromString(EnumModelPlan model, TypeSyntax type) => SyntaxFactory
-        .MethodDeclaration(type, "FromString")
+        .MethodDeclaration(type, ExtensibleEnumMemberPolicy.FromString)
         .WithModifiers(SyntaxFactory.TokenList(
             SyntaxFactory.Token(SyntaxKind.PublicKeyword),
             SyntaxFactory.Token(SyntaxKind.StaticKeyword)))

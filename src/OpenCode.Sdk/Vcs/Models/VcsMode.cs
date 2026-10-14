@@ -10,9 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(VcsModeJsonConverter))]
 public readonly struct VcsMode : IEquatable<VcsMode>
 {
-    private const string WorkingValue = "working";
-    private const string BranchValue = "branch";
-    private const string CommittedValue = "committed";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -27,19 +24,19 @@ public readonly struct VcsMode : IEquatable<VcsMode>
     /// <summary>
     /// Gets the &apos;working&apos; wire value.
     /// </summary>
-    public static VcsMode Working { get; } = new(WorkingValue);
+    public static VcsMode Working { get; } = new("working");
     /// <summary>
     /// Gets the &apos;branch&apos; wire value.
     /// </summary>
-    public static VcsMode Branch { get; } = new(BranchValue);
+    public static VcsMode Branch { get; } = new("branch");
     /// <summary>
     /// Gets the &apos;committed&apos; wire value.
     /// </summary>
-    public static VcsMode Committed { get; } = new(CommittedValue);
+    public static VcsMode Committed { get; } = new("committed");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is WorkingValue or BranchValue or CommittedValue;
+    public bool IsKnown => _value is "working" or "branch" or "committed";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

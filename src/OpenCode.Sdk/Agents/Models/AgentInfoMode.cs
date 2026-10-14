@@ -10,9 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(AgentInfoModeJsonConverter))]
 public readonly struct AgentInfoMode : IEquatable<AgentInfoMode>
 {
-    private const string SubagentValue = "subagent";
-    private const string PrimaryValue = "primary";
-    private const string AllValue = "all";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -27,19 +24,19 @@ public readonly struct AgentInfoMode : IEquatable<AgentInfoMode>
     /// <summary>
     /// Gets the &apos;subagent&apos; wire value.
     /// </summary>
-    public static AgentInfoMode Subagent { get; } = new(SubagentValue);
+    public static AgentInfoMode Subagent { get; } = new("subagent");
     /// <summary>
     /// Gets the &apos;primary&apos; wire value.
     /// </summary>
-    public static AgentInfoMode Primary { get; } = new(PrimaryValue);
+    public static AgentInfoMode Primary { get; } = new("primary");
     /// <summary>
     /// Gets the &apos;all&apos; wire value.
     /// </summary>
-    public static AgentInfoMode All { get; } = new(AllValue);
+    public static AgentInfoMode All { get; } = new("all");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is SubagentValue or PrimaryValue or AllValue;
+    public bool IsKnown => _value is "subagent" or "primary" or "all";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

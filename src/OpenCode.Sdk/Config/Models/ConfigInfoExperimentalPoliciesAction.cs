@@ -10,9 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(ConfigInfoExperimentalPoliciesActionJsonConverter))]
 public readonly struct ConfigInfoExperimentalPoliciesAction : IEquatable<ConfigInfoExperimentalPoliciesAction>
 {
-    private const string ProviderUseValue = "provider.use";
-    private const string ToolUseValue = "tool.use";
-    private const string IntegrationUseValue = "integration.use";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -27,19 +24,19 @@ public readonly struct ConfigInfoExperimentalPoliciesAction : IEquatable<ConfigI
     /// <summary>
     /// Gets the &apos;provider.use&apos; wire value.
     /// </summary>
-    public static ConfigInfoExperimentalPoliciesAction ProviderUse { get; } = new(ProviderUseValue);
+    public static ConfigInfoExperimentalPoliciesAction ProviderUse { get; } = new("provider.use");
     /// <summary>
     /// Gets the &apos;tool.use&apos; wire value.
     /// </summary>
-    public static ConfigInfoExperimentalPoliciesAction ToolUse { get; } = new(ToolUseValue);
+    public static ConfigInfoExperimentalPoliciesAction ToolUse { get; } = new("tool.use");
     /// <summary>
     /// Gets the &apos;integration.use&apos; wire value.
     /// </summary>
-    public static ConfigInfoExperimentalPoliciesAction IntegrationUse { get; } = new(IntegrationUseValue);
+    public static ConfigInfoExperimentalPoliciesAction IntegrationUse { get; } = new("integration.use");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is ProviderUseValue or ToolUseValue or IntegrationUseValue;
+    public bool IsKnown => _value is "provider.use" or "tool.use" or "integration.use";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

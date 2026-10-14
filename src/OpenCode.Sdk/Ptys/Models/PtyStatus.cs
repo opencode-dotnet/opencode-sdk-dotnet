@@ -10,8 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(PtyStatusJsonConverter))]
 public readonly struct PtyStatus : IEquatable<PtyStatus>
 {
-    private const string RunningValue = "running";
-    private const string ExitedValue = "exited";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -26,15 +24,15 @@ public readonly struct PtyStatus : IEquatable<PtyStatus>
     /// <summary>
     /// Gets the &apos;running&apos; wire value.
     /// </summary>
-    public static PtyStatus Running { get; } = new(RunningValue);
+    public static PtyStatus Running { get; } = new("running");
     /// <summary>
     /// Gets the &apos;exited&apos; wire value.
     /// </summary>
-    public static PtyStatus Exited { get; } = new(ExitedValue);
+    public static PtyStatus Exited { get; } = new("exited");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is RunningValue or ExitedValue;
+    public bool IsKnown => _value is "running" or "exited";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

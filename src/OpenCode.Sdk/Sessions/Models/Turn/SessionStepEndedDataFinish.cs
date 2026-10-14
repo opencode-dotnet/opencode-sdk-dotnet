@@ -10,12 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(SessionStepEndedDataFinishJsonConverter))]
 public readonly struct SessionStepEndedDataFinish : IEquatable<SessionStepEndedDataFinish>
 {
-    private const string StopValue = "stop";
-    private const string LengthValue = "length";
-    private const string ToolCallsValue = "tool-calls";
-    private const string ContentFilterValue = "content-filter";
-    private const string ErrorValue = "error";
-    private const string UnknownValue = "unknown";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -30,31 +24,31 @@ public readonly struct SessionStepEndedDataFinish : IEquatable<SessionStepEndedD
     /// <summary>
     /// Gets the &apos;stop&apos; wire value.
     /// </summary>
-    public static SessionStepEndedDataFinish Stop { get; } = new(StopValue);
+    public static SessionStepEndedDataFinish Stop { get; } = new("stop");
     /// <summary>
     /// Gets the &apos;length&apos; wire value.
     /// </summary>
-    public static SessionStepEndedDataFinish Length { get; } = new(LengthValue);
+    public static SessionStepEndedDataFinish Length { get; } = new("length");
     /// <summary>
     /// Gets the &apos;tool-calls&apos; wire value.
     /// </summary>
-    public static SessionStepEndedDataFinish ToolCalls { get; } = new(ToolCallsValue);
+    public static SessionStepEndedDataFinish ToolCalls { get; } = new("tool-calls");
     /// <summary>
     /// Gets the &apos;content-filter&apos; wire value.
     /// </summary>
-    public static SessionStepEndedDataFinish ContentFilter { get; } = new(ContentFilterValue);
+    public static SessionStepEndedDataFinish ContentFilter { get; } = new("content-filter");
     /// <summary>
     /// Gets the &apos;error&apos; wire value.
     /// </summary>
-    public static SessionStepEndedDataFinish Error { get; } = new(ErrorValue);
+    public static SessionStepEndedDataFinish Error { get; } = new("error");
     /// <summary>
     /// Gets the &apos;unknown&apos; wire value.
     /// </summary>
-    public static SessionStepEndedDataFinish Unknown { get; } = new(UnknownValue);
+    public static SessionStepEndedDataFinish Unknown { get; } = new("unknown");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is StopValue or LengthValue or ToolCallsValue or ContentFilterValue or ErrorValue or UnknownValue;
+    public bool IsKnown => _value is "stop" or "length" or "tool-calls" or "content-filter" or "error" or "unknown";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

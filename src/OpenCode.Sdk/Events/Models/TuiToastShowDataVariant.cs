@@ -10,10 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(TuiToastShowDataVariantJsonConverter))]
 public readonly struct TuiToastShowDataVariant : IEquatable<TuiToastShowDataVariant>
 {
-    private const string InfoValue = "info";
-    private const string SuccessValue = "success";
-    private const string WarningValue = "warning";
-    private const string ErrorValue = "error";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -28,23 +24,23 @@ public readonly struct TuiToastShowDataVariant : IEquatable<TuiToastShowDataVari
     /// <summary>
     /// Gets the &apos;info&apos; wire value.
     /// </summary>
-    public static TuiToastShowDataVariant Info { get; } = new(InfoValue);
+    public static TuiToastShowDataVariant Info { get; } = new("info");
     /// <summary>
     /// Gets the &apos;success&apos; wire value.
     /// </summary>
-    public static TuiToastShowDataVariant Success { get; } = new(SuccessValue);
+    public static TuiToastShowDataVariant Success { get; } = new("success");
     /// <summary>
     /// Gets the &apos;warning&apos; wire value.
     /// </summary>
-    public static TuiToastShowDataVariant Warning { get; } = new(WarningValue);
+    public static TuiToastShowDataVariant Warning { get; } = new("warning");
     /// <summary>
     /// Gets the &apos;error&apos; wire value.
     /// </summary>
-    public static TuiToastShowDataVariant Error { get; } = new(ErrorValue);
+    public static TuiToastShowDataVariant Error { get; } = new("error");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is InfoValue or SuccessValue or WarningValue or ErrorValue;
+    public bool IsKnown => _value is "info" or "success" or "warning" or "error";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

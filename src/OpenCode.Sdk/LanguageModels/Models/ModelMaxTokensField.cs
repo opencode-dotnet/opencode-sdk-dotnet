@@ -10,8 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(ModelMaxTokensFieldJsonConverter))]
 public readonly struct ModelMaxTokensField : IEquatable<ModelMaxTokensField>
 {
-    private const string MaxCompletionTokensValue = "max_completion_tokens";
-    private const string MaxTokensValue = "max_tokens";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -26,15 +24,15 @@ public readonly struct ModelMaxTokensField : IEquatable<ModelMaxTokensField>
     /// <summary>
     /// Gets the &apos;max_completion_tokens&apos; wire value.
     /// </summary>
-    public static ModelMaxTokensField MaxCompletionTokens { get; } = new(MaxCompletionTokensValue);
+    public static ModelMaxTokensField MaxCompletionTokens { get; } = new("max_completion_tokens");
     /// <summary>
     /// Gets the &apos;max_tokens&apos; wire value.
     /// </summary>
-    public static ModelMaxTokensField MaxTokens { get; } = new(MaxTokensValue);
+    public static ModelMaxTokensField MaxTokens { get; } = new("max_tokens");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is MaxCompletionTokensValue or MaxTokensValue;
+    public bool IsKnown => _value is "max_completion_tokens" or "max_tokens";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

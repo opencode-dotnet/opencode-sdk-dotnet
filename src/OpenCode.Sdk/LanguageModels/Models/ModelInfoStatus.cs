@@ -10,10 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(ModelInfoStatusJsonConverter))]
 public readonly struct ModelInfoStatus : IEquatable<ModelInfoStatus>
 {
-    private const string AlphaValue = "alpha";
-    private const string BetaValue = "beta";
-    private const string DeprecatedValue = "deprecated";
-    private const string ActiveValue = "active";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -28,23 +24,23 @@ public readonly struct ModelInfoStatus : IEquatable<ModelInfoStatus>
     /// <summary>
     /// Gets the &apos;alpha&apos; wire value.
     /// </summary>
-    public static ModelInfoStatus Alpha { get; } = new(AlphaValue);
+    public static ModelInfoStatus Alpha { get; } = new("alpha");
     /// <summary>
     /// Gets the &apos;beta&apos; wire value.
     /// </summary>
-    public static ModelInfoStatus Beta { get; } = new(BetaValue);
+    public static ModelInfoStatus Beta { get; } = new("beta");
     /// <summary>
     /// Gets the &apos;deprecated&apos; wire value.
     /// </summary>
-    public static ModelInfoStatus Deprecated { get; } = new(DeprecatedValue);
+    public static ModelInfoStatus Deprecated { get; } = new("deprecated");
     /// <summary>
     /// Gets the &apos;active&apos; wire value.
     /// </summary>
-    public static ModelInfoStatus Active { get; } = new(ActiveValue);
+    public static ModelInfoStatus Active { get; } = new("active");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is AlphaValue or BetaValue or DeprecatedValue or ActiveValue;
+    public bool IsKnown => _value is "alpha" or "beta" or "deprecated" or "active";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

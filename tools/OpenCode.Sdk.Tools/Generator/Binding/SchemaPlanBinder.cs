@@ -769,6 +769,15 @@ internal sealed class SchemaPlanBinder(
             errors.Add(BindingErrorCategory.Naming, name, $"multiple enum values map to C# name '{duplicate.Key}'");
         }
 
+        // The extensible enum declares members of its own beside the values; a value may not take
+        // one of their names, nor the enum's.
+        foreach (var value in values.Where(value => ExtensibleEnumMemberPolicy.DeclaredNames.Contains(value.Name)
+                                                    || string.Equals(value.Name, name, StringComparison.Ordinal)))
+        {
+            errors.Add(BindingErrorCategory.Naming, name,
+                $"enum value '{value.WireValue}' maps to C# name '{value.Name}', which the generated enum declares itself; name the value through an enumMemberNames row");
+        }
+
         return new EnumModelPlan
         {
             Name = name,

@@ -10,8 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(ModelCacheFormatJsonConverter))]
 public readonly struct ModelCacheFormat : IEquatable<ModelCacheFormat>
 {
-    private const string AnthropicValue = "anthropic";
-    private const string AlibabaValue = "alibaba";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -26,15 +24,15 @@ public readonly struct ModelCacheFormat : IEquatable<ModelCacheFormat>
     /// <summary>
     /// Gets the &apos;anthropic&apos; wire value.
     /// </summary>
-    public static ModelCacheFormat Anthropic { get; } = new(AnthropicValue);
+    public static ModelCacheFormat Anthropic { get; } = new("anthropic");
     /// <summary>
     /// Gets the &apos;alibaba&apos; wire value.
     /// </summary>
-    public static ModelCacheFormat Alibaba { get; } = new(AlibabaValue);
+    public static ModelCacheFormat Alibaba { get; } = new("alibaba");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is AnthropicValue or AlibabaValue;
+    public bool IsKnown => _value is "anthropic" or "alibaba";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

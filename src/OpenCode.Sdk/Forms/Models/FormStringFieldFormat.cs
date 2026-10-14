@@ -10,10 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(FormStringFieldFormatJsonConverter))]
 public readonly struct FormStringFieldFormat : IEquatable<FormStringFieldFormat>
 {
-    private const string EmailValue = "email";
-    private const string UriValue = "uri";
-    private const string DateValue = "date";
-    private const string DateTimeValue = "date-time";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -28,23 +24,23 @@ public readonly struct FormStringFieldFormat : IEquatable<FormStringFieldFormat>
     /// <summary>
     /// Gets the &apos;email&apos; wire value.
     /// </summary>
-    public static FormStringFieldFormat Email { get; } = new(EmailValue);
+    public static FormStringFieldFormat Email { get; } = new("email");
     /// <summary>
     /// Gets the &apos;uri&apos; wire value.
     /// </summary>
-    public static FormStringFieldFormat Uri { get; } = new(UriValue);
+    public static FormStringFieldFormat Uri { get; } = new("uri");
     /// <summary>
     /// Gets the &apos;date&apos; wire value.
     /// </summary>
-    public static FormStringFieldFormat Date { get; } = new(DateValue);
+    public static FormStringFieldFormat Date { get; } = new("date");
     /// <summary>
     /// Gets the &apos;date-time&apos; wire value.
     /// </summary>
-    public static FormStringFieldFormat DateTime { get; } = new(DateTimeValue);
+    public static FormStringFieldFormat DateTime { get; } = new("date-time");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is EmailValue or UriValue or DateValue or DateTimeValue;
+    public bool IsKnown => _value is "email" or "uri" or "date" or "date-time";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

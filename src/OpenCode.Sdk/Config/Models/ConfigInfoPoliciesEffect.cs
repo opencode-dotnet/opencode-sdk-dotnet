@@ -10,8 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(ConfigInfoPoliciesEffectJsonConverter))]
 public readonly struct ConfigInfoPoliciesEffect : IEquatable<ConfigInfoPoliciesEffect>
 {
-    private const string AllowValue = "allow";
-    private const string DenyValue = "deny";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -26,15 +24,15 @@ public readonly struct ConfigInfoPoliciesEffect : IEquatable<ConfigInfoPoliciesE
     /// <summary>
     /// Gets the &apos;allow&apos; wire value.
     /// </summary>
-    public static ConfigInfoPoliciesEffect Allow { get; } = new(AllowValue);
+    public static ConfigInfoPoliciesEffect Allow { get; } = new("allow");
     /// <summary>
     /// Gets the &apos;deny&apos; wire value.
     /// </summary>
-    public static ConfigInfoPoliciesEffect Deny { get; } = new(DenyValue);
+    public static ConfigInfoPoliciesEffect Deny { get; } = new("deny");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is AllowValue or DenyValue;
+    public bool IsKnown => _value is "allow" or "deny";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

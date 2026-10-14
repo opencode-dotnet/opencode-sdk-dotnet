@@ -10,10 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(SessionExecutionInterruptedDataReasonJsonConverter))]
 public readonly struct SessionExecutionInterruptedDataReason : IEquatable<SessionExecutionInterruptedDataReason>
 {
-    private const string UserValue = "user";
-    private const string ShutdownValue = "shutdown";
-    private const string SupersededValue = "superseded";
-    private const string InactivityValue = "inactivity";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -28,23 +24,23 @@ public readonly struct SessionExecutionInterruptedDataReason : IEquatable<Sessio
     /// <summary>
     /// Gets the &apos;user&apos; wire value.
     /// </summary>
-    public static SessionExecutionInterruptedDataReason User { get; } = new(UserValue);
+    public static SessionExecutionInterruptedDataReason User { get; } = new("user");
     /// <summary>
     /// Gets the &apos;shutdown&apos; wire value.
     /// </summary>
-    public static SessionExecutionInterruptedDataReason Shutdown { get; } = new(ShutdownValue);
+    public static SessionExecutionInterruptedDataReason Shutdown { get; } = new("shutdown");
     /// <summary>
     /// Gets the &apos;superseded&apos; wire value.
     /// </summary>
-    public static SessionExecutionInterruptedDataReason Superseded { get; } = new(SupersededValue);
+    public static SessionExecutionInterruptedDataReason Superseded { get; } = new("superseded");
     /// <summary>
     /// Gets the &apos;inactivity&apos; wire value.
     /// </summary>
-    public static SessionExecutionInterruptedDataReason Inactivity { get; } = new(InactivityValue);
+    public static SessionExecutionInterruptedDataReason Inactivity { get; } = new("inactivity");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is UserValue or ShutdownValue or SupersededValue or InactivityValue;
+    public bool IsKnown => _value is "user" or "shutdown" or "superseded" or "inactivity";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

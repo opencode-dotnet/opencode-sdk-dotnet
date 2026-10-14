@@ -6,7 +6,7 @@ using OpenCode.Sdk.TestSupport;
 namespace OpenCode.Sdk.Tests;
 
 /// <summary>
-/// The generated string enums are extensible (ADR-0035): a value a newer server sends is kept as it
+/// The generated string enums are extensible: a value a newer server sends is kept as it
 /// arrived and written back unchanged, a non-string token is still a malformed body, and a default
 /// value has no spelling. One generated enum stands for all of them, because the emitter renders
 /// every enum the same way; the event case proves that an unknown value inside a stream frame no

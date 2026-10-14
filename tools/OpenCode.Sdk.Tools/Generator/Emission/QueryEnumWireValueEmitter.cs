@@ -6,7 +6,7 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 /// <summary>
-/// Emits the wire spelling of an enum-valued query member. The extensible enum (ADR-0035) carries
+/// Emits the wire spelling of an enum-valued query member. The extensible enum carries
 /// its own spelling, so the query string and the JSON value can never drift apart; the converter
 /// adds the unset and default cases a query member needs.
 /// </summary>
@@ -67,7 +67,7 @@ internal static class QueryEnumWireValueEmitter
 
         // An unset optional member contributes nothing to the query string; a default value has no
         // spelling and is the caller's mistake; any other value is spelled as it was given, pinned
-        // or not (ADR-0035).
+        // or not.
         var body = SyntaxFactory.ConditionalExpression(
             SyntaxFactory.IsPatternExpression(
                 value,

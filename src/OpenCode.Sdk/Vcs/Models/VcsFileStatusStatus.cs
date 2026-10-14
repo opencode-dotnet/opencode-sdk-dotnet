@@ -10,9 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(VcsFileStatusStatusJsonConverter))]
 public readonly struct VcsFileStatusStatus : IEquatable<VcsFileStatusStatus>
 {
-    private const string AddedValue = "added";
-    private const string DeletedValue = "deleted";
-    private const string ModifiedValue = "modified";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -27,19 +24,19 @@ public readonly struct VcsFileStatusStatus : IEquatable<VcsFileStatusStatus>
     /// <summary>
     /// Gets the &apos;added&apos; wire value.
     /// </summary>
-    public static VcsFileStatusStatus Added { get; } = new(AddedValue);
+    public static VcsFileStatusStatus Added { get; } = new("added");
     /// <summary>
     /// Gets the &apos;deleted&apos; wire value.
     /// </summary>
-    public static VcsFileStatusStatus Deleted { get; } = new(DeletedValue);
+    public static VcsFileStatusStatus Deleted { get; } = new("deleted");
     /// <summary>
     /// Gets the &apos;modified&apos; wire value.
     /// </summary>
-    public static VcsFileStatusStatus Modified { get; } = new(ModifiedValue);
+    public static VcsFileStatusStatus Modified { get; } = new("modified");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is AddedValue or DeletedValue or ModifiedValue;
+    public bool IsKnown => _value is "added" or "deleted" or "modified";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

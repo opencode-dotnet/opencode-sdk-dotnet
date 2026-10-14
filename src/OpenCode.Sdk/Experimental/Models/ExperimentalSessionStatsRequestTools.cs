@@ -10,9 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(ExperimentalSessionStatsRequestToolsJsonConverter))]
 public readonly struct ExperimentalSessionStatsRequestTools : IEquatable<ExperimentalSessionStatsRequestTools>
 {
-    private const string NoneValue = "none";
-    private const string SummaryValue = "summary";
-    private const string DetailValue = "detail";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -27,19 +24,19 @@ public readonly struct ExperimentalSessionStatsRequestTools : IEquatable<Experim
     /// <summary>
     /// Gets the &apos;none&apos; wire value.
     /// </summary>
-    public static ExperimentalSessionStatsRequestTools None { get; } = new(NoneValue);
+    public static ExperimentalSessionStatsRequestTools None { get; } = new("none");
     /// <summary>
     /// Gets the &apos;summary&apos; wire value.
     /// </summary>
-    public static ExperimentalSessionStatsRequestTools Summary { get; } = new(SummaryValue);
+    public static ExperimentalSessionStatsRequestTools Summary { get; } = new("summary");
     /// <summary>
     /// Gets the &apos;detail&apos; wire value.
     /// </summary>
-    public static ExperimentalSessionStatsRequestTools Detail { get; } = new(DetailValue);
+    public static ExperimentalSessionStatsRequestTools Detail { get; } = new("detail");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is NoneValue or SummaryValue or DetailValue;
+    public bool IsKnown => _value is "none" or "summary" or "detail";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

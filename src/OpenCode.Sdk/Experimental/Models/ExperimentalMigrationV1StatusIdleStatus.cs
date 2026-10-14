@@ -10,8 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(ExperimentalMigrationV1StatusIdleStatusJsonConverter))]
 public readonly struct ExperimentalMigrationV1StatusIdleStatus : IEquatable<ExperimentalMigrationV1StatusIdleStatus>
 {
-    private const string RequiredValue = "required";
-    private const string CompletedValue = "completed";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -26,15 +24,15 @@ public readonly struct ExperimentalMigrationV1StatusIdleStatus : IEquatable<Expe
     /// <summary>
     /// Gets the &apos;required&apos; wire value.
     /// </summary>
-    public static ExperimentalMigrationV1StatusIdleStatus Required { get; } = new(RequiredValue);
+    public static ExperimentalMigrationV1StatusIdleStatus Required { get; } = new("required");
     /// <summary>
     /// Gets the &apos;completed&apos; wire value.
     /// </summary>
-    public static ExperimentalMigrationV1StatusIdleStatus Completed { get; } = new(CompletedValue);
+    public static ExperimentalMigrationV1StatusIdleStatus Completed { get; } = new("completed");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is RequiredValue or CompletedValue;
+    public bool IsKnown => _value is "required" or "completed";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

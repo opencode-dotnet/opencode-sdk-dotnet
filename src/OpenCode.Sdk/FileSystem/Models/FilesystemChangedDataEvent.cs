@@ -10,9 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(FilesystemChangedDataEventJsonConverter))]
 public readonly struct FilesystemChangedDataEvent : IEquatable<FilesystemChangedDataEvent>
 {
-    private const string AddValue = "add";
-    private const string ChangeValue = "change";
-    private const string UnlinkValue = "unlink";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -27,19 +24,19 @@ public readonly struct FilesystemChangedDataEvent : IEquatable<FilesystemChanged
     /// <summary>
     /// Gets the &apos;add&apos; wire value.
     /// </summary>
-    public static FilesystemChangedDataEvent Add { get; } = new(AddValue);
+    public static FilesystemChangedDataEvent Add { get; } = new("add");
     /// <summary>
     /// Gets the &apos;change&apos; wire value.
     /// </summary>
-    public static FilesystemChangedDataEvent Change { get; } = new(ChangeValue);
+    public static FilesystemChangedDataEvent Change { get; } = new("change");
     /// <summary>
     /// Gets the &apos;unlink&apos; wire value.
     /// </summary>
-    public static FilesystemChangedDataEvent Unlink { get; } = new(UnlinkValue);
+    public static FilesystemChangedDataEvent Unlink { get; } = new("unlink");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is AddValue or ChangeValue or UnlinkValue;
+    public bool IsKnown => _value is "add" or "change" or "unlink";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

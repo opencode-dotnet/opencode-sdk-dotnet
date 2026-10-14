@@ -10,9 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(ConfigInfoShareJsonConverter))]
 public readonly struct ConfigInfoShare : IEquatable<ConfigInfoShare>
 {
-    private const string ManualValue = "manual";
-    private const string AutoValue = "auto";
-    private const string DisabledValue = "disabled";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -27,19 +24,19 @@ public readonly struct ConfigInfoShare : IEquatable<ConfigInfoShare>
     /// <summary>
     /// Gets the &apos;manual&apos; wire value.
     /// </summary>
-    public static ConfigInfoShare Manual { get; } = new(ManualValue);
+    public static ConfigInfoShare Manual { get; } = new("manual");
     /// <summary>
     /// Gets the &apos;auto&apos; wire value.
     /// </summary>
-    public static ConfigInfoShare Auto { get; } = new(AutoValue);
+    public static ConfigInfoShare Auto { get; } = new("auto");
     /// <summary>
     /// Gets the &apos;disabled&apos; wire value.
     /// </summary>
-    public static ConfigInfoShare Disabled { get; } = new(DisabledValue);
+    public static ConfigInfoShare Disabled { get; } = new("disabled");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is ManualValue or AutoValue or DisabledValue;
+    public bool IsKnown => _value is "manual" or "auto" or "disabled";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

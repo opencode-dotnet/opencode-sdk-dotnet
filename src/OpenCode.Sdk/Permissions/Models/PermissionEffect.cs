@@ -10,9 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(PermissionEffectJsonConverter))]
 public readonly struct PermissionEffect : IEquatable<PermissionEffect>
 {
-    private const string AllowValue = "allow";
-    private const string DenyValue = "deny";
-    private const string AskValue = "ask";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -27,19 +24,19 @@ public readonly struct PermissionEffect : IEquatable<PermissionEffect>
     /// <summary>
     /// Gets the &apos;allow&apos; wire value.
     /// </summary>
-    public static PermissionEffect Allow { get; } = new(AllowValue);
+    public static PermissionEffect Allow { get; } = new("allow");
     /// <summary>
     /// Gets the &apos;deny&apos; wire value.
     /// </summary>
-    public static PermissionEffect Deny { get; } = new(DenyValue);
+    public static PermissionEffect Deny { get; } = new("deny");
     /// <summary>
     /// Gets the &apos;ask&apos; wire value.
     /// </summary>
-    public static PermissionEffect Ask { get; } = new(AskValue);
+    public static PermissionEffect Ask { get; } = new("ask");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is AllowValue or DenyValue or AskValue;
+    public bool IsKnown => _value is "allow" or "deny" or "ask";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

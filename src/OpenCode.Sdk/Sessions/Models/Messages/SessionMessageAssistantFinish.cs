@@ -10,12 +10,6 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(SessionMessageAssistantFinishJsonConverter))]
 public readonly struct SessionMessageAssistantFinish : IEquatable<SessionMessageAssistantFinish>
 {
-    private const string StopValue = "stop";
-    private const string LengthValue = "length";
-    private const string ToolCallsValue = "tool-calls";
-    private const string ContentFilterValue = "content-filter";
-    private const string ErrorValue = "error";
-    private const string UnknownValue = "unknown";
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
@@ -30,31 +24,31 @@ public readonly struct SessionMessageAssistantFinish : IEquatable<SessionMessage
     /// <summary>
     /// Gets the &apos;stop&apos; wire value.
     /// </summary>
-    public static SessionMessageAssistantFinish Stop { get; } = new(StopValue);
+    public static SessionMessageAssistantFinish Stop { get; } = new("stop");
     /// <summary>
     /// Gets the &apos;length&apos; wire value.
     /// </summary>
-    public static SessionMessageAssistantFinish Length { get; } = new(LengthValue);
+    public static SessionMessageAssistantFinish Length { get; } = new("length");
     /// <summary>
     /// Gets the &apos;tool-calls&apos; wire value.
     /// </summary>
-    public static SessionMessageAssistantFinish ToolCalls { get; } = new(ToolCallsValue);
+    public static SessionMessageAssistantFinish ToolCalls { get; } = new("tool-calls");
     /// <summary>
     /// Gets the &apos;content-filter&apos; wire value.
     /// </summary>
-    public static SessionMessageAssistantFinish ContentFilter { get; } = new(ContentFilterValue);
+    public static SessionMessageAssistantFinish ContentFilter { get; } = new("content-filter");
     /// <summary>
     /// Gets the &apos;error&apos; wire value.
     /// </summary>
-    public static SessionMessageAssistantFinish Error { get; } = new(ErrorValue);
+    public static SessionMessageAssistantFinish Error { get; } = new("error");
     /// <summary>
     /// Gets the &apos;unknown&apos; wire value.
     /// </summary>
-    public static SessionMessageAssistantFinish Unknown { get; } = new(UnknownValue);
+    public static SessionMessageAssistantFinish Unknown { get; } = new("unknown");
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is StopValue or LengthValue or ToolCallsValue or ContentFilterValue or ErrorValue or UnknownValue;
+    public bool IsKnown => _value is "stop" or "length" or "tool-calls" or "content-filter" or "error" or "unknown";
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
