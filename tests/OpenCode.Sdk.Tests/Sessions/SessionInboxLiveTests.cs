@@ -34,6 +34,7 @@ public sealed class SessionInboxLiveTests(SimulatedDriveServerFixture server)
 
         try
         {
+            var pendingBefore = await server.Controller.PendingInvocationIdsAsync();
             _ = await session.PromptAsync(
                 new SessionPromptRequest { Text = promptA },
                 cancellationToken: cancellationToken);
@@ -73,7 +74,8 @@ public sealed class SessionInboxLiveTests(SimulatedDriveServerFixture server)
             await AssertNoContentAsync(repeated);
             var afterCancellation = await session.ListInboxAsync(cancellationToken: cancellationToken);
             await AssertInboxAbsentAsync(afterCancellation, inboxId);
-            await Assert.That(await server.Controller.PendingCountAsync()).IsEqualTo(1);
+            // Only the held turn is pending (the queued prompt was not dispatched); read what this test added.
+            await Assert.That((await server.Controller.PendingInvocationIdsAsync()).Except(pendingBefore, StringComparer.Ordinal)).IsEquivalentTo([invocationA.Invocation.Id]);
 
             await invocationA.ChunkTextAsync(replyA);
             await invocationA.FinishAsync();
@@ -119,6 +121,7 @@ public sealed class SessionInboxLiveTests(SimulatedDriveServerFixture server)
 
         try
         {
+            var pendingBefore = await server.Controller.PendingInvocationIdsAsync();
             _ = await session.PromptAsync(
                 new SessionPromptRequest { Text = promptA },
                 cancellationToken: cancellationToken);
@@ -150,7 +153,8 @@ public sealed class SessionInboxLiveTests(SimulatedDriveServerFixture server)
                 OpenCodeRequestOptions.NoThrow,
                 cancellationToken);
             await AssertConflictAsync(conflict, inboxId);
-            await Assert.That(await server.Controller.PendingCountAsync()).IsEqualTo(1);
+            // Only the held turn is pending (the queued prompt was not dispatched); read what this test added.
+            await Assert.That((await server.Controller.PendingInvocationIdsAsync()).Except(pendingBefore, StringComparer.Ordinal)).IsEquivalentTo([invocationA.Invocation.Id]);
 
             await invocationA.ChunkTextAsync(replyA);
             await invocationA.FinishAsync();

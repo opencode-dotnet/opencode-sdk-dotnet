@@ -108,6 +108,21 @@ public sealed class SimulatedSessionWorkflowTests(SimulatedDriveServerFixture se
         await AssertPersistedReplyAsync(session, cancellationToken);
     }
 
+    /// <summary>
+    /// An interrupt ends the turn's model invocation: once <c>session.execution.interrupted</c>
+    /// arrives, the simulated provider no longer holds this test's invocation pending. The claim
+    /// holds only once upstream's response reader has attached to the simulated body. Until then
+    /// nothing cancels the producer, which <c>Stream.toReadableStream</c> forked when the bridge
+    /// built the response (<c>packages/simulation/src/backend/openai.ts:122-127</c>), so an
+    /// interrupt there settles the execution and leaves the invocation pending. The test therefore
+    /// drives a first delta and interrupts only after the SDK has observed it, which proves the
+    /// reader attached. From then on the reader's finalizer awaits <c>reader.cancel()</c>
+    /// (Effect 4.0.1 <c>Channel.fromReadableStream</c>), whose promise is the producer fiber's
+    /// interruption (<c>Stream.toReadableStreamWith</c>'s <c>cancel</c>). That runs the provider's
+    /// release, which removes the invocation (<c>simulated-provider.ts:287-295</c>), before the
+    /// execution settles and publishes the event (<c>packages/core/src/session/execution.ts:119-135</c>).
+    /// The fixture is shared, so the assertion names this test's invocation id, never a count.
+    /// </summary>
     [Test]
     [Timeout(180_000)]
     public async Task SessionInterrupt_Should_Clean_Up_The_Pending_Invocation(CancellationToken cancellationToken)
@@ -118,18 +133,14 @@ public sealed class SimulatedSessionWorkflowTests(SimulatedDriveServerFixture se
         var sessionId = await CreateSimulatedSessionAsync(client, workspace.Path, "simulated-session-interrupt", cancellationToken);
         var session = client.Sessions.GetSessionClient(sessionId);
 
-        _ = await session.PromptAsync(
-            new SessionPromptRequest { Text = "interrupt me" }, cancellationToken: cancellationToken);
-        _ = await DriveAsync(
-            () => server.Controller.WaitForRequestAsync(RequestWait), "waiting for the model request");
-
         // The event bus has no replay, so the subscription must be attached - and proven attached,
-        // the same way the round-trip test above proves it - before the interrupt is posted.
+        // the same way the round-trip test above proves it - before the prompt and the interrupt.
         using var eventWindow = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         eventWindow.CancelAfter(TimeSpan.FromSeconds(60));
         var observed = new List<string>();
         var sawInterrupted = false;
         var subscribed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var firstDelta = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var eventTask = Task.Run(
             async () =>
             {
@@ -139,6 +150,11 @@ public sealed class SimulatedSessionWorkflowTests(SimulatedDriveServerFixture se
                     {
                         _ = subscribed.TrySetResult(true);
                         observed.Add(@event.Type);
+                        if (@event is SessionTextDelta delta && delta.Data.SessionId == sessionId)
+                        {
+                            _ = firstDelta.TrySetResult(true);
+                        }
+
                         if (@event is SessionExecutionInterrupted interrupted
                             && interrupted.Data.SessionId == sessionId
                             && interrupted.Data.Reason == SessionExecutionInterruptedDataReason.User)
@@ -167,23 +183,26 @@ public sealed class SimulatedSessionWorkflowTests(SimulatedDriveServerFixture se
             throw new InvalidOperationException("The event subscription ended before its first event.");
         }
 
+        _ = await session.PromptAsync(
+            new SessionPromptRequest { Text = "interrupt me" }, cancellationToken: cancellationToken);
+        var invocation = await DriveAsync(
+            () => server.Controller.WaitForRequestAsync(RequestWait), "waiting for the model request");
+
+        // The precondition: a delta the SDK observed was read through upstream's response reader.
+        await DriveAsync(() => server.Controller.ChunkTextAsync(invocation.Id, "partial "), "scripting the first chunk");
+        if (await Task.WhenAny(firstDelta.Task, eventTask) == eventTask)
+        {
+            await eventTask; // surfaces the subscription failure or its window instead of a later timeout
+            throw new InvalidOperationException("The event subscription ended before the first delta.");
+        }
+
         _ = await session.InterruptAsync(cancellationToken: cancellationToken);
 
-        // Upstream publishes session.execution.interrupted only after the interrupted execution
-        // fiber's finalizers have fully settled - which include the simulated provider's own
-        // acquireRelease/close finalizer that removes the invocation from state.pending
-        // (run-coordinator.ts:57-61: the "settled" callback runs for every exit, including
-        // interruption, "after the final drain and before the execution settles"; execution.ts:
-        // 119-135: that same settled callback is what publishes Execution.Interrupted;
-        // session-event.ts:233-238: the wire shape this SDK generates as
-        // SessionExecutionInterrupted). So once this event for this session id arrives, the
-        // removal has already happened server-side, and a single post-event read suffices -
-        // no poll needed.
         await eventTask;
         await Assert.That(sawInterrupted).IsTrue();
 
-        var pending = await DriveAsync(server.Controller.PendingCountAsync, "reading the pending invocations");
-        await Assert.That(pending).IsEqualTo(0);
+        var pending = await DriveAsync(server.Controller.PendingInvocationIdsAsync, "reading the pending invocations");
+        await Assert.That(pending).DoesNotContain(invocation.Id);
     }
 
     [Test]
