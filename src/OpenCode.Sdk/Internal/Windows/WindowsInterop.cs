@@ -123,6 +123,15 @@ internal static partial class WindowsInterop
     /// <summary><c>INVALID_HANDLE_VALUE</c>.</summary>
     internal static readonly IntPtr InvalidHandleValue = new(-1);
 
+    /// <summary><c>WT_EXECUTEINWAITTHREAD</c>: the callback runs on the wait thread itself, never queued to a pool.</summary>
+    internal const uint ExecuteInWaitThread = 0x00000004;
+
+    /// <summary><c>WT_EXECUTEONLYONCE</c>: the wait ends once the callback has been called.</summary>
+    internal const uint ExecuteOnlyOnce = 0x00000008;
+
+    /// <summary><c>INFINITE</c>.</summary>
+    internal const uint InfiniteWait = 0xFFFFFFFF;
+
     /// <summary><c>STARTUPINFOW</c>.</summary>
     [StructLayout(LayoutKind.Sequential)]
     internal struct StartupInfo
@@ -311,6 +320,17 @@ internal static partial class WindowsInterop
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool GetExitCodeProcess(SafeProcessHandle process, out uint exitCode);
 
+    [LibraryImport("kernel32", EntryPoint = "RegisterWaitForSingleObject", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool RegisterWaitForSingleObject(
+        out IntPtr registration, SafeWaitHandle waited, IntPtr callback, IntPtr context, uint milliseconds, uint flags);
+
+    [LibraryImport("kernel32", EntryPoint = "UnregisterWaitEx", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool UnregisterWaitEx(IntPtr registration, IntPtr completionEvent);
+
     [LibraryImport("kernel32", EntryPoint = "CreateJobObjectW", SetLastError = true, StringMarshalling = StringMarshalling.Utf16)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     internal static partial SafeJobHandle CreateJobObject(IntPtr securityAttributes, string? name);
@@ -431,6 +451,17 @@ internal static partial class WindowsInterop
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool GetExitCodeProcess(SafeProcessHandle process, out uint exitCode);
+
+    [DllImport("kernel32", EntryPoint = "RegisterWaitForSingleObject", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool RegisterWaitForSingleObject(
+        out IntPtr registration, SafeWaitHandle waited, IntPtr callback, IntPtr context, uint milliseconds, uint flags);
+
+    [DllImport("kernel32", EntryPoint = "UnregisterWaitEx", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool UnregisterWaitEx(IntPtr registration, IntPtr completionEvent);
 
     [DllImport("kernel32", EntryPoint = "CreateJobObjectW", SetLastError = true, CharSet = CharSet.Unicode)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]

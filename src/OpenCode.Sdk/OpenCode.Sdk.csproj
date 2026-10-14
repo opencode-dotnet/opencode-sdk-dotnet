@@ -10,9 +10,9 @@
     <PackageTags>opencode;sdk;client;http-client;openapi;ai;agent;llm;sse;streaming;pty;terminal;dotnet;csharp</PackageTags>
     <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
     <!-- The LibraryImport generator emits its P/Invoke stubs as unsafe code and refuses to run
-         without this switch (SYSLIB1062). It exists for that generated stub alone: the SDK's
-         hand-written code carries no unsafe block, and the switch reaches no consumer — it is a
-         compiler option of this project, not a package property (ADR-0026). -->
+         without this switch (SYSLIB1062). It covers those generated stubs and one hand-written
+         expression, the native exit wait's reverse-P/Invoke function pointer, and it reaches no
+         consumer — it is a compiler option of this project, not a package property (ADR-0026). -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Keep source-only polyfills hidden from friend test assemblies, which compile their own copy. -->
     <PolyUseEmbeddedAttribute>true</PolyUseEmbeddedAttribute>
