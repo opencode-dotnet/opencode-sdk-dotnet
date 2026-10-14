@@ -41,6 +41,25 @@ await foreach (var @event in client.Events.SubscribeAsync(window.Token))
 type adds its own payload, so a `switch` on the type is the way in; `@event.Type` is there for
 logging and for the frames you have not written a case for.
 
+### 🧭 Routing by session
+
+Every event that belongs to one session implements `ISessionScopedEvent`, whose `SessionId` names
+that session, so you can keep the events of one session without listing their types:
+
+```csharp
+await foreach (var @event in client.Events.SubscribeAsync(window.Token))
+{
+    if (@event is ISessionScopedEvent { SessionId: var id } && id == sessionId)
+    {
+        Console.WriteLine($"{@event.Type} in {id}");
+    }
+}
+```
+
+The form events are not among them: a form's session id can be `"global"` rather than a session,
+and `form.created` carries it inside the form. Read `Data.SessionId` on `FormCancelled` and
+`FormReplied`, and `Data.Form.SessionId` on `FormCreated`.
+
 ### ⏳ Waiting for a turn to end
 
 A session's turn ends with exactly one of three events: `SessionExecutionSucceeded`,
@@ -61,14 +80,8 @@ await session.PromptAsync(new SessionPromptRequest { Text = "Summarize this repo
 
 while (await events.MoveNextAsync())
 {
-    var ended = events.Current switch
-    {
-        SessionExecutionSucceeded succeeded => succeeded.Data.SessionId,
-        SessionExecutionFailed failed => failed.Data.SessionId,
-        SessionExecutionInterrupted interrupted => interrupted.Data.SessionId,
-        _ => null,
-    };
-    if (ended == sessionId)
+    if (events.Current is SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted
+        && events.Current is ISessionScopedEvent { SessionId: var id } && id == sessionId)
     {
         break;
     }

@@ -1,4 +1,13 @@
 {
+  "sessionScopedEvent": {
+    "unions": ["IEvent", "ISessionEventDurable"],
+    "interface": "ISessionScopedEvent",
+    "interfaceMember": "SessionId",
+    "payloadMember": "data",
+    "member": "sessionID",
+    "identifier": "Session.ID",
+    "reason": "Upstream routes every session-scoped event by data.sessionID; IEvent carries no common session id, so routing needs the id on the event itself."
+  },
   "groups": {
     "event": {
       "placement": "client",

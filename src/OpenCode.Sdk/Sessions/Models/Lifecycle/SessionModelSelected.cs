@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents a session model selected value.
 /// </summary>
-public sealed record SessionModelSelected : ISessionEventDurable, IEvent
+public sealed record SessionModelSelected : ISessionEventDurable, IEvent, ISessionScopedEvent
 {
     /// <summary>
     /// Gets the id value.
@@ -56,4 +56,6 @@ public sealed record SessionModelSelected : ISessionEventDurable, IEvent
     double? ISessionEventDurable.Created => Created;
 
     IDurableEnvelope? ISessionEventDurable.Durable => Durable;
+
+    string ISessionScopedEvent.SessionId => Data.SessionId;
 }

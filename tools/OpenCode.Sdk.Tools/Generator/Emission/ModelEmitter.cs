@@ -61,13 +61,15 @@ internal static class ModelEmitter
                 .. model.Properties.Select(property => EmitProperty(property, CarriedMarker(chainMarkers, property))),
                 .. model.RequestQueryProperties.Select(static property => EmitRequestQueryProperty(property)),
                 .. model.ExplicitHoistedImplementations.Select(static implementation => EmitHoistedImplementation(implementation)),
+                .. EmitSessionScopedEvent(model.SessionScopedEvent),
                 .. EmitExtensionDataMembers(model),
                 .. EmitRedactingToString(model, chainMarkers),
             ]))
             .WithLeadingTrivia(EmissionSyntax.Documentation(model.Description ?? $"Represents a {GeneratedDisplayName.Of(model.Name)} value."));
         // A hoisted carrier joins the base list beside the unions the schema is a branch of: the
         // record keeps one identity per wire schema and answers one more contract (ADR-0011).
-        var baseTypes = model.ImplementedUnionNames.Concat(model.ImplementedHoistedInterfaceNames).ToArray();
+        var baseTypes = model.ImplementedUnionNames.Concat(model.ImplementedHoistedInterfaceNames)
+            .Concat(model.SessionScopedEvent is { } projection ? [projection.InterfaceName] : []).ToArray();
         if (baseTypes.Length > 0)
         {
             declaration = declaration.WithBaseList(SyntaxFactory.BaseList(SyntaxFactory.SeparatedList<BaseTypeSyntax>(
@@ -100,6 +102,22 @@ internal static class ModelEmitter
             .WithExplicitInterfaceSpecifier(SyntaxFactory.ExplicitInterfaceSpecifier(
                 SyntaxFactory.IdentifierName(implementation.InterfaceName)))
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(own))
+            .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+    }
+
+    /// <summary>The explicit projection is invisible to serializer metadata and leaves the wire shape untouched.</summary>
+    private static IEnumerable<MemberDeclarationSyntax> EmitSessionScopedEvent(SessionScopedEventPlan? projection)
+    {
+        if (projection is null)
+        {
+            yield break;
+        }
+
+        yield return SyntaxFactory
+            .PropertyDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)), projection.MemberName)
+            .WithExplicitInterfaceSpecifier(SyntaxFactory.ExplicitInterfaceSpecifier(SyntaxFactory.IdentifierName(projection.InterfaceName)))
+            .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(EmissionSyntax.MemberAccess(
+                SyntaxFactory.IdentifierName(projection.PayloadPropertyName), projection.IdentifierPropertyName)))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
     }
 

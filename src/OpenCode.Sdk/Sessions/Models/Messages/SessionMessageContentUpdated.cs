@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Models;
 /// Represents a session message content updated value.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
-public sealed record SessionMessageContentUpdated : ISessionEventDurable
+public sealed record SessionMessageContentUpdated : ISessionEventDurable, ISessionScopedEvent
 {
     /// <summary>
     /// Gets the id value.
@@ -57,4 +57,6 @@ public sealed record SessionMessageContentUpdated : ISessionEventDurable
     double? ISessionEventDurable.Created => Created;
 
     IDurableEnvelope? ISessionEventDurable.Durable => Durable;
+
+    string ISessionScopedEvent.SessionId => Data.SessionId;
 }

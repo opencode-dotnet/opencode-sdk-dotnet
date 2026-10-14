@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents a permission asked value.
 /// </summary>
-public sealed record PermissionAsked : IEvent
+public sealed record PermissionAsked : IEvent, ISessionScopedEvent
 {
     /// <summary>
     /// Gets the id value.
@@ -46,4 +46,6 @@ public sealed record PermissionAsked : IEvent
     /// </summary>
     [JsonPropertyName("data")]
     public required PermissionAskedData Data { get; init; }
+
+    string ISessionScopedEvent.SessionId => Data.SessionId;
 }

@@ -4571,6 +4571,10 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         string Status { get; }
     }
+    public interface ISessionScopedEvent
+    {
+        string SessionId { get; }
+    }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionStatsToolsJsonConverter))]
@@ -5739,7 +5743,7 @@ namespace OpenCode.Sdk.Models
         public required string Token { get; init; }
         public override string ToString() { }
     }
-    public sealed class PermissionAsked : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.PermissionAsked>
+    public sealed class PermissionAsked : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.PermissionAsked>
     {
         public PermissionAsked() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -5808,7 +5812,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("_tag")]
         public string Tag { get; }
     }
-    public sealed class PermissionReplied : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.PermissionReplied>
+    public sealed class PermissionReplied : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.PermissionReplied>
     {
         public PermissionReplied() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -5919,7 +5923,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public required string Type { get; init; }
     }
-    public sealed class PersistentPtyAdded : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.PersistentPtyAdded>
+    public sealed class PersistentPtyAdded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.PersistentPtyAdded>
     {
         public PersistentPtyAdded() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -6093,7 +6097,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("y")]
         public required long Y { get; init; }
     }
-    public sealed class PersistentPtyRemoved : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.PersistentPtyRemoved>
+    public sealed class PersistentPtyRemoved : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.PersistentPtyRemoved>
     {
         public PersistentPtyRemoved() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7082,7 +7086,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public required string Type { get; init; }
     }
-    public sealed class SessionAgentSelected : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionAgentSelected>
+    public sealed class SessionAgentSelected : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionAgentSelected>
     {
         public SessionAgentSelected() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7166,7 +7170,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public OpenCode.Sdk.Optional<string?> Id { get; init; }
     }
-    public sealed class SessionCompactionDelta : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.SessionCompactionDelta>
+    public sealed class SessionCompactionDelta : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionCompactionDelta>
     {
         public SessionCompactionDelta() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7192,7 +7196,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("text")]
         public required string Text { get; init; }
     }
-    public sealed class SessionCompactionEnded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionCompactionEnded>
+    public sealed class SessionCompactionEnded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionCompactionEnded>
     {
         public SessionCompactionEnded() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7265,7 +7269,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionCompactionFailed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionCompactionFailed>
+    public sealed class SessionCompactionFailed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionCompactionFailed>
     {
         public SessionCompactionFailed() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7330,7 +7334,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionCompactionStarted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionCompactionStarted>
+    public sealed class SessionCompactionStarted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionCompactionStarted>
     {
         public SessionCompactionStarted() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7425,7 +7429,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("title")]
         public OpenCode.Sdk.Optional<string?> Title { get; init; }
     }
-    public sealed class SessionCreated : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionCreated>
+    public sealed class SessionCreated : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionCreated>
     {
         public SessionCreated() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7490,7 +7494,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionDeleted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionDeleted>
+    public sealed class SessionDeleted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionDeleted>
     {
         public SessionDeleted() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7533,7 +7537,7 @@ namespace OpenCode.Sdk.Models
         public required System.Collections.Generic.IReadOnlyDictionary<string, string> Variables { get; init; }
         public override string ToString() { }
     }
-    public sealed class SessionExecutionFailed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionExecutionFailed>
+    public sealed class SessionExecutionFailed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionExecutionFailed>
     {
         public SessionExecutionFailed() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7571,7 +7575,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionExecutionInterrupted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionExecutionInterrupted>
+    public sealed class SessionExecutionInterrupted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionExecutionInterrupted>
     {
         public SessionExecutionInterrupted() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7627,7 +7631,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionExecutionStarted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionExecutionStarted>
+    public sealed class SessionExecutionStarted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionExecutionStarted>
     {
         public SessionExecutionStarted() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7663,7 +7667,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionExecutionSucceeded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionExecutionSucceeded>
+    public sealed class SessionExecutionSucceeded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionExecutionSucceeded>
     {
         public SessionExecutionSucceeded() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7723,7 +7727,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("before")]
         public OpenCode.Sdk.Optional<string?> Before { get; init; }
     }
-    public sealed class SessionForked : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionForked>
+    public sealed class SessionForked : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionForked>
     {
         public SessionForked() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7802,7 +7806,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("prompt")]
         public required string Prompt { get; init; }
     }
-    public sealed class SessionIdle : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.SessionIdle>
+    public sealed class SessionIdle : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionIdle>
     {
         public SessionIdle() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7826,7 +7830,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
         public required string SessionId { get; init; }
     }
-    public sealed class SessionInboxCancelled : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionInboxCancelled>
+    public sealed class SessionInboxCancelled : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionInboxCancelled>
     {
         public SessionInboxCancelled() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7886,7 +7890,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("created")]
         public required double Created { get; init; }
     }
-    public sealed class SessionInboxDelivered : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionInboxDelivered>
+    public sealed class SessionInboxDelivered : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionInboxDelivered>
     {
         public SessionInboxDelivered() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7940,7 +7944,7 @@ namespace OpenCode.Sdk.Models
         public static bool operator !=(OpenCode.Sdk.Models.SessionInboxDelivery left, OpenCode.Sdk.Models.SessionInboxDelivery right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionInboxDelivery left, OpenCode.Sdk.Models.SessionInboxDelivery right) { }
     }
-    public sealed class SessionInboxDeliveryChanged : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionInboxDeliveryChanged>
+    public sealed class SessionInboxDeliveryChanged : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionInboxDeliveryChanged>
     {
         public SessionInboxDeliveryChanged() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -7980,7 +7984,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionInboxEnqueued : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionInboxEnqueued>
+    public sealed class SessionInboxEnqueued : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionInboxEnqueued>
     {
         public SessionInboxEnqueued() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -8272,7 +8276,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("viewed")]
         public double? Viewed { get; init; }
     }
-    public sealed class SessionInstructionsUpdated : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionInstructionsUpdated>
+    public sealed class SessionInstructionsUpdated : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionInstructionsUpdated>
     {
         public SessionInstructionsUpdated() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -8660,7 +8664,7 @@ namespace OpenCode.Sdk.Models
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode003")]
-    public sealed class SessionMessageContentUpdated : OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionMessageContentUpdated>
+    public sealed class SessionMessageContentUpdated : OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionMessageContentUpdated>
     {
         public SessionMessageContentUpdated() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9051,7 +9055,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("created")]
         public required double Created { get; init; }
     }
-    public sealed class SessionMetadataUpdated : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionMetadataUpdated>
+    public sealed class SessionMetadataUpdated : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionMetadataUpdated>
     {
         public SessionMetadataUpdated() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9089,7 +9093,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionModelSelected : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionModelSelected>
+    public sealed class SessionModelSelected : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionModelSelected>
     {
         public SessionModelSelected() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9140,7 +9144,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("directory")]
         public required string Directory { get; init; }
     }
-    public sealed class SessionMoved : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionMoved>
+    public sealed class SessionMoved : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionMoved>
     {
         public SessionMoved() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9236,7 +9240,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("message")]
         public OpenCode.Sdk.Optional<string?> Message { get; init; }
     }
-    public sealed class SessionPermissions : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionPermissions>
+    public sealed class SessionPermissions : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionPermissions>
     {
         public SessionPermissions() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9330,7 +9334,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("route")]
         public required string Route { get; init; }
     }
-    public sealed class SessionReasoningDelta : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.SessionReasoningDelta>
+    public sealed class SessionReasoningDelta : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionReasoningDelta>
     {
         public SessionReasoningDelta() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9360,7 +9364,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
         public required string SessionId { get; init; }
     }
-    public sealed class SessionReasoningEnded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionReasoningEnded>
+    public sealed class SessionReasoningEnded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionReasoningEnded>
     {
         public SessionReasoningEnded() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9405,7 +9409,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionReasoningStarted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionReasoningStarted>
+    public sealed class SessionReasoningStarted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionReasoningStarted>
     {
         public SessionReasoningStarted() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9448,7 +9452,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionRenamed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionRenamed>
+    public sealed class SessionRenamed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionRenamed>
     {
         public SessionRenamed() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9486,7 +9490,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionRetryScheduled : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionRetryScheduled>
+    public sealed class SessionRetryScheduled : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionRetryScheduled>
     {
         public SessionRetryScheduled() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9545,7 +9549,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("snapshot")]
         public string? Snapshot { get; init; }
     }
-    public sealed class SessionRevertCleared : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionRevertCleared>
+    public sealed class SessionRevertCleared : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionRevertCleared>
     {
         public SessionRevertCleared() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9581,7 +9585,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionRevertCommitted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionRevertCommitted>
+    public sealed class SessionRevertCommitted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionRevertCommitted>
     {
         public SessionRevertCommitted() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9629,7 +9633,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("messageID")]
         public required string MessageId { get; init; }
     }
-    public sealed class SessionRevertStaged : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionRevertStaged>
+    public sealed class SessionRevertStaged : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionRevertStaged>
     {
         public SessionRevertStaged() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9667,7 +9671,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionShellEnded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionShellEnded>
+    public sealed class SessionShellEnded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionShellEnded>
     {
         public SessionShellEnded() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9729,7 +9733,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public OpenCode.Sdk.Optional<string?> Id { get; init; }
     }
-    public sealed class SessionShellStarted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionShellStarted>
+    public sealed class SessionShellStarted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionShellStarted>
     {
         public SessionShellStarted() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9767,7 +9771,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionSkillActivated : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionSkillActivated>
+    public sealed class SessionSkillActivated : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionSkillActivated>
     {
         public SessionSkillActivated() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -9980,7 +9984,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("title")]
         public required string Title { get; init; }
     }
-    public sealed class SessionStatusUpdated : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.SessionStatusUpdated>
+    public sealed class SessionStatusUpdated : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionStatusUpdated>
     {
         public SessionStatusUpdated() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10006,7 +10010,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         public required OpenCode.Sdk.Models.ISessionStatus Status { get; init; }
     }
-    public sealed class SessionStepEnded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionStepEnded>
+    public sealed class SessionStepEnded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionStepEnded>
     {
         public SessionStepEnded() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10082,7 +10086,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionStepFailed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionStepFailed>
+    public sealed class SessionStepFailed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionStepFailed>
     {
         public SessionStepFailed() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10143,7 +10147,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionStepStarted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionStepStarted>
+    public sealed class SessionStepStarted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionStepStarted>
     {
         public SessionStepStarted() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10190,7 +10194,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionStepStreamed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionStepStreamed>
+    public sealed class SessionStepStreamed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionStepStreamed>
     {
         public SessionStepStreamed() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10260,7 +10264,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("model")]
         public required OpenCode.Sdk.Models.ModelRef Model { get; init; }
     }
-    public sealed class SessionSynthetic : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionSynthetic>
+    public sealed class SessionSynthetic : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionSynthetic>
     {
         public SessionSynthetic() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10329,7 +10333,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("text")]
         public required string Text { get; init; }
     }
-    public sealed class SessionTextDelta : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.SessionTextDelta>
+    public sealed class SessionTextDelta : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionTextDelta>
     {
         public SessionTextDelta() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10359,7 +10363,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
         public required string SessionId { get; init; }
     }
-    public sealed class SessionTextEnded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionTextEnded>
+    public sealed class SessionTextEnded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionTextEnded>
     {
         public SessionTextEnded() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10404,7 +10408,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionTextStarted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionTextStarted>
+    public sealed class SessionTextStarted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionTextStarted>
     {
         public SessionTextStarted() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10444,7 +10448,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionToolCalled : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionToolCalled>
+    public sealed class SessionToolCalled : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionToolCalled>
     {
         public SessionToolCalled() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10491,7 +10495,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionToolFailed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionToolFailed>
+    public sealed class SessionToolFailed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionToolFailed>
     {
         public SessionToolFailed() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10544,7 +10548,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionToolInputDelta : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.SessionToolInputDelta>
+    public sealed class SessionToolInputDelta : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionToolInputDelta>
     {
         public SessionToolInputDelta() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10574,7 +10578,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
         public required string SessionId { get; init; }
     }
-    public sealed class SessionToolInputEnded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionToolInputEnded>
+    public sealed class SessionToolInputEnded : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionToolInputEnded>
     {
         public SessionToolInputEnded() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10616,7 +10620,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionToolInputStarted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionToolInputStarted>
+    public sealed class SessionToolInputStarted : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionToolInputStarted>
     {
         public SessionToolInputStarted() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10658,7 +10662,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionToolProgress : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.SessionToolProgress>
+    public sealed class SessionToolProgress : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionToolProgress>
     {
         public SessionToolProgress() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10688,7 +10692,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
         public required string SessionId { get; init; }
     }
-    public sealed class SessionToolSuccess : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionToolSuccess>
+    public sealed class SessionToolSuccess : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionToolSuccess>
     {
         public SessionToolSuccess() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10766,7 +10770,7 @@ namespace OpenCode.Sdk.Models
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode003")]
-    public sealed class SessionUsageRecorded : OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionUsageRecorded>
+    public sealed class SessionUsageRecorded : OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionUsageRecorded>
     {
         public SessionUsageRecorded() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10830,7 +10834,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("version")]
         public required double Version { get; init; }
     }
-    public sealed class SessionUsageUpdated : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.SessionUsageUpdated>
+    public sealed class SessionUsageUpdated : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionUsageUpdated>
     {
         public SessionUsageUpdated() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -10864,7 +10868,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("idle")]
         public required double Idle { get; init; }
     }
-    public sealed class SessionViewed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, System.IEquatable<OpenCode.Sdk.Models.SessionViewed>
+    public sealed class SessionViewed : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionViewed>
     {
         public SessionViewed() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]
@@ -11246,7 +11250,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("text")]
         public required string Text { get; init; }
     }
-    public sealed class TuiSessionSelect : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.TuiSessionSelect>
+    public sealed class TuiSessionSelect : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.TuiSessionSelect>
     {
         public TuiSessionSelect() { }
         [System.Text.Json.Serialization.JsonPropertyName("created")]

@@ -141,14 +141,8 @@ await session.PromptAsync(new SessionPromptRequest { Text = "Summarize this repo
 
 while (await events.MoveNextAsync())
 {
-    var ended = events.Current switch
-    {
-        SessionExecutionSucceeded succeeded => succeeded.Data.SessionId,
-        SessionExecutionFailed failed => failed.Data.SessionId,
-        SessionExecutionInterrupted interrupted => interrupted.Data.SessionId,
-        _ => null,
-    };
-    if (ended == created.Session.Id)
+    if (events.Current is SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted
+        && events.Current is ISessionScopedEvent { SessionId: var id } && id == created.Session.Id)
     {
         break;
     }

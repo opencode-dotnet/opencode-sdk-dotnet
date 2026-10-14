@@ -1,4 +1,13 @@
 {
+  "sessionScopedEvent": {
+    "unions": ["IEvent", "ISessionEventDurable"],
+    "interface": "ISessionScopedEvent",
+    "interfaceMember": "SessionId",
+    "payloadMember": "data",
+    "member": "sessionID",
+    "identifier": "Session.ID",
+    "reason": "The event payload names the session the event belongs to."
+  },
   "groups": {
     "health": {
       "placement": "root"

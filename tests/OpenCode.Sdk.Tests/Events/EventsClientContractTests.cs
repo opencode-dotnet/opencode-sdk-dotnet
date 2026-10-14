@@ -28,6 +28,19 @@ public sealed class EventsClientContractTests
         await Assert.That(request.RequestUri).IsEqualTo(new Uri("http://localhost:4096/api/event"));
     }
 
+    /// <summary>A session-scoped event names its session through the common contract, so a consumer routes without switching on its type first.</summary>
+    [Test]
+    public async Task SubscribeAsync_Should_Route_A_Session_Scoped_Event_By_Its_Session()
+    {
+        using var scenario = ContractScenario.RespondingWithFrames(
+            WireBodyData.Frames(WireBodyData.SessionCreatedEvent, WireBodyData.UnknownLogEvent));
+
+        var items = await CollectAsync(scenario);
+
+        await Assert.That(items[0] is ISessionScopedEvent { SessionId: "ses_9" }).IsTrue();
+        await Assert.That(items[1]).IsNotAssignableTo<ISessionScopedEvent>();
+    }
+
     [Test]
     public async Task SubscribeAsync_Should_Preserve_An_Unknown_Event_Tag()
     {

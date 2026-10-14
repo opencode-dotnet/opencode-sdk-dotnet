@@ -5,6 +5,10 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 internal sealed record GenerationCuration
 {
+    /// <summary>The payload identifier projected explicitly by qualifying event records.</summary>
+    [JsonPropertyName("sessionScopedEvent")]
+    public SessionScopedEventCuration? SessionScopedEvent { get; init; }
+
     [JsonPropertyName("groups")]
     public required IReadOnlyDictionary<string, GroupCuration> Groups
     {
