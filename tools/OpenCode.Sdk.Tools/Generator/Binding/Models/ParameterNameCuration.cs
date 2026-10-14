@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// casing of the wire name says less than the rest of the surface: a bare <c>id</c> beside the
 /// other families' <c>sessionId</c> and <c>ptyId</c>. The wire name still fills the route.
 /// Curation chooses the .NET name of a construct the pinned document already represents; it adds
-/// no wire semantics (ADR-0013).
+/// no wire semantics.
 /// </summary>
 internal sealed record ParameterNameCuration
 {

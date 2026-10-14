@@ -18,7 +18,7 @@ public sealed class CSharpNamePolicyTests
         await Assert.That(result).IsEqualTo(expected);
     }
 
-    /// <summary>A brand keeps its spelling in any casing the wire uses (ADR-0004); everything around it stays ordinary PascalCase.</summary>
+    /// <summary>A brand keeps its spelling in any casing the wire uses; everything around it stays ordinary PascalCase.</summary>
     [Test]
     [Arguments("oauth", "OAuth", "oAuth")]
     [Arguments("integration.oauth.connect", "IntegrationOAuthConnect", "integrationOAuthConnect")]

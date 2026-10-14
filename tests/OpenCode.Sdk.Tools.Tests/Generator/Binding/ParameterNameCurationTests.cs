@@ -1,4 +1,6 @@
+using System.Text;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Support;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
@@ -43,6 +45,8 @@ public sealed class ParameterNameCurationTests
     [Arguments("shell.get", "name", "shellId", "is not a route value")]
     [Arguments("shell.get", "id", "ShellId", "camel-cased")]
     [Arguments("shell.get", "id", "2shell", "camel-cased")]
+    [Arguments("shell.get", "id", "class", "camel-cased")]
+    [Arguments("shell.get", "id", "id", "changes no name")]
     public async Task Bind_Should_Refuse_A_Row_That_Names_Nothing_The_Document_Has(
         string operationId, string parameter, string dotnetName, string problem)
     {
@@ -98,6 +102,82 @@ public sealed class ParameterNameCurationTests
         await Assert.That(exception.Errors.Any(static error => error.Problem.Contains("the same way", StringComparison.Ordinal))).IsTrue();
     }
 
+    /// <summary>A row that spells what the mechanical rule already gives renames nothing, so it would only hide a stale intent.</summary>
+    [Test]
+    public async Task Bind_Should_Refuse_A_Row_That_Repeats_The_Mechanical_Name()
+    {
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(static spec => spec
+            .WithOperation("shell.get", path: "/api/shell/{shellID}", configure: static operation => operation
+                .Parameter("shellID", "path", static schema => schema.Type("string"), required: true)
+                .Response(200, "application/json", static schema => schema.Type("object")))));
+        var curation = Curation(Groups("shell", ClientGroup("Shells", "ShellClient", "shellID")),
+            parameterNames: [ParameterName("shell.get", "shellID", "shellId")]);
+
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("shell.get"), curation));
+
+        await Assert.That(exception.Errors.Any(static error => error.Problem.Contains("changes no name", StringComparison.Ordinal))).IsTrue();
+    }
+
+    /// <summary>
+    /// Two wire groups that share a client name are one family with one handle, so a row that names
+    /// the handle parameter in one group and not the other would split it, even though each group
+    /// agrees with itself.
+    /// </summary>
+    [Test]
+    public async Task Bind_Should_Refuse_A_Handle_Parameter_Named_In_Only_One_Group_Of_A_Merged_Family()
+    {
+        var document = await BindingTestHost.IngestAsync(MergedScenario());
+        var curation = Curation(
+            new Dictionary<string, GroupCuration>(StringComparer.Ordinal) { ["shell"] = ShellFamily, ["terminal"] = ShellFamily },
+            parameterNames: [ParameterName("shell.get", "id", "shellId"), ParameterName("shell.remove", "id", "shellId")]);
+
+        var exception = Assert.Throws<BindingException>(() =>
+            new BindingTestHost().Bind(document, Selection("shell.get", "shell.remove", "terminal.get"), curation));
+
+        await Assert.That(exception.Errors.Any(static error => error.Subject == "Shells"
+                                                              && error.Problem.Contains("the same way", StringComparison.Ordinal)))
+            .IsTrue();
+    }
+
+    /// <summary>A flat operation's renamed route value reaches its method signature, its parameter documentation and its route builder, while the template keeps the wire name.</summary>
+    [Test]
+    public async Task Emit_Should_Use_The_Curated_Name_On_A_Flat_Operation()
+    {
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(static spec => spec
+            .WithOperation("permission.saved.remove", method: "delete", path: "/api/permission/saved/{id}", configure: static operation => operation
+                .Parameter("id", "path", static schema => schema.Type("string"), required: true)
+                .Response(200, "application/json", static schema => schema.Type("object")))));
+        var curation = Curation(Groups("permission", ClientGroup("Permissions", handleName: null, handleParameter: null)),
+            parameterNames: [ParameterName("permission.saved.remove", "id", "savedPermissionId")]);
+
+        var plan = new BindingTestHost().Bind(document, Selection("permission.saved.remove"), curation);
+
+        var sources = SourceEmitter.Emit(plan);
+        var client = Emitted(sources, "/PermissionsClient.cs");
+        await Assert.That(client).Contains("(string savedPermissionId,");
+        await Assert.That(client).Contains("<param name = \"savedPermissionId\">");
+        await Assert.That(client).DoesNotContain("string id");
+        var routes = Emitted(sources, "/OpenCodeRoutes.Permissions.cs");
+        await Assert.That(routes).Contains("string savedPermissionId");
+        await Assert.That(routes).Contains("/api/permission/saved/{id}");
+    }
+
+    /// <summary>The repository's own rows: the shell handle and the saved-permission id read descriptively, and the wire keeps <c>id</c>.</summary>
+    [Test]
+    public async Task Bind_Should_Apply_The_Repository_Rows_To_The_Pinned_Document()
+    {
+        var plan = await new BindingTestHost().BindPinnedAsync();
+
+        var shell = plan.Clients.Single(static client => client is { Role: ClientRole.Handle, Name: "ShellClient" }).HandleParameter!;
+        await Assert.That(shell.Name).IsEqualTo("shellId");
+        await Assert.That(shell.WireName).IsEqualTo("id");
+        var saved = plan.Clients
+            .SelectMany(static client => client.Operations)
+            .Single(static operation => operation.OperationId == "permission.saved.remove")
+            .Parameters.Single(static parameter => parameter.WireName == "id");
+        await Assert.That(saved.Name).IsEqualTo("savedPermissionId");
+    }
+
     private static OperationParameterPlan HandleParameter(EmitPlan plan) =>
         plan.Clients.Single(static client => client.Role == ClientRole.Handle).HandleParameter!;
 
@@ -110,4 +190,20 @@ public sealed class ParameterNameCurationTests
             .WithOperation("shell.remove", method: "delete", path: "/api/shell/{id}", configure: static operation => operation
                 .Parameter("id", "path", static schema => schema.Type("string"), required: true)
                 .Response(200, "application/json", static schema => schema.Type("object"))));
+
+    /// <summary>The shell family merged from two wire groups: a terminal operation works the same shell.</summary>
+    private static SpecScenario MergedScenario() =>
+        SpecScenario.Define(static spec => spec
+            .WithOperation("shell.get", path: "/api/shell/{id}", configure: static operation => operation
+                .Parameter("id", "path", static schema => schema.Type("string"), required: true)
+                .Response(200, "application/json", static schema => schema.Type("object")))
+            .WithOperation("shell.remove", method: "delete", path: "/api/shell/{id}", configure: static operation => operation
+                .Parameter("id", "path", static schema => schema.Type("string"), required: true)
+                .Response(200, "application/json", static schema => schema.Type("object")))
+            .WithOperation("terminal.get", path: "/api/terminal/{id}", configure: static operation => operation
+                .Parameter("id", "path", static schema => schema.Type("string"), required: true)
+                .Response(200, "application/json", static schema => schema.Type("object"))));
+
+    private static string Emitted(IReadOnlyList<GeneratedSource> sources, string suffix) =>
+        Encoding.UTF8.GetString(sources.Single(source => source.RelativePath.EndsWith(suffix, StringComparison.Ordinal)).Utf8Source.Span);
 }

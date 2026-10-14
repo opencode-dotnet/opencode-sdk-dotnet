@@ -6,7 +6,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 internal static class CSharpNamePolicy
 {
     /// <summary>
-    /// Brand spellings the plain PascalCase rule would flatten (ADR-0004): a word that spells one,
+    /// Brand spellings the plain PascalCase rule would flatten: a word that spells one,
     /// in any case, is written the brand's way, so an operation-derived <c>oauth</c> reads
     /// <c>OAuth</c> exactly as the schema-derived names already do.
     /// </summary>

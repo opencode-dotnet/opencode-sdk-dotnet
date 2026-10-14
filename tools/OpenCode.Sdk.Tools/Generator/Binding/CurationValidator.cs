@@ -176,8 +176,9 @@ internal sealed class CurationValidator
 
     /// <summary>
     /// A parameter-name row names a route value of a selected operation, once, with a reason and a
-    /// camel-cased identifier. A handle parameter names one working object, so every operation of a
-    /// handle family that carries it must name it the same way.
+    /// camel-cased identifier that differs from the mechanical one. A handle parameter names one
+    /// working object, so every operation of a handle family that carries it must name it the same
+    /// way, across every group the family merges.
     /// </summary>
     private void ValidateParameterNames(IReadOnlyList<SpecOperation> selected, GenerationCuration curation,
         BindingErrorCollector errors)
@@ -212,24 +213,36 @@ internal sealed class CurationValidator
                 errors.Add(BindingErrorCategory.Naming, subject,
                     $"parameter name '{row.DotNetName}' must be a valid camel-cased C# identifier");
             }
+            else if (string.Equals(row.DotNetName, CSharpNamePolicy.ToCamelCase(row.Parameter), StringComparison.Ordinal))
+            {
+                errors.Add(BindingErrorCategory.Curation, subject,
+                    $"parameter name '{row.DotNetName}' changes no name; the mechanical rule already gives it");
+            }
         }
 
-        foreach (var (wireName, group) in curation.Groups.Where(static pair => pair.Value.HandleParameter is not null))
+        // Groups sharing a client name merge into one family, so the family, not the wire group,
+        // is the unit whose handle parameter must read the same everywhere.
+        foreach (var family in curation
+                     .Groups
+                     .Where(static pair => pair.Value.HandleParameter is not null)
+                     .GroupBy(static pair => pair.Value.ClientName ?? pair.Key, StringComparer.Ordinal)
+                     .OrderBy(static family => family.Key, StringComparer.Ordinal))
         {
-            var names = selected
-                .Where(operation => string.Equals(GetGroup(operation), wireName, StringComparison.Ordinal)
-                                    && operation.Parameters.Any(parameter => parameter.Location is SpecParameterLocation.Path
-                                                                             && string.Equals(parameter.Name, group.HandleParameter, StringComparison.Ordinal)))
-                .Select(operation => curation.ParameterNames.FirstOrDefault(row =>
-                        string.Equals(row.OperationId, operation.OperationId, StringComparison.Ordinal)
-                        && string.Equals(row.Parameter, group.HandleParameter, StringComparison.Ordinal))
-                    ?.DotNetName ?? string.Empty)
+            var names = family
+                .SelectMany(pair => selected
+                    .Where(operation => string.Equals(GetGroup(operation), pair.Key, StringComparison.Ordinal)
+                                        && operation.Parameters.Any(parameter => parameter.Location is SpecParameterLocation.Path
+                                                                                 && string.Equals(parameter.Name, pair.Value.HandleParameter, StringComparison.Ordinal)))
+                    .Select(operation => curation.ParameterNames.FirstOrDefault(row =>
+                            string.Equals(row.OperationId, operation.OperationId, StringComparison.Ordinal)
+                            && string.Equals(row.Parameter, pair.Value.HandleParameter, StringComparison.Ordinal))
+                        ?.DotNetName ?? string.Empty))
                 .Distinct(StringComparer.Ordinal)
                 .Count();
             if (names > 1)
             {
-                errors.Add(BindingErrorCategory.Curation, wireName,
-                    $"every operation of the handle family must name handle parameter '{group.HandleParameter}' the same way");
+                errors.Add(BindingErrorCategory.Curation, family.Key,
+                    $"every operation of the handle family must name handle parameter '{family.First().Value.HandleParameter}' the same way");
             }
         }
     }
