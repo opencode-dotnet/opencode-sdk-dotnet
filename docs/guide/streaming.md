@@ -24,8 +24,8 @@ await foreach (var @event in client.Events.SubscribeAsync(window.Token))
 {
     switch (@event)
     {
-        case SessionIdle idle:
-            Console.WriteLine($"session {idle.Data.SessionId} went idle");
+        case SessionExecutionSucceeded succeeded:
+            Console.WriteLine($"session {succeeded.Data.SessionId} finished its turn");
             break;
         case UnknownEvent unknown:
             Console.WriteLine($"unknown event {unknown.Type}: {unknown.Payload.GetRawText()}");
@@ -40,6 +40,44 @@ await foreach (var @event in client.Events.SubscribeAsync(window.Token))
 `IEvent` carries exactly one common member, `Type` — the wire discriminator. Every concrete event
 type adds its own payload, so a `switch` on the type is the way in; `@event.Type` is there for
 logging and for the frames you have not written a case for.
+
+### ⏳ Waiting for a turn to end
+
+A session's turn ends with exactly one of three events: `SessionExecutionSucceeded`,
+`SessionExecutionFailed`, or `SessionExecutionInterrupted`. The server publishes one each time the
+session goes from working to idle, however many prompts it worked through. Open the bus **before**
+you prompt, because an event published before you listen is gone; the first event,
+`EventServerConnected`, says the stream is live:
+
+```csharp
+var session = client.Sessions.GetSessionClient(sessionId);
+using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+await using var events = client.Events.SubscribeAsync(deadline.Token).GetAsyncEnumerator();
+
+// The first event is server.connected: from here on, nothing the session publishes is missed.
+await events.MoveNextAsync();
+
+await session.PromptAsync(new SessionPromptRequest { Text = "Summarize this repository." }, cancellationToken: deadline.Token);
+
+while (await events.MoveNextAsync())
+{
+    var ended = events.Current switch
+    {
+        SessionExecutionSucceeded succeeded => succeeded.Data.SessionId,
+        SessionExecutionFailed failed => failed.Data.SessionId,
+        SessionExecutionInterrupted interrupted => interrupted.Data.SessionId,
+        _ => null,
+    };
+    if (ended == sessionId)
+    {
+        break;
+    }
+}
+```
+
+`SessionIdle` and `SessionStatusUpdated` are declared by the pinned document but not published by
+the server it pins: upstream marks `session.idle` deprecated, and its session runtime reports turns
+through the three execution events only. A loop that waits for either of them never ends.
 
 **This bus is live and volatile, by the server's design, not the SDK's.** It has no filter, no
 cursor, no replay, and no resume channel:

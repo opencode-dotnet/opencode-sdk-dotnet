@@ -126,12 +126,33 @@ var generated = await session.GenerateTextAsync(new SessionGenerateRequest { Pro
 Console.WriteLine(generated.Generate.Text);
 ```
 
-To keep the conversation and still get the answer in a console app, wait for the session to go
-idle after the prompt, then read its messages:
+To keep the conversation and still get the answer in a console app, listen on the event bus,
+prompt, and read until the session's turn ends; then read its messages. Open the bus first: an
+event published before you listen is gone.
 
 ```csharp
 using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-await client.Experimental.WaitForSessionAsync(created.Session.Id, cancellationToken: deadline.Token);
+await using var events = client.Events.SubscribeAsync(deadline.Token).GetAsyncEnumerator();
+
+// The first event is server.connected: from here on, nothing the session publishes is missed.
+await events.MoveNextAsync();
+
+await session.PromptAsync(new SessionPromptRequest { Text = "Summarize this repository." }, cancellationToken: deadline.Token);
+
+while (await events.MoveNextAsync())
+{
+    var ended = events.Current switch
+    {
+        SessionExecutionSucceeded succeeded => succeeded.Data.SessionId,
+        SessionExecutionFailed failed => failed.Data.SessionId,
+        SessionExecutionInterrupted interrupted => interrupted.Data.SessionId,
+        _ => null,
+    };
+    if (ended == created.Session.Id)
+    {
+        break;
+    }
+}
 
 await foreach (var message in session.EnumerateMessagesAsync(new SessionMessageListRequest { Order = ListOrder.Ascending }, deadline.Token))
 {
@@ -145,9 +166,13 @@ await foreach (var message in session.EnumerateMessagesAsync(new SessionMessageL
 }
 ```
 
-`WaitForSessionAsync` answers once no turn is running for the session, and the route declares no
-timeout, so the deadline is yours to set. Upstream marks the route experimental, which is why it
-lives on `client.Experimental` and may still move.
+The server publishes exactly one of the three ending events each time the session goes from
+working to idle, and the deadline is yours to set. [Streaming](streaming.md#-waiting-for-a-turn-to-end)
+explains the order and why `SessionIdle` is not the event to wait for.
+
+`client.Experimental.WaitForSessionAsync(created.Session.Id)` waits for the same moment in one
+call, without the bus. Upstream marks that route experimental, which is why it lives on
+`client.Experimental` and may still move.
 
 ### Choosing a model
 
