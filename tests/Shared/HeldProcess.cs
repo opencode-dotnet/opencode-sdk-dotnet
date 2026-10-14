@@ -154,7 +154,7 @@ internal sealed class HeldProcess : IDisposable
     /// closed handle, which ends the host. A wrapper over the process's own handle would protect
     /// only itself.
     /// </summary>
-    private sealed class ProcessSignal : WaitHandle
+    internal sealed class ProcessSignal : WaitHandle
     {
         public ProcessSignal(SafeProcessHandle process)
         {

@@ -1081,14 +1081,13 @@ dotnet_diagnostic.MA0045.severity = none
 [tests/Shared/ProcessMark.cs]
 dotnet_diagnostic.MA0045.severity = none
 
-# HeldProcess waits for a process it holds to be finished by registering the process handle with
-# ThreadPool.RegisterWaitForSingleObject, which takes a WaitHandle, so the handle is lent to a
-# non-owning SafeWaitHandle as a raw value (S3869). The Process keeps its SafeProcessHandle alive and
-# undisposed across the wait, the registration is unregistered before the Process is disposed, and
-# the raw value is never stored past the wait. The alternative, Process.WaitForExit(int) on a
-# thread-pool thread, blocks one thread per held process for the whole settle bound. Winner: an
-# asynchronous handle wait; S3869 remains enabled for every other file.
-[tests/Shared/HeldProcess.cs]
+# HeldProcessLiveTests proves that HeldProcess's wait signal owns a handle of its own by comparing
+# the signal's raw handle value with the process's (S3869). The values are only compared, never
+# waited on, closed or stored, and both SafeHandles stay alive and undisposed across the comparison.
+# The alternative, observing the consequence of a borrowed handle being closed, depends on whether
+# the process reuses the closed value, which no test controls. Winner: the deterministic ownership
+# proof; S3869 remains enabled for every other file.
+[tests/OpenCode.Sdk.Tests/HeldProcessLiveTests.cs]
 dotnet_diagnostic.S3869.severity = none
 
 # ServiceFileSystemTests seeds and reads its owned temporary directory through IFile.WriteAllText,
