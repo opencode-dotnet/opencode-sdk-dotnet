@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using Microsoft.Win32.SafeHandles;
 using NSubstitute;
 using OpenCode.Sdk.Internal.Launcher;
@@ -28,8 +27,14 @@ public sealed class WindowsServerLadderTests
     /// <summary>Short second-rung bounds, so a bound that holds is seen to hold quickly.</summary>
     private static readonly WindowsLadderBounds Bounds = new(TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(300));
 
-    /// <summary>How much earlier than its due time a timed wait may end on a coarse system timer.</summary>
-    private static readonly TimeSpan TimerSlack = TimeSpan.FromMilliseconds(50);
+    /// <summary>
+    /// How long, on the system clock, a test gives a ladder that must still be waiting the chance to
+    /// show it moved on anyway. A bound passed on a manual clock can resume the ladder on the thread
+    /// pool, as the net472 bridge's timed wait does, so a step taken a tick early is seen only once
+    /// that work ran. It decides nothing for a ladder that keeps its bounds: that one cannot move on
+    /// before the test moves the clock.
+    /// </summary>
+    private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(100);
 
     [Test]
     public async Task RunAsync_Should_Not_Run_The_Tree_Kill_For_A_Root_That_Exited()
@@ -111,10 +116,16 @@ public sealed class WindowsServerLadderTests
         var time = new ManualTimeProvider();
         var exited = new TaskCompletionSource<ChildExitStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
         var kills = new ConcurrentQueue<DateTimeOffset>();
+        var secondKill = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var treeKill = Substitute.For<IWindowsTreeKill>();
-        _ = treeKill.KillTreeAsync(ProcessId, Arg.Any<TimeSpan>()).Returns(_ =>
+        _ = treeKill.KillTreeAsync(ProcessId, Arg.Any<TimeSpan>()).Returns(call =>
         {
             kills.Enqueue(time.GetUtcNow());
+            if (kills.Count == 2)
+            {
+                _ = secondKill.TrySetResult(true);
+            }
+
             return Task.FromResult(TreeKillOutcome.Ended);
         });
         using var root = new SafeProcessHandle(IntPtr.Zero, ownsHandle: false);
@@ -123,14 +134,14 @@ public sealed class WindowsServerLadderTests
         var ladder = new WindowsServerLadder(ProcessId, root, exited.Task, treeKill, Bounds, time).RunAsync(Grace);
         await time.WaitForTimerAsync(hangGuard);
         time.Advance(Grace - TimeSpan.FromTicks(1));
-        var killsBeforeTheGracePassed = kills.Count;
+        var secondKillBeforeTheGracePassed = await BoundedWait.CompletesWithinAsync(secondKill.Task, Settle);
         time.Advance(TimeSpan.FromTicks(1));
         await time.WaitForTimerAsync(hangGuard);
         var endedBeforeTheForcedExitBound = ladder.IsCompleted;
         time.Advance(Bounds.ForcedExit);
         await ladder.WaitAsync(hangGuard);
 
-        await Assert.That(killsBeforeTheGracePassed).IsEqualTo(1);
+        await Assert.That(secondKillBeforeTheGracePassed).IsFalse();
         var killedAt = kills.ToArray();
         await Assert.That(killedAt).Count().IsEqualTo(2);
         await Assert.That(killedAt[0]).IsEqualTo(started);
@@ -161,12 +172,13 @@ public sealed class WindowsServerLadderTests
 
     /// <summary>
     /// Nothing ends: the kill never returns and the root never exits. The grace bounds the first
-    /// kill and its wait, the second kill has its own bound, and so does the last wait, so the ladder
-    /// returns after the three of them and no later.
+    /// kill and its wait, the second kill has its own bound, and so does the last wait: one tick
+    /// before each bound the ladder still waits, and once the last has passed it returns with no
+    /// further move of the clock. The clock moves only when the test moves it, so the bounds asserted
+    /// are the ones the ladder enforced, whatever the host's load.
     /// </summary>
     [Test]
-    [Timeout(30_000)]
-    public async Task RunAsync_Should_Return_Within_Its_Bounds_When_Nothing_Ends(CancellationToken cancellationToken)
+    public async Task RunAsync_Should_Return_Within_Its_Bounds_When_Nothing_Ends()
     {
         if (!OperatingSystem.IsWindows())
         {
@@ -174,19 +186,31 @@ public sealed class WindowsServerLadderTests
             return;
         }
 
+        var hangGuard = TimeSpan.FromSeconds(30);
+        var time = new ManualTimeProvider();
         var never = new TaskCompletionSource<TreeKillOutcome>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var kills = new ConcurrentQueue<DateTimeOffset>();
         var treeKill = Substitute.For<IWindowsTreeKill>();
-        _ = treeKill.KillTreeAsync(ProcessId, Arg.Any<TimeSpan>()).Returns(never.Task);
+        _ = treeKill.KillTreeAsync(ProcessId, Arg.Any<TimeSpan>()).Returns(never.Task).AndDoes(_ => kills.Enqueue(time.GetUtcNow()));
         var stillRunning = new TaskCompletionSource<ChildExitStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var root = new SafeProcessHandle(IntPtr.Zero, ownsHandle: false);
-        var run = Stopwatch.StartNew();
+        var started = time.GetUtcNow();
 
-        await new WindowsServerLadder(ProcessId, root, stillRunning.Task, treeKill, Bounds, TimeProvider.System).RunAsync(Grace).WaitAsync(cancellationToken);
-        var elapsed = run.Elapsed;
+        var ladder = new WindowsServerLadder(ProcessId, root, stillRunning.Task, treeKill, Bounds, time).RunAsync(Grace);
+        var waitingOneTickBefore = new List<bool>();
+        foreach (var bound in new[] { Grace, Bounds.TreeKill, Bounds.ForcedExit })
+        {
+            await time.WaitForTimerAsync(hangGuard);
+            time.Advance(bound - TimeSpan.FromTicks(1));
+            waitingOneTickBefore.Add(!await BoundedWait.CompletesWithinAsync(ladder, Settle));
+            time.Advance(TimeSpan.FromTicks(1));
+        }
 
-        var worstCase = Grace + Bounds.TreeKill + Bounds.ForcedExit;
-        await Assert.That(elapsed).IsGreaterThanOrEqualTo(worstCase - TimerSlack);
-        await Assert.That(elapsed).IsLessThan(worstCase + TimeSpan.FromSeconds(5));
-        _ = await treeKill.Received(2).KillTreeAsync(Arg.Any<int>(), Arg.Any<TimeSpan>());
+        await ladder.WaitAsync(hangGuard);
+
+        await Assert.That(waitingOneTickBefore).IsEquivalentTo([true, true, true]);
+        await Assert.That(kills.ToArray()).IsEquivalentTo([started, started + Grace]);
+        _ = await treeKill.Received(1).KillTreeAsync(ProcessId, Grace);
+        _ = await treeKill.Received(1).KillTreeAsync(ProcessId, Bounds.TreeKill);
     }
 }
