@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.BackgroundService.Ensure;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The pinned client's lifecycle timing (<c>defaultEnsureTiming</c> in <c>service-timing.ts</c>),

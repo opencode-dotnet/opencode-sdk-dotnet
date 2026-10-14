@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using NSubstitute;
-using OpenCode.Sdk.Internal.Launcher;
-using OpenCode.Sdk.Internal.Posix;
-using OpenCode.Sdk.Internal.Posix.Abstractions;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Launcher;

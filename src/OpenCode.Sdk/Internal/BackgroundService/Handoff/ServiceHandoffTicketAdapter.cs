@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Handoff;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Adapts <c>POST /api/experimental/persistent-pty/handoff</c> onto

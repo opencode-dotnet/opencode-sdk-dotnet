@@ -1,6 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.Discovery;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
-namespace OpenCode.Sdk.Internal.BackgroundService.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The one network exchange discovery performs: an authenticated info request against a

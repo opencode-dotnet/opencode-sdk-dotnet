@@ -1,6 +1,6 @@
 using Microsoft.Win32.SafeHandles;
 
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// A thread handle <c>CreateProcessW</c> returned, owned and closed like any other kernel handle.

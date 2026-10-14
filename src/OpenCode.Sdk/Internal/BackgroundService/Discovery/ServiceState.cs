@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.BackgroundService.Discovery;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The daemon's application state as the info route's response code reports it (server

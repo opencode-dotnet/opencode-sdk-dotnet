@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Posix;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>Where one of a spawned child's standard descriptors (0, 1, or 2) leads.</summary>
 internal enum ChildStreamRoute

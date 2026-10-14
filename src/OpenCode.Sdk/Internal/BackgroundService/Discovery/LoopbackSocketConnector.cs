@@ -1,6 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-
-namespace OpenCode.Sdk.Internal.BackgroundService.Discovery;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>The platform connect: the attempt's socket connects to its endpoint.</summary>
 internal sealed class LoopbackSocketConnector : ILoopbackSocketConnector

@@ -1,5 +1,5 @@
 using System.Text;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.TestSupport;
 
 namespace OpenCode.Sdk.Tests.BackgroundService.Registration;

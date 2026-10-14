@@ -1,4 +1,4 @@
-using OpenCode.Sdk.Internal.Windows;
+using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Tests.Windows;
 

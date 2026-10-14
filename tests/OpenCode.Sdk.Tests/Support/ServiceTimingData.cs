@@ -1,5 +1,5 @@
 using System.Globalization;
-using OpenCode.Sdk.Internal.BackgroundService.Ensure;
+using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Tests.Support;
 

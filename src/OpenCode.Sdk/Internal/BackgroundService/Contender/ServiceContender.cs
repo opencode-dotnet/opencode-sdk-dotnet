@@ -2,13 +2,11 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.Posix;
-using static OpenCode.Sdk.Internal.Posix.PosixInterop;
-using static OpenCode.Sdk.Internal.Windows.WindowsInterop;
-using static OpenCode.Sdk.Internal.Windows.WindowsPlatform;
+using static OpenCode.Sdk.Internal.PosixInterop;
+using static OpenCode.Sdk.Internal.WindowsInterop;
+using static OpenCode.Sdk.Internal.WindowsPlatform;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Contender;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// One detached Ensure contender: the pid the spawn reported, finished/failure observation in the

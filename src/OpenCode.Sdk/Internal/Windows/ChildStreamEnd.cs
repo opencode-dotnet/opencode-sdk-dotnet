@@ -1,6 +1,6 @@
 using Microsoft.Win32.SafeHandles;
 
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The two sides of one standard stream while a child is being created: the parent's end, which

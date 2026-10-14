@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Every kernel32 function the SDK binds, in one place: process creation with an explicit

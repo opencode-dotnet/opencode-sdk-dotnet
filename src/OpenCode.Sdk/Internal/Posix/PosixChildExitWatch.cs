@@ -1,6 +1,4 @@
-using OpenCode.Sdk.Internal.Posix.Abstractions;
-
-namespace OpenCode.Sdk.Internal.Posix;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Observes one spawned child's exit and reaps it, on a background thread of its own. The thread

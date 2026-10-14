@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using Microsoft.Win32.SafeHandles;
 
-namespace OpenCode.Sdk.Internal.Windows.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The Windows exit-status seam: observe a child's own exit, with the code the operating system

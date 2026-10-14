@@ -1,7 +1,6 @@
 using Microsoft.Win32.SafeHandles;
-using OpenCode.Sdk.Internal.Windows.Abstractions;
 
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>The shipped <see cref="IExitWaitKernel"/>: the kernel32 calls themselves.</summary>
 internal sealed class ExitWaitKernel : IExitWaitKernel

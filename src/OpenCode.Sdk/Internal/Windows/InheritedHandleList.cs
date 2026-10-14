@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The <c>PROC_THREAD_ATTRIBUTE_HANDLE_LIST</c> attribute list a spawn hands <c>CreateProcessW</c>:

@@ -1,5 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
-namespace OpenCode.Sdk.Internal.BackgroundService.Ensure;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// One <c>EnsureAsync</c> call's options, validated and copied when the call starts and before any

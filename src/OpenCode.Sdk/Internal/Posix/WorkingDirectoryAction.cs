@@ -1,7 +1,6 @@
 using System.ComponentModel;
-using OpenCode.Sdk.Internal.Posix.Abstractions;
 
-namespace OpenCode.Sdk.Internal.Posix;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The shipped <see cref="IWorkingDirectoryAction"/>. Whether the C library exports the action is

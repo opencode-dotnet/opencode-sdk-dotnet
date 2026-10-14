@@ -42,7 +42,8 @@ internal static class GeneratedSourceCompiler
     /// info probe has its own decoder and depends on no generated model; the stop door's
     /// persistent-terminal shutdown rides the generated <c>persistentPty.shutdown</c> door, so its
     /// shipped implementation and <c>OpenCodeServer</c>, which composes it, ride along with the
-    /// persistent family's raw twin. The handoff sidecar requests its ticket raw through the
+    /// persistent family's raw twin: all three of its partial files, because a class compiles only
+    /// whole. The handoff sidecar requests its ticket raw through the
     /// pipeline on the persistent family's route, which the route table carries only when that
     /// family is emitted, so it rides the same raw twin.
     /// </summary>
@@ -51,6 +52,8 @@ internal static class GeneratedSourceCompiler
         ("Internal/BackgroundService/Handoff/ServicePtyHandoff.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Internal/BackgroundService/Stop/ServicePtyShutdown.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Internal/PersistentPtyFrameDecoder.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
+        ("OpenCodeServer.BackgroundService.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("OpenCodeServer.Launcher.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("OpenCodeServer.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("PersistentPtys/PersistentPtyAttachedFrame.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
         ("PersistentPtys/PersistentPtyAttachment.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),

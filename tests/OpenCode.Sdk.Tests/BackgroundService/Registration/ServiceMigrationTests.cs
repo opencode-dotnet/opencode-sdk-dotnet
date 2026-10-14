@@ -1,8 +1,7 @@
 using System.Text;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions.Testing;
 

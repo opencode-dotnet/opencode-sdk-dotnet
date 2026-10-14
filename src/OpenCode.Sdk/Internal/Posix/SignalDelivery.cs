@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Posix;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>What one <c>kill(2)</c> call achieved.</summary>
 internal enum SignalDelivery

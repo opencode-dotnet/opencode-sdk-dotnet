@@ -4,8 +4,7 @@ namespace OpenCode.Sdk.Tests;
 
 /// <summary>
 /// The SDK's namespace rule (<see cref="SdkNamespacePolicy"/>) against the real source tree, which
-/// it must accept and whose allow-lists it must still need, and against small synthetic files that
-/// each keep or break one part of the rule.
+/// it must accept, and against small synthetic files that each keep or break one part of the rule.
 /// </summary>
 public sealed class NamespacePolicyTests
 {
@@ -18,8 +17,6 @@ public sealed class NamespacePolicyTests
     private const string ModelsFolderFile = "Models/Widget.cs";
 
     private const string InternalFolderFile = "Sessions/Internal/Widget.cs";
-
-    private const string NonLegacyInternalFolder = "Internal/Transport";
 
     private const string TypeName = "Widget";
 
@@ -38,14 +35,6 @@ public sealed class NamespacePolicyTests
 
         await Assert.That(files).IsNotEmpty();
         await Assert.That(violations).IsEmpty();
-    }
-
-    [Test]
-    public async Task LegacyNamespaceFolders_Should_Each_Still_Hold_A_File_With_A_Legacy_Namespace()
-    {
-        var stale = SdkNamespacePolicy.StaleLegacyNamespaceFolders(await new SdkSourceTree().LoadAsync());
-
-        await Assert.That(stale).IsEmpty();
     }
 
     [Test]
@@ -115,18 +104,22 @@ public sealed class NamespacePolicyTests
         await Assert.That(SdkNamespacePolicy.Violation(file)).IsNotNull();
     }
 
+    /// <summary>
+    /// An area folder under <c>Internal/</c> is placement only: its files still declare
+    /// <c>OpenCode.Sdk.Internal</c>. The hosting folders, which once kept their folder namespaces,
+    /// get no exception either.
+    /// </summary>
     [Test]
-    public async Task Violation_Should_Admit_A_Folder_Namespace_When_The_Folder_Is_Legacy()
+    [Arguments("Internal/Transport")]
+    [Arguments("Internal/BackgroundService")]
+    [Arguments("Internal/BackgroundService/Registration")]
+    [Arguments("Internal/Launcher")]
+    [Arguments("Internal/Posix")]
+    [Arguments("Internal/Windows/Abstractions")]
+    public async Task Violation_Should_Refuse_A_Folder_Namespace_Under_An_Internal_Area_Folder(string folder)
     {
-        var file = FolderNamespaceFile(SdkNamespacePolicy.LegacyNamespaceFolders[0]);
-
-        await Assert.That(SdkNamespacePolicy.Violation(file)).IsNull();
-    }
-
-    [Test]
-    public async Task Violation_Should_Refuse_A_Folder_Namespace_When_The_Internal_Folder_Is_Not_Legacy()
-    {
-        var file = FolderNamespaceFile(NonLegacyInternalFolder);
+        ArgumentNullException.ThrowIfNull(folder);
+        var file = FolderNamespaceFile(folder);
 
         await Assert.That(SdkNamespacePolicy.Violation(file)).IsNotNull();
     }

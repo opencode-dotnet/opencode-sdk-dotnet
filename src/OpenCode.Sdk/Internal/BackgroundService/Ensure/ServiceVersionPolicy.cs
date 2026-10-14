@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.BackgroundService.Ensure;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The pinned client's <c>matchesVersion</c> (<c>service-version.ts</c>), the one version rule

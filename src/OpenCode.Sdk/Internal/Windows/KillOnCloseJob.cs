@@ -1,8 +1,7 @@
 using System.ComponentModel;
 using Microsoft.Win32.SafeHandles;
-using OpenCode.Sdk.Internal.Windows.Abstractions;
 
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The shipped <see cref="IProcessJob"/>: one job per process, with exactly the four limits libuv

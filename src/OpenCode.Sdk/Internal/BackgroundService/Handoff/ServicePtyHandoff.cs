@@ -1,8 +1,6 @@
 using System.Text.Json;
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Handoff;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The pinned client's persistent-terminal handoff sidecar (<c>pty-handoff.ts</c>) over the

@@ -1,6 +1,5 @@
 using System.Text;
-using OpenCode.Sdk.Internal.BackgroundService.Ensure;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;

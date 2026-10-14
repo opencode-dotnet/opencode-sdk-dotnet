@@ -1,7 +1,6 @@
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using static OpenCode.Sdk.Internal.Windows.WindowsPlatform;
+using static OpenCode.Sdk.Internal.WindowsPlatform;
 
-namespace OpenCode.Sdk.Internal.BackgroundService;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>The real process environment behind <see cref="IServiceEnvironment"/>.</summary>
 internal sealed class ServiceEnvironment : IServiceEnvironment

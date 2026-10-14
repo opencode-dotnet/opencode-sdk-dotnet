@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Posix.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The group signal seam, <c>kill(2)</c> addressed to a process group or to one process. The

@@ -1,9 +1,9 @@
 using Microsoft.Win32.SafeHandles;
 
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// A child an <see cref="Abstractions.IWindowsSpawn"/> started: its pid, the process handle that
+/// A child an <see cref="IWindowsSpawn"/> started: its pid, the process handle that
 /// pins that pid while it is open, the main thread of a child created suspended, and the parent's
 /// end of each standard stream routed to a pipe, null for the others. Every member passes to the
 /// caller, which owns it from here.

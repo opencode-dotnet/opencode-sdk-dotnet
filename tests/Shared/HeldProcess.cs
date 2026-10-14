@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO.Abstractions;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
-using OpenCode.Sdk.Internal.Windows;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.TestSupport;

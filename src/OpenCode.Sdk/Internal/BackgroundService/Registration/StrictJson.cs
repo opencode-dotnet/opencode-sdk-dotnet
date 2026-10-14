@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Registration;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The one decode step the files the CLI writes go through: a UTF-8 byte-order mark is skipped, as

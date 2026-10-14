@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace OpenCode.Sdk.Internal.Windows.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The Windows spawn seam: <c>CreateProcessW</c> with an explicit inherited-handle list, so the

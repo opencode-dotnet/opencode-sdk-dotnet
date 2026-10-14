@@ -1,9 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.BackgroundService.Discovery;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
-using OpenCode.Sdk.Internal.BackgroundService.Stop;
-
-namespace OpenCode.Sdk.Internal.BackgroundService.Ensure;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The Ensure door behind <c>OpenCodeServer.EnsureAsync</c>, the CLI's managed-service resolution

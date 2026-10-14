@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Finds a NUL in text the launcher passes to the C library, which ends a C string there. A plain

@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace OpenCode.Sdk.Internal.Posix;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// How a child process ended, as far as its parent learned it: an exit code, a terminating signal,

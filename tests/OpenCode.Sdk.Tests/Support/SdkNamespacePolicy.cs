@@ -24,19 +24,6 @@ internal static class SdkNamespacePolicy
     /// <summary>Gets the files that declare no namespace and no type by design.</summary>
     public static IReadOnlyList<string> ExemptFiles { get; } = ["Properties/AssemblyInfo.cs"];
 
-    /// <summary>
-    /// Gets the hand-written internal folders whose files may still declare their folder-derived
-    /// namespace. Each row names the area it belongs to; a row goes when its area is flattened into
-    /// <c>OpenCode.Sdk.Internal</c>, and the list goes with the last row.
-    /// </summary>
-    public static IReadOnlyList<string> LegacyNamespaceFolders { get; } =
-    [
-        "Internal/BackgroundService", // Hosting background service
-        "Internal/Launcher", // Hosting launcher
-        "Internal/Posix", // Hosting platform interop
-        "Internal/Windows", // Hosting platform interop
-    ];
-
     /// <summary>Returns why <paramref name="file"/> breaks the rule, or <see langword="null"/> when it keeps it.</summary>
     public static string? Violation(SdkSourceFile file)
     {
@@ -54,17 +41,6 @@ internal static class SdkNamespacePolicy
         return file.Folders.Contains(InternalFolder, StringComparer.Ordinal)
             ? InternalFileViolation(file, declaredNamespace, declarations.TopLevelTypes)
             : PublicFileViolation(file.RelativePath, declaredNamespace, declarations.TopLevelTypes);
-    }
-
-    /// <summary>Returns the legacy folders that no longer hold a file declaring a namespace other than <see cref="InternalNamespace"/>.</summary>
-    public static IReadOnlyList<string> StaleLegacyNamespaceFolders(IEnumerable<SdkSourceFile> files)
-    {
-        var legacyPaths = files
-            .Where(static file => Parse(file).Namespace is { } declared && !string.Equals(declared, InternalNamespace, StringComparison.Ordinal))
-            .Select(static file => file.RelativePath)
-            .ToArray();
-
-        return [.. LegacyNamespaceFolders.Where(folder => !legacyPaths.Any(path => IsUnder(path, folder)))];
     }
 
     /// <summary>
@@ -94,10 +70,7 @@ internal static class SdkNamespacePolicy
 
     private static string? InternalFileViolation(SdkSourceFile file, string declaredNamespace, IReadOnlyList<TopLevelType> types)
     {
-        var legacy = LegacyNamespaceFolders.Any(folder => IsUnder(file.RelativePath, folder));
-        var namespaceAllowed = string.Equals(declaredNamespace, InternalNamespace, StringComparison.Ordinal)
-                               || (legacy && string.Equals(declaredNamespace, FolderNamespace(file), StringComparison.Ordinal));
-        if (!namespaceAllowed)
+        if (!string.Equals(declaredNamespace, InternalNamespace, StringComparison.Ordinal))
         {
             return $"{file.RelativePath}: an internal file declares '{declaredNamespace}', not '{InternalNamespace}'";
         }
@@ -118,12 +91,6 @@ internal static class SdkNamespacePolicy
             ? $"{relativePath}: the type '{hidden.Name}' is not public"
             : null;
     }
-
-    /// <summary>The namespace IDE0130 derives from the folder, which the legacy folders still use.</summary>
-    private static string FolderNamespace(SdkSourceFile file) => string.Join('.', file.Folders.Prepend(RootNamespace));
-
-    private static bool IsUnder(string relativePath, string folder) =>
-        relativePath.StartsWith($"{folder}/", StringComparison.Ordinal);
 
     /// <summary>The file-scoped namespace and the top-level types one source file declares.</summary>
     internal sealed record SourceDeclarations(string? Namespace, IReadOnlyList<TopLevelType> TopLevelTypes);

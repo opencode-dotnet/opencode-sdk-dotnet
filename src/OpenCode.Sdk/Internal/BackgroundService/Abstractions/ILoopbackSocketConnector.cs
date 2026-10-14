@@ -1,6 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.Discovery;
-
-namespace OpenCode.Sdk.Internal.BackgroundService.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The socket connect under the probe's loopback transport. Behind a seam so a test sees each

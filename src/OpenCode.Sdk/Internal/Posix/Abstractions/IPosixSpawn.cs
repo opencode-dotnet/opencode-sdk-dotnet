@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace OpenCode.Sdk.Internal.Posix.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The POSIX spawn seam: <c>posix_spawnp</c> with the child state Node's runtime (libuv) gives a

@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Posix;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// One POSIX spawn: what to run, with which argv and environment, and where each standard

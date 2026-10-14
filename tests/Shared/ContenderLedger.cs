@@ -1,10 +1,7 @@
 using System.Globalization;
 using System.IO.Abstractions;
 using System.Text;
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.BackgroundService.Contender;
-using OpenCode.Sdk.Internal.Posix;
-using OpenCode.Sdk.Internal.Windows;
+using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.TestSupport;
 

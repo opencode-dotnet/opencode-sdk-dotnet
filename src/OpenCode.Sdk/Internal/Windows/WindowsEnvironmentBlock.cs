@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The <c>CreateProcessW</c> Unicode environment block: <c>key=value</c> entries, each ending in

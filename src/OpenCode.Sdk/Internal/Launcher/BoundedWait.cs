@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>Waits for a task under a bound, reporting an expired bound instead of raising it.</summary>
 internal static class BoundedWait

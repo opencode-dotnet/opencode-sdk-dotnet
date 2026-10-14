@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.BackgroundService.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The transport the info probe exchanges over: the handler for one request against a registered

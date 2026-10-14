@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>How the assignment of a server to the launcher's job ended, when it did not fail the start.</summary>
 internal enum JobAssignment

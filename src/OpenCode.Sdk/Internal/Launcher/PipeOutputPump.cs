@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Reads a child's stdout and stderr continuously, one <see cref="PipeLineReader"/> per

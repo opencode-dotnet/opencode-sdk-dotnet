@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.BackgroundService.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// One detached Ensure contender as the election loop sees it — the pinned client's

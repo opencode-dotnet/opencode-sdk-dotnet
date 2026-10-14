@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.BackgroundService.Registration;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// One decoded registration: what the daemon published so a client can reach it. Deliberately a

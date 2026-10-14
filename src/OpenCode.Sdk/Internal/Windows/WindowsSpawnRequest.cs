@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// One Windows spawn: the executable <c>CreateProcessW</c> starts, the whole command line it gets,

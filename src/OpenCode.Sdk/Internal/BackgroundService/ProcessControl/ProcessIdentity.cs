@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.BackgroundService.ProcessControl;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// One running process, identified the way Aspire's <c>DcpProcessIdentity</c> and psutil identify

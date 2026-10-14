@@ -1,6 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.Handoff;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
-namespace OpenCode.Sdk.Internal.BackgroundService.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The persistent-terminal handoff sidecar the pinned client's <c>PtyHandoff</c> keeps beside the

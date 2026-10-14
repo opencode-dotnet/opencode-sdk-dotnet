@@ -1,7 +1,6 @@
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
-using OpenCode.Sdk.Internal.Posix;
-using OpenCode.Sdk.Internal.Posix.Abstractions;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Posix;

@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Launcher.Abstractions;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// How a platform ends its server, on upstream's rungs for that platform. The shared flow runs it

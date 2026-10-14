@@ -2,12 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-#if NET
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-#endif
-using OpenCode.Sdk.Internal.BackgroundService.Discovery;
-using OpenCode.Sdk.Internal.BackgroundService.Ensure;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.BackgroundService.Registration;
 using OpenCode.Sdk.Tests.Support;
 

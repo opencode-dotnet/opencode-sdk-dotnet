@@ -1,9 +1,8 @@
 #if !NET
 using System.Runtime.InteropServices;
 #endif
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
 
-namespace OpenCode.Sdk.Internal.BackgroundService;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The shipped <see cref="IServiceFileSystem"/> over <c>System.IO</c>. The exclusive create mirrors

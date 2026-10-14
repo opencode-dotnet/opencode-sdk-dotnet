@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace OpenCode.Sdk.Internal.Posix;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// Every C library function the SDK binds, in one place: the spawn, signal-set, signal, and wait

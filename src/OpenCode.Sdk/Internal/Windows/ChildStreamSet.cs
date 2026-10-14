@@ -1,9 +1,8 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
-using OpenCode.Sdk.Internal.Posix;
 
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The three standard streams of a child being created, each opened where its route leads: a

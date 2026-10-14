@@ -1,14 +1,11 @@
 using System.Collections;
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.Posix.Abstractions;
-using OpenCode.Sdk.Internal.Windows.Abstractions;
-using static OpenCode.Sdk.Internal.Windows.WindowsPlatform;
+using static OpenCode.Sdk.Internal.WindowsPlatform;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Contender;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The shipped <see cref="IServiceContenderSpawner"/> on the SDK's own spawn primitives, the ones
-/// the standalone launcher uses: <see cref="Windows.WindowsSpawn"/> and <see cref="Posix.PosixSpawn"/>.
+/// the standalone launcher uses: <see cref="WindowsSpawn"/> and <see cref="PosixSpawn"/>.
 /// This file holds what both platforms share; the <c>.Windows</c> and <c>.Unix</c> files hold one
 /// arm each.
 /// </summary>

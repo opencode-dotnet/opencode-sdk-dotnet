@@ -1,6 +1,4 @@
-using OpenCode.Sdk.Internal.Posix;
-
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The standalone server process a start owns, the same on every platform once it runs: how

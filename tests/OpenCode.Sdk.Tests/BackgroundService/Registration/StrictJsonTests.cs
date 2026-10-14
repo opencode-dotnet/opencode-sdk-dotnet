@@ -1,5 +1,5 @@
 using System.Text.Json;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
+using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Tests.BackgroundService.Registration;
 

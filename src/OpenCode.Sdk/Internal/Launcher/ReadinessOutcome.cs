@@ -1,6 +1,4 @@
-using OpenCode.Sdk.Internal.Posix;
-
-namespace OpenCode.Sdk.Internal.Launcher;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// How the wait for a server's readiness line ended: the line arrived, the server exited first,

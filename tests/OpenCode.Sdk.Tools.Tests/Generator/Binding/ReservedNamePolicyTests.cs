@@ -40,8 +40,7 @@ public sealed class ReservedNamePolicyTests
                     : ((BaseTypeDeclarationSyntax)member).Identifier.ValueText));
         }
 
-        handWritten.Sort(StringComparer.Ordinal);
-        await Assert.That(handWritten)
+        await Assert.That(handWritten.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray())
             .IsEquivalentTo(ReservedNamePolicy.SpineTypeNames.Order(StringComparer.Ordinal).ToArray());
     }
 

@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
-using OpenCode.Sdk.Internal.Windows;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
 

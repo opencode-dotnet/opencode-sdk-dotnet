@@ -1005,9 +1005,11 @@ dotnet_diagnostic.MA0076.severity = none
 # StartAsync's readyLine TaskCompletionSource is completed only by this same method's own stdout
 # line handler, wired to the very child process this method spawns — there is no
 # externally-owned task lifetime for VSTHRD003 to protect against, the same shape already
-# arbitrated for ScriptedTerminalWebSocket's TaskCompletionSource handles. Winner: the event-to-async
-# bridge for the readiness signal; VSTHRD003 remains enabled for every other file.
-[src/OpenCode.Sdk/OpenCodeServer.cs]
+# arbitrated for ScriptedTerminalWebSocket's TaskCompletionSource handles. TranslateAsync's await
+# is the same shape: it awaits the Closed task of the child this handle spawned and owns. Winner: the
+# event-to-async bridge for the readiness signal and the owned child's end; VSTHRD003 remains enabled
+# for every other file.
+[src/OpenCode.Sdk/OpenCodeServer.Launcher.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
 # The progress window's expiry is a timer callback, synchronous by the ITimer contract, already

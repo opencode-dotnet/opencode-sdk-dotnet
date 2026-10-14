@@ -1,7 +1,5 @@
 #if !NET
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.BackgroundService.Discovery;
 
 namespace OpenCode.Sdk.Tests.Support;
 

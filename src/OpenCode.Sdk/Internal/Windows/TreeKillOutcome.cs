@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.Internal.Windows;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>How one run of the tree kill ended.</summary>
 internal enum TreeKillOutcome

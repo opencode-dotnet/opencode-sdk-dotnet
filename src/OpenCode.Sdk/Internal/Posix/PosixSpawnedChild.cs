@@ -1,7 +1,7 @@
-namespace OpenCode.Sdk.Internal.Posix;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// A child a <see cref="Abstractions.IPosixSpawn"/> started: its pid and the parent's end of each
+/// A child a <see cref="IPosixSpawn"/> started: its pid and the parent's end of each
 /// descriptor routed to a pipe, null for the others. Each stream passes to the caller, which owns
 /// it from here; the child is the caller's to reap, since only its parent can.
 /// </summary>

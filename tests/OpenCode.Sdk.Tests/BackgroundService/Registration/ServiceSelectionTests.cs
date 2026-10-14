@@ -1,4 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
+using OpenCode.Sdk.Internal;
 using Testably.Abstractions.Testing;
 
 namespace OpenCode.Sdk.Tests.BackgroundService.Registration;

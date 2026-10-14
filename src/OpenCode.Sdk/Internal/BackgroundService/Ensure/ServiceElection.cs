@@ -1,8 +1,4 @@
-using OpenCode.Sdk.Internal.BackgroundService.Abstractions;
-using OpenCode.Sdk.Internal.BackgroundService.Discovery;
-using OpenCode.Sdk.Internal.BackgroundService.Registration;
-
-namespace OpenCode.Sdk.Internal.BackgroundService.Ensure;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// One Ensure election, the pinned client's <c>ensure</c> loop (<c>promise/service.ts</c>, with

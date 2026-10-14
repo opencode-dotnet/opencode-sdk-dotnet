@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace OpenCode.Sdk.Internal.BackgroundService.Registration;
+namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The strict boundary over the CLI's service config (<c>ServiceConfig.Info</c> at the pin:
