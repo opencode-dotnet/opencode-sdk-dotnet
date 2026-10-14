@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.Win32.SafeHandles;
 using OpenCode.Sdk.Internal.Launcher.Abstractions;
 using OpenCode.Sdk.Internal.Posix;
@@ -36,6 +35,7 @@ internal sealed class WindowsServerLadder : IServerLadder
     private readonly Task<ChildExitStatus> _exited;
     private readonly IWindowsTreeKill _treeKill;
     private readonly WindowsLadderBounds _bounds;
+    private readonly TimeProvider _time;
 
     /// <summary>Initializes the ladder for one server.</summary>
     /// <param name="processId">The server's pid.</param>
@@ -43,19 +43,27 @@ internal sealed class WindowsServerLadder : IServerLadder
     /// <param name="exited">The server's own exit.</param>
     /// <param name="treeKill">The tree kill.</param>
     /// <param name="bounds">The bounds of the second rung; the shipped ones are <see cref="WindowsLadderBounds.Default"/>.</param>
+    /// <param name="time">The clock the grace and every bound run on.</param>
     public WindowsServerLadder(
-        int processId, SafeProcessHandle process, Task<ChildExitStatus> exited, IWindowsTreeKill treeKill, WindowsLadderBounds bounds)
+        int processId,
+        SafeProcessHandle process,
+        Task<ChildExitStatus> exited,
+        IWindowsTreeKill treeKill,
+        WindowsLadderBounds bounds,
+        TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(process);
         ArgumentNullException.ThrowIfNull(exited);
         ArgumentNullException.ThrowIfNull(treeKill);
         ArgumentNullException.ThrowIfNull(bounds);
+        ArgumentNullException.ThrowIfNull(time);
 
         _processId = processId;
         _process = process;
         _exited = exited;
         _treeKill = treeKill;
         _bounds = bounds;
+        _time = time;
     }
 
     /// <summary>Runs the ladder; bounded by the grace, the second tree kill's bound, and the forced-exit wait.</summary>
@@ -68,7 +76,7 @@ internal sealed class WindowsServerLadder : IServerLadder
             return;
         }
 
-        var clock = Stopwatch.StartNew();
+        var graceStarted = _time.GetTimestamp();
         if (grace > TimeSpan.Zero)
         {
             if (await KillTreeWithinAsync(grace).ConfigureAwait(false) is TreeKillOutcome.Failed)
@@ -76,7 +84,7 @@ internal sealed class WindowsServerLadder : IServerLadder
                 TerminateRoot();
             }
 
-            if (await RootExitedWithinAsync(grace - clock.Elapsed).ConfigureAwait(false))
+            if (await RootExitedWithinAsync(grace - _time.GetElapsedTime(graceStarted)).ConfigureAwait(false))
             {
                 return;
             }
@@ -99,7 +107,7 @@ internal sealed class WindowsServerLadder : IServerLadder
     private async Task<TreeKillOutcome> KillTreeWithinAsync(TimeSpan bound)
     {
         var kill = _treeKill.KillTreeAsync(_processId, bound);
-        return await BoundedWait.CompletesWithinAsync(kill, bound).ConfigureAwait(false) && kill.Status is TaskStatus.RanToCompletion
+        return await BoundedWait.CompletesWithinAsync(kill, bound, _time).ConfigureAwait(false) && kill.Status is TaskStatus.RanToCompletion
             ? await kill.ConfigureAwait(false)
             : TreeKillOutcome.TimedOut;
     }
@@ -111,5 +119,5 @@ internal sealed class WindowsServerLadder : IServerLadder
     private void TerminateRoot() => _ = WindowsInterop.TerminateProcess(_process, ForcedExitCode);
 
     private Task<bool> RootExitedWithinAsync(TimeSpan window) =>
-        BoundedWait.CompletesWithinAsync(_exited, window > TimeSpan.Zero ? window : TimeSpan.Zero);
+        BoundedWait.CompletesWithinAsync(_exited, window > TimeSpan.Zero ? window : TimeSpan.Zero, _time);
 }

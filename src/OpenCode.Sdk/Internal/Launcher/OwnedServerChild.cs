@@ -17,7 +17,7 @@ internal sealed class OwnedServerChild : IAsyncDisposable
     /// readiness line was written before the exit, so it is already in the pipe; a descendant that
     /// holds the pipe open costs this bound and no more.
     /// </summary>
-    private static readonly TimeSpan EarlyEndBound = TimeSpan.FromSeconds(1);
+    internal static readonly TimeSpan EarlyEndBound = TimeSpan.FromSeconds(1);
 
     private readonly OwnedServerProcess _process;
     private readonly OpenCodeServerOutput? _output;

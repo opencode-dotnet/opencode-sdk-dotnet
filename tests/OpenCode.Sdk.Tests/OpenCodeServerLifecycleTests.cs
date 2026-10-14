@@ -37,8 +37,12 @@ public sealed class OpenCodeServerLifecycleTests
     /// <summary>Bounds a stand-in that never reports or a drain that never starts; it decides nothing else.</summary>
     private static readonly TimeSpan StartHangGuard = TimeSpan.FromSeconds(60);
 
-    /// <summary>Moves the fake clock past any bound the early-end drain could have.</summary>
-    private static readonly TimeSpan PastEveryDrainBound = TimeSpan.FromMinutes(10);
+    /// <summary>
+    /// Moves the fake clock exactly past the early-end drain's bound and no further: the ladder's
+    /// grace runs on the same clock, and a move past it would run the ladder's second rung instead of
+    /// letting the root's exit answer.
+    /// </summary>
+    private static readonly TimeSpan PastTheDrainBound = OwnedServerChild.EarlyEndBound;
 
     private static async Task<(OpenCodeServer Server, TestRunRoot Root)> StartPinnedAsync(
         TimeSpan? gracefulShutdownTimeout = null,
@@ -549,7 +553,7 @@ public sealed class OpenCodeServerLifecycleTests
     {
         var processId = await LadderTree.WaitForPidAsync(output, LadderTree.Root, StartHangGuard);
         await time.WaitForTimerAsync(StartHangGuard);
-        time.Advance(PastEveryDrainBound);
+        time.Advance(PastTheDrainBound);
         return processId;
     }
 
