@@ -60,7 +60,10 @@ public sealed class OpenCodeServerWindowsTests
     /// The census counts those kinds only (<see cref="LauncherHandleCensus"/>): the host's whole
     /// handle count also moves with the runtime's own thread churn, three handles per worker, which
     /// no launcher path controls. The first round warms the host up: the launcher's one job is
-    /// created there.
+    /// created there, and the system keeps a pipe handle after the first pipe. The warm-up itself is
+    /// held to the census the host took before its first launch, for the kinds no warm-up creates:
+    /// a host inherits whatever handles its parent let it inherit, a foreign process's among them,
+    /// so that census, not zero, is what the warm-up must return to.
     /// </summary>
     [Test]
     [Timeout(240_000)]
@@ -79,13 +82,16 @@ public sealed class OpenCodeServerWindowsTests
         var line = lines.FirstOrDefault(static candidate => candidate.StartsWith(prefix, StringComparison.Ordinal));
         await Assert.That(line).IsNotNull().Because(result.StandardOutput + result.StandardError);
         var censuses = line![prefix.Length..].Split(';').Select(static census => LauncherHandles.Parse(census.Trim())).ToArray();
+        const string baselinePrefix = "baseline=";
+        var baseline = LauncherHandles.Parse(
+            lines.Single(static candidate => candidate.StartsWith(baselinePrefix, StringComparison.Ordinal))[baselinePrefix.Length..]);
         var report = result.StandardOutput.Trim();
 
-        // Every child of the warm-up round has exited and been released, so it holds no handle on
-        // another process or its threads; then ten rounds of three starts each, compared exactly: a
-        // single handle left by any start shows.
+        // Every child of the warm-up round has exited and been released, so the host holds the
+        // handles on other processes and their threads it held before its first launch; then ten
+        // rounds of three starts each, compared exactly: a single handle left by any start shows.
         await Assert.That(censuses).Count().IsEqualTo(3).Because(report);
-        await Assert.That(censuses[0] with { Pipes = 0, Jobs = 0 }).IsEqualTo(new LauncherHandles(Processes: 0, ExitWaits: 0, Threads: 0, Pipes: 0, Jobs: 0)).Because(report);
+        await Assert.That(censuses[0] with { Pipes = 0, Jobs = 0 }).IsEqualTo(baseline with { Pipes = 0, Jobs = 0 }).Because(report);
         await Assert.That(censuses[1]).IsEqualTo(censuses[0]).Because(report);
         await Assert.That(censuses[2]).IsEqualTo(censuses[0]).Because(report);
         BranchReport.Print("Windows — " + string.Join(" | ", lines));
