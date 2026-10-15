@@ -288,8 +288,19 @@ net10 or source-equivalent probes.
 The canonical comparable run, and the comparison it feeds:
 
 ```bash
-dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter '*' --runtimes net10.0 net472 --artifacts .benchmarks/<run-name>
+dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --runtimes net10.0 net472 --artifacts .benchmarks/<run-name>
 dotnet run --file tools/opencode-tool.cs -- compare-benchmarks .benchmarks/<before-run> .benchmarks/<after-run> --output .benchmarks/<comparison>.csv
+```
+
+The generator's own benchmarks (`OpenCode.Sdk.Performance.Tests.Generator`) measure the repository
+tool, which targets `net10.0` only, so they run as a separate invocation; the SDK filter above keeps
+them out of the `net472` leg, whose generated runner could not compile them. Their run rows rewrite
+the repository's generated tree, so they refuse to start unless the tree is clean and
+`OPENCODE_SDK_BENCHMARKS_REWRITE_TREE=allow` is set: run them in a disposable clone, never in a
+working checkout.
+
+```bash
+OPENCODE_SDK_BENCHMARKS_REWRITE_TREE=allow dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Generator.*' --runtimes net10.0 --artifacts .benchmarks/<run-name>-generator
 ```
 
 `--runtimes` is load-bearing: it labels each case's leg with the runtime name (`.NET 10.0`,

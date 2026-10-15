@@ -17,12 +17,16 @@ internal sealed class GeneratorInput
 
     private GeneratorInput(string root, IFileSystem fileSystem)
     {
+        Root = root;
         SpecPath = fileSystem.Path.Combine(root, "spec", "openapi.json");
         ProfilePath = fileSystem.Path.Combine(root, "tools", "generation-profile.txt");
         CurationPath = fileSystem.Path.Combine(root, "tools", "curation.json");
         OutputRoot = fileSystem.Path.Combine(root, "src", "OpenCode.Sdk");
         ProjectPath = fileSystem.Path.Combine(OutputRoot, "OpenCode.Sdk.csproj");
     }
+
+    /// <summary>Gets the repository root, where the generator's relative inputs resolve.</summary>
+    public string Root { get; }
 
     public string SpecPath { get; }
 
