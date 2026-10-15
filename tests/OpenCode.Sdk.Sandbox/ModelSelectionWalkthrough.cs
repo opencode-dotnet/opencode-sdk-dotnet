@@ -18,7 +18,7 @@ internal static class ModelSelectionWalkthrough
 
         // Catalogs are snapshots: plugins may still be registering providers.
         var providers = await client.Providers.ListProvidersAsync().ConfigureAwait(false);
-        var models = await client.LanguageModels.ListModelsAsync().ConfigureAwait(false);
+        var models = await ListModelsWhenLoadedAsync(client).ConfigureAwait(false);
         Console.WriteLine(string.Create(
             CultureInfo.InvariantCulture,
             $"catalog: providers={providers.Providers.Count} models={models.Models.Count}"));
@@ -53,5 +53,29 @@ internal static class ModelSelectionWalkthrough
         var removed = await client.Sessions.GetSessionClient(created.Session.Id)
             .RemoveAsync(OpenCodeRequestOptions.NoThrow).ConfigureAwait(false);
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"cleanup: status={removed.Status}"));
+    }
+
+    /// <summary>
+    /// The guide's wait for a location's plugins: the model list answers 503
+    /// <see cref="ServiceUnavailableError"/> until they have loaded, which is "still loading", not a
+    /// failure.
+    /// </summary>
+    private static async Task<ModelListResponse> ListModelsWhenLoadedAsync(OpenCodeClient client)
+    {
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        ModelListResponse? listed = null;
+        while (listed is null)
+        {
+            try
+            {
+                listed = await client.LanguageModels.ListModelsAsync(cancellationToken: deadline.Token).ConfigureAwait(false);
+            }
+            catch (OpenCodeApiException failure) when (failure.Status == 503 && failure.Error is ServiceUnavailableError)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(250), deadline.Token).ConfigureAwait(false);
+            }
+        }
+
+        return listed;
     }
 }

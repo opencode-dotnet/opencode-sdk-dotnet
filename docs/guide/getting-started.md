@@ -195,6 +195,27 @@ if (model is not null)
   does not make them complete, and the server exposes no activation barrier: when your application
   expects a particular provider or model, wait for that identity under a caller-owned cancellation
   deadline (`CONTEXT.md`, Plugin activation).
+- **The model calls answer 503 while a location's plugins are loading.** `ListModelsAsync` and
+  `GetDefaultAsync` wait a few seconds for the location's plugins, then answer `503` with a
+  `ServiceUnavailableError` if they are not ready yet. That happens on the first request to a
+  location, after a config or plugin change, and on the server's periodic plugin refresh. It means
+  "still loading", not a failure: wait briefly and ask again, under your own deadline.
+
+  ```csharp
+  using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+  ModelListResponse? listed = null;
+  while (listed is null)
+  {
+      try
+      {
+          listed = await client.LanguageModels.ListModelsAsync(cancellationToken: deadline.Token);
+      }
+      catch (OpenCodeApiException failure) when (failure.Status == 503 && failure.Error is ServiceUnavailableError)
+      {
+          await Task.Delay(TimeSpan.FromMilliseconds(250), deadline.Token);
+      }
+  }
+  ```
 - **The VCS summary settles the same way, per location.** `client.Vcs.GetVcsAsync()` for a
   directory the server has not served before can answer before that location's git plugin has
   reported: `Vcs.Provider` is `null` and both branch values are `null`, which means *not known
