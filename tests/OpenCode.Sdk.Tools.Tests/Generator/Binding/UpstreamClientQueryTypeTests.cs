@@ -147,7 +147,7 @@ public sealed partial class UpstreamClientQueryTypeTests
             return true;
         }
 
-        if (value is "string" or "boolean" || value is ['"', ..])
+        if (value is "string" or "boolean" or ['"', ..])
         {
             return false;
         }

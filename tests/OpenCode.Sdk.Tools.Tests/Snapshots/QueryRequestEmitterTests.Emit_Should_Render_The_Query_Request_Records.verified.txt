@@ -6,7 +6,7 @@ namespace OpenCode.Sdk;
 /// The query of &apos;widget.item.list&apos; (GET /api/widget/{widgetID}/item).
 /// </summary>
 /// <remarks>
-/// &apos;limit&apos;: Maximum item count as wire text. &apos;cursor&apos;: Opaque item cursor.
+/// &apos;limit&apos;: Maximum item count. &apos;cursor&apos;: Opaque item cursor.
 /// </remarks>
 public sealed record ItemListRequest : ListRequest
 {
@@ -36,9 +36,9 @@ public sealed record WidgetListRequest
     /// </summary>
     public ExampleMode? FallbackMode { get; init; }
     /// <summary>
-    /// Maximum widget count as wire text.
+    /// Maximum widget count.
     /// </summary>
-    public string? Limit { get; init; }
+    public int? Limit { get; init; }
     /// <summary>
     /// Gets the &apos;order&apos; query value; the server default applies when unset.
     /// </summary>
