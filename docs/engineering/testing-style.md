@@ -146,9 +146,9 @@ unsupported OpenAPI constructs and prove the exact required/null-representation 
   files only when it outgrows comfortable navigation.
 - TUnit creates a fresh instance per test: setup belongs in the constructor or
   `[Before(Test)]`; no state carried between tests, no shared mutable fields.
-- Assertions state intent in the test body — snapshot testing is reserved for its two
-  sealed uses (emitter micro-snapshots and the public API surface lock); behavior tests
-  never snapshot.
+- Assertions state intent in the test body — snapshot testing is reserved for its three
+  sealed uses (emitter micro-snapshots, the public API surface lock, and the suppression
+  ledger); behavior tests never snapshot.
 - Parallel keys and `[NotInParallel]` order tests inside one host only, while the hosts of one
   run — one per target framework — run at the same time. A resource two hosts must not use at
   once takes a named `MachineLock` (a file lock the operating system releases with a dead

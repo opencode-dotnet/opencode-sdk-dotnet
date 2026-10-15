@@ -26,9 +26,6 @@ trim_trailing_whitespace = true
 # CI pairs the in-build IDE0055 wall with whitespace and warning-level style formatter passes.
 max_line_length = 150
 
-[*.cs]
-indent_size = 4
-
 [*.{xml,config,*proj,nuspec,props,resx,targets,yml,tasks}]
 indent_size = 2
 
@@ -198,6 +195,7 @@ resharper_csharp_outdent_dots = false
 # SECTION 4: C#-SPECIFIC PREFERENCES
 # =============================================================================
 [*.cs]
+indent_size = 4
 
 # -----------------------------------------------------------------------------
 # 4.1 Namespace Declarations
@@ -722,7 +720,7 @@ generated_code = true
 # =============================================================================
 # SECTION 15: TEST PROJECT OVERRIDES
 # =============================================================================
-[{*Tests/**/*.cs,tests/**/*.cs}]
+[tests/**/*.cs]
 dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CS1591.severity = none
 
@@ -1096,12 +1094,14 @@ dotnet_diagnostic.S3869.severity = none
 # WriteAllBytes, ReadAllText, and ReadAllBytes. The test project also compiles for net472, whose
 # Testably asset is the netstandard2.0 one and carries none of the async overloads the modern asset
 # adds, so one source file cannot await them; the calls are a few bytes of test arrangement, not the
-# behavior under test. Winner: one source for every test leg; CA1849, VSTHRD103, and S6966 remain
-# enabled for every other file.
+# behavior under test. It also seeds a publication, a temporary file beside the sidecar it replaces,
+# on the real filesystem through the same synchronous members, for the same reason. Winner: one
+# source for every test leg; CA1849, VSTHRD103, S6966, and MA0045 remain enabled for every other file.
 [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/ServiceFileSystemTests.cs]
 dotnet_diagnostic.CA1849.severity = none
 dotnet_diagnostic.VSTHRD103.severity = none
 dotnet_diagnostic.S6966.severity = none
+dotnet_diagnostic.MA0045.severity = none
 
 # BestEffortDeleteTests seeds a read-only file into an owned temporary directory through
 # IFile.WriteAllText, for the reason ServiceFileSystemTests gives: the net472 Testably asset carries
@@ -1133,13 +1133,6 @@ dotnet_diagnostic.MA0045.severity = none
 # netstandard2.0 Testably asset, which has no async overloads. Winner: one source for every test
 # leg; MA0045 remains enabled elsewhere.
 [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Stop/ServiceStopperTests.cs]
-dotnet_diagnostic.MA0045.severity = none
-
-# ServiceFileSystemTests seeds a publication, a temporary file beside the sidecar it replaces, on the
-# real filesystem through the same synchronous members, for the same reason: the net472 leg compiles
-# the netstandard2.0 Testably asset, which has no async overloads. Winner: one source for every test
-# leg; MA0045 remains enabled elsewhere.
-[tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/ServiceFileSystemTests.cs]
 dotnet_diagnostic.MA0045.severity = none
 
 # OpenCodeServerDiscoveryIsolatedProcessTests seeds an isolated registration on the real filesystem

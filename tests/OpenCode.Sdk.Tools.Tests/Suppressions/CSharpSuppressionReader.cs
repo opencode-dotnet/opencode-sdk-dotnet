@@ -1,0 +1,180 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+namespace OpenCode.Sdk.Tools.Tests.Suppressions;
+
+/// <summary>
+/// Reads the suppressions one C# file declares:
+/// <list type="bullet">
+/// <item><c>#pragma warning disable</c> (a pragma without IDs counts as rule <c>*</c>) and
+/// <c>#nullable disable</c> directives;</item>
+/// <item><c>[SuppressMessage]</c>, <c>[UnconditionalSuppressMessage]</c> and
+/// <c>[SlopwatchSuppress]</c> attributes, under their own name or a <c>using</c> alias;</item>
+/// <item>slopwatch-ignore comments, in the form Slopwatch reads them;</item>
+/// <item>a file-based app's <c>#:property</c> directives in the file's header.</item>
+/// </list>
+/// An inactive <c>#if</c> region is parsed as C# too, so what it would declare when active counts.
+/// Its directive lines count as the compiler reads them: inside an inactive region, a line that
+/// opens with <c>#pragma</c> is a directive even where an active parse would see it in a string. A form the ledger cannot read is refused rather than skipped: a rule
+/// ID given through anything but a string literal, and an assembly- or module-level suppression,
+/// whose reach is its target rather than its file.
+/// </summary>
+internal static partial class CSharpSuppressionReader
+{
+    private const string EveryRule = "*";
+    private const string NullableRule = "nullable";
+    private const string SuppressMessage = "SuppressMessage";
+    private const string UnconditionalSuppressMessage = "UnconditionalSuppressMessage";
+    private const string SlopwatchSuppress = "SlopwatchSuppress";
+
+    public static IReadOnlyList<Suppression> Read(string origin, string text)
+    {
+        var result = new List<Suppression>();
+        ReadCode(origin, text, result);
+        result.AddRange(HeaderDirectives(text)
+            .SelectMany(match => ProjectSuppressionReader.Property(origin, match.Groups["name"].Value, match.Groups["value"].Value, string.Empty)));
+        return result;
+    }
+
+    /// <summary>Every slopwatch-ignore marker in one comment, by the slopwatch rule it names.</summary>
+    internal static IEnumerable<Suppression> SlopwatchIgnores(string origin, string comment) =>
+        comment.Split('\n')
+            .Select(static line => SlopwatchIgnore().Match(line.Trim().TrimStart('/', '*', '#', '!', '-', '<').TrimStart()))
+            .Where(static match => match.Success)
+            .Select(match => new Suppression(
+                SuppressionChannel.SlopwatchIgnore, origin, string.Empty, DiagnosticId.Normalize(match.Groups["rule"].Value), string.Empty));
+
+    private static void ReadCode(string origin, string text, List<Suppression> result)
+    {
+        var root = CSharpSyntaxTree.ParseText(text).GetCompilationUnitRoot();
+        var aliases = AttributeAliases(root);
+        foreach (var node in root.DescendantNodes(descendIntoTrivia: true))
+        {
+            switch (node)
+            {
+                case PragmaWarningDirectiveTriviaSyntax pragma when pragma.DisableOrRestoreKeyword.IsKind(SyntaxKind.DisableKeyword):
+                    AddPragma(result, origin, pragma.ErrorCodes.Select(static code => code.ToString()));
+                    break;
+                case NullableDirectiveTriviaSyntax nullable when nullable.SettingToken.IsKind(SyntaxKind.DisableKeyword):
+                    result.Add(new Suppression(
+                        SuppressionChannel.NullableDirective, origin, string.Empty, NullableRule, $"disable {nullable.TargetToken.ValueText}".Trim()));
+                    break;
+                case AttributeSyntax attribute when Read(origin, attribute, aliases) is { } suppression:
+                    result.Add(suppression);
+                    break;
+            }
+        }
+
+        foreach (var trivia in root.DescendantTrivia(descendIntoTrivia: true))
+        {
+            if (trivia.IsKind(SyntaxKind.DisabledTextTrivia))
+            {
+                ReadCode(origin, trivia.ToFullString(), result);
+            }
+            else if (IsComment(trivia))
+            {
+                result.AddRange(SlopwatchIgnores(origin, trivia.ToFullString()));
+            }
+        }
+    }
+
+    private static Dictionary<string, string> AttributeAliases(CompilationUnitSyntax root) =>
+        root.DescendantNodes()
+            .OfType<UsingDirectiveSyntax>()
+            .Where(static directive => directive.Alias is not null && directive.NamespaceOrType is NameSyntax)
+            .GroupBy(static directive => directive.Alias!.Name.Identifier.ValueText, StringComparer.Ordinal)
+            .ToDictionary(static group => group.Key, static group => SimpleName((NameSyntax)group.First().NamespaceOrType), StringComparer.Ordinal);
+
+    private static Suppression? Read(string origin, AttributeSyntax attribute, Dictionary<string, string> aliases)
+    {
+        var name = SimpleName(attribute.Name);
+        if (aliases.TryGetValue(name, out var aliased))
+        {
+            name = aliased;
+        }
+
+        if (name.EndsWith(nameof(Attribute), StringComparison.Ordinal))
+        {
+            name = name[..^nameof(Attribute).Length];
+        }
+
+        if (name is not (SuppressMessage or UnconditionalSuppressMessage or SlopwatchSuppress))
+        {
+            return null;
+        }
+
+        if (attribute.Parent is AttributeListSyntax { Target: { } target }
+            && (target.Identifier.IsKind(SyntaxKind.AssemblyKeyword) || target.Identifier.IsKind(SyntaxKind.ModuleKeyword)))
+        {
+            throw Refusal(origin, attribute, "is an assembly- or module-level suppression; the ledger reads only suppressions on the code they sit on");
+        }
+
+        return name == SlopwatchSuppress
+            ? new Suppression(SuppressionChannel.SlopwatchSuppress, origin, string.Empty, DiagnosticId.Normalize(Argument(origin, attribute, 0, "ruleId")), string.Empty)
+            : new Suppression(SuppressionChannel.SuppressMessage, origin, string.Empty, CheckId(origin, attribute), string.Empty);
+    }
+
+    private static string CheckId(string origin, AttributeSyntax attribute)
+    {
+        var checkId = Argument(origin, attribute, 1, "checkId");
+        var separator = checkId.IndexOf(':', StringComparison.Ordinal);
+        return DiagnosticId.Normalize(separator < 0 ? checkId : checkId[..separator]);
+    }
+
+    private static string Argument(string origin, AttributeSyntax attribute, int position, string parameter)
+    {
+        var arguments = attribute.ArgumentList?.Arguments ?? default;
+        var argument = arguments.FirstOrDefault(argument => argument.NameColon?.Name.Identifier.ValueText == parameter)
+            ?? arguments.Where(static argument => argument.NameEquals is null && argument.NameColon is null).ElementAtOrDefault(position);
+        return argument?.Expression is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.StringLiteralExpression)
+            ? literal.Token.ValueText
+            : throw Refusal(origin, attribute, $"names its rule ('{parameter}') through something other than a string literal; write the rule ID as a literal");
+    }
+
+    private static string SimpleName(NameSyntax name) => name switch
+    {
+        QualifiedNameSyntax qualified => qualified.Right.Identifier.ValueText,
+        AliasQualifiedNameSyntax alias => alias.Name.Identifier.ValueText,
+        SimpleNameSyntax simple => simple.Identifier.ValueText,
+        _ => string.Empty,
+    };
+
+    private static InvalidOperationException Refusal(string origin, AttributeSyntax attribute, string reason) =>
+        new(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{origin}:{attribute.GetLocation().GetLineSpan().StartLinePosition.Line + 1}: [{attribute}] {reason}."));
+
+    private static void AddPragma(List<Suppression> result, string origin, IEnumerable<string> codes)
+    {
+        var rules = codes
+            .Select(static code => code.Trim())
+            .Where(static code => code.Length > 0)
+            .Select(DiagnosticId.Normalize)
+            .DefaultIfEmpty(EveryRule);
+        result.AddRange(rules.Select(rule => new Suppression(SuppressionChannel.Pragma, origin, string.Empty, rule, string.Empty)));
+    }
+
+    /// <summary>The <c>#:property</c> directives of the header a file-based app may open with: directives, a shebang, comments and blank lines.</summary>
+    private static IEnumerable<Match> HeaderDirectives(string text) =>
+        text.Split('\n')
+            .Select(static line => line.TrimEnd('\r'))
+            .TakeWhile(static line => line.Length == 0 || line.StartsWith("#:", StringComparison.Ordinal)
+                || line.StartsWith("#!", StringComparison.Ordinal) || line.TrimStart().StartsWith("//", StringComparison.Ordinal))
+            .Select(static line => PropertyDirective().Match(line))
+            .Where(static match => match.Success);
+
+    private static bool IsComment(SyntaxTrivia trivia) =>
+        trivia.IsKind(SyntaxKind.SingleLineCommentTrivia)
+        || trivia.IsKind(SyntaxKind.MultiLineCommentTrivia)
+        || trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia)
+        || trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia);
+
+    [GeneratedRegex(@"^slopwatch-ignore(?:-start)?\s*:\s*(?<rule>SW\d{3})\b", RegexOptions.IgnoreCase, 1000)]
+    private static partial Regex SlopwatchIgnore();
+
+    [GeneratedRegex(@"^#:property\s+(?<name>[A-Za-z]+)\s*=(?<value>.*)$", RegexOptions.None, 1000)]
+    private static partial Regex PropertyDirective();
+}
