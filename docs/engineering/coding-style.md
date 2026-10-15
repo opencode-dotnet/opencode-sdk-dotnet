@@ -1,6 +1,6 @@
 # Coding Style — hand-written code
 
-Date: 2026-10-14
+Date: 2026-10-15
 
 Binding authoring style for every hand-written line in this repository — product code,
 `tools/`, and tests. Generated output is governed by the generator's emitters (ADR-0003);
@@ -43,11 +43,18 @@ for a pile of static steps.
 - **Everything else is a `sealed class`.** Pure logic a test can construct directly
   gets no interface ceremony — no `IThing` for a single implementation nobody
   substitutes. The analyzer wall already enforces sealed-by-default (MA0053).
+- **One exception: stateless policy is a `static class`.** A policy that is a pure function over
+  the data it is given — no I/O, no collaborator, no mutable state — is a static class with static
+  methods, because CA1822 and S2325 make a member that touches no instance state static, and an
+  instance the type would never use earns nothing. The generator's binding and emission policies
+  are the common case. The moment a policy needs a collaborator, I/O or state, it becomes a sealed
+  class composed through DI like any other; the SDK's and the tool's commands and services always
+  are.
 - **DI-first composition.** Every executable has exactly one composition root: a
   `ServiceCollection` that registers each collaborator behind its seam, handed to the
   CLI framework through its DI registrar. Commands and services receive dependencies
-  through constructors — no service locators, no static mutable state, no behavior on
-  static classes. The executable's static composition-root factory is wiring only: it may
+  through constructors — no service locators, no static mutable state, and no behavior on
+  static classes beyond the stateless policies above. The executable's static composition-root factory is wiring only: it may
   construct/register concrete adapters but performs no I/O itself. The shape:
 
   ```csharp
