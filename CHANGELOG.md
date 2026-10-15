@@ -34,8 +34,8 @@ Nightly builds of `master` are on
 - **`OpenCodeClientOptions.EventStreamIdleTimeout` sets the event bus's idle window,** as
   upstream's own client allows. A connection that receives nothing for that long is replaced; the
   default stays 45 seconds. Keep it above the server's 15-second keepalive. Any window above zero
-  is accepted, but not `Timeout.InfiniteTimeSpan`: a bus that never times out would hang on a
-  half-open connection. The 2-second connect bound and the 1-second delay before a new attempt
+  and at most `int.MaxValue` milliseconds is accepted, but not `Timeout.InfiniteTimeSpan`: a bus
+  that never times out would hang on a half-open connection. The 2-second connect bound and the 1-second delay before a new attempt
   stay fixed.
 
 ## [0.9.0-preview.11] - 2026-10-15

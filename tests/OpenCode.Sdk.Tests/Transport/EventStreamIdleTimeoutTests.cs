@@ -56,16 +56,18 @@ public sealed class EventStreamIdleTimeoutTests
         await Assert.That(pipeline.EventStreamIdleWindow).IsEqualTo(TimeSpan.FromSeconds(20));
     }
 
-    /// <summary>A window passing is named with the window that passed, fractions of a second included.</summary>
+    /// <summary>A passed window is named with the window that passed, down to the single tick the option accepts.</summary>
     [Test]
-    public async Task A_Passed_Window_Should_Be_Named_With_Its_Own_Length()
+    [Arguments(15_000_000L, "1.5")]
+    [Arguments(1L, "0.0000001")]
+    public async Task A_Passed_Window_Should_Be_Named_With_Its_Own_Length(long ticks, string seconds)
     {
-        using var attempt = new StreamAttempt(TimeProvider.System, TimeSpan.FromMilliseconds(1500), CancellationToken.None);
+        using var attempt = new StreamAttempt(TimeProvider.System, TimeSpan.FromTicks(ticks), CancellationToken.None);
         attempt.OnFrame(new ServerSentEvent(ServerSentEvent.DefaultName, ScriptedEventServer.Connected));
         attempt.Establish();
 
         var failure = attempt.Describe(new OperationCanceledException());
 
-        await Assert.That(failure.Message).IsEqualTo("The opencode event stream received nothing for 1.5 seconds.");
+        await Assert.That(failure.Message).IsEqualTo($"The opencode event stream received nothing for {seconds} seconds.");
     }
 }

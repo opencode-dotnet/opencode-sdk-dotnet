@@ -84,6 +84,30 @@ public sealed class OpenCodeServiceCollectionExtensionsTests
     }
 
     [Test]
+    public async Task AddOpenCode_Should_Bind_The_Event_Stream_Idle_Window_From_Configuration()
+    {
+        using var provider = Bind(OpenCodeConfigurationData.WithEventStreamIdleTimeout("00:00:23"));
+
+        var options = provider.GetRequiredService<IOptions<OpenCodeClientOptions>>().Value;
+
+        await Assert.That(options.EventStreamIdleTimeout).IsEqualTo(TimeSpan.FromSeconds(23));
+    }
+
+    /// <summary>The setter's refusal reaches configuration too: binding a window that is empty or never ends fails rather than leaving the default.</summary>
+    [Test]
+    [Arguments("00:00:00")]
+    [Arguments("-00:00:00.001")]
+    public async Task AddOpenCode_Should_Refuse_An_Idle_Window_The_Option_Refuses(string value)
+    {
+        using var provider = Bind(OpenCodeConfigurationData.WithEventStreamIdleTimeout(value));
+
+        var failure = await Assert.That(() => provider.GetRequiredService<IOptions<OpenCodeClientOptions>>().Value).Throws<Exception>();
+
+        await Assert.That(Chain(failure!).OfType<ArgumentOutOfRangeException>().Select(static refusal => refusal.ParamName ?? string.Empty))
+            .IsEquivalentTo(["value"]);
+    }
+
+    [Test]
     public async Task AddOpenCode_Should_Return_The_Service_Collection_For_Chaining()
     {
         var services = new ServiceCollection();
@@ -119,5 +143,22 @@ public sealed class OpenCodeServiceCollectionExtensionsTests
         var services = new ServiceCollection();
         _ = services.AddOpenCode(static options => options.Endpoint = Endpoint);
         return services.BuildServiceProvider();
+    }
+
+    private static ServiceProvider Bind(IReadOnlyDictionary<string, string?> section)
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(section).Build();
+        var services = new ServiceCollection();
+        _ = services.AddOpenCode(configuration.GetSection("OpenCode"));
+        return services.BuildServiceProvider();
+    }
+
+    /// <summary>The failure and every exception it wraps, outermost first.</summary>
+    private static IEnumerable<Exception> Chain(Exception failure)
+    {
+        for (var current = failure; current is not null; current = current.InnerException)
+        {
+            yield return current;
+        }
     }
 }

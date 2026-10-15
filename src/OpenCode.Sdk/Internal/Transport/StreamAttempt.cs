@@ -77,7 +77,7 @@ internal sealed class StreamAttempt : IDisposable
     public OpenCodeTransportException Describe(OperationCanceledException cancellation)
     {
         var window = IsEstablished ? _idleWindow : StreamReconnect.ConnectBound;
-        var seconds = window.TotalSeconds.ToString("0.###", CultureInfo.InvariantCulture);
+        var seconds = window.TotalSeconds.ToString("0.#######", CultureInfo.InvariantCulture);
         return new OpenCodeTransportException(IsEstablished
             ? $"The opencode event stream received nothing for {seconds} seconds."
             : $"The opencode event stream did not connect within {seconds} seconds.", cancellation);

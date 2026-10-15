@@ -281,7 +281,7 @@ internal sealed class Pipeline : IDisposable
     /// <summary>
     /// Runs one connection after another for a reconnecting operation, as the pinned client does.
     /// Each attempt runs under its own window: 2 seconds to answer and deliver
-    /// <c>server.connected</c> first, then 45 seconds without a byte once connected, stopped while
+    /// <c>server.connected</c> first, then the client's idle window without a byte once connected, stopped while
     /// the consumer holds an event. Any failure is followed by a new attempt one second later. The
     /// give-up window runs from the first attempt and again from each drop, stops once an attempt
     /// connects, and when it passes it cuts whatever is in flight and throws the last failure. The
