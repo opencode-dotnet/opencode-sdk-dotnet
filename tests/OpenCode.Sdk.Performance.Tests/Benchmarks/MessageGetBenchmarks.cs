@@ -12,8 +12,8 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// validated UTF-8, and source-generated envelope materialization alone. The three fixtures
 /// scale the same message from the wire's common size to a very large one, so per-byte and
 /// fixed costs separate.
-/// The raw-send rung is the harness alone (<see cref="CannedExchange"/>), so a pipeline rung minus
-/// it is the SDK's share.
+/// The raw-send rung sends and drains the same response with no SDK (<see cref="CannedExchange"/>),
+/// the floor a buffered pipeline rung stands on.
 /// </summary>
 [MemoryDiagnoser]
 public class MessageGetBenchmarks : IDisposable
@@ -58,6 +58,7 @@ public class MessageGetBenchmarks : IDisposable
         _httpClient = new HttpClient(_handler);
         _client = new OpenCodeClient(_httpClient, Options);
         _raw = new CannedExchange(_httpClient, HttpMethod.Get, Options.Endpoint!);
+        await _raw.RequireDrainAsync(_envelope.Length).ConfigureAwait(false);
         _session = _client.Sessions.GetSessionClient(SessionId);
         _pipeline = new Pipeline(_httpClient, ownsHttpClient: false, Options);
 
@@ -86,7 +87,7 @@ public class MessageGetBenchmarks : IDisposable
     public object? DeserializeEnvelope() =>
         JsonSerializer.Deserialize(_envelope, OpenCodeJsonContext.Default.SessionMessageResponseEnvelope);
 
-    /// <summary>The harness floor: the same canned handler through a bare <see cref="HttpClient"/> send with the body drained, no SDK.</summary>
+    /// <summary>The harness floor: a bare send through the same handler with the body drained, no SDK.</summary>
     [Benchmark]
     public Task<int> SendRawRequestAsync() => _raw!.SendAndDrainAsync();
 

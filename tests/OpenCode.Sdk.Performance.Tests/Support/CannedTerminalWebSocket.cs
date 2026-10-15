@@ -10,31 +10,37 @@ namespace OpenCode.Sdk.Performance.Tests.Support;
 /// would produce. The run ends with a normal closure, mirroring how a session's read loop ends
 /// without a fault. No socket, no live server. The replay reads the caller's array and never
 /// copies it, so constructing one inside a measured rung costs one small object. By default
-/// every receive completes synchronously; a suspending socket completes each receive on the
-/// thread pool, as a socket whose data has not arrived yet does, and
-/// <see cref="SuspendedReceives"/> lets a setup prove it did.
+/// every receive completes synchronously. A pooled socket completes each receive on the thread
+/// pool instead, as a socket whose data has not arrived yet does, and <see cref="PooledReceives"/>
+/// counts those completions.
 /// </summary>
+/// <remarks>
+/// A receive returns a <see cref="Task{TResult}"/>, which offers no hook for the moment its awaiter
+/// registers, so a receive loop that checks for completion after the pool already ran consumes the
+/// result without suspending. The pooled rungs therefore measure receives completed on the pool,
+/// which almost always suspend the loop, not a proven suspension per receive.
+/// </remarks>
 internal sealed class CannedTerminalWebSocket : ITerminalWebSocket
 {
     private readonly (WebSocketMessageType Type, byte[] Payload)[] _messages;
-    private readonly bool _suspend;
+    private readonly bool _pooled;
     private int _messageIndex;
     private int _offset;
     private bool _closed;
 
-    public CannedTerminalWebSocket((WebSocketMessageType Type, byte[] Payload)[] messages, bool suspend = false)
+    public CannedTerminalWebSocket((WebSocketMessageType Type, byte[] Payload)[] messages, bool pooled = false)
     {
         ArgumentNullException.ThrowIfNull(messages);
         _messages = messages;
-        _suspend = suspend;
+        _pooled = pooled;
     }
 
     public WebSocketCloseStatus? CloseStatus => _closed ? WebSocketCloseStatus.NormalClosure : null;
 
     public string? CloseStatusDescription => null;
 
-    /// <summary>Gets how many receives suspended before they returned.</summary>
-    public int SuspendedReceives { get; private set; }
+    /// <summary>Gets how many receives completed on the thread pool.</summary>
+    public int PooledReceives { get; private set; }
 
     /// <summary>
     /// Delivers the next fragment of the current message, or a normal-closure close once every
@@ -43,7 +49,7 @@ internal sealed class CannedTerminalWebSocket : ITerminalWebSocket
     /// would force a live socket to.
     /// </summary>
     public Task<PtyReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken) =>
-        _suspend ? SuspendThenReceiveAsync(buffer) : Task.FromResult(Receive(buffer));
+        _pooled ? ReceiveOnPoolAsync(buffer) : Task.FromResult(Receive(buffer));
 
     /// <summary>Not exercised by the read-path benchmarks; a harmless no-op rather than a refusal.</summary>
     public Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, CancellationToken cancellationToken) =>
@@ -64,10 +70,10 @@ internal sealed class CannedTerminalWebSocket : ITerminalWebSocket
     {
     }
 
-    private async Task<PtyReceiveResult> SuspendThenReceiveAsync(ArraySegment<byte> buffer)
+    private async Task<PtyReceiveResult> ReceiveOnPoolAsync(ArraySegment<byte> buffer)
     {
         await Task.Yield();
-        SuspendedReceives++;
+        PooledReceives++;
         return Receive(buffer);
     }
 

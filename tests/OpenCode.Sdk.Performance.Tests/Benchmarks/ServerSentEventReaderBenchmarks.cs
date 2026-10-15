@@ -71,7 +71,7 @@ public class ServerSentEventReaderBenchmarks
             using (var stream = new ChunkedReadStream(fixture.Bytes, SocketChunkBytes, suspend: true))
             {
                 if (await CountFramesAsync(stream).ConfigureAwait(false) != fixture.Items
-                    || stream.SuspendedReads < fixture.Bytes.Length / SocketChunkBytes)
+                    || stream.SuspendedReads < stream.MinimumReads)
                 {
                     throw new InvalidOperationException($"Suspending fixture '{fixture.Name}' did not frame its count over suspended reads.");
                 }

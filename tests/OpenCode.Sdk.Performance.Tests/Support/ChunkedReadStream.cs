@@ -8,13 +8,18 @@ namespace OpenCode.Sdk.Performance.Tests.Support;
 /// Serves a buffered body in reads no larger than one socket-sized chunk, so the reader's
 /// decoder carry-over and cross-read frame assembly are measured instead of the 8 KiB whole
 /// reads a <see cref="MemoryStream"/> delivers. By default every read completes synchronously, so
-/// a rung over it measures CPU work alone. A suspending stream completes each asynchronous read on
-/// the thread pool instead, as a socket whose data has not arrived yet does, so the reader's await
-/// really suspends and resumes; <see cref="SuspendedReads"/> lets a setup prove it did. On .NET the
-/// suspension reuses one <c>IValueTaskSource</c>, as a socket's awaitable event
-/// args do, so it allocates nothing per read and the rung counts the reader's own allocations;
-/// .NET Framework has no such source, and each read there costs a task, as a socket's does.
+/// a rung over it measures CPU work alone. A suspending stream makes each asynchronous read wait,
+/// as a socket whose data has not arrived yet does.
 /// </summary>
+/// <remarks>
+/// On .NET a suspended read is one reused <c>IValueTaskSource</c>, as a socket's awaitable event
+/// args are, so it allocates nothing per read. Its data "arrives" only once the reader has
+/// registered its continuation: the registration queues the completion to the thread pool, so
+/// every read really suspends and resumes, and <see cref="SuspendedReads"/> counts those
+/// registrations. .NET Framework has no such source; there each read yields to the pool and costs a
+/// task, as a socket's read does, and <see cref="SuspendedReads"/> counts the pooled completions,
+/// which a reader that checks for completion after the pool ran consumes without suspending.
+/// </remarks>
 internal sealed class ChunkedReadStream : Stream
 #if NET
     , IValueTaskSource<int>, IThreadPoolWorkItem
@@ -43,8 +48,11 @@ internal sealed class ChunkedReadStream : Stream
 #endif
     }
 
-    /// <summary>Gets how many asynchronous reads suspended before they returned.</summary>
+    /// <summary>Gets how many asynchronous reads suspended before they returned (see the remarks for .NET Framework).</summary>
     public int SuspendedReads { get; private set; }
+
+    /// <summary>Gets the fewest reads that can deliver the whole body, before the end-of-body read.</summary>
+    public int MinimumReads => (_body.Length + _chunkBytes - 1) / _chunkBytes;
 
     public override bool CanRead => true;
 
@@ -81,16 +89,15 @@ internal sealed class ChunkedReadStream : Stream
         }
 
         // One read is outstanding at a time, as on a socket, so the one source is free again here.
+        // Nothing completes it until the reader registers its continuation.
         _pending.Reset();
         _pendingBuffer = buffer;
-        ThreadPool.UnsafeQueueUserWorkItem(this, preferLocal: false);
         return new ValueTask<int>(this, _pending.Version);
     }
 
-    /// <summary>The thread-pool half of a suspended read: the data "arrives" and the reader resumes.</summary>
+    /// <summary>The thread-pool half of a suspended read: the data arrives and the reader resumes.</summary>
     void IThreadPoolWorkItem.Execute()
     {
-        SuspendedReads++;
         var count = ReadChunk(_pendingBuffer.Span);
         _pendingBuffer = default;
         _pending.SetResult(count);
@@ -100,8 +107,12 @@ internal sealed class ChunkedReadStream : Stream
 
     ValueTaskSourceStatus IValueTaskSource<int>.GetStatus(short token) => _pending.GetStatus(token);
 
-    void IValueTaskSource<int>.OnCompleted(Action<object?> continuation, object? state, short token, ValueTaskSourceOnCompletedFlags flags) =>
+    void IValueTaskSource<int>.OnCompleted(Action<object?> continuation, object? state, short token, ValueTaskSourceOnCompletedFlags flags)
+    {
         _pending.OnCompleted(continuation, state, token, flags);
+        SuspendedReads++;
+        ThreadPool.UnsafeQueueUserWorkItem(this, preferLocal: false);
+    }
 #else
     public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
     {

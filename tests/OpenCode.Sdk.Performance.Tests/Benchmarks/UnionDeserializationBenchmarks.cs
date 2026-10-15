@@ -100,12 +100,12 @@ public class UnionDeserializationBenchmarks
         return JsonSerializer.Deserialize(fixture.Bytes, OpenCodeJsonContext.Default.ISessionLogItem);
     }
 
-    /// <summary>
-    /// The shallow control: the watermark materialized into its record without dispatch. It returns
-    /// <see cref="object"/> because BenchmarkDotNet's generated runner names a benchmark's return
-    /// type and does not inherit this project's experimental-diagnostic arbitration, so naming the
-    /// experimental record there would fail that build.
-    /// </summary>
+    /// <summary>The shallow control: the watermark materialized into its record without dispatch.</summary>
+    /// <remarks>
+    /// It returns <see cref="object"/> because BenchmarkDotNet's generated runner names a benchmark's
+    /// return type and does not inherit this project's experimental-diagnostic arbitration, so naming
+    /// the experimental record there would fail that build.
+    /// </remarks>
     [Benchmark]
     [ArgumentsSource(nameof(LogSyncedFixtures))]
     public object? DeserializeConcreteLogSynced(WireFixture fixture)

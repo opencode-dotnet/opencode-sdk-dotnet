@@ -15,8 +15,9 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// structured events whose content is nested union payload, and a realistic mix. The suspending
 /// operation reads the same body in socket-sized reads that each suspend, as a live stream does, so
 /// it adds cross-read assembly and the resumes the buffered operation never pays.
-/// The raw-send rung is the harness alone (<see cref="CannedExchange"/>), so a pipeline rung minus
-/// it is the SDK's share.
+/// The raw-send rung sends and drains the same response with no SDK (<see cref="CannedExchange"/>),
+/// the floor a buffered pipeline rung stands on; the suspending raw row is the suspending
+/// operation's.
 /// </summary>
 [MemoryDiagnoser]
 public class SessionLogStreamBenchmarks : IDisposable
@@ -46,6 +47,7 @@ public class SessionLogStreamBenchmarks : IDisposable
     private HttpClient? _suspendingHttpClient;
     private OpenCodeClient? _suspendingClient;
     private SessionClient? _suspendingSession;
+    private CannedExchange? _suspendingRaw;
 
     public static IEnumerable<WireFixture> Fixtures()
     {
@@ -66,11 +68,14 @@ public class SessionLogStreamBenchmarks : IDisposable
         _httpClient = new HttpClient(_handler);
         _client = new OpenCodeClient(_httpClient, Options);
         _raw = new CannedExchange(_httpClient, HttpMethod.Get, Options.Endpoint!);
+        await _raw.RequireDrainAsync(_body.Length).ConfigureAwait(false);
         _session = _client.Sessions.GetSessionClient("ses_bench");
         _suspendingHandler = new CannedResponseHandler(_body, "text/event-stream", suspendingChunkBytes: SocketChunkBytes);
         _suspendingHttpClient = new HttpClient(_suspendingHandler);
         _suspendingClient = new OpenCodeClient(_suspendingHttpClient, Options);
         _suspendingSession = _suspendingClient.Sessions.GetSessionClient("ses_bench");
+        _suspendingRaw = new CannedExchange(_suspendingHttpClient, HttpMethod.Get, Options.Endpoint!);
+        await _suspendingRaw.RequireDrainAsync(_body.Length).ConfigureAwait(false);
         _frames = await CollectFramesAsync(_body).ConfigureAwait(false);
 
         var count = 0;
@@ -89,9 +94,18 @@ public class SessionLogStreamBenchmarks : IDisposable
             throw new InvalidOperationException("The stream fixture did not materialize the expected frame count.");
         }
 
-        if (await GetLogSuspendingAsync().ConfigureAwait(false) != Fixture.Items
-            || _suspendingHandler.LastBody is not { } body
-            || body.SuspendedReads < _body.Length / SocketChunkBytes)
+        var suspended = 0;
+        await foreach (var item in _suspendingSession.GetLogAsync().ConfigureAwait(false))
+        {
+            if (item is UnknownSessionLogItem)
+            {
+                throw new InvalidOperationException("A suspending stream frame dispatched to the unknown carrier.");
+            }
+
+            suspended++;
+        }
+
+        if (suspended != Fixture.Items || _suspendingHandler.LastBody is not { } body || body.SuspendedReads < body.MinimumReads)
         {
             throw new InvalidOperationException("The suspending stream operation did not read its frames over suspended reads.");
         }
@@ -127,6 +141,10 @@ public class SessionLogStreamBenchmarks : IDisposable
         return count;
     }
 
+    /// <summary>The suspending harness floor: a bare send through the suspending handler with the body drained, no SDK.</summary>
+    [Benchmark]
+    public Task<int> SendRawSuspendingRequestAsync() => _suspendingRaw!.SendAndDrainAsync();
+
     /// <summary>Framing plus per-frame materialization without the request pipeline or HTTP.</summary>
     [Benchmark]
     public async Task<int> ReadFramesAndDeserializeAsync()
@@ -156,7 +174,7 @@ public class SessionLogStreamBenchmarks : IDisposable
         return count;
     }
 
-    /// <summary>The harness floor: the same canned handler through a bare <see cref="HttpClient"/> send with the body drained, no SDK.</summary>
+    /// <summary>The harness floor: a bare send through the same handler with the body drained, no SDK.</summary>
     [Benchmark]
     public Task<int> SendRawRequestAsync() => _raw!.SendAndDrainAsync();
 
