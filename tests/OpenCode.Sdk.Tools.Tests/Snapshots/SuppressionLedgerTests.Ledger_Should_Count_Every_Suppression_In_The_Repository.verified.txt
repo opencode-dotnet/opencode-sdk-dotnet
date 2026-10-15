@@ -2,7 +2,7 @@
 A change that adds, removes or alters a suppression updates this file in the same commit.
 
 build-switch: 10
-editorconfig: 162
+editorconfig: 163
 globalconfig: 1
 no-warn: 18
 pragma: 22
@@ -87,6 +87,7 @@ editorconfig .editorconfig [*.{cs,vb}] dotnet_code_quality_unused_parameters = a
 editorconfig .editorconfig [*.{g.cs,generated.cs,designer.cs}] generated_code = true
 editorconfig .editorconfig [src/OpenCode.Sdk.Extensions/OpenCodeServiceCollectionExtensions.cs] dotnet_diagnostic.IDE0130.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/**.cs] dotnet_diagnostic.IDE0130.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/**/Models/**.cs] dotnet_diagnostic.CA1034.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/**/{ConfigInfoEnterprise,ConnectionStatus,ExperimentalIntegrationWellknownAddRequest,FormExternalField,IntegrationAttempt,McpOAuthConfig,McpRemoteConfig,McpResource,McpResourceTemplate,ProjectIcon,PromptFileSourceUri,PromptInputFileAttachment,ToolFileContent,WebSearchResult}.cs] dotnet_diagnostic.CA1056.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/*/OpenCodeRoutes.*.cs] dotnet_diagnostic.CA1034.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/*/OpenCodeRoutes.*.cs] dotnet_diagnostic.CA1724.severity = none
