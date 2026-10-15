@@ -11,13 +11,17 @@ namespace OpenCode.Sdk.Tools.Clones;
 /// Runs the pinned jscpd over one clone scope: it writes the scope's jscpd config into a work
 /// folder, runs the detector through the pinned Bun from the repository root, and reads the totals of
 /// the JSON report it writes. A gated scope runs against its baseline and fails on a new clone or
-/// above its threshold; with an update it rewrites the baseline instead.
+/// above its threshold; with an update it rewrites the baseline instead. Every scope fails when it
+/// analyses no file. jscpd's own defaults stay: it honours .gitignore, follows no symbolic link, and
+/// skips files above 1 MiB.
 /// </summary>
 internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner processRunner)
 {
     internal const string RunnerPath = CloneScopes.DetectorFolder + "/node_modules/jscpd/run-jscpd.js";
     internal const string ReportFileName = "jscpd-report.json";
 
+    /// <summary>jscpd otherwise writes an empty report and exits 0 when nothing was analysed, which would read as a clean scope.</summary>
+    private const string FailOnEmpty = "--fail-on-empty";
     private const int MinimumTokens = 50;
     private static readonly string[] CommonIgnore = ["**/bin/**", "**/obj/**", "**/node_modules/**"];
 
@@ -99,7 +103,7 @@ internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner proce
     {
         ArgumentNullException.ThrowIfNull(scope);
 
-        List<string> arguments = [RunnerPath, scope.Path, "--config", config];
+        List<string> arguments = [RunnerPath, scope.Path, "--config", config, FailOnEmpty];
         if (scope.Baseline is null)
         {
             return arguments;

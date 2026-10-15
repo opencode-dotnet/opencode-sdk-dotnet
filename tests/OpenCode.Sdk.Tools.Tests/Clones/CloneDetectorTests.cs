@@ -11,6 +11,7 @@ public sealed class CloneDetectorTests
     private const string GeneratedModel = "Models/Agent.cs";
     private const string HandWrittenClient = "src/OpenCode.Sdk/OpenCodeClient.cs";
     private const string Fingerprints = "--fail-on-new-clones";
+    private const string FailOnEmpty = "--fail-on-empty";
 
     [Test]
     public async Task Arguments_Should_Gate_Hand_Written_Src_Against_Its_Baseline()
@@ -18,7 +19,7 @@ public sealed class CloneDetectorTests
         var arguments = CloneDetector.Arguments(Scope("src"), Config, updateBaseline: false);
 
         await Assert.That(arguments).IsEquivalentTo(
-            [CloneDetector.RunnerPath, "src", "--config", Config, "--baseline", "tools/jscpd/src.baseline.json", Fingerprints]);
+            [CloneDetector.RunnerPath, "src", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/src.baseline.json", Fingerprints]);
     }
 
     [Test]
@@ -27,7 +28,7 @@ public sealed class CloneDetectorTests
         var arguments = CloneDetector.Arguments(Scope("tools"), Config, updateBaseline: false);
 
         await Assert.That(arguments).IsEquivalentTo(
-            [CloneDetector.RunnerPath, "tools", "--config", Config, "--baseline", "tools/jscpd/tools.baseline.json", Fingerprints, "--threshold", "3"]);
+            [CloneDetector.RunnerPath, "tools", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/tools.baseline.json", Fingerprints, "--threshold", "3"]);
     }
 
     [Test]
@@ -37,7 +38,7 @@ public sealed class CloneDetectorTests
     {
         var arguments = CloneDetector.Arguments(Scope(name), Config, updateBaseline: true);
 
-        await Assert.That(arguments).IsEquivalentTo([CloneDetector.RunnerPath, path, "--config", Config]);
+        await Assert.That(arguments).IsEquivalentTo([CloneDetector.RunnerPath, path, "--config", Config, FailOnEmpty]);
     }
 
     [Test]
@@ -46,7 +47,7 @@ public sealed class CloneDetectorTests
         var arguments = CloneDetector.Arguments(Scope("tools"), Config, updateBaseline: true);
 
         await Assert.That(arguments).IsEquivalentTo(
-            [CloneDetector.RunnerPath, "tools", "--config", Config, "--baseline", "tools/jscpd/tools.baseline.json", "--update-baseline"]);
+            [CloneDetector.RunnerPath, "tools", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/tools.baseline.json", "--update-baseline"]);
     }
 
     [Test]
@@ -78,7 +79,7 @@ public sealed class CloneDetectorTests
         await Assert.That(result.Clones).IsEqualTo(4);
         await Assert.That(result.DuplicatedLines).IsEqualTo(40);
         await Assert.That(result.Lines).IsEqualTo(1000);
-        await Assert.That(result.Percentage).IsEqualTo(4.5);
+        await Assert.That(result.Percentage).IsEqualTo(4.0);
         await Assert.That(result.NewClones).IsEqualTo(1);
     }
 

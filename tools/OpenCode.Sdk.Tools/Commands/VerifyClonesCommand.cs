@@ -11,7 +11,9 @@ namespace OpenCode.Sdk.Tools.Commands;
 /// <summary>
 /// The clone gate: runs the pinned jscpd over every <see cref="CloneScopes"/> scope from the
 /// repository root, prints each scope's totals, and fails when a gated scope finds a clone its
-/// baseline does not hold or crosses its threshold. Every scope runs and prints before the verdict.
+/// baseline does not hold or crosses its threshold. A scope that only reports carries no gate
+/// arguments, so a nonzero exit there is a failed run, and it fails the gate too. Every scope runs
+/// and prints before the verdict.
 /// </summary>
 internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCommand.Settings>
 {
@@ -53,7 +55,7 @@ internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCom
             {
                 var result = await _detector.RunAsync(root, scope, split, work, settings.UpdateBaseline, cancellationToken).ConfigureAwait(false);
                 _console.MarkupLine(Markup.Escape(Summary(result)));
-                if (scope.IsGated && result.ExitCode != 0)
+                if (result.ExitCode != 0)
                 {
                     failed.Add(result);
                 }

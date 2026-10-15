@@ -146,7 +146,7 @@ internal sealed class CloneScenario
         FileSystem.Directory.CreateDirectory(output);
         var report = string.Create(
             CultureInfo.InvariantCulture,
-            $$"""{ "statistics": { "total": { "clones": {{clones}}, "duplicatedLines": {{clones * 10}}, "lines": 1000, "percentage": {{clones}}.5, "newClones": {{newClones}} } } }""");
+            $$"""{ "statistics": { "total": { "clones": {{clones}}, "duplicatedLines": {{clones * 10}}, "lines": 1000, "percentage": {{clones}}, "newClones": {{newClones}} } } }""");
         await FileSystem.File.WriteAllTextAsync(FileSystem.Path.Combine(output, CloneDetector.ReportFileName), report);
     }
 }

@@ -6,7 +6,7 @@ using Spectre.Console;
 using Spectre.Console.Cli.Testing;
 using Spectre.Console.Testing;
 
-namespace OpenCode.Sdk.Tools.Tests.Clones;
+namespace OpenCode.Sdk.Tools.Tests.Commands;
 
 /// <summary>The clone gate's verdict: every scope runs and prints, a gated scope's failure fails the gate, and a missing prerequisite refuses it.</summary>
 public sealed class VerifyClonesCommandTests
@@ -27,8 +27,8 @@ public sealed class VerifyClonesCommandTests
         var result = await RunAsync(scenario, Command);
 
         await Assert.That(result.ExitCode).IsEqualTo(0);
-        await Assert.That(result.Output).Contains("src: 4 clones, 40 of 1000 lines (4.50%), 0 new");
-        await Assert.That(result.Output).Contains("tests: 8 clones, 80 of 1000 lines (8.50%), reported only");
+        await Assert.That(result.Output).Contains("src: 4 clones, 40 of 1000 lines (4.00%), 0 new");
+        await Assert.That(result.Output).Contains("tests: 8 clones, 80 of 1000 lines (8.00%), reported only");
         await Assert.That(result.Output).Contains("generated: 9 clones");
         await Assert.That(result.Output).Contains("Clone gate passed");
     }
@@ -52,18 +52,19 @@ public sealed class VerifyClonesCommandTests
     }
 
     [Test]
-    public async Task Execute_Should_Pass_When_Only_A_Report_Scope_Exits_Nonzero_With_A_Report()
+    public async Task Execute_Should_Fail_Naming_A_Report_Scope_Whose_Run_Failed_After_Writing_Its_Report()
     {
         var scenario = await new CloneScenario()
             .WithRun("src")
             .WithRun("tools")
-            .WithRun("tests", exitCode: 1, standardError: "over threshold")
+            .WithRun("tests", exitCode: 1, standardError: "ERROR: no files analysed")
             .WithRun("generated")
             .BuildAsync();
 
         var result = await RunAsync(scenario, Command);
 
-        await Assert.That(result.ExitCode).IsEqualTo(0);
+        await Assert.That(result.ExitCode).IsEqualTo(1);
+        await Assert.That(result.Output).Contains("Clone gate failed for 'tests'").And.Contains("no files analysed");
     }
 
     [Test]
@@ -100,10 +101,14 @@ public sealed class VerifyClonesCommandTests
         var passed = await new CloneScenario().WithPassingRuns().BuildAsync();
         var refused = await new CloneScenario().WithRun("src", writesReport: false).BuildAsync();
 
-        _ = await RunAsync(passed, Command);
+        var pass = await RunAsync(passed, Command);
         var refusal = await RunAsync(refused, Command);
 
+        await Assert.That(pass.ExitCode).IsEqualTo(0);
+        await Assert.That(passed.Runner.Invocations.Count).IsEqualTo(4);
         await Assert.That(refusal.ExitCode).IsEqualTo(1);
+        await Assert.That(refusal.Output).Contains("jscpd wrote no report for scope 'src'");
+        await Assert.That(refused.Runner.Invocations.Count).IsEqualTo(1);
         await Assert.That(passed.WorkFolders()).IsEmpty();
         await Assert.That(refused.WorkFolders()).IsEmpty();
     }
