@@ -15,22 +15,44 @@ namespace OpenCode.Sdk.TestSupport;
 /// error for the module, where a failed session hook fails every test at 0 ms with the same message.
 /// A missing piece refuses the whole module, a run filtered to tests that start no server included:
 /// every gate and CI leg prepares the checkout, so an unprepared one is a mistake to name before it
-/// costs a run, not a mode to support.
+/// costs a run, not a mode to support. One exception is explicit: <see cref="BunMismatchVariable"/>
+/// set to <see cref="AllowBunMismatch"/> lets another Bun run, and every module that runs on it says
+/// so. CI never sets it.
 /// </summary>
 public static class PinnedServerPrerequisites
 {
+    /// <summary>The variable that lets the module run on a Bun other than the pinned one.</summary>
+    internal const string BunMismatchVariable = "OPENCODE_SDK_TESTS_BUN_MISMATCH";
+
+    /// <summary>The one value <see cref="BunMismatchVariable"/> takes.</summary>
+    internal const string AllowBunMismatch = "allow";
+
     private const string BunPackageManagerPrefix = "bun@";
 
     [Before(TestDiscovery)]
     public static async Task Require_A_Prepared_Checkout_Async(CancellationToken cancellationToken)
     {
-        var fileSystem = new RealFileSystem();
-        var repositoryRoot = new PinnedServerCommand(fileSystem).RepositoryRoot;
-        var bunVersion = await ReadBunVersionAsync(cancellationToken).ConfigureAwait(false);
-        var problems = await FindAsync(fileSystem, repositoryRoot, bunVersion, cancellationToken).ConfigureAwait(false);
-        if (problems.Count > 0)
+        var (repositoryRoot, readiness) = await CheckAsync(cancellationToken).ConfigureAwait(false);
+        if (readiness.Problems.Count > 0)
         {
-            throw new InvalidOperationException(Describe(ModuleName(), repositoryRoot, problems));
+            throw new InvalidOperationException(Describe(ModuleName(), repositoryRoot, readiness.Problems));
+        }
+    }
+
+    /// <summary>
+    /// Names, once per module, the Bun the discovery guard let run off the pin. The check runs again
+    /// here because TUnit keeps a session hook's output, in the TRX and under <c>--output
+    /// Detailed</c>, and drops a discovery hook's.
+    /// </summary>
+    /// <param name="cancellationToken">The caller's token.</param>
+    /// <returns>A task that completes once the mismatch, if any, is written.</returns>
+    [Before(TestSession)]
+    public static async Task Report_An_Allowed_Bun_Mismatch_Async(CancellationToken cancellationToken)
+    {
+        var (_, readiness) = await CheckAsync(cancellationToken).ConfigureAwait(false);
+        if (readiness.AllowedMismatch is { } mismatch)
+        {
+            await Console.Out.WriteLineAsync((ModuleName() + ": " + mismatch).AsMemory(), cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -38,25 +60,40 @@ public static class PinnedServerPrerequisites
     /// <param name="fileSystem">The filesystem the checkout lives on.</param>
     /// <param name="repositoryRoot">This repository's root.</param>
     /// <param name="bunVersion">What <c>bun --version</c> printed, or null when no Bun is on PATH.</param>
+    /// <param name="bunMismatch">The value of <see cref="BunMismatchVariable"/>, or null when it is unset.</param>
     /// <param name="cancellationToken">The caller's token.</param>
-    /// <returns>The problems in the order to fix them; empty when the checkout is prepared.</returns>
-    internal static async Task<IReadOnlyList<string>> FindAsync(
+    /// <returns>
+    /// The problems in the order to fix them, empty when the checkout is prepared, and the Bun
+    /// mismatch the variable allowed, if any.
+    /// </returns>
+    internal static async Task<Readiness> FindAsync(
         IFileSystem fileSystem,
         string repositoryRoot,
         string? bunVersion,
+        string? bunMismatch,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(fileSystem);
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
 
+        var problems = new List<string>();
+        var allowMismatch = string.Equals(bunMismatch, AllowBunMismatch, StringComparison.Ordinal);
+        if (!allowMismatch && !string.IsNullOrEmpty(bunMismatch))
+        {
+            problems.Add(
+                $"{BunMismatchVariable} is '{bunMismatch}', but the only value it takes is '{AllowBunMismatch}'. "
+                + "Unset it to require the pinned bun.");
+        }
+
         var submodule = Submodule(fileSystem, repositoryRoot);
         if (MissingSource(fileSystem, submodule) is { } source)
         {
             // Without the checkout neither the install nor the pinned Bun version can be read.
-            return [source];
+            problems.Add(source);
+            return new Readiness(problems, AllowedMismatch: null);
         }
 
-        var problems = new List<string>();
+        string? allowedMismatch = null;
         var pinned = await PinnedBunVersionAsync(fileSystem, submodule, cancellationToken).ConfigureAwait(false);
         if (pinned.Problem is { } unpinned)
         {
@@ -66,7 +103,15 @@ public static class PinnedServerPrerequisites
         {
             problems.Add($"No bun is on PATH. Install bun {pinned.Version}, the pin's packageManager.");
         }
-        else if (!string.Equals(bunVersion, pinned.Version, StringComparison.Ordinal))
+        else if (string.Equals(bunVersion, pinned.Version, StringComparison.Ordinal))
+        {
+            // The pinned Bun: nothing to refuse, nothing to report.
+        }
+        else if (allowMismatch)
+        {
+            allowedMismatch = $"pinned bun {pinned.Version}, running bun {bunVersion} ({BunMismatchVariable}={AllowBunMismatch})";
+        }
+        else
         {
             problems.Add(
                 $"The bun on PATH is {bunVersion}, but the pin's packageManager is bun@{pinned.Version} "
@@ -78,7 +123,7 @@ public static class PinnedServerPrerequisites
             problems.Add(install);
         }
 
-        return problems;
+        return new Readiness(problems, allowedMismatch);
     }
 
     /// <summary>The refusal when the pinned server source is not checked out, or null when it is.</summary>
@@ -102,6 +147,20 @@ public static class PinnedServerPrerequisites
     internal static string Describe(string module, string repositoryRoot, IReadOnlyList<string> problems) =>
         $"{module} cannot run: the pinned server its tests start is not prepared in '{repositoryRoot}'."
         + string.Concat(problems.Select(static problem => Environment.NewLine + "  - " + problem));
+
+    private static async Task<(string RepositoryRoot, Readiness Readiness)> CheckAsync(CancellationToken cancellationToken)
+    {
+        var fileSystem = new RealFileSystem();
+        var repositoryRoot = new PinnedServerCommand(fileSystem).RepositoryRoot;
+        var bunVersion = await ReadBunVersionAsync(cancellationToken).ConfigureAwait(false);
+        var readiness = await FindAsync(
+            fileSystem,
+            repositoryRoot,
+            bunVersion,
+            Environment.GetEnvironmentVariable(BunMismatchVariable),
+            cancellationToken).ConfigureAwait(false);
+        return (repositoryRoot, readiness);
+    }
 
     private static string ModuleName() =>
         typeof(PinnedServerPrerequisites).Assembly.GetName().Name + " on " + RuntimeInformation.FrameworkDescription;
@@ -179,6 +238,11 @@ public static class PinnedServerPrerequisites
             : throw new InvalidOperationException(
                 $"'{bun.Path} --version' exited with code {process.ExitCode.ToString(CultureInfo.InvariantCulture)}: {error.Trim()}");
     }
+
+    /// <summary>What the pinned server still needs, and the Bun mismatch the opt-in allowed.</summary>
+    /// <param name="Problems">The problems in the order to fix them; empty when the checkout is prepared.</param>
+    /// <param name="AllowedMismatch">The pinned and the running Bun when the opt-in let them differ, or null.</param>
+    internal sealed record Readiness(IReadOnlyList<string> Problems, string? AllowedMismatch);
 
     private sealed record PinnedBun(string PackageJson, string? Version, string? Problem);
 }
