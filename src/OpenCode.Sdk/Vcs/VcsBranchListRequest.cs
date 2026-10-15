@@ -17,5 +17,5 @@ public sealed record VcsBranchListRequest
     /// <summary>
     /// Gets the &apos;limit&apos; query value; the server default applies when unset.
     /// </summary>
-    public string? Limit { get; init; }
+    public int? Limit { get; init; }
 }

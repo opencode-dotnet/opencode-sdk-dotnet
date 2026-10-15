@@ -10,7 +10,7 @@ public sealed record SessionLogRequest
     /// <summary>
     /// Gets the &apos;after&apos; query value; the server default applies when unset.
     /// </summary>
-    public string? After { get; init; }
+    public long? After { get; init; }
     /// <summary>
     /// Gets the &apos;follow&apos; query value; the server default applies when unset.
     /// </summary>

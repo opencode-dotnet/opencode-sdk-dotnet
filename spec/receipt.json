@@ -194,6 +194,26 @@
       "anchorMatched": true
     },
     {
+      "path": "packages/core/src/session/session.ts",
+      "sha256": "53d67aef56a1a6b518fad623d51a15b26f071db25c7e5f1c71a21c36ac3a9d11",
+      "anchorMatched": true
+    },
+    {
+      "path": "packages/server/src/handlers/generate.ts",
+      "sha256": "9231f95384e907545dc53cab06c6577a4a7c34abbd709b6a685da534226de4d3",
+      "anchorMatched": true
+    },
+    {
+      "path": "packages/core/src/session/generate.ts",
+      "sha256": "ad58915073c82d64d50c48641d5a6160e20b5788cb26190026f1a4ba517a3257",
+      "anchorMatched": true
+    },
+    {
+      "path": "packages/core/src/session/command.ts",
+      "sha256": "90f3c32cfb52746de287dbbad1f9bbc9ccbff9c9bc9dc565a652e55831eda32f",
+      "anchorMatched": true
+    },
+    {
       "path": "packages/server/src/event-feed.ts",
       "sha256": "8867fb8ca3b1d7d667038ac1210a69a33b2cc264be0782d3e735e9bbf6eba568",
       "anchorMatched": true
@@ -401,6 +421,31 @@
     {
       "path": "packages/client/test/service-decision.test.ts",
       "sha256": "db36f92835c8fd9651e4446da6b637a6d4a64175a38ec56fd9255acbddbdbc6c",
+      "anchorMatched": true
+    },
+    {
+      "path": "packages/protocol/src/groups/fs.ts",
+      "sha256": "ea869274ea124adb59f8a1c99bdf64cc736456e87eed652531e31cd47f8c7e25",
+      "anchorMatched": true
+    },
+    {
+      "path": "packages/protocol/src/groups/vcs.ts",
+      "sha256": "a430373cb7cc4ba06a920d2130a30a8d0fb07cfbe0d52281b62c3b0c12d47fdc",
+      "anchorMatched": true
+    },
+    {
+      "path": "packages/schema/src/shell.ts",
+      "sha256": "1ed56036245671a9abbac8dd38359c4f4527f72f3ae9fbe2d1c080fee8c24946",
+      "anchorMatched": true
+    },
+    {
+      "path": "packages/schema/src/schema.ts",
+      "sha256": "fc76a9937980e518343e1ae49661316fbbfbd8a34bd44701874bedaa2319b8f2",
+      "anchorMatched": true
+    },
+    {
+      "path": "packages/schema/src/event.ts",
+      "sha256": "f39ab332fe69fcb85adeda95bcf4af608e13fc7e32d9dca5887fc35c51390fa9",
       "anchorMatched": true
     }
   ]

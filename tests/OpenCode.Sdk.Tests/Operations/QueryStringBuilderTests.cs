@@ -1,3 +1,4 @@
+using System.Globalization;
 using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Tests.Operations;
@@ -128,11 +129,49 @@ public sealed class QueryStringBuilderTests
     }
 
     [Test]
+    public async Task AddInteger_Should_Write_The_Decimal_Text_Of_Any_Long()
+    {
+        var query = new QueryStringBuilder();
+
+        query.AddInteger("limit", 25);
+        query.AddInteger("cursor", long.MaxValue);
+        query.AddInteger("after", -1);
+
+        await Assert.That(query.Value).IsEqualTo("?limit=25&cursor=9223372036854775807&after=-1");
+    }
+
+    /// <summary>
+    /// Upstream's client writes a number with JavaScript's <c>String(value)</c>, which no locale
+    /// changes; a caller's culture with another minus sign must not reach the wire either.
+    /// </summary>
+    [Test]
+    public async Task AddInteger_Should_Ignore_The_Current_Culture()
+    {
+        var culture = CultureInfo.CurrentCulture;
+        var tilde = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+        tilde.NumberFormat.NegativeSign = "~";
+        CultureInfo.CurrentCulture = tilde;
+        try
+        {
+            var query = new QueryStringBuilder();
+
+            query.AddInteger("after", -42);
+
+            await Assert.That(query.Value).IsEqualTo("?after=-42");
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+        }
+    }
+
+    [Test]
     public async Task Add_Should_Skip_Every_Null_Optional()
     {
         var query = new QueryStringBuilder();
 
-        query.AddText("limit", null);
+        query.AddInteger("limit", null);
+        query.AddText("search", null);
         query.AddOrder("order", null);
         query.AddBoolean("follow", null);
         query.AddParentFilter("parentID", null);

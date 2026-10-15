@@ -25,7 +25,7 @@ public sealed class VcsClientLiveTests(SimulatedDriveServerFixture server)
         await Assert.That(vcs.Vcs.Branch.Default).IsEqualTo("main");
 
         var branches = await client.Vcs.ListBranchesAsync(
-            new VcsBranchListRequest { Location = location, Search = "mai", Limit = "1" },
+            new VcsBranchListRequest { Location = location, Search = "mai", Limit = 1 },
             cancellationToken: cancellationToken);
         await Assert.That(branches.Status).IsEqualTo(200);
         await Assert.That(branches.IsError).IsFalse();
@@ -70,7 +70,7 @@ public sealed class VcsClientLiveTests(SimulatedDriveServerFixture server)
         await Assert.That(change.Deletions).IsEqualTo(1);
 
         var diff = await client.Vcs.GetDiffAsync(
-            new VcsDiffRequest { Location = location, Mode = VcsMode.Branch, Base = "main", Context = "0" },
+            new VcsDiffRequest { Location = location, Mode = VcsMode.Branch, Base = "main", Context = 0 },
             cancellationToken: cancellationToken);
         await Assert.That(diff.Status).IsEqualTo(200);
         await Assert.That(diff.IsError).IsFalse();

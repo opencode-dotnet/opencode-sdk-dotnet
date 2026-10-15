@@ -94,6 +94,8 @@ internal static class QueryRequestEmitter
             QueryValueKind.BooleanText => TypeSyntaxEmitter.EmitNamed("QueryBoolean"),
             QueryValueKind.SessionParentFilter => TypeSyntaxEmitter.EmitNamed("SessionParentFilter"),
             QueryValueKind.Location => TypeSyntaxEmitter.EmitNamed("LocationSelector"),
+            QueryValueKind.Int32 => SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.IntKeyword)),
+            QueryValueKind.Int64 => SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
             QueryValueKind.Enum => TypeSyntaxEmitter.EmitNamed(property.EnumTypeName
                 ?? throw new InvalidOperationException($"Query property '{property.PropertyName}' has no enum type name.")),
             _ => throw new InvalidOperationException($"Query value kind '{property.Kind}' has no property type."),

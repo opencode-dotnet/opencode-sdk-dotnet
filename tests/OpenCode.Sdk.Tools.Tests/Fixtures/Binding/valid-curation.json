@@ -41,5 +41,7 @@
   "secretLookingNames": [],
   "declined": [],
   "modelOwners": [],
-  "sessionAreas": []
+  "sessionAreas": [],
+  "queryParameterTypes": [],
+  "stringQueryParameters": []
 }

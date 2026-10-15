@@ -97,7 +97,7 @@ public static partial class OpenCodeRoutes
             }
 
             var query = new QueryStringBuilder();
-            query.AddText("lines", request.Lines);
+            query.AddInteger("lines", request.Lines);
             return path + query.Value;
         }
 

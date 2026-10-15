@@ -134,7 +134,7 @@ public sealed class PersistentPtysClientContractTests
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.Envelope("null"));
 
-        var response = await scenario.Client.PersistentPtys.ReadAsync("ses_1", new PersistentPtyReadRequest { Lines = "40" });
+        var response = await scenario.Client.PersistentPtys.ReadAsync("ses_1", new PersistentPtyReadRequest { Lines = 40 });
 
         await Assert.That(response.IsError).IsFalse();
         await Assert.That(response.Read).IsNull();
@@ -163,7 +163,7 @@ public sealed class PersistentPtysClientContractTests
         using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
 
         var exception = await Assert
-            .That(async () => _ = await scenario.Client.PersistentPtys.ReadAsync("ses_1", new PersistentPtyReadRequest { Lines = "0" }))
+            .That(async () => _ = await scenario.Client.PersistentPtys.ReadAsync("ses_1", new PersistentPtyReadRequest { Lines = 0 }))
             .Throws<OpenCodeApiException>();
 
         await Assert.That(exception!.Status).IsEqualTo(400);

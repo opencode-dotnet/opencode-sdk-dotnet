@@ -100,7 +100,7 @@ public sealed class FileSystemClientContractTests
         {
             Query = "todo",
             Type = FsFindRequestType.Directory,
-            Limit = "10",
+            Limit = 10,
         });
 
         await Assert.That(scenario.Requests.Single().RequestUri!.AbsoluteUri)

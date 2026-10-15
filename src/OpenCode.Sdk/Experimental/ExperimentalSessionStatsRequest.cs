@@ -12,11 +12,11 @@ public sealed record ExperimentalSessionStatsRequest
     /// <summary>
     /// Gets the &apos;from&apos; query value; the server default applies when unset.
     /// </summary>
-    public string? From { get; init; }
+    public long? From { get; init; }
     /// <summary>
     /// Gets the &apos;to&apos; query value; the server default applies when unset.
     /// </summary>
-    public string? To { get; init; }
+    public long? To { get; init; }
     /// <summary>
     /// Gets the &apos;project&apos; query value; the server default applies when unset.
     /// </summary>

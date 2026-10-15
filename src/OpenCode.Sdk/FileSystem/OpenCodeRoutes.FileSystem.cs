@@ -29,7 +29,7 @@ public static partial class OpenCodeRoutes
             query.AddLocation("location", request.Location);
             query.AddText("query", request.Query);
             query.AddText("type", ToWireValue(request.Type));
-            query.AddText("limit", request.Limit);
+            query.AddInteger("limit", request.Limit);
             return path + query.Value;
         }
 

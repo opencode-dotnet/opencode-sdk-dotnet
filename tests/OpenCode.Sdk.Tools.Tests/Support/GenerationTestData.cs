@@ -30,6 +30,7 @@ internal static class GenerationTestData
     private const string SpecPath = "spec/openapi.json";
     private const string ProfilePath = "tools/generation-profile.txt";
     private const string CurationPath = "tools/curation.json";
+    private const string SourceWatchPath = "spec/source-watch.json";
 
     /// <summary>A reach report as the coordinator composes it, and a stale one a refresh would replace.</summary>
     public const string ReachReport = "# reach\nExampleHealth owner=Health reached-by=Health\n";
@@ -116,6 +117,40 @@ internal static class GenerationTestData
         return fileSystem;
     }
 
+    /// <summary>The upstream file the typed query parameter's row quotes as its evidence.</summary>
+    public const string QueryEvidencePath = "packages/protocol/src/groups/health.ts";
+
+    /// <summary>
+    /// The command roots with a plain-string query parameter typed by a <c>queryParameterTypes</c>
+    /// row, and a source watch that pins the row's evidence file or only another one.
+    /// </summary>
+    public static MockFileSystem CreateQueryTypeCommandFileSystem(bool evidenceWatched)
+    {
+        var fileSystem = CreateCommandRoots(profile: "health.get\nhealth.history\n", extend: spec => spec
+            .WithOperation("health.history", path: "/api/health/history", configure: operation => operation
+                .Parameter("limit", "query", schema => schema.Type("string"))
+                .Response(200, "application/json", schema => schema.Ref("ExampleHealth"))));
+        WriteCuration(fileSystem, Curation(
+            Groups("health", RootGroup()),
+            modelOwners: [Owner("ExampleHealth", "Health")],
+            queryParameterTypes: [QueryParameterType("health.history", "limit", "int", evidencePath: QueryEvidencePath)]));
+        var watched = evidenceWatched ? QueryEvidencePath : "packages/protocol/src/groups/other.ts";
+        fileSystem.Initialize().With(new FileDescription(SourceWatchPath, $$"""
+            {
+              "schemaVersion": 1,
+              "sources": [
+                {
+                  "path": "{{watched}}",
+                  "sha256": "{{new string('0', 64)}}",
+                  "behavior": "The health history decodes limit as a number.",
+                  "anchor": { "type": "contains", "text": "limit" }
+                }
+              ]
+            }
+            """));
+        return fileSystem;
+    }
+
     public static GeneratedSource Source(string relativePath, string source) =>
         new()
         {
@@ -123,7 +158,8 @@ internal static class GenerationTestData
             Utf8Source = Encoding.UTF8.GetBytes(OwnedContent(source)),
         };
 
-    private static MockFileSystem CreateCommandRoots(Action<SpecDocumentBuilder>? extend, bool withBindablePending = true)
+    private static MockFileSystem CreateCommandRoots(Action<SpecDocumentBuilder>? extend, bool withBindablePending = true,
+        string profile = "health.get\n")
     {
         var spec = new SpecDocumentBuilder()
             .WithSchema("ExampleHealth", schema => schema
@@ -154,7 +190,7 @@ internal static class GenerationTestData
             .Initialize()
             .With(
                 new FileDescription(SpecPath, spec.BuildJson()),
-                new FileDescription(ProfilePath, "health.get\n"));
+                new FileDescription(ProfilePath, profile));
         return fileSystem;
     }
 

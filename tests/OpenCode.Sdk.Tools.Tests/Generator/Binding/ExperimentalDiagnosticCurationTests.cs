@@ -65,7 +65,8 @@ public sealed class ExperimentalDiagnosticCurationTests
         var document = await BindingTestHost.IngestAsync(new ExperimentalOperationScenario());
 
         var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document,
-            Selection("probe.get"), Curation(Groups("probe", RootGroup() with { ExperimentalDiagnostic = id }))));
+            Selection("probe.get"), Curation(Groups("probe", RootGroup() with { ExperimentalDiagnostic = id }),
+                stringQueryParameters: ExperimentalOperationScenario.QueryRows)));
 
         await Assert.That(exception.Errors.Any(static error => error.Problem.Contains("must match ^OPENCODE[0-9]{3}$", StringComparison.Ordinal))).IsTrue();
     }
@@ -132,7 +133,8 @@ public sealed class ExperimentalDiagnosticCurationTests
         var document = await BindingTestHost.IngestAsync(new ExperimentalOperationScenario(stable));
         var plan = new BindingTestHost().Bind(document,
             stable ? Selection("probe.get", "probe.list") : Selection("probe.get"),
-            Curation(Groups("probe", RootGroup() with { ExperimentalDiagnostic = "OPENCODE001" })));
+            Curation(Groups("probe", RootGroup() with { ExperimentalDiagnostic = "OPENCODE001" }),
+                stringQueryParameters: ExperimentalOperationScenario.QueryRows));
 
         await Assert.That(plan.Models.Single(static model => model.Name == "ProbeInfo").ExperimentalDiagnostic)
             .IsEqualTo(stable ? null : "OPENCODE001");

@@ -240,7 +240,7 @@ internal sealed class SessionWorker(SessionsClient sessions) : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var page = await sessions.ListSessionsAsync(
-            new SessionListRequest { Limit = "10", Order = ListOrder.Descending },
+            new SessionListRequest { Limit = 10, Order = ListOrder.Descending },
             cancellationToken: stoppingToken);
 
         Console.WriteLine($"{page.Sessions.Count} sessions, next cursor {page.Cursor.Next ?? "<none>"}");

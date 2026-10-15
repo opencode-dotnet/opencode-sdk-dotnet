@@ -20,6 +20,12 @@ evidence and may contain superseded positions.
   as upstream's `encodePath` escapes it, with a dot segment refused by name. The rule is mirrored,
   not read; the source watch pins the codegen file, and `tools/oracles/wildcard-path.ts` holds the
   SDK's request paths to upstream's client (ADR-0029).
+- A generated type may follow upstream's decode instead of the document only as a deliberate
+  exception (ADR-0037). The exception carries a reason-bearing curation row, quotes upstream's
+  decode schema in a source-watched file as its evidence, sits behind a fail-closed gate (every
+  subject of its kind is classified, and a test holds the bound types to upstream's generated
+  client at the pin), and retires: a row fails generation once the document declares the type or
+  drops the subject. Query parameters are the one kind today (Operations, streams, and exclusions).
 - The public SDK covers the OpenCode 2.x protocol surface only. At the current pin, operation
   identities use dotted group/action segments without a version prefix. The first segment selects
   the curated client family; `experimental.*` operations use the flat ExperimentalClient with
@@ -60,9 +66,10 @@ evidence and may contain superseded positions.
 - The source watch (`spec/source-watch.json`) pins, by path, SHA-256 and one content anchor, the
   upstream files the hand-written doors read as inputs, the two upstream lists the generator's
   secret masking follows (ADR-0028), and the upstream rules the generator mirrors — Effect's union
-  decode (ADR-0016) and the trailing-wildcard codegen rule (ADR-0029); it is a refresh-time review
-  trigger only
-  and never reaches ingestion, curation, or emission (ADR-0013).
+  decode (ADR-0016), the trailing-wildcard codegen rule (ADR-0029), and the decode schemas that
+  query parameter type rows quote (ADR-0037). It is a refresh-time review trigger that never reaches
+  ingestion or emission; generation reads it only to refuse a type row whose evidence it does not
+  watch (ADR-0013, ADR-0037).
 
 ## Construction pipeline
 
@@ -151,9 +158,9 @@ distinction handles upstream identifiers reused for different public and event p
 treating the numeric suffix as evidence of structural equivalence.
 
 Curation may not add a wire type, format, constraint, cross-field rule, or runtime validation
-absent from the pin. Descriptions generate documentation, not executable semantics. Projection
-loss remains faithful or fails closed and is reported upstream rather than repaired from private
-implementation knowledge (ADR-0013).
+absent from the pin, apart from ADR-0037's gated type exception. Descriptions generate
+documentation, not executable semantics. Projection loss remains faithful or fails closed and is
+reported upstream rather than repaired from private implementation knowledge (ADR-0013).
 
 ## Generated model shape
 
@@ -321,10 +328,10 @@ dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).
   the declared-header channel into the pipeline. The header value stays a caller concern and never
   enters curation or generated code, and a header-bearing operation forgoes the cursor-enumeration
   companion (ADR-0013, ADR-0021).
-- A query binds the `ListRequest` base by inclusion: it must carry the admitted optional `limit`,
-  `order`, and `cursor` parameters in their admitted shapes, and every further optional parameter
-  binds beside them as its own request property. A missing spine member, or one whose schema is not
-  the admitted shape, keeps the request flat and unpaginated.
+- A query binds the `ListRequest` base by inclusion: it must carry the admitted optional `limit`
+  (typed `int` by its row), `order`, and `cursor` parameters in their admitted shapes, and every
+  further optional parameter binds beside them as its own request property. A missing spine member,
+  or one whose schema is not the admitted shape, keeps the request flat and unpaginated.
 - A cursor-list operation emits an additive `Enumerate*Async` companion only when binding proves the
   admitted `ListRequest` query, `ListCursor` response, item collection, and operation signature, and
   the query declares no required parameter — a continuation must be constructible from no request at
@@ -334,7 +341,12 @@ dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).
 - A query parameter binds by shape: a required parameter becomes a `required`, non-nullable
   request property and makes the request itself a required method and route argument; an optional
   parameter binds nullable and is omitted from the wire when unset, whether or not its schema
-  admits JSON null. A plain string binds as a string; the spine's own value sets (list order, the
+  admits JSON null. A plain string binds as the integer its `queryParameterTypes` row names, where
+  upstream's server decodes it as a number and upstream's generated client takes one, or as a
+  string under a reason-bearing `stringQueryParameters` row; a plain string with neither row fails
+  generation, and a row whose parameter the document now declares as a number, or no longer
+  carries, fails it too (ADR-0037). The integer travels as its invariant decimal text and the
+  server enforces its range. The spine's own value sets (list order, the
   exact true/false text, the parent-session filter) and the optional deep-object location
   selector bind their spine types; any other string enum becomes a generated extensible enum
   whose spelling the route builder writes as given, refusing a default value; every other query

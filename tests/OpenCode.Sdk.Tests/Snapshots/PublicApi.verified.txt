@@ -307,10 +307,10 @@ namespace OpenCode.Sdk
     public sealed class ExperimentalSessionStatsRequest : System.IEquatable<OpenCode.Sdk.ExperimentalSessionStatsRequest>
     {
         public ExperimentalSessionStatsRequest() { }
-        public string? From { get; init; }
+        public long? From { get; init; }
         public string? Project { get; init; }
         public string? Timezone { get; init; }
-        public string? To { get; init; }
+        public long? To { get; init; }
         public OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools? Tools { get; init; }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
@@ -354,7 +354,7 @@ namespace OpenCode.Sdk
     public sealed class FsFindRequest : System.IEquatable<OpenCode.Sdk.FsFindRequest>
     {
         public FsFindRequest() { }
-        public string? Limit { get; init; }
+        public int? Limit { get; init; }
         public OpenCode.Sdk.LocationSelector? Location { get; init; }
         public required string Query { get; init; }
         public OpenCode.Sdk.Models.FsFindRequestType? Type { get; init; }
@@ -527,7 +527,7 @@ namespace OpenCode.Sdk
     {
         protected ListRequest() { }
         public string? Cursor { get; init; }
-        public string? Limit { get; init; }
+        public int? Limit { get; init; }
         public OpenCode.Sdk.ListOrder? Order { get; init; }
     }
     public sealed class LocationReloadResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.LocationReloadResponse>
@@ -1315,7 +1315,7 @@ namespace OpenCode.Sdk
     public sealed class PersistentPtyReadRequest : System.IEquatable<OpenCode.Sdk.PersistentPtyReadRequest>
     {
         public PersistentPtyReadRequest() { }
-        public string? Lines { get; init; }
+        public int? Lines { get; init; }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode002")]
@@ -1756,7 +1756,7 @@ namespace OpenCode.Sdk
     public sealed class SessionDiffRequest : System.IEquatable<OpenCode.Sdk.SessionDiffRequest>
     {
         public SessionDiffRequest() { }
-        public string? Context { get; init; }
+        public int? Context { get; init; }
         public string? From { get; init; }
         public string? To { get; init; }
     }
@@ -1859,7 +1859,7 @@ namespace OpenCode.Sdk
     public sealed class SessionLogRequest : System.IEquatable<OpenCode.Sdk.SessionLogRequest>
     {
         public SessionLogRequest() { }
-        public string? After { get; init; }
+        public long? After { get; init; }
         public OpenCode.Sdk.QueryBoolean? Follow { get; init; }
     }
     public sealed class SessionMessageListRequest : OpenCode.Sdk.ListRequest, System.IEquatable<OpenCode.Sdk.SessionMessageListRequest>
@@ -2005,8 +2005,8 @@ namespace OpenCode.Sdk
     public sealed class ShellOutputRequest : System.IEquatable<OpenCode.Sdk.ShellOutputRequest>
     {
         public ShellOutputRequest() { }
-        public string? Cursor { get; init; }
-        public string? Limit { get; init; }
+        public long? Cursor { get; init; }
+        public int? Limit { get; init; }
         public OpenCode.Sdk.LocationSelector? Location { get; init; }
     }
     public sealed class ShellOutputResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ShellOutputResponse>
@@ -2076,7 +2076,7 @@ namespace OpenCode.Sdk
     public sealed class VcsBranchListRequest : System.IEquatable<OpenCode.Sdk.VcsBranchListRequest>
     {
         public VcsBranchListRequest() { }
-        public string? Limit { get; init; }
+        public int? Limit { get; init; }
         public OpenCode.Sdk.LocationSelector? Location { get; init; }
         public string? Search { get; init; }
     }
@@ -2101,7 +2101,7 @@ namespace OpenCode.Sdk
     {
         public VcsDiffRequest() { }
         public string? Base { get; init; }
-        public string? Context { get; init; }
+        public int? Context { get; init; }
         public OpenCode.Sdk.LocationSelector? Location { get; init; }
         public required OpenCode.Sdk.Models.VcsMode Mode { get; init; }
     }

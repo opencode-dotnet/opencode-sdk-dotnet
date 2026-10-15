@@ -10,6 +10,7 @@ using OpenCode.Sdk.Tools.Output.Abstractions;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Spectre.Console;
 using Spectre.Console.Cli;
+using Spectre.Console.Cli.Extensions.DependencyInjection;
 using Spectre.Console.Cli.Testing;
 using Spectre.Console.Testing;
 using Testably.Abstractions;
@@ -272,6 +273,42 @@ public sealed class ToolAppTests
         await Assert.That(fileSystem.File.Exists(GenerationTestData.ManifestPath)).IsFalse();
     }
 
+    /// <summary>
+    /// Generation reads the source watch for one check: a query parameter type row's evidence file
+    /// must be watched, or a refresh that changes the decode would not stop for review. The refusal
+    /// comes before anything is written.
+    /// </summary>
+    [Test]
+    public async Task RunAsync_Should_Refuse_A_Query_Type_Row_Whose_Evidence_The_Source_Watch_Does_Not_Pin()
+    {
+        var fileSystem = GenerationTestData.CreateQueryTypeCommandFileSystem(evidenceWatched: false);
+        using var registrar = GenerateRegistrar(fileSystem);
+        var tester = GenerateTester(registrar);
+
+        var exception = await Assert
+            .That(async () => _ = await tester.RunAsync(["generate"]))
+            .Throws<BindingException>();
+
+        var error = exception!.Errors.Single();
+        await Assert.That(error.Category).IsEqualTo(BindingErrorCategory.Curation);
+        await Assert.That(error.Subject).IsEqualTo("health.history:limit");
+        await Assert.That(error.Problem).Contains($"the evidence '{GenerationTestData.QueryEvidencePath}' is not in the source watch");
+        await Assert.That(fileSystem.File.Exists(GenerationTestData.ManifestPath)).IsFalse();
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Generate_A_Typed_Query_Parameter_Whose_Evidence_Is_Watched()
+    {
+        var fileSystem = GenerationTestData.CreateQueryTypeCommandFileSystem(evidenceWatched: true);
+        using var registrar = GenerateRegistrar(fileSystem);
+        var tester = GenerateTester(registrar);
+
+        var result = await tester.RunAsync(["generate"]);
+
+        await Assert.That(result.ExitCode).IsEqualTo(0);
+        await Assert.That(fileSystem.File.Exists(GenerationTestData.ManifestPath)).IsTrue();
+    }
+
     [Test]
     public async Task RunAsync_Should_Return_Zero_When_Verify_Is_Clean()
     {
@@ -315,5 +352,24 @@ public sealed class ToolAppTests
 
         await Assert.That(result.ExitCode).IsEqualTo(1);
         await Assert.That(result.Output).Contains("Internal/Serialization/OpenCodeJsonContext.cs");
+    }
+
+    private static DependencyInjectionRegistrar GenerateRegistrar(MockFileSystem fileSystem) =>
+        ToolApp.CreateRegistrar(services =>
+        {
+            services.AddSingleton<IFileSystem>(fileSystem);
+            services.AddSingleton<IAnsiConsole, TestConsole>();
+            services.AddSingleton<IProjectFormatter>(new RecordingProjectFormatter(fileSystem));
+        });
+
+    private static CommandAppTester GenerateTester(DependencyInjectionRegistrar registrar)
+    {
+        var tester = new CommandAppTester(registrar);
+        tester.Configure(configurator =>
+        {
+            ToolApp.Configure(configurator);
+            configurator.PropagateExceptions();
+        });
+        return tester;
     }
 }

@@ -6,8 +6,8 @@ namespace OpenCode.Sdk;
 /// </summary>
 public abstract record ListRequest
 {
-    /// <summary>Gets the wire limit value; the server default applies when unset.</summary>
-    public string? Limit { get; init; }
+    /// <summary>Gets the maximum number of items a page returns; the server default applies when unset.</summary>
+    public int? Limit { get; init; }
 
     /// <summary>Gets the first-page order; the server default applies when unset.</summary>
     public ListOrder? Order { get; init; }

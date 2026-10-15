@@ -62,7 +62,7 @@ internal sealed class SessionLogTranscript
         return items;
     }
 
-    public async Task AttachAsync(string after, CancellationToken cancellationToken)
+    public async Task AttachAsync(long after, CancellationToken cancellationToken)
     {
         if (_enumerator is not null)
         {

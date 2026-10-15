@@ -13,9 +13,9 @@ public sealed record ShellOutputRequest
     /// <summary>
     /// Gets the &apos;cursor&apos; query value; the server default applies when unset.
     /// </summary>
-    public string? Cursor { get; init; }
+    public long? Cursor { get; init; }
     /// <summary>
     /// Gets the &apos;limit&apos; query value; the server default applies when unset.
     /// </summary>
-    public string? Limit { get; init; }
+    public int? Limit { get; init; }
 }

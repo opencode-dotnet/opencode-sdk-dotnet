@@ -422,7 +422,7 @@ internal static class EmitterPlanFixture
                     QueryProperty("query", "Query", QueryValueKind.Text, isRequired: true),
                     QueryProperty("mode", "Mode", QueryValueKind.Enum, isRequired: true, enumTypeName: "ExampleMode"),
                     QueryProperty("fallbackMode", "FallbackMode", QueryValueKind.Enum, enumTypeName: "ExampleMode"),
-                    QueryProperty("limit", "Limit", QueryValueKind.Text, description: "Maximum widget count as wire text."),
+                    QueryProperty("limit", "Limit", QueryValueKind.Int32, description: "Maximum widget count."),
                     QueryProperty("order", "Order", QueryValueKind.ListOrder),
                     QueryProperty("cursor", "Cursor", QueryValueKind.Text),
                     QueryProperty("enabled", "Enabled", QueryValueKind.BooleanText),
@@ -491,7 +491,7 @@ internal static class EmitterPlanFixture
                 DerivesFromListRequest = true,
                 Properties =
                 [
-                    QueryProperty("limit", "Limit", QueryValueKind.Text, isInherited: true, description: "Maximum item count as wire text."),
+                    QueryProperty("limit", "Limit", QueryValueKind.Int32, isInherited: true, description: "Maximum item count."),
                     QueryProperty("order", "Order", QueryValueKind.ListOrder, isInherited: true),
                     QueryProperty("cursor", "Cursor", QueryValueKind.Text, isInherited: true, description: "Opaque item cursor."),
                 ],

@@ -32,7 +32,7 @@ public sealed class FileSystemClientLiveTests(SimulatedDriveServerFixture server
             {
                 Query = "sdk-live-find-target",
                 Type = FsFindRequestType.File,
-                Limit = "10",
+                Limit = 10,
             },
             cancellationToken: cancellationToken);
 

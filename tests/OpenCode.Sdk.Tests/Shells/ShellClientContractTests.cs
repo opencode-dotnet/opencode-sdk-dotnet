@@ -84,8 +84,8 @@ public sealed class ShellClientContractTests
         _ = await scenario.Client.Shells.GetShellClient("sh_100").GetOutputAsync(new ShellOutputRequest
         {
             Location = new LocationSelector { Directory = "/repo" },
-            Cursor = "1024",
-            Limit = "4096",
+            Cursor = 1024,
+            Limit = 4096,
         });
 
         await Assert.That(scenario.Requests.Single().RequestUri!.AbsoluteUri)

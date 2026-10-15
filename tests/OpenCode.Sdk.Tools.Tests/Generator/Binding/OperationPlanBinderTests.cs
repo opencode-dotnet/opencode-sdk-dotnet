@@ -276,7 +276,7 @@ public sealed class OperationPlanBinderTests
                 .Response(200, "application/json", schema => schema.Ref("BlobWritten")))));
 
         var operation = new BindingTestHost()
-            .Bind(document, Selection("blob.create"), Curation(Groups("blob", RootGroup())))
+            .Bind(document, Selection("blob.create"), Curation(Groups("blob", RootGroup()), stringQueryParameters: [StringQueryParameter("blob.create", "path")]))
             .Clients.SelectMany(static client => client.Operations)
             .Single();
 
@@ -599,7 +599,7 @@ public sealed class OperationPlanBinderTests
         var sessionList = sessions.Operations.Single(static operation => operation.MethodName == "ListSessionsAsync");
         await Assert
             .That(sessionList.QueryRequest!.Properties.Single(static property => property.WireName == "limit").Kind)
-            .IsEqualTo(QueryValueKind.Text);
+            .IsEqualTo(QueryValueKind.Int32);
         await Assert
             .That(sessionList.QueryRequest.Properties.Single(static property => property.WireName == "order").Kind)
             .IsEqualTo(QueryValueKind.ListOrder);
@@ -607,7 +607,7 @@ public sealed class OperationPlanBinderTests
         var messageList = session.Operations.Single(static operation => operation.MethodName == "ListMessagesAsync");
         await Assert
             .That(messageList.QueryRequest!.Properties.Single(static property => property.WireName == "limit").Kind)
-            .IsEqualTo(QueryValueKind.Text);
+            .IsEqualTo(QueryValueKind.Int32);
         await Assert
             .That(messageList.QueryRequest.Properties.Single(static property => property.WireName == "order").Kind)
             .IsEqualTo(QueryValueKind.ListOrder);
@@ -618,7 +618,7 @@ public sealed class OperationPlanBinderTests
         var sessionLog = session.Operations.Single(static operation => operation.MethodName == "GetLogAsync");
         await Assert
             .That(sessionLog.QueryRequest!.Properties.Single(static property => property.WireName == "after").Kind)
-            .IsEqualTo(QueryValueKind.Text);
+            .IsEqualTo(QueryValueKind.Int64);
         await Assert
             .That(sessionLog.QueryRequest.Properties.Single(static property => property.WireName == "follow").Kind)
             .IsEqualTo(QueryValueKind.BooleanText);
@@ -866,7 +866,7 @@ public sealed class OperationPlanBinderTests
             .Parameter("search", "query", QueryScenarioData.NullableString)
             .Parameter("parentID", "query", QueryScenarioData.NullableParentFilter)));
 
-        var plan = BindWidgets(document);
+        var plan = BindWidgets(document, integers: ["limit"], strings: ["cursor", "search"]);
 
         var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
         await Assert.That(list.QueryRequest).IsNotNull();
@@ -886,7 +886,7 @@ public sealed class OperationPlanBinderTests
             .That(list
                 .QueryRequest.Properties.Select(static property => property.Kind)
                 .SequenceEqual([
-                    QueryValueKind.Text,
+                    QueryValueKind.Int32,
                     QueryValueKind.ListOrder,
                     QueryValueKind.Text,
                     QueryValueKind.Text,
@@ -911,7 +911,7 @@ public sealed class OperationPlanBinderTests
                     branch => branch.Type("null"))
                 .Description("Must be a positive count."))));
 
-        var plan = BindWidgets(document);
+        var plan = BindWidgets(document, strings: ["limit"]);
 
         var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
         var property = list.QueryRequest!.Properties.Single();
@@ -948,7 +948,7 @@ public sealed class OperationPlanBinderTests
             .Parameter("order", "query", QueryScenarioData.NullableOrderEnum)
             .Parameter("cursor", "query", QueryScenarioData.NullableString)));
 
-        var plan = BindWidgets(document);
+        var plan = BindWidgets(document, integers: ["limit"], strings: ["cursor"]);
 
         var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
         await Assert.That(list.QueryRequest!.TypeName).IsEqualTo("WidgetListRequest");
@@ -971,7 +971,7 @@ public sealed class OperationPlanBinderTests
                 branch => branch.Type("null")))
             .Parameter("cursor", "query", QueryScenarioData.NullableString)));
 
-        var plan = BindWidgets(document);
+        var plan = BindWidgets(document, integers: ["limit"], strings: ["cursor"]);
 
         var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
         await Assert.That(list.QueryRequest!.DerivesFromListRequest).IsFalse();
@@ -986,7 +986,7 @@ public sealed class OperationPlanBinderTests
             .Parameter("order", "query", QueryScenarioData.NullableOrderEnum)
             .Parameter("cursor", "query", QueryScenarioData.NullableString)));
 
-        var plan = BindWidgets(document);
+        var plan = BindWidgets(document, integers: ["limit"], strings: ["cursor"]);
 
         var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
         await Assert.That(list.QueryRequest!.DerivesFromListRequest).IsFalse();
@@ -1000,7 +1000,7 @@ public sealed class OperationPlanBinderTests
             .Parameter("limit", "query", QueryScenarioData.NullableString)
             .Parameter("cursor", "query", QueryScenarioData.NullableString)));
 
-        var plan = BindWidgets(document);
+        var plan = BindWidgets(document, integers: ["limit"], strings: ["cursor"]);
 
         var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
         await Assert.That(list.QueryRequest!.DerivesFromListRequest).IsFalse();
@@ -1060,7 +1060,7 @@ public sealed class OperationPlanBinderTests
             .Parameter("cursor", "query", QueryScenarioData.NullableString)
             .Parameter("search", "query", QueryScenarioData.NullableString)));
 
-        var plan = BindWidgets(document);
+        var plan = BindWidgets(document, integers: ["limit"], strings: ["cursor", "search"]);
 
         var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
         await Assert.That(list.QueryRequest!.DerivesFromListRequest).IsTrue();
@@ -1078,7 +1078,7 @@ public sealed class OperationPlanBinderTests
             .Parameter("limit", "query", QueryScenarioData.NullableString)
             .Parameter("cursor", "query", QueryScenarioData.NullableString)));
 
-        var plan = BindWidgets(document);
+        var plan = BindWidgets(document, integers: ["limit"], strings: ["cursor"]);
 
         var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
         await Assert.That(list.QueryRequest!.DerivesFromListRequest).IsFalse();
@@ -1094,7 +1094,7 @@ public sealed class OperationPlanBinderTests
             .Parameter("cursor", "query", QueryScenarioData.NullableString)
             .Parameter("search", "query", schema => schema.Type("string"), required: true)));
 
-        var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document));
+        var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document, integers: ["limit"], strings: ["cursor", "search"]));
 
         await Assert
             .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Operation
@@ -1113,7 +1113,9 @@ public sealed class OperationPlanBinderTests
             .Parameter("cursor", "query", QueryScenarioData.NullableString)));
         var curation = Curation(
             Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)),
-            operationNames: [OperationName("widget.list", "BrowseWidgetsAsync")]);
+            operationNames: [OperationName("widget.list", "BrowseWidgetsAsync")],
+            queryParameterTypes: [QueryParameterType("widget.list", "limit", "int")],
+            stringQueryParameters: [StringQueryParameter("widget.list", "cursor")]);
 
         var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
             document,
@@ -1549,7 +1551,7 @@ public sealed class OperationPlanBinderTests
                 .RequestBody("application/json", body => body.Ref("Widget.CreatePayload"), required: true)
                 .Response(200, "application/json", schema => schema.Ref("WidgetInfo")))));
 
-        await AssertWidgetRefusalAsync(document, "request body and query", "widget.create");
+        await AssertWidgetRefusalAsync(document, "request body and query", "widget.create", strings: ["search"]);
     }
 
     [Test]
@@ -2169,7 +2171,9 @@ public sealed class OperationPlanBinderTests
             Selection("widget.list"),
             Curation(Groups(
                 "widget",
-                ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null, emission: EmissionMode.InternalRaw)))));
+                ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null, emission: EmissionMode.InternalRaw)),
+            queryParameterTypes: [QueryParameterType("widget.list", "limit", "int")],
+            stringQueryParameters: [StringQueryParameter("widget.list", "cursor")])));
 
         await Assert
             .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Operation
@@ -2226,7 +2230,7 @@ public sealed class OperationPlanBinderTests
         var document = await BindingTestHost.IngestAsync(WidgetListScenario(operation => operation
             .Parameter("query", "query", schema => schema.Type("string"), required: true)));
 
-        var plan = BindWidgets(document);
+        var plan = BindWidgets(document, strings: ["query"]);
 
         var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
         var property = list.QueryRequest!.Properties.Single();
@@ -2242,7 +2246,7 @@ public sealed class OperationPlanBinderTests
         var document = await BindingTestHost.IngestAsync(WidgetListScenario(operation => operation
             .Parameter("limit", "query", schema => schema.Type("string"))));
 
-        var plan = BindWidgets(document);
+        var plan = BindWidgets(document, strings: ["limit"]);
 
         var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
         var property = list.QueryRequest!.Properties.Single();
@@ -2881,7 +2885,7 @@ public sealed class OperationPlanBinderTests
                 .Response(200, "application/octet-stream", schema => schema.Type("string").Format("binary")))));
 
         var operation = new BindingTestHost()
-            .Bind(document, Selection("blob.read"), Curation(Groups("blob", RootGroup())))
+            .Bind(document, Selection("blob.read"), Curation(Groups("blob", RootGroup()), stringQueryParameters: [StringQueryParameter("blob.read", "path")]))
             .Clients.SelectMany(static client => client.Operations)
             .Single();
 
@@ -2959,7 +2963,7 @@ public sealed class OperationPlanBinderTests
                         static branch => branch.Type("null"))), required: true)
                 .Response(200, "application/json", schema => schema.Ref("WidgetInfo")))));
 
-        await AssertWidgetRefusalAsync(document, "request body and query", "widget.create");
+        await AssertWidgetRefusalAsync(document, "request body and query", "widget.create", strings: ["dryRun"]);
     }
 
     [Test]
@@ -3335,16 +3339,20 @@ public sealed class OperationPlanBinderTests
                 Groups("pty", ClientGroup(clientName: "Ptys", handleName: "PtyClient", handleParameter: "ptyID", emission: emission)),
                 operationNames: [OperationName("pty.connect.token", "CreateConnectTokenAsync")]));
 
-    private static EmitPlan BindWidgets(SpecDocument document, string operationId = "widget.list") =>
+    private static EmitPlan BindWidgets(SpecDocument document, string operationId = "widget.list",
+        IReadOnlyList<string>? integers = null, IReadOnlyList<string>? strings = null) =>
         new BindingTestHost().Bind(
             document,
             Selection(operationId),
-            Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null))));
+            Curation(
+                Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)),
+                queryParameterTypes: [.. (integers ?? []).Select(parameter => QueryParameterType(operationId, parameter, "int"))],
+                stringQueryParameters: [.. (strings ?? []).Select(parameter => StringQueryParameter(operationId, parameter))]));
 
     private static async Task AssertWidgetRefusalAsync(SpecDocument document, string expectedProblem,
-        string operationId = "widget.list")
+        string operationId = "widget.list", IReadOnlyList<string>? strings = null)
     {
-        var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document, operationId));
+        var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document, operationId, strings: strings));
 
         await Assert
             .That(exception.Errors.Any(error => error.Category == BindingErrorCategory.Operation

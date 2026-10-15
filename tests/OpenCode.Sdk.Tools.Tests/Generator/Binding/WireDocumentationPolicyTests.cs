@@ -90,7 +90,8 @@ public sealed class WireDocumentationPolicyTests
             .WithOperation("widget.get", path: "/api/widgets", configure: static operation => operation
                 .Parameter("query", "query", static schema => schema.Type("string"))
                 .WithoutResponse(200).Response(204))));
-        var plan = new BindingTestHost().Bind(document, Selection("widget.get"), Curation(Groups("widget", RootGroup())));
+        var plan = new BindingTestHost().Bind(document, Selection("widget.get"), Curation(Groups("widget", RootGroup()),
+            stringQueryParameters: [StringQueryParameter("widget.get", "query")]));
 
         await Assert.That(plan.Clients.SelectMany(static client => client.Operations).Single().QueryRequest!.Documentation.Summary)
             .IsEqualTo("The query of 'widget.get' (GET /api/widgets).");

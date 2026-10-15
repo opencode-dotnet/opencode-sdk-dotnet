@@ -11,7 +11,7 @@ public sealed class SessionClientPaginationTests
         var client = new StubSessionClient(Page(next: string.Empty), Page(next: null));
         var initialRequest = new SessionMessageListRequest
         {
-            Limit = "2",
+            Limit = 2,
             Order = ListOrder.Descending,
             Cursor = "cur_start",
         };
@@ -27,7 +27,7 @@ public sealed class SessionClientPaginationTests
         await Assert.That(itemCount).IsEqualTo(0);
         await Assert.That(client.Requests.Count).IsEqualTo(2);
         await Assert.That(ReferenceEquals(client.Requests[0], initialRequest)).IsTrue();
-        await Assert.That(client.Requests[1]?.Limit).IsEqualTo("2");
+        await Assert.That(client.Requests[1]?.Limit).IsEqualTo(2);
         await Assert.That(client.Requests[1]?.Order).IsNull();
         await Assert.That(client.Requests[1]?.Cursor).IsEqualTo(string.Empty);
     }
@@ -147,7 +147,7 @@ public sealed class SessionClientPaginationTests
         var client = new StubSessionsClient(SessionPage("cur_1"), SessionPage(next: null));
         var initialRequest = new SessionListRequest
         {
-            Limit = "3",
+            Limit = 3,
             Order = ListOrder.Descending,
             Search = "needle",
             Project = "prj_1",
@@ -160,7 +160,7 @@ public sealed class SessionClientPaginationTests
 
         await Assert.That(client.Requests.Count).IsEqualTo(2);
         await Assert.That(ReferenceEquals(client.Requests[0], initialRequest)).IsTrue();
-        await Assert.That(client.Requests[1]?.Limit).IsEqualTo("3");
+        await Assert.That(client.Requests[1]?.Limit).IsEqualTo(3);
         await Assert.That(client.Requests[1]?.Search).IsEqualTo("needle");
         await Assert.That(client.Requests[1]?.Project).IsEqualTo("prj_1");
         await Assert.That(client.Requests[1]?.Cursor).IsEqualTo("cur_1");

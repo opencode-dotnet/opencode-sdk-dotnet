@@ -32,7 +32,7 @@ public sealed class SessionMessagePaginationLiveTests(SimulatedDriveServerFixtur
             turnCompleted = true;
 
             var manual = new List<ISessionMessageInfo>();
-            var request = new SessionMessageListRequest { Limit = "1", Order = ListOrder.Ascending };
+            var request = new SessionMessageListRequest { Limit = 1, Order = ListOrder.Ascending };
             while (true)
             {
                 var page = await session.ListMessagesAsync(request, cancellationToken: cancellationToken);
@@ -45,7 +45,7 @@ public sealed class SessionMessagePaginationLiveTests(SimulatedDriveServerFixtur
                 await Assert.That(page.Messages).Count().IsEqualTo(1);
                 await Assert.That(page.Cursor.Next).IsNotNull();
                 manual.Add(page.Messages[0]);
-                request = new SessionMessageListRequest { Limit = "1", Cursor = page.Cursor.Next };
+                request = new SessionMessageListRequest { Limit = 1, Cursor = page.Cursor.Next };
             }
 
             var manualUsers = manual.OfType<SessionMessageUser>().Where(message => message.Text == Prompt).ToList();
@@ -197,7 +197,7 @@ public sealed class SessionMessagePaginationLiveTests(SimulatedDriveServerFixtur
     {
         var messages = new List<ISessionMessageInfo>();
         await foreach (var message in session.EnumerateMessagesAsync(
-                           new SessionMessageListRequest { Limit = "1", Order = ListOrder.Ascending },
+                           new SessionMessageListRequest { Limit = 1, Order = ListOrder.Ascending },
                            cancellationToken))
         {
             messages.Add(message);

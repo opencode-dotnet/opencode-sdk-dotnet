@@ -9,6 +9,26 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 💥 Breaking changes
+
+- **Numeric query parameters are numbers.** The API description declares them as strings, but the
+  server reads each one as a number and upstream's own client takes a number, so the request
+  records now do too. Pass `Limit = 50`, not `Limit = "50"`. The value still goes out as query text,
+  and the server still enforces its range.
+
+  | Property | Was | Now |
+  |---|---|---|
+  | `ListRequest.Limit` (`SessionListRequest`, `SessionMessageListRequest`) | `string?` | `int?` |
+  | `FsFindRequest.Limit` | `string?` | `int?` |
+  | `VcsBranchListRequest.Limit` | `string?` | `int?` |
+  | `ShellOutputRequest.Limit` | `string?` | `int?` |
+  | `ShellOutputRequest.Cursor` | `string?` | `long?` |
+  | `PersistentPtyReadRequest.Lines` | `string?` | `int?` |
+  | `SessionLogRequest.After` | `string?` | `long?` |
+  | `SessionDiffRequest.Context` | `string?` | `int?` |
+  | `VcsDiffRequest.Context` | `string?` | `int?` |
+  | `ExperimentalSessionStatsRequest.From`, `.To` (milliseconds since the Unix epoch) | `string?` | `long?` |
+
 ## [0.9.0-preview.11] - 2026-10-15
 
 **The event bus reconnects the way upstream's own client does, and the calls that answer only when

@@ -103,13 +103,13 @@ public sealed class SessionsClientLiveTests(SimulatedDriveServerFixture server)
                 cancellationToken: cancellationToken);
             var observed = _messageEvidence.Project(messages.Messages);
             await Assert.That(observed.Count).IsGreaterThan(0);
-            var from = observed.Min(message => message.Created) - 1;
-            var to = observed.Max(message => message.Created) + 1;
+            var from = (long)Math.Floor(observed.Min(message => message.Created)) - 1;
+            var to = (long)Math.Ceiling(observed.Max(message => message.Created)) + 1;
 
             var response = await client.Experimental.GetSessionStatsAsync(new ExperimentalSessionStatsRequest
             {
-                From = Number(from),
-                To = Number(to),
+                From = from,
+                To = to,
                 Project = created.ProjectId,
             }, cancellationToken: cancellationToken);
 
@@ -159,7 +159,7 @@ public sealed class SessionsClientLiveTests(SimulatedDriveServerFixture server)
             // them: dropping it would surface sessions from the other tests sharing this server.
             var request = new SessionListRequest
             {
-                Limit = "1",
+                Limit = 1,
                 Order = ListOrder.Ascending,
                 Project = first.ProjectId,
             };
@@ -296,6 +296,4 @@ public sealed class SessionsClientLiveTests(SimulatedDriveServerFixture server)
     private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
 
     private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
-
-    private static string Number(double value) => value.ToString("R", CultureInfo.InvariantCulture);
 }

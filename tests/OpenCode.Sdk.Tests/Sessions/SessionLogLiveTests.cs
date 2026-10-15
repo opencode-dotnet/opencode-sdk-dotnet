@@ -90,7 +90,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             var resumed = await transcript.ReadToEndAsync(
                 new SessionLogRequest
                 {
-                    After = anchor.Durable.Seq.ToString(CultureInfo.InvariantCulture),
+                    After = anchor.Durable.Seq,
                     Follow = QueryBoolean.False,
                 },
                 cancellationToken);
@@ -145,9 +145,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             await Assert.That(finite[^1]).IsSameReferenceAs(finiteMarkers[0]);
             await Assert.That(finiteMarkers[0].Seq).IsNotNull();
 
-            await transcript.AttachAsync(
-                finiteMarkers[0].Seq!.Value.ToString(CultureInfo.InvariantCulture),
-                cancellationToken);
+            await transcript.AttachAsync(finiteMarkers[0].Seq!.Value, cancellationToken);
             await Assert.That(transcript.Marker).IsNotNull();
             await Assert.That(transcript.Marker!.AggregateId).IsEqualTo(sessionId);
             await Assert.That(transcript.ReplayItems.OfType<SessionTextEnded>()
@@ -223,7 +221,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             var answered = await transcript.ReadToEndAsync(
                 new SessionLogRequest
                 {
-                    After = beyond.ToString(CultureInfo.InvariantCulture),
+                    After = beyond,
                     Follow = QueryBoolean.False,
                 },
                 cancellationToken);
@@ -285,7 +283,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             await Assert.That(watermark).IsNotNull();
             var covered = watermark!.Value + SkippedOffset;
 
-            await transcript.AttachAsync(covered.ToString(CultureInfo.InvariantCulture), cancellationToken);
+            await transcript.AttachAsync(covered, cancellationToken);
             await Assert.That(transcript.Marker).IsNotNull();
             await Assert.That(transcript.Marker!.Seq).IsNotNull();
             await Assert.That(transcript.Marker.Seq!.Value).IsGreaterThanOrEqualTo(watermark.Value);
@@ -307,7 +305,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             var control = await new SessionLogTranscript(session).ReadToEndAsync(
                 new SessionLogRequest
                 {
-                    After = watermark.Value.ToString(CultureInfo.InvariantCulture),
+                    After = watermark.Value,
                     Follow = QueryBoolean.False,
                 },
                 cancellationToken);

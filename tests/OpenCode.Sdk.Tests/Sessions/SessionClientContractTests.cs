@@ -92,7 +92,7 @@ public sealed class SessionClientContractTests
 
         var response = await scenario.Client.Sessions.GetSessionClient("ses_100").ListMessagesAsync(new SessionMessageListRequest
         {
-            Limit = "2",
+            Limit = 2,
             Order = ListOrder.Ascending,
         });
 
@@ -182,7 +182,7 @@ public sealed class SessionClientContractTests
         });
         var messages = scenario.Client.Sessions.GetSessionClient("ses_100").EnumerateMessagesAsync(new SessionMessageListRequest
         {
-            Limit = "2",
+            Limit = 2,
             Order = ListOrder.Ascending,
             Cursor = initialCursor,
         }, CancellationToken.None);
@@ -627,7 +627,7 @@ public sealed class SessionClientContractTests
         {
             From = "msg_1",
             To = "msg_2",
-            Context = "3",
+            Context = 3,
         });
 
         await Assert.That(response.Diffs).IsEmpty();

@@ -12,6 +12,8 @@ The pinned document itself is produced through the receipt-governed snapshot pro
 this record governs what generation consumes from it. ADR-0029 adopts one bounded second artifact
 under this record's reversal trigger: upstream's pinned codegen rule for the input a
 trailing-wildcard route carries, mirrored rather than read and guarded by the source watch.
+ADR-0037 admits a generated type that follows upstream's decode instead of the document, as a
+reason-bearing, source-watched, gated and self-retiring exception.
 
 Curation may choose .NET names and placement, collapse OpenAPI shapes proven equivalent,
 fingerprint exclusions already evidenced by the document, and map an operation whose upstream

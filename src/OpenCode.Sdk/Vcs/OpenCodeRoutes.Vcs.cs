@@ -51,7 +51,7 @@ public static partial class OpenCodeRoutes
             query.AddLocation("location", request.Location);
             query.AddText("mode", ToWireValue(request.Mode));
             query.AddText("base", request.Base);
-            query.AddText("context", request.Context);
+            query.AddInteger("context", request.Context);
             return path + query.Value;
         }
 
@@ -142,7 +142,7 @@ public static partial class OpenCodeRoutes
             var query = new QueryStringBuilder();
             query.AddLocation("location", request.Location);
             query.AddText("search", request.Search);
-            query.AddText("limit", request.Limit);
+            query.AddInteger("limit", request.Limit);
             return path + query.Value;
         }
     }

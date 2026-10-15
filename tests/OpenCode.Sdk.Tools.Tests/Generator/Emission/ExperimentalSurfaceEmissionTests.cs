@@ -230,7 +230,8 @@ public sealed class ExperimentalSurfaceEmissionTests
     {
         var document = await BindingTestHost.IngestAsync(new ExperimentalOperationScenario(stable));
         return new BindingTestHost().Bind(document, stable ? Selection("probe.get", "probe.list") : Selection("probe.get"),
-            Curation(Groups("probe", ClientGroup("Probes", null, null, emission, "OPENCODE001"))));
+            Curation(Groups("probe", ClientGroup("Probes", null, null, emission, "OPENCODE001")),
+                stringQueryParameters: ExperimentalOperationScenario.QueryRows));
     }
 
     private static T Type<T>(IReadOnlyList<GeneratedSource> sources, string name) where T : BaseTypeDeclarationSyntax =>

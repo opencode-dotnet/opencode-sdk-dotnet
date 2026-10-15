@@ -260,6 +260,7 @@ internal static class RoutesEmitter
         QueryValueKind.BooleanText => "AddBoolean",
         QueryValueKind.SessionParentFilter => "AddParentFilter",
         QueryValueKind.Location => "AddLocation",
+        QueryValueKind.Int32 or QueryValueKind.Int64 => "AddInteger",
         QueryValueKind.RouteTail => throw new InvalidOperationException("The route tail fills the path, never the query."),
         _ => throw new InvalidOperationException($"Query value kind '{kind}' has no query-builder method."),
     };

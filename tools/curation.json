@@ -811,6 +811,225 @@
       "reason": "The route value is a saved permission's id; the other operations name their ids after the resource (credentialId, integrationId), and a bare id says less."
     }
   ],
+  "queryParameterTypes": [
+    {
+      "operationId": "session.list",
+      "parameter": "limit",
+      "dotnetType": "int",
+      "reason": "The document projects it as a string, but the server decodes it from the query text as a positive integer, and upstream's own client takes a number. It is the ListRequest limit every cursor list shares.",
+      "evidence": {
+        "path": "packages/protocol/src/groups/session.ts",
+        "anchor": "limit: Schema.NumberFromString.pipe(Schema.decodeTo(PositiveInt), Schema.optional)"
+      }
+    },
+    {
+      "operationId": "session.message.list",
+      "parameter": "limit",
+      "dotnetType": "int",
+      "reason": "The document projects it as a string, but the server decodes it from the query text as an integer from 1 to 200, and upstream's own client takes a number. It is the ListRequest limit every cursor list shares.",
+      "evidence": {
+        "path": "packages/protocol/src/groups/message.ts",
+        "anchor": "Schema.NumberFromString.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(200))"
+      }
+    },
+    {
+      "operationId": "fs.find",
+      "parameter": "limit",
+      "dotnetType": "int",
+      "reason": "The document projects it as a string, but the server decodes it from the query text as a positive integer, and upstream's own client takes a number.",
+      "evidence": {
+        "path": "packages/protocol/src/groups/fs.ts",
+        "anchor": "limit: Schema.NumberFromString.pipe(Schema.decodeTo(PositiveInt), Schema.optional)"
+      }
+    },
+    {
+      "operationId": "vcs.branch.list",
+      "parameter": "limit",
+      "dotnetType": "int",
+      "reason": "The document projects it as a string, but the server decodes it from the query text as a positive integer, and upstream's own client takes a number.",
+      "evidence": {
+        "path": "packages/protocol/src/groups/vcs.ts",
+        "anchor": "limit: Schema.NumberFromString.pipe(Schema.decodeTo(PositiveInt), Schema.optional)"
+      }
+    },
+    {
+      "operationId": "shell.output",
+      "parameter": "cursor",
+      "dotnetType": "long",
+      "reason": "The document projects it as a string, but the server decodes it from the query text as a non-negative integer, and upstream's own client takes a number. It is an absolute byte offset into the captured output, which can pass the 32-bit range.",
+      "evidence": {
+        "path": "packages/schema/src/shell.ts",
+        "anchor": "cursor: optional(NonNegativeInt),"
+      }
+    },
+    {
+      "operationId": "shell.output",
+      "parameter": "limit",
+      "dotnetType": "int",
+      "reason": "The document projects it as a string, but the server decodes it from the query text as a non-negative integer, and upstream's own client takes a number.",
+      "evidence": {
+        "path": "packages/schema/src/shell.ts",
+        "anchor": "limit: optional(NonNegativeInt),"
+      }
+    },
+    {
+      "operationId": "persistentPty.read",
+      "parameter": "lines",
+      "dotnetType": "int",
+      "reason": "The document projects it as a string, but the server decodes it from the query text as an integer from 1 to 65535, and upstream's own client takes a number.",
+      "evidence": {
+        "path": "packages/protocol/src/groups/persistent-pty.ts",
+        "anchor": "lines: Schema.NumberFromString.pipe(Schema.decodeTo(PersistentPty.ReadLines), Schema.optional)"
+      }
+    },
+    {
+      "operationId": "session.log",
+      "parameter": "after",
+      "dotnetType": "long",
+      "reason": "The document projects it as a string, but the server decodes it from the query text as an event sequence number (Event.Seq, a non-negative integer), and upstream's own client takes a number. A sequence number grows for the life of the server's data and can pass the 32-bit range.",
+      "evidence": {
+        "path": "packages/protocol/src/groups/session.ts",
+        "anchor": "after: Schema.NumberFromString.pipe(Schema.decodeTo(Event.Seq), Schema.optional)"
+      }
+    },
+    {
+      "operationId": "experimental.session.stats",
+      "parameter": "from",
+      "dotnetType": "long",
+      "reason": "The document projects it as a string, but the server decodes it from the query text as a number, and upstream's own client takes a number. It is a time in milliseconds since the Unix epoch, which passes the 32-bit range.",
+      "evidence": {
+        "path": "packages/protocol/src/groups/session.ts",
+        "anchor": "from: Schema.NumberFromString.pipe(Schema.optional),"
+      }
+    },
+    {
+      "operationId": "experimental.session.stats",
+      "parameter": "to",
+      "dotnetType": "long",
+      "reason": "The document projects it as a string, but the server decodes it from the query text as a number, and upstream's own client takes a number. It is a time in milliseconds since the Unix epoch, which passes the 32-bit range.",
+      "evidence": {
+        "path": "packages/protocol/src/groups/session.ts",
+        "anchor": "to: Schema.NumberFromString.pipe(Schema.optional),"
+      }
+    },
+    {
+      "operationId": "session.diff",
+      "parameter": "context",
+      "dotnetType": "int",
+      "reason": "The document projects it as a string, but the server decodes it from the query text as a non-negative integer, and upstream's own client takes a number.",
+      "evidence": {
+        "path": "packages/protocol/src/groups/session.ts",
+        "anchor": "context: Schema.NumberFromString.pipe(Schema.decodeTo(NonNegativeInt), Schema.optional).annotate({"
+      }
+    },
+    {
+      "operationId": "vcs.diff",
+      "parameter": "context",
+      "dotnetType": "int",
+      "reason": "The document projects it as a string, but the server decodes it from the query text as a non-negative integer, and upstream's own client takes a number.",
+      "evidence": {
+        "path": "packages/protocol/src/groups/vcs.ts",
+        "anchor": "context: Schema.NumberFromString.pipe(Schema.decodeTo(NonNegativeInt), Schema.optional),"
+      }
+    }
+  ],
+  "stringQueryParameters": [
+    {
+      "operationId": "session.list",
+      "parameter": "search",
+      "reason": "Free search text; upstream's client takes a string."
+    },
+    {
+      "operationId": "session.list",
+      "parameter": "directory",
+      "reason": "An absolute path (AbsolutePath); upstream's client takes a string."
+    },
+    {
+      "operationId": "session.list",
+      "parameter": "project",
+      "reason": "A project identifier (Project.ID); upstream's client takes a string."
+    },
+    {
+      "operationId": "session.list",
+      "parameter": "subpath",
+      "reason": "A path relative to the project (RelativePath); upstream's client takes a string."
+    },
+    {
+      "operationId": "session.list",
+      "parameter": "cursor",
+      "reason": "An opaque pagination token (SessionsCursor) the previous page returned; upstream's client takes a string."
+    },
+    {
+      "operationId": "experimental.session.stats",
+      "parameter": "project",
+      "reason": "A project identifier (Project.ID); upstream's client takes a string."
+    },
+    {
+      "operationId": "experimental.session.stats",
+      "parameter": "timezone",
+      "reason": "A time-zone name; upstream's client takes a string."
+    },
+    {
+      "operationId": "session.diff",
+      "parameter": "from",
+      "reason": "A message identifier (Session.Message.ID); upstream's client takes a string."
+    },
+    {
+      "operationId": "session.diff",
+      "parameter": "to",
+      "reason": "A message identifier (Session.Message.ID); upstream's client takes a string."
+    },
+    {
+      "operationId": "session.form.cancel",
+      "parameter": "message",
+      "reason": "Free text; upstream's client takes a string."
+    },
+    {
+      "operationId": "session.message.list",
+      "parameter": "cursor",
+      "reason": "An opaque pagination token the previous page returned; upstream's client takes a string."
+    },
+    {
+      "operationId": "permission.saved.list",
+      "parameter": "projectID",
+      "reason": "A project identifier (Project.ID); upstream's client takes a string."
+    },
+    {
+      "operationId": "fs.list",
+      "parameter": "path",
+      "reason": "An absolute path or a path relative to the requested location; upstream's client takes a string."
+    },
+    {
+      "operationId": "fs.find",
+      "parameter": "query",
+      "reason": "Free search text; upstream's client takes a string."
+    },
+    {
+      "operationId": "experimental.fs.write",
+      "parameter": "path",
+      "reason": "An absolute path or a path relative to the requested location; upstream's client takes a string."
+    },
+    {
+      "operationId": "worktree.list",
+      "parameter": "projectID",
+      "reason": "A project identifier (Project.ID); upstream's client takes a string."
+    },
+    {
+      "operationId": "vcs.init",
+      "parameter": "provider",
+      "reason": "A version-control provider name; upstream's client takes a string."
+    },
+    {
+      "operationId": "vcs.branch.list",
+      "parameter": "search",
+      "reason": "Free search text; upstream's client takes a string."
+    },
+    {
+      "operationId": "vcs.diff",
+      "parameter": "base",
+      "reason": "A revision the diff starts from; upstream's client takes a string."
+    }
+  ],
   "schemaNames": [
     {
       "schema": "Config.ModelEncoded#/properties/cost",

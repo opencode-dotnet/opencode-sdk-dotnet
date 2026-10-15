@@ -40,7 +40,7 @@ internal sealed class PendingOperationBindabilityProbe(ISpecBinder binder)
 
     /// <summary>Problems a missing curation row raises, never a shape wall: a bind only they refuse still probes as bindable.</summary>
     private static readonly HashSet<string> MissingRowProblems = new(
-        [SecretMemberPolicy.UndecidedSecretProblem, SecretMemberPolicy.UndecidedOpenMembersProblem],
+        [SecretMemberPolicy.UndecidedSecretProblem, SecretMemberPolicy.UndecidedOpenMembersProblem, QueryParameterTypePolicy.UnclassifiedProblem],
         StringComparer.Ordinal);
 
     private readonly ISpecBinder _binder = binder ?? throw new ArgumentNullException(nameof(binder));
@@ -150,5 +150,7 @@ internal sealed class PendingOperationBindabilityProbe(ISpecBinder binder)
             SecretLookingNames = [],
             ModelOwners = [],
             SessionAreas = [],
+            QueryParameterTypes = [],
+            StringQueryParameters = [],
         };
 }

@@ -23,5 +23,5 @@ public sealed record VcsDiffRequest
     /// <summary>
     /// Gets the &apos;context&apos; query value; the server default applies when unset.
     /// </summary>
-    public string? Context { get; init; }
+    public int? Context { get; init; }
 }

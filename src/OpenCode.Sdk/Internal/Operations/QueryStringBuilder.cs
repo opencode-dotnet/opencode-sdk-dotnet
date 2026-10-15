@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace OpenCode.Sdk.Internal;
@@ -18,6 +19,18 @@ internal sealed class QueryStringBuilder
         if (value is not null)
         {
             Append(name, value);
+        }
+    }
+
+    /// <summary>
+    /// Writes an integer the way upstream's client writes a number into the query: its
+    /// invariant decimal text, which the server decodes back into a number.
+    /// </summary>
+    public void AddInteger(string name, long? value)
+    {
+        if (value is not null)
+        {
+            Append(name, value.Value.ToString(CultureInfo.InvariantCulture));
         }
     }
 

@@ -24,5 +24,7 @@
     }
   ],
   "modelOwners": [],
-  "sessionAreas": []
+  "sessionAreas": [],
+  "queryParameterTypes": [],
+  "stringQueryParameters": []
 }

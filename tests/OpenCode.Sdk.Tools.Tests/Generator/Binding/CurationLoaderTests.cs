@@ -101,8 +101,8 @@ public sealed class CurationLoaderTests
             .That(sections)
             .IsEquivalentTo([
                 "declined", "descriptions", "enumMemberNames", "envelopePayloadNames", "groups", "hoistedMemberNames", "modelOwners", "operationIdentities", "parameterNames",
-                "operationNames", "redactedMembers", "redactedOpenMembers", "schemaAliases", "schemaNames", "secretLookingNames", "sessionAreas",
-                "sessionScopedEvent", "transportOwned"
+                "operationNames", "queryParameterTypes", "redactedMembers", "redactedOpenMembers", "schemaAliases", "schemaNames", "secretLookingNames",
+                "sessionAreas", "sessionScopedEvent", "stringQueryParameters", "transportOwned"
             ]);
     }
 

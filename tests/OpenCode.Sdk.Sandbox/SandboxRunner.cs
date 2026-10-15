@@ -76,7 +76,7 @@ internal static class SandboxRunner
 
         var listRequest = new SessionMessageListRequest
         {
-            Limit = "1",
+            Limit = 1,
             Order = ListOrder.Ascending,
         };
         var messageStream = sessionClient.EnumerateMessagesAsync(listRequest, CancellationToken.None);
@@ -115,7 +115,7 @@ internal static class SandboxRunner
 
         var sessionListRequest = new SessionListRequest
         {
-            Limit = "3",
+            Limit = 3,
             Order = ListOrder.Descending,
         };
         var page = await sessionsClient.ListSessionsAsync(sessionListRequest).ConfigureAwait(false);
@@ -134,7 +134,7 @@ internal static class SandboxRunner
 
         var messageListRequest = new SessionMessageListRequest
         {
-            Limit = "5",
+            Limit = 5,
         };
         var messages = await handle.ListMessagesAsync(messageListRequest).ConfigureAwait(false);
 

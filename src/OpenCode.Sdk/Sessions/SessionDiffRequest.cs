@@ -17,5 +17,5 @@ public sealed record SessionDiffRequest
     /// <summary>
     /// Unchanged lines around each hunk. Omit for full-file patches.
     /// </summary>
-    public string? Context { get; init; }
+    public int? Context { get; init; }
 }

@@ -205,4 +205,28 @@ internal sealed record GenerationCuration
             field = Array.AsReadOnly([.. value]);
         }
     } = Array.AsReadOnly(Array.Empty<SessionAreaCuration>());
+
+    /// <summary>The query parameters the document projects as strings that bind as integers, each with its decode evidence.</summary>
+    [JsonPropertyName("queryParameterTypes")]
+    public required IReadOnlyList<QueryParameterTypeCuration> QueryParameterTypes
+    {
+        get;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = Array.AsReadOnly([.. value]);
+        }
+    } = Array.AsReadOnly(Array.Empty<QueryParameterTypeCuration>());
+
+    /// <summary>The plain-string query parameters that stay strings by design, each with its reason.</summary>
+    [JsonPropertyName("stringQueryParameters")]
+    public required IReadOnlyList<StringQueryParameterCuration> StringQueryParameters
+    {
+        get;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = Array.AsReadOnly([.. value]);
+        }
+    } = Array.AsReadOnly(Array.Empty<StringQueryParameterCuration>());
 }
