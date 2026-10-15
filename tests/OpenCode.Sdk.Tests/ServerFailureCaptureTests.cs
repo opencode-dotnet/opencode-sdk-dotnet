@@ -58,6 +58,28 @@ public sealed class ServerFailureCaptureTests
     }
 
     [Test]
+    public async Task CaptureAsync_Should_Keep_The_Eight_Newest_Server_Logs()
+    {
+        var fileSystem = new MockFileSystem();
+        var artifacts = new ServerFailureArtifacts(fileSystem, fileSystem.Path.GetFullPath("results"));
+        var logs = fileSystem.Path.GetFullPath(fileSystem.Path.Combine("run", "data", "opencode", "log"));
+        var written = new DateTime(2026, 10, 15, 12, 0, 0, DateTimeKind.Utc);
+        for (var index = 0; index < 10; index++)
+        {
+            var log = fileSystem.Path.Combine(logs, $"opencode-{index}.log");
+            _ = fileSystem.Initialize().With(new FileDescription(log, "line " + index));
+            fileSystem.File.SetLastWriteTimeUtc(log, written.AddMinutes(index));
+        }
+
+        _ = await new ServerFailureCapture(artifacts, fileSystem, new OwnedOperationDeadline())
+            .CaptureAsync(output: null, processId: null, external: false, failure: null, [], logs);
+
+        await Assert.That(fileSystem.Directory.GetFiles(fileSystem.Path.Combine(artifacts.Directory, "server-logs"))
+                .Select(fileSystem.Path.GetFileName).OfType<string>())
+            .IsEquivalentTo(Enumerable.Range(2, 8).Select(index => $"opencode-{index}.log"));
+    }
+
+    [Test]
     public async Task CaptureAsync_Should_Keep_Nothing_When_The_Server_Wrote_No_Log_Folder()
     {
         var fileSystem = new MockFileSystem();

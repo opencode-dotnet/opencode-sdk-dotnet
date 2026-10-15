@@ -15,7 +15,7 @@ internal sealed class ServerFailureCapture(
     /// <summary>The folder beside the failure metadata that holds the server's own log files.</summary>
     private const string ServerLogFolder = "server-logs";
 
-    /// <summary>How many of the server's log files one failure keeps; a run writes one or two.</summary>
+    /// <summary>How many of the server's log files one failure keeps, newest first; a run writes one or two.</summary>
     private const int MaxServerLogFiles = 8;
 
     /// <summary>How much of each server log one failure keeps: its newest bytes.</summary>
@@ -89,7 +89,10 @@ internal sealed class ServerFailureCapture(
         }
 
         var target = fileSystem.Path.Combine(artifacts.Directory, ServerLogFolder);
-        foreach (var file in fileSystem.Directory.EnumerateFiles(source, "*.log", SearchOption.TopDirectoryOnly).Take(MaxServerLogFiles))
+        var newest = fileSystem.Directory.EnumerateFiles(source, "*.log", SearchOption.TopDirectoryOnly)
+            .OrderByDescending(fileSystem.File.GetLastWriteTimeUtc)
+            .Take(MaxServerLogFiles);
+        foreach (var file in newest)
         {
             _ = fileSystem.Directory.CreateDirectory(target);
             string text;
