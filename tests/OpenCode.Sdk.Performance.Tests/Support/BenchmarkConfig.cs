@@ -38,8 +38,13 @@ internal static class BenchmarkConfig
             .AddColumn(
                 new AllocatedPerItemColumn(),
                 new AllocationAmplificationColumn());
+        // The runner asks each build partition's runtime for its version to decide whether it may
+        // build in parallel, which 0.15.8 cannot answer for a runtime it does not know; building the
+        // partitions one after another skips that question and changes nothing that is measured.
         return net11
-            ? config.AddJob(Job.Default.WithRuntime(CoreRuntime.CreateForNewVersion("net11.0", ".NET 11.0")).WithToolchain(new Net11Toolchain()))
+            ? config
+                .AddJob(Job.Default.WithRuntime(CoreRuntime.CreateForNewVersion("net11.0", ".NET 11.0")).WithToolchain(new Net11Toolchain()))
+                .WithOptions(ConfigOptions.DisableParallelBuild)
             : config;
     }
 }
