@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Tools.Output;
 
 internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter formatter) : IGenerationWriter
 {
-    private const string ManifestRelativePath = ".generated-manifest.json";
+    internal const string ManifestRelativePath = ".generated-manifest.json";
     private const string MarkerRelativePath = ".generation-incomplete";
     private const string AttributesRelativePath = ".gitattributes";
     private const string ReachRelativePath = ".generated-reach.txt";

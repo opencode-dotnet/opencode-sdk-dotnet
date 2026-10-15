@@ -1,0 +1,8 @@
+{
+  "name": "opencode-sdk-dotnet-clone-detector",
+  "private": true,
+  "description": "The pinned jscpd that `opencode-tool verify-clones` runs; installed with the pinned Bun from bun.lock.",
+  "dependencies": {
+    "jscpd": "5.4.1"
+  }
+}

@@ -1,7 +1,8 @@
 # The runtime the pinned server needs, in the one place both lanes read it from: CI (which runs
 # the server from the submodule source) and the distributed-build consumer leg (whose simulation
-# fixtures still run that source, even though its live legs drive the published build). The steps
-# are the ones ci.yml carried inline; moving them here keeps the two lanes from drifting apart.
+# fixtures still run that source, even though its live legs drive the published build). One shared
+# action keeps the two lanes from drifting apart; the Bun itself comes from setup-pinned-bun, which
+# the clone gate uses too.
 #
 # Requires an already-checked-out repository with the external/opencode submodule initialized.
 name: "Setup pinned server runtime"
@@ -10,20 +11,8 @@ description: "Installs the pinned Bun, provisions the exact ripgrep the server r
 runs:
   using: "composite"
   steps:
-    - name: Setup Bun (pinned server runtime)
-      uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-      with:
-        # The pin's own packageManager row (external/opencode/package.json).
-        bun-version-file: external/opencode/package.json
-
-    - name: Verify pinned Bun runtime
-      shell: pwsh
-      run: |
-        $expected = (Get-Content external/opencode/package.json -Raw | ConvertFrom-Json).packageManager
-        $actual = "bun@$(& bun --version)"
-        if ($LASTEXITCODE -ne 0 -or $actual -cne $expected) {
-          throw "Bun runtime mismatch: expected $expected, got $actual."
-        }
+    - name: Setup pinned Bun
+      uses: ./.github/actions/setup-pinned-bun
 
     # fs.find uses upstream's ripgrep resolver. Keep the server offline by placing the exact
     # resolver version on the job PATH before tests instead of allowing its runtime download.
