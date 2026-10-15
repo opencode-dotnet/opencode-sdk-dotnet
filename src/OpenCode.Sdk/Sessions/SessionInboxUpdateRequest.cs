@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session inbox update request value.
+/// The body of &apos;session.inbox.update&apos; (PATCH /api/session/{sessionID}/inbox/{inboxID}).
 /// </summary>
 public sealed record SessionInboxUpdateRequest
 {

@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a permission asked data value.
+/// The data of the &apos;permission.asked&apos; event.
 /// </summary>
 public sealed record PermissionAskedData
 {

@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;DELETE /api/credential/{credentialID}&apos; operation.
+/// The response of &apos;credential.remove&apos; (DELETE /api/credential/{credentialID}).
 /// </summary>
 public sealed record CredentialRemoveResponse : OpenCodeResponse
 {

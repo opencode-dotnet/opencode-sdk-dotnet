@@ -45,7 +45,7 @@ internal static class EmitterPlanFixture
         };
         var unions = new[] { CreateExampleEvent(), CreateOpenCodeError(), };
 
-        return new EmitPlan
+        var plan = new EmitPlan
         {
             ImplicitAliases = StabilizeDuplicateCollapse.Empty,
             SelectedOperationIds = ["example.get"],
@@ -80,6 +80,7 @@ internal static class EmitterPlanFixture
             DeclinedOperations = [],
             TransportOwnedOperationIds = [],
         }.WithSingleSlice();
+        return WireDocumentationPolicy.Apply(plan);
     }
 
     public static IReadOnlyList<ClientPlan> CreateClientPlans() =>

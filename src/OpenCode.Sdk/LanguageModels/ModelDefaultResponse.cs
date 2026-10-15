@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/model/default&apos; operation.
+/// The response of &apos;model.default&apos; (GET /api/model/default).
 /// </summary>
 public sealed record ModelDefaultResponse : OpenCodeResponse
 {

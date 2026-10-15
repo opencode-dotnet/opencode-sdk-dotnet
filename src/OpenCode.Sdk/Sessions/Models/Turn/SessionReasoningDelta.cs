@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session reasoning delta value.
+/// The &apos;session.reasoning.delta&apos; event.
 /// </summary>
 public sealed record SessionReasoningDelta : IEvent, ISessionScopedEvent
 {

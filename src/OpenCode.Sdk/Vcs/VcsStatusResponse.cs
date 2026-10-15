@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/vcs/status&apos; operation.
+/// The response of &apos;vcs.status&apos; (GET /api/vcs/status).
 /// </summary>
 public sealed record VcsStatusResponse : OpenCodeResponse
 {

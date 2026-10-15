@@ -1,4 +1,13 @@
 {
+  "descriptions": [
+    {
+      "type": "Notice",
+      "member": "Data",
+      "summary": "The notification payload.",
+      "remarks": "The documented data member.",
+      "reason": "Give the scenario member its own documentation."
+    }
+  ],
   "sessionScopedEvent": {
     "unions": ["IEvent", "ISessionEventDurable"],
     "payloadMember": "data",

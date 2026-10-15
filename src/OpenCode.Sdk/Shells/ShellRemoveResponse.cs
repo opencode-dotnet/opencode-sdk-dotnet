@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;DELETE /api/shell/{id}&apos; operation.
+/// The response of &apos;shell.remove&apos; (DELETE /api/shell/{id}).
 /// </summary>
 public sealed record ShellRemoveResponse : OpenCodeResponse
 {

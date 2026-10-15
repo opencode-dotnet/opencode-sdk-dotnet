@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/experimental/session/{sessionID}/terminal&apos; operation.
+/// The response of &apos;persistentPty.create&apos; (POST /api/experimental/session/{sessionID}/terminal).
 /// </summary>
 [Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
 public sealed record PersistentPtyCreateResponse : OpenCodeResponse

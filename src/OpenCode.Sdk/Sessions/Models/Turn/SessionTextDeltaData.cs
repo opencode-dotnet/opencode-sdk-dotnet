@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session text delta data value.
+/// The data of the &apos;session.text.delta&apos; event.
 /// </summary>
 public sealed record SessionTextDeltaData
 {
@@ -21,13 +21,16 @@ public sealed record SessionTextDeltaData
     public required string AssistantMessageId { get; init; }
 
     /// <summary>
-    /// Gets the ordinal value.
+    /// The zero-based index of this text part among the text parts of its assistant message; the started, delta and ended events of one part share it.
     /// </summary>
+    /// <remarks>
+    /// Reasoning parts are numbered separately.
+    /// </remarks>
     [JsonPropertyName("ordinal")]
     public required long Ordinal { get; init; }
 
     /// <summary>
-    /// Gets the delta value.
+    /// The new text to append; it may batch several provider chunks.
     /// </summary>
     [JsonPropertyName("delta")]
     public required string Delta { get; init; }

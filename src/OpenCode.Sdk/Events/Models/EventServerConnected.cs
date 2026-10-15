@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a event server connected value.
+/// The &apos;server.connected&apos; event.
 /// </summary>
 public sealed record EventServerConnected : IEvent
 {

@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/session/{sessionID}/message&apos; operation.
+/// The response of &apos;session.message.list&apos; (GET /api/session/{sessionID}/message).
 /// </summary>
 public sealed record SessionMessageListResponse : OpenCodeResponse
 {

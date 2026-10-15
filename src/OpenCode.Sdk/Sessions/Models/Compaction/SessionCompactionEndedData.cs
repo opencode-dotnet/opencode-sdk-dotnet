@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session compaction ended data value.
+/// The data of the &apos;session.compaction.ended&apos; event.
 /// </summary>
 public sealed record SessionCompactionEndedData
 {

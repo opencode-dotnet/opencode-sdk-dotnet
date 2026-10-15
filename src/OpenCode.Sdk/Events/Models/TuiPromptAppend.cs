@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a tui prompt append value.
+/// The &apos;tui.prompt.append&apos; event.
 /// </summary>
 public sealed record TuiPromptAppend : IEvent
 {

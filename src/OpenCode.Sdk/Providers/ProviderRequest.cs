@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/provider/{providerID}&apos; query.
+/// The query of &apos;provider.get&apos; (GET /api/provider/{providerID}).
 /// </summary>
 public sealed record ProviderRequest
 {

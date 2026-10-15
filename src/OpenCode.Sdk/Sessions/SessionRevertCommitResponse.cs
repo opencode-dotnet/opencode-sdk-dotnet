@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/session/{sessionID}/revert/commit&apos; operation.
+/// The response of &apos;session.revert.commit&apos; (POST /api/session/{sessionID}/revert/commit).
 /// </summary>
 public sealed record SessionRevertCommitResponse : OpenCodeResponse
 {

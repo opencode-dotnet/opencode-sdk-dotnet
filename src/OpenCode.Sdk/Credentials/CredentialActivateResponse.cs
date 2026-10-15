@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/credential/{credentialID}/activate&apos; operation.
+/// The response of &apos;credential.activate&apos; (POST /api/credential/{credentialID}/activate).
 /// </summary>
 public sealed record CredentialActivateResponse : OpenCodeResponse
 {

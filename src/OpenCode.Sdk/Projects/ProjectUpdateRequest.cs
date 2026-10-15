@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a project update request value.
+/// The body of &apos;project.update&apos; (PATCH /api/project/{projectID}).
 /// </summary>
 public sealed record ProjectUpdateRequest
 {

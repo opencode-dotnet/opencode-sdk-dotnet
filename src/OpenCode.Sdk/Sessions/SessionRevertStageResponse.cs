@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/session/{sessionID}/revert/stage&apos; operation.
+/// The response of &apos;session.revert.stage&apos; (POST /api/session/{sessionID}/revert/stage).
 /// </summary>
 public sealed record SessionRevertStageResponse : OpenCodeResponse
 {

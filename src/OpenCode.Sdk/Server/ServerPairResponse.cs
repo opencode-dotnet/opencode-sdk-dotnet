@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/pair&apos; operation.
+/// The response of &apos;server.pair&apos; (POST /api/pair).
 /// </summary>
 public sealed record ServerPairResponse : OpenCodeResponse
 {

@@ -5,6 +5,18 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 internal sealed record GenerationCuration
 {
+    /// <summary>Plain text summaries and remarks keyed by generated C# names.</summary>
+    [JsonPropertyName("descriptions")]
+    public required IReadOnlyList<DescriptionCuration> Descriptions
+    {
+        get;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = Array.AsReadOnly([.. value]);
+        }
+    } = Array.AsReadOnly(Array.Empty<DescriptionCuration>());
+
     /// <summary>The payload identifier projected explicitly by qualifying event records.</summary>
     [JsonPropertyName("sessionScopedEvent")]
     public SessionScopedEventCuration? SessionScopedEvent { get; init; }

@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/worktree/refresh&apos; operation.
+/// The response of &apos;worktree.refresh&apos; (POST /api/worktree/refresh).
 /// </summary>
 public sealed record WorktreeRefreshResponse : OpenCodeResponse
 {

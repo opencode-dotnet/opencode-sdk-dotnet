@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a forbidden error value.
+/// The &apos;ForbiddenError&apos; error.
 /// </summary>
 public sealed record ForbiddenError : IOpenCodeError
 {

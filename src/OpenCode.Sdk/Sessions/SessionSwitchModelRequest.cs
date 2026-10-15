@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session switch model request value.
+/// The body of &apos;session.switchModel&apos; (POST /api/session/{sessionID}/model).
 /// </summary>
 public sealed record SessionSwitchModelRequest
 {

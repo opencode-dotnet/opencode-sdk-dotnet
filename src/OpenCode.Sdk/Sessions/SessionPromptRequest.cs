@@ -6,13 +6,16 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session prompt request value.
+/// A prompt for the session&apos;s inbox. The call returns as soon as the prompt is stored, before the model runs; follow the turn on the event bus or with the experimental wait.
 /// </summary>
 public sealed record SessionPromptRequest
 {
     /// <summary>
-    /// Gets the id value.
+    /// An optional message id of your own, starting with msg_, which makes the call idempotent: resending it returns the stored item and ignores the new content.
     /// </summary>
+    /// <remarks>
+    /// An id that belongs to another session or another kind of record is a conflict (409).
+    /// </remarks>
     [JsonPropertyName("id")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [JsonConverter(typeof(OptionalOfStringJsonConverter))]
@@ -25,7 +28,7 @@ public sealed record SessionPromptRequest
     public required string Text { get; init; }
 
     /// <summary>
-    /// Gets the files value.
+    /// Attachments as data: URIs, or file: URIs on the server&apos;s own file system, read when the prompt is submitted; at most 20 MiB each.
     /// </summary>
     [JsonPropertyName("files")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -39,7 +42,7 @@ public sealed record SessionPromptRequest
     public IReadOnlyList<PromptAgentAttachment>? Agents { get; init; }
 
     /// <summary>
-    /// Gets the skills value.
+    /// Skills to attach by id; the server puts each skill&apos;s text before the prompt, and an unknown id is refused (400).
     /// </summary>
     [JsonPropertyName("skills")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -53,7 +56,7 @@ public sealed record SessionPromptRequest
     public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
 
     /// <summary>
-    /// Gets the delivery value.
+    /// Steer, the default, puts the prompt into the running turn at its next step; Queue waits for the current turn to end and starts a new turn with it.
     /// </summary>
     [JsonPropertyName("delivery")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -61,7 +64,7 @@ public sealed record SessionPromptRequest
     public Optional<SessionInboxDelivery?> Delivery { get; init; }
 
     /// <summary>
-    /// Gets the resume value.
+    /// False stores the prompt without waking the session for it: an idle session leaves it pending until something else wakes it, while a session already running can still take it at its next boundary. The default is true.
     /// </summary>
     [JsonPropertyName("resume")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]

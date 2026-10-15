@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a rpc internal error value.
+/// The &apos;RpcInternalError&apos; error.
 /// </summary>
 public sealed record RpcInternalError : IOpenCodeError
 {

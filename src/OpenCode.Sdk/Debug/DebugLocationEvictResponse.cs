@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;DELETE /api/debug/location&apos; operation.
+/// The response of &apos;debug.location.evict&apos; (DELETE /api/debug/location).
 /// </summary>
 public sealed record DebugLocationEvictResponse : OpenCodeResponse
 {

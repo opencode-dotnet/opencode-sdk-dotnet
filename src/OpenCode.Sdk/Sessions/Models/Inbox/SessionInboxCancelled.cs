@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session inbox cancelled value.
+/// The &apos;session.inbox.cancelled&apos; event.
 /// </summary>
 public sealed record SessionInboxCancelled : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

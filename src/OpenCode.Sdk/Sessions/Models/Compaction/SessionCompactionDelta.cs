@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session compaction delta value.
+/// The &apos;session.compaction.delta&apos; event.
 /// </summary>
 public sealed record SessionCompactionDelta : IEvent, ISessionScopedEvent
 {

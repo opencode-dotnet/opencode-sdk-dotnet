@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/integration/{integrationID}/connect/oauth/{attemptID}&apos; operation.
+/// The response of &apos;integration.oauth.status&apos; (GET /api/integration/{integrationID}/connect/oauth/{attemptID}).
 /// </summary>
 public sealed record IntegrationOAuthStatusResponse : OpenCodeResponse
 {

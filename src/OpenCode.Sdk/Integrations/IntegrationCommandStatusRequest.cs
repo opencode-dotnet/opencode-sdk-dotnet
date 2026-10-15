@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/integration/{integrationID}/connect/command/{attemptID}&apos; query.
+/// The query of &apos;integration.command.status&apos; (GET /api/integration/{integrationID}/connect/command/{attemptID}).
 /// </summary>
 public sealed record IntegrationCommandStatusRequest
 {

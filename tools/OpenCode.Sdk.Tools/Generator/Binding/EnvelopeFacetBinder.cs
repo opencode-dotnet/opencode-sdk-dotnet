@@ -81,6 +81,10 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
             SuccessStatusCode = 200,
             EnvelopeDtoTypeName = kind is EnvelopeKind.Bare ? null : $"{responseTypeName}Envelope",
             LocationTypeName = locationTypeName,
+            Documentation = new TypeDocumentationPlan
+            {
+                Summary = kind is EnvelopeKind.Bare ? null : success.Schema.Description ?? _context.Resolve(success.Schema).Description,
+            },
         };
     }
 

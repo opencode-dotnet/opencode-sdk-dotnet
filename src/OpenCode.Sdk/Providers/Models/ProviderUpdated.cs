@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a provider updated value.
+/// The &apos;provider.updated&apos; event.
 /// </summary>
 public sealed record ProviderUpdated : IEvent
 {

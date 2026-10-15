@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/location/reload&apos; operation.
+/// The response of &apos;location.reload&apos; (POST /api/location/reload).
 /// </summary>
 public sealed record LocationReloadResponse : OpenCodeResponse
 {

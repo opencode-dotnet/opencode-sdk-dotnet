@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session step streamed data value.
+/// The data of the &apos;session.step.streamed&apos; event.
 /// </summary>
 public sealed record SessionStepStreamedData
 {

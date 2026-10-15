@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session tool called value.
+/// The &apos;session.tool.called&apos; event.
 /// </summary>
 public sealed record SessionToolCalled : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

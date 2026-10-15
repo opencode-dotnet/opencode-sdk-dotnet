@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a command not found error value.
+/// The &apos;CommandNotFoundError&apos; error.
 /// </summary>
 public sealed record CommandNotFoundError : IOpenCodeError
 {

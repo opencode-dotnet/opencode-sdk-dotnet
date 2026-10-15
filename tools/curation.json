@@ -1,4 +1,237 @@
 {
+  "descriptions": [
+    {
+      "type": "SessionMessageAssistant",
+      "member": null,
+      "summary": "One model step's response within a turn. A single prompt can produce several, for example one per round of tool calls; a step that failed keeps its message, with Error set and any partial content.",
+      "remarks": null,
+      "reason": "Builders read one assistant message as the whole answer; upstream starts a new assistant message per model step (core/src/session/runner/step.ts)."
+    },
+    {
+      "type": "SessionMessageAssistant",
+      "member": "Finish",
+      "summary": "Why the step ended: stop, length, tool-calls, content-filter, error or unknown; null while the step is still running.",
+      "remarks": "A step that failed reports error, or content-filter when the provider blocked the response.",
+      "reason": "Upstream normalises the provider's finish reason in session.step.ended and session.step.failed (core/src/session/message-updater.ts)."
+    },
+    {
+      "type": "SessionMessageAssistant",
+      "member": "RawFinish",
+      "summary": "The provider's own finish-reason string, kept verbatim for diagnostics; it may be null. Use Finish for logic.",
+      "remarks": null,
+      "reason": "Upstream copies the provider's stop reason unnormalised beside Finish."
+    },
+    {
+      "type": "SessionMessageAssistant",
+      "member": "Error",
+      "summary": "Set when this step failed, for example a provider error, a content filter or an interruption; the message and its partial content stay in the session.",
+      "remarks": "It is cleared when the step starts again on this same message. When a failure after partial output continues the turn, the continuation is a new message and this one keeps its error.",
+      "reason": "Builders could not tell a failed turn from a finished one; upstream sets it from session.step.failed and clears it on a retried step.started."
+    },
+    {
+      "type": "SessionMessageAssistant",
+      "member": "Retry",
+      "summary": "Set while a retry of this step is scheduled after a retryable provider error: the attempt number (the first retry is 2), when it runs, and the error that caused it.",
+      "remarks": "It is cleared when the retry starts or the session goes idle.",
+      "reason": "Upstream sets it from session.retry.scheduled (core/src/session/runner/retry.ts)."
+    },
+    {
+      "type": "SessionMessageAssistant",
+      "member": "Content",
+      "summary": "The step's output parts in the order they streamed: text, reasoning and tool calls.",
+      "remarks": null,
+      "reason": "The part order is the stream order upstream records."
+    },
+    {
+      "type": "SessionMessageAssistant",
+      "member": "Cost",
+      "summary": "The cost in US dollars of this step alone, computed by the server from the model's configured prices; null until the step finishes, and it may stay null when the step fails.",
+      "remarks": null,
+      "reason": "Builders summed it as a turn total; upstream computes it per step (core/src/session/runner/step.ts)."
+    },
+    {
+      "type": "SessionMessageAssistant",
+      "member": "Tokens",
+      "summary": "The token usage of this step alone; null until the step finishes, and it may stay null when the step fails.",
+      "remarks": null,
+      "reason": "Per-step usage, as Cost."
+    },
+    {
+      "type": "SessionTextDelta",
+      "member": null,
+      "summary": "A live fragment of assistant text: append its Data.Delta to the text part its Data.AssistantMessageId and Data.Ordinal name.",
+      "remarks": "Deltas are never stored or replayed; after reconnecting, rely on SessionTextEnded or the session's messages.",
+      "reason": "Builders kept only deltas and lost text across reconnects; upstream declares stream fragments live-only (schema/src/session-event.ts)."
+    },
+    {
+      "type": "SessionTextDeltaData",
+      "member": "Delta",
+      "summary": "The new text to append; it may batch several provider chunks.",
+      "remarks": null,
+      "reason": "Upstream batches deltas about every 100 ms."
+    },
+    {
+      "type": "SessionTextDeltaData",
+      "member": "Ordinal",
+      "summary": "The zero-based index of this text part among the text parts of its assistant message; the started, delta and ended events of one part share it.",
+      "remarks": "Reasoning parts are numbered separately.",
+      "reason": "Builders took it for a global sequence number."
+    },
+    {
+      "type": "SessionTextEnded",
+      "member": null,
+      "summary": "The end of one assistant text part. It is durable and replayed, and its Data.Text holds the part's complete final text.",
+      "remarks": null,
+      "reason": "Upstream declares Text.Ended the replayable full-value boundary (schema/src/session-event.ts)."
+    },
+    {
+      "type": "SessionTextEndedData",
+      "member": "Text",
+      "summary": "The complete text of the part; it replaces whatever was built up from deltas.",
+      "remarks": null,
+      "reason": "Upstream replaces the part's text with it."
+    },
+    {
+      "type": "SessionTextEndedData",
+      "member": "State",
+      "summary": "Opaque provider metadata for the part, kept so it can be sent back to the provider; do not interpret it.",
+      "remarks": null,
+      "reason": "Upstream stores it for later provider requests only."
+    },
+    {
+      "type": "SessionPromptRequest",
+      "member": null,
+      "summary": "A prompt for the session's inbox. The call returns as soon as the prompt is stored, before the model runs; follow the turn on the event bus or with the experimental wait.",
+      "remarks": null,
+      "reason": "Builders awaited PromptAsync as if it returned the answer; upstream admits the input and schedules the run (protocol/src/groups/session.ts)."
+    },
+    {
+      "type": "SessionPromptRequest",
+      "member": "Id",
+      "summary": "An optional message id of your own, starting with msg_, which makes the call idempotent: resending it returns the stored item and ignores the new content.",
+      "remarks": "An id that belongs to another session or another kind of record is a conflict (409).",
+      "reason": "Upstream's inbox admits an id once (core/src/session/inbox.ts)."
+    },
+    {
+      "type": "SessionPromptRequest",
+      "member": "Files",
+      "summary": "Attachments as data: URIs, or file: URIs on the server's own file system, read when the prompt is submitted; at most 20 MiB each.",
+      "remarks": null,
+      "reason": "Builders sent client-side paths; upstream reads file: URIs on the server (core/src/session/prompt.ts)."
+    },
+    {
+      "type": "SessionPromptRequest",
+      "member": "Skills",
+      "summary": "Skills to attach by id; the server puts each skill's text before the prompt, and an unknown id is refused (400).",
+      "remarks": null,
+      "reason": "Upstream resolves skills by id at submission."
+    },
+    {
+      "type": "SessionPromptRequest",
+      "member": "Delivery",
+      "summary": "Steer, the default, puts the prompt into the running turn at its next step; Queue waits for the current turn to end and starts a new turn with it.",
+      "remarks": null,
+      "reason": "Upstream's inbox delivery modes (core/src/session/inbox.ts)."
+    },
+    {
+      "type": "SessionPromptRequest",
+      "member": "Resume",
+      "summary": "False stores the prompt without waking the session for it: an idle session leaves it pending until something else wakes it, while a session already running can still take it at its next boundary. The default is true.",
+      "remarks": null,
+      "reason": "Upstream skips scheduling the run when resume is false."
+    },
+    {
+      "type": "SessionCreateRequest",
+      "member": null,
+      "summary": "A new session, or, when Id names an existing one, that session returned unchanged.",
+      "remarks": null,
+      "reason": "Upstream's create is idempotent on the id (core/src/session.ts)."
+    },
+    {
+      "type": "SessionCreateRequest",
+      "member": "Id",
+      "summary": "An optional session id of your own; when a session with it exists, that session is returned and the other members are ignored.",
+      "remarks": null,
+      "reason": "As the type summary."
+    },
+    {
+      "type": "SessionCreateRequest",
+      "member": "ParentId",
+      "summary": "Makes this a child session, such as a subagent's, of an existing parent. The child always works in the parent's location and inherits its metadata and permissions unless you set them.",
+      "remarks": "Agent and model are not inherited.",
+      "reason": "Upstream's create handler drops the location of a child and copies the parent's (server/src/handlers/session.ts)."
+    },
+    {
+      "type": "SessionCreateRequest",
+      "member": "Agent",
+      "summary": "The agent to use. When it is absent, the server chooses its default agent each time the session runs a step.",
+      "remarks": null,
+      "reason": "Upstream stores no agent when none is given (core/src/agent.ts)."
+    },
+    {
+      "type": "SessionCreateRequest",
+      "member": "Model",
+      "summary": "The model to use. When it is absent, the server chooses its default model each time the session runs a step; an unavailable model is reported only when the session runs.",
+      "remarks": null,
+      "reason": "Builders expected create to validate the model; upstream resolves it per turn (core/src/session/runner/model.ts)."
+    },
+    {
+      "type": "SessionCreateRequest",
+      "member": "Location",
+      "summary": "The directory the session works in; the server's working directory when absent. It is ignored when ParentId is set.",
+      "remarks": null,
+      "reason": "Upstream defaults to the process directory and gives a child its parent's location."
+    },
+    {
+      "type": "SessionCreateRequest",
+      "member": "Permissions",
+      "summary": "Session permission rules, checked after the agent's own; the last rule that matches wins, so they override the agent. Anything no rule matches asks.",
+      "remarks": null,
+      "reason": "Upstream appends session rules after the agent's (core/src/permission.ts)."
+    },
+    {
+      "type": "SessionExecutionStarted",
+      "member": null,
+      "summary": "The server began working on the session after it was woken while idle. When that work settles, exactly one of SessionExecutionSucceeded, SessionExecutionFailed or SessionExecutionInterrupted follows, however many prompts arrive meanwhile; a server that crashes mid-work publishes none.",
+      "remarks": null,
+      "reason": "Upstream publishes one terminal observation per busy period (core/src/session/execution.ts)."
+    },
+    {
+      "type": "SessionExecutionSucceeded",
+      "member": null,
+      "summary": "The execution finished the work it took on and the session went idle. Prompts it did not take, such as queued ones, can still be pending.",
+      "remarks": null,
+      "reason": "The turn-ending event builders need to wait on."
+    },
+    {
+      "type": "SessionExecutionFailed",
+      "member": null,
+      "summary": "The session stopped on an error and went idle; its Data.Error says why.",
+      "remarks": "It is also published when a turn interrupted by repeated restarts can no longer be resumed.",
+      "reason": "Upstream publishes it from the run coordinator and from restart recovery (core/src/session/execution/restart.ts)."
+    },
+    {
+      "type": "SessionExecutionInterrupted",
+      "member": null,
+      "summary": "The session's work stopped before it finished; its Data.Reason says why.",
+      "remarks": "With the shutdown reason the turn is not over: the server keeps it marked in progress, and a server that resumes work after it restarts picks it up again with a new SessionExecutionStarted. A turn that cannot be resumed, or has been resumed too often, ends with SessionExecutionFailed.",
+      "reason": "Builders treated every interrupt as the end of a turn; upstream resumes a shutdown interrupt (core/src/session/execution/restart.ts)."
+    },
+    {
+      "type": "PtyCreateRequest",
+      "member": "Command",
+      "summary": "The program to run, an executable rather than a command line. When it is absent the server picks a shell: the configured shell, then $SHELL, then a per-platform fallback.",
+      "remarks": "The fallback is, on Windows, the first of pwsh, powershell and Git Bash that is found, otherwise %COMSPEC%, or cmd.exe when COMSPEC is unset; /bin/zsh on macOS; and bash on PATH, or else /bin/sh, elsewhere. A configured shell that is not executable skips $SHELL and goes straight to the fallback. PowerShell starts with no added arguments, so its profile loads; pass -NoProfile in Args for a clean one.",
+      "reason": "Builders could not predict which shell a PTY gets; upstream's resolver order (core/src/pty.ts, core/src/shell/select.ts)."
+    },
+    {
+      "type": "PtyCreateRequest",
+      "member": "Args",
+      "summary": "Arguments passed as they are to the program, with no shell parsing.",
+      "remarks": "When the program is bash, dash, fish, ksh, sh or zsh, the server appends -l after these arguments, so bash -c \"cmd\" receives -l as $0; the returned info shows it.",
+      "reason": "Upstream appends the login flag for login shells (core/src/pty.ts)."
+    }
+  ],
   "sessionScopedEvent": {
     "unions": ["IEvent", "ISessionEventDurable"],
     "payloadMember": "data",

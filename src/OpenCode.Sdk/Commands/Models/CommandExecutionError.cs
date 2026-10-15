@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a command execution error value.
+/// The &apos;CommandExecutionError&apos; error.
 /// </summary>
 public sealed record CommandExecutionError : IOpenCodeError
 {

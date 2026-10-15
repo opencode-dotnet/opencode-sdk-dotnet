@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a worktree remove request value.
+/// The body of &apos;worktree.remove&apos; (DELETE /api/worktree).
 /// </summary>
 public sealed record WorktreeRemoveRequest
 {

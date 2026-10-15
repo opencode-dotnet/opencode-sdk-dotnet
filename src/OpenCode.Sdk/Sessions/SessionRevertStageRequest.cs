@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session revert stage request value.
+/// The body of &apos;session.revert.stage&apos; (POST /api/session/{sessionID}/revert/stage).
 /// </summary>
 public sealed record SessionRevertStageRequest
 {

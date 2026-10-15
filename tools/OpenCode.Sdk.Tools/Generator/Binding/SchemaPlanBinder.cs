@@ -587,8 +587,8 @@ internal sealed class SchemaPlanBinder(
 
         return new UnionPlan
         {
-            Name = CSharpNamePolicy.ToUnionInterfaceName("OpenCodeError"),
-            ConceptName = "OpenCodeError",
+            Name = CSharpNamePolicy.ToUnionInterfaceName(ErrorMarkerPolicy.ErrorConceptName),
+            ConceptName = ErrorMarkerPolicy.ErrorConceptName,
             Namespace = GeneratedNamespace.Models,
             UnknownTypeName = "UnknownOpenCodeError",
             MarkerWireName = ErrorMarkerPolicy.WireName,

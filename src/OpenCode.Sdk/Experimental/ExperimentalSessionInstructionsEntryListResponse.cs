@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/experimental/session/{sessionID}/instructions/entries&apos; operation.
+/// The response of &apos;experimental.session.instructions.entry.list&apos; (GET /api/experimental/session/{sessionID}/instructions/entries).
 /// </summary>
 [Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record ExperimentalSessionInstructionsEntryListResponse : OpenCodeResponse

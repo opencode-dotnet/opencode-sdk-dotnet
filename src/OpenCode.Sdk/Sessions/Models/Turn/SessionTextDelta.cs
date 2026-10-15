@@ -5,8 +5,11 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session text delta value.
+/// A live fragment of assistant text: append its Data.Delta to the text part its Data.AssistantMessageId and Data.Ordinal name.
 /// </summary>
+/// <remarks>
+/// Deltas are never stored or replayed; after reconnecting, rely on SessionTextEnded or the session&apos;s messages.
+/// </remarks>
 public sealed record SessionTextDelta : IEvent, ISessionScopedEvent
 {
     /// <summary>

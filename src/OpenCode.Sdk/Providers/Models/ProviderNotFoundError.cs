@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a provider not found error value.
+/// The &apos;ProviderNotFoundError&apos; error.
 /// </summary>
 public sealed record ProviderNotFoundError : IOpenCodeError
 {

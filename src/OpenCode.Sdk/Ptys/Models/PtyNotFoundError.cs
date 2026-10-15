@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a pty not found error value.
+/// The &apos;PtyNotFoundError&apos; error.
 /// </summary>
 public sealed record PtyNotFoundError : IOpenCodeError
 {

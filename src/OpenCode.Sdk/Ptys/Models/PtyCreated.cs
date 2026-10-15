@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a pty created value.
+/// The &apos;pty.created&apos; event.
 /// </summary>
 public sealed record PtyCreated : IEvent
 {

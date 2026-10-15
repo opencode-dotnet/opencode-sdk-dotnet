@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a invalid cursor error value.
+/// The &apos;InvalidCursorError&apos; error.
 /// </summary>
 public sealed record InvalidCursorError : IOpenCodeError
 {

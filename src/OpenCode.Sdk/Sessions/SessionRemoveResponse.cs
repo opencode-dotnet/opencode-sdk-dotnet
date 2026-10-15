@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;DELETE /api/session/{sessionID}&apos; operation.
+/// The response of &apos;session.remove&apos; (DELETE /api/session/{sessionID}).
 /// </summary>
 public sealed record SessionRemoveResponse : OpenCodeResponse
 {

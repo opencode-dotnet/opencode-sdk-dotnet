@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a worktree refresh request value.
+/// The body of &apos;worktree.refresh&apos; (POST /api/worktree/refresh).
 /// </summary>
 public sealed record WorktreeRefreshRequest
 {

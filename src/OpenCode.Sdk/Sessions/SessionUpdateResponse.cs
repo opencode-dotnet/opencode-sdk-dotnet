@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;PATCH /api/session/{sessionID}&apos; operation.
+/// The response of &apos;session.update&apos; (PATCH /api/session/{sessionID}).
 /// </summary>
 public sealed record SessionUpdateResponse : OpenCodeResponse
 {

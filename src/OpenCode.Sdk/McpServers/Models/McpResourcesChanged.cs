@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp resources changed value.
+/// The &apos;mcp.resources.changed&apos; event.
 /// </summary>
 public sealed record McpResourcesChanged : IEvent
 {

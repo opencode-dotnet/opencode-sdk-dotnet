@@ -8,7 +8,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/ping&apos; operation.
+/// The response of &apos;ping.get&apos; (GET /api/ping).
 /// </summary>
 public sealed record PingResponse : OpenCodeResponse
 {
@@ -70,7 +70,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/widget&apos; operation.
+/// The response of &apos;widget.create&apos; (POST /api/widget).
 /// </summary>
 public sealed record WidgetCreateResponse : OpenCodeResponse
 {
@@ -132,7 +132,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/widget/{widgetID}/item&apos; operation.
+/// The response of &apos;widget.item.list&apos; (GET /api/widget/{widgetID}/item).
 /// </summary>
 public sealed record WidgetItemListResponse : OpenCodeResponse
 {
@@ -200,7 +200,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/widget/{widgetID}/item/{itemID}&apos; operation.
+/// The response of &apos;widget.item.get&apos; (GET /api/widget/{widgetID}/item/{itemID}).
 /// </summary>
 public sealed record WidgetItemResponse : OpenCodeResponse
 {
@@ -262,7 +262,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/widget&apos; operation.
+/// The response of &apos;widget.list&apos; (GET /api/widget).
 /// </summary>
 public sealed record WidgetListResponse : OpenCodeResponse
 {
@@ -330,7 +330,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/widget-overview&apos; operation.
+/// The response of &apos;widget.overview.get&apos; (GET /api/widget-overview).
 /// </summary>
 public sealed record WidgetOverviewResponse : OpenCodeResponse
 {
@@ -390,7 +390,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;DELETE /api/widget/{widgetID}&apos; operation.
+/// The response of &apos;widget.remove&apos; (DELETE /api/widget/{widgetID}).
 /// </summary>
 public sealed record WidgetRemoveResponse : OpenCodeResponse
 {
@@ -424,7 +424,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/widget-spot-list&apos; operation.
+/// The response of &apos;widget.spot.list&apos; (GET /api/widget-spot-list).
 /// </summary>
 public sealed record WidgetSpotListResponse : OpenCodeResponse
 {
@@ -492,7 +492,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/widget-spot&apos; operation.
+/// The response of &apos;widget.spot.get&apos; (GET /api/widget-spot).
 /// </summary>
 public sealed record WidgetSpotResponse : OpenCodeResponse
 {

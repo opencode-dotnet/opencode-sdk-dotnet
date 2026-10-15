@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a conflict error value.
+/// The &apos;ConflictError&apos; error.
 /// </summary>
 public sealed record ConflictError : IOpenCodeError
 {

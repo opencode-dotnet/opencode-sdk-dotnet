@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/websearch/provider&apos; operation.
+/// The response of &apos;websearch.providers&apos; (GET /api/websearch/provider).
 /// </summary>
 public sealed record WebsearchProvidersResponse : OpenCodeResponse
 {

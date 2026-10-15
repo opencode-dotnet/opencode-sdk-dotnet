@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/plugin&apos; query.
+/// The query of &apos;plugin.list&apos; (GET /api/plugin).
 /// </summary>
 public sealed record PluginListRequest
 {

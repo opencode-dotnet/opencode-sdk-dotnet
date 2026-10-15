@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session renamed data value.
+/// The data of the &apos;session.renamed&apos; event.
 /// </summary>
 public sealed record SessionRenamedData
 {

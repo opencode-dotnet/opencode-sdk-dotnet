@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/mcp&apos; operation.
+/// The response of &apos;mcp.list&apos; (GET /api/mcp).
 /// </summary>
 public sealed record McpListResponse : OpenCodeResponse
 {

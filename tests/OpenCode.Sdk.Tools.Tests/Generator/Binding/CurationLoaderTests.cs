@@ -29,6 +29,13 @@ public sealed class CurationLoaderTests
         await Assert.That(curation.TransportOwned).IsEmpty();
         await Assert.That(curation.Declined).IsEmpty();
 
+        var description = curation.Descriptions.Single();
+        await Assert.That(description.Type).IsEqualTo("Notice");
+        await Assert.That(description.Member).IsEqualTo("Data");
+        await Assert.That(description.Summary).IsEqualTo("The notification payload.");
+        await Assert.That(description.Remarks).IsEqualTo("The documented data member.");
+        await Assert.That(description.Reason).Contains("scenario member");
+
         var hoisted = curation.HoistedMemberNames.Single();
         await Assert.That(hoisted.Owner).IsEqualTo("ISessionEventDurable");
         await Assert.That(hoisted.Property).IsEqualTo("durable");
@@ -93,7 +100,7 @@ public sealed class CurationLoaderTests
         await Assert
             .That(sections)
             .IsEquivalentTo([
-                "declined", "enumMemberNames", "envelopePayloadNames", "groups", "hoistedMemberNames", "modelOwners", "operationIdentities", "parameterNames",
+                "declined", "descriptions", "enumMemberNames", "envelopePayloadNames", "groups", "hoistedMemberNames", "modelOwners", "operationIdentities", "parameterNames",
                 "operationNames", "redactedMembers", "redactedOpenMembers", "schemaAliases", "schemaNames", "secretLookingNames", "sessionAreas",
                 "sessionScopedEvent", "transportOwned"
             ]);

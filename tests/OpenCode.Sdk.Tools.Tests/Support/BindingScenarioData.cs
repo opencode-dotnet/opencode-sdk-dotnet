@@ -40,6 +40,7 @@ internal static class BindingScenarioData
             HoistedMemberNames = hoistedMemberNames ?? [],
             EnumMemberNames = enumMemberNames ?? [],
             ParameterNames = parameterNames ?? [],
+            Descriptions = [],
             RedactedMembers = redactedMembers ?? [],
             RedactedOpenMembers = redactedOpenMembers ?? [],
             SecretLookingNames = secretLookingNames ?? [],

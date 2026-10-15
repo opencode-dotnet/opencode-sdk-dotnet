@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a file not found error value.
+/// The &apos;FileNotFoundError&apos; error.
 /// </summary>
 public sealed record FileNotFoundError : IOpenCodeError
 {

@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a plugin updated value.
+/// The &apos;plugin.updated&apos; event.
 /// </summary>
 public sealed record PluginUpdated : IEvent
 {

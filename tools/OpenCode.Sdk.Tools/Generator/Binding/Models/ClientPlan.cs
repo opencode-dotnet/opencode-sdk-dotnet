@@ -2,6 +2,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 internal sealed record ClientPlan
 {
+    public TypeDocumentationPlan Documentation { get; init; } = new();
+
     public required string Name { get; init; }
 
     public required string Namespace { get; init; }

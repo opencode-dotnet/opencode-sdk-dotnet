@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session tool input started value.
+/// The &apos;session.tool.input.started&apos; event.
 /// </summary>
 public sealed record SessionToolInputStarted : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

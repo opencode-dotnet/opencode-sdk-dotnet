@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a agent not found error value.
+/// The &apos;AgentNotFoundError&apos; error.
 /// </summary>
 public sealed record AgentNotFoundError : IOpenCodeError
 {

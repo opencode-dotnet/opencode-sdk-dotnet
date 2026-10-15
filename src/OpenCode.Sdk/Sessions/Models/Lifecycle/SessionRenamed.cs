@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session renamed value.
+/// The &apos;session.renamed&apos; event.
 /// </summary>
 public sealed record SessionRenamed : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

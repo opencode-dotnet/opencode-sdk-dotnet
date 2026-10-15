@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a tui command execute data value.
+/// The data of the &apos;tui.command.execute&apos; event.
 /// </summary>
 public sealed record TuiCommandExecuteData
 {

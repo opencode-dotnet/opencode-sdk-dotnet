@@ -39,7 +39,8 @@ internal static class StructuralUnionEmitter
             .AddAttributeLists(ExperimentalAttributeSyntax.Emit(union.ExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithMembers(SyntaxFactory.SeparatedList(members))
-            .WithLeadingTrivia(EmissionSyntax.Documentation($"Identifies the active arm of {union.Name}."));
+            .WithLeadingTrivia(EmissionSyntax.Documentation(
+                union.KindDocumentation.Summary ?? $"Identifies the active arm of {union.Name}.", union.KindDocumentation.Remarks));
         var unit = EmissionSyntax.CompilationUnit(union.Namespace, [], [declaration]);
         return EmissionSyntax.CreateSource(relativePath, unit);
     }
@@ -78,6 +79,7 @@ internal static class StructuralUnionEmitter
             .WithMembers(SyntaxFactory.List(members))
             .WithLeadingTrivia(EmissionSyntax.Documentation(
                 union.Description ?? $"Represents a {DisplayName(union.Name)} structural union."));
+        declaration = EmissionSyntax.DocumentedType(declaration, union.Documentation);
         var unit = EmissionSyntax.CompilationUnit(
             union.Namespace,
             [

@@ -16,6 +16,9 @@ internal static class ErrorMarkerPolicy
     /// <summary>The wire property every typed error carries its tag under.</summary>
     public const string WireName = "_tag";
 
+    /// <summary>The concept the error spine's union is named after; stream failure causes share the marker but not the concept.</summary>
+    public const string ErrorConceptName = "OpenCodeError";
+
     private const string NameDialectWireName = "name";
 
     /// <summary>

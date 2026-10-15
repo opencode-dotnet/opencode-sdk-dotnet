@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/info&apos; operation.
+/// The response of &apos;server.info&apos; (GET /api/info).
 /// </summary>
 public sealed record ServerInfoResponse : OpenCodeResponse
 {

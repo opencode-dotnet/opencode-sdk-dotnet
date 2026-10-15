@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session agent selected value.
+/// The &apos;session.agent.selected&apos; event.
 /// </summary>
 public sealed record SessionAgentSelected : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

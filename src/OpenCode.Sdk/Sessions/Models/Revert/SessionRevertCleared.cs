@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session revert cleared value.
+/// The &apos;session.revert.cleared&apos; event.
 /// </summary>
 public sealed record SessionRevertCleared : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

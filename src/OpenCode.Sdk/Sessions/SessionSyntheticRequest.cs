@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session synthetic request value.
+/// The body of &apos;session.synthetic&apos; (POST /api/session/{sessionID}/synthetic).
 /// </summary>
 public sealed record SessionSyntheticRequest
 {

@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a pty deleted value.
+/// The &apos;pty.deleted&apos; event.
 /// </summary>
 public sealed record PtyDeleted : IEvent
 {

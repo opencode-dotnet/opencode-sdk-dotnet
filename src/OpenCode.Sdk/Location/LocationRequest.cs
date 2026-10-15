@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/location&apos; query.
+/// The query of &apos;location.get&apos; (GET /api/location).
 /// </summary>
 public sealed record LocationRequest
 {

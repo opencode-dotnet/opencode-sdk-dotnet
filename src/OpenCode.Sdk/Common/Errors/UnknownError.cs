@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a unknown error value.
+/// The &apos;UnknownError&apos; error.
 /// </summary>
 public sealed record UnknownError : IOpenCodeError
 {

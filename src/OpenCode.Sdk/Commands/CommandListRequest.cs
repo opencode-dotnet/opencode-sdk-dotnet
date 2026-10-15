@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/command&apos; query.
+/// The query of &apos;command.list&apos; (GET /api/command).
 /// </summary>
 public sealed record CommandListRequest
 {

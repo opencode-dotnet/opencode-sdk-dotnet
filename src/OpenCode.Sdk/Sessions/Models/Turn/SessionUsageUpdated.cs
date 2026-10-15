@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session usage updated value.
+/// The &apos;session.usage.updated&apos; event.
 /// </summary>
 public sealed record SessionUsageUpdated : IEvent, ISessionScopedEvent
 {

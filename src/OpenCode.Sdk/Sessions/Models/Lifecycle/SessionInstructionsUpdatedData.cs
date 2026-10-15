@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session instructions updated data value.
+/// The data of the &apos;session.instructions.updated&apos; event.
 /// </summary>
 public sealed record SessionInstructionsUpdatedData
 {

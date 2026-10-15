@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;PATCH /api/project/{projectID}&apos; operation.
+/// The response of &apos;project.update&apos; (PATCH /api/project/{projectID}).
 /// </summary>
 public sealed record ProjectUpdateResponse : OpenCodeResponse
 {

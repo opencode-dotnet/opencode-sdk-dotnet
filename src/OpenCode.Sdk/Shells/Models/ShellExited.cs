@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a shell exited value.
+/// The &apos;shell.exited&apos; event.
 /// </summary>
 public sealed record ShellExited : IEvent
 {

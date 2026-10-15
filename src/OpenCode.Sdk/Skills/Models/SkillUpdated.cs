@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a skill updated value.
+/// The &apos;skill.updated&apos; event.
 /// </summary>
 public sealed record SkillUpdated : IEvent
 {

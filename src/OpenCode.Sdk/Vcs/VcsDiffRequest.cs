@@ -4,7 +4,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;GET /api/vcs/diff&apos; query.
+/// The query of &apos;vcs.diff&apos; (GET /api/vcs/diff).
 /// </summary>
 public sealed record VcsDiffRequest
 {

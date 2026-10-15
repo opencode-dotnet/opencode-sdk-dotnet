@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session tool input delta data value.
+/// The data of the &apos;session.tool.input.delta&apos; event.
 /// </summary>
 public sealed record SessionToolInputDeltaData
 {

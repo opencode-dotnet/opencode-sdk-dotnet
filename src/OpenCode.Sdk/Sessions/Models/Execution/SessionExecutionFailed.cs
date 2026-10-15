@@ -5,8 +5,11 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session execution failed value.
+/// The session stopped on an error and went idle; its Data.Error says why.
 /// </summary>
+/// <remarks>
+/// It is also published when a turn interrupted by repeated restarts can no longer be resumed.
+/// </remarks>
 public sealed record SessionExecutionFailed : ISessionEventDurable, IEvent, ISessionScopedEvent
 {
     /// <summary>

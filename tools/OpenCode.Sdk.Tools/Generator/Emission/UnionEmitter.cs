@@ -71,6 +71,7 @@ internal static class UnionEmitter
                 SyntaxFactory.SimpleBaseType(TypeSyntaxEmitter.EmitNamed(union.BaseTypeName)))));
         }
 
+        declaration = EmissionSyntax.DocumentedType(declaration, union.Documentation, PinBoundInterfaceRemarks.Runs);
         var unit = EmissionSyntax.CompilationUnit(
             union.Namespace,
             HoistedUsings(union.HoistedMembers, [GeneratedNamespace.Internal, "System.Text.Json.Serialization"]),
@@ -189,6 +190,7 @@ internal static class UnionEmitter
         var usingNames = union.MarkerKind is LiteralKind.String
             ? new[] { "System", "System.Text.Json", "System.Text.Json.Serialization", GeneratedNamespace.Internal, }
             : ["System.Text.Json", "System.Text.Json.Serialization", GeneratedNamespace.Internal];
+        declaration = EmissionSyntax.DocumentedType(declaration, union.UnknownDocumentation);
         var unit = EmissionSyntax.CompilationUnit(
             union.Namespace,
             HoistedUsings(chain.Select(static entry => entry.Member), usingNames),

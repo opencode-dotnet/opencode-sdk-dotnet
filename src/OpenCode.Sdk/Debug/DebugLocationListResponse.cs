@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/debug/location&apos; operation.
+/// The response of &apos;debug.location.list&apos; (GET /api/debug/location).
 /// </summary>
 public sealed record DebugLocationListResponse : OpenCodeResponse
 {

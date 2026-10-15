@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;GET /api/fs/find&apos; operation.
+/// The response of &apos;fs.find&apos; (GET /api/fs/find).
 /// </summary>
 public sealed record FsFindResponse : OpenCodeResponse
 {

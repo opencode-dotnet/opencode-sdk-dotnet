@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// Represents the response of the &apos;POST /api/plugin/update&apos; operation.
+/// The response of &apos;plugin.update&apos; (POST /api/plugin/update).
 /// </summary>
 public sealed record PluginUpdateResponse : OpenCodeResponse
 {

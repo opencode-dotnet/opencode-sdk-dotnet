@@ -48,6 +48,7 @@ internal static class EnvelopeEmitter
             EnvelopeKind.Bare or EnvelopeKind.Data or EnvelopeKind.DataLocation or EnvelopeKind.Binary or _ =>
                 ["System", "System.Diagnostics.CodeAnalysis", "System.Text", GeneratedNamespace.Models],
         };
+        declaration = EmissionSyntax.DocumentedType(declaration, envelope.Documentation);
         var unit = EmissionSyntax.CompilationUnit(GeneratedNamespace.Public, usings, [declaration]);
         return EmissionSyntax.CreateSource(
             GeneratedPlacement.PathOf(GeneratedKind.OperationRecord, TypeHome.Family(operation.RouteContainerName), envelope.ResponseTypeName),

@@ -70,6 +70,17 @@ Nightly builds of `master` are on
   implemented explicitly, so the events gain no public member and serialize as before. The form
   events are not session-scoped: a form's session id can be `"global"`.
 
+### 🔧 Changes
+
+- **Generated XML documentation says what each record is.** The pinned API describes almost none of
+  its schemas, so summaries now come from the wire: an event record names its event type, its
+  payload names the event it belongs to, an operation's body, response and query records name the
+  operation with its method and route, and an error record names its tag. The types builders found
+  hardest carry hand-written summaries from upstream's behaviour: assistant messages and their
+  finish, error and retry; text deltas and their end; the prompt and create requests; the execution
+  events; and a PTY's command and arguments, including which shell starts when the command is
+  absent.
+
 ### 🐛 Fixes
 
 - **An event stream no longer ends on an enum value the SDK does not know.** Before, a frame with

@@ -2,7 +2,7 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// Shapes the &apos;DELETE /api/session/{sessionID}/form/{formID}&apos; query.
+/// The query of &apos;session.form.cancel&apos; (DELETE /api/session/{sessionID}/form/{formID}).
 /// </summary>
 public sealed record SessionFormCancelRequest
 {

@@ -2,6 +2,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 internal sealed record StructuralUnionModelPlan : ModelPlan
 {
+    public TypeDocumentationPlan KindDocumentation { get; init; } = new();
+
     public required string KindTypeName { get; init; }
 
     public required IReadOnlyList<StructuralUnionArmPlan> Arms

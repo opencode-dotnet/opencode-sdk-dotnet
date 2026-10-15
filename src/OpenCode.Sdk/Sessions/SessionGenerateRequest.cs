@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session generate request value.
+/// The body of &apos;session.generate&apos; (POST /api/session/{sessionID}/generate).
 /// </summary>
 public sealed record SessionGenerateRequest
 {

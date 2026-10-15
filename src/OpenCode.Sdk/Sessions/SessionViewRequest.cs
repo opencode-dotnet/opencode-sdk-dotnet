@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session view request value.
+/// The body of &apos;session.view&apos; (POST /api/session/{sessionID}/view).
 /// </summary>
 public sealed record SessionViewRequest
 {

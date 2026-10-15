@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a pty exited value.
+/// The &apos;pty.exited&apos; event.
 /// </summary>
 public sealed record PtyExited : IEvent
 {

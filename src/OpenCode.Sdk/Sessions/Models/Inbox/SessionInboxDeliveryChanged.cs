@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session inbox delivery changed value.
+/// The &apos;session.inbox.delivery.changed&apos; event.
 /// </summary>
 public sealed record SessionInboxDeliveryChanged : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

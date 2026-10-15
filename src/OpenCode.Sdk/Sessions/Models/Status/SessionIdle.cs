@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session idle value.
+/// The &apos;session.idle&apos; event.
 /// </summary>
 public sealed record SessionIdle : IEvent, ISessionScopedEvent
 {

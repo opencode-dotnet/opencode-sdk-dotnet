@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a location shutdown value.
+/// The &apos;location.shutdown&apos; event.
 /// </summary>
 public sealed record LocationShutdown : IEvent
 {

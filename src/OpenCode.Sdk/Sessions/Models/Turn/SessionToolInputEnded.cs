@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session tool input ended value.
+/// The &apos;session.tool.input.ended&apos; event.
 /// </summary>
 public sealed record SessionToolInputEnded : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

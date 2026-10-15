@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a worktree error value.
+/// The &apos;WorktreeError&apos; error.
 /// </summary>
 public sealed record WorktreeError : IOpenCodeError
 {

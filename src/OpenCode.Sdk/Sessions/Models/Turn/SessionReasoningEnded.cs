@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session reasoning ended value.
+/// The &apos;session.reasoning.ended&apos; event.
 /// </summary>
 public sealed record SessionReasoningEnded : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

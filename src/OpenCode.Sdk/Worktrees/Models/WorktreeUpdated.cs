@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a worktree updated value.
+/// The &apos;worktree.updated&apos; event.
 /// </summary>
 public sealed record WorktreeUpdated : IEvent
 {

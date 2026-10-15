@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session shell started value.
+/// The &apos;session.shell.started&apos; event.
 /// </summary>
 public sealed record SessionShellStarted : ISessionEventDurable, IEvent, ISessionScopedEvent
 {
