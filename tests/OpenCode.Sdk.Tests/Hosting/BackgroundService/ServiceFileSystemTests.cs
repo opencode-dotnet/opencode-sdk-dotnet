@@ -1,4 +1,6 @@
+using System.Runtime.InteropServices;
 using System.Text;
+using NSubstitute;
 using OpenCode.Sdk.Internal;
 using Testably.Abstractions;
 
@@ -148,10 +150,7 @@ public sealed class ServiceFileSystemTests
     public async Task Rename_Should_Replace_An_Existing_Destination()
     {
         using var directory = new OwnedTemporaryDirectory();
-        var source = directory.File("temporary.json");
-        var destination = directory.File("sidecar.json");
-        directory.FileSystem.File.WriteAllText(source, "published");
-        directory.FileSystem.File.WriteAllText(destination, "previous");
+        var (source, destination) = directory.Publication();
 
         new ServiceFileSystem().Rename(source, destination);
 
@@ -180,6 +179,158 @@ public sealed class ServiceFileSystemTests
 
         _ = Assert.Throws<FileNotFoundException>(() =>
             new ServiceFileSystem().Rename(directory.File("absent.json"), directory.File("sidecar.json")));
+    }
+
+    /// <summary>
+    /// The sidecar's readers hold it with delete sharing: the SDK's own reader, another client
+    /// polling it, and a scanner such as real-time antivirus or the indexer, which opens every fresh
+    /// file. The replace succeeds under them on every platform (on Windows through the
+    /// POSIX-semantics rename, where the platform's <c>MoveFileEx</c> replace fails), and the reader
+    /// keeps reading the contents it opened.
+    /// </summary>
+    [Test]
+    public async Task Rename_Should_Replace_A_Destination_A_Delete_Sharing_Reader_Holds_And_Leave_The_Reader_The_Old_Contents()
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var (source, destination) = directory.Publication();
+
+        using (var reader = new StreamReader(ServiceFileSystem.OpenRead(destination)))
+        {
+            new ServiceFileSystem().Rename(source, destination);
+
+            await Assert.That(directory.FileSystem.File.ReadAllText(destination)).IsEqualTo("published");
+            await Assert.That(await reader.ReadToEndAsync()).IsEqualTo("previous");
+        }
+
+        await Assert.That(directory.FileSystem.File.Exists(source)).IsFalse();
+    }
+
+    /// <summary>
+    /// A holder that shares no delete keeps the destination on Windows: the replace fails with the
+    /// sharing violation the publication reports and retries, the destination keeps its contents,
+    /// and the handle the replace opened on the source is released, so nothing else holds it.
+    /// <c>rename(2)</c> replaces whatever holds the destination.
+    /// </summary>
+    [Test]
+    public async Task Rename_Should_Leave_A_Destination_Held_Without_Delete_Sharing_In_Place_On_Windows()
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var (source, destination) = directory.Publication();
+
+        using (directory.FileSystem.FileStream.New(destination, FileMode.Open, FileAccess.Read, FileShare.Read))
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                new ServiceFileSystem().Rename(source, destination);
+                Console.WriteLine("branch: Unix (" + RuntimeInformation.OSDescription + ") — rename(2) replaces the destination whatever holds it");
+                await Assert.That(directory.FileSystem.File.ReadAllText(destination)).IsEqualTo("published");
+                return;
+            }
+
+            var failure = Assert.Throws<IOException>(() => new ServiceFileSystem().Rename(source, destination));
+            Console.WriteLine("branch: Windows — " + failure.Message);
+        }
+
+        await Assert.That(directory.FileSystem.File.ReadAllText(destination)).IsEqualTo("previous");
+        using (directory.FileSystem.FileStream.New(source, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            await Assert.That(directory.FileSystem.File.Exists(source)).IsTrue();
+        }
+    }
+
+#if NET
+    // .NET Framework's path handling refuses a path of MAX_PATH characters or more in every System.IO
+    // call this host makes (PathTooLongException from GetFullPath and CreateDirectory alike), so no
+    // such sidecar exists there to publish: the long-path cases are the modern targets'.
+    /// <summary>
+    /// A sidecar path of <c>MAX_PATH</c> characters or more, as a deep registration directory gives:
+    /// the POSIX-semantics rename takes the extended-length prefix the platform replace takes, so
+    /// such a path publishes under a delete-sharing reader as a short one does.
+    /// </summary>
+    [Test]
+    public async Task Rename_Should_Replace_A_Destination_Beyond_Max_Path_That_A_Delete_Sharing_Reader_Holds()
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var folder = string.Join(directory.FileSystem.Path.DirectorySeparatorChar.ToString(), Enumerable.Repeat(new string('d', 60), 4));
+        var (source, destination) = directory.Publication(folder);
+        await Assert.That(destination.Length).IsGreaterThanOrEqualTo(FileRenameKernel.MaxShortPath);
+
+        using (var reader = new StreamReader(ServiceFileSystem.OpenRead(destination)))
+        {
+            new ServiceFileSystem().Rename(source, destination);
+
+            await Assert.That(directory.FileSystem.File.ReadAllText(destination)).IsEqualTo("published");
+            await Assert.That(await reader.ReadToEndAsync()).IsEqualTo("previous");
+        }
+    }
+
+    /// <summary>The prefix rule .NET's own <c>CreateFile</c> wrapper applies, which the Windows kernel call follows.</summary>
+    [Test]
+    public async Task ExtendedPath_Should_Prefix_Only_Paths_Of_Max_Path_Characters_Or_More()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Console.WriteLine("branch: Unix (" + RuntimeInformation.OSDescription + ") — the kernel call is Windows-only; rename(2) takes the path as it is");
+            return;
+        }
+
+        var name = new string('n', FileRenameKernel.MaxShortPath);
+
+        await Assert.That(FileRenameKernel.ExtendedPath(@"C:\short\sidecar.json")).IsEqualTo(@"C:\short\sidecar.json");
+        await Assert.That(FileRenameKernel.ExtendedPath(@"C:\" + name)).IsEqualTo(@"\\?\C:\" + name);
+        await Assert.That(FileRenameKernel.ExtendedPath(@"\\server\share\" + name)).IsEqualTo(@"\\?\UNC\server\share\" + name);
+        await Assert.That(FileRenameKernel.ExtendedPath(@"\\?\C:\" + name)).IsEqualTo(@"\\?\C:\" + name);
+    }
+#endif
+
+    /// <summary>A system or volume without POSIX-semantics rename refuses the call with these errors: Windows before 10 1607, some Windows Server 2016 installations, FAT, ReFS, some network shares.</summary>
+    [Test]
+    [Arguments(WindowsInterop.InvalidParameter)]
+    [Arguments(WindowsInterop.NotSupported)]
+    [Arguments(WindowsInterop.InvalidFunction)]
+    public async Task Rename_Should_Fall_Back_To_The_Platform_Replace_When_The_Volume_Refuses_The_Posix_Rename(int error)
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var (source, destination) = directory.Publication();
+        var kernel = Substitute.For<IFileRenameKernel>();
+        _ = kernel.Replace(source, destination).Returns(error);
+
+        new ServiceFileSystem(kernel).Rename(source, destination);
+
+        _ = kernel.Received(1).Replace(source, destination);
+        await Assert.That(directory.FileSystem.File.ReadAllText(destination)).IsEqualTo("published");
+        await Assert.That(directory.FileSystem.File.Exists(source)).IsFalse();
+    }
+
+    [Test]
+    public async Task Rename_Should_Throw_Without_Falling_Back_When_The_Posix_Rename_Is_Refused_Otherwise()
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var (source, destination) = directory.Publication();
+        var kernel = Substitute.For<IFileRenameKernel>();
+        _ = kernel.Replace(source, destination).Returns(WindowsInterop.AccessDenied);
+
+        _ = Assert.Throws<UnauthorizedAccessException>(() => new ServiceFileSystem(kernel).Rename(source, destination));
+
+        await Assert.That(directory.FileSystem.File.ReadAllText(destination)).IsEqualTo("previous");
+        await Assert.That(directory.FileSystem.File.ReadAllText(source)).IsEqualTo("published");
+    }
+
+    /// <summary>A failed POSIX-semantics rename throws what the platform's replace throws for the same error, so the publication's handling is unchanged.</summary>
+    [Test]
+    public async Task RenameFailure_Should_Map_Windows_Errors_To_The_Platform_Replace_Exceptions()
+    {
+        const int sharingViolation = 32;
+
+        var missing = ServiceFileSystem.RenameFailure(WindowsInterop.FileNotFound, "a.tmp", "a.json");
+        var denied = ServiceFileSystem.RenameFailure(WindowsInterop.AccessDenied, "a.tmp", "a.json");
+        var shared = ServiceFileSystem.RenameFailure(sharingViolation, "a.tmp", "a.json");
+
+        await Assert.That(missing).IsTypeOf<FileNotFoundException>();
+        await Assert.That(((FileNotFoundException)missing).FileName).IsEqualTo("a.tmp");
+        await Assert.That(denied).IsTypeOf<UnauthorizedAccessException>();
+        await Assert.That(shared).IsTypeOf<IOException>();
+        await Assert.That(shared.HResult).IsEqualTo(unchecked((int)0x80070020));
     }
 
 #if NET
@@ -218,6 +369,18 @@ public sealed class ServiceFileSystemTests
         public string Path { get; }
 
         public string File(params string[] segments) => FileSystem.Path.Combine([Path, .. segments]);
+
+        /// <summary>A temporary file holding "published" beside a sidecar holding "previous", in a folder under this directory.</summary>
+        public (string Source, string Destination) Publication(string folder = "")
+        {
+            var directory = File(folder);
+            _ = FileSystem.Directory.CreateDirectory(directory);
+            var source = FileSystem.Path.Combine(directory, "temporary.json");
+            var destination = FileSystem.Path.Combine(directory, "sidecar.json");
+            FileSystem.File.WriteAllText(source, "published");
+            FileSystem.File.WriteAllText(destination, "previous");
+            return (source, destination);
+        }
 
         public void Dispose() => FileSystem.Directory.Delete(Path, recursive: true);
     }

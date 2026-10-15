@@ -836,7 +836,8 @@ shape discovery returns. Persistent-terminal sidecar I/O is behind `IServicePtyH
 requests the handoff ticket under the request bound through the SDK's own request pipeline and keeps
 it raw, so it reaches the replacement exactly as the route answered it — the receiving daemon
 decodes it with its own schema — and publishes it beside the registration through an owner-only
-temporary file and a replace-on-success rename (`File.Replace` on the downlevel targets). It reuses
+temporary file and a replace-on-success rename (on Windows the POSIX-semantics rename recorded
+below). It reuses
 a fresh matching sidecar and never fails the replacement, only the caller's cancellation propagates:
 whenever the request fails or answers no usable ticket (no `handoff` member, a ticket missing a
 member the pin knows, or an expired one), it first re-checks for a sidecar a concurrent caller
@@ -846,6 +847,15 @@ handoff. `environment` adopts an unexpired sidecar whose source still matches th
 registration (or whose registration is gone) as `OPENCODE_PTY_HANDOFF` and removes the variable
 otherwise; `complete` clears only a sidecar a different source wrote, with no expiry check; and
 `clear` removes it idempotently, the same seam Stop's sidecar clear routes through.
+
+The background service's recorded divergence from upstream on Windows (ADR-0031):
+
+| Divergence | Upstream | SDK | Reason |
+|---|---|---|---|
+| Sidecar publish | The pinned client's `publish` (`packages/client/src/pty-handoff.ts`) renames the temporary file over the sidecar with `node:fs` `rename`, which fails with `EPERM` while any handle holds the destination, whatever that handle shares | A POSIX-semantics rename: `SetFileInformationByHandle(FileRenameInfoEx)` with `FILE_RENAME_FLAG_REPLACE_IF_EXISTS` and `FILE_RENAME_FLAG_POSIX_SEMANTICS`, on a source opened with `DELETE` access. A system or volume that refuses it with `ERROR_INVALID_PARAMETER`, `ERROR_NOT_SUPPORTED`, or `ERROR_INVALID_FUNCTION` (Windows before 10 1607, some Windows Server 2016 installations, FAT, ReFS, some network shares; the codes Git's own POSIX-semantics rename falls back on) takes the platform replace instead: `MoveFileEx` with `MOVEFILE_REPLACE_EXISTING`, or `File.Replace` on the downlevel targets | The sidecar's readers include holders the SDK does not control, such as real-time antivirus and the indexer, and they open a fresh file with delete sharing, as the SDK's own reader does. The POSIX-semantics rename replaces the destination under them, and they keep reading the contents they opened, so the failure class is removed rather than retried. It is the rename Bun itself makes in its install path. A holder without delete sharing still fails the publish, which is reported as before. |
+
+The divergence is reversed when upstream changes its publish to one that survives such holders, or
+when the POSIX-semantics rename proves unsound on a volume the SDK supports.
 
 The daemon side of the lifecycle is the spawned CLI's, not the SDK's: the incumbent check, the
 exit-0 loser on a port another daemon holds, the `chdir` into the user home, and the registration

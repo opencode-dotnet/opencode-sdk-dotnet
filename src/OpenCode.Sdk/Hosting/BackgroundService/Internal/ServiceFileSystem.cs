@@ -1,3 +1,4 @@
+using System.ComponentModel;
 #if !NET
 using System.Runtime.InteropServices;
 #endif
@@ -16,6 +17,16 @@ internal sealed class ServiceFileSystem : IServiceFileSystem
 {
     private const UnixFileMode OwnerOnly = UnixFileMode.UserRead | UnixFileMode.UserWrite;
     private const int CopyBufferSize = 4096;
+
+    /// <summary>The POSIX-semantics rename on Windows; null elsewhere, where <c>rename(2)</c> already replaces an open file.</summary>
+    private readonly IFileRenameKernel? _renameKernel;
+
+    public ServiceFileSystem()
+        : this(IsWindows() ? FileRenameKernel.Instance : null)
+    {
+    }
+
+    internal ServiceFileSystem(IFileRenameKernel? renameKernel) => _renameKernel = renameKernel;
 
     public async Task<byte[]?> TryReadAllBytesAsync(string path, CancellationToken cancellationToken)
     {
@@ -71,7 +82,50 @@ internal sealed class ServiceFileSystem : IServiceFileSystem
         return true;
     }
 
+    /// <summary>
+    /// Replaces <paramref name="destination"/> with <paramref name="source"/> in one step. On Windows
+    /// the replace is a POSIX-semantics rename, a recorded divergence from the pinned client's
+    /// <c>node:fs</c> rename: that rename fails while any handle holds the destination, and a
+    /// reader the SDK does not control (an antivirus scanner, the indexer, another client polling
+    /// the sidecar) holds it with delete sharing, which the POSIX-semantics rename replaces under
+    /// while the reader keeps the old contents. A system or volume that refuses that rename (Windows
+    /// before 10 1607, some Windows Server 2016 installations, FAT, ReFS, some network shares) takes
+    /// the platform replace below, with the error codes Git's own POSIX-semantics rename falls back on.
+    /// </summary>
+    /// <param name="source">The file to publish.</param>
+    /// <param name="destination">The name it replaces.</param>
+    /// <exception cref="IOException">The replace failed; the destination is unchanged.</exception>
+    /// <exception cref="UnauthorizedAccessException">The replace was denied; the destination is unchanged.</exception>
     public void Rename(string source, string destination)
+    {
+        if (_renameKernel is { } kernel)
+        {
+            var error = kernel.Replace(source, destination);
+            if (error is 0)
+            {
+                return;
+            }
+
+            if (error is not (WindowsInterop.InvalidParameter or WindowsInterop.NotSupported or WindowsInterop.InvalidFunction))
+            {
+                throw RenameFailure(error, source, destination);
+            }
+        }
+
+        ReplaceByPlatform(source, destination);
+    }
+
+    /// <summary>The exception the platform's own replace throws for the same Windows error.</summary>
+    internal static Exception RenameFailure(int error, string source, string destination) =>
+        error switch
+        {
+            WindowsInterop.FileNotFound => new FileNotFoundException($"Could not find file '{source}'.", source),
+            WindowsInterop.PathNotFound => new DirectoryNotFoundException($"Could not find a part of the path '{source}'."),
+            WindowsInterop.AccessDenied => new UnauthorizedAccessException($"Access to the path '{destination}' is denied."),
+            _ => new IOException($"'{source}' could not replace '{destination}': {new Win32Exception(error).Message}", unchecked((int)0x80070000) | error),
+        };
+
+    private static void ReplaceByPlatform(string source, string destination)
     {
 #if NET
         // The modern targets replace the destination in one native move (rename(2) on Unix,
@@ -93,6 +147,13 @@ internal sealed class ServiceFileSystem : IServiceFileSystem
         File.Move(source, destination);
 #endif
     }
+
+    private static bool IsWindows() =>
+#if NET
+        OperatingSystem.IsWindows();
+#else
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+#endif
 
     /// <summary>
     /// A registration is a few hundred bytes, so the create, the mode, the write, and the close run
