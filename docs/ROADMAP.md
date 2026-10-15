@@ -106,7 +106,7 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    decided so that each capability lands additively after `1.0.0`. The public network-timeout
    option with unbounded long polls
    ([#175](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/175)) and the event bus's
-   upstream-parity reconnect with its fixed idle window
+   upstream-parity reconnect with its configurable idle window
    ([#176](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/176)) have landed. Exit: no planned capability needs a breaking construction change. The
    surface then freezes and `1.0.0-rc.1` ships.
 6. **1.0 performance gate.** The benchmark coverage reviewed and extended with representative
@@ -244,7 +244,8 @@ These do not block `1.0.0` and run beside the road.
   closing hangs a consumer that supplied no cancellation of its own; ordinary resets, server exits,
   and killed processes already surface at once. Upstream writes no keepalive on `session.log`, whose
   follow mode is silent by design while a session is idle, so no idle window can tell a quiet log
-  from a dead one. The event bus is not affected: it reconnects after 45 seconds without a byte.
+  from a dead one. The event bus is not affected: it reconnects after its idle window without a
+  byte, 45 seconds by default.
 - **Live tests are serialized by one mutex within a host:** every live class that shares a server carries the `ServerProcess` key, and the classes whose
   assertions ride a wall-clock bound run keyless `[NotInParallel]`, so a host's live tests run one
   at a time. The part of that serial tail a key could shorten measured under 30 s of a Windows

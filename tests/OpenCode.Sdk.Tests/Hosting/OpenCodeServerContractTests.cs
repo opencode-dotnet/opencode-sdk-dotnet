@@ -141,16 +141,18 @@ public sealed class OpenCodeServerContractTests
         // hand-written copy-list cannot know about it on its own, so this assertion is what turns
         // that silence loud instead of quiet. Extend both the expected list and the propagation
         // check below in the same change that adds the member.
-        await Assert.That(behaviorMembers).IsEquivalentTo(["Location", "NetworkTimeout"]);
+        await Assert.That(behaviorMembers).IsEquivalentTo(["EventStreamIdleTimeout", "Location", "NetworkTimeout"]);
 
         var server = CreateStartedDoor();
         var sentinelLocation = new LocationSelector { Directory = "/sentinel-workspace" };
         var sentinelWindow = TimeSpan.FromSeconds(42);
+        var sentinelIdleWindow = TimeSpan.FromSeconds(23);
 
         using var client = server.CreateClient(options =>
         {
             options.Location = sentinelLocation;
             options.NetworkTimeout = sentinelWindow;
+            options.EventStreamIdleTimeout = sentinelIdleWindow;
         });
 
         var pipeline = (Pipeline)typeof(OpenCodeClient)
@@ -161,6 +163,7 @@ public sealed class OpenCodeServerContractTests
             .GetField("_clientNetworkTimeout", BindingFlags.NonPublic | BindingFlags.Instance)!
             .GetValue(pipeline);
         await Assert.That(carriedWindow).IsEqualTo(sentinelWindow);
+        await Assert.That(pipeline.EventStreamIdleWindow).IsEqualTo(sentinelIdleWindow);
     }
 
     [Test]

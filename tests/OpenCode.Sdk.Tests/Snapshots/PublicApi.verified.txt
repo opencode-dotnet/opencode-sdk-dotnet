@@ -658,6 +658,7 @@ namespace OpenCode.Sdk
     {
         public OpenCodeClientOptions() { }
         public System.Uri? Endpoint { get; set; }
+        public System.TimeSpan? EventStreamIdleTimeout { get; set; }
         public OpenCode.Sdk.LocationSelector? Location { get; set; }
         public System.TimeSpan? NetworkTimeout { get; set; }
         public string? Password { get; set; }

@@ -186,7 +186,9 @@ The SDK **reconnects** the bus the way upstream's own client does, and it tells 
 
 - A connection that drops, fails, or goes 45 seconds without a byte is replaced one second later.
   The server's keepalive every 15 seconds keeps a quiet bus open, and the time your code spends on
-  an event never counts as silence.
+  an event never counts as silence. `OpenCodeClientOptions.EventStreamIdleTimeout` sets another
+  window than 45 seconds; keep it above the 15-second keepalive, or a quiet, healthy bus is cut
+  and reconnected each time.
 - Each connection has 2 seconds to answer and deliver `EventServerConnected`, or it counts as
   failed. A reachable server that is consistently slower than that fails every attempt, and the
   minute below applies.
@@ -348,7 +350,8 @@ cannot be read is a protocol failure and throws — the carrier is for *unknown*
   in stream.WithCancellation(token))`.
 - **Disposing the enumerator ends the connection**, which `await foreach` does for you on `break`,
   on `return`, and on an exception.
-- On the event bus, a connection that receives nothing for 45 seconds is replaced, as above. The
+- On the event bus, a connection that receives nothing for its idle window (45 seconds unless you
+  set `EventStreamIdleTimeout`) is replaced, as above. The
   session log is bounded only while it opens: once open, a silent log stays open until you cancel,
   the server ends it, or it fails.
 

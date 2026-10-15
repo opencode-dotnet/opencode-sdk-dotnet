@@ -109,6 +109,55 @@ public sealed class EventsClientReconnectTests
         await Assert.That(first.IsDisposed).IsTrue();
     }
 
+    /// <summary>A client that sets its own idle window, as upstream's <c>idleTimeout</c> allows, is cut when that window passes and not one tick before.</summary>
+    [Test]
+    public async Task A_Configured_Idle_Window_Should_Cut_A_Silent_Stream_Exactly_When_It_Passes()
+    {
+        var window = TimeSpan.FromSeconds(10);
+        using var first = new LiveEventBody(ConnectedFrame);
+        using var server = new ScriptedEventServer(
+            number => number is 1 ? ScriptedEventServer.Stream(first) : ScriptedEventServer.StreamOf(ConnectedFrame),
+            eventStreamIdleTimeout: window);
+        await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
+        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
+
+        var next = PendingNext(events);
+        await server.Time.WaitForArmedAsync(window, HangGuard);
+        server.Time.Advance(window - OneTick);
+        await Assert.That(next.IsCompleted).IsFalse();
+        server.Time.Advance(OneTick);
+        await server.Time.WaitForArmedAsync(Delay, HangGuard);
+        server.Time.Advance(Delay);
+
+        await Assert.That(await next.WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
+        await Assert.That(server.RequestCount).IsEqualTo(2);
+        await Assert.That(first.IsDisposed).IsTrue();
+    }
+
+    [Test]
+    public async Task A_Heartbeat_Should_Start_A_Configured_Idle_Window_Again()
+    {
+        var window = TimeSpan.FromSeconds(10);
+        using var body = new LiveEventBody(ConnectedFrame);
+        using var server = new ScriptedEventServer(_ => ScriptedEventServer.Stream(body), eventStreamIdleTimeout: window);
+        await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
+        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
+
+        var next = PendingNext(events);
+        await server.Time.WaitForArmedAsync(window, HangGuard);
+        server.Time.Advance(TimeSpan.FromSeconds(9));
+        body.Append(ScriptedEventServer.Heartbeat);
+        await server.Time.WaitForArmedAsync(window, HangGuard);
+        server.Time.Advance(window - OneTick);
+        await Assert.That(next.IsCompleted).IsFalse();
+        body.Append(WireBodyData.Frames(WireBodyData.SessionCreatedEvent));
+
+        await Assert.That(await next.WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(events.Current).IsTypeOf<SessionCreated>();
+        await Assert.That(server.RequestCount).IsEqualTo(1);
+    }
+
     [Test]
     public async Task A_Heartbeat_Should_Keep_A_Quiet_Stream_Open()
     {

@@ -30,6 +30,7 @@ internal sealed class Pipeline : IDisposable
     private readonly string _endpointBase;
     private readonly IEventStreamFramer _framer;
     private readonly TimeSpan? _clientNetworkTimeout;
+    private readonly TimeSpan _eventStreamIdleWindow;
     private readonly PipelinePolicy[] _policies;
     private readonly TransportPolicy _transport;
     private readonly TimeProvider _time;
@@ -42,6 +43,9 @@ internal sealed class Pipeline : IDisposable
     private readonly CancellationTokenSource _lifetime = new();
     private readonly CancellationToken _lifetimeToken;
     private bool _disposed;
+
+    /// <summary>Gets how long the live event stream may receive nothing before it is cut and reconnected.</summary>
+    internal TimeSpan EventStreamIdleWindow => _eventStreamIdleWindow;
 
     internal Pipeline(HttpClient httpClient, bool ownsHttpClient, OpenCodeClientOptions options,
         IEventStreamFramer? framer = null, ArrayPool<byte>? bufferPool = null, TimeSpan? networkTimeout = null,
@@ -67,6 +71,7 @@ internal sealed class Pipeline : IDisposable
         _endpointBase = EndpointPolicy.Normalize(endpoint);
         _framer = framer ?? new ServerSentEventFramer();
         _clientNetworkTimeout = networkTimeout ?? options.NetworkTimeout;
+        _eventStreamIdleWindow = options.EventStreamIdleTimeout ?? StreamReconnect.DefaultIdleWindow;
         _time = time ?? TimeProvider.System;
         _lifetimeToken = _lifetime.Token;
 
@@ -339,7 +344,7 @@ internal sealed class Pipeline : IDisposable
         IStreamAdapter<TPayload, TCause> adapter, ProgressWindow giveUp, [EnumeratorCancellation] CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
-        using var attempt = new StreamAttempt(_time, giveUp.Token);
+        using var attempt = new StreamAttempt(_time, _eventStreamIdleWindow, giveUp.Token);
         var frames = ExecuteStreamCoreAsync(operationId, method, route, adapter, Timeout.InfiniteTimeSpan, attempt, attempt.Token)
             .GetAsyncEnumerator(cancellationToken);
         await using var enumeration = frames.ConfigureAwait(false);

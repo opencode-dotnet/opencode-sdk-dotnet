@@ -35,7 +35,8 @@ architecture scans it records.
   lives beside `IStreamAdapter`, so plane sequencing is testable with a scripted framer
   and dispatch with plain `ServerSentEvent` values — no HTTP involved.
 - Retry, telemetry, and hooks land as new policies in the roster, not as new branches inside a
-  plane. Stream retry stays out of scope by canon: a live stream is not replayable.
+  plane. No stream is replayed. `event.subscribe` reconnects without replay, as
+  `client-runtime.md` states; every other stream stays one connection.
 - Companion seals from the same 2026-08-24 design land with their own increments and canon edits:
   the generated `StatusVerdict Classify(int)` as the single status authority, and the
   progress-based network timeout on Azure's machinery.

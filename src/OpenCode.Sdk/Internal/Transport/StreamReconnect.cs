@@ -6,8 +6,9 @@ namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// The reconnect rule of the event bus, as the pinned client runs it. Each attempt has 2 seconds to
 /// answer and deliver <c>server.connected</c> as its first event, or it fails. A connected stream
-/// that receives no bytes for 45 seconds is cut, and the server's keepalive every 15 seconds keeps a
-/// quiet stream alive. Every failure, of any kind, is followed by a new attempt one second later,
+/// that receives no bytes for its idle window is cut — 45 seconds unless the client options set
+/// another, as upstream's <c>idleTimeout</c> option does — and the server's keepalive every 15
+/// seconds keeps a quiet stream alive. Every failure, of any kind, is followed by a new attempt one second later,
 /// with no backoff. Upstream retries forever and shows a status; the SDK has no status to show, so
 /// a stream that has failed every attempt for one minute — from the drop, or from the first attempt
 /// of a first open — gives up and throws the last failure. Knowledge source: upstream-observed.
@@ -25,11 +26,28 @@ internal static class StreamReconnect
     /// <summary>Gets how long an attempt may take to answer and deliver its first event.</summary>
     public static TimeSpan ConnectBound { get; } = TimeSpan.FromSeconds(2);
 
-    /// <summary>Gets how long a connected stream may go without receiving a byte.</summary>
-    public static TimeSpan IdleWindow { get; } = TimeSpan.FromSeconds(45);
+    /// <summary>Gets how long a connected stream may go without receiving a byte when the client options set no other window.</summary>
+    public static TimeSpan DefaultIdleWindow { get; } = TimeSpan.FromSeconds(45);
+
+    /// <summary>The largest window a timer can run, which is also the largest a caller may set.</summary>
+    private static readonly TimeSpan TimerCeiling = TimeSpan.FromMilliseconds(int.MaxValue);
 
     /// <summary>Gets how long every attempt may keep failing before the stream gives up.</summary>
     public static TimeSpan GiveUp { get; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// Admits an idle window: unset, or above zero and at most <see cref="int.MaxValue"/>
+    /// milliseconds. Upstream's client has no window that never ends, so neither does this one.
+    /// </summary>
+    /// <param name="value">The window to admit.</param>
+    /// <param name="parameterName">The name the refusal reports.</param>
+    /// <returns>The admitted window.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The window is zero, negative, infinite, or longer than <see cref="int.MaxValue"/> milliseconds.</exception>
+    public static TimeSpan? ValidateIdleWindow(TimeSpan? value, string parameterName) =>
+        value is not { } window || (window > TimeSpan.Zero && window <= TimerCeiling)
+            ? value
+            : throw new ArgumentOutOfRangeException(parameterName, window,
+                "The event stream idle window must be above zero and at most int.MaxValue milliseconds.");
 
     /// <summary>Gets the operations whose stream reconnects instead of ending with its connection.</summary>
     public static FrozenSet<string> Reconnecting => ReconnectingOperations;

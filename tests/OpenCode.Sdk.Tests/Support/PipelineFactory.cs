@@ -18,13 +18,15 @@ internal static class PipelineFactory
         IEventStreamFramer? framer = null,
         ArrayPool<byte>? bufferPool = null,
         TimeSpan? networkTimeout = null,
-        TimeProvider? time = null)
+        TimeProvider? time = null,
+        TimeSpan? eventStreamIdleTimeout = null)
     {
         var options = new OpenCodeClientOptions
         {
             Endpoint = endpoint ?? Endpoint,
             Password = password,
             Location = location,
+            EventStreamIdleTimeout = eventStreamIdleTimeout,
         };
         if (username is not null)
         {
