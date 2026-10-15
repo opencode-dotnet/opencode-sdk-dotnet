@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Net.WebSockets;
 using OpenCode.Sdk.Internal;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Ptys;
 
 public sealed class PtyUpgradeFailurePolicyTests
 {
