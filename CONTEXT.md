@@ -63,8 +63,10 @@ _Avoid_: session events (ambiguous with the live stream)
 **Live event stream**:
 The instance-wide event stream; the pinned operation has no filter, cursor, replay, or resume
 channel, and is volatile by contract — a slow consumer overflows and fails the stream, and Events
-during a disconnection are missed. It opens with a synthetic `server.connected` Event. Consumers
-refresh authoritative state and resubscribe after a disconnect.
+during a disconnection are missed. Every connection opens with a synthetic `server.connected`
+Event. The SDK reconnects the stream itself; a `server.connected` after the first means Events were
+missed and authoritative state should be refreshed, and a stream that cannot reconnect for one
+minute gives up and throws.
 
 **Permission**:
 The gate on agent actions, expressed as rules matching an action and a resource to an effect —

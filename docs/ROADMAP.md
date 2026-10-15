@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-10-14
+Date: 2026-10-15
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -104,11 +104,10 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    questions are additive and wait for `1.1`. Exit: every surface question is decided.
 5. **Extension points.** How retry, telemetry, and hooks attach (the policy roster, ADR-0018),
    decided so that each capability lands additively after `1.0.0`. The public network-timeout
-   option, a bound for long-poll operations
-   ([#175](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/175)), and the
-   per-operation event-stream idle bound
-   ([#176](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/176)) ship here, closing
-   the half-open stream gap. Exit: no planned capability needs a breaking construction change. The
+   option with unbounded long polls
+   ([#175](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/175)) and the event bus's
+   upstream-parity reconnect with its fixed idle window
+   ([#176](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/176)) have landed. Exit: no planned capability needs a breaking construction change. The
    surface then freezes and `1.0.0-rc.1` ships.
 6. **1.0 performance gate.** The benchmark coverage reviewed and extended with representative
    scenarios ([#185](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/185)), then a
@@ -240,19 +239,12 @@ These do not block `1.0.0` and run beside the road.
   `tests/OpenCode.Sdk.Tests/Sessions/SessionLogCliProfileLiveTests.cs`; when it fails, upstream
   began persisting by default and the guide, the README, and the canon sentence in
   `docs/architecture/client-runtime.md`'s server-sent-events section all change together.
-- **A half-open event stream is not detected.** A successful SSE body stays live until caller
-  cancellation, server completion, or failure, so a connection whose peer is gone without closing
-  hangs a consumer that supplied no cancellation of its own; ordinary resets, server exits, and
-  killed processes already surface at once. A consumer cannot bound this from outside the SDK,
-  because the server's keepalive comments carry no event and never reach the enumeration. The bound
-  has to be per operation rather than a property of every SSE body: upstream writes a keepalive
-  every fifteen seconds on `event.subscribe` and none on `session.log`, whose follow mode is
-  silent by design while a session is idle. The network-timeout option in the extension-points
-  workstream closes it, so the bound arrives configurable rather than as a behavior no caller can
-  widen. Upstream's own clients
-  place this one layer above their core client, which does not reconnect either
-  (`packages/client/src/solid/connection.ts`: two-second connect, forty-five-second idle abort,
-  one-second reconnect delay, and an authoritative refetch once reconnected).
+- **A half-open session log is not detected.** Once open, `session.log` stays live until caller
+  cancellation, server completion, or failure, so a follow-mode log whose peer is gone without
+  closing hangs a consumer that supplied no cancellation of its own; ordinary resets, server exits,
+  and killed processes already surface at once. Upstream writes no keepalive on `session.log`, whose
+  follow mode is silent by design while a session is idle, so no idle window can tell a quiet log
+  from a dead one. The event bus is not affected: it reconnects after 45 seconds without a byte.
 - **Live tests are serialized by one mutex within a host:** every live class that shares a server carries the `ServerProcess` key, and the classes whose
   assertions ride a wall-clock bound run keyless `[NotInParallel]`, so a host's live tests run one
   at a time. The part of that serial tail a key could shorten measured under 30 s of a Windows

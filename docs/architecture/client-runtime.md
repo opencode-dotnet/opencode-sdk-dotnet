@@ -1,16 +1,18 @@
 # Client Runtime Architecture
 
-Date: 2026-10-14
+Date: 2026-10-15
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
 `protocol-and-generation.md`.
 
 Every behaviour in this document that the SDK implements by hand follows upstream's first-party
-behaviour at the pin as a north star, with the Bun build as the reference runtime. A deliberate
-divergence is either the idiomatic .NET form of the same contract, measurably safer or more
-robust, or a superset of upstream's behaviour. Each one is listed, with its reason, in the
-section it concerns (ADR-0031).
+behaviour at the pin as a north star, with the Bun build as the reference runtime; a fix takes the
+shape upstream's behaviour has. A divergence is the maintainer's decision, never an implementer's:
+work that finds upstream's behaviour wrong or unworkable stops and brings the evidence to the
+maintainer (`docs/engineering/deviation-protocol.md`). An approved divergence is either the
+idiomatic .NET form of the same contract, measurably safer or more robust, or a superset of
+upstream's behaviour. Each one is listed, with its reason, in the section it concerns (ADR-0031).
 
 ## Construction and transport ownership
 
@@ -733,23 +735,19 @@ coexistence with any running server is safe by construction. The returned workin
 only owner of its child. Process isolation is not state isolation: the child resolves the same
 user data, state, cache, and config roots as any other opencode process on the machine unless the
 caller redirects `XDG_DATA_HOME`, `XDG_STATE_HOME`, `XDG_CACHE_HOME`, and `XDG_CONFIG_HOME`
-through `Environment` — observed on Windows as well as on Unix. This door has landed.
+through `Environment` — observed on Windows as well as on Unix.
 
 **Explicit endpoint** (CLI `--server` parity; upstream builds a plain client plus a 5-second-bounded
 status check and a version warning, `server-connection.ts:24-39`) → plain `OpenCodeClient`
 construction. There is no dedicated SDK verb or member for this door; the validation recipe
 composes two existing pieces: construct the client against the known endpoint, call
-`Server.GetInfoAsync` under a caller-owned `CancellationTokenSource(TimeSpan.FromSeconds(5))`, and
-compare the returned `ServerInfo.Version` against the caller's own expectation. The SDK carries no
-version comparand of its own — the accepted snapshot (`spec/SNAPSHOT.md`) is a protocol identity,
-not a runtime version — and the network-timeout option a first-class helper would want does not exist
-yet, so **no new public member lands for this door in this arc**: a dedicated helper would
-need a version comparand the SDK does not have and would pre-empt a timeout channel that does not
-exist yet, and the generated client cannot gain members in this arc's territory. The recipe is
-documented here and demonstrated by the sandbox's `StandaloneServerWalkthrough`, which runs the same
-tail without `StartAsync` once a caller already holds an endpoint. *Noted for later:* revisit once
-the network-timeout option lands rather than a caller-owned
-`CancellationTokenSource` — a bounded-probe helper only earns public surface at that point.
+`Server.GetInfoAsync` under a caller-owned `CancellationTokenSource(TimeSpan.FromSeconds(5))` — a
+total deadline, as upstream's `AbortSignal.timeout(5_000)` is, where `NetworkTimeout` bounds only
+the time between progress — and compare the returned `ServerInfo.Version` against the caller's own
+expectation. The SDK carries no version comparand of its own — the accepted snapshot
+(`spec/SNAPSHOT.md`) is a protocol identity, not a runtime version — so a dedicated helper would
+need a comparand the SDK does not have. The sandbox's `StandaloneServerWalkthrough` demonstrates
+the recipe, running the same tail without `StartAsync` once a caller already holds an endpoint.
 
 **Background service** (`Service.discover/ensure/stop`, public export `@opencode/client/service`)
 → the registration-file mode. The first-party CLI's `opencode serve --service` publishes `url`,
@@ -878,7 +876,7 @@ The background service's recorded divergence from upstream on Windows (ADR-0031)
 
 | Divergence | Upstream | SDK | Reason |
 |---|---|---|---|
-| Sidecar publish | The pinned client's `publish` (`packages/client/src/pty-handoff.ts`) renames the temporary file over the sidecar with `node:fs` `rename`, which fails with `EPERM` while any handle holds the destination, whatever that handle shares | A POSIX-semantics rename: `SetFileInformationByHandle(FileRenameInfoEx)` with `FILE_RENAME_FLAG_REPLACE_IF_EXISTS` and `FILE_RENAME_FLAG_POSIX_SEMANTICS`, on a source opened with `DELETE` access. A system or volume that refuses it with `ERROR_INVALID_PARAMETER`, `ERROR_NOT_SUPPORTED`, or `ERROR_INVALID_FUNCTION` (Windows before 10 1607, some Windows Server 2016 installations, FAT, ReFS, some network shares; the codes Git's own POSIX-semantics rename falls back on) takes the platform replace instead: `MoveFileEx` with `MOVEFILE_REPLACE_EXISTING`, or `File.Replace` on the downlevel targets | The sidecar's readers include holders the SDK does not control, such as real-time antivirus and the indexer, and they open a fresh file with delete sharing, as the SDK's own reader does. The POSIX-semantics rename replaces the destination under them, and they keep reading the contents they opened, so the failure class is removed rather than retried. It is the rename Bun itself makes in its install path. A holder without delete sharing still fails the publish, which is reported as before. |
+| Sidecar publish | The pinned client's `publish` (`packages/client/src/pty-handoff.ts`) renames the temporary file over the sidecar with `node:fs` `rename`, which fails with `EPERM` while any handle holds the destination, whatever that handle shares | A POSIX-semantics rename: `SetFileInformationByHandle(FileRenameInfoEx)` with `FILE_RENAME_FLAG_REPLACE_IF_EXISTS` and `FILE_RENAME_FLAG_POSIX_SEMANTICS`, on a source opened with `DELETE` access. A system or volume that refuses it with `ERROR_INVALID_PARAMETER`, `ERROR_NOT_SUPPORTED`, or `ERROR_INVALID_FUNCTION` (Windows before 10 1607, some Windows Server 2016 installations, FAT, ReFS, some network shares; the codes Git's own POSIX-semantics rename falls back on) takes the platform replace instead: `MoveFileEx` with `MOVEFILE_REPLACE_EXISTING`, or `File.Replace` on the downlevel targets | The sidecar's readers include holders the SDK does not control, such as real-time antivirus and the indexer, and they open a fresh file with delete sharing, as the SDK's own reader does. The POSIX-semantics rename replaces the destination under them, and they keep reading the contents they opened, so the failure class is removed rather than retried. It is the rename Bun itself makes in its install path. A holder that opened the sidecar without delete sharing still fails the publish, and the replacement then starts without a handoff, as after any failed publish. |
 
 The divergence is reversed when upstream changes its publish to one that survives such holders, or
 when the POSIX-semantics rename proves unsound on a volume the SDK supports.

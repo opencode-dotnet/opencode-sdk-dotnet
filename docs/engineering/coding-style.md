@@ -48,8 +48,14 @@ for a pile of static steps.
   methods, because CA1822 and S2325 make a member that touches no instance state static, and an
   instance the type would never use earns nothing. The generator's binding and emission policies
   are the common case. The moment a policy needs a collaborator, I/O or state, it becomes a sealed
-  class composed through DI like any other; the SDK's and the tool's commands and services always
-  are.
+  class that receives its collaborators through its constructor: from the `ServiceCollection` in
+  an executable, and by hand-written composition in the SDK, which takes no DI dependency
+  (`../architecture/platform-and-packaging.md`).
+- **Two homes are static because the language puts them there:** native interop declaration
+  holders (the `LibraryImport`/`DllImport` entry points of one platform) and extension-method
+  containers. They hold declarations and thin forwarding only; any policy or I/O around a native
+  call lives in a sealed class behind a seam. A static class that performs I/O or takes a
+  collaborator outside these two homes is a defect to fix, not a pattern to follow.
 - **DI-first composition.** Every executable has exactly one composition root: a
   `ServiceCollection` that registers each collaborator behind its seam, handed to the
   CLI framework through its DI registrar. Commands and services receive dependencies
@@ -164,10 +170,10 @@ seams. Both failure modes are named so neither wins:
 
 ## 6. Enforcement
 
-The analyzer wall already carries part of this document: MA0051 (method length),
-MA0048/IDE0130 (file/folder discipline), MA0053 (sealed), CA1062 (guards), the
-TestableIO analyzer (I/O seam). Class-level size and coupling rules are **candidate**
-wall additions, evaluated at build-out. Until then, review enforces what this document
+The analyzer wall already carries part of this document: MA0051 (method length), CA1501, CA1502
+and CA1505 (inheritance depth, cyclomatic complexity, maintainability),
+MA0048/IDE0130 (file/folder discipline), MA0053 (sealed), CA1062 (guards), the TestableIO analyzer
+(I/O seam). No rule measures class length; review enforces what this document
 states and the wall does not measure — and in agent-driven development, the executing
 agent's plan carries these rules as constraints, so violations are defects, not style
 preferences.

@@ -36,7 +36,8 @@ sign.
   LTS release (the .NET 10 SDK carries it)
 - On Windows, the **.NET Framework 4.7.2 targeting pack** for the `net472` legs
 - [Bun](https://bun.sh/) at the exact version in `external/opencode/package.json`'s
-  `packageManager` field — the pinned-server fixture and CI use that runtime
+  `packageManager` field, first on `PATH` — the pinned-server fixture and CI use that runtime, and
+  `OpenCode.Sdk.Tests` refuses to run under any other Bun
 - [ripgrep 15.1.0](https://github.com/BurntSushi/ripgrep/releases/tag/15.1.0) on `PATH` — the
   filesystem live tests run against an offline simulated server that refuses the on-demand download
   upstream would otherwise perform
@@ -59,7 +60,9 @@ sign.
 
    `external/` holds read-only upstream checkouts used as protocol evidence and as the pinned-server
    test fixture. They are **never** hand-edited. If you cloned without `--recurse-submodules`, run
-   `git submodule update --init --recursive`.
+   `git submodule update --init --depth 1 external/opencode`. Then install the pinned server's
+   dependencies once, with the pinned Bun first on `PATH`:
+   `cd external/opencode && bun install --frozen-lockfile --ignore-scripts`.
 
 2. **Build the Project**
 
@@ -73,8 +76,8 @@ sign.
    This project uses [TUnit](https://tunit.dev/) on Microsoft.Testing.Platform.
 
    ```bash
-   # Run everything
-   dotnet test --configuration Release --no-build
+   # The main pass (the completion gate below adds the ServiceElection and NativeAot passes)
+   dotnet test --configuration Release --no-build -- --treenode-filter "/*/*/*/*[(Category!=ServiceElection)&(Category!=NativeAot)]"
 
    # One project
    dotnet test --project "$PWD/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj"
@@ -173,14 +176,23 @@ one you are asking for.
 
 Run this from the repository root before you claim a change is finished. It is the same gate CI
 runs, and it is canonically owned by
-[`docs/engineering/quality-gates.md`](../docs/engineering/quality-gates.md):
+[`docs/engineering/quality-gates.md`](../docs/engineering/quality-gates.md), which explains why the
+tests run in three passes. A fresh clone or worktree is prepared once first, with the Bun named by
+`external/opencode/package.json`'s `packageManager` field first on `PATH`:
+
+```bash
+git submodule update --init --depth 1 external/opencode
+cd external/opencode && bun install --frozen-lockfile --ignore-scripts
+```
 
 ```bash
 dotnet tool run slopwatch analyze --exclude ".scratchpad/**,external/**" --fail-on warning
 dotnet build --configuration Release
 dotnet format whitespace --verify-no-changes --no-restore
 dotnet format style --verify-no-changes --no-restore --severity warn
-dotnet test --configuration Release --no-build
+dotnet test --configuration Release --no-build -- --treenode-filter "/*/*/*/*[(Category!=ServiceElection)&(Category!=NativeAot)]"
+dotnet test --project "$PWD/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --treenode-filter "/*/*/*/*[Category=ServiceElection]"
+dotnet test --project "$PWD/tests/OpenCode.Sdk.Tools.Tests/OpenCode.Sdk.Tools.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --treenode-filter "/*/*/*/*[Category=NativeAot]"
 ```
 
 Changes to the protocol, generator, curation, or generated output also run:
@@ -201,8 +213,9 @@ dotnet run --file tools/opencode-tool.cs -- generate --verify
 - ✅ **The public API is locked by a reviewed baseline.** A deliberate surface change updates
   `tests/OpenCode.Sdk.Tests/Snapshots/PublicApi.verified.txt` in the same commit; an accidental one
   fails the suite.
-- ✅ **Multi-target reality.** Code must build and pass on `netstandard2.0` and `net472`, not only
-  on modern targets.
+- ✅ **Multi-target reality.** Code must build on every target, `netstandard2.0` included, and pass
+  on `net472`, whose Windows legs stand in for the `netstandard2.0` asset's downlevel behavior —
+  not only on modern targets.
 - ✅ **No suppressions to make a test green.** If a test is wrong, fix the test and say why.
 
 ### Testing Guidelines
@@ -210,12 +223,13 @@ dotnet run --file tools/opencode-tool.cs -- generate --verify
 - **Unit and contract tests** — deterministic, no live server; fakes only for published contracts
 - **Integration tests** — real process boundaries where the process boundary *is* the product
   (the launcher, the PTY doors)
-- **Live tests** — gated on a reachable server, skipped otherwise
+- **Live tests** — run against a server their fixture owns, started from the pinned `external/opencode` checkout; a missing checkout, install or pinned Bun is an instructive error, never a skipped test
 
 When adding tests, put them in the project that owns the seam, follow the existing naming, cover
 both the success and the refusal path, and respect the parallelism rules in
-[`docs/engineering/testing-style.md`](../docs/engineering/testing-style.md) — server-process and
-timing-bounded tests are deliberately serialized.
+[`docs/engineering/testing-style.md`](../docs/engineering/testing-style.md) — a verdict never rides the
+clock, a test whose hang guard a loaded host can still reach carries `[NotInParallel]`, and
+background-service elections and the native AOT consumer run in gate passes of their own.
 
 Scratch work belongs under the gitignored `.scratchpad/`; nothing permanent may reference it.
 

@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-10-14
+Date: 2026-10-15
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -35,8 +35,7 @@ evidence and may contain superseded positions.
   generation, and so does a type reached only by experimental operations of two different ids.
 - Derived model names strip Effect's encode-side `*Encoded` component suffix unless the unsuffixed
   component itself exists in the document — a mechanical projection-artifact rule owned by
-  `ProjectionArtifactNamePolicy`, never a per-row curation act (maintainer-sealed
-  2026-08-27).
+  `ProjectionArtifactNamePolicy`, never a per-row curation act.
 
 ## Snapshot production
 
@@ -214,7 +213,7 @@ implementation knowledge (ADR-0013).
   object requiring exactly one property that is not `data` is envelope spine too: the payload
   flattens onto the response under that key's PascalCase name and the wrapper is never emitted
   as a model, while a named component with one property keeps its own identity. Requiredness is
-  the binder's wall, not the classifier's (final review S6/P4): an inline object whose sole
+  the binder's wall, not the classifier's: an inline object whose sole
   non-`data` property is optional still classifies this way but refuses at bind time
   (`EnvelopeFacetBinder.SingleKeyMember`, "must reference an object requiring exactly one
   property") rather than falling back to a promoted bare-body model — fail-closed, and not
@@ -335,9 +334,11 @@ dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).
 - A query parameter binds by shape: a required parameter becomes a `required`, non-nullable
   request property and makes the request itself a required method and route argument; an optional
   parameter binds nullable and is omitted from the wire when unset, whether or not its schema
-  admits JSON null; a string enum outside the spine's own value sets becomes a generated
-  extensible enum whose spelling the route builder writes as given, refusing a default value;
-  every other query shape refuses by name.
+  admits JSON null. A plain string binds as a string; the spine's own value sets (list order, the
+  exact true/false text, the parent-session filter) and the optional deep-object location
+  selector bind their spine types; any other string enum becomes a generated extensible enum
+  whose spelling the route builder writes as given, refusing a default value; every other query
+  shape refuses by name.
 - The SSE engine remains hand-written runtime behavior; generated stream methods bind their route,
   payload, frame, declared failure event, typed cause, and statuses from the pin. Cause models,
   converters, array metadata, and adapter metadata pass through the same emitted registry and

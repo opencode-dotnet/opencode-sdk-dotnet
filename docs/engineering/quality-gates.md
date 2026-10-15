@@ -23,7 +23,8 @@ Assurance intensity follows blast radius:
 
 The testing posture is deliberately strict: observation-based gates, deterministic tests, fakes
 only for published contracts, TUnit on Microsoft.Testing.Platform, real-process integration where
-the process boundary is the product, and three-OS launcher acceptance.
+the process boundary is the product, and three-OS launcher acceptance. A flaky test is fixed at its
+root cause. It is never retried, given a wider bound, or quarantined.
 
 ## Analyzer policy
 
@@ -145,8 +146,9 @@ and four, nine runs (run 36342010141); macOS at three and four, six runs (run 36
 - **macOS, three:** four at a time saves only about 3% (8 s) over three and costs no margin: the
   loopback `ServicePtyHandoffTests`, with a 5 s bound, used 0.51 of it at three and 0.52 at four.
 
-The local gate on a workstation needs no cap, and a live test whose proof rides a wall-clock bound
-the host can miss carries the keyless `[NotInParallel]` (`tests/Shared/ParallelConstraintKeys.cs`).
+The local gate on a workstation needs no cap. A verdict never rides the clock (`testing-style.md`);
+a test whose hang guard a loaded host can still reach — a real server's own bound, a `[Timeout]`
+measured in seconds — carries the keyless `[NotInParallel]` (`tests/Shared/ParallelConstraintKeys.cs`).
 
 The suite runs in three passes, locally and in CI. The main pass runs every test except two
 categories. The background-service election classes carry the `ServiceElection` category
@@ -159,9 +161,9 @@ their own after that: publishing the consumer runs one ILC compile that loads ev
 runner for about a minute, which the timing-sensitive launcher tests cannot run beside, and the
 pass publishes once and shares the result across its tests. TUnit's parallel keys order tests
 inside one host only, so no key can keep another host's election or compile away; a pass of its own
-can. Every CI pass after the first always runs, so the test report and the badge count every pass,
-and the later passes leave TUnit's HTML report upload to the first, whose artifact names they
-would repeat.
+can. Every CI pass after the first runs even when an earlier pass failed (not after a failed build
+or a cancelled run), so the test report and the badge count every pass, and the later passes leave
+TUnit's HTML report upload to the first, whose artifact names they would repeat.
 
 Each CI test pass is asserted against the committed `tests/test-roster.json`: the
 `verify-test-roster` tool command fails the job unless every module the roster lists for the pass
