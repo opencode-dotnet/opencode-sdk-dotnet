@@ -196,7 +196,7 @@ A call fails with `OpenCodeTransportException` when the network makes no progres
 no response headers, or no new bytes of the body. That window is 100 seconds by default. Change it
 for the whole client, or for one call. A stream takes no per-call options. On the session log the
 client value bounds only opening it; once open, it stays open until you stop reading, the server
-ends it, or it fails. The event bus has fixed windows of its own and
+ends it, or it fails. The event bus has windows of its own, set apart from this one, and
 [reconnects](streaming.md) instead:
 
 ```csharp

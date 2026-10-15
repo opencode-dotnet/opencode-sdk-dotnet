@@ -30,6 +30,7 @@ internal sealed class Pipeline : IDisposable
     private readonly string _endpointBase;
     private readonly IEventStreamFramer _framer;
     private readonly TimeSpan? _clientNetworkTimeout;
+    private readonly TimeSpan _eventStreamIdleWindow;
     private readonly PipelinePolicy[] _policies;
     private readonly TransportPolicy _transport;
     private readonly TimeProvider _time;
@@ -67,6 +68,7 @@ internal sealed class Pipeline : IDisposable
         _endpointBase = EndpointPolicy.Normalize(endpoint);
         _framer = framer ?? new ServerSentEventFramer();
         _clientNetworkTimeout = networkTimeout ?? options.NetworkTimeout;
+        _eventStreamIdleWindow = options.EventStreamIdleTimeout ?? StreamReconnect.DefaultIdleWindow;
         _time = time ?? TimeProvider.System;
         _lifetimeToken = _lifetime.Token;
 
@@ -276,11 +278,11 @@ internal sealed class Pipeline : IDisposable
     /// <summary>
     /// Runs one connection after another for a reconnecting operation, as the pinned client does.
     /// Each attempt runs under its own window: 2 seconds to answer and deliver
-    /// <c>server.connected</c> first, then 45 seconds without a byte once connected, stopped while
-    /// the consumer holds an event. Any failure is followed by a new attempt one second later. The
-    /// give-up window runs from the first attempt and again from each drop, stops once an attempt
-    /// connects, and when it passes it cuts whatever is in flight and throws the last failure. The
-    /// caller's token and a disposed client end the stream at once.
+    /// <c>server.connected</c> first, then the client's idle window without a byte once connected,
+    /// stopped while the consumer holds an event. Any failure is followed by a new attempt one
+    /// second later. The give-up window runs from the first attempt and again from each drop, stops
+    /// once an attempt connects, and when it passes it cuts whatever is in flight and throws the
+    /// last failure. The caller's token and a disposed client end the stream at once.
     /// </summary>
     private async IAsyncEnumerable<TPayload> ExecuteReconnectingStreamAsync<TPayload, TCause>(string operationId, HttpMethod method,
         string route, IStreamAdapter<TPayload, TCause> adapter, [EnumeratorCancellation] CancellationToken cancellationToken)
@@ -339,7 +341,7 @@ internal sealed class Pipeline : IDisposable
         IStreamAdapter<TPayload, TCause> adapter, ProgressWindow giveUp, [EnumeratorCancellation] CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
-        using var attempt = new StreamAttempt(_time, giveUp.Token);
+        using var attempt = new StreamAttempt(_time, _eventStreamIdleWindow, giveUp.Token);
         var frames = ExecuteStreamCoreAsync(operationId, method, route, adapter, Timeout.InfiniteTimeSpan, attempt, attempt.Token)
             .GetAsyncEnumerator(cancellationToken);
         await using var enumeration = frames.ConfigureAwait(false);

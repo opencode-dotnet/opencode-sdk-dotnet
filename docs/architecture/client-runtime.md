@@ -321,9 +321,13 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   at the pin), and no other stream reconnects:
   - Each attempt has 2 s to answer and deliver `server.connected` as its first event, or it fails.
     The first open runs the same check.
-  - A connected stream that receives no byte for 45 s is cut. Any byte re-arms the window,
-    including the server's keepalive comment every 15 s. The window stops while the consumer holds
-    an event, because a pull-based consumer's own time is not the server's silence.
+  - A connected stream that receives no byte for its idle window is cut: 45 s, or
+    `OpenCodeClientOptions.EventStreamIdleTimeout`, as upstream's `idleTimeout` option sets it. The
+    option accepts any window above zero and at most `int.MaxValue` milliseconds, but no window
+    that never ends, since upstream has none; it is read once, when the client is built.
+    Any byte re-arms the window, including the server's keepalive comment every 15 s. The window
+    stops while the consumer holds an event, because a pull-based consumer's own time is not the
+    server's silence.
   - Every failure is followed by a new attempt 1 s later, with no backoff. That covers a refused
     connection, any HTTP error status (a 401 or a 404 included), an undeclared success, a body that
     is not an event stream, a malformed frame, a failure frame, the server ending the stream, and
@@ -338,12 +342,12 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   - The caller's token ends the stream at once with an `OperationCanceledException` that carries
     that token, and a disposed client ends it at once with `ObjectDisposedException`, whether the
     stream is opening, reading, holding an event or waiting to reconnect. Nothing else ends it.
-  - Recorded divergence: upstream retries forever and shows a connection status; the SDK has no
-    status to show, so an endless silent retry would hang `await foreach`. The consequence for
-    consumers is that a wrong address or a refused credential surfaces after one minute, not at
-    once, as the error the server last answered.
-  - `OpenCodeClientOptions.NetworkTimeout` does not reach `event.subscribe`; its windows are fixed,
-    and a stream takes no per-call options.
+  - Recorded divergence, the only one: upstream retries forever and shows a connection status; the
+    SDK has no status to show, so an endless silent retry would hang `await foreach`. The
+    consequence for consumers is that a wrong address or a refused credential surfaces after one
+    minute, not at once, as the error the server last answered.
+  - `OpenCodeClientOptions.NetworkTimeout` does not reach `event.subscribe`. The 2 s connect bound
+    and the 1 s delay are fixed, as in upstream, and a stream takes no per-call options.
 - Durable continuation is requested explicitly through `session.log`'s `after` parameter, an
   exclusive aggregate sequence read from a durable envelope or from the sync marker. One
   `log.synced` marker reports the watermark the replay was captured at; it is a boundary rather

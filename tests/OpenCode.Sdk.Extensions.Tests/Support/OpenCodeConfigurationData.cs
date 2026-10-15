@@ -11,4 +11,12 @@ internal static class OpenCodeConfigurationData
             ["OpenCode:Username"] = "admin",
             ["OpenCode:Password"] = "secret",
         };
+
+    /// <summary>A server section that sets the event bus's idle window to the given text.</summary>
+    public static IReadOnlyDictionary<string, string?> WithEventStreamIdleTimeout(string value) =>
+        new Dictionary<string, string?>(StringComparer.Ordinal)
+        {
+            ["OpenCode:Endpoint"] = "http://localhost:4096",
+            ["OpenCode:EventStreamIdleTimeout"] = value,
+        };
 }

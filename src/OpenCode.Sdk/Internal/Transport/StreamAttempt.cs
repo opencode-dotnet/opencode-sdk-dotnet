@@ -5,21 +5,24 @@ namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// One connection attempt of a reconnecting stream and the window it runs under. Until the attempt
 /// is established it has <see cref="StreamReconnect.ConnectBound"/> to answer and deliver its first
-/// event, whatever arrives meanwhile; once established, every byte starts
-/// <see cref="StreamReconnect.IdleWindow"/> again. The window is linked over the give-up window, so
-/// the caller's token and the give-up both cut the attempt too.
+/// event, whatever arrives meanwhile; once established, every byte starts the client's idle window
+/// again. The window is linked over the give-up window, so the caller's token and the give-up both
+/// cut the attempt too.
 /// </summary>
 internal sealed class StreamAttempt : IDisposable
 {
     private readonly ProgressWindow _window;
+    private readonly TimeSpan _idleWindow;
     private bool? _startedConnected;
 
     /// <summary>Starts an attempt; its connect bound runs from now.</summary>
     /// <param name="time">The clock the windows run on.</param>
+    /// <param name="idleWindow">How long it may go without a byte once established.</param>
     /// <param name="giveUpToken">The give-up window's token, linked over the caller's.</param>
-    public StreamAttempt(TimeProvider time, CancellationToken giveUpToken)
+    public StreamAttempt(TimeProvider time, TimeSpan idleWindow, CancellationToken giveUpToken)
     {
-        _window = new ProgressWindow(StreamReconnect.IdleWindow, time, giveUpToken);
+        _idleWindow = idleWindow;
+        _window = new ProgressWindow(idleWindow, time, giveUpToken);
         _window.Restart(StreamReconnect.ConnectBound);
     }
 
@@ -73,8 +76,8 @@ internal sealed class StreamAttempt : IDisposable
     /// <returns>The failure to report.</returns>
     public OpenCodeTransportException Describe(OperationCanceledException cancellation)
     {
-        var window = IsEstablished ? StreamReconnect.IdleWindow : StreamReconnect.ConnectBound;
-        var seconds = window.TotalSeconds.ToString("0", CultureInfo.InvariantCulture);
+        var window = IsEstablished ? _idleWindow : StreamReconnect.ConnectBound;
+        var seconds = window.TotalSeconds.ToString("0.#######", CultureInfo.InvariantCulture);
         return new OpenCodeTransportException(IsEstablished
             ? $"The opencode event stream received nothing for {seconds} seconds."
             : $"The opencode event stream did not connect within {seconds} seconds.", cancellation);

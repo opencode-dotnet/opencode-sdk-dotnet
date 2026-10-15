@@ -22,11 +22,12 @@ internal sealed class ScriptedEventServer : IDisposable
 
     /// <param name="answer">Answers request number <c>n</c> (from 1); <see cref="Silence"/> never answers it.</param>
     /// <param name="networkTimeout">The client's network timeout, which the bus must not take.</param>
-    public ScriptedEventServer(Func<int, HttpResponseMessage?> answer, TimeSpan? networkTimeout = null)
+    /// <param name="eventStreamIdleTimeout">The client's idle window for the bus; unset is the default.</param>
+    public ScriptedEventServer(Func<int, HttpResponseMessage?> answer, TimeSpan? networkTimeout = null, TimeSpan? eventStreamIdleTimeout = null)
     {
         _handler = new Handler(answer);
         _httpClient = new HttpClient(_handler, disposeHandler: false);
-        _pipeline = PipelineFactory.Create(_httpClient, networkTimeout: networkTimeout, time: Time);
+        _pipeline = PipelineFactory.Create(_httpClient, networkTimeout: networkTimeout, time: Time, eventStreamIdleTimeout: eventStreamIdleTimeout);
         Events = new EventsClient(_pipeline);
     }
 
