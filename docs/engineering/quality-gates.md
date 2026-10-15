@@ -77,9 +77,11 @@ the local gate. Any change to source, tests, project or build files, tool manife
 
 A fresh clone or worktree is prepared once before its first gate, with the Bun the pin's
 `packageManager` names (`external/opencode/package.json`) first on `PATH`, for the install and for
-every gate after it:
+every gate after it. `dotnet tool restore` makes the repository's local tools, slopwatch among them,
+available to the gate:
 
 ```bash
+dotnet tool restore
 git submodule update --init --depth 1 external/opencode
 cd external/opencode && bun install --frozen-lockfile --ignore-scripts
 ```

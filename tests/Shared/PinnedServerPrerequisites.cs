@@ -103,19 +103,18 @@ public static class PinnedServerPrerequisites
         {
             problems.Add($"No bun is on PATH. Install bun {pinned.Version}, the pin's packageManager.");
         }
-        else if (string.Equals(bunVersion, pinned.Version, StringComparison.Ordinal))
+        else if (!string.Equals(bunVersion, pinned.Version, StringComparison.Ordinal))
         {
-            // The pinned Bun: nothing to refuse, nothing to report.
-        }
-        else if (allowMismatch)
-        {
-            allowedMismatch = $"pinned bun {pinned.Version}, running bun {bunVersion} ({BunMismatchVariable}={AllowBunMismatch})";
-        }
-        else
-        {
-            problems.Add(
-                $"The bun on PATH is {bunVersion}, but the pin's packageManager is bun@{pinned.Version} "
-                + $"('{pinned.PackageJson}'). Put bun {pinned.Version} first on PATH.");
+            if (allowMismatch)
+            {
+                allowedMismatch = $"pinned bun {pinned.Version}, running bun {bunVersion} ({BunMismatchVariable}={AllowBunMismatch})";
+            }
+            else
+            {
+                problems.Add(
+                    $"The bun on PATH is {bunVersion}, but the pin's packageManager is bun@{pinned.Version} "
+                    + $"('{pinned.PackageJson}'). Put bun {pinned.Version} first on PATH.");
+            }
         }
 
         if (MissingInstall(fileSystem, submodule) is { } install)
