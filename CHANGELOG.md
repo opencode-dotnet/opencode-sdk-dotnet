@@ -105,6 +105,11 @@ Nightly builds of `master` are on
   finish, error and retry; text deltas and their end; the prompt and create requests; the execution
   events; and a PTY's command and arguments, including which shell starts when the command is
   absent.
+- **The package README links open the docs of the release they came with.** On NuGet.org, the
+  links to the guides point at the commit the package was built from, not at `master`.
+- **The hosting internals join the flat `OpenCode.Sdk.Internal` namespace.** The public API is
+  unchanged, byte for byte; only internal type names differ, as a stack trace or reflection shows
+  them.
 
 ### 🐛 Fixes
 
@@ -113,6 +118,10 @@ Nightly builds of `master` are on
   ended the subscription with `OpenCodeTransportException`. The frame now reads as its typed event,
   with the value kept (`IsKnown` is false). One-shot responses read the same way. See the Breaking
   entry on extensible enums.
+- **On Windows, publishing the background service's sidecar no longer fails while another process
+  reads it.** The sidecar was replaced with a rename that Windows refuses with access denied while a
+  reader holds the file open. It is now replaced with a POSIX-semantics rename, which succeeds even
+  then, and falls back to the previous rename where the file system does not support it.
 
 ### 📚 Documentation
 
@@ -131,6 +140,10 @@ Nightly builds of `master` are on
   - A launched server stays in `await using` around the host's `RunAsync`. The container does not
     dispose a handle you register.
   - A passwordless 401 carries the typed `UnauthorizedError`, not an empty body.
+- **The guides wait for a turn on the execution events, not on `SessionIdle`.** The pinned server
+  never publishes `session.idle` or `session.status`, so a loop that waited for `SessionIdle` never
+  ended. A turn ends with exactly one of `SessionExecutionSucceeded`, `SessionExecutionFailed` or
+  `SessionExecutionInterrupted`.
 
 ## [0.9.0-preview.10] - 2026-10-14
 
@@ -225,9 +238,9 @@ camelCase constructor parameters.
 - **A settings `encoding` member is read as the typed `Encoding`.** On `ProviderSettings`,
   `ConfigProviderSettings`, `ModelSettings`, and `ConfigModelSettings` it is no longer in
   `AdditionalProperties`, where `0.9.0-preview.9` kept it as an undeclared member.
-- **The source is laid out in feature folders, and the internal namespaces are flattened into
-  `OpenCode.Sdk.Internal`.** The public API is unchanged, byte for byte. Only the names of internal
-  types differ, as a stack trace or reflection shows them.
+- **The source is laid out in feature folders, and the shared internal namespaces are flattened
+  into `OpenCode.Sdk.Internal`.** The public API is unchanged, byte for byte. Only the names of
+  internal types differ, as a stack trace or reflection shows them.
 
 ### 🐛 Fixes
 
