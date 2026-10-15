@@ -2,6 +2,7 @@ using System.IO.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenCode.Sdk.Tools.Benchmarks;
+using OpenCode.Sdk.Tools.Clones;
 using OpenCode.Sdk.Tools.Commands;
 using OpenCode.Sdk.Tools.Generator;
 using OpenCode.Sdk.Tools.Generator.Binding;
@@ -63,6 +64,7 @@ public static class ToolApp
         services.AddSingleton<BenchmarkRunReader>();
         services.AddSingleton<TestRosterLoader>();
         services.AddSingleton<TrxRunReader>();
+        services.AddSingleton<CloneDetector>();
         services.AddSingleton<ICommandInterceptor, GlobalOptionsInterceptor>();
 
         overrideServices?.Invoke(services);
@@ -93,6 +95,9 @@ public static class ToolApp
         configurator
             .AddCommand<VerifyTestRosterCommand>("verify-test-roster")
             .WithDescription("Verify a CI test pass's TRX results against the committed tests/test-roster.json, fail-closed.");
+        configurator
+            .AddCommand<VerifyClonesCommand>("verify-clones")
+            .WithDescription("Run the pinned clone detector: hand-written src/ and tools/ against their baselines, tests and generated output reported.");
     }
 
     /// <summary>Entry point used by tools/opencode-tool.cs.</summary>

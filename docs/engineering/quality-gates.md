@@ -190,6 +190,21 @@ no unexpected or duplicate modules. The roster is deliberately explicit rather t
 cannot shrink together with the coverage it guards — so adding or removing a test project or a test
 target framework updates it in the same change.
 
+## Clone gate
+
+The lint job runs `dotnet run --file tools/opencode-tool.cs -- verify-clones`: the pinned jscpd in
+`tools/jscpd/`, installed with the pinned Bun from its own lockfile, at a 50-token minimum over four
+scopes. Hand-written `src/` and `tools/` are gated against the committed baselines in `tools/jscpd/`:
+a clone a baseline does not hold fails the job, and `tools/` also fails above 3% duplicated lines.
+Tests and generated output are reported, not gated. The generator's manifest decides which `src/`
+files are generated, so the split needs no path convention. Locally the same command runs from the
+repository root once `bun install --frozen-lockfile --ignore-scripts` has run in `tools/jscpd/`; it is
+not part of the completion gate above.
+
+`verify-clones --update-baseline` rewrites the baselines. A pull request that grows a baseline names
+each new clone in its body with the reason it stays, or says that it is a deliberate rename, the
+same way a new suppression is called out. A shrinking baseline needs no reason.
+
 ## Package compatibility
 
 The lint job packs both packages with validation on for every code pull request, and the release

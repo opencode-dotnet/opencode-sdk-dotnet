@@ -33,8 +33,9 @@ env:
 jobs:
   # The OS-independent gates run once, beside the matrix instead of inside its Linux leg, where
   # they delayed that leg's tests by about 5 minutes (2026-09-26, run 36231256172). None of them
-  # needs the submodule or the pinned server: the formatter compiles in memory from the restored
-  # projects, and generation reads only committed inputs.
+  # needs the pinned server: the formatter compiles in memory from the restored projects, and
+  # generation reads only committed inputs. The submodule is checked out only for the pinned Bun
+  # version the clone detector installs with.
   #
   # The analyzer wall also runs here, once, for every target compilation. Every OS compiles the
   # same LF-normalized sources (.gitattributes), and the one OS-conditioned setting that reaches a
@@ -50,8 +51,11 @@ jobs:
       IncludeNet472Tests: true
 
     steps:
+      # The submodule carries the pinned Bun version the clone detector installs with.
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          submodules: true
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
@@ -73,6 +77,15 @@ jobs:
 
       - name: Restore local tools
         run: dotnet tool restore
+
+      - name: Setup pinned Bun
+        uses: ./.github/actions/setup-pinned-bun
+
+      # The clone gate's detector, pinned with its own lockfile so every platform's binary is
+      # the reviewed one.
+      - name: Install clone detector
+        working-directory: tools/jscpd
+        run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Detect slop
         run: dotnet tool run slopwatch analyze --exclude ".scratchpad/**,external/**" --fail-on warning
@@ -111,6 +124,11 @@ jobs:
       # Regenerating the pinned profile must be a byte-identical no-op on a clean checkout.
       - name: Verify generated output
         run: dotnet run --file tools/opencode-tool.cs -- generate --verify
+
+      # Hand-written src/ and tools/ may not gain a clone their committed baselines do not hold;
+      # tests and generated output are reported.
+      - name: Verify clones
+        run: dotnet run --file tools/opencode-tool.cs -- verify-clones
 
   build-and-test:
     name: "Build & Test (${{ matrix.name }})"
