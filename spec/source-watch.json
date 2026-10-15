@@ -346,7 +346,7 @@
     {
       "path": "packages/client/src/solid/connection.ts",
       "sha256": "3b93c8ba83bd7b77bfb6901fa27d062f90e65007a8db0694731c0eab21c19d32",
-      "behavior": "The first-party client\u0027s event connection aborts an attempt that has not delivered server.connected within 2 seconds, aborts a connected stream that stays silent for the idle timeout (45 seconds by default), waits 1 second before reconnecting unless a resync forced the reconnect or the first failed attempt\u0027s reconnect hook resolved a new server, and resubscribes without a Last-Event-ID, so it never asks the server to replay missed events.",
+      "behavior": "The first-party client\u0027s event connection fails an attempt whose first event is not server.connected or that has not delivered it within 2 seconds, aborts a connected stream that stays silent for the idle timeout (45 seconds by default), treats every other error as a drop too, waits 1 second before reconnecting unless a resync forced the reconnect or the first failed attempt\u0027s reconnect hook resolved a new server, retries forever, and resubscribes without a Last-Event-ID, so it never asks the server to replay missed events. The SDK\u0027s event.subscribe reconnect mirrors this loop\u0027s connect bound, idle window, delay and retry rules, not its status, resync, reconnect hook or page-lifecycle handling, and adds a one-minute give-up.",
       "anchor": {
         "type": "contains",
         "text": "const reconnectDelay = 1_000"

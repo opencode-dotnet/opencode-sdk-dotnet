@@ -14,6 +14,7 @@ internal sealed class ManualTimeProvider : TimeProvider
     private readonly Lock _gate = new();
     private readonly List<ManualTimer> _timers = [];
     private readonly Channel<bool> _created = Channel.CreateUnbounded<bool>();
+    private readonly List<(DateTimeOffset Due, int Count, TaskCompletionSource Armed)> _armedWaiters = [];
     private DateTimeOffset _now = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
@@ -51,6 +52,34 @@ internal sealed class ManualTimeProvider : TimeProvider
     public Task WaitForTimerAsync(TimeSpan hangGuard) => _created.Reader.ReadAsync().AsTask().WaitAsync(hangGuard);
 
     /// <summary>
+    /// Completes once <paramref name="count"/> timers are armed to run exactly
+    /// <paramref name="dueIn"/> from the clock's current time, or at once when they already are.
+    /// Unlike counting created timers, this names the bound a test means to pass, whichever object
+    /// arms it and however often it is re-armed; the count tells apart two bounds that fall due at
+    /// the same instant.
+    /// </summary>
+    /// <param name="dueIn">How far from now the timers must be due.</param>
+    /// <param name="hangGuard">Bounds a timer that is never armed; it decides nothing else.</param>
+    /// <param name="count">How many timers must be due then.</param>
+    /// <returns>A task that completes once that many such timers are armed.</returns>
+    public Task WaitForArmedAsync(TimeSpan dueIn, TimeSpan hangGuard, int count = 1)
+    {
+        var armed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        lock (_gate)
+        {
+            var due = _now + dueIn;
+            if (_timers.Count(timer => timer.Due == due) >= count)
+            {
+                return Task.CompletedTask;
+            }
+
+            _armedWaiters.Add((due, count, armed));
+        }
+
+        return armed.Task.WaitAsync(hangGuard);
+    }
+
+    /// <summary>
     /// Moves the clock forward by <paramref name="delta"/> and runs, in due order, every timer the
     /// move reaches; a periodic timer runs once for each period the move covers.
     /// </summary>
@@ -83,6 +112,22 @@ internal sealed class ManualTimeProvider : TimeProvider
 
             // Outside the lock: a callback may restart or dispose its own timer, or read the clock.
             next.Run();
+        }
+    }
+
+    /// <summary>Releases every waiter for a timer due at <paramref name="due"/>. Called under the clock's lock.</summary>
+    private void NotifyArmed(DateTimeOffset? due)
+    {
+        if (due is null)
+        {
+            return;
+        }
+
+        var armedThen = _timers.Count(timer => timer.Due == due);
+        foreach (var waiter in _armedWaiters.Where(waiter => waiter.Due == due && waiter.Count <= armedThen).ToArray())
+        {
+            _ = _armedWaiters.Remove(waiter);
+            _ = waiter.Armed.TrySetResult();
         }
     }
 
@@ -121,6 +166,7 @@ internal sealed class ManualTimeProvider : TimeProvider
         {
             Due = dueTime == Timeout.InfiniteTimeSpan ? null : now + dueTime;
             _period = period;
+            clock.NotifyArmed(Due);
         }
 
         /// <summary>After a run: the next period for a periodic timer; stopped otherwise.</summary>

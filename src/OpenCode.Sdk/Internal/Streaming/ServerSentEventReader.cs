@@ -101,9 +101,8 @@ internal sealed class ServerSentEventReader
         _ = Decode(byteCount: 0, flush: true);
 
         // A body may end without the blank line that closes its last frame, and that frame
-        // is whole. A body ending mid-line was cut instead, and this client never reconnects
-        // to recover the remainder, so the truncation is reported rather than passed off as
-        // a complete event.
+        // is whole. A body ending mid-line was cut instead, and no connection resumes another's
+        // bytes, so the truncation is reported rather than passed off as a complete event.
         if (_line.Length > 0)
         {
             throw new OpenCodeTransportException("The opencode event stream ended in the middle of an event.");
