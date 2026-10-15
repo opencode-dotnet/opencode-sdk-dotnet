@@ -16,6 +16,11 @@
     <ProjectReference Include="../../tools/OpenCode.Sdk.Tools/OpenCode.Sdk.Tools.csproj" />
   </ItemGroup>
 
+  <!-- Cross-project test support compiles into each consuming test project as shared source. -->
+  <ItemGroup>
+    <Compile Include="../Shared/TestCategories.cs" LinkBase="Shared" />
+  </ItemGroup>
+
   <!-- The packed-consumer tests build a consumer on a target framework the packages no longer
        ship, and restore it offline. Its reference pack comes into the global packages folder here,
        in this project's own restore, at the version the SDK itself picks for that target; the
@@ -43,6 +48,35 @@
       <PackageDownload Remove="Microsoft.NETCore.App.Ref" />
       <PackageDownload Include="Microsoft.NETCore.App.Ref" Version="$(_PackedConsumerReferencePackVersion)" Condition="'$(_ExistingReferencePackVersions)' == ''" />
       <PackageDownload Include="Microsoft.NETCore.App.Ref" Version="$(_ExistingReferencePackVersions);$(_PackedConsumerReferencePackVersion)" Condition="'$(_ExistingReferencePackVersions)' != ''" />
+    </ItemGroup>
+  </Target>
+
+  <!-- The native AOT consumer publishes for this machine's runtime identifier on the default target
+       and restores offline as well. The compiler, the trimmer and the runtime pack it needs come into
+       the global packages folder here, in this project's own restore, under the names and at the versions the SDK
+       itself picks for a native AOT publish on that target (the NativeAOT runtime pack and the regular one: the publish restores both), so a fresh machine needs no other source. -->
+  <Target Name="DownloadPackedConsumerNativeAotPacks" AfterTargets="ProcessFrameworkReferences" BeforeTargets="CollectPackageDownloads">
+    <ItemGroup>
+      <_NativeAotCompilerPack Include="@(KnownILCompilerPack->WithMetadataValue('TargetFramework', '$(DefaultTargetFramework)'))" />
+      <_NativeAotLinkerPack Include="@(KnownILLinkPack->WithMetadataValue('TargetFramework', '$(DefaultTargetFramework)'))" />
+      <_NativeAotFrameworkReference Include="@(KnownFrameworkReference->WithMetadataValue('Identity', 'Microsoft.NETCore.App')->WithMetadataValue('TargetFramework', '$(DefaultTargetFramework)'))" />
+      <_NativeAotRuntimePack Include="@(KnownRuntimePack->WithMetadataValue('Identity', 'Microsoft.NETCore.App')->WithMetadataValue('TargetFramework', '$(DefaultTargetFramework)')->WithMetadataValue('RuntimePackLabels', 'NativeAOT'))" />
+    </ItemGroup>
+    <PropertyGroup>
+      <_NativeAotCompilerVersion>@(_NativeAotCompilerPack->'%(ILCompilerPackVersion)')</_NativeAotCompilerVersion>
+      <_NativeAotLinkerVersion>@(_NativeAotLinkerPack->'%(ILLinkPackVersion)')</_NativeAotLinkerVersion>
+      <_NativeAotRuntimeVersion>@(_NativeAotRuntimePack->'%(LatestRuntimeFrameworkVersion)')</_NativeAotRuntimeVersion>
+      <_NativeAotFrameworkVersion>@(_NativeAotFrameworkReference->'%(LatestRuntimeFrameworkVersion)')</_NativeAotFrameworkVersion>
+      <_NativeAotRuntimePackName>@(_NativeAotRuntimePack->'%(RuntimePackNamePatterns)'->Replace('**RID**', '$(NETCoreSdkRuntimeIdentifier)'))</_NativeAotRuntimePackName>
+    </PropertyGroup>
+    <Error Condition="'$(_NativeAotCompilerVersion)' == '' Or '$(_NativeAotLinkerVersion)' == '' Or '$(_NativeAotRuntimeVersion)' == '' Or '$(_NativeAotRuntimePackName)' == '' Or '$(_NativeAotFrameworkVersion)' == ''"
+           Text="The SDK names no native AOT compiler, trimmer or runtime pack version for $(DefaultTargetFramework); the native AOT consumer tests cannot restore offline." />
+    <ItemGroup>
+      <PackageDownload Include="Microsoft.DotNet.ILCompiler" Version="[$(_NativeAotCompilerVersion)]" />
+      <PackageDownload Include="runtime.$(NETCoreSdkRuntimeIdentifier).Microsoft.DotNet.ILCompiler" Version="[$(_NativeAotCompilerVersion)]" />
+      <PackageDownload Include="Microsoft.NET.ILLink.Tasks" Version="[$(_NativeAotLinkerVersion)]" />
+      <PackageDownload Include="$(_NativeAotRuntimePackName)" Version="[$(_NativeAotRuntimeVersion)]" />
+      <PackageDownload Include="Microsoft.NETCore.App.Runtime.$(NETCoreSdkRuntimeIdentifier)" Version="[$(_NativeAotFrameworkVersion)]" />
     </ItemGroup>
   </Target>
 

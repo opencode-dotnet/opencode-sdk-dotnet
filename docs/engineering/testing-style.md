@@ -1,6 +1,6 @@
 # Testing Style — authoring tests
 
-Date: 2026-10-14
+Date: 2026-10-15
 
 Binding authorship style for every test in this repository. `quality-gates.md` owns the
 current assurance posture and completion gates; operational build-out state belongs in
@@ -148,7 +148,7 @@ unsupported OpenAPI constructs and prove the exact required/null-representation 
   once takes a named `MachineLock` (a file lock the operating system releases with a dead
   holder). A test whose load a runner cannot carry beside another host's timed tests carries a
   `TestCategories` category the documented gate runs in a pass of its own
-  (`quality-gates.md`); background-service elections are the one such category.
+  (`quality-gates.md`): background-service elections and the packed native AOT consumer.
 - A test that compiles the whole SDK through `GeneratedSourceCompiler` carries
   `[ParallelLimiter<RoslynCompilationSlots>]`, so at most two such compilations run in a host at
   once. One compilation already uses every core; more at once only starve the hosts beside it.
