@@ -30,19 +30,12 @@ public class PersistentPtySessionReadBenchmarks : IAsyncDisposable
     private const int SmallFrameCount = 1024;
     private const int LargeFrameCount = 64;
     private const int LargeFramePayloadBytes = 40 * 1024;
-    private const string SeedAttachmentId = "att_bench";
     private const string SeedUnknownType = "scrollback_trimmed";
 
-    private const string SeedInfoJson =
-        "{\"id\":\"pty_bench\",\"title\":\"bench\",\"command\":\"/bin/bash\",\"args\":[],\"cwd\":\"/\",\"status\":\"running\","
-        + "\"pid\":1,\"sessionID\":\"ses_bench\",\"foregroundProcess\":null,\"size\":{\"cols\":80,\"rows\":24},"
-        + "\"output\":{\"head\":0,\"tail\":0}}";
-
-    private const string AttachedFrameJson =
-        "{\"type\":\"attached\",\"attachmentID\":\"" + SeedAttachmentId + "\",\"inputProtocol\":1,\"info\":" + SeedInfoJson
-        + ",\"role\":\"controller\",\"generation\":1,\"replay\":{\"requestedOffset\":0,\"availableOffset\":0,\"endOffset\":0,\"truncated\":false}}";
-
     private const string UnknownFrameJson = "{\"type\":\"" + SeedUnknownType + "\",\"bytes\":1024}";
+
+    /// <summary>The grant every session here is built from; the attached case replays its frame, so the two never diverge.</summary>
+    private static readonly PersistentPtySeed Seed = new();
 
     private static readonly IReadOnlyList<(WireFixture Fixture, (WebSocketMessageType Type, byte[] Payload)[] Messages)> Cases =
     [
@@ -74,7 +67,7 @@ public class PersistentPtySessionReadBenchmarks : IAsyncDisposable
     {
         _messages = MessagesFor(Fixture);
         _socket = new CannedTerminalWebSocket(_messages);
-        _attachment = SeedAttachment();
+        _attachment = Seed.Attachment();
 
         // Ownership stays local until the session has taken the core over — the same
         // unconditional-dispose-of-a-transferable-local shape PersistentPtySession.AttachAsync
@@ -118,7 +111,7 @@ public class PersistentPtySessionReadBenchmarks : IAsyncDisposable
 
         if (string.Equals(Fixture.Name, AttachedFixtureName, StringComparison.Ordinal))
         {
-            if (delivered is not [PersistentPtyAttachedFrame { Attachment.AttachmentId: SeedAttachmentId }])
+            if (delivered is not [PersistentPtyAttachedFrame { Attachment.AttachmentId: PersistentPtySeed.AttachmentId }])
             {
                 throw new InvalidOperationException("The attached fixture did not decode the expected attached frame.");
             }
@@ -240,22 +233,10 @@ public class PersistentPtySessionReadBenchmarks : IAsyncDisposable
     private static TerminalSocketCore<PersistentPtyFrame> NewCore(ITerminalWebSocket socket) =>
         new(socket, PersistentPtyFrameDecoder.Instance, PersistentPtyClosePolicy.Instance, typeof(PersistentPtySession));
 
-    /// <summary>
-    /// Decodes the same <c>attached</c> wire bytes the <see cref="AttachedFixtureName"/> case
-    /// replays into the grant a session's constructor requires, so the seed can never diverge from
-    /// what that case measures.
-    /// </summary>
-    private static PersistentPtyAttachment SeedAttachment()
-    {
-        var payload = Encoding.UTF8.GetBytes(AttachedFrameJson);
-        return ((PersistentPtyAttachedFrame)PersistentPtyFrameDecoder.Instance.Decode(WebSocketMessageType.Text, payload, payload.Length))
-            .Attachment;
-    }
-
     /// <summary>The single <c>attached</c> control frame, the size class the normal family's cursor case measures.</summary>
     private static (WireFixture Fixture, (WebSocketMessageType Type, byte[] Payload)[] Messages) AttachedCase()
     {
-        var payload = Encoding.UTF8.GetBytes(AttachedFrameJson);
+        var payload = Seed.AttachedFrame;
         var fixture = new WireFixture(AttachedFixtureName, payload, items: 1, payloadBytesPerItem: payload.Length);
         return (fixture, [(WebSocketMessageType.Text, payload)]);
     }
