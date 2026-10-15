@@ -27,6 +27,12 @@
     <ProjectReference Include="../../src/OpenCode.Sdk/OpenCode.Sdk.csproj"/>
   </ItemGroup>
 
+  <!-- The generator benchmarks measure the repository tool, which targets the default framework only.
+       The .NET Framework leg measures the SDK alone. -->
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
+    <ProjectReference Include="../../tools/OpenCode.Sdk.Tools/OpenCode.Sdk.Tools.csproj"/>
+  </ItemGroup>
+
   <!-- .NET Framework ships HttpClient in this framework assembly; no NuGet HTTP stack is added. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.Net.Http" />
