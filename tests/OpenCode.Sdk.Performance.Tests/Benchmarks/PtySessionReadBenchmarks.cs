@@ -16,7 +16,13 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// <see cref="PtyFrameReader.Read"/> from the receive loop entirely, over the exact assembled
 /// messages the complete rung decodes. Small output frames stay within one receive; large ones
 /// exceed it and exercise the reassembler; the control-frame case isolates the binary cursor path
-/// from ordinary text output instead of diluting it into a mixed average.
+/// from ordinary text output instead of diluting it into a mixed average. Two rungs drive the
+/// connection core directly over the same canned socket, one with the family's decoder and one
+/// with a decoder that reads nothing, so their difference is decoding, and the complete rung minus
+/// the first is the public session around the core. The receive-only rung is the receive loop
+/// (receive, reassembly, queue, delivery, the connection's lifetime) plus the canned socket's
+/// per-receive task. The pooled rung completes each receive on the thread pool, as a live socket
+/// does (<see cref="CannedTerminalWebSocket"/>).
 /// </summary>
 [MemoryDiagnoser]
 public class PtySessionReadBenchmarks : IAsyncDisposable
@@ -38,6 +44,7 @@ public class PtySessionReadBenchmarks : IAsyncDisposable
     private (WebSocketMessageType Type, byte[] Payload)[] _messages = [];
     private CannedTerminalWebSocket? _socket;
     private PtySession? _session;
+    private NoOpFrameDecoder<PtyFrame>? _noOpDecoder;
 
     public static IEnumerable<WireFixture> Fixtures() => Cases.Select(static entry => entry.Fixture);
 
@@ -59,6 +66,24 @@ public class PtySessionReadBenchmarks : IAsyncDisposable
         if (delivered.Count != Fixture.Items)
         {
             throw new InvalidOperationException($"Fixture '{Fixture.Name}' did not deliver the expected frame count.");
+        }
+
+        _noOpDecoder = new NoOpFrameDecoder<PtyFrame>(delivered[0]);
+        if (await ReceiveFramesAsync().ConfigureAwait(false) != Fixture.Items
+            || await ReadFramesThroughCoreAsync().ConfigureAwait(false) != Fixture.Items)
+        {
+            throw new InvalidOperationException($"Fixture '{Fixture.Name}' did not receive through the core into the expected frame count.");
+        }
+
+        using (var pooled = new CannedTerminalWebSocket(_messages, pooled: true))
+        {
+            await using var session = new PtySession(pooled);
+            var pooledFrames = await CollectFramesAsync(session).ConfigureAwait(false);
+            if (pooledFrames.Count != Fixture.Items || pooled.PooledReceives < Fixture.Items
+                || !pooledFrames.Select(static frame => frame.GetType()).SequenceEqual(delivered.Select(static frame => frame.GetType())))
+            {
+                throw new InvalidOperationException($"Fixture '{Fixture.Name}' did not deliver the same frames over pooled receives.");
+            }
         }
 
         if (string.Equals(Fixture.Name, CursorFixtureName, StringComparison.Ordinal))
@@ -87,6 +112,23 @@ public class PtySessionReadBenchmarks : IAsyncDisposable
         await using var session = new PtySession(socket);
         return await CountFramesAsync(session).ConfigureAwait(false);
     }
+
+    /// <summary>The complete rung over receives completed on the thread pool, as a live socket's are.</summary>
+    [Benchmark]
+    public async Task<int> ReadFramesPooledAsync()
+    {
+        using var socket = new CannedTerminalWebSocket(_messages, pooled: true);
+        await using var session = new PtySession(socket);
+        return await CountFramesAsync(session).ConfigureAwait(false);
+    }
+
+    /// <summary>The connection core with the family's decoder: the complete rung without the public session around it.</summary>
+    [Benchmark]
+    public Task<int> ReadFramesThroughCoreAsync() => CountCoreFramesAsync(PtyFrameDecoder.Instance);
+
+    /// <summary>The same core with a decoder that reads nothing: receive, reassembly, queue, delivery, disposal.</summary>
+    [Benchmark]
+    public Task<int> ReceiveFramesAsync() => CountCoreFramesAsync(_noOpDecoder!);
 
     /// <summary>Decode alone, over the exact messages the complete rung assembles: no socket, no receive loop.</summary>
     [Benchmark]
@@ -120,6 +162,20 @@ public class PtySessionReadBenchmarks : IAsyncDisposable
     {
         var frames = 0;
         await foreach (var frame in session.ReadAsync().ConfigureAwait(false))
+        {
+            _ = frame;
+            frames++;
+        }
+
+        return frames;
+    }
+
+    private async Task<int> CountCoreFramesAsync(ITerminalFrameDecoder<PtyFrame> decoder)
+    {
+        using var socket = new CannedTerminalWebSocket(_messages);
+        await using var core = new TerminalSocketCore<PtyFrame>(socket, decoder, PtyClosePolicy.Instance, typeof(PtySession));
+        var frames = 0;
+        await foreach (var frame in core.ReadAsync(CancellationToken.None).ConfigureAwait(false))
         {
             _ = frame;
             frames++;

@@ -19,7 +19,8 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// does not know) ride text/JSON messages, while output rides binary messages carrying raw
 /// terminal bytes verbatim. One case covers each control kind at the single-frame scale the
 /// normal family's cursor case measures; the output cases reuse its exact small/large scale so a
-/// number is comparable across families without re-deriving what "small" and "large" mean.
+/// number is comparable across families without re-deriving what "small" and "large" mean. The
+/// core, receive-only and pooled rungs mirror <see cref="PtySessionReadBenchmarks"/>'s.
 /// </summary>
 [MemoryDiagnoser]
 public class PersistentPtySessionReadBenchmarks : IAsyncDisposable
@@ -55,6 +56,7 @@ public class PersistentPtySessionReadBenchmarks : IAsyncDisposable
     private CannedTerminalWebSocket? _socket;
     private PersistentPtySession? _session;
     private PersistentPtyAttachment? _attachment;
+    private NoOpFrameDecoder<PersistentPtyFrame>? _noOpDecoder;
 
     public static IEnumerable<WireFixture> Fixtures() => Cases.Select(static entry => entry.Fixture);
 
@@ -95,6 +97,25 @@ public class PersistentPtySessionReadBenchmarks : IAsyncDisposable
             throw new InvalidOperationException($"Fixture '{Fixture.Name}' did not deliver the expected frame count.");
         }
 
+        _noOpDecoder = new NoOpFrameDecoder<PersistentPtyFrame>(delivered[0]);
+        if (await ReceiveFramesAsync().ConfigureAwait(false) != Fixture.Items
+            || await ReadFramesThroughCoreAsync().ConfigureAwait(false) != Fixture.Items)
+        {
+            throw new InvalidOperationException($"Fixture '{Fixture.Name}' did not receive through the core into the expected frame count.");
+        }
+
+        using (var pooled = new CannedTerminalWebSocket(_messages, pooled: true))
+        {
+            await using var pooledCore = NewCore(pooled);
+            await using var session = new PersistentPtySession(pooledCore, _attachment);
+            var pooledFrames = await CollectFramesAsync(session).ConfigureAwait(false);
+            if (pooledFrames.Count != Fixture.Items || pooled.PooledReceives < Fixture.Items
+                || !pooledFrames.Select(static frame => frame.GetType()).SequenceEqual(delivered.Select(static frame => frame.GetType())))
+            {
+                throw new InvalidOperationException($"Fixture '{Fixture.Name}' did not deliver the same frames over pooled receives.");
+            }
+        }
+
         if (string.Equals(Fixture.Name, AttachedFixtureName, StringComparison.Ordinal))
         {
             if (delivered is not [PersistentPtyAttachedFrame { Attachment.AttachmentId: SeedAttachmentId }])
@@ -130,6 +151,24 @@ public class PersistentPtySessionReadBenchmarks : IAsyncDisposable
         return await CountFramesAsync(session).ConfigureAwait(false);
     }
 
+    /// <summary>The complete rung over receives completed on the thread pool, as a live socket's are.</summary>
+    [Benchmark]
+    public async Task<int> ReadFramesPooledAsync()
+    {
+        using var socket = new CannedTerminalWebSocket(_messages, pooled: true);
+        await using var core = NewCore(socket);
+        await using var session = new PersistentPtySession(core, _attachment!);
+        return await CountFramesAsync(session).ConfigureAwait(false);
+    }
+
+    /// <summary>The connection core with the family's decoder: the complete rung without the public session around it.</summary>
+    [Benchmark]
+    public Task<int> ReadFramesThroughCoreAsync() => CountCoreFramesAsync(PersistentPtyFrameDecoder.Instance);
+
+    /// <summary>The same core with a decoder that reads nothing: receive, reassembly, queue, delivery, disposal.</summary>
+    [Benchmark]
+    public Task<int> ReceiveFramesAsync() => CountCoreFramesAsync(_noOpDecoder!);
+
     /// <summary>Decode alone, over the exact messages the complete rung assembles: no socket, no receive loop.</summary>
     [Benchmark]
     public int DecodeFrames()
@@ -162,6 +201,20 @@ public class PersistentPtySessionReadBenchmarks : IAsyncDisposable
     {
         var frames = 0;
         await foreach (var frame in session.ReadAsync().ConfigureAwait(false))
+        {
+            _ = frame;
+            frames++;
+        }
+
+        return frames;
+    }
+
+    private async Task<int> CountCoreFramesAsync(ITerminalFrameDecoder<PersistentPtyFrame> decoder)
+    {
+        using var socket = new CannedTerminalWebSocket(_messages);
+        await using var core = new TerminalSocketCore<PersistentPtyFrame>(socket, decoder, PersistentPtyClosePolicy.Instance, typeof(PersistentPtySession));
+        var frames = 0;
+        await foreach (var frame in core.ReadAsync(CancellationToken.None).ConfigureAwait(false))
         {
             _ = frame;
             frames++;

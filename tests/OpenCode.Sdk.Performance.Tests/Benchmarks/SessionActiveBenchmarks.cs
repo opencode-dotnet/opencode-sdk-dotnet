@@ -12,6 +12,8 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// and source-generated materialization of the envelope and its dictionary alone. Entry counts
 /// span the common case to very large, mirroring <see cref="MessageListBenchmarks"/>'s size
 /// idiom.
+/// The raw-send rung sends and drains the same response with no SDK (<see cref="CannedExchange"/>),
+/// the floor a buffered pipeline rung stands on.
 /// </summary>
 /// <remarks>
 /// The two other envelope shapes envelope completion produced deliberately get no rung here or
@@ -37,6 +39,7 @@ public class SessionActiveBenchmarks : IDisposable
     private CannedResponseHandler? _handler;
     private HttpClient? _httpClient;
     private OpenCodeClient? _client;
+    private CannedExchange? _raw;
 
     public static IEnumerable<WireFixture> Fixtures()
     {
@@ -55,6 +58,8 @@ public class SessionActiveBenchmarks : IDisposable
         _handler = new CannedResponseHandler(_body);
         _httpClient = new HttpClient(_handler);
         _client = new OpenCodeClient(_httpClient, Options);
+        _raw = new CannedExchange(_httpClient, HttpMethod.Get, Options.Endpoint!);
+        await _raw.RequireDrainAsync(_body.Length).ConfigureAwait(false);
 
         var response = await GetActiveAsync().ConfigureAwait(false);
         if (response.Active.Count != Fixture.Items)
@@ -75,6 +80,10 @@ public class SessionActiveBenchmarks : IDisposable
     [Benchmark]
     public object? DeserializeEnvelope() =>
         JsonSerializer.Deserialize(_body, OpenCodeJsonContext.Default.SessionActiveResponseEnvelope);
+
+    /// <summary>The harness floor: a bare send through the same handler with the body drained, no SDK.</summary>
+    [Benchmark]
+    public Task<int> SendRawRequestAsync() => _raw!.SendAndDrainAsync();
 
     [GlobalCleanup]
     public void Cleanup() => Dispose();

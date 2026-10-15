@@ -9,6 +9,8 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// The cursor-list page read, decomposed per page size: the complete call, the generated
 /// adapter over validated UTF-8, and source-generated envelope materialization alone. Pages
 /// carry one, thirty, and four hundred eighty deep messages, so per-item and fixed costs separate.
+/// The raw-send rung sends and drains the same response with no SDK (<see cref="CannedExchange"/>),
+/// the floor a buffered pipeline rung stands on.
 /// </summary>
 [MemoryDiagnoser]
 public class MessageListBenchmarks : IDisposable
@@ -26,6 +28,7 @@ public class MessageListBenchmarks : IDisposable
     private CannedResponseHandler? _handler;
     private HttpClient? _httpClient;
     private OpenCodeClient? _client;
+    private CannedExchange? _raw;
     private SessionClient? _session;
 
     public static IEnumerable<WireFixture> Fixtures()
@@ -46,6 +49,8 @@ public class MessageListBenchmarks : IDisposable
         _handler = new CannedResponseHandler(_page);
         _httpClient = new HttpClient(_handler);
         _client = new OpenCodeClient(_httpClient, Options);
+        _raw = new CannedExchange(_httpClient, HttpMethod.Get, Options.Endpoint!);
+        await _raw.RequireDrainAsync(_page.Length).ConfigureAwait(false);
         _session = _client.Sessions.GetSessionClient("ses_bench0000000000000000001");
 
         var response = await ListMessagesAsync().ConfigureAwait(false);
@@ -67,6 +72,10 @@ public class MessageListBenchmarks : IDisposable
     [Benchmark]
     public object? DeserializeEnvelope() =>
         JsonSerializer.Deserialize(_page, OpenCodeJsonContext.Default.SessionMessageListResponseEnvelope);
+
+    /// <summary>The harness floor: a bare send through the same handler with the body drained, no SDK.</summary>
+    [Benchmark]
+    public Task<int> SendRawRequestAsync() => _raw!.SendAndDrainAsync();
 
     [GlobalCleanup]
     public void Cleanup() => Dispose();
