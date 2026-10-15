@@ -23,8 +23,8 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Contender;
 /// killing and keeps the pipe draining; and a contender survives its parent's exit. Every test
 /// starts a real process. Keyless <c>[NotInParallel]</c> rather than the server-process key:
 /// the release-drain proof paces 1024 timer waits that lag under module overlap, and the
-/// three-vCPU macOS leg is where that lag bites, the same starvation profile research log
-/// Q157/Q172 records for the stop liveness proof.
+/// three-vCPU macOS leg is where that lag bites, the same starvation profile the stop liveness
+/// proof shows.
 /// </summary>
 [NotInParallel]
 public sealed class ServiceContenderSpawnerTests

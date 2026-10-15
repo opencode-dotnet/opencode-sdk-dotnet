@@ -6,7 +6,7 @@ using OpenCode.Sdk.TestSupport;
 namespace OpenCode.Sdk.Tests;
 
 /// <summary>
-/// Pins the exact-pin fixture's external-endpoint mode (Task 6): attaching to an
+/// Pins the exact-pin fixture's external-endpoint mode: attaching to an
 /// operator-supplied server instead of spawning one, and refusing fail-fast when that server does
 /// not answer a health probe. Drives the fixture through its internal
 /// <see cref="ExternalServerEndpoint"/> constructor over a real loopback socket, not the shared

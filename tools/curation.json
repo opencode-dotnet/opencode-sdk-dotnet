@@ -918,12 +918,12 @@
     {
       "operationId": "pty.connect",
       "subtreeSha256": "381ad1c545b3a9ffbff50ab1c2ac922b35b6748f6a0330173f7eb56a129bc4f4",
-      "reason": "The WebSocket session door is hand-written over its own URL/query construction (ADR-0021 Task 5); the operation is never selected into the generation profile, so this fingerprint is the only generation-time check that a spec refresh reshaping method, path, parameters, the x-websocket marker, or declared responses fails loudly instead of drifting silently under the hand-written door."
+      "reason": "The WebSocket session door is hand-written over its own URL/query construction (ADR-0021); the operation is never selected into the generation profile, so this fingerprint is the only generation-time check that a spec refresh reshaping method, path, parameters, the x-websocket marker, or declared responses fails loudly instead of drifting silently under the hand-written door."
     },
     {
       "operationId": "persistentPty.connect",
       "subtreeSha256": "b7d54e55ab8532a1755b71b87b5f9e817c8dbd817af3869c498f5520f5941507",
-      "reason": "The persistent PTY WebSocket session door is hand-written over its own URL/query construction (ADR-0021 pattern, Task 4); the operation is never selected into the generation profile, so this fingerprint is the only generation-time check that a spec refresh reshaping method, path, the six connect queries, the x-websocket marker, or declared responses fails loudly instead of drifting silently under the hand-written door."
+      "reason": "The persistent PTY WebSocket session door is hand-written over its own URL/query construction (the ADR-0021 pattern); the operation is never selected into the generation profile, so this fingerprint is the only generation-time check that a spec refresh reshaping method, path, the six connect queries, the x-websocket marker, or declared responses fails loudly instead of drifting silently under the hand-written door."
     }
   ],
   "redactedMembers": [

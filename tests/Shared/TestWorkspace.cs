@@ -2,7 +2,7 @@ using System.IO.Abstractions;
 
 namespace OpenCode.Sdk.TestSupport;
 
-/// <summary>An isolated workspace directory under the fixture's per-run root (design §7.2).</summary>
+/// <summary>An isolated workspace directory under the fixture's per-run root.</summary>
 public sealed class TestWorkspace : IDisposable
 {
     private readonly IFileSystem _fileSystem;

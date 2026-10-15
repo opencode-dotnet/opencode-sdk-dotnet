@@ -7,7 +7,7 @@ using Testably.Abstractions;
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Ensure;
 
 /// <summary>
-/// Exact-pin process evidence for the Ensure door (design §13.2): the accepted pin's own
+/// Exact-pin process evidence for the Ensure door: the accepted pin's own
 /// <c>serve --service</c> daemon, started by Ensure itself under isolated roots — reusing the
 /// default <c>opencode serve --service</c> command resolved through the forwarding shim (test a),
 /// elected by ten concurrent callers (test b), recovered from an unresponsive registered daemon
@@ -16,10 +16,10 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Ensure;
 /// its own <see cref="EnsureServiceContext"/>; none touches the maintainer's real daemon.
 /// </summary>
 /// <remarks>
-/// Keyless <c>[NotInParallel]</c> rather than the server-process key, the rule research log Q157
-/// sets for a test whose assertion depends on a wall-clock bound the host can miss under load: the
+/// Keyless <c>[NotInParallel]</c> rather than the server-process key, the rule for a test whose
+/// assertion depends on a wall-clock bound the host can miss under load: the
 /// three-timeout recovery and the replace proof both ride the pinned probe bound and a process exit
-/// the host can delay, the same profile the stop liveness proof records (Q172). Running alone after
+/// the host can delay, the same profile as the stop liveness proof. Running alone after
 /// every other test keeps the host quiet while those bounds hold. The class is a
 /// <see cref="TestCategories.ServiceElection"/> test: its elections start more servers than a
 /// runner can host beside another host's timed tests, so the gate runs it in a pass of its own.

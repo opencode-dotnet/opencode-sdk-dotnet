@@ -1187,10 +1187,9 @@ public sealed class OperationPlanBinderTests
     }
 
     /// <summary>
-    /// The addendum's array arm: an inline-object list item promotes with the same
-    /// operation-scoped name Task 5 built for a single-object 'data' payload (the guard
-    /// Task 4 added existed to stop a pointer-derived name leaking, not to forbid promotion
-    /// outright once one is registered).
+    /// The array arm: an inline-object list item promotes with the same operation-scoped name a
+    /// single-object 'data' payload promotes under (the promotion guard exists to stop a
+    /// pointer-derived name leaking, not to forbid promotion outright once one is registered).
     /// </summary>
     [Test]
     public async Task Bind_Should_Promote_A_Data_Location_List_Of_Inline_Items_Under_An_Operation_Scoped_Name()
@@ -1414,7 +1413,7 @@ public sealed class OperationPlanBinderTests
         await AssertWidgetRefusalAsync(document, "named component schema");
     }
 
-    /// <summary>Reuses Task 5's double-claim wall for the array arm's promoted item.</summary>
+    /// <summary>Reuses the single-object payload's double-claim wall for the array arm's promoted item.</summary>
     [Test]
     public async Task Bind_Should_Refuse_A_Promoted_Data_Location_List_Item_Claimed_By_Two_Operations()
     {
@@ -1898,7 +1897,7 @@ public sealed class OperationPlanBinderTests
     }
 
     /// <summary>
-    /// A promoted payload's operation-scoped stem (Task 5) is a concept name, not a surfaced
+    /// A promoted payload's operation-scoped stem is a concept name, not a surfaced
     /// type name outright: when the promoted schema is itself a Marked union, the stem must
     /// still route through <c>ToUnionInterfaceName</c> so it gets the same <c>I</c> prefix
     /// every other Marked union interface carries (ADR-0011), rather than surfacing bare.

@@ -34,8 +34,8 @@
        declared here rather than left to arrive through System.Text.Json's graph. -->
   <!-- Span/Memory and ArrayPool are inbox from net8.0 on; the runtime compiles against them
        directly on every target, so the downlevel bridges are declared here rather than left
-       to arrive through System.Text.Json's graph (the dependency rule in
-       docs/architecture/platform-and-packaging.md). -->
+       to arrive through System.Text.Json's graph: a package the code uses directly is declared
+       directly. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
     <PackageReference Include="Microsoft.Bcl.Memory" />
@@ -44,8 +44,8 @@
   </ItemGroup>
 
   <!-- FrozenDictionary backs the generated union tag tables; System.Collections.Frozen is inbox
-       from net8.0 on, so only the downlevel targets need the package carrying it (the dependency
-       rule in docs/architecture/platform-and-packaging.md). -->
+       from net8.0 on, so only the downlevel targets need the package carrying it, declared directly
+       because the code uses it directly. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="System.Collections.Immutable" />
   </ItemGroup>

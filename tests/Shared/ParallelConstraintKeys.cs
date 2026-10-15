@@ -4,7 +4,7 @@ namespace OpenCode.Sdk.TestSupport;
 /// TUnit <c>[NotInParallel]</c> constraint keys shared by the test projects.
 /// </summary>
 /// <remarks>
-/// Two scheduling rules follow from research log Q157. Every test that starts a real server
+/// Two scheduling rules hold. Every test that starts a real server
 /// process — an <c>opencode serve</c> child, a drive server, a <c>bun -e</c> stand-in, or the
 /// per-session pinned fixture — carries <see cref="ServerProcess"/>, so within one test host at
 /// most one such test runs at a time while the in-process suite keeps running alongside; several

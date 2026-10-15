@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.TestSupport;
 
 /// <summary>
-/// The exact-pin fixture's explicit-endpoint pair (design ref: WSL2 recipe, Task 6): an
+/// The exact-pin fixture's explicit-endpoint pair: an
 /// operator-supplied server the fixture attaches to instead of spawning one, resolved once from
 /// <c>OPENCODE_SDK_TESTS_ENDPOINT</c>/<c>OPENCODE_SDK_TESTS_PASSWORD</c>.
 /// </summary>

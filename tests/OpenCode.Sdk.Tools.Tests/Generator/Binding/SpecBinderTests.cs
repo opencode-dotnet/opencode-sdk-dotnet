@@ -1808,7 +1808,7 @@ public sealed class SpecBinderTests
             Curation(Groups("health", RootGroup()), transportOwned: [TransportOwned("pty.connect", hash)]));
     }
 
-    /// <summary>A miniature stand-in for <c>pty.connect</c>'s real shape (Task 4 brief): a path
+    /// <summary>A miniature stand-in for <c>pty.connect</c>'s real shape: a path
     /// parameter plus four query parameters, WebSocket-marked, alongside a selected root operation
     /// so <see cref="OperationSelection"/> is never empty.</summary>
     private static SpecScenario TransportOwnedScenario(Action<OperationBuilder>? mutate = null) =>

@@ -551,7 +551,7 @@ public sealed class ModelMaterializationMatrixTests
     }
 
     /// <summary>
-    /// The four container envelope shapes Task 4 wires through <c>TypePlanBinder</c>: a
+    /// The four container envelope shapes <c>TypePlanBinder</c> wires: a
     /// Data-wrapped list, a Data-wrapped dictionary, a bare list, and a bare dictionary. One
     /// compile carries all four so the round trip pays the Roslyn cost once; each leg asserts
     /// the adapter materializes the typed payload, and the Data-shaped legs additionally
@@ -576,7 +576,7 @@ public sealed class ModelMaterializationMatrixTests
     }
 
     /// <summary>
-    /// The promoted inline payload Task 5 admits: a bare success body that is an inline object
+    /// The promoted inline payload: a bare success body that is an inline object
     /// becomes a model named from the operation, and a single-property wrapper is that model
     /// itself rather than the value it wraps.
     /// </summary>
@@ -626,7 +626,7 @@ public sealed class ModelMaterializationMatrixTests
     }
 
     /// <summary>
-    /// Task 6's response-state guard: a nullable Data payload's success path lets a wire
+    /// The response-state guard for a nullable Data payload: its success path lets a wire
     /// <c>null</c> flow through as CLR null while <c>IsError</c> stays
     /// false, a present value still round-trips, and the error path still throws the guard —
     /// distinct from the field-null coalesce the non-nullable shape keeps using.
@@ -669,9 +669,9 @@ public sealed class ModelMaterializationMatrixTests
     }
 
     /// <summary>
-    /// The non-nullable wall next to the nullable path it sits beside: Task 6 only changes the
-    /// guard shape a nullable-typed payload uses, so a non-nullable payload's wire null still
-    /// fails materialization behind <c>RespectNullableAnnotations</c>, exactly as before.
+    /// The non-nullable wall next to the nullable path it sits beside: the nullable guard shape
+    /// applies only to a nullable-typed payload, so a non-nullable payload's wire null still
+    /// fails materialization behind <c>RespectNullableAnnotations</c>.
     /// </summary>
     [Test]
     [ParallelLimiter<RoslynCompilationSlots>]

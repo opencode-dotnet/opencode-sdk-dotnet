@@ -6,7 +6,7 @@ using Testably.Abstractions;
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Discovery;
 
 /// <summary>
-/// Exact-pin process evidence for background-service discovery (design §13.1): the accepted
+/// Exact-pin process evidence for background-service discovery: the accepted
 /// pin's own <c>serve --service</c> daemon under isolated roots, found by channel from an isolated
 /// process and by registration file in this one; a client that answers health; the
 /// <c>ExpectedVersion</c> gate; a handle that owns nothing and leaves the shared service alive on
@@ -14,12 +14,12 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Discovery;
 /// <see cref="OpenCodeServerDiscoveryIsolatedProcessTests"/>.
 /// </summary>
 /// <remarks>
-/// Keyless <c>[NotInParallel]</c> rather than the server-process key, the rule research log Q157
-/// sets for a test whose assertion depends on a wall-clock bound the host can miss under load:
+/// Keyless <c>[NotInParallel]</c> rather than the server-process key, the rule for a test whose
+/// assertion depends on a wall-clock bound the host can miss under load:
 /// every proof here runs the SDK's own probe, bounded at the pinned two seconds, on this host's
 /// thread pool, and a host busy with the rest of the suite can miss that bound even against a
 /// daemon in another process (one in-process discovery answered null on the Windows leg with the
-/// daemon alive, research log Q172). Running alone after every other test keeps the host quiet
+/// daemon alive). Running alone after every other test keeps the host quiet
 /// while the probes run; the fixture still starts exactly one process.
 /// </remarks>
 [ClassDataSource<PinnedManagedServiceFixture>(Shared = SharedType.PerTestSession)]

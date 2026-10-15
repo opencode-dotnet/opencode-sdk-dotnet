@@ -90,8 +90,8 @@ jobs:
       - name: Verify code style
         run: dotnet format style --verify-no-changes --no-restore --severity warn
 
-      # Build owns the analyzer wall (docs/engineering/quality-gates.md). The matrix legs compile
-      # without analyzers, so this build is the CI wall for every target, net472 tests included.
+      # Build owns the analyzer wall. The matrix legs compile without analyzers, so this build is the
+      # CI wall for every target, net472 tests included.
       - name: Build with analyzers
         run: dotnet build --configuration Release --no-restore
         env:
@@ -121,8 +121,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # test-modules: the main Test pass's --max-parallel-test-modules, measured per runner
-        # (docs/engineering/quality-gates.md).
+        # test-modules: the main Test pass's --max-parallel-test-modules, measured per runner.
         include:
           - os: windows-2025
             name: Windows
@@ -205,8 +204,8 @@ jobs:
             core.exportVariable('ACTIONS_RESULTS_URL', process.env['ACTIONS_RESULTS_URL']);
 
       # The number of test modules at once is the matrix's test-modules value, measured per runner
-      # rather than left to MTP's processor-count default (docs/engineering/quality-gates.md):
-      # Windows 4, Linux 4, macOS 3 (four saves only about 3% there).
+      # rather than left to MTP's processor-count default: Windows 4, Linux 4, macOS 3 (four saves
+      # only about 3% there).
       #
       # The background-service elections and the native AOT packed-consumer publish run in passes
       # of their own after every other test. A ten-caller election starts some twenty to thirty-four
@@ -243,8 +242,8 @@ jobs:
       # Fail-closed roster assertion: every module and target framework the committed
       # tests/test-roster.json lists for this OS must have run in the pass and executed at least one
       # test, so a dropped test project, a dropped target framework, or broken test discovery
-      # cannot stay green with less coverage (docs/engineering/quality-gates.md). Adding or
-      # removing a test module updates the roster in the same change.
+      # cannot stay green with less coverage. Adding or removing a test module updates the roster in
+      # the same change.
       - name: Verify test roster (main)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: dotnet run --file tools/opencode-tool.cs -- verify-test-roster --roster tests/test-roster.json --pass main --os ${{ runner.os }} --results "${{ github.workspace }}/test-results/main"
