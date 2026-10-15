@@ -24,8 +24,6 @@ public readonly struct RpcInternalErrorType : IEquatable<RpcInternalErrorType>
     /// <summary>
     /// The pinned wire spellings, for a case label or a property pattern on Value.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "The wire spellings are constants nested in their enum so that Type.Values.Name names them in a case label and in a pattern; a top-level class would lose that.")]
-    [SlopwatchSuppress("SW002", "The CA1034 suppression beside it is the nesting the wire constants need, and no code change can remove it.")]
     public static class Values
     {
         /// <summary>
