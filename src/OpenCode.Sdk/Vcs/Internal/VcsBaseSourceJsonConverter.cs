@@ -28,6 +28,6 @@ internal sealed class VcsBaseSourceJsonConverter : JsonConverter<VcsBaseSource>
             throw new JsonException("A default VcsBaseSource has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

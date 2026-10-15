@@ -94,14 +94,17 @@ public sealed class EnumMemberNameCurationTests
     /// the generated struct, so binding refuses it and points to the curation row that names it.
     /// </summary>
     [Test]
-    public async Task Bind_Should_Refuse_A_Value_Named_Like_A_Member_The_Enum_Declares()
+    [Arguments("is-known", "IsKnown")]
+    [Arguments("value", "Value")]
+    [Arguments("values", "Values")]
+    public async Task Bind_Should_Refuse_A_Value_Named_Like_A_Member_The_Enum_Declares(string wireValue, string member)
     {
-        var document = await BindingTestHost.IngestAsync(ModeScenario("is-known", "auto"));
+        var document = await BindingTestHost.IngestAsync(ModeScenario(wireValue, "auto"));
 
         var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("mode.get"), Curation(Groups("mode", RootGroup()))));
 
-        await Assert.That(exception.Errors.Any(static error => error.Problem.Contains("'IsKnown', which the generated enum declares itself", StringComparison.Ordinal)
-                                                               && error.Problem.Contains("enumMemberNames", StringComparison.Ordinal)))
+        await Assert.That(exception.Errors.Any(error => error.Problem.Contains($"'{member}', which the generated enum declares itself", StringComparison.Ordinal)
+                                                        && error.Problem.Contains("enumMemberNames", StringComparison.Ordinal)))
             .IsTrue()
             .Because(string.Join(" | ", exception.Errors.Select(static error => error.Subject + ": " + error.Problem)));
     }
@@ -119,12 +122,13 @@ public sealed class EnumMemberNameCurationTests
     }
 
     /// <summary>
-    /// "none" and "none-value" name <c>None</c> and <c>NoneValue</c>; the struct keeps its wire
-    /// spellings as literals rather than named constants, so no spelling member can collide with a
-    /// value's property.
+    /// "none" and "none-value" name <c>None</c> and <c>NoneValue</c>. Each spelling is written once,
+    /// as a constant of the nested <c>Values</c> class under the value's own name, and the static
+    /// property and <c>IsKnown</c> read that constant; a constant shares its name only with its own
+    /// value's property, which lives one scope out.
     /// </summary>
     [Test]
-    public async Task Emit_Should_Declare_Every_Value_Without_A_Spelling_Member_That_Could_Collide()
+    public async Task Emit_Should_Write_Each_Spelling_Once_As_A_Values_Constant()
     {
         var document = await BindingTestHost.IngestAsync(ModeScenario("none", "none-value"));
         var plan = new BindingTestHost().Bind(document, Selection("mode.get"), Curation(Groups("mode", RootGroup())));
@@ -132,9 +136,12 @@ public sealed class EnumMemberNameCurationTests
 
         var source = Encoding.UTF8.GetString(ExtensibleEnumEmitter.Emit(mode, plan.Placement)[0].Utf8Source.Span);
 
-        await Assert.That(source).Contains("public static Mode None { get; } = new(\"none\");");
-        await Assert.That(source).Contains("public static Mode NoneValue { get; } = new(\"none-value\");");
-        await Assert.That(source).DoesNotContain("private const");
+        await Assert.That(source).Contains("public const string None = \"none\";");
+        await Assert.That(source).Contains("public const string NoneValue = \"none-value\";");
+        await Assert.That(source).Contains("public static Mode None { get; } = new(Values.None);");
+        await Assert.That(source).Contains("public static Mode NoneValue { get; } = new(Values.NoneValue);");
+        await Assert.That(source).Contains("public bool IsKnown => _value is Values.None or Values.NoneValue;");
+        await Assert.That(source.Split("\"none\"").Length - 1).IsEqualTo(1);
     }
 
     private static SpecScenario ModeScenario(params string[] values) =>

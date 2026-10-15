@@ -28,6 +28,6 @@ internal sealed class FileDiffInfoStatusJsonConverter : JsonConverter<FileDiffIn
             throw new JsonException("A default FileDiffInfoStatus has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

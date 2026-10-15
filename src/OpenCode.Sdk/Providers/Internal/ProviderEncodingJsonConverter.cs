@@ -28,6 +28,6 @@ internal sealed class ProviderEncodingJsonConverter : JsonConverter<ProviderEnco
             throw new JsonException("A default ProviderEncoding has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

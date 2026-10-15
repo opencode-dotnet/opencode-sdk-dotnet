@@ -106,13 +106,28 @@ members carrying the same value are equal. To go back to absent, assign `default
 The API's string enums (`VcsMode`, `PermissionEffect`, `SessionInboxDelivery` and the rest) are
 value types, not C# `enum`s. A server newer than the SDK can send a value this SDK does not know, so
 reading it never fails and writing it back keeps it as it was. The pinned values are static
-properties. Compare with `==`, not a `case` label, and use `IsKnown` to spot a newer server's value:
+properties, which you set and compare with `==`:
 
 ```csharp
-if (info.Mode == AgentInfoMode.Primary) { /* … */ }
-else if (!info.Mode.IsKnown) { Console.WriteLine($"a mode this SDK does not know: {info.Mode}"); }
-
 var diff = await client.Vcs.GetDiffAsync(new VcsDiffRequest { Mode = VcsMode.Committed });
+
+if (info.Mode == AgentInfoMode.Primary) { /* … */ }
+```
+
+A static property cannot be a `case` label or a pattern, so each enum also carries its wire
+spellings as constants in a nested `Values` class, and `Value` returns a value's spelling. Match
+`Value` against them with `switch` or a property pattern. A value a newer server sends matches none
+of them, and `IsKnown` tells you so:
+
+```csharp
+switch (mode.Value)
+{
+    case VcsMode.Values.Committed: /* … */ break;
+    case VcsMode.Values.Branch: /* … */ break;
+    default: Console.WriteLine($"a mode this SDK does not know: {mode}"); break;
+}
+
+if (rule is { Effect.Value: PermissionEffect.Values.Allow }) { /* … */ }
 ```
 
 ## 🔗 Query members

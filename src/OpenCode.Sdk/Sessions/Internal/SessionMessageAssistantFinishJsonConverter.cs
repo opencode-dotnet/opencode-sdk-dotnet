@@ -28,6 +28,6 @@ internal sealed class SessionMessageAssistantFinishJsonConverter : JsonConverter
             throw new JsonException("A default SessionMessageAssistantFinish has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

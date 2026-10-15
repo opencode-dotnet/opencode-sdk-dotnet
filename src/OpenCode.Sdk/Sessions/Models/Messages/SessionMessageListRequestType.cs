@@ -22,49 +22,102 @@ public readonly struct SessionMessageListRequestType : IEquatable<SessionMessage
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "The wire spellings are constants nested in their enum so that Type.Values.Name names them in a case label and in a pattern; a top-level class would lose that.")]
+    [SlopwatchSuppress("SW002", "The CA1034 suppression beside it is the nesting the wire constants need, and no code change can remove it.")]
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;agent-switched&apos; wire spelling.
+        /// </summary>
+        public const string AgentSwitched = "agent-switched";
+        /// <summary>
+        /// The &apos;model-switched&apos; wire spelling.
+        /// </summary>
+        public const string ModelSwitched = "model-switched";
+        /// <summary>
+        /// The &apos;location-switched&apos; wire spelling.
+        /// </summary>
+        public const string LocationSwitched = "location-switched";
+        /// <summary>
+        /// The &apos;user&apos; wire spelling.
+        /// </summary>
+        public const string User = "user";
+        /// <summary>
+        /// The &apos;synthetic&apos; wire spelling.
+        /// </summary>
+        public const string Synthetic = "synthetic";
+        /// <summary>
+        /// The &apos;system&apos; wire spelling.
+        /// </summary>
+        public const string System = "system";
+        /// <summary>
+        /// The &apos;skill&apos; wire spelling.
+        /// </summary>
+        public const string Skill = "skill";
+        /// <summary>
+        /// The &apos;shell&apos; wire spelling.
+        /// </summary>
+        public const string Shell = "shell";
+        /// <summary>
+        /// The &apos;assistant&apos; wire spelling.
+        /// </summary>
+        public const string Assistant = "assistant";
+        /// <summary>
+        /// The &apos;compaction&apos; wire spelling.
+        /// </summary>
+        public const string Compaction = "compaction";
+    }
+
+    /// <summary>
     /// Gets the &apos;agent-switched&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType AgentSwitched { get; } = new("agent-switched");
+    public static SessionMessageListRequestType AgentSwitched { get; } = new(Values.AgentSwitched);
     /// <summary>
     /// Gets the &apos;model-switched&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType ModelSwitched { get; } = new("model-switched");
+    public static SessionMessageListRequestType ModelSwitched { get; } = new(Values.ModelSwitched);
     /// <summary>
     /// Gets the &apos;location-switched&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType LocationSwitched { get; } = new("location-switched");
+    public static SessionMessageListRequestType LocationSwitched { get; } = new(Values.LocationSwitched);
     /// <summary>
     /// Gets the &apos;user&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType User { get; } = new("user");
+    public static SessionMessageListRequestType User { get; } = new(Values.User);
     /// <summary>
     /// Gets the &apos;synthetic&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType Synthetic { get; } = new("synthetic");
+    public static SessionMessageListRequestType Synthetic { get; } = new(Values.Synthetic);
     /// <summary>
     /// Gets the &apos;system&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType System { get; } = new("system");
+    public static SessionMessageListRequestType System { get; } = new(Values.System);
     /// <summary>
     /// Gets the &apos;skill&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType Skill { get; } = new("skill");
+    public static SessionMessageListRequestType Skill { get; } = new(Values.Skill);
     /// <summary>
     /// Gets the &apos;shell&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType Shell { get; } = new("shell");
+    public static SessionMessageListRequestType Shell { get; } = new(Values.Shell);
     /// <summary>
     /// Gets the &apos;assistant&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType Assistant { get; } = new("assistant");
+    public static SessionMessageListRequestType Assistant { get; } = new(Values.Assistant);
     /// <summary>
     /// Gets the &apos;compaction&apos; wire value.
     /// </summary>
-    public static SessionMessageListRequestType Compaction { get; } = new("compaction");
+    public static SessionMessageListRequestType Compaction { get; } = new(Values.Compaction);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "agent-switched" or "model-switched" or "location-switched" or "user" or "synthetic" or "system" or "skill" or "shell" or "assistant" or "compaction";
+    public bool IsKnown => _value is Values.AgentSwitched or Values.ModelSwitched or Values.LocationSwitched or Values.User or Values.Synthetic or Values.System or Values.Skill or Values.Shell or Values.Assistant or Values.Compaction;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -105,5 +158,5 @@ public readonly struct SessionMessageListRequestType : IEquatable<SessionMessage
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

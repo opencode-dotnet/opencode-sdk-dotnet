@@ -22,21 +22,46 @@ public readonly struct PermissionReply : IEquatable<PermissionReply>
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "The wire spellings are constants nested in their enum so that Type.Values.Name names them in a case label and in a pattern; a top-level class would lose that.")]
+    [SlopwatchSuppress("SW002", "The CA1034 suppression beside it is the nesting the wire constants need, and no code change can remove it.")]
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;once&apos; wire spelling.
+        /// </summary>
+        public const string Once = "once";
+        /// <summary>
+        /// The &apos;always&apos; wire spelling.
+        /// </summary>
+        public const string Always = "always";
+        /// <summary>
+        /// The &apos;reject&apos; wire spelling.
+        /// </summary>
+        public const string Reject = "reject";
+    }
+
+    /// <summary>
     /// Gets the &apos;once&apos; wire value.
     /// </summary>
-    public static PermissionReply Once { get; } = new("once");
+    public static PermissionReply Once { get; } = new(Values.Once);
     /// <summary>
     /// Gets the &apos;always&apos; wire value.
     /// </summary>
-    public static PermissionReply Always { get; } = new("always");
+    public static PermissionReply Always { get; } = new(Values.Always);
     /// <summary>
     /// Gets the &apos;reject&apos; wire value.
     /// </summary>
-    public static PermissionReply Reject { get; } = new("reject");
+    public static PermissionReply Reject { get; } = new(Values.Reject);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "once" or "always" or "reject";
+    public bool IsKnown => _value is Values.Once or Values.Always or Values.Reject;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -77,5 +102,5 @@ public readonly struct PermissionReply : IEquatable<PermissionReply>
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

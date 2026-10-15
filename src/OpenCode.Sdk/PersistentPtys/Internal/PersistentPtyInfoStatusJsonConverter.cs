@@ -28,6 +28,6 @@ internal sealed class PersistentPtyInfoStatusJsonConverter : JsonConverter<Persi
             throw new JsonException("A default PersistentPtyInfoStatus has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

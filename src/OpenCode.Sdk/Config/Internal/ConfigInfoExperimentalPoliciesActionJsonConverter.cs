@@ -28,6 +28,6 @@ internal sealed class ConfigInfoExperimentalPoliciesActionJsonConverter : JsonCo
             throw new JsonException("A default ConfigInfoExperimentalPoliciesAction has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

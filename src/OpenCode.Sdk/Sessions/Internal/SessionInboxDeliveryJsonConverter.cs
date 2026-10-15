@@ -28,6 +28,6 @@ internal sealed class SessionInboxDeliveryJsonConverter : JsonConverter<SessionI
             throw new JsonException("A default SessionInboxDelivery has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

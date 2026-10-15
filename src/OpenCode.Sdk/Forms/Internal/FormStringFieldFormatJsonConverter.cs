@@ -28,6 +28,6 @@ internal sealed class FormStringFieldFormatJsonConverter : JsonConverter<FormStr
             throw new JsonException("A default FormStringFieldFormat has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

@@ -28,6 +28,6 @@ internal sealed class ConfigInfoShareJsonConverter : JsonConverter<ConfigInfoSha
             throw new JsonException("A default ConfigInfoShare has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

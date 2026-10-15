@@ -22,21 +22,46 @@ public readonly struct SessionInfoOutcome : IEquatable<SessionInfoOutcome>
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "The wire spellings are constants nested in their enum so that Type.Values.Name names them in a case label and in a pattern; a top-level class would lose that.")]
+    [SlopwatchSuppress("SW002", "The CA1034 suppression beside it is the nesting the wire constants need, and no code change can remove it.")]
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;succeeded&apos; wire spelling.
+        /// </summary>
+        public const string Succeeded = "succeeded";
+        /// <summary>
+        /// The &apos;failed&apos; wire spelling.
+        /// </summary>
+        public const string Failed = "failed";
+        /// <summary>
+        /// The &apos;interrupted&apos; wire spelling.
+        /// </summary>
+        public const string Interrupted = "interrupted";
+    }
+
+    /// <summary>
     /// Gets the &apos;succeeded&apos; wire value.
     /// </summary>
-    public static SessionInfoOutcome Succeeded { get; } = new("succeeded");
+    public static SessionInfoOutcome Succeeded { get; } = new(Values.Succeeded);
     /// <summary>
     /// Gets the &apos;failed&apos; wire value.
     /// </summary>
-    public static SessionInfoOutcome Failed { get; } = new("failed");
+    public static SessionInfoOutcome Failed { get; } = new(Values.Failed);
     /// <summary>
     /// Gets the &apos;interrupted&apos; wire value.
     /// </summary>
-    public static SessionInfoOutcome Interrupted { get; } = new("interrupted");
+    public static SessionInfoOutcome Interrupted { get; } = new(Values.Interrupted);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "succeeded" or "failed" or "interrupted";
+    public bool IsKnown => _value is Values.Succeeded or Values.Failed or Values.Interrupted;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -77,5 +102,5 @@ public readonly struct SessionInfoOutcome : IEquatable<SessionInfoOutcome>
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

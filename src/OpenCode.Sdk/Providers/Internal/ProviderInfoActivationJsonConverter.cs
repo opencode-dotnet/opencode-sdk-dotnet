@@ -28,6 +28,6 @@ internal sealed class ProviderInfoActivationJsonConverter : JsonConverter<Provid
             throw new JsonException("A default ProviderInfoActivation has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

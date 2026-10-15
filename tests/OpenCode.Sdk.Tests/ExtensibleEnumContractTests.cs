@@ -47,6 +47,49 @@ public sealed class ExtensibleEnumContractTests
         await Assert.That(diff.Status.IsKnown).IsTrue();
     }
 
+    /// <summary>
+    /// The pinned spellings are constants, so a value reads in a <c>case</c> label through its
+    /// <c>Value</c>: the pinned spelling takes its case, and a newer server's value falls through to
+    /// the default arm instead of failing.
+    /// </summary>
+    [Test]
+    [Arguments("Serialization.known-diff-status.json", "modified")]
+    [Arguments("Serialization.unknown-diff-status.json", "other: copied")]
+    public async Task Value_Should_Match_A_Case_Label_Of_The_Pinned_Constants(string fixture, string expected)
+    {
+        var diff = Read(fixture);
+
+        var matched = diff.Status.Value switch
+        {
+            FileDiffInfoStatus.Values.Modified => "modified",
+            FileDiffInfoStatus.Values.Added => "added",
+            var other => "other: " + other,
+        };
+
+        await Assert.That(matched).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task Value_Should_Match_A_Property_Pattern_Of_A_Pinned_Constant()
+    {
+        var diff = Read("Serialization.known-diff-status.json");
+
+        await Assert.That(diff is { Status.Value: FileDiffInfoStatus.Values.Modified }).IsTrue();
+        await Assert.That(diff is { Status.Value: FileDiffInfoStatus.Values.Deleted }).IsFalse();
+    }
+
+    /// <summary>The constant is the wire spelling the pinned document declares, the one the static property carries.</summary>
+    [Test]
+    public async Task Values_Should_Hold_The_Pinned_Wire_Spellings()
+    {
+        await Assert.That(FileDiffInfoStatus.Values.Modified).IsEqualTo("modified");
+        await Assert.That(FileDiffInfoStatus.Modified.Value).IsEqualTo(FileDiffInfoStatus.Values.Modified);
+    }
+
+    [Test]
+    public async Task Value_Should_Be_Empty_For_A_Default_Value_As_ToString_Is() =>
+        await Assert.That(new FileDiffInfoStatus().Value).IsEqualTo(string.Empty);
+
     [Test]
     [Arguments("Serialization.numeric-diff-status.json")]
     [Arguments("Serialization.null-diff-status.json")]

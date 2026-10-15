@@ -235,7 +235,9 @@ OpenAPI validation for a value already representable in that shape (ADR-0014).
 Required members, top-level payload presence, represented token conversion, the string token kind
 of a generated enum, union dispatch, response-status selection, SSE framing, and source-generated
 serializer metadata remain hard walls. A generated string enum is extensible (ADR-0035): an
-extensible readonly struct whose pinned values are static properties, whose generated converter
+extensible readonly struct whose pinned values are static properties, whose pinned spellings are
+`const string` members of a nested `Values` class that a `case` label or a property pattern matches
+against its `Value` property, whose generated converter
 reads any string as a value and writes it back unchanged, refuses a non-string token, and refuses
 to write a default value, and whose equality is ordinal. Declared no-content responses drain and ignore unexpected bodies; ordinary one-shot JSON
 success decoding preserves `HttpContent` charset, BOM, and replacement-decoding behavior while

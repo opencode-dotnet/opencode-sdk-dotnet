@@ -8,10 +8,12 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 /// <summary>
 /// Emits a string enum of the pinned document as an extensible, string-backed readonly struct
-/// and the converter it carries: the pinned values are static properties, any other
-/// wire string a newer server sends is kept as it arrived and written back unchanged, and equality
-/// compares spellings ordinally, as upstream compares string literals. A <see langword="default"/>
-/// value has no spelling and the converter refuses to write it.
+/// and the converter it carries: the pinned values are static properties, and their spellings are
+/// constants of a nested <c>Values</c> class, so a <c>switch</c> or a property pattern can match the
+/// <c>Value</c> property against them. Any other wire string a newer server sends is kept as it
+/// arrived and written back unchanged, and equality compares spellings ordinally, as upstream
+/// compares string literals. A <see langword="default"/> value has no spelling and the converter
+/// refuses to write it.
 /// </summary>
 internal static class ExtensibleEnumEmitter
 {
@@ -41,7 +43,9 @@ internal static class ExtensibleEnumEmitter
         [
             ValueFieldDeclaration(),
             Constructor(model),
+            ValuesClass(model),
             .. model.Values.Select(value => KnownValueProperty(model, value)),
+            ValueProperty(),
             IsKnownProperty(model),
             EqualityOperator(type, SyntaxKind.EqualsEqualsToken, negate: false),
             EqualityOperator(type, SyntaxKind.ExclamationEqualsToken, negate: true),
@@ -112,14 +116,49 @@ internal static class ExtensibleEnumEmitter
         .WithInitializer(SyntaxFactory.EqualsValueClause(SyntaxFactory
             .ImplicitObjectCreationExpression()
             .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
-                SyntaxFactory.Argument(StringLiteral(value.WireValue)))))))
+                SyntaxFactory.Argument(ValueConstant(value)))))))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
         .WithLeadingTrivia(EmissionSyntax.Documentation($"Gets the '{value.WireValue}' wire value."));
+
+    /// <summary>
+    /// The pinned spellings as constants, the one place each literal is written: the static
+    /// properties and <c>IsKnown</c> read them, and a caller matches <c>Value</c> against them in a
+    /// <c>case</c> label or a property pattern, which a static property cannot be.
+    /// </summary>
+    private static ClassDeclarationSyntax ValuesClass(EnumModelPlan model) => SyntaxFactory
+        .ClassDeclaration(ExtensibleEnumMemberPolicy.Values)
+        .WithModifiers(SyntaxFactory.TokenList(
+            SyntaxFactory.Token(SyntaxKind.PublicKeyword),
+            SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
+        .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>(model.Values.Select(static value => SyntaxFactory
+            .FieldDeclaration(SyntaxFactory
+                .VariableDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)))
+                .WithVariables(SyntaxFactory.SingletonSeparatedList(SyntaxFactory
+                    .VariableDeclarator(value.Name)
+                    .WithInitializer(SyntaxFactory.EqualsValueClause(StringLiteral(value.WireValue))))))
+            .WithModifiers(SyntaxFactory.TokenList(
+                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
+                SyntaxFactory.Token(SyntaxKind.ConstKeyword)))
+            .WithLeadingTrivia(EmissionSyntax.Documentation($"The '{value.WireValue}' wire spelling.")))))
+        .WithLeadingTrivia(EmissionSyntax.Documentation(
+            $"The pinned wire spellings, for a case label or a property pattern on {ExtensibleEnumMemberPolicy.Value}."));
+
+    /// <summary>The wire spelling, as <c>ToString</c> returns it; a default value has none and reads as an empty string.</summary>
+    private static PropertyDeclarationSyntax ValueProperty() => SyntaxFactory
+        .PropertyDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)), ExtensibleEnumMemberPolicy.Value)
+        .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
+        .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(SyntaxFactory.BinaryExpression(
+            SyntaxKind.CoalesceExpression,
+            SyntaxFactory.IdentifierName(ValueField),
+            EmissionSyntax.MemberAccess(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)), "Empty"))))
+        .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+        .WithLeadingTrivia(EmissionSyntax.Documentation(
+            $"Gets the wire spelling, or an empty string for a default value, which has none; match it against {ExtensibleEnumMemberPolicy.Values}."));
 
     private static PropertyDeclarationSyntax IsKnownProperty(EnumModelPlan model)
     {
         var pinned = model.Values
-            .Select(static value => (PatternSyntax)SyntaxFactory.ConstantPattern(StringLiteral(value.WireValue)))
+            .Select(static value => (PatternSyntax)SyntaxFactory.ConstantPattern(ValueConstant(value)))
             .Aggregate((left, right) => SyntaxFactory.BinaryPattern(SyntaxKind.OrPattern, left, right));
         return SyntaxFactory
             .PropertyDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)), ExtensibleEnumMemberPolicy.IsKnown)
@@ -239,10 +278,7 @@ internal static class ExtensibleEnumEmitter
             SyntaxFactory.Token(SyntaxKind.PublicKeyword),
             SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
         .WithParameterList(SyntaxFactory.ParameterList())
-        .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(SyntaxFactory.BinaryExpression(
-            SyntaxKind.CoalesceExpression,
-            SyntaxFactory.IdentifierName(ValueField),
-            EmissionSyntax.MemberAccess(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)), "Empty"))))
+        .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(SyntaxFactory.IdentifierName(ExtensibleEnumMemberPolicy.Value)))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
         .WithLeadingTrivia(EmissionSyntax.Documentation(
             "Returns the wire spelling, or an empty string for a default value, which has none."));
@@ -313,8 +349,8 @@ internal static class ExtensibleEnumEmitter
                         StringLiteral($"A default {model.Name} has no wire value."))))),
                 SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(
                     EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("writer"), "WriteStringValue"),
-                    SyntaxFactory.Argument(EmissionSyntax.Invocation(
-                        EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(ValueParameter), "ToString"))))),
+                    SyntaxFactory.Argument(
+                        EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(ValueParameter), ExtensibleEnumMemberPolicy.Value)))),
             ])));
         var declaration = SyntaxFactory
             .ClassDeclaration(converterName)
@@ -357,6 +393,10 @@ internal static class ExtensibleEnumEmitter
 
     private static AccessorListSyntax GetOnly() => SyntaxFactory.AccessorList(SyntaxFactory.SingletonList(
         SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))));
+
+    /// <summary>A pinned value's constant, as the struct's own members name it.</summary>
+    private static MemberAccessExpressionSyntax ValueConstant(EnumValuePlan value) =>
+        EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(ExtensibleEnumMemberPolicy.Values), value.Name);
 
     private static LiteralExpressionSyntax StringLiteral(string value) =>
         SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(value));

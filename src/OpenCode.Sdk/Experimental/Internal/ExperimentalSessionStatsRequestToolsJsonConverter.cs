@@ -28,6 +28,6 @@ internal sealed class ExperimentalSessionStatsRequestToolsJsonConverter : JsonCo
             throw new JsonException("A default ExperimentalSessionStatsRequestTools has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

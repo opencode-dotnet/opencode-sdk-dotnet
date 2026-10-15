@@ -28,6 +28,6 @@ internal sealed class ShellInfoStatusJsonConverter : JsonConverter<ShellInfoStat
             throw new JsonException("A default ShellInfoStatus has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

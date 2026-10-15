@@ -22,21 +22,46 @@ public readonly struct FileDiffInfoStatus : IEquatable<FileDiffInfoStatus>
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "The wire spellings are constants nested in their enum so that Type.Values.Name names them in a case label and in a pattern; a top-level class would lose that.")]
+    [SlopwatchSuppress("SW002", "The CA1034 suppression beside it is the nesting the wire constants need, and no code change can remove it.")]
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;added&apos; wire spelling.
+        /// </summary>
+        public const string Added = "added";
+        /// <summary>
+        /// The &apos;deleted&apos; wire spelling.
+        /// </summary>
+        public const string Deleted = "deleted";
+        /// <summary>
+        /// The &apos;modified&apos; wire spelling.
+        /// </summary>
+        public const string Modified = "modified";
+    }
+
+    /// <summary>
     /// Gets the &apos;added&apos; wire value.
     /// </summary>
-    public static FileDiffInfoStatus Added { get; } = new("added");
+    public static FileDiffInfoStatus Added { get; } = new(Values.Added);
     /// <summary>
     /// Gets the &apos;deleted&apos; wire value.
     /// </summary>
-    public static FileDiffInfoStatus Deleted { get; } = new("deleted");
+    public static FileDiffInfoStatus Deleted { get; } = new(Values.Deleted);
     /// <summary>
     /// Gets the &apos;modified&apos; wire value.
     /// </summary>
-    public static FileDiffInfoStatus Modified { get; } = new("modified");
+    public static FileDiffInfoStatus Modified { get; } = new(Values.Modified);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "added" or "deleted" or "modified";
+    public bool IsKnown => _value is Values.Added or Values.Deleted or Values.Modified;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -77,5 +102,5 @@ public readonly struct FileDiffInfoStatus : IEquatable<FileDiffInfoStatus>
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

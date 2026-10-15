@@ -28,6 +28,6 @@ internal sealed class VcsModeJsonConverter : JsonConverter<VcsMode>
             throw new JsonException("A default VcsMode has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

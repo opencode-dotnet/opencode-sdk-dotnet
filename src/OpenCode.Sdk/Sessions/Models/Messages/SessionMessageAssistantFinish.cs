@@ -22,33 +22,70 @@ public readonly struct SessionMessageAssistantFinish : IEquatable<SessionMessage
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "The wire spellings are constants nested in their enum so that Type.Values.Name names them in a case label and in a pattern; a top-level class would lose that.")]
+    [SlopwatchSuppress("SW002", "The CA1034 suppression beside it is the nesting the wire constants need, and no code change can remove it.")]
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;stop&apos; wire spelling.
+        /// </summary>
+        public const string Stop = "stop";
+        /// <summary>
+        /// The &apos;length&apos; wire spelling.
+        /// </summary>
+        public const string Length = "length";
+        /// <summary>
+        /// The &apos;tool-calls&apos; wire spelling.
+        /// </summary>
+        public const string ToolCalls = "tool-calls";
+        /// <summary>
+        /// The &apos;content-filter&apos; wire spelling.
+        /// </summary>
+        public const string ContentFilter = "content-filter";
+        /// <summary>
+        /// The &apos;error&apos; wire spelling.
+        /// </summary>
+        public const string Error = "error";
+        /// <summary>
+        /// The &apos;unknown&apos; wire spelling.
+        /// </summary>
+        public const string Unknown = "unknown";
+    }
+
+    /// <summary>
     /// Gets the &apos;stop&apos; wire value.
     /// </summary>
-    public static SessionMessageAssistantFinish Stop { get; } = new("stop");
+    public static SessionMessageAssistantFinish Stop { get; } = new(Values.Stop);
     /// <summary>
     /// Gets the &apos;length&apos; wire value.
     /// </summary>
-    public static SessionMessageAssistantFinish Length { get; } = new("length");
+    public static SessionMessageAssistantFinish Length { get; } = new(Values.Length);
     /// <summary>
     /// Gets the &apos;tool-calls&apos; wire value.
     /// </summary>
-    public static SessionMessageAssistantFinish ToolCalls { get; } = new("tool-calls");
+    public static SessionMessageAssistantFinish ToolCalls { get; } = new(Values.ToolCalls);
     /// <summary>
     /// Gets the &apos;content-filter&apos; wire value.
     /// </summary>
-    public static SessionMessageAssistantFinish ContentFilter { get; } = new("content-filter");
+    public static SessionMessageAssistantFinish ContentFilter { get; } = new(Values.ContentFilter);
     /// <summary>
     /// Gets the &apos;error&apos; wire value.
     /// </summary>
-    public static SessionMessageAssistantFinish Error { get; } = new("error");
+    public static SessionMessageAssistantFinish Error { get; } = new(Values.Error);
     /// <summary>
     /// Gets the &apos;unknown&apos; wire value.
     /// </summary>
-    public static SessionMessageAssistantFinish Unknown { get; } = new("unknown");
+    public static SessionMessageAssistantFinish Unknown { get; } = new(Values.Unknown);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "stop" or "length" or "tool-calls" or "content-filter" or "error" or "unknown";
+    public bool IsKnown => _value is Values.Stop or Values.Length or Values.ToolCalls or Values.ContentFilter or Values.Error or Values.Unknown;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -89,5 +126,5 @@ public readonly struct SessionMessageAssistantFinish : IEquatable<SessionMessage
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

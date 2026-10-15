@@ -28,6 +28,6 @@ internal sealed class SessionMessageCompactionCompletedReasonJsonConverter : Jso
             throw new JsonException("A default SessionMessageCompactionCompletedReason has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

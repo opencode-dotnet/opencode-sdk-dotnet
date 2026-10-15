@@ -22,21 +22,46 @@ public readonly struct McpProtocol : IEquatable<McpProtocol>
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "The wire spellings are constants nested in their enum so that Type.Values.Name names them in a case label and in a pattern; a top-level class would lose that.")]
+    [SlopwatchSuppress("SW002", "The CA1034 suppression beside it is the nesting the wire constants need, and no code change can remove it.")]
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;legacy&apos; wire spelling.
+        /// </summary>
+        public const string Legacy = "legacy";
+        /// <summary>
+        /// The &apos;auto&apos; wire spelling.
+        /// </summary>
+        public const string Auto = "auto";
+        /// <summary>
+        /// The &apos;2026-07-28&apos; wire spelling.
+        /// </summary>
+        public const string Revision20260728 = "2026-07-28";
+    }
+
+    /// <summary>
     /// Gets the &apos;legacy&apos; wire value.
     /// </summary>
-    public static McpProtocol Legacy { get; } = new("legacy");
+    public static McpProtocol Legacy { get; } = new(Values.Legacy);
     /// <summary>
     /// Gets the &apos;auto&apos; wire value.
     /// </summary>
-    public static McpProtocol Auto { get; } = new("auto");
+    public static McpProtocol Auto { get; } = new(Values.Auto);
     /// <summary>
     /// Gets the &apos;2026-07-28&apos; wire value.
     /// </summary>
-    public static McpProtocol Revision20260728 { get; } = new("2026-07-28");
+    public static McpProtocol Revision20260728 { get; } = new(Values.Revision20260728);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "legacy" or "auto" or "2026-07-28";
+    public bool IsKnown => _value is Values.Legacy or Values.Auto or Values.Revision20260728;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -77,5 +102,5 @@ public readonly struct McpProtocol : IEquatable<McpProtocol>
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

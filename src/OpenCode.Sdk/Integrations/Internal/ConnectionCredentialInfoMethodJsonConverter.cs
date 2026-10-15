@@ -28,6 +28,6 @@ internal sealed class ConnectionCredentialInfoMethodJsonConverter : JsonConverte
             throw new JsonException("A default ConnectionCredentialInfoMethod has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

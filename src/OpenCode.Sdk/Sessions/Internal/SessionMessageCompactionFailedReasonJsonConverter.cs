@@ -28,6 +28,6 @@ internal sealed class SessionMessageCompactionFailedReasonJsonConverter : JsonCo
             throw new JsonException("A default SessionMessageCompactionFailedReason has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

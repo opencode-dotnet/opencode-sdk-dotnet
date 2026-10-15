@@ -28,6 +28,6 @@ internal sealed class FormWhenOpJsonConverter : JsonConverter<FormWhenOp>
             throw new JsonException("A default FormWhenOp has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

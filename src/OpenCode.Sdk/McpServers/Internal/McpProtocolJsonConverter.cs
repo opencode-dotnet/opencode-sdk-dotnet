@@ -28,6 +28,6 @@ internal sealed class McpProtocolJsonConverter : JsonConverter<McpProtocol>
             throw new JsonException("A default McpProtocol has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

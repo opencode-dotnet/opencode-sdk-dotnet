@@ -28,6 +28,6 @@ internal sealed class ConfigAgentModeJsonConverter : JsonConverter<ConfigAgentMo
             throw new JsonException("A default ConfigAgentMode has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

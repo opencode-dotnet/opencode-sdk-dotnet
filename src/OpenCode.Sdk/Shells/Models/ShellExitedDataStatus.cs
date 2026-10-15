@@ -22,25 +22,54 @@ public readonly struct ShellExitedDataStatus : IEquatable<ShellExitedDataStatus>
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "The wire spellings are constants nested in their enum so that Type.Values.Name names them in a case label and in a pattern; a top-level class would lose that.")]
+    [SlopwatchSuppress("SW002", "The CA1034 suppression beside it is the nesting the wire constants need, and no code change can remove it.")]
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;running&apos; wire spelling.
+        /// </summary>
+        public const string Running = "running";
+        /// <summary>
+        /// The &apos;exited&apos; wire spelling.
+        /// </summary>
+        public const string Exited = "exited";
+        /// <summary>
+        /// The &apos;timeout&apos; wire spelling.
+        /// </summary>
+        public const string Timeout = "timeout";
+        /// <summary>
+        /// The &apos;killed&apos; wire spelling.
+        /// </summary>
+        public const string Killed = "killed";
+    }
+
+    /// <summary>
     /// Gets the &apos;running&apos; wire value.
     /// </summary>
-    public static ShellExitedDataStatus Running { get; } = new("running");
+    public static ShellExitedDataStatus Running { get; } = new(Values.Running);
     /// <summary>
     /// Gets the &apos;exited&apos; wire value.
     /// </summary>
-    public static ShellExitedDataStatus Exited { get; } = new("exited");
+    public static ShellExitedDataStatus Exited { get; } = new(Values.Exited);
     /// <summary>
     /// Gets the &apos;timeout&apos; wire value.
     /// </summary>
-    public static ShellExitedDataStatus Timeout { get; } = new("timeout");
+    public static ShellExitedDataStatus Timeout { get; } = new(Values.Timeout);
     /// <summary>
     /// Gets the &apos;killed&apos; wire value.
     /// </summary>
-    public static ShellExitedDataStatus Killed { get; } = new("killed");
+    public static ShellExitedDataStatus Killed { get; } = new(Values.Killed);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "running" or "exited" or "timeout" or "killed";
+    public bool IsKnown => _value is Values.Running or Values.Exited or Values.Timeout or Values.Killed;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -81,5 +110,5 @@ public readonly struct ShellExitedDataStatus : IEquatable<ShellExitedDataStatus>
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

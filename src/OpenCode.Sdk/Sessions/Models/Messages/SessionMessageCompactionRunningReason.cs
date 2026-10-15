@@ -22,17 +22,38 @@ public readonly struct SessionMessageCompactionRunningReason : IEquatable<Sessio
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1034:Nested types should not be visible", Justification = "The wire spellings are constants nested in their enum so that Type.Values.Name names them in a case label and in a pattern; a top-level class would lose that.")]
+    [SlopwatchSuppress("SW002", "The CA1034 suppression beside it is the nesting the wire constants need, and no code change can remove it.")]
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;auto&apos; wire spelling.
+        /// </summary>
+        public const string Auto = "auto";
+        /// <summary>
+        /// The &apos;manual&apos; wire spelling.
+        /// </summary>
+        public const string Manual = "manual";
+    }
+
+    /// <summary>
     /// Gets the &apos;auto&apos; wire value.
     /// </summary>
-    public static SessionMessageCompactionRunningReason Auto { get; } = new("auto");
+    public static SessionMessageCompactionRunningReason Auto { get; } = new(Values.Auto);
     /// <summary>
     /// Gets the &apos;manual&apos; wire value.
     /// </summary>
-    public static SessionMessageCompactionRunningReason Manual { get; } = new("manual");
+    public static SessionMessageCompactionRunningReason Manual { get; } = new(Values.Manual);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "auto" or "manual";
+    public bool IsKnown => _value is Values.Auto or Values.Manual;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -73,5 +94,5 @@ public readonly struct SessionMessageCompactionRunningReason : IEquatable<Sessio
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

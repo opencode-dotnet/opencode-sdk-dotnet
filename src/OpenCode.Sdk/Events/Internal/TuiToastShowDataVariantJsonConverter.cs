@@ -28,6 +28,6 @@ internal sealed class TuiToastShowDataVariantJsonConverter : JsonConverter<TuiTo
             throw new JsonException("A default TuiToastShowDataVariant has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

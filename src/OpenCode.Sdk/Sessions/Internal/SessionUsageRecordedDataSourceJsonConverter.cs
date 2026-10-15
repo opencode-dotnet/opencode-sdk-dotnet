@@ -28,6 +28,6 @@ internal sealed class SessionUsageRecordedDataSourceJsonConverter : JsonConverte
             throw new JsonException("A default SessionUsageRecordedDataSource has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }
