@@ -16,9 +16,10 @@ internal static class ModelSelectionWalkthrough
     {
         ArgumentNullException.ThrowIfNull(client);
 
-        // Catalogs are snapshots: plugins may still be registering providers.
+        // The guide's one readiness step comes first; the catalogs after it are still snapshots.
+        await WaitForPluginsAsync(client).ConfigureAwait(false);
         var providers = await client.Providers.ListProvidersAsync().ConfigureAwait(false);
-        var models = await ListModelsWhenLoadedAsync(client).ConfigureAwait(false);
+        var models = await client.LanguageModels.ListModelsAsync().ConfigureAwait(false);
         Console.WriteLine(string.Create(
             CultureInfo.InvariantCulture,
             $"catalog: providers={providers.Providers.Count} models={models.Models.Count}"));
@@ -56,29 +57,27 @@ internal static class ModelSelectionWalkthrough
     }
 
     /// <summary>
-    /// The guide's wait for a location's plugins: the model list answers 503
-    /// <see cref="ServiceUnavailableError"/> until they have loaded, which is "still loading", not a
-    /// failure.
+    /// The guide's one readiness step: the default model answers a declared 503 until the location's
+    /// plugins have loaded, which is "still loading", not a failure; once it answers, the model
+    /// calls are ready.
     /// </summary>
     [SlopwatchSuppress(
         "SW004",
-        "The guide's documented wait for another process: the model list answers a declared 503 until the location's plugins have loaded, the server sends no signal this recipe can await, and the retry is bounded by a thirty-second deadline.")]
-    private static async Task<ModelListResponse> ListModelsWhenLoadedAsync(OpenCodeClient client)
+        "The guide's documented startup wait for another process: the default-model call answers a declared 503 until the location's plugins have loaded, the server sends no signal this recipe can await, and the wait is bounded by a thirty-second deadline.")]
+    private static async Task WaitForPluginsAsync(OpenCodeClient client)
     {
-        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        ModelListResponse? listed = null;
-        while (listed is null)
+        using var startup = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        while (true)
         {
             try
             {
-                listed = await client.LanguageModels.ListModelsAsync(cancellationToken: deadline.Token).ConfigureAwait(false);
+                _ = await client.LanguageModels.GetDefaultAsync(cancellationToken: startup.Token).ConfigureAwait(false);
+                return;
             }
-            catch (OpenCodeApiException failure) when (failure.Status == 503 && failure.Error is ServiceUnavailableError)
+            catch (OpenCodeApiException failure) when (failure.Error is ServiceUnavailableError)
             {
-                await Task.Delay(TimeSpan.FromMilliseconds(250), deadline.Token).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromMilliseconds(250), startup.Token).ConfigureAwait(false);
             }
         }
-
-        return listed;
     }
 }
