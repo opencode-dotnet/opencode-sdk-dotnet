@@ -1,3 +1,4 @@
+using System.Globalization;
 using OpenCode.Sdk.TestSupport;
 using OpenCode.Sdk.TestSupport.Ownership;
 using Testably.Abstractions.Testing;
@@ -66,8 +67,8 @@ public sealed class ServerFailureCaptureTests
         var written = new DateTime(2026, 10, 15, 12, 0, 0, DateTimeKind.Utc);
         for (var index = 0; index < 10; index++)
         {
-            var log = fileSystem.Path.Combine(logs, $"opencode-{index}.log");
-            _ = fileSystem.Initialize().With(new FileDescription(log, "line " + index));
+            var log = fileSystem.Path.Combine(logs, LogName(index));
+            _ = fileSystem.Initialize().With(new FileDescription(log, "line " + index.ToString(CultureInfo.InvariantCulture)));
             fileSystem.File.SetLastWriteTimeUtc(log, written.AddMinutes(index));
         }
 
@@ -76,7 +77,7 @@ public sealed class ServerFailureCaptureTests
 
         await Assert.That(fileSystem.Directory.GetFiles(fileSystem.Path.Combine(artifacts.Directory, "server-logs"))
                 .Select(fileSystem.Path.GetFileName).OfType<string>())
-            .IsEquivalentTo(Enumerable.Range(2, 8).Select(index => $"opencode-{index}.log"));
+            .IsEquivalentTo(Enumerable.Range(2, 8).Select(LogName));
     }
 
     [Test]
@@ -92,6 +93,8 @@ public sealed class ServerFailureCaptureTests
         await Assert.That(failed).IsNull();
         await Assert.That(fileSystem.Directory.Exists(fileSystem.Path.Combine(artifacts.Directory, "server-logs"))).IsFalse();
     }
+
+    private static string LogName(int index) => "opencode-" + index.ToString(CultureInfo.InvariantCulture) + ".log";
 
     private static async Task<string> ReadAsync(MockFileSystem fileSystem, string path)
     {
