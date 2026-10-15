@@ -60,14 +60,17 @@ public sealed class OpenCodeClientOptions
 
     /// <summary>
     /// Gets or sets how long the live event stream (<c>Events.SubscribeAsync</c>) may receive
-    /// nothing before it is cut and reconnected. The default, <see langword="null"/>, is 45 seconds,
-    /// as in upstream's own client. The server writes a keepalive every 15 seconds, so keep the window
-    /// above that, or a quiet but healthy stream is cut and reconnected each time. The window does
-    /// not run while your code holds an event. It is read once, when the client is built. Accepts a
-    /// value above zero and at most <see cref="int.MaxValue"/> milliseconds; there is no window that
-    /// never ends.
+    /// nothing before it is cut and reconnected. The default, <see langword="null"/>, is 45
+    /// seconds, as in upstream's own client. The server writes a keepalive every 15 seconds, so
+    /// keep the window above that, or a quiet but healthy stream is cut and reconnected each time.
+    /// The window does not run while your code holds an event. It is read once, when the client is
+    /// built. Accepts a value above zero and at most <see cref="int.MaxValue"/> milliseconds; there
+    /// is no window that never ends.
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">The value is zero, negative, <see cref="Timeout.InfiniteTimeSpan"/>, or longer than <see cref="int.MaxValue"/> milliseconds.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The value is zero, negative, <see cref="Timeout.InfiniteTimeSpan"/>, or longer than
+    /// <see cref="int.MaxValue"/> milliseconds.
+    /// </exception>
     public TimeSpan? EventStreamIdleTimeout
     {
         get;

@@ -35,26 +35,10 @@ public sealed class EventStreamIdleTimeoutTests
         await Assert.That(new OpenCodeClientOptions { EventStreamIdleTimeout = value }.EventStreamIdleTimeout).IsEqualTo(value);
     }
 
+    /// <summary>Unset is the default: the pipeline then runs upstream's 45 s, which the reconnect tests pin by behaviour.</summary>
     [Test]
-    public async Task An_Unset_Window_Should_Be_Upstreams_45_Seconds()
-    {
-        using var httpClient = new HttpClient();
-
-        using var pipeline = PipelineFactory.Create(httpClient);
-
+    public async Task Options_Should_Leave_The_Window_Unset_By_Default() =>
         await Assert.That(new OpenCodeClientOptions().EventStreamIdleTimeout).IsNull();
-        await Assert.That(pipeline.EventStreamIdleWindow).IsEqualTo(TimeSpan.FromSeconds(45));
-    }
-
-    [Test]
-    public async Task A_Set_Window_Should_Reach_The_Pipeline()
-    {
-        using var httpClient = new HttpClient();
-
-        using var pipeline = PipelineFactory.Create(httpClient, eventStreamIdleTimeout: TimeSpan.FromSeconds(20));
-
-        await Assert.That(pipeline.EventStreamIdleWindow).IsEqualTo(TimeSpan.FromSeconds(20));
-    }
 
     /// <summary>A passed window is named with the window that passed, down to the single tick the option accepts.</summary>
     [Test]

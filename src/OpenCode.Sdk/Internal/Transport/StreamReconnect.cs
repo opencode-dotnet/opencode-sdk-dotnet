@@ -8,10 +8,11 @@ namespace OpenCode.Sdk.Internal;
 /// answer and deliver <c>server.connected</c> as its first event, or it fails. A connected stream
 /// that receives no bytes for its idle window is cut — 45 seconds unless the client options set
 /// another, as upstream's <c>idleTimeout</c> option does — and the server's keepalive every 15
-/// seconds keeps a quiet stream alive. Every failure, of any kind, is followed by a new attempt one second later,
-/// with no backoff. Upstream retries forever and shows a status; the SDK has no status to show, so
-/// a stream that has failed every attempt for one minute — from the drop, or from the first attempt
-/// of a first open — gives up and throws the last failure. Knowledge source: upstream-observed.
+/// seconds keeps a quiet stream alive. Every failure, of any kind, is followed by a new attempt one
+/// second later, with no backoff. Upstream retries forever and shows a status; the SDK has no
+/// status to show, so a stream that has failed every attempt for one minute — from the drop, or
+/// from the first attempt of a first open — gives up and throws the last failure. Knowledge source:
+/// upstream-observed.
 /// </summary>
 internal static class StreamReconnect
 {
@@ -26,10 +27,13 @@ internal static class StreamReconnect
     /// <summary>Gets how long an attempt may take to answer and deliver its first event.</summary>
     public static TimeSpan ConnectBound { get; } = TimeSpan.FromSeconds(2);
 
-    /// <summary>Gets how long a connected stream may go without receiving a byte when the client options set no other window.</summary>
+    /// <summary>
+    /// Gets how long a connected stream may go without receiving a byte when the client options set
+    /// no other window.
+    /// </summary>
     public static TimeSpan DefaultIdleWindow { get; } = TimeSpan.FromSeconds(45);
 
-    /// <summary>The largest window a timer can run, which is also the largest a caller may set.</summary>
+    /// <summary>The largest window a timer can run, and so the largest a caller may set.</summary>
     private static readonly TimeSpan TimerCeiling = TimeSpan.FromMilliseconds(int.MaxValue);
 
     /// <summary>Gets how long every attempt may keep failing before the stream gives up.</summary>
@@ -42,7 +46,10 @@ internal static class StreamReconnect
     /// <param name="value">The window to admit.</param>
     /// <param name="parameterName">The name the refusal reports.</param>
     /// <returns>The admitted window.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">The window is zero, negative, infinite, or longer than <see cref="int.MaxValue"/> milliseconds.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The window is zero, negative, infinite, or longer than <see cref="int.MaxValue"/>
+    /// milliseconds.
+    /// </exception>
     public static TimeSpan? ValidateIdleWindow(TimeSpan? value, string parameterName) =>
         value is not { } window || (window > TimeSpan.Zero && window <= TimerCeiling)
             ? value

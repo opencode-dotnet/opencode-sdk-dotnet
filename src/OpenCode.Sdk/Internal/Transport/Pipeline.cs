@@ -44,9 +44,6 @@ internal sealed class Pipeline : IDisposable
     private readonly CancellationToken _lifetimeToken;
     private bool _disposed;
 
-    /// <summary>Gets how long the live event stream may receive nothing before it is cut and reconnected.</summary>
-    internal TimeSpan EventStreamIdleWindow => _eventStreamIdleWindow;
-
     internal Pipeline(HttpClient httpClient, bool ownsHttpClient, OpenCodeClientOptions options,
         IEventStreamFramer? framer = null, ArrayPool<byte>? bufferPool = null, TimeSpan? networkTimeout = null,
         TimeProvider? time = null)
@@ -281,11 +278,11 @@ internal sealed class Pipeline : IDisposable
     /// <summary>
     /// Runs one connection after another for a reconnecting operation, as the pinned client does.
     /// Each attempt runs under its own window: 2 seconds to answer and deliver
-    /// <c>server.connected</c> first, then the client's idle window without a byte once connected, stopped while
-    /// the consumer holds an event. Any failure is followed by a new attempt one second later. The
-    /// give-up window runs from the first attempt and again from each drop, stops once an attempt
-    /// connects, and when it passes it cuts whatever is in flight and throws the last failure. The
-    /// caller's token and a disposed client end the stream at once.
+    /// <c>server.connected</c> first, then the client's idle window without a byte once connected,
+    /// stopped while the consumer holds an event. Any failure is followed by a new attempt one
+    /// second later. The give-up window runs from the first attempt and again from each drop, stops
+    /// once an attempt connects, and when it passes it cuts whatever is in flight and throws the
+    /// last failure. The caller's token and a disposed client end the stream at once.
     /// </summary>
     private async IAsyncEnumerable<TPayload> ExecuteReconnectingStreamAsync<TPayload, TCause>(string operationId, HttpMethod method,
         string route, IStreamAdapter<TPayload, TCause> adapter, [EnumeratorCancellation] CancellationToken cancellationToken)

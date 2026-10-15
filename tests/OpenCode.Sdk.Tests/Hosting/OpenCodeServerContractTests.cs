@@ -163,7 +163,10 @@ public sealed class OpenCodeServerContractTests
             .GetField("_clientNetworkTimeout", BindingFlags.NonPublic | BindingFlags.Instance)!
             .GetValue(pipeline);
         await Assert.That(carriedWindow).IsEqualTo(sentinelWindow);
-        await Assert.That(pipeline.EventStreamIdleWindow).IsEqualTo(sentinelIdleWindow);
+        var carriedIdleWindow = (TimeSpan)typeof(Pipeline)
+            .GetField("_eventStreamIdleWindow", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(pipeline)!;
+        await Assert.That(carriedIdleWindow).IsEqualTo(sentinelIdleWindow);
     }
 
     [Test]

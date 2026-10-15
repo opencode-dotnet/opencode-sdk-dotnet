@@ -343,9 +343,9 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
     that token, and a disposed client ends it at once with `ObjectDisposedException`, whether the
     stream is opening, reading, holding an event or waiting to reconnect. Nothing else ends it.
   - Recorded divergence, the only one: upstream retries forever and shows a connection status; the
-    SDK has no status to show, so an endless silent retry would hang `await foreach`. The consequence for
-    consumers is that a wrong address or a refused credential surfaces after one minute, not at
-    once, as the error the server last answered.
+    SDK has no status to show, so an endless silent retry would hang `await foreach`. The
+    consequence for consumers is that a wrong address or a refused credential surfaces after one
+    minute, not at once, as the error the server last answered.
   - `OpenCodeClientOptions.NetworkTimeout` does not reach `event.subscribe`. The 2 s connect bound
     and the 1 s delay are fixed, as in upstream, and a stream takes no per-call options.
 - Durable continuation is requested explicitly through `session.log`'s `after` parameter, an

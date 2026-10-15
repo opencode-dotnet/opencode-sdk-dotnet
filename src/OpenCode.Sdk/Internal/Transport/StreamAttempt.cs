@@ -17,7 +17,7 @@ internal sealed class StreamAttempt : IDisposable
 
     /// <summary>Starts an attempt; its connect bound runs from now.</summary>
     /// <param name="time">The clock the windows run on.</param>
-    /// <param name="idleWindow">How long the attempt may go without a byte once established.</param>
+    /// <param name="idleWindow">How long it may go without a byte once established.</param>
     /// <param name="giveUpToken">The give-up window's token, linked over the caller's.</param>
     public StreamAttempt(TimeProvider time, TimeSpan idleWindow, CancellationToken giveUpToken)
     {
