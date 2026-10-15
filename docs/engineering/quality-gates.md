@@ -34,7 +34,8 @@ Roslyn rules classified `EnforceOnBuild.Never` plus deterministic import organiz
 relitigate or broadly weaken either side to make a change pass. Redundant rules are deliberate where
 their coverage differs or supplies defense in depth. When a rule misfires on valid code, use a
 narrowly scoped per-rule arbitration comment that names the winning rule or contract; never roll
-back the policy globally. `.editorconfig` contains the established pattern.
+back the policy globally. `.editorconfig` contains the established pattern. A suppression of any
+kind follows the suppression policy in `slop-review.md`.
 
 - A rule that cannot fire here but still costs build time is switched off compilation-wide in the
   repository-root `.globalconfig`, with the same winner-naming reason and a removal trigger. A
@@ -68,6 +69,11 @@ this policy.
 "Builds" and "works" are different claims. Before reporting a repository change complete, run the
 base gate from the repository root; a current handoff may add scope-specific checks but cannot
 weaken it.
+
+A change limited to Markdown, `LICENSE`, and the files under `.github/` other than build inputs
+(workflows, issue and pull request templates) needs green CI on every check it triggers instead of
+the local gate. Any change to source, tests, project or build files, tool manifests, baselines,
+`spec/` or generated output runs the full gate.
 
 A fresh clone or worktree is prepared once before its first gate, with the Bun the pin's
 `packageManager` names (`external/opencode/package.json`) first on `PATH`, for the install and for

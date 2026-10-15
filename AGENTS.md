@@ -30,6 +30,8 @@ lives in a sibling repository of the `opencode-dotnet` organization (ADR-0030).
   rationale, evidence, or operational home; do not discard it merely to shorten a file.
 - Keep affected documentation current in the same change as code. Every current fact has one
   canonical owner; other mentions are brief relays.
+- Write nothing a reviewer could not vouch for: no unrequested code, no parallel abstraction, no
+  masked error, no unproven test (`docs/engineering/slop-review.md`).
 - Before reporting completion, run the applicable gate in
   `docs/engineering/quality-gates.md`. "Builds" and "works" are different claims.
 - Commit only with maintainer approval, except inside an explicitly agreed development loop.
@@ -55,6 +57,7 @@ positions.
 | Hand-written code structure, signatures, DI composition or layout | `docs/engineering/coding-style.md` |
 | Test design or test code | `docs/engineering/testing-style.md`; live legs run from a Windows workstation: `docs/engineering/developing-on-windows.md` |
 | Analyzer, build, formatting, performance or completion gates | `docs/engineering/quality-gates.md` |
+| Reviewing a change, or recognizing slop and suppressions | `docs/engineering/slop-review.md` |
 | Documentation, research, ADRs or repository workflow | `docs/engineering/documentation.md`, `docs/engineering/workflow.md`, and `docs/adr/README.md` as applicable |
 | Consumer guides, README or CHANGELOG | `docs/engineering/documentation.md` (Consumer documentation) |
 | Domain terminology | `CONTEXT.md` |

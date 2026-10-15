@@ -313,3 +313,24 @@ true; the fixture hands the boundary to the child process it starts.
   in case" — deleted code is recoverable from git.
 - Testing library internals (the OpenAPI reader's conformance, TUnit itself, the BCL)
   — test our rules at our boundaries.
+
+## 8. Mutation proofs
+
+A change that adds or fixes a critical rule carries one mutation proof per rule. Invert or remove
+the rule in product code, show that a named test fails for the asserted reason, then restore it. A
+proof counts only when:
+
+1. the slice is committed, or the mutated file holds no other uncommitted edit; the restore is by a
+   saved copy or `git checkout HEAD --`, and the diff is byte-identical afterwards;
+2. the mutated tree builds, and the record says whether it builds under the full analyzer build or
+   only with `RunAnalyzers=false`. A mutant the full build rejects for a semantic diagnostic (dead
+   code, a tautology, an unused member, a nullable error) is recorded as unreachable through that
+   rule ID, not as a kill. A mutant rejected only for its spelling is re-spelled in an analyzer-clean
+   form;
+3. every binary the test exercises was rebuilt, including the service fixture's own SDK copy;
+4. it fails on every target framework the rule ships on;
+5. a test run that prints no total, or a total of 0, is not a result.
+
+Mutation-tool scores are advisory. A tool that compiles mutants without the analyzer wall reports
+kills that the real build would reject, so its results are replayed through the full build before
+anyone relies on them.
