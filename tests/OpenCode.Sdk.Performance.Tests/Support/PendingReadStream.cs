@@ -52,9 +52,15 @@ internal sealed class PendingReadStream : Stream
 
     public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
+    /// <summary>A read whose data never arrives: it ends, cancelled, when its token is cancelled, and not before.</summary>
     private static async Task<int> WaitForCancellationAsync(CancellationToken cancellationToken)
     {
-        await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
-        throw new InvalidOperationException("A pending read ended without its cancellation.");
+        var read = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        // The registration's state is the source passed beside it, never null.
+        using (cancellationToken.Register(static state => ((TaskCompletionSource<int>)state!).TrySetCanceled(), read))
+        {
+            return await read.Task.ConfigureAwait(false);
+        }
     }
 }
