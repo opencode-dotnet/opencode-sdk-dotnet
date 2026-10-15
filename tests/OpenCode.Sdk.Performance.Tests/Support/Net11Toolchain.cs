@@ -11,9 +11,13 @@ namespace OpenCode.Sdk.Performance.Tests.Support;
 /// BenchmarkDotNet's own project toolchain for <c>net11.0</c>, without its SDK-version validator:
 /// BenchmarkDotNet 0.15.8 cannot compute the SDK version a runtime it does not know needs and throws
 /// from that validator (<c>GetRuntimeVersion not implemented for NotRecognized</c>), which ends the
-/// whole run before any leg starts. Generating, building and running stay BenchmarkDotNet's; a host
-/// without a .NET 11 SDK fails at the build instead of at validation.
+/// whole run before any leg starts. Generating, building and running stay BenchmarkDotNet's.
 /// </summary>
+/// <remarks>
+/// Dropping the toolchain's validation drops all of it for this leg: the SDK-version check (a host
+/// without a .NET 11 SDK then fails at the build instead), and the refusals of the legacy JIT, CPU
+/// groups, very large objects and LINQPad, none of which this suite uses.
+/// </remarks>
 internal sealed class Net11Toolchain : IToolchain
 {
     private readonly IToolchain _inner = CsProjCoreToolchain.From(new NetCoreAppSettings("net11.0", runtimeFrameworkVersion: null, name: ".NET 11.0"));
