@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
@@ -99,7 +100,7 @@ public sealed class OwnedTransportTests
         });
         var time = new ManualTimeProvider();
         using var ownedHandler = TransportPolicy.CreateOwnedHttpHandler(server.Endpoint);
-        using var handler = new HeadersSignal(ownedHandler);
+        using var handler = new StalledBodySignal(ownedHandler, Encoding.UTF8.GetByteCount(WireBodyData.InfoOk));
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient, endpoint: server.Endpoint, time: time);
 
@@ -108,14 +109,15 @@ public sealed class OwnedTransportTests
         // modern targets and through content disposal on net472. The message names the phase:
         // a window that fired before the headers would fail the send instead and still throw
         // the same exception type. The window runs on the test's clock, which passes it only
-        // once the headers are in, so the body phase is the only one it can fire in.
+        // once the read that stalls has started: the body has arrived and the window was
+        // restarted for every chunk of it before that read, so no restart can race the move.
         var execution = pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get,
             "/api/info",
             new RecordingResponseAdapter(),
             options: null,
             CancellationToken.None);
-        await handler.HeadersReceived.WaitAsync(HangGuard);
+        await handler.BodyStalled.WaitAsync(HangGuard);
         time.Advance(PipelineMessage.DefaultNetworkTimeout);
 
         var exception = await Assert
@@ -282,20 +284,142 @@ public sealed class OwnedTransportTests
 #endif
 
     /// <summary>Reports when the inner handler has returned a response, which is when its headers are in.</summary>
-    private sealed class HeadersSignal(HttpMessageHandler inner) : DelegatingHandler(inner)
+    /// <summary>
+    /// Signals the read that stalls: the first read the pipeline starts once the response's
+    /// expected body bytes have all been handed over. The pipeline restarts its progress window
+    /// before every read, so by the time that read starts no restart is left to race a clock move.
+    /// </summary>
+    private sealed class StalledBodySignal(HttpMessageHandler inner, int bodyLength) : DelegatingHandler(inner)
     {
-        private readonly TaskCompletionSource<bool> _headersReceived = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private readonly TaskCompletionSource<bool> _bodyStalled = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        /// <summary>Gets a task that completes once a response's headers are in.</summary>
+        /// <summary>Gets a task that completes once a read starts after the whole body was read.</summary>
 #pragma warning disable VSTHRD003 // Test signals complete on their own source and resume asynchronously; exposing the task is the signal's contract.
-        public Task HeadersReceived => _headersReceived.Task;
+        public Task BodyStalled => _bodyStalled.Task;
 #pragma warning restore VSTHRD003
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var response = await base.SendAsync(request, cancellationToken);
-            _ = _headersReceived.TrySetResult(true);
+            response.Content = new SignallingContent(response.Content, bodyLength, _bodyStalled);
             return response;
+        }
+    }
+
+    /// <summary>
+    /// The real response content, read through a stream that counts what it hands over.
+    /// Disposing it disposes the real content, so the pipeline's interruption still reaches the
+    /// socket on every target.
+    /// </summary>
+    private sealed class SignallingContent : HttpContent
+    {
+        private readonly HttpContent _inner;
+        private readonly int _bodyLength;
+        private readonly TaskCompletionSource<bool> _stalled;
+
+        public SignallingContent(HttpContent inner, int bodyLength, TaskCompletionSource<bool> stalled)
+        {
+            _inner = inner;
+            _bodyLength = bodyLength;
+            _stalled = stalled;
+            foreach (var header in inner.Headers)
+            {
+                _ = Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+        }
+
+        protected override async Task<Stream> CreateContentReadStreamAsync() =>
+            new SignallingStream(await _inner.ReadAsStreamAsync(), _bodyLength, _stalled);
+
+        protected override async Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
+            await (await CreateContentReadStreamAsync()).CopyToAsync(stream);
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = 0;
+            return false;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+    }
+
+    private sealed class SignallingStream(Stream inner, int bodyLength, TaskCompletionSource<bool> stalled) : Stream
+    {
+        private int _read;
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+#if NET
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
+#else
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            SignalWhenDrained();
+            var read = await inner.ReadAsync(buffer, offset, count, cancellationToken);
+            _read += read;
+            return read;
+        }
+#endif
+
+#if NET
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            SignalWhenDrained();
+            var read = await inner.ReadAsync(buffer, cancellationToken);
+            _read += read;
+            return read;
+        }
+#endif
+
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        public override void Flush()
+        {
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                inner.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        private void SignalWhenDrained()
+        {
+            if (_read >= bodyLength)
+            {
+                _ = stalled.TrySetResult(true);
+            }
         }
     }
 }
