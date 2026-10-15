@@ -2,6 +2,8 @@
 
 Operational guidance for a Windows workstation. Everything here is about the developer's machine;
 the test suite's own isolation rules live in `testing-style.md` and the gates in `quality-gates.md`.
+A fresh worktree is prepared as `quality-gates.md` describes before its first gate; a workstation's
+own Bun is often not the pinned one, so the pinned Bun goes first on `PATH`.
 
 ## Live legs that need a Linux-hosted server
 

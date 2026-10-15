@@ -66,7 +66,22 @@ this policy.
 
 "Builds" and "works" are different claims. Before reporting a repository change complete, run the
 base gate from the repository root; a current handoff may add scope-specific checks but cannot
-weaken it:
+weaken it.
+
+A fresh clone or worktree is prepared once before its first gate, with the Bun the pin's
+`packageManager` names (`external/opencode/package.json`) first on `PATH`, for the install and for
+every gate after it:
+
+```bash
+git submodule update --init --depth 1 external/opencode
+cd external/opencode && bun install --frozen-lockfile --ignore-scripts
+```
+
+`OpenCode.Sdk.Tests` checks all three before test discovery
+(`tests/Shared/PinnedServerPrerequisites.cs`): a missing checkout, a missing install, or another
+Bun refuses the module with one error that names each missing piece and the command that fixes it.
+It refuses a run filtered to tests that start no server too: every gate and CI leg prepares the
+checkout, so an unprepared one is named before it costs a run.
 
 ```bash
 dotnet tool run slopwatch analyze --exclude ".scratchpad/**,external/**" --fail-on warning
