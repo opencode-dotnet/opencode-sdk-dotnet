@@ -1,0 +1,250 @@
+﻿Suppression ledger: every channel that lowers, silences or switches off a diagnostic, counted.
+A change that adds, removes or alters a suppression updates this file in the same commit.
+
+build-switch: 7
+editorconfig: 162
+globalconfig: 1
+no-warn: 18
+pragma: 22
+slopwatch-ignore: 7
+slopwatch-suppress: 30
+
+build-switch Directory.Build.props AnalysisLevel = 10.0
+build-switch Directory.Build.props AnalysisMode = All
+build-switch Directory.Build.props CodeAnalysisTreatWarningsAsErrors = true
+build-switch Directory.Build.props EnableNETAnalyzers = true
+build-switch Directory.Build.props EnforceCodeStyleInBuild = true
+build-switch Directory.Build.props RunAnalyzersDuringBuild = true
+build-switch Directory.Build.props TreatWarningsAsErrors = true
+editorconfig .editorconfig [*.cs] MA0004.report = Always
+editorconfig .editorconfig [*.cs] MA0011.exclude_tostring_methods = true
+editorconfig .editorconfig [*.cs] MA0051.maximum_lines_per_method = 80
+editorconfig .editorconfig [*.cs] MA0051.maximum_statements_per_method = 60
+editorconfig .editorconfig [*.cs] MA0053.public_class_should_be_sealed = true
+editorconfig .editorconfig [*.cs] csharp_prefer_simple_using_statement = true:suggestion
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_accessors = when_on_single_line:suggestion
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_constructors = false:suggestion
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_indexers = when_on_single_line:suggestion
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_lambdas = true:suggestion
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_local_functions = when_on_single_line:suggestion
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_operators = when_on_single_line:suggestion
+editorconfig .editorconfig [*.cs] csharp_style_expression_bodied_properties = when_on_single_line:suggestion
+editorconfig .editorconfig [*.cs] csharp_style_prefer_extended_property_pattern = true:suggestion
+editorconfig .editorconfig [*.cs] csharp_style_prefer_pattern_matching = true:suggestion
+editorconfig .editorconfig [*.cs] csharp_style_prefer_switch_expression = true:suggestion
+editorconfig .editorconfig [*.cs] dotnet_analyzer_diagnostic.category-roslynator.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_code_quality.CA1822.api_surface = private, internal
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1008.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1027.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1031.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1040.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1308.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1515.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1716.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1812.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1815.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1819.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1848.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.IDE0032.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.IDE0290.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0006.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0018.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0038.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0041.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0180.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0181.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0182.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0186.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0187.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0188.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0189.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0190.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0191.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0192.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0193.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0194.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0196.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0197.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0198.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0199.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0200.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.MA0203.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.RCS1140.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.RCS1141.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.S1118.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.S125.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.S2094.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.S2479.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.S3925.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.S4457.severity = suggestion
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.S6602.severity = none
+editorconfig .editorconfig [*.cs] dotnet_diagnostic.VSTHRD200.severity = suggestion
+editorconfig .editorconfig [*.{cs,vb}] dotnet_code_quality_unused_parameters = all
+editorconfig .editorconfig [*.{g.cs,generated.cs,designer.cs}] generated_code = true
+editorconfig .editorconfig [src/OpenCode.Sdk.Extensions/OpenCodeServiceCollectionExtensions.cs] dotnet_diagnostic.IDE0130.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/**.cs] dotnet_diagnostic.IDE0130.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/**/{ConfigInfoEnterprise,ConnectionStatus,ExperimentalIntegrationWellknownAddRequest,FormExternalField,IntegrationAttempt,McpOAuthConfig,McpRemoteConfig,McpResource,McpResourceTemplate,ProjectIcon,PromptFileSourceUri,PromptInputFileAttachment,ToolFileContent,WebSearchResult}.cs] dotnet_diagnostic.CA1056.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/*/OpenCodeRoutes.*.cs] dotnet_diagnostic.CA1034.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/*/OpenCodeRoutes.*.cs] dotnet_diagnostic.CA1724.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Common/Optional.cs] dotnet_diagnostic.CA1000.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Common/Optional.cs] dotnet_diagnostic.CA2225.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Contender/ServiceContender.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Contender/ServiceContenderSpawner.Windows.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Contender/ServiceContenderSpawner.Windows.cs] dotnet_diagnostic.S3869.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/BackgroundService/Internal/ProcessControl/ServiceProcessControl.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Registration/ServiceLegacyFilename.cs] dotnet_diagnostic.CA5350.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Registration/ServiceLegacyFilename.cs] dotnet_diagnostic.S4790.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/BackgroundService/Internal/ServiceFileSystem.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/Internal/Platform/Posix/PosixChildExitWatch.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/Internal/Platform/Posix/PosixSpawn.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/Internal/Platform/Posix/PosixSpawn.cs] dotnet_diagnostic.S3869.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/Launcher/Internal/BoundedWait.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/Launcher/Internal/OwnedServerChild.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/Launcher/Internal/PipeOutputPump.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/Launcher/Internal/PosixServerLadder.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/Launcher/Internal/WindowsServerLadder.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/Launcher/OpenCodeServer.Launcher.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Internal/Operations/ResponseAdapter.cs] dotnet_diagnostic.S1694.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Internal/Terminal/TerminalSocketCore.cs] dotnet_diagnostic.CA2213.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Internal/Transport/CallerStreamContent.cs] dotnet_diagnostic.CA2213.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Internal/Transport/Pipeline.cs] dotnet_diagnostic.CA5399.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Internal/Transport/ProgressWindow.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.CA1707.severity = none
+editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.CA2007.severity = none
+editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.CS1591.severity = none
+editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.MA0004.severity = none
+editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.MA0042.severity = none
+editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.VSTHRD111.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Sandbox/**.cs] dotnet_diagnostic.MA0076.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/BestEffortDeleteTests.cs] dotnet_diagnostic.CA1849.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/BestEffortDeleteTests.cs] dotnet_diagnostic.S6966.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/BestEffortDeleteTests.cs] dotnet_diagnostic.VSTHRD103.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/DriveManifestTests.cs] dotnet_diagnostic.CA1849.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/DriveManifestTests.cs] dotnet_diagnostic.MA0110.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/DriveManifestTests.cs] dotnet_diagnostic.S6966.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/DriveManifestTests.cs] dotnet_diagnostic.VSTHRD103.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/HeldProcessLiveTests.cs] dotnet_diagnostic.S3869.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Discovery/OpenCodeServerDiscoveryIsolatedProcessTests.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Discovery/ServiceDiscoveryTests.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Registration/ServiceMigrationTests.cs] dotnet_diagnostic.CA1849.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Registration/ServiceMigrationTests.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Registration/ServiceMigrationTests.cs] dotnet_diagnostic.S6966.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Registration/ServiceMigrationTests.cs] dotnet_diagnostic.VSTHRD103.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/ServiceFileSystemTests.cs] dotnet_diagnostic.CA1849.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/ServiceFileSystemTests.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/ServiceFileSystemTests.cs] dotnet_diagnostic.S6966.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/ServiceFileSystemTests.cs] dotnet_diagnostic.VSTHRD103.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Stop/OpenCodeServerStop{Live,Escalation}Tests.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Stop/ServiceStopperTests.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/OpenCodeServerContractTests.cs] dotnet_diagnostic.CA2000.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/PersistentPtys/PersistentPtySessionTests.cs] dotnet_diagnostic.CA2000.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/PinnedOpenCodeServerFixtureFailureTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Ptys/PtySessionTests.cs] dotnet_diagnostic.CA2000.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Sessions/SessionMessagePaginationLiveTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/BlockingStream.cs] dotnet_diagnostic.CA1844.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ChildExitObservation.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ControlledOperationDeadline.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OperationDeadlineScenario.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OwnedCleanupDeadlineTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OwnedCleanupTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OwnedEventReader.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OwnedEventReaderTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OwnedOperationDeadlineTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/PathCommandShim.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/PtyFailureDiagnosticsTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ScriptedTerminalWebSocket.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ServerDiagnosticScenario.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionEventProbe.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionEventProbeTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionLogTranscriptTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/Shared/DriveController.cs] dotnet_diagnostic.CA2213.severity = none
+editorconfig .editorconfig [tests/Shared/DriveManifest.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/Shared/DriveProtocol.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/Shared/Ownership/LateCleanupFailureReport.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/Shared/Ownership/OwnedCleanup.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/Shared/PinnedOpenCodeServerFixture.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/Shared/ProcessMark.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/Shared/ServerIsolation.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Commands/GenerateCommand.cs] dotnet_diagnostic.CA1034.severity = none
+editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Models/LiteralKind.cs] dotnet_diagnostic.CA1720.severity = none
+editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Models/PrimitiveKind.cs] dotnet_diagnostic.CA1720.severity = none
+editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/EnumSchemaProjector.cs] dotnet_diagnostic.CA1822.severity = none
+editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/EnumSchemaProjector.cs] dotnet_diagnostic.S2325.severity = none
+editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/ErrorStyleClassifier.cs] dotnet_diagnostic.CA1822.severity = none
+editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/ErrorStyleClassifier.cs] dotnet_diagnostic.S2325.severity = none
+editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/GraphKeyBuilder.cs] dotnet_diagnostic.CA1822.severity = none
+editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/GraphKeyBuilder.cs] dotnet_diagnostic.S2325.severity = none
+editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/LiteralClassifier.cs] dotnet_diagnostic.CA1822.severity = none
+editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/LiteralClassifier.cs] dotnet_diagnostic.S2325.severity = none
+editorconfig .editorconfig [tools/opencode-tool.cs] dotnet_diagnostic.MA0048.severity = none
+globalconfig .globalconfig dotnet_diagnostic.VSTHRD010.severity = none
+no-warn src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj OPENCODE001
+no-warn src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj OPENCODE002
+no-warn src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj OPENCODE003
+no-warn src/OpenCode.Sdk/OpenCode.Sdk.csproj OPENCODE001
+no-warn src/OpenCode.Sdk/OpenCode.Sdk.csproj OPENCODE002
+no-warn src/OpenCode.Sdk/OpenCode.Sdk.csproj OPENCODE003
+no-warn tests/OpenCode.Sdk.Extensions.Tests/OpenCode.Sdk.Extensions.Tests.csproj S1075
+no-warn tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj OPENCODE001
+no-warn tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj OPENCODE002
+no-warn tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj OPENCODE003
+no-warn tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj S1075
+no-warn tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj S2068
+no-warn tests/OpenCode.Sdk.Sandbox/OpenCode.Sdk.Sandbox.csproj OPENCODE001
+no-warn tests/OpenCode.Sdk.Sandbox/OpenCode.Sdk.Sandbox.csproj OPENCODE002
+no-warn tests/OpenCode.Sdk.Sandbox/OpenCode.Sdk.Sandbox.csproj OPENCODE003
+no-warn tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj OPENCODE001
+no-warn tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj OPENCODE002
+no-warn tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj OPENCODE003
+pragma src/OpenCode.Sdk/Common/Internal/ExperimentalDiagnostics.cs S1075
+pragma src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Handoff/PtyHandoffSidecar.cs MA0045
+pragma src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Registration/StrictJson.cs S1244
+pragma src/OpenCode.Sdk/Hosting/Internal/Platform/Posix/PosixChildExitWatch.cs VSTHRD003
+pragma src/OpenCode.Sdk/Hosting/Internal/Platform/Windows/WindowsExitWatch.cs S6640
+pragma src/OpenCode.Sdk/Hosting/Internal/Platform/Windows/WindowsExitWatch.cs VSTHRD003
+pragma src/OpenCode.Sdk/Hosting/Launcher/Internal/PipeLineReader.cs VSTHRD003
+pragma src/OpenCode.Sdk/Hosting/Launcher/Internal/WindowsServerChild.cs MA0045
+pragma src/OpenCode.Sdk/Internal/Terminal/TerminalReceivePump.cs VSTHRD003
+pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Ensure/ServiceEnsurerTests.cs MA0045
+pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Handoff/ServicePtyHandoffTests.cs MA0045 x2
+pragma tests/OpenCode.Sdk.Tests/PersistentPtys/PersistentPtySessionTests.cs CA2025
+pragma tests/OpenCode.Sdk.Tests/Support/BlockingContent.cs VSTHRD003
+pragma tests/OpenCode.Sdk.Tests/Support/DiagnosticWriteBarrier.cs VSTHRD003
+pragma tests/OpenCode.Sdk.Tests/Support/InterruptedBufferingContent.cs VSTHRD003
+pragma tests/OpenCode.Sdk.Tests/Support/LauncherHost.cs VSTHRD003
+pragma tests/OpenCode.Sdk.Tests/Support/LoopbackHttpServer.cs VSTHRD003
+pragma tests/OpenCode.Sdk.Tests/Support/PtyDiagnosticServer.cs VSTHRD003
+pragma tests/OpenCode.Sdk.Tests/Transport/OwnedTransportTests.cs VSTHRD003
+pragma tools/OpenCode.Sdk.Tools/Generator/Emission/ExperimentalAttributeSyntax.cs S1075
+pragma tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/AllOfWrapperKeywords.cs CS0618
+slopwatch-ignore src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj SW005
+slopwatch-ignore src/OpenCode.Sdk/OpenCode.Sdk.csproj SW005
+slopwatch-ignore tests/OpenCode.Sdk.Extensions.Tests/OpenCode.Sdk.Extensions.Tests.csproj SW005
+slopwatch-ignore tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj SW005 x2
+slopwatch-ignore tests/OpenCode.Sdk.Sandbox/OpenCode.Sdk.Sandbox.csproj SW005
+slopwatch-ignore tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj SW005
+slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Discovery/LoopbackTransport.cs SW003
+slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Ensure/ServiceElection.cs SW003
+slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Handoff/ServicePtyHandoff.cs SW003 x3
+slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Registration/ServiceMigration.cs SW003
+slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/ServiceFileSystem.cs SW003
+slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Stop/ServiceStopper.cs SW003 x2
+slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Stop/ServiceTerminator.cs SW003
+slopwatch-suppress src/OpenCode.Sdk/Hosting/Internal/Platform/Posix/PosixChildExitWatch.cs SW003
+slopwatch-suppress src/OpenCode.Sdk/Hosting/Internal/Platform/Windows/WindowsExitWatch.cs SW003 x3
+slopwatch-suppress src/OpenCode.Sdk/Hosting/Launcher/Internal/PipeLineReader.cs SW003
+slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/ContenderProbe.cs SW003
+slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/ContenderProbe.cs SW004
+slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/WindowsLauncherProbe.cs SW003
+slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/WindowsLauncherProbe.cs SW004
+slopwatch-suppress tests/OpenCode.Sdk.Tests/Hosting/Launcher/OpenCodeServerJobTests.cs SW004
+slopwatch-suppress tests/OpenCode.Sdk.Tests/Hosting/Platform/Windows/WindowsExitWatchTests.cs SW004 x2
+slopwatch-suppress tests/OpenCode.Sdk.Tests/Support/LadderTree.cs SW004
+slopwatch-suppress tests/OpenCode.Sdk.Tests/Support/LiveReadiness.cs SW004
+slopwatch-suppress tests/OpenCode.Sdk.Tests/Support/ProcessObservation.cs SW003
+slopwatch-suppress tests/OpenCode.Sdk.Tests/Support/TricklingContent.cs SW004
+slopwatch-suppress tests/OpenCode.Sdk.Tests/Transport/CallerStreamContentTests.cs SW004
+slopwatch-suppress tests/OpenCode.Sdk.Tools.Tests/Packaging/PackedConsumerFeed.cs SW003
+slopwatch-suppress tests/Shared/MachineLock.cs SW004
+slopwatch-suppress tests/Shared/PinnedManagedServiceFixture.cs SW004
