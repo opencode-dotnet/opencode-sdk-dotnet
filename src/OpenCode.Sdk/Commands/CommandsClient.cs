@@ -38,6 +38,6 @@ public class CommandsClient
     /// </remarks>
     public virtual Task<CommandListResponse> ListCommandsAsync(CommandListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Commands.ListCommands(request), CommandListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("command.list", HttpMethod.Get, OpenCodeRoutes.Commands.ListCommands(request), CommandListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

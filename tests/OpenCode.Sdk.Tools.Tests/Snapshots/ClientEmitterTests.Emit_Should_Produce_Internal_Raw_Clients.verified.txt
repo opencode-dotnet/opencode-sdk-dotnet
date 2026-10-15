@@ -126,7 +126,7 @@ internal sealed class PtyRawClient
             declaredHeaders.Add(new DeclaredHeader("x-opencode-ticket", xOpencodeTicket));
         }
 
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Ptys.CreateConnectToken(PtyId), PtyConnectTokenResponseAdapter.Instance, requestOptions, declaredHeaders: declaredHeaders, cancellationToken);
+        return Pipeline.ExecuteAsync("pty.connect.token", HttpMethod.Post, OpenCodeRoutes.Ptys.CreateConnectToken(PtyId), PtyConnectTokenResponseAdapter.Instance, requestOptions, declaredHeaders: declaredHeaders, cancellationToken);
     }
 }
 
@@ -183,6 +183,6 @@ internal sealed class PtysRawClient
     /// </remarks>
     internal Task<PtyListResponse> ListPtysAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Ptys.ListPtys, PtyListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("pty.list", HttpMethod.Get, OpenCodeRoutes.Ptys.ListPtys, PtyListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

@@ -171,6 +171,9 @@ internal static class OperationMethodEmitter
             : "HttpMethod";
         var arguments = new List<ArgumentSyntax>
         {
+            SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                SyntaxKind.StringLiteralExpression,
+                SyntaxFactory.Literal(operation.OperationId))),
             SyntaxFactory.Argument(EmissionSyntax.MemberAccess(
                 SyntaxFactory.IdentifierName(verbContainer),
                 CSharpNamePolicy.ToPascalCase(operation.HttpMethod))),

@@ -8,6 +8,8 @@ namespace OpenCode.Sdk.Tests.Transport;
 [NotInParallel]
 public sealed class OwnedTransportTests
 {
+    private const string OperationId = "test.operation";
+
     /// <summary>
     /// Bounds only a hang: the surfaced outcome decides the verdict. On net472 a cancelled socket
     /// read and the server's view of the closed connection both settle on pool continuations, so a
@@ -107,7 +109,7 @@ public sealed class OwnedTransportTests
         // a window that fired before the headers would fail the send instead and still throw
         // the same exception type. The window runs on the test's clock, which passes it only
         // once the headers are in, so the body phase is the only one it can fire in.
-        var execution = pipeline.ExecuteAsync(
+        var execution = pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get,
             "/api/info",
             new RecordingResponseAdapter(),
@@ -160,7 +162,7 @@ public sealed class OwnedTransportTests
             WebRequest.DefaultWebProxy = proxy;
             using var pipeline = Pipeline.Create(new OpenCodeClientOptions { Endpoint = endpoint });
 
-            var response = await pipeline.ExecuteAsync(
+            var response = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get,
                 "/api/info",
                 new RecordingResponseAdapter(),
@@ -198,14 +200,14 @@ public sealed class OwnedTransportTests
             _ => new LoopbackHttpResponse { StatusCode = HttpStatusCode.InternalServerError },
         });
         using var pipeline = Pipeline.Create(new OpenCodeClientOptions { Endpoint = server.Endpoint });
-        await using var first = pipeline.ExecuteStreamAsync(
+        await using var first = pipeline.ExecuteStreamAsync(OperationId,
             HttpMethod.Get, "/api/event", new TestStreamAdapter(), CancellationToken.None).GetAsyncEnumerator();
-        await using var second = pipeline.ExecuteStreamAsync(
+        await using var second = pipeline.ExecuteStreamAsync(OperationId,
             HttpMethod.Get, "/api/event", new TestStreamAdapter(), CancellationToken.None).GetAsyncEnumerator();
         var firstOpened = await first.MoveNextAsync();
         var secondOpened = await second.MoveNextAsync();
 
-        var response = await pipeline.ExecuteAsync(
+        var response = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get,
                 "/api/info",
                 new RecordingResponseAdapter(),
@@ -232,7 +234,7 @@ public sealed class OwnedTransportTests
         });
         using var pipeline = Pipeline.Create(new OpenCodeClientOptions { Endpoint = server.Endpoint });
         using var cancellation = new CancellationTokenSource();
-        var enumerator = pipeline.ExecuteStreamAsync(
+        var enumerator = pipeline.ExecuteStreamAsync(OperationId,
                 HttpMethod.Get, "/api/event", new TestStreamAdapter(), cancellation.Token)
             .GetAsyncEnumerator(cancellation.Token);
         Task<bool>? pendingRead = null;

@@ -43,7 +43,7 @@ public class ExperimentalClient
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Experimental.ActivateSessionSkill(sessionId), request, OpenCodeJsonContext.Default.ExperimentalSessionSkillRequest, ExperimentalSessionSkillResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.session.skill", HttpMethod.Post, OpenCodeRoutes.Experimental.ActivateSessionSkill(sessionId), request, OpenCodeJsonContext.Default.ExperimentalSessionSkillRequest, ExperimentalSessionSkillResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -61,7 +61,7 @@ public class ExperimentalClient
     public virtual Task<ExperimentalIntegrationWellknownAddResponse> AddIntegrationWellknownAsync(ExperimentalIntegrationWellknownAddRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Experimental.AddIntegrationWellknown(request), request, OpenCodeJsonContext.Default.ExperimentalIntegrationWellknownAddRequest, ExperimentalIntegrationWellknownAddResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.integration.wellknown.add", HttpMethod.Post, OpenCodeRoutes.Experimental.AddIntegrationWellknown(request), request, OpenCodeJsonContext.Default.ExperimentalIntegrationWellknownAddRequest, ExperimentalIntegrationWellknownAddResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -81,7 +81,7 @@ public class ExperimentalClient
     {
         ArgumentException.ThrowIfNullOrEmpty(server);
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Put, OpenCodeRoutes.Experimental.AddMcpServer(server, request), request, OpenCodeJsonContext.Default.ExperimentalMcpAddRequest, ExperimentalMcpAddResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.mcp.add", HttpMethod.Put, OpenCodeRoutes.Experimental.AddMcpServer(server, request), request, OpenCodeJsonContext.Default.ExperimentalMcpAddRequest, ExperimentalMcpAddResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -100,7 +100,7 @@ public class ExperimentalClient
     public virtual Task<ExperimentalMcpConnectResponse> ConnectMcpServerAsync(string server, ExperimentalMcpConnectRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(server);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Experimental.ConnectMcpServer(server, request), ExperimentalMcpConnectResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.mcp.connect", HttpMethod.Post, OpenCodeRoutes.Experimental.ConnectMcpServer(server, request), ExperimentalMcpConnectResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -119,7 +119,7 @@ public class ExperimentalClient
     public virtual Task<ExperimentalMcpDisconnectResponse> DisconnectMcpServerAsync(string server, ExperimentalMcpDisconnectRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(server);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Experimental.DisconnectMcpServer(server, request), ExperimentalMcpDisconnectResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.mcp.disconnect", HttpMethod.Post, OpenCodeRoutes.Experimental.DisconnectMcpServer(server, request), ExperimentalMcpDisconnectResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -137,7 +137,7 @@ public class ExperimentalClient
     public virtual Task<ExperimentalGenerateTextResponse> GenerateTextAsync(ExperimentalGenerateTextRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Experimental.GenerateText, request, OpenCodeJsonContext.Default.ExperimentalGenerateTextRequest, ExperimentalGenerateTextResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.generate.text", HttpMethod.Post, OpenCodeRoutes.Experimental.GenerateText, request, OpenCodeJsonContext.Default.ExperimentalGenerateTextRequest, ExperimentalGenerateTextResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -153,7 +153,7 @@ public class ExperimentalClient
     /// </remarks>
     public virtual Task<ExperimentalMigrationV1StatusResponse> GetMigrationV1StatusAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Experimental.GetMigrationV1Status, ExperimentalMigrationV1StatusResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.migration.v1.status", HttpMethod.Get, OpenCodeRoutes.Experimental.GetMigrationV1Status, ExperimentalMigrationV1StatusResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -172,7 +172,7 @@ public class ExperimentalClient
     public virtual Task<ExperimentalSessionExportResponse> GetSessionExportAsync(string sessionId, ExperimentalSessionExportRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Experimental.GetSessionExport(sessionId, request), ExperimentalSessionExportResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.session.export", HttpMethod.Get, OpenCodeRoutes.Experimental.GetSessionExport(sessionId, request), ExperimentalSessionExportResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -189,7 +189,7 @@ public class ExperimentalClient
     /// </remarks>
     public virtual Task<ExperimentalSessionStatsResponse> GetSessionStatsAsync(ExperimentalSessionStatsRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Experimental.GetSessionStats(request), ExperimentalSessionStatsResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.session.stats", HttpMethod.Get, OpenCodeRoutes.Experimental.GetSessionStats(request), ExperimentalSessionStatsResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -207,7 +207,7 @@ public class ExperimentalClient
     public virtual Task<ExperimentalSessionImportResponse> ImportSessionAsync(ExperimentalSessionImportRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Experimental.ImportSession, request, OpenCodeJsonContext.Default.ExperimentalSessionImportRequest, ExperimentalSessionImportResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.session.import", HttpMethod.Post, OpenCodeRoutes.Experimental.ImportSession, request, OpenCodeJsonContext.Default.ExperimentalSessionImportRequest, ExperimentalSessionImportResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -225,7 +225,7 @@ public class ExperimentalClient
     public virtual Task<ExperimentalSessionInstructionsEntryListResponse> ListSessionInstructionsEntryAsync(string sessionId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Experimental.ListSessionInstructionsEntry(sessionId), ExperimentalSessionInstructionsEntryListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.session.instructions.entry.list", HttpMethod.Get, OpenCodeRoutes.Experimental.ListSessionInstructionsEntry(sessionId), ExperimentalSessionInstructionsEntryListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -244,7 +244,7 @@ public class ExperimentalClient
     public virtual Task<ExperimentalMcpRemoveResponse> RemoveMcpServerAsync(string server, ExperimentalMcpRemoveRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(server);
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Experimental.RemoveMcpServer(server, request), ExperimentalMcpRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.mcp.remove", HttpMethod.Delete, OpenCodeRoutes.Experimental.RemoveMcpServer(server, request), ExperimentalMcpRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -264,7 +264,7 @@ public class ExperimentalClient
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(key);
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Experimental.RemoveSessionInstructionsEntry(sessionId, key), ExperimentalSessionInstructionsEntryRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.session.instructions.entry.remove", HttpMethod.Delete, OpenCodeRoutes.Experimental.RemoveSessionInstructionsEntry(sessionId, key), ExperimentalSessionInstructionsEntryRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -286,7 +286,7 @@ public class ExperimentalClient
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Put, OpenCodeRoutes.Experimental.SetSessionInstructionsEntry(sessionId, key), request, OpenCodeJsonContext.Default.ExperimentalSessionInstructionsEntryRequest, ExperimentalSessionInstructionsEntryResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.session.instructions.entry.put", HttpMethod.Put, OpenCodeRoutes.Experimental.SetSessionInstructionsEntry(sessionId, key), request, OpenCodeJsonContext.Default.ExperimentalSessionInstructionsEntryRequest, ExperimentalSessionInstructionsEntryResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -304,7 +304,7 @@ public class ExperimentalClient
     public virtual Task<ExperimentalConfigUpdateResponse> UpdateConfigAsync(ExperimentalConfigUpdateRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(OpenCodeHttpMethod.Patch, OpenCodeRoutes.Experimental.UpdateConfig, request, OpenCodeJsonContext.Default.ExperimentalConfigUpdateRequest, ExperimentalConfigUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.config.update", OpenCodeHttpMethod.Patch, OpenCodeRoutes.Experimental.UpdateConfig, request, OpenCodeJsonContext.Default.ExperimentalConfigUpdateRequest, ExperimentalConfigUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -322,7 +322,7 @@ public class ExperimentalClient
     public virtual Task<ExperimentalSessionWaitResponse> WaitForSessionAsync(string sessionId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Experimental.WaitForSession(sessionId), ExperimentalSessionWaitResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.session.wait", HttpMethod.Post, OpenCodeRoutes.Experimental.WaitForSession(sessionId), ExperimentalSessionWaitResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -342,6 +342,6 @@ public class ExperimentalClient
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(content);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Experimental.WriteFile(request), content, ExperimentalFsWriteResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.fs.write", HttpMethod.Post, OpenCodeRoutes.Experimental.WriteFile(request), content, ExperimentalFsWriteResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

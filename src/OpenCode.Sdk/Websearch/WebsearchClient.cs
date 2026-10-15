@@ -39,7 +39,7 @@ public class WebsearchClient
     /// </remarks>
     public virtual Task<WebsearchProvidersResponse> GetProvidersAsync(WebsearchProvidersRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Websearch.GetProviders(request), WebsearchProvidersResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("websearch.providers", HttpMethod.Get, OpenCodeRoutes.Websearch.GetProviders(request), WebsearchProvidersResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -57,6 +57,6 @@ public class WebsearchClient
     public virtual Task<WebsearchQueryResponse> QueryAsync(WebsearchQueryRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Websearch.Query(request), request, OpenCodeJsonContext.Default.WebsearchQueryRequest, WebsearchQueryResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("websearch.query", HttpMethod.Post, OpenCodeRoutes.Websearch.Query(request), request, OpenCodeJsonContext.Default.WebsearchQueryRequest, WebsearchQueryResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

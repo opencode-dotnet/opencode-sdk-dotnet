@@ -38,6 +38,6 @@ public class ReferencesClient
     /// </remarks>
     public virtual Task<ReferenceListResponse> ListReferencesAsync(ReferenceListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.References.ListReferences(request), ReferenceListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("reference.list", HttpMethod.Get, OpenCodeRoutes.References.ListReferences(request), ReferenceListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

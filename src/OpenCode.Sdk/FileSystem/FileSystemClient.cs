@@ -39,7 +39,7 @@ public class FileSystemClient
     public virtual Task<FsFindResponse> FindEntriesAsync(FsFindRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.FileSystem.FindEntries(request), FsFindResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("fs.find", HttpMethod.Get, OpenCodeRoutes.FileSystem.FindEntries(request), FsFindResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -56,7 +56,7 @@ public class FileSystemClient
     /// </remarks>
     public virtual Task<FsListResponse> ListEntriesAsync(FsListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.FileSystem.ListEntries(request), FsListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("fs.list", HttpMethod.Get, OpenCodeRoutes.FileSystem.ListEntries(request), FsListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -74,6 +74,6 @@ public class FileSystemClient
     public virtual Task<FsReadResponse> ReadFileAsync(FsReadRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.FileSystem.ReadFile(request), FsReadResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("fs.read", HttpMethod.Get, OpenCodeRoutes.FileSystem.ReadFile(request), FsReadResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

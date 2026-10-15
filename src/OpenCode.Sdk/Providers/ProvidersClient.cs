@@ -40,7 +40,7 @@ public class ProvidersClient
     public virtual Task<ProviderResponse> GetProviderAsync(string providerId, ProviderRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(providerId);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Providers.GetProvider(providerId, request), ProviderResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("provider.get", HttpMethod.Get, OpenCodeRoutes.Providers.GetProvider(providerId, request), ProviderResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -57,6 +57,6 @@ public class ProvidersClient
     /// </remarks>
     public virtual Task<ProviderListResponse> ListProvidersAsync(ProviderListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Providers.ListProviders(request), ProviderListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("provider.list", HttpMethod.Get, OpenCodeRoutes.Providers.ListProviders(request), ProviderListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

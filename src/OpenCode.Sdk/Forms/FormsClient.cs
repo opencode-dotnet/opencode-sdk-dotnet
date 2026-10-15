@@ -38,6 +38,6 @@ public class FormsClient
     /// </remarks>
     public virtual Task<FormListResponse> ListFormsAsync(FormListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Forms.ListForms(request), FormListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("form.list", HttpMethod.Get, OpenCodeRoutes.Forms.ListForms(request), FormListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

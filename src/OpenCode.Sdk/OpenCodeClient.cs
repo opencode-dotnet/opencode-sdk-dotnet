@@ -265,7 +265,7 @@ public class OpenCodeClient : IDisposable
     /// </remarks>
     public virtual Task<LocationResponse> GetLocationAsync(LocationRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Location.Get(request), LocationResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("location.get", HttpMethod.Get, OpenCodeRoutes.Location.Get(request), LocationResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -281,6 +281,6 @@ public class OpenCodeClient : IDisposable
     /// </remarks>
     public virtual Task<LocationReloadResponse> ReloadLocationsAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Location.ReloadLocations, LocationReloadResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("location.reload", HttpMethod.Post, OpenCodeRoutes.Location.ReloadLocations, LocationReloadResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

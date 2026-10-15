@@ -7,6 +7,9 @@ namespace OpenCode.Sdk.Internal;
 /// </summary>
 internal sealed class PipelineMessage : IDisposable
 {
+    /// <summary>The operation the message carries, the key the transport's per-operation rules are looked up by.</summary>
+    public required string OperationId { get; init; }
+
     /// <summary>Gets the decorated request; built by the plane, sent by <see cref="TransportPolicy"/>.</summary>
     public required HttpRequestMessage Request { get; init; }
 

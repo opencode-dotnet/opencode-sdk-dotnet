@@ -15,6 +15,7 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 [MemoryDiagnoser]
 public class RouteCompositionBenchmarks : IDisposable
 {
+    private const string OperationId = "session.message.get";
     private const string EndpointBase = "https://benchmark.invalid";
     private const string SessionId = "ses_bench0000000000000000001";
     private const string MessageId = "msg_bench0000000000000000001";
@@ -52,6 +53,7 @@ public class RouteCompositionBenchmarks : IDisposable
         _pathRoute = OpenCodeRoutes.Sessions.GetMessage(SessionId, MessageId);
         _message = new PipelineMessage
         {
+            OperationId = OperationId,
             Request = new HttpRequestMessage(HttpMethod.Get, new Uri(EndpointBase + _pathRoute, UriKind.Absolute)),
             PerCallLocation = PerCallLocation,
         };
@@ -76,6 +78,7 @@ public class RouteCompositionBenchmarks : IDisposable
     {
         using var message = new PipelineMessage
         {
+            OperationId = OperationId,
             Request = new HttpRequestMessage(HttpMethod.Get, new Uri(EndpointBase + _pathRoute, UriKind.Absolute)),
             PerCallLocation = PerCallLocation,
         };

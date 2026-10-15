@@ -12,6 +12,7 @@ namespace OpenCode.Sdk.Tests.Transport;
 public sealed class PipelineTests
 {
     private static readonly Uri Endpoint = new("http://localhost:4096");
+    private const string OperationId = "test.operation";
 
     /// <summary>Bounds a wait for an event that never comes; it decides no verdict.</summary>
     private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
@@ -23,13 +24,32 @@ public sealed class PipelineTests
     private static readonly TimeSpan Window = TimeSpan.FromMinutes(2);
 
     [Test]
+    [Arguments("")]
+    [Arguments(" ")]
+    [Arguments("\t")]
+    public async Task ExecuteAsync_Should_Refuse_A_Blank_Operation_Id(string operationId)
+    {
+        using var handler = new RecordingHttpHandler();
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = CreatePipeline(httpClient);
+
+        var exception = await Assert
+            .That(async () => _ = await pipeline.ExecuteAsync(operationId,
+                HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
+            .Throws<ArgumentException>();
+
+        await Assert.That(exception!.ParamName).IsEqualTo(nameof(operationId));
+        await Assert.That(handler.Requests).IsEmpty();
+    }
+
+    [Test]
     public async Task ExecuteAsync_Should_Join_The_Route_Onto_The_Endpoint()
     {
         using var handler = new RecordingHttpHandler();
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient);
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         await Assert.That(handler.Requests.Single().Method).IsEqualTo(HttpMethod.Get);
         await Assert.That(handler.Requests.Single().RequestUri).IsEqualTo(new Uri("http://localhost:4096/api/info"));
@@ -42,7 +62,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient, endpoint: new Uri("http://localhost:8080/opencode/"));
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         await Assert.That(handler.Requests.Single().RequestUri).IsEqualTo(new Uri("http://localhost:8080/opencode/api/info"));
     }
@@ -54,7 +74,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient, password: "secret");
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         var expected = $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes("opencode:secret"))}";
         await Assert.That(handler.Requests.Single().Authorization).IsEqualTo(expected);
@@ -67,7 +87,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient, password: "secret", username: "admin");
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         var expected = $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes("admin:secret"))}";
         await Assert.That(handler.Requests.Single().Authorization).IsEqualTo(expected);
@@ -87,7 +107,7 @@ public sealed class PipelineTests
         options.Password = "changed";
         options.Endpoint = new Uri("http://other:1");
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         var expected = $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes("opencode:secret"))}";
         await Assert.That(handler.Requests.Single().Authorization).IsEqualTo(expected);
@@ -108,7 +128,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient, password: password);
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         var expected = $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes("opencode:" + password))}";
         await Assert.That(handler.Requests.Single().Authorization).IsEqualTo(expected);
@@ -147,7 +167,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient);
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         await Assert.That(handler.Requests.Single().Authorization).IsNull();
     }
@@ -160,7 +180,7 @@ public sealed class PipelineTests
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "foreign-token");
         using var pipeline = CreatePipeline(httpClient, password: "secret");
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         var expected = $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes("opencode:secret"))}";
         await Assert.That(handler.Requests.Single().Authorization).IsEqualTo(expected);
@@ -176,7 +196,7 @@ public sealed class PipelineTests
             Directory = "/repo"
         });
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         var request = handler.Requests.Single();
         await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo("%2Frepo");
@@ -190,7 +210,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient, location: new LocationSelector());
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         var request = handler.Requests.Single();
         await Assert.That(request.Headers.ContainsKey("x-opencode-directory")).IsFalse();
@@ -207,7 +227,7 @@ public sealed class PipelineTests
             Directory = "/data/reports%20q3",
         });
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         // The server decodes this header, so an unescaped '%20' would arrive as a space and
         // silently address a different directory.
@@ -225,7 +245,7 @@ public sealed class PipelineTests
             Directory = "/workspace/café",
         });
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         // Header values above Latin-1 are unsendable, so the escape is what keeps a
         // non-ASCII path on the wire at all.
@@ -240,7 +260,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient);
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         var request = handler.Requests.Single();
         await Assert.That(request.Headers.ContainsKey("x-opencode-directory")).IsFalse();
@@ -260,7 +280,7 @@ public sealed class PipelineTests
         using var pipeline = Pipeline.Create(httpClient, options);
         options.Location = new LocationSelector { Directory = "/after" };
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         await Assert.That(handler.Requests.Single().Headers["x-opencode-directory"]).IsEqualTo("%2Fbefore");
     }
@@ -272,7 +292,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient);
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         await Assert.That(handler.Requests.Single().UserAgent).IsEqualTo(UserAgentPolicy.Resolve().ToString());
     }
@@ -284,7 +304,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient, password: "secret");
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         await Assert.That(httpClient.BaseAddress).IsNull();
         await Assert.That(httpClient.DefaultRequestHeaders.Any()).IsFalse();
@@ -297,7 +317,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient);
 
-        _ = await pipeline.ExecuteAsync(
+        _ = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Post,
             "/api/session",
             new TestBody { Value = "created" },
@@ -318,7 +338,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient);
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         await Assert.That(handler.Requests.Single().Body).IsNull();
         await Assert.That(handler.Requests.Single().ContentType).IsNull();
@@ -332,12 +352,12 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Post, "/api/session", null!, TestBodyJsonContext.Default.TestBody,
                 new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<ArgumentNullException>();
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Post, "/api/session", new TestBody { Value = "created" }, bodyTypeInfo: null!,
                 new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<ArgumentNullException>();
@@ -352,7 +372,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Post, "api/session", new TestBody { Value = "created" }, TestBodyJsonContext.Default.TestBody,
                 new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<ArgumentException>();
@@ -372,7 +392,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter();
 
-        var response = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
+        var response = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
 
         await Assert.That(adapter.AdaptedStatus).IsEqualTo(200);
         await Assert.That(adapter.AdaptedRawBody).IsEqualTo("{\"healthy\":true}");
@@ -401,7 +421,7 @@ public sealed class PipelineTests
         });
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None))
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None))
             .Throws<OpenCodeApiException>();
 
         await Assert.That(exception!.Status).IsEqualTo(401);
@@ -427,7 +447,7 @@ public sealed class PipelineTests
             RawBody = rawBody,
         });
 
-        var response = await pipeline.ExecuteAsync(
+        var response = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get,
             "/api/info",
             adapter,
@@ -447,7 +467,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<OpenCodeTransportException>();
 
@@ -470,7 +490,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<OpenCodeTransportException>();
 
@@ -494,7 +514,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<OpenCodeTransportException>();
 
@@ -518,7 +538,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<OpenCodeTransportException>();
 
@@ -545,7 +565,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter();
 
-        _ = await pipeline.ExecuteAsync(
+        _ = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
 
         await Assert.That(adapter.AdaptedRawBody).IsEqualTo(WireBodyData.InfoOk);
@@ -573,7 +593,7 @@ public sealed class PipelineTests
             RawBody = rawBody,
         });
 
-        var response = await pipeline.ExecuteAsync(
+        var response = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", adapter, OpenCodeRequestOptions.NoThrow, CancellationToken.None);
 
         await Assert.That(response.RawBody).IsEqualTo(WireBodyData.UnauthorizedError);
@@ -593,7 +613,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter();
 
-        _ = await pipeline.ExecuteAsync(
+        _ = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
 
         await Assert.That(adapter.AdaptedRawBody).IsEqualTo(WireBodyData.InfoOk);
@@ -611,7 +631,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter();
 
-        _ = await pipeline.ExecuteAsync(
+        _ = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
 
         await Assert.That(adapter.AdaptedRawBody).IsEqualTo(WireBodyData.InfoOk);
@@ -635,7 +655,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter();
 
-        _ = await pipeline.ExecuteAsync(
+        _ = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
 
         await Assert.That(adapter.AdaptedRawBody).IsEqualTo(WireBodyData.InfoOk);
@@ -657,7 +677,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter();
 
-        _ = await pipeline.ExecuteAsync(
+        _ = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
 
         await Assert.That(adapter.AdaptedRawBody).IsEmpty();
@@ -684,7 +704,7 @@ public sealed class PipelineTests
             RawBody = rawBody,
         });
 
-        var response = await pipeline.ExecuteAsync(
+        var response = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", adapter, OpenCodeRequestOptions.NoThrow, CancellationToken.None);
 
         await Assert.That(response.RawBody).IsEqualTo(WireBodyData.UnauthorizedError);
@@ -700,7 +720,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient);
 
-        var response = await pipeline.ExecuteAsync(
+        var response = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", ServerInfoResponseAdapter.Instance, options: null, CancellationToken.None);
 
         await Assert.That(response.Status).IsEqualTo(200);
@@ -714,7 +734,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<OpenCodeTransportException>();
 
@@ -730,7 +750,7 @@ public sealed class PipelineTests
         var options = new OpenCodeRequestOptions { ErrorBehavior = (ErrorBehavior)2 };
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None))
             .Throws<ArgumentOutOfRangeException>();
 
@@ -747,7 +767,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, cancellation.Token))
             .Throws<OperationCanceledException>();
 
@@ -762,7 +782,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<OpenCodeTransportException>();
 
@@ -780,7 +800,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<OpenCodeTransportException>();
 
@@ -801,7 +821,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient, networkTimeout: TimeSpan.FromMilliseconds(200));
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get,
                 "/api/info",
                 new RecordingResponseAdapter(),
@@ -842,7 +862,7 @@ public sealed class PipelineTests
         var adapter = new RecordingResponseAdapter();
 
         var delivering = body.DeliverAsync(() => time.Advance(Window - TimeSpan.FromTicks(1)), HangGuard);
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None).WaitAsync(HangGuard);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None).WaitAsync(HangGuard);
         await delivering;
 
         await Assert.That(adapter.AdaptedRawBody).IsEqualTo("{\"healthy\":true}");
@@ -867,7 +887,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient, networkTimeout: Window, time: time);
 
-        var execution = pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        var execution = pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
         await body.WaitForReadAsync(HangGuard);
         body.Release();
         await body.WaitForReadAsync(HangGuard);
@@ -891,7 +911,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient, networkTimeout: TimeSpan.FromMilliseconds(200));
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get,
                 "/api/info",
                 new RecordingResponseAdapter(),
@@ -918,7 +938,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient);
 
-        var execution = pipeline.ExecuteAsync(
+        var execution = pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get,
             "/api/info",
             new RecordingResponseAdapter(),
@@ -955,7 +975,7 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient);
 
-        var execution = pipeline.ExecuteAsync(
+        var execution = pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get,
             "/api/info",
             new RecordingResponseAdapter(),
@@ -999,7 +1019,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient, networkTimeout: TimeSpan.FromMilliseconds(200));
 
         var failure = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get,
                 "/api/info",
                 new RecordingResponseAdapter(),
@@ -1050,7 +1070,7 @@ public sealed class PipelineTests
         pipeline.Dispose();
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<ObjectDisposedException>();
     }
@@ -1063,7 +1083,7 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient);
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "api/health", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<ArgumentException>();
     }

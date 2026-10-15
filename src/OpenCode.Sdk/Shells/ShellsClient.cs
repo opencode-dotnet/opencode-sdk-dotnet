@@ -56,7 +56,7 @@ public class ShellsClient
     public virtual Task<ShellCreateResponse> CreateShellAsync(ShellCreateRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Shells.CreateShell(request), request, OpenCodeJsonContext.Default.ShellCreateRequest, ShellCreateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("shell.create", HttpMethod.Post, OpenCodeRoutes.Shells.CreateShell(request), request, OpenCodeJsonContext.Default.ShellCreateRequest, ShellCreateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -73,6 +73,6 @@ public class ShellsClient
     /// </remarks>
     public virtual Task<ShellListResponse> ListShellsAsync(ShellListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Shells.ListShells(request), ShellListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("shell.list", HttpMethod.Get, OpenCodeRoutes.Shells.ListShells(request), ShellListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

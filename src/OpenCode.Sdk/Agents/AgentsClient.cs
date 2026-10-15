@@ -40,7 +40,7 @@ public class AgentsClient
     public virtual Task<AgentResponse> GetAgentAsync(string agentId, AgentRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(agentId);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Agents.GetAgent(agentId, request), AgentResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("agent.get", HttpMethod.Get, OpenCodeRoutes.Agents.GetAgent(agentId, request), AgentResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -57,6 +57,6 @@ public class AgentsClient
     /// </remarks>
     public virtual Task<AgentListResponse> ListAgentsAsync(AgentListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Agents.ListAgents(request), AgentListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("agent.list", HttpMethod.Get, OpenCodeRoutes.Agents.ListAgents(request), AgentListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

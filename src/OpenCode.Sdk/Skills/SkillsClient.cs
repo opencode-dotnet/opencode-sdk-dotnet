@@ -38,6 +38,6 @@ public class SkillsClient
     /// </remarks>
     public virtual Task<SkillListResponse> ListSkillsAsync(SkillListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Skills.ListSkills(request), SkillListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("skill.list", HttpMethod.Get, OpenCodeRoutes.Skills.ListSkills(request), SkillListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

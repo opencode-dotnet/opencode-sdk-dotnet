@@ -38,6 +38,6 @@ public class EventsClient
     /// </remarks>
     public virtual IAsyncEnumerable<IEvent> SubscribeAsync(CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteStreamAsync(HttpMethod.Get, OpenCodeRoutes.Events.Subscribe, EventSubscribeResponseStreamAdapter.Instance, cancellationToken);
+        return Pipeline.ExecuteStreamAsync("event.subscribe", HttpMethod.Get, OpenCodeRoutes.Events.Subscribe, EventSubscribeResponseStreamAdapter.Instance, cancellationToken);
     }
 }

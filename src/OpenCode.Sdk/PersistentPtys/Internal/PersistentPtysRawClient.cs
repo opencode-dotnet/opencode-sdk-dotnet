@@ -50,7 +50,7 @@ internal sealed class PersistentPtysRawClient
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.PersistentPtys.CreatePersistentPty(sessionId), request, OpenCodeJsonContext.Default.PersistentPtyCreateRequest, PersistentPtyCreateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("persistentPty.create", HttpMethod.Post, OpenCodeRoutes.PersistentPtys.CreatePersistentPty(sessionId), request, OpenCodeJsonContext.Default.PersistentPtyCreateRequest, PersistentPtyCreateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -69,7 +69,7 @@ internal sealed class PersistentPtysRawClient
     internal Task<PersistentPtyReadResponse> GetReadAsync(string sessionId, PersistentPtyReadRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.PersistentPtys.GetRead(sessionId, request), PersistentPtyReadResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("persistentPty.read", HttpMethod.Get, OpenCodeRoutes.PersistentPtys.GetRead(sessionId, request), PersistentPtyReadResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -85,7 +85,7 @@ internal sealed class PersistentPtysRawClient
     /// </remarks>
     internal Task<PersistentPtyHandoffResponse> HandoffAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.PersistentPtys.Handoff, PersistentPtyHandoffResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("persistentPty.handoff", HttpMethod.Post, OpenCodeRoutes.PersistentPtys.Handoff, PersistentPtyHandoffResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -103,7 +103,7 @@ internal sealed class PersistentPtysRawClient
     internal Task<PersistentPtyListResponse> ListPersistentPtysAsync(string sessionId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.PersistentPtys.ListPersistentPtys(sessionId), PersistentPtyListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("persistentPty.list", HttpMethod.Get, OpenCodeRoutes.PersistentPtys.ListPersistentPtys(sessionId), PersistentPtyListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -119,6 +119,6 @@ internal sealed class PersistentPtysRawClient
     /// </remarks>
     internal Task<PersistentPtyShutdownResponse> ShutdownAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.PersistentPtys.Shutdown, PersistentPtyShutdownResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("persistentPty.shutdown", HttpMethod.Post, OpenCodeRoutes.PersistentPtys.Shutdown, PersistentPtyShutdownResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

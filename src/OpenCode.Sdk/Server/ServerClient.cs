@@ -37,7 +37,7 @@ public class ServerClient
     /// </remarks>
     public virtual Task<ServerPairResponse> CreatePairingCodeAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Server.CreatePairingCode, ServerPairResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("server.pair", HttpMethod.Post, OpenCodeRoutes.Server.CreatePairingCode, ServerPairResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -53,7 +53,7 @@ public class ServerClient
     /// </remarks>
     public virtual Task<ServerInfoResponse> GetInfoAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Server.GetInfo, ServerInfoResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("server.info", HttpMethod.Get, OpenCodeRoutes.Server.GetInfo, ServerInfoResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -71,6 +71,6 @@ public class ServerClient
     public virtual Task<ServerConnectResponse> RedeemPairingCodeAsync(string code, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(code);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Server.RedeemPairingCode(code), ServerConnectResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("server.connect", HttpMethod.Get, OpenCodeRoutes.Server.RedeemPairingCode(code), ServerConnectResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

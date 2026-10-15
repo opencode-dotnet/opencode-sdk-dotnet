@@ -52,7 +52,7 @@ public class SessionClient
     public virtual Task<SessionSyntheticResponse> AddSyntheticMessageAsync(SessionSyntheticRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.AddSyntheticMessage(SessionId), request, OpenCodeJsonContext.Default.SessionSyntheticRequest, SessionSyntheticResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.synthetic", HttpMethod.Post, OpenCodeRoutes.Sessions.AddSyntheticMessage(SessionId), request, OpenCodeJsonContext.Default.SessionSyntheticRequest, SessionSyntheticResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -71,7 +71,7 @@ public class SessionClient
     public virtual Task<SessionFormCancelResponse> CancelFormAsync(string formId, SessionFormCancelRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(formId);
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Sessions.CancelForm(SessionId, formId, request), SessionFormCancelResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.form.cancel", HttpMethod.Delete, OpenCodeRoutes.Sessions.CancelForm(SessionId, formId, request), SessionFormCancelResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -89,7 +89,7 @@ public class SessionClient
     public virtual Task<SessionInboxCancelResponse> CancelInboxAsync(string inboxId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(inboxId);
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Sessions.CancelInbox(SessionId, inboxId), SessionInboxCancelResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.inbox.cancel", HttpMethod.Delete, OpenCodeRoutes.Sessions.CancelInbox(SessionId, inboxId), SessionInboxCancelResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -105,7 +105,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionRevertClearResponse> ClearRevertAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Sessions.ClearRevert(SessionId), SessionRevertClearResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.revert.clear", HttpMethod.Delete, OpenCodeRoutes.Sessions.ClearRevert(SessionId), SessionRevertClearResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -121,7 +121,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionRevertCommitResponse> CommitRevertAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.CommitRevert(SessionId), SessionRevertCommitResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.revert.commit", HttpMethod.Post, OpenCodeRoutes.Sessions.CommitRevert(SessionId), SessionRevertCommitResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -138,7 +138,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionCompactResponse> CompactAsync(SessionCompactRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.Compact(SessionId), request ?? EmptySessionCompactRequest, OpenCodeJsonContext.Default.SessionCompactRequest, SessionCompactResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.compact", HttpMethod.Post, OpenCodeRoutes.Sessions.Compact(SessionId), request ?? EmptySessionCompactRequest, OpenCodeJsonContext.Default.SessionCompactRequest, SessionCompactResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -156,7 +156,7 @@ public class SessionClient
     public virtual Task<SessionFormCreateResponse> CreateFormAsync(SessionFormCreateRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.CreateForm(SessionId), request, OpenCodeJsonContext.Default.SessionFormCreateRequest, SessionFormCreateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.form.create", HttpMethod.Post, OpenCodeRoutes.Sessions.CreateForm(SessionId), request, OpenCodeJsonContext.Default.SessionFormCreateRequest, SessionFormCreateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -174,7 +174,7 @@ public class SessionClient
     public virtual Task<SessionPermissionCreateResponse> CreatePermissionAsync(SessionPermissionCreateRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.CreatePermission(SessionId), request, OpenCodeJsonContext.Default.SessionPermissionCreateRequest, SessionPermissionCreateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.permission.create", HttpMethod.Post, OpenCodeRoutes.Sessions.CreatePermission(SessionId), request, OpenCodeJsonContext.Default.SessionPermissionCreateRequest, SessionPermissionCreateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -191,7 +191,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionForkResponse> ForkAsync(SessionForkRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.Fork(SessionId), request ?? EmptySessionForkRequest, OpenCodeJsonContext.Default.SessionForkRequest, SessionForkResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.fork", HttpMethod.Post, OpenCodeRoutes.Sessions.Fork(SessionId), request ?? EmptySessionForkRequest, OpenCodeJsonContext.Default.SessionForkRequest, SessionForkResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -209,7 +209,7 @@ public class SessionClient
     public virtual Task<SessionGenerateResponse> GenerateTextAsync(SessionGenerateRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.GenerateText(SessionId), request, OpenCodeJsonContext.Default.SessionGenerateRequest, SessionGenerateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.generate", HttpMethod.Post, OpenCodeRoutes.Sessions.GenerateText(SessionId), request, OpenCodeJsonContext.Default.SessionGenerateRequest, SessionGenerateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -225,7 +225,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionResponse> GetAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.Get(SessionId), SessionResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.get", HttpMethod.Get, OpenCodeRoutes.Sessions.Get(SessionId), SessionResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -241,7 +241,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionContextResponse> GetContextAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.GetContext(SessionId), SessionContextResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.context", HttpMethod.Get, OpenCodeRoutes.Sessions.GetContext(SessionId), SessionContextResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -258,7 +258,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionDiffResponse> GetDiffAsync(SessionDiffRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.GetDiff(SessionId, request), SessionDiffResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.diff", HttpMethod.Get, OpenCodeRoutes.Sessions.GetDiff(SessionId, request), SessionDiffResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -276,7 +276,7 @@ public class SessionClient
     public virtual Task<SessionFormResponse> GetFormAsync(string formId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(formId);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.GetForm(SessionId, formId), SessionFormResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.form.get", HttpMethod.Get, OpenCodeRoutes.Sessions.GetForm(SessionId, formId), SessionFormResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -294,7 +294,7 @@ public class SessionClient
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
     public virtual IAsyncEnumerable<ISessionLogItem> GetLogAsync(SessionLogRequest? request = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteStreamAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.GetLog(SessionId, request), SessionLogResponseStreamAdapter.Instance, cancellationToken);
+        return Pipeline.ExecuteStreamAsync("session.log", HttpMethod.Get, OpenCodeRoutes.Sessions.GetLog(SessionId, request), SessionLogResponseStreamAdapter.Instance, cancellationToken);
     }
 
     /// <summary>
@@ -312,7 +312,7 @@ public class SessionClient
     public virtual Task<SessionMessageResponse> GetMessageAsync(string messageId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(messageId);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.GetMessage(SessionId, messageId), SessionMessageResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.message.get", HttpMethod.Get, OpenCodeRoutes.Sessions.GetMessage(SessionId, messageId), SessionMessageResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -330,7 +330,7 @@ public class SessionClient
     public virtual Task<SessionPermissionResponse> GetPermissionAsync(string requestId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(requestId);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.GetPermission(SessionId, requestId), SessionPermissionResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.permission.get", HttpMethod.Get, OpenCodeRoutes.Sessions.GetPermission(SessionId, requestId), SessionPermissionResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -347,7 +347,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionInterruptResponse> InterruptAsync(SessionInterruptRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.Interrupt(SessionId, request), SessionInterruptResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.interrupt", HttpMethod.Post, OpenCodeRoutes.Sessions.Interrupt(SessionId, request), SessionInterruptResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -363,7 +363,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionFormListResponse> ListFormsAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.ListForms(SessionId), SessionFormListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.form.list", HttpMethod.Get, OpenCodeRoutes.Sessions.ListForms(SessionId), SessionFormListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -379,7 +379,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionInboxListResponse> ListInboxAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.ListInbox(SessionId), SessionInboxListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.inbox.list", HttpMethod.Get, OpenCodeRoutes.Sessions.ListInbox(SessionId), SessionInboxListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -396,7 +396,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionMessageListResponse> ListMessagesAsync(SessionMessageListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.ListMessages(SessionId, request), SessionMessageListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.message.list", HttpMethod.Get, OpenCodeRoutes.Sessions.ListMessages(SessionId, request), SessionMessageListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -428,7 +428,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionPermissionListResponse> ListRequestsAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.ListRequests(SessionId), SessionPermissionListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.permission.list", HttpMethod.Get, OpenCodeRoutes.Sessions.ListRequests(SessionId), SessionPermissionListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -446,7 +446,7 @@ public class SessionClient
     public virtual Task<SessionViewResponse> MarkViewedAsync(SessionViewRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.MarkViewed(SessionId), request, OpenCodeJsonContext.Default.SessionViewRequest, SessionViewResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.view", HttpMethod.Post, OpenCodeRoutes.Sessions.MarkViewed(SessionId), request, OpenCodeJsonContext.Default.SessionViewRequest, SessionViewResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -464,7 +464,7 @@ public class SessionClient
     public virtual Task<SessionMoveResponse> MoveAsync(SessionMoveRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.Move(SessionId), request, OpenCodeJsonContext.Default.SessionMoveRequest, SessionMoveResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.move", HttpMethod.Post, OpenCodeRoutes.Sessions.Move(SessionId), request, OpenCodeJsonContext.Default.SessionMoveRequest, SessionMoveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -480,7 +480,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionBackgroundResponse> MoveToolsToBackgroundAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.MoveToolsToBackground(SessionId), SessionBackgroundResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.background", HttpMethod.Post, OpenCodeRoutes.Sessions.MoveToolsToBackground(SessionId), SessionBackgroundResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -498,7 +498,7 @@ public class SessionClient
     public virtual Task<SessionPromptResponse> PromptAsync(SessionPromptRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.Prompt(SessionId), request, OpenCodeJsonContext.Default.SessionPromptRequest, SessionPromptResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.prompt", HttpMethod.Post, OpenCodeRoutes.Sessions.Prompt(SessionId), request, OpenCodeJsonContext.Default.SessionPromptRequest, SessionPromptResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -514,7 +514,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionRemoveResponse> RemoveAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Sessions.Remove(SessionId), SessionRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.remove", HttpMethod.Delete, OpenCodeRoutes.Sessions.Remove(SessionId), SessionRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -534,7 +534,7 @@ public class SessionClient
     {
         ArgumentException.ThrowIfNullOrEmpty(formId);
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.ReplyToForm(SessionId, formId), request, OpenCodeJsonContext.Default.SessionFormReplyRequest, SessionFormReplyResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.form.reply", HttpMethod.Post, OpenCodeRoutes.Sessions.ReplyToForm(SessionId, formId), request, OpenCodeJsonContext.Default.SessionFormReplyRequest, SessionFormReplyResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -554,7 +554,7 @@ public class SessionClient
     {
         ArgumentException.ThrowIfNullOrEmpty(requestId);
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.ReplyToPermission(SessionId, requestId), request, OpenCodeJsonContext.Default.SessionPermissionReplyRequest, SessionPermissionReplyResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.permission.reply", HttpMethod.Post, OpenCodeRoutes.Sessions.ReplyToPermission(SessionId, requestId), request, OpenCodeJsonContext.Default.SessionPermissionReplyRequest, SessionPermissionReplyResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -572,7 +572,7 @@ public class SessionClient
     public virtual Task<SessionCommandResponse> RunCommandAsync(SessionCommandRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.RunCommand(SessionId), request, OpenCodeJsonContext.Default.SessionCommandRequest, SessionCommandResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.command", HttpMethod.Post, OpenCodeRoutes.Sessions.RunCommand(SessionId), request, OpenCodeJsonContext.Default.SessionCommandRequest, SessionCommandResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -590,7 +590,7 @@ public class SessionClient
     public virtual Task<SessionShellResponse> RunShellCommandAsync(SessionShellRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.RunShellCommand(SessionId), request, OpenCodeJsonContext.Default.SessionShellRequest, SessionShellResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.shell", HttpMethod.Post, OpenCodeRoutes.Sessions.RunShellCommand(SessionId), request, OpenCodeJsonContext.Default.SessionShellRequest, SessionShellResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -608,7 +608,7 @@ public class SessionClient
     public virtual Task<SessionEnvironmentResponse> SetEnvironmentAsync(SessionEnvironmentRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Put, OpenCodeRoutes.Sessions.SetEnvironment(SessionId), request, OpenCodeJsonContext.Default.SessionEnvironmentRequest, SessionEnvironmentResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.environment", HttpMethod.Put, OpenCodeRoutes.Sessions.SetEnvironment(SessionId), request, OpenCodeJsonContext.Default.SessionEnvironmentRequest, SessionEnvironmentResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -626,7 +626,7 @@ public class SessionClient
     public virtual Task<SessionRevertStageResponse> StageRevertAsync(SessionRevertStageRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.StageRevert(SessionId), request, OpenCodeJsonContext.Default.SessionRevertStageRequest, SessionRevertStageResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.revert.stage", HttpMethod.Post, OpenCodeRoutes.Sessions.StageRevert(SessionId), request, OpenCodeJsonContext.Default.SessionRevertStageRequest, SessionRevertStageResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -644,7 +644,7 @@ public class SessionClient
     public virtual Task<SessionSwitchAgentResponse> SwitchAgentAsync(SessionSwitchAgentRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.SwitchAgent(SessionId), request, OpenCodeJsonContext.Default.SessionSwitchAgentRequest, SessionSwitchAgentResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.switchAgent", HttpMethod.Post, OpenCodeRoutes.Sessions.SwitchAgent(SessionId), request, OpenCodeJsonContext.Default.SessionSwitchAgentRequest, SessionSwitchAgentResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -662,7 +662,7 @@ public class SessionClient
     public virtual Task<SessionSwitchModelResponse> SwitchModelAsync(SessionSwitchModelRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.SwitchModel(SessionId), request, OpenCodeJsonContext.Default.SessionSwitchModelRequest, SessionSwitchModelResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.switchModel", HttpMethod.Post, OpenCodeRoutes.Sessions.SwitchModel(SessionId), request, OpenCodeJsonContext.Default.SessionSwitchModelRequest, SessionSwitchModelResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -679,7 +679,7 @@ public class SessionClient
     /// </remarks>
     public virtual Task<SessionUpdateResponse> UpdateAsync(SessionUpdateRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(OpenCodeHttpMethod.Patch, OpenCodeRoutes.Sessions.Update(SessionId), request ?? EmptySessionUpdateRequest, OpenCodeJsonContext.Default.SessionUpdateRequest, SessionUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.update", OpenCodeHttpMethod.Patch, OpenCodeRoutes.Sessions.Update(SessionId), request ?? EmptySessionUpdateRequest, OpenCodeJsonContext.Default.SessionUpdateRequest, SessionUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -699,6 +699,6 @@ public class SessionClient
     {
         ArgumentException.ThrowIfNullOrEmpty(inboxId);
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(OpenCodeHttpMethod.Patch, OpenCodeRoutes.Sessions.UpdateInbox(SessionId, inboxId), request, OpenCodeJsonContext.Default.SessionInboxUpdateRequest, SessionInboxUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.inbox.update", OpenCodeHttpMethod.Patch, OpenCodeRoutes.Sessions.UpdateInbox(SessionId, inboxId), request, OpenCodeJsonContext.Default.SessionInboxUpdateRequest, SessionInboxUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

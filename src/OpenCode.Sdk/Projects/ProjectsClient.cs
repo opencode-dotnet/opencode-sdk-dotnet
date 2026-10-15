@@ -40,7 +40,7 @@ public class ProjectsClient
     /// </remarks>
     public virtual Task<ProjectListResponse> ListProjectsAsync(ProjectListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Projects.ListProjects(request), ProjectListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("project.list", HttpMethod.Get, OpenCodeRoutes.Projects.ListProjects(request), ProjectListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -59,6 +59,6 @@ public class ProjectsClient
     public virtual Task<ProjectUpdateResponse> UpdateProjectAsync(string projectId, ProjectUpdateRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(projectId);
-        return Pipeline.ExecuteAsync(OpenCodeHttpMethod.Patch, OpenCodeRoutes.Projects.UpdateProject(projectId), request ?? EmptyProjectUpdateRequest, OpenCodeJsonContext.Default.ProjectUpdateRequest, ProjectUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("project.update", OpenCodeHttpMethod.Patch, OpenCodeRoutes.Projects.UpdateProject(projectId), request ?? EmptyProjectUpdateRequest, OpenCodeJsonContext.Default.ProjectUpdateRequest, ProjectUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

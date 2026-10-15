@@ -50,7 +50,7 @@ public class IntegrationClient
     public virtual Task<IntegrationCommandConnectResponse> BeginCommandConnectionAsync(IntegrationCommandConnectRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Integrations.BeginCommandConnection(IntegrationId, request), request, OpenCodeJsonContext.Default.IntegrationCommandConnectRequest, IntegrationCommandConnectResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("integration.command.connect", HttpMethod.Post, OpenCodeRoutes.Integrations.BeginCommandConnection(IntegrationId, request), request, OpenCodeJsonContext.Default.IntegrationCommandConnectRequest, IntegrationCommandConnectResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -68,7 +68,7 @@ public class IntegrationClient
     public virtual Task<IntegrationOAuthConnectResponse> BeginOAuthConnectionAsync(IntegrationOAuthConnectRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Integrations.BeginOAuthConnection(IntegrationId, request), request, OpenCodeJsonContext.Default.IntegrationOAuthConnectRequest, IntegrationOAuthConnectResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("integration.oauth.connect", HttpMethod.Post, OpenCodeRoutes.Integrations.BeginOAuthConnection(IntegrationId, request), request, OpenCodeJsonContext.Default.IntegrationOAuthConnectRequest, IntegrationOAuthConnectResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -87,7 +87,7 @@ public class IntegrationClient
     public virtual Task<IntegrationCommandCancelResponse> CancelCommandConnectionAsync(string attemptId, IntegrationCommandCancelRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(attemptId);
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Integrations.CancelCommandConnection(IntegrationId, attemptId, request), IntegrationCommandCancelResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("integration.command.cancel", HttpMethod.Delete, OpenCodeRoutes.Integrations.CancelCommandConnection(IntegrationId, attemptId, request), IntegrationCommandCancelResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -106,7 +106,7 @@ public class IntegrationClient
     public virtual Task<IntegrationOAuthCancelResponse> CancelOAuthConnectionAsync(string attemptId, IntegrationOAuthCancelRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(attemptId);
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Integrations.CancelOAuthConnection(IntegrationId, attemptId, request), IntegrationOAuthCancelResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("integration.oauth.cancel", HttpMethod.Delete, OpenCodeRoutes.Integrations.CancelOAuthConnection(IntegrationId, attemptId, request), IntegrationOAuthCancelResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -125,7 +125,7 @@ public class IntegrationClient
     public virtual Task<IntegrationOAuthCompleteResponse> CompleteOAuthConnectionAsync(string attemptId, IntegrationOAuthCompleteRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(attemptId);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Integrations.CompleteOAuthConnection(IntegrationId, attemptId, request), request ?? EmptyIntegrationOAuthCompleteRequest, OpenCodeJsonContext.Default.IntegrationOAuthCompleteRequest, IntegrationOAuthCompleteResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("integration.oauth.complete", HttpMethod.Post, OpenCodeRoutes.Integrations.CompleteOAuthConnection(IntegrationId, attemptId, request), request ?? EmptyIntegrationOAuthCompleteRequest, OpenCodeJsonContext.Default.IntegrationOAuthCompleteRequest, IntegrationOAuthCompleteResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -143,7 +143,7 @@ public class IntegrationClient
     public virtual Task<IntegrationConnectExternalResponse> ConnectWithExternalCredentialsAsync(IntegrationConnectExternalRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Integrations.ConnectWithExternalCredentials(IntegrationId, request), request, OpenCodeJsonContext.Default.IntegrationConnectExternalRequest, IntegrationConnectExternalResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("integration.connect.external", HttpMethod.Post, OpenCodeRoutes.Integrations.ConnectWithExternalCredentials(IntegrationId, request), request, OpenCodeJsonContext.Default.IntegrationConnectExternalRequest, IntegrationConnectExternalResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -161,7 +161,7 @@ public class IntegrationClient
     public virtual Task<IntegrationConnectKeyResponse> ConnectWithKeyAsync(IntegrationConnectKeyRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Integrations.ConnectWithKey(IntegrationId, request), request, OpenCodeJsonContext.Default.IntegrationConnectKeyRequest, IntegrationConnectKeyResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("integration.connect.key", HttpMethod.Post, OpenCodeRoutes.Integrations.ConnectWithKey(IntegrationId, request), request, OpenCodeJsonContext.Default.IntegrationConnectKeyRequest, IntegrationConnectKeyResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -178,7 +178,7 @@ public class IntegrationClient
     /// </remarks>
     public virtual Task<IntegrationResponse> GetAsync(IntegrationRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Integrations.Get(IntegrationId, request), IntegrationResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("integration.get", HttpMethod.Get, OpenCodeRoutes.Integrations.Get(IntegrationId, request), IntegrationResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -197,7 +197,7 @@ public class IntegrationClient
     public virtual Task<IntegrationCommandStatusResponse> GetCommandStatusAsync(string attemptId, IntegrationCommandStatusRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(attemptId);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Integrations.GetCommandStatus(IntegrationId, attemptId, request), IntegrationCommandStatusResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("integration.command.status", HttpMethod.Get, OpenCodeRoutes.Integrations.GetCommandStatus(IntegrationId, attemptId, request), IntegrationCommandStatusResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -216,6 +216,6 @@ public class IntegrationClient
     public virtual Task<IntegrationOAuthStatusResponse> GetOAuthStatusAsync(string attemptId, IntegrationOAuthStatusRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(attemptId);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Integrations.GetOAuthStatus(IntegrationId, attemptId, request), IntegrationOAuthStatusResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("integration.oauth.status", HttpMethod.Get, OpenCodeRoutes.Integrations.GetOAuthStatus(IntegrationId, attemptId, request), IntegrationOAuthStatusResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

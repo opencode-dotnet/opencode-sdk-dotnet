@@ -38,7 +38,7 @@ public class ConfigClient
     /// </remarks>
     public virtual Task<ConfigResponse> GetConfigAsync(ConfigRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Config.GetConfig(request), ConfigResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("config.get", HttpMethod.Get, OpenCodeRoutes.Config.GetConfig(request), ConfigResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -54,6 +54,6 @@ public class ConfigClient
     /// </remarks>
     public virtual Task<ConfigShellsResponse> GetShellsAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Config.GetShells, ConfigShellsResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("config.shells", HttpMethod.Get, OpenCodeRoutes.Config.GetShells, ConfigShellsResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

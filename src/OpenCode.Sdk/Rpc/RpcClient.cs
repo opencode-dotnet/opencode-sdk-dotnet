@@ -44,6 +44,6 @@ public class RpcClient
     {
         ArgumentException.ThrowIfNullOrEmpty(rpcId);
         ArgumentException.ThrowIfNullOrEmpty(method);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Rpc.Call(rpcId, method, request), request ?? EmptyRpcCallRequest, OpenCodeJsonContext.Default.RpcCallRequest, RpcCallResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("rpc.call", HttpMethod.Post, OpenCodeRoutes.Rpc.Call(rpcId, method, request), request ?? EmptyRpcCallRequest, OpenCodeJsonContext.Default.RpcCallRequest, RpcCallResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

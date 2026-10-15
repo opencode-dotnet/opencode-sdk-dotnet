@@ -47,7 +47,7 @@ public class ShellClient
     /// </remarks>
     public virtual Task<ShellResponse> GetAsync(ShellRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Shells.Get(ShellId, request), ShellResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("shell.get", HttpMethod.Get, OpenCodeRoutes.Shells.Get(ShellId, request), ShellResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -64,7 +64,7 @@ public class ShellClient
     /// </remarks>
     public virtual Task<ShellOutputResponse> GetOutputAsync(ShellOutputRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Shells.GetOutput(ShellId, request), ShellOutputResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("shell.output", HttpMethod.Get, OpenCodeRoutes.Shells.GetOutput(ShellId, request), ShellOutputResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -81,6 +81,6 @@ public class ShellClient
     /// </remarks>
     public virtual Task<ShellRemoveResponse> RemoveAsync(ShellRemoveRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Shells.Remove(ShellId, request), ShellRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("shell.remove", HttpMethod.Delete, OpenCodeRoutes.Shells.Remove(ShellId, request), ShellRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }
