@@ -738,6 +738,24 @@
         "type": "contains",
         "text": "export const OutputInput = Schema.Struct({"
       }
+    },
+    {
+      "path": "packages/schema/src/schema.ts",
+      "sha256": "fc76a9937980e518343e1ae49661316fbbfbd8a34bd44701874bedaa2319b8f2",
+      "behavior": "PositiveInt and NonNegativeInt are integer schemas, which the int and long query types of the query parameters that decode into them rest on (ADR-0037).",
+      "anchor": {
+        "type": "contains",
+        "text": "export const PositiveInt = Schema.Int.check(Schema.isGreaterThan(0))"
+      }
+    },
+    {
+      "path": "packages/schema/src/event.ts",
+      "sha256": "f39ab332fe69fcb85adeda95bcf4af608e13fc7e32d9dca5887fc35c51390fa9",
+      "behavior": "Event.Seq is a non-negative integer schema, which the long type of the session.log after query parameter rests on (ADR-0037).",
+      "anchor": {
+        "type": "contains",
+        "text": "export const Seq = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))"
+      }
     }
   ]
 }

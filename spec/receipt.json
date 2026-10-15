@@ -437,6 +437,16 @@
       "path": "packages/schema/src/shell.ts",
       "sha256": "1ed56036245671a9abbac8dd38359c4f4527f72f3ae9fbe2d1c080fee8c24946",
       "anchorMatched": true
+    },
+    {
+      "path": "packages/schema/src/schema.ts",
+      "sha256": "fc76a9937980e518343e1ae49661316fbbfbd8a34bd44701874bedaa2319b8f2",
+      "anchorMatched": true
+    },
+    {
+      "path": "packages/schema/src/event.ts",
+      "sha256": "f39ab332fe69fcb85adeda95bcf4af608e13fc7e32d9dca5887fc35c51390fa9",
+      "anchorMatched": true
     }
   ]
 }

@@ -1,5 +1,5 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
+using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Serialization;
@@ -11,14 +11,12 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 /// <summary>
 /// Holds the bound query types to upstream's own generated client at the pin (ADR-0037). The
 /// document projects some numeric query parameters as strings; upstream's client takes the number
-/// its server decodes. The input types come from <c>packages/client/src/effect/api/api.ts</c>, and
-/// for the endpoints upstream's codegen leaves out of that client (<c>effectOmitEndpoints</c>: the
-/// raw-byte file routes) from the same codegen's <c>promise/generated/types.ts</c>; the routes come
-/// from <c>promise/generated/client.ts</c>. A parameter the SDK binds as a string where that client
-/// takes a number, or as an integer where it takes anything else, fails here, so a refresh that
-/// changes either side is reviewed.
+/// its server decodes (<see cref="UpstreamClientContract"/> reads that client). A parameter the SDK
+/// binds as a string where that client takes a number, or as an integer where it takes anything
+/// else, fails here, and so does a type the oracle cannot classify, so a refresh that changes either
+/// side is reviewed.
 /// </summary>
-public sealed partial class UpstreamClientQueryTypeTests
+public sealed class UpstreamClientQueryTypeTests
 {
     private const string ClientRoot = "external/opencode/packages/client/src";
 
@@ -35,57 +33,51 @@ public sealed partial class UpstreamClientQueryTypeTests
     [Test]
     public async Task Every_Bound_Query_Parameter_Should_Take_The_Type_Upstreams_Client_Takes()
     {
-        var fileSystem = new RealFileSystem();
-        var root = new RepositoryRoot(fileSystem).Locate();
-        var api = await ReadAsync(fileSystem, root, "effect/api/api.ts");
-        var client = await ReadAsync(fileSystem, root, "promise/generated/client.ts");
-        var promiseTypes = await ReadAsync(fileSystem, root, "promise/generated/types.ts");
-        var routes = ParseRoutes(client);
-        var inputs = ParseInputs(api).Concat(ParseInputs(promiseTypes)).GroupBy(static pair => pair.Key, StringComparer.Ordinal)
-            .ToDictionary(static group => group.Key, static group => group.First().Value, StringComparer.Ordinal);
+        var contract = await ReadContractAsync();
         var (document, _, _) = await BindingTestHost.LoadPinnedInputsAsync();
-        var plan = await new BindingTestHost().BindPinnedAsync();
+        var bound = await BoundSubjectsAsync();
 
         var problems = new List<string>();
-        var checkedCount = 0;
-        foreach (var operation in plan.Clients.SelectMany(static client => client.Operations).Where(static operation => operation.QueryRequest is not null))
+        foreach (var subject in bound)
         {
-            var properties = operation.QueryRequest!.Properties
-                .Where(static property => property.Kind is QueryValueKind.Text or QueryValueKind.Int32 or QueryValueKind.Int64)
-                .ToArray();
-            if (properties.Length is 0)
+            if (!contract.TryGetQueryType(subject.Operation.HttpMethod, subject.Operation.RouteTemplate, subject.Property.WireName, out var type, out var problem))
             {
-                continue;
+                problems.Add($"{subject.Key}: {problem}");
             }
-
-            if (!routes.TryGetValue(RouteKey(operation.HttpMethod, operation.RouteTemplate), out var route)
-                || !inputs.TryGetValue(route.Input, out var fields))
+            else if (UpstreamClientContract.IsNumeric(type, name => ResolveNamed(name, document)) is not { } numeric)
             {
-                problems.Add($"{operation.OperationId}: upstream's client has no input for {operation.HttpMethod.ToUpperInvariant()} {operation.RouteTemplate}");
-                continue;
+                problems.Add($"{subject.Key}: upstream's type '{type}' is neither a known number nor a known non-number");
             }
-
-            foreach (var property in properties)
+            else if (numeric != subject.Property.Kind is QueryValueKind.Int32 or QueryValueKind.Int64)
             {
-                checkedCount++;
-                var subject = $"{operation.OperationId}:{property.WireName}";
-                if (!route.Query.TryGetValue(property.WireName, out var field) || !fields.TryGetValue(field, out var type))
-                {
-                    problems.Add($"{subject}: upstream's {route.Input}Input carries no field for the query parameter");
-                }
-                else if (IsNumeric(type, document) is not { } numeric)
-                {
-                    problems.Add($"{subject}: upstream's type '{type}' is neither a known number nor a known string");
-                }
-                else if (numeric != property.Kind is QueryValueKind.Int32 or QueryValueKind.Int64)
-                {
-                    problems.Add($"{subject}: upstream's client takes '{type}', the SDK binds {property.Kind}");
-                }
+                problems.Add($"{subject.Key}: upstream's client takes '{type}', the SDK binds {subject.Property.Kind}");
             }
         }
 
         await Assert.That(problems).IsEmpty().Because(string.Join(Environment.NewLine, problems));
-        await Assert.That(checkedCount).IsGreaterThan(0);
+    }
+
+    /// <summary>
+    /// The oracle checks what the binder bound, so this holds the bound subjects to the document's
+    /// own inventory: every selected operation's query parameter that is a plain string or a number
+    /// is bound as text or an integer, and nothing else is. A parameter the binder dropped would
+    /// otherwise leave the oracle without anything to check.
+    /// </summary>
+    [Test]
+    public async Task The_Bound_Subjects_Should_Be_Every_Plain_String_Or_Number_Query_Parameter_Of_The_Selection()
+    {
+        var (document, selection, _) = await BindingTestHost.LoadPinnedInputsAsync();
+        var selected = selection.OperationIds.ToHashSet(StringComparer.Ordinal);
+        var expected = document.Operations
+            .Where(operation => selected.Contains(operation.OperationId))
+            .SelectMany(operation => operation.Parameters
+                .Where(parameter => parameter is { Location: SpecParameterLocation.Query, IsDeepObject: false } && IsScalarText(document, parameter.Schema))
+                .Select(parameter => operation.OperationId + ":" + parameter.Name))
+            .Order(StringComparer.Ordinal);
+
+        var bound = (await BoundSubjectsAsync()).Select(static subject => subject.Key).Order(StringComparer.Ordinal);
+
+        await Assert.That(bound).IsEquivalentTo(expected);
     }
 
     /// <summary>
@@ -125,34 +117,32 @@ public sealed partial class UpstreamClientQueryTypeTests
         await Assert.That(problems).IsEmpty().Because(string.Join(Environment.NewLine, problems));
     }
 
-    /// <summary>
-    /// Whether an upstream input type is a number: the literal <c>number</c>; a string, boolean or
-    /// string literal union is not; a named type is what the document's component of that name is,
-    /// or what <see cref="NamedTypeIsNumeric"/> records. Anything else is unknown.
-    /// </summary>
-    private static bool? IsNumeric(string type, SpecDocument document)
+    /// <summary>The query properties the pinned bind produced as text or an integer, each with its operation.</summary>
+    private static async Task<IReadOnlyList<BoundSubject>> BoundSubjectsAsync()
     {
-        // The promise types spell a field as an indexed access into the route's input shape.
-        var indexed = IndexedAccess().Match(type);
-        if (indexed.Success)
-        {
-            return Fields(indexed.Groups["shape"].Value).TryGetValue(indexed.Groups["field"].Value, out var inner)
-                ? IsNumeric(inner, document)
-                : null;
-        }
+        var plan = await new BindingTestHost().BindPinnedAsync();
+        return
+        [
+            .. plan.Clients
+                .SelectMany(static client => client.Operations)
+                .SelectMany(static operation => (operation.QueryRequest?.Properties ?? [])
+                    .Where(static property => property.Kind is QueryValueKind.Text or QueryValueKind.Int32 or QueryValueKind.Int64)
+                    .Select(property => new BoundSubject(operation, property))),
+        ];
+    }
 
-        var value = type.EndsWith(" | null", StringComparison.Ordinal) ? type[..^" | null".Length] : type;
-        if (value is "number")
-        {
-            return true;
-        }
+    /// <summary>A plain string or a number once references and a nullable wrapper are followed, as the binder classifies it.</summary>
+    private static bool IsScalarText(SpecDocument document, SchemaNode schema)
+    {
+        var resolved = OperationFacetContext.Resolve(document, schema);
+        var value = resolved is NullableNode { Format: null } nullable ? OperationFacetContext.Resolve(document, nullable.Inner) : resolved;
+        return value is PrimitiveNode { Kind: PrimitiveKind.String, Format: null } or PrimitiveNode { Kind: PrimitiveKind.Integer or PrimitiveKind.Number };
+    }
 
-        if (value is "string" or "boolean" or ['"', ..])
-        {
-            return false;
-        }
-
-        if (document.Schemas.TryGetValue(value, out var schema))
+    /// <summary>A named upstream type is what the document's component of that name is, or what <see cref="NamedTypeIsNumeric"/> records.</summary>
+    private static bool? ResolveNamed(string name, SpecDocument document)
+    {
+        if (document.Schemas.TryGetValue(name, out var schema))
         {
             return schema switch
             {
@@ -162,7 +152,17 @@ public sealed partial class UpstreamClientQueryTypeTests
             };
         }
 
-        return NamedTypeIsNumeric.TryGetValue(value, out var numeric) ? numeric : null;
+        return NamedTypeIsNumeric.TryGetValue(name, out var numeric) ? numeric : null;
+    }
+
+    private static async Task<UpstreamClientContract> ReadContractAsync()
+    {
+        var fileSystem = new RealFileSystem();
+        var root = new RepositoryRoot(fileSystem).Locate();
+        return UpstreamClientContract.Parse(
+            await ReadAsync(fileSystem, root, "promise/generated/client.ts"),
+            await ReadAsync(fileSystem, root, "effect/api/api.ts"),
+            await ReadAsync(fileSystem, root, "promise/generated/types.ts"));
     }
 
     private static async Task<string> ReadAsync(RealFileSystem fileSystem, string root, string path)
@@ -177,127 +177,8 @@ public sealed partial class UpstreamClientQueryTypeTests
         return await fileSystem.File.ReadAllTextAsync(full, CancellationToken.None);
     }
 
-    /// <summary>Reads each route of upstream's promise client: its input type, and which input field fills each query key.</summary>
-    private static Dictionary<string, UpstreamRoute> ParseRoutes(string client)
+    private sealed record BoundSubject(OperationPlan Operation, QueryPropertyPlan Property)
     {
-        var routes = new Dictionary<string, UpstreamRoute>(StringComparer.Ordinal);
-        foreach (var groups in RouteCall().Matches(client).Select(static match => match.Groups))
-        {
-            var query = QueryEntry().Matches(groups["query"].Value)
-                .ToDictionary(static entry => entry.Groups["key"].Value.Trim('"'), static entry => entry.Groups["field"].Value, StringComparer.Ordinal);
-            routes[RouteKey(groups["method"].Value, NormalizePath(groups["path"].Value))] = new UpstreamRoute(groups["input"].Value, query);
-        }
-
-        return routes;
+        public string Key => Operation.OperationId + ":" + Property.WireName;
     }
-
-    /// <summary>Upstream writes a route value as an interpolated <c>encodeURIComponent(input.x)</c> and a wildcard tail as <c>encodePath(...)</c>.</summary>
-    private static string NormalizePath(string path) =>
-        PathValue().Replace(WildcardTail().Replace(path, "*"), static match => "{" + match.Groups["name"].Value + "}");
-
-    private static string RouteKey(string method, string path) => method.ToUpperInvariant() + " " + path;
-
-    /// <summary>Reads every <c>XInput</c> object type: its top-level fields and their types, as written.</summary>
-    private static IEnumerable<KeyValuePair<string, Dictionary<string, string>>> ParseInputs(string source)
-    {
-        foreach (Match match in InputType().Matches(source))
-        {
-            var start = match.Index + match.Length;
-            var end = ClosingBrace(source, start);
-            yield return new KeyValuePair<string, Dictionary<string, string>>(match.Groups["name"].Value, Fields(source[start..end]));
-        }
-    }
-
-    private static int ClosingBrace(string source, int start)
-    {
-        var depth = 1;
-        for (var index = start; index < source.Length; index++)
-        {
-            depth += source[index] switch
-            {
-                '{' => 1,
-                '}' => -1,
-                _ => 0,
-            };
-            if (depth is 0)
-            {
-                return index;
-            }
-        }
-
-        throw new InvalidOperationException("An upstream input type has no closing brace.");
-    }
-
-    /// <summary>A field starts at a top-level <c>readonly</c>; its type runs to the next one, whitespace folded and <c>| undefined</c> dropped.</summary>
-    private static Dictionary<string, string> Fields(string body)
-    {
-        var starts = new List<int>();
-        var depth = 0;
-        var quoted = false;
-        for (var index = 0; index < body.Length; index++)
-        {
-            var character = body[index];
-            if (character is '"')
-            {
-                quoted = !quoted;
-            }
-            else if (!quoted)
-            {
-                depth += character switch
-                {
-                    '{' or '(' or '[' or '<' => 1,
-                    '}' or ')' or ']' or '>' => -1,
-                    _ => 0,
-                };
-                if (depth is 0 && string.CompareOrdinal(body, index, "readonly ", 0, "readonly ".Length) is 0
-                               && (index is 0 || !char.IsLetterOrDigit(body[index - 1])))
-                {
-                    starts.Add(index);
-                }
-            }
-        }
-
-        starts.Add(body.Length);
-        var fields = new Dictionary<string, string>(StringComparer.Ordinal);
-        for (var index = 0; index + 1 < starts.Count; index++)
-        {
-            var field = Field().Match(body[starts[index]..starts[index + 1]].Trim().TrimEnd(';'));
-            if (field.Success)
-            {
-                fields[field.Groups["name"].Value] = Whitespace().Replace(field.Groups["type"].Value, " ")
-                    .Replace(" | undefined", string.Empty, StringComparison.Ordinal)
-                    .Trim();
-            }
-        }
-
-        return fields;
-    }
-
-    [GeneratedRegex(
-        @"\(input\??: (?<input>\w+)Input, requestOptions\?: RequestOptions\)(?:: [^=]*?)? =>\s*\w+<[^\n]*?>\(\s*\{\s*method: ""(?<method>\w+)"",\s*path: `(?<path>[^`]*)`,(?:\s*query: \{(?<query>[^}]*)\},)?",
-        RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex RouteCall();
-
-    [GeneratedRegex(@"(?<key>\w+|""[^""]+""): input\??\.?\[""(?<field>\w+)""\]", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex QueryEntry();
-
-    [GeneratedRegex(@"\$\{encodeURIComponent\(input(?:\.(?<name>\w+)|\[""(?<name>\w+)""\])\)\}", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex PathValue();
-
-    [GeneratedRegex(@"\$\{encodePath\([^)]*\)\}", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex WildcardTail();
-
-    [GeneratedRegex(@"(?:export )?type (?<name>\w+)Input = \{", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex InputType();
-
-    [GeneratedRegex(@"^readonly (?<name>\w+)\??:\s*(?<type>[\s\S]*)$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex Field();
-
-    [GeneratedRegex(@"^\{(?<shape>[\s\S]*)\}\[""(?<field>\w+)""\]$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex IndexedAccess();
-
-    [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex Whitespace();
-
-    private sealed record UpstreamRoute(string Input, Dictionary<string, string> Query);
 }

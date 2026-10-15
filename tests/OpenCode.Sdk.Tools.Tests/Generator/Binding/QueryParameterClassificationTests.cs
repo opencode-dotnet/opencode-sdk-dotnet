@@ -113,6 +113,32 @@ public sealed class QueryParameterClassificationTests
     }
 
     [Test]
+    public async Task Bind_Should_Refuse_A_Duplicated_String_Row()
+    {
+        var document = await BindingTestHost.IngestAsync(RetirementScenario());
+
+        var exception = Assert.Throws<BindingException>(() => Bind(document,
+            strings: [StringQueryParameter(Operation, "limit"), StringQueryParameter(Operation, "limit")]));
+
+        await AssertRefusedAsync(exception, Operation + ":limit", "string query parameter curation is duplicated");
+    }
+
+    /// <summary>A required parameter keeps its requiredness through the type row: a required, non-nullable integer.</summary>
+    [Test]
+    public async Task Emit_Should_Write_A_Required_Typed_Parameter_As_A_Required_Integer()
+    {
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(static spec => spec
+            .WithOperation(Operation, path: "/api/widget", configure: static operation => operation
+                .Parameter("lines", "query", static schema => schema.Type("string"), required: true)
+                .WithoutResponse(200).Response(204))));
+        var plan = Bind(document, typed: [QueryParameterType(Operation, "lines", "int")]);
+
+        var record = Source(SourceEmitter.Emit(plan), "WidgetListRequest.cs");
+
+        await Assert.That(record).Contains("public required int Lines { get; init; }");
+    }
+
+    [Test]
     [Arguments("short", "reason", "packages/x.ts", "anchor", "is not 'int' or 'long'")]
     [Arguments("int", " ", "packages/x.ts", "anchor", "must declare a reason")]
     [Arguments("int", "reason", " ", "anchor", "must name its evidence")]
