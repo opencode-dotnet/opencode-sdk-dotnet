@@ -296,7 +296,8 @@ section it concerns (ADR-0031).
   caller-supplied client's own timeout bounds only its send. A stalled read no token can reach is
   interrupted by disposing the content. An error body returned while opening a stream buffers
   under the same window; a successful SSE body remains live until caller cancellation, server
-  completion, or failure. Caller cancellation still passes through; an exhausted progress window
+  completion, or failure, except `event.subscribe`, which runs under its reconnect windows
+  (Server-sent events, below). Caller cancellation still passes through; an exhausted progress window
   maps to `OpenCodeTransportException`.
   Successful JSON bodies materialize directly from validated UTF-8 bytes when possible. One decoding
   policy applies the modern `HttpContent` charset/BOM and malformed-UTF-8 replacement algorithm on
@@ -314,8 +315,33 @@ section it concerns (ADR-0031).
 - Cancellation closes the stream through the enumeration token. On downlevel targets, the SDK also
   disposes the live response so cancellation interrupts platform response-stream reads that do not
   observe an async read token; disposal-induced I/O failures remain caller cancellation.
-- The SDK never auto-reconnects. A live-stream consumer refreshes authoritative state and
-  resubscribes after failure.
+- `event.subscribe` reconnects as upstream's first-party client does (`client/src/solid/connection.ts`
+  at the pin), and no other stream reconnects:
+  - Each attempt has 2 s to answer and deliver `server.connected` as its first event, or it fails.
+    The first open runs the same check.
+  - A connected stream that receives no byte for 45 s is cut. Any byte re-arms the window,
+    including the server's keepalive comment every 15 s. The window stops while the consumer holds
+    an event, because a pull-based consumer's own time is not the server's silence.
+  - Every failure is followed by a new attempt 1 s later, with no backoff. That covers a refused
+    connection, any HTTP error status (a 401 or a 404 included), an undeclared success, a body that
+    is not an event stream, a malformed frame, a failure frame, the server ending the stream, and
+    either window passing.
+  - No replay is requested. Each connection yields its own `server.connected`, so a second one
+    tells the consumer that events published in between are gone and authoritative state should be
+    refreshed.
+  - A stream that has failed every attempt for 1 minute gives up and throws the last failure. The
+    minute runs from the drop, or from the first attempt for a first open, and it stops once an
+    attempt delivers `server.connected`. When it passes, it cuts whatever is in flight. A window
+    passing surfaces as `OpenCodeTransportException`, never as a cancellation.
+  - The caller's token ends the stream at once with an `OperationCanceledException` that carries
+    that token, and a disposed client ends it at once with `ObjectDisposedException`, whether the
+    stream is opening, reading, holding an event or waiting to reconnect. Nothing else ends it.
+  - Recorded divergence: upstream retries forever and shows a connection status; the SDK has no
+    status to show, so an endless silent retry would hang `await foreach`. The consequence for
+    consumers is that a wrong address or a refused credential surfaces after one minute, not at
+    once, as the error the server last answered.
+  - `OpenCodeClientOptions.NetworkTimeout` does not reach `event.subscribe`; its windows are fixed,
+    and a stream takes no per-call options.
 - Durable continuation is requested explicitly through `session.log`'s `after` parameter, an
   exclusive aggregate sequence read from a durable envelope or from the sync marker. One
   `log.synced` marker reports the watermark the replay was captured at; it is a boundary rather

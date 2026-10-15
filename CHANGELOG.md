@@ -11,6 +11,21 @@ Nightly builds of `master` are on
 
 ### 💥 Breaking changes
 
+- **`EventsClient.SubscribeAsync` reconnects, as upstream's client does.**
+  - A connection that drops, fails, or receives nothing for 45 seconds is replaced one second
+    later. Every failure counts: an HTTP error status, a malformed frame, a failure frame and the
+    server ending the stream included.
+  - Each connection has 2 seconds to answer and deliver its first event, so a server consistently
+    slower than that fails every attempt.
+  - Each connection starts with `EventServerConnected`, and the SDK fails one that does not. A
+    second one means the events in between were missed.
+  - The stream no longer ends on its own. Your token, disposing the client, or one minute in which
+    every attempt failed ends it; the minute throws the last failure.
+  - What changes for you: a wrong address or a refused password surfaces after one minute, not at
+    once, and code that expected the stream to end when the server went away now sees a new
+    `EventServerConnected` instead. `OpenCodeClientOptions.NetworkTimeout` no longer reaches the
+    bus.
+
 - **The upstream-experimental surface is marked `[Experimental]`.** Every member that calls an
   operation upstream serves under `/api/experimental/`, and every type only those operations use,
   now reports a diagnostic when you use it. It is a compile **error** until you opt in with
@@ -74,11 +89,11 @@ Nightly builds of `master` are on
   `OpenCodeClientOptions.NetworkTimeout` sets it for the client and
   `OpenCodeRequestOptions.NetworkTimeout` for one call; the default stays 100 seconds.
   `WaitForSessionAsync`, `RunShellCommandAsync`, `RunCommandAsync` and both `GenerateTextAsync`
-  methods (on `SessionClient` and `ExperimentalClient`) answer only when their work ends, so they now wait with no window and the call's
-  cancellation token is their deadline; before, each failed after 100 seconds without headers, and
-  a shell command kept running on the server. A
-  client-wide value does not reach them; a per-call value does. `OpenCodeServer.CreateClient` carries
-  the client value over. See [Requests](docs/guide/requests.md#️-how-long-a-call-may-wait).
+  methods (on `SessionClient` and `ExperimentalClient`) answer only when their work ends, so they
+  now wait with no window and the call's cancellation token is their deadline; before, each failed
+  after 100 seconds without headers, and a shell command kept running on the server. A client-wide
+  value does not reach them; a per-call value does. `OpenCodeServer.CreateClient` carries the
+  client value over. See [Requests](docs/guide/requests.md#️-how-long-a-call-may-wait).
 
 ### 🔧 Changes
 

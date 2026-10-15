@@ -194,9 +194,10 @@ so one per-call argument selects both it and the header override.
 
 A call fails with `OpenCodeTransportException` when the network makes no progress for a while:
 no response headers, or no new bytes of the body. That window is 100 seconds by default. Change it
-for the whole client, or for one call. On an event stream the window bounds only opening the
-stream; once it is open, the stream stays open until you stop reading, the server ends it, or it
-fails. A stream takes no per-call options, so only the client value applies to it:
+for the whole client, or for one call. A stream takes no per-call options. On the session log the
+client value bounds only opening it; once open, it stays open until you stop reading, the server
+ends it, or it fails. The event bus has fixed windows of its own and
+[reconnects](streaming.md) instead:
 
 ```csharp
 using var client = new OpenCodeClient(new OpenCodeClientOptions

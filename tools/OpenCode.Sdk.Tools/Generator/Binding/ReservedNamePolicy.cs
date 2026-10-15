@@ -109,6 +109,7 @@ internal static class ReservedNamePolicy
     /// </summary>
     public static readonly FrozenSet<string> InternalTypeNames = FrozenSet.ToFrozenSet(
         [
+            "ActivityStream",
             "BatchCommandLine",
             "BoundedLineBuffer",
             "BoundedWait",
@@ -274,6 +275,8 @@ internal static class ReservedNamePolicy
             "SlopwatchSuppressAttribute",
             "StatusVerdict",
             "StatusVerdictFailures",
+            "StreamAttempt",
+            "StreamReconnect",
             "StrictJson",
             "StructuralUnionClaim",
             "StructuralUnionPrinter",

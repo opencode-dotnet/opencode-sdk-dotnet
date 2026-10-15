@@ -66,9 +66,10 @@ A session's turn ends with exactly one of three events: `SessionExecutionSucceed
 `SessionExecutionFailed`, or `SessionExecutionInterrupted`. The server publishes one each time the
 session goes from working to idle, however many prompts it worked through. The samples here stop
 on any `SessionExecutionInterrupted`, including one whose `Reason` is `Shutdown`. That interrupt means
-the server is stopping: the stream ends with it, and the server resumes the turn after it restarts,
-with a new `SessionExecutionStarted`. To follow the resumed turn, subscribe again once the server is
-back and wait the same way. Open the bus **before**
+the server is stopping, and the server resumes the turn after it restarts, with a new
+`SessionExecutionStarted`. The bus [reconnects](#-a-live-bus-that-reconnects) by itself once the
+server is back within a minute, so to follow the resumed turn keep reading and wait the same way.
+Open the bus **before**
 you prompt, because an event published before you listen is gone; the first event,
 `EventServerConnected`, says the stream is live:
 
@@ -150,8 +151,8 @@ while (!turnEnded && await events.MoveNextAsync())
 
 - **Open the bus first, and wait for `EventServerConnected`.** The server sends it to every new
   subscriber before anything else, so once it has arrived, nothing the session publishes is missed.
-  Upstream's client fails a stream that starts with anything else, and its CLI waits for this event
-  before it sends a prompt.
+  Upstream's client and the SDK both fail a connection that starts with anything else, and
+  upstream's CLI waits for this event before it sends a prompt.
 - **Filter by session once.** Every event that belongs to a session implements
   `ISessionScopedEvent`, so one check keeps this session's events and the `switch` below it needs
   no session test of its own.
@@ -178,9 +179,42 @@ cursor, no replay, and no resume channel:
 
 - Events published while you were disconnected are **gone**. There is no backfill to ask for.
 - A consumer slower than the producer can overflow and fail the stream.
-- The SDK **never auto-reconnects**. That is deliberate — a silent reconnect would hide exactly the
-  gap you need to know about. After a failure, refresh whatever state you care about with ordinary
-  calls, then subscribe again.
+
+### 🔁 A live bus that reconnects
+
+The SDK **reconnects** the bus the way upstream's own client does, and it tells you when it did:
+
+- A connection that drops, fails, or goes 45 seconds without a byte is replaced one second later.
+  The server's keepalive every 15 seconds keeps a quiet bus open, and the time your code spends on
+  an event never counts as silence.
+- Each connection has 2 seconds to answer and deliver `EventServerConnected`, or it counts as
+  failed. A reachable server that is consistently slower than that fails every attempt, and the
+  minute below applies.
+- **Every connection starts with `EventServerConnected`.** A second one means you were
+  disconnected and the events in between are gone: refresh the state you care about with ordinary
+  calls and carry on reading.
+- The stream never ends on its own. Your cancellation token ends it, disposing the client ends it
+  at once with `ObjectDisposedException`, and so does one minute in which every attempt failed.
+- That minute applies to the first subscribe too. **A wrong address or a refused password surfaces
+  after one minute, not at once**, as the error the server last answered
+  (`OpenCodeApiException`, `OpenCodeTransportException` or `OpenCodeStreamFailureException`).
+  Upstream's client keeps retrying forever and shows a status; the SDK has no status to show, so it
+  gives up instead of hanging your `await foreach`.
+
+```csharp
+var connectedBefore = false;
+await foreach (var @event in client.Events.SubscribeAsync(cancellationToken))
+{
+    if (@event is EventServerConnected && connectedBefore)
+    {
+        // Reconnected: whatever happened in between is not on this stream.
+        await RefreshStateAsync(cancellationToken);
+    }
+
+    connectedBefore |= @event is EventServerConnected;
+    // ...
+}
+```
 
 The per-session log below is the stream with a cursor, but it delivers events only from a server
 started with event persistence — and the CLI you install does not start one that way; the note on
@@ -316,8 +350,9 @@ cannot be read is a protocol failure and throws — the carrier is for *unknown*
   in stream.WithCancellation(token))`.
 - **Disposing the enumerator ends the connection**, which `await foreach` does for you on `break`,
   on `return`, and on an exception.
-- A stream that is slow but still flowing stays alive; one that stalls completely is failed by an
-  internal progress window rather than hanging forever.
+- On the event bus, a connection that receives nothing for 45 seconds is replaced, as above. The
+  session log is bounded only while it opens: once open, a silent log stays open until you cancel,
+  the server ends it, or it fails.
 
 ## 💥 Streams always throw
 

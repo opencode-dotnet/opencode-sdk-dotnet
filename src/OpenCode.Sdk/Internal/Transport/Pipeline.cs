@@ -1,6 +1,8 @@
 using System.Buffers;
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -30,6 +32,15 @@ internal sealed class Pipeline : IDisposable
     private readonly TimeSpan? _clientNetworkTimeout;
     private readonly PipelinePolicy[] _policies;
     private readonly TransportPolicy _transport;
+    private readonly TimeProvider _time;
+
+    /// <summary>
+    /// Cancelled when the pipeline is disposed, so a reconnecting stream ends at once rather than at
+    /// its next read or attempt. The token is kept apart from its source: a stream may still link to
+    /// it after the source is disposed, and a cancelled token links as cancelled.
+    /// </summary>
+    private readonly CancellationTokenSource _lifetime = new();
+    private readonly CancellationToken _lifetimeToken;
     private bool _disposed;
 
     internal Pipeline(HttpClient httpClient, bool ownsHttpClient, OpenCodeClientOptions options,
@@ -56,6 +67,8 @@ internal sealed class Pipeline : IDisposable
         _endpointBase = EndpointPolicy.Normalize(endpoint);
         _framer = framer ?? new ServerSentEventFramer();
         _clientNetworkTimeout = networkTimeout ?? options.NetworkTimeout;
+        _time = time ?? TimeProvider.System;
+        _lifetimeToken = _lifetime.Token;
 
         // The options are read exactly once, here: the policies hold an immutable snapshot,
         // so mutating the options object after construction never changes a built client. Only a
@@ -69,7 +82,7 @@ internal sealed class Pipeline : IDisposable
         _policies =
         [
             new RequestDecorationPolicy(authorization, options.Location, UserAgentPolicy.Resolve()),
-            new ResponseBufferingPolicy(bufferPool ?? ArrayPool<byte>.Shared, time ?? TimeProvider.System),
+            new ResponseBufferingPolicy(bufferPool ?? ArrayPool<byte>.Shared, _time),
             _transport,
         ];
 
@@ -183,7 +196,9 @@ internal sealed class Pipeline : IDisposable
     /// Opens a streaming operation: the status and content-type walls answer before the
     /// body is read, then each event frame's payload is yielded as it arrives. The
     /// one-shot buffer is never involved, and a stream always throws on an error status —
-    /// it has no envelope for one to ride.
+    /// it has no envelope for one to ride. An operation that reconnects
+    /// (<see cref="StreamReconnect"/>) runs one connection after another instead of ending
+    /// with the first.
     /// </summary>
     public IAsyncEnumerable<TPayload> ExecuteStreamAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
         IStreamAdapter<TPayload, TCause> adapter, CancellationToken cancellationToken)
@@ -200,7 +215,9 @@ internal sealed class Pipeline : IDisposable
             throw new ArgumentException("Routes must start with '/'.", nameof(route));
         }
 
-        return ExecuteStreamCoreAsync(operationId, method, route, adapter, cancellationToken);
+        return StreamReconnect.Reconnecting.Contains(operationId)
+            ? ExecuteReconnectingStreamAsync(operationId, method, route, adapter, cancellationToken)
+            : ExecuteStreamCoreAsync(operationId, method, route, adapter, networkTimeout: null, attempt: null, cancellationToken);
     }
 
     public void Dispose()
@@ -211,7 +228,9 @@ internal sealed class Pipeline : IDisposable
         }
 
         _disposed = true;
+        _lifetime.Cancel();
         _transport.Dispose();
+        _lifetime.Dispose();
     }
 
     private async Task<TResponse> ExecuteCoreAsync<TBody, TResponse>(string operationId, HttpMethod method, string route, TBody? body,
@@ -254,12 +273,179 @@ internal sealed class Pipeline : IDisposable
             : adapted;
     }
 
+    /// <summary>
+    /// Runs one connection after another for a reconnecting operation, as the pinned client does.
+    /// Each attempt runs under its own window: 2 seconds to answer and deliver
+    /// <c>server.connected</c> first, then 45 seconds without a byte once connected, stopped while
+    /// the consumer holds an event. Any failure is followed by a new attempt one second later. The
+    /// give-up window runs from the first attempt and again from each drop, stops once an attempt
+    /// connects, and when it passes it cuts whatever is in flight and throws the last failure. The
+    /// caller's token and a disposed client end the stream at once.
+    /// </summary>
+    private async IAsyncEnumerable<TPayload> ExecuteReconnectingStreamAsync<TPayload, TCause>(string operationId, HttpMethod method,
+        string route, IStreamAdapter<TPayload, TCause> adapter, [EnumeratorCancellation] CancellationToken cancellationToken)
+        where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
+    {
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetimeToken);
+        using var giveUp = new ProgressWindow(StreamReconnect.GiveUp, _time, lifetime.Token);
+        giveUp.Restart();
+        ExceptionDispatchInfo? lastFailure = null;
+        while (true)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            var established = false;
+            Exception failure;
+            var frames = ExecuteAttemptAsync(operationId, method, route, adapter, giveUp, cancellationToken).GetAsyncEnumerator(cancellationToken);
+            await using (frames.ConfigureAwait(false))
+            {
+                while (true)
+                {
+                    try
+                    {
+                        if (!await frames.MoveNextAsync().ConfigureAwait(false))
+                        {
+                            throw new OpenCodeTransportException("The opencode event stream ended.");
+                        }
+                    }
+                    catch (Exception exception)
+                    {
+                        failure = exception;
+                        break;
+                    }
+
+                    // An attempt yields only once established: its first event was server.connected.
+                    established = true;
+                    yield return frames.Current;
+                }
+            }
+
+            lastFailure = EndAttempt(failure, lastFailure, giveUp, cancellationToken);
+            if (established)
+            {
+                giveUp.Restart();
+            }
+
+            await WaitToReconnectAsync(giveUp, lastFailure, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// One connection of a reconnecting stream under its own window (<see cref="StreamAttempt"/>):
+    /// it fails unless its first event is <c>server.connected</c>, stops the give-up window once it
+    /// is, and ends when its connection ends. A window of its own passing surfaces as a transport
+    /// failure; the give-up window and the caller's token pass through as cancellation.
+    /// </summary>
+    private async IAsyncEnumerable<TPayload> ExecuteAttemptAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
+        IStreamAdapter<TPayload, TCause> adapter, ProgressWindow giveUp, [EnumeratorCancellation] CancellationToken cancellationToken)
+        where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
+    {
+        using var attempt = new StreamAttempt(_time, giveUp.Token);
+        var frames = ExecuteStreamCoreAsync(operationId, method, route, adapter, Timeout.InfiniteTimeSpan, attempt, attempt.Token)
+            .GetAsyncEnumerator(cancellationToken);
+        await using var enumeration = frames.ConfigureAwait(false);
+        while (true)
+        {
+            bool moved;
+            try
+            {
+                moved = await frames.MoveNextAsync().ConfigureAwait(false);
+            }
+            catch (OperationCanceledException exception) when (!giveUp.IsCancellationRequested)
+            {
+                throw attempt.Describe(exception);
+            }
+
+            if (!moved)
+            {
+                yield break;
+            }
+
+            if (!attempt.IsEstablished)
+            {
+                attempt.Establish();
+                giveUp.Stop();
+            }
+
+            // The consumer's time with an event is not the server's silence.
+            attempt.Pause();
+            yield return frames.Current;
+            attempt.Resume();
+        }
+    }
+
+    /// <summary>
+    /// Ends the stream when the attempt's failure ends it: the caller cancelled, the client was
+    /// disposed, or the give-up window passed. A give-up throws the attempt's own failure when the
+    /// attempt failed on its own, and the failure before it when the give-up cut it. Otherwise the
+    /// failure is recorded as the last one.
+    /// </summary>
+    private ExceptionDispatchInfo EndAttempt(Exception failure, ExceptionDispatchInfo? lastFailure, ProgressWindow giveUp,
+        CancellationToken cancellationToken)
+    {
+        if (cancellationToken.IsCancellationRequested)
+        {
+            throw CallerCancellation(failure, cancellationToken);
+        }
+
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (giveUp.IsCancellationRequested)
+        {
+            if (failure is not OperationCanceledException)
+            {
+                ExceptionDispatchInfo.Capture(failure).Throw();
+            }
+
+            lastFailure?.Throw();
+            var seconds = StreamReconnect.GiveUp.TotalSeconds.ToString("0", CultureInfo.InvariantCulture);
+            throw new OpenCodeTransportException($"The opencode event stream did not connect within {seconds} seconds.", failure);
+        }
+
+        return ExceptionDispatchInfo.Capture(failure);
+    }
+
+    /// <summary>
+    /// Waits before the next attempt; the give-up window passing during the wait throws the last
+    /// failure, and a disposed client ends the wait at once.
+    /// </summary>
+    private async Task WaitToReconnectAsync(ProgressWindow giveUp, ExceptionDispatchInfo lastFailure, CancellationToken cancellationToken)
+    {
+        try
+        {
+#if NET
+            await Task.Delay(StreamReconnect.Delay, _time, giveUp.Token).ConfigureAwait(false);
+#else
+            await _time.Delay(StreamReconnect.Delay, giveUp.Token).ConfigureAwait(false);
+#endif
+        }
+        catch (OperationCanceledException canceled)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                throw CallerCancellation(canceled, cancellationToken);
+            }
+
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            lastFailure.Throw();
+        }
+    }
+
+    /// <summary>
+    /// The caller's cancellation as the caller sees it: an attempt's read or the delay was cancelled
+    /// through a token linked over the caller's, so the exception carries the caller's own token,
+    /// as a one-connection stream's does.
+    /// </summary>
+    private static OperationCanceledException CallerCancellation(Exception failure, CancellationToken cancellationToken) =>
+        failure is OperationCanceledException canceled && canceled.CancellationToken == cancellationToken
+            ? canceled
+            : new OperationCanceledException("The opencode event stream read was canceled.", failure, cancellationToken);
+
     private async IAsyncEnumerable<TPayload> ExecuteStreamCoreAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
-        IStreamAdapter<TPayload, TCause> adapter, [EnumeratorCancellation] CancellationToken cancellationToken)
+        IStreamAdapter<TPayload, TCause> adapter, TimeSpan? networkTimeout, StreamAttempt? attempt,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        using var message = CreateStreamMessage(operationId, method, route, cancellationToken);
+        using var message = CreateStreamMessage(operationId, method, route, networkTimeout, cancellationToken);
         await SendThroughPoliciesAsync(message).ConfigureAwait(false);
         var response = message.Response!;
         var status = (int)response.StatusCode;
@@ -292,9 +478,16 @@ internal sealed class Pipeline : IDisposable
         using var cancellationRegistration = RegisterStreamCancellation(response, cancellationToken);
 #endif
 
-        // The response owns the body stream, so disposing it here would only duplicate the
-        // disposal the message performs when enumeration ends.
-        var body = await ReadBodyStreamAsync(response, cancellationToken).ConfigureAwait(false);
+        // The body is read through a view that reports each read bringing bytes to the reconnect
+        // loop's idle window; disposing the view disposes the body a moment before the message would.
+        // API-shape divergence, not algorithm: a stream has no DisposeAsync downlevel.
+        var body = new ActivityStream(await ReadBodyStreamAsync(response, cancellationToken).ConfigureAwait(false),
+            attempt is null ? null : attempt.OnActivity);
+#if NET
+        await using var observation = body.ConfigureAwait(false);
+#else
+        using var observation = body;
+#endif
         var frames = _framer.ReadAsync(body, cancellationToken).GetAsyncEnumerator(cancellationToken);
         await using var enumeration = frames.ConfigureAwait(false);
         while (true)
@@ -318,6 +511,7 @@ internal sealed class Pipeline : IDisposable
                 break;
             }
 
+            attempt?.OnFrame(frames.Current);
             yield return FrameDispatch.ReadPayload(frames.Current, adapter);
         }
     }
@@ -356,14 +550,15 @@ internal sealed class Pipeline : IDisposable
         }
     }
 
-    private PipelineMessage CreateStreamMessage(string operationId, HttpMethod method, string route, CancellationToken cancellationToken) =>
+    private PipelineMessage CreateStreamMessage(string operationId, HttpMethod method, string route, TimeSpan? networkTimeout,
+        CancellationToken cancellationToken) =>
         new()
         {
             OperationId = operationId,
             Request = new HttpRequestMessage(method, new Uri(_endpointBase + route, UriKind.Absolute)),
             CancellationToken = cancellationToken,
             NetworkToken = cancellationToken,
-            NetworkTimeout = NetworkTimeouts.Resolve(operationId, perCall: null, _clientNetworkTimeout),
+            NetworkTimeout = networkTimeout ?? NetworkTimeouts.Resolve(operationId, perCall: null, _clientNetworkTimeout),
             BufferBody = false,
         };
 
