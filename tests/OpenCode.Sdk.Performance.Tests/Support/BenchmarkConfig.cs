@@ -18,7 +18,8 @@ namespace OpenCode.Sdk.Performance.Tests.Support;
 /// BenchmarkDotNet 0.15.8 does not know the <c>net11.0</c> moniker, so <c>--runtimes net11.0</c> is
 /// refused. <see cref="Net11Switch"/> adds a .NET 11 leg the way its documentation describes for a
 /// runtime it does not know yet: a job on <c>CoreRuntime.CreateForNewVersion</c>, labelled
-/// <c>.NET 11.0</c> in the exports like the legs <c>--runtimes</c> names.
+/// <c>.NET 11.0</c> in the exports like the legs <c>--runtimes</c> names, built by
+/// <see cref="Net11Toolchain"/>.
 /// </remarks>
 internal static class BenchmarkConfig
 {
@@ -38,7 +39,7 @@ internal static class BenchmarkConfig
                 new AllocatedPerItemColumn(),
                 new AllocationAmplificationColumn());
         return net11
-            ? config.AddJob(Job.Default.WithRuntime(CoreRuntime.CreateForNewVersion("net11.0", ".NET 11.0")))
+            ? config.AddJob(Job.Default.WithRuntime(CoreRuntime.CreateForNewVersion("net11.0", ".NET 11.0")).WithToolchain(new Net11Toolchain()))
             : config;
     }
 }
