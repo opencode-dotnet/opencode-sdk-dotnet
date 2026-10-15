@@ -30,21 +30,16 @@ internal sealed class PinnedServerCommand
     public IReadOnlyList<string> Resolve()
     {
         InheritedEnvironment.RequireProviderCredentialsScrubbed();
-        var submodule = _fileSystem.Path.Combine(RepositoryRoot, "external", "opencode");
-        var entry = _fileSystem.Path.Combine(submodule, "packages", "cli", "src", "index.ts");
-        if (!_fileSystem.File.Exists(entry))
+        // The discovery guard refuses an unprepared checkout before any test runs; these checks
+        // remain for a checkout that changes under a running session.
+        var submodule = PinnedServerPrerequisites.Submodule(_fileSystem, RepositoryRoot);
+        if ((PinnedServerPrerequisites.MissingSource(_fileSystem, submodule)
+             ?? PinnedServerPrerequisites.MissingInstall(_fileSystem, submodule)) is { } missing)
         {
-            throw new InvalidOperationException(
-                $"The pinned server source is missing at '{entry}'. Run: git submodule update --init external/opencode");
+            throw new InvalidOperationException(missing);
         }
 
-        if (!_fileSystem.Directory.Exists(_fileSystem.Path.Combine(submodule, "node_modules")))
-        {
-            throw new InvalidOperationException(
-                $"The pinned server dependencies are not installed under '{submodule}'. Run there: bun install --frozen-lockfile --ignore-scripts");
-        }
-
-        return ["bun", entry, "serve"];
+        return ["bun", PinnedServerPrerequisites.Entry(_fileSystem, submodule), "serve"];
     }
 
     /// <summary>
