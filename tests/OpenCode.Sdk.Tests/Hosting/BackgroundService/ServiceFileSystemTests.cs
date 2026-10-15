@@ -150,10 +150,7 @@ public sealed class ServiceFileSystemTests
     public async Task Rename_Should_Replace_An_Existing_Destination()
     {
         using var directory = new OwnedTemporaryDirectory();
-        var source = directory.File("temporary.json");
-        var destination = directory.File("sidecar.json");
-        directory.FileSystem.File.WriteAllText(source, "published");
-        directory.FileSystem.File.WriteAllText(destination, "previous");
+        var (source, destination) = directory.Publication();
 
         new ServiceFileSystem().Rename(source, destination);
 
@@ -195,10 +192,7 @@ public sealed class ServiceFileSystemTests
     public async Task Rename_Should_Replace_A_Destination_A_Delete_Sharing_Reader_Holds_And_Leave_The_Reader_The_Old_Contents()
     {
         using var directory = new OwnedTemporaryDirectory();
-        var source = directory.File("temporary.json");
-        var destination = directory.File("sidecar.json");
-        directory.FileSystem.File.WriteAllText(source, "published");
-        directory.FileSystem.File.WriteAllText(destination, "previous");
+        var (source, destination) = directory.Publication();
 
         using (var reader = new StreamReader(ServiceFileSystem.OpenRead(destination)))
         {
@@ -221,10 +215,7 @@ public sealed class ServiceFileSystemTests
     public async Task Rename_Should_Leave_A_Destination_Held_Without_Delete_Sharing_In_Place_On_Windows()
     {
         using var directory = new OwnedTemporaryDirectory();
-        var source = directory.File("temporary.json");
-        var destination = directory.File("sidecar.json");
-        directory.FileSystem.File.WriteAllText(source, "published");
-        directory.FileSystem.File.WriteAllText(destination, "previous");
+        var (source, destination) = directory.Publication();
 
         using (directory.FileSystem.FileStream.New(destination, FileMode.Open, FileAccess.Read, FileShare.Read))
         {
@@ -247,17 +238,60 @@ public sealed class ServiceFileSystemTests
         }
     }
 
-    /// <summary>A volume without POSIX-semantics rename (FAT, some network shares) refuses the call with these errors.</summary>
+#if NET
+    // .NET Framework's path handling refuses a path of MAX_PATH characters or more in every System.IO
+    // call this host makes (PathTooLongException from GetFullPath and CreateDirectory alike), so no
+    // such sidecar exists there to publish: the long-path cases are the modern targets'.
+    /// <summary>
+    /// A sidecar path of <c>MAX_PATH</c> characters or more, as a deep registration directory gives:
+    /// the POSIX-semantics rename takes the extended-length prefix the platform replace takes, so
+    /// such a path publishes under a delete-sharing reader as a short one does.
+    /// </summary>
+    [Test]
+    public async Task Rename_Should_Replace_A_Destination_Beyond_Max_Path_That_A_Delete_Sharing_Reader_Holds()
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var folder = string.Join(directory.FileSystem.Path.DirectorySeparatorChar.ToString(), Enumerable.Repeat(new string('d', 60), 4));
+        var (source, destination) = directory.Publication(folder);
+        await Assert.That(destination.Length).IsGreaterThanOrEqualTo(FileRenameKernel.MaxShortPath);
+
+        using (var reader = new StreamReader(ServiceFileSystem.OpenRead(destination)))
+        {
+            new ServiceFileSystem().Rename(source, destination);
+
+            await Assert.That(directory.FileSystem.File.ReadAllText(destination)).IsEqualTo("published");
+            await Assert.That(await reader.ReadToEndAsync()).IsEqualTo("previous");
+        }
+    }
+
+    /// <summary>The prefix rule .NET's own <c>CreateFile</c> wrapper applies, which the Windows kernel call follows.</summary>
+    [Test]
+    public async Task ExtendedPath_Should_Prefix_Only_Paths_Of_Max_Path_Characters_Or_More()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Console.WriteLine("branch: Unix (" + RuntimeInformation.OSDescription + ") — the kernel call is Windows-only; rename(2) takes the path as it is");
+            return;
+        }
+
+        var name = new string('n', FileRenameKernel.MaxShortPath);
+
+        await Assert.That(FileRenameKernel.ExtendedPath(@"C:\short\sidecar.json")).IsEqualTo(@"C:\short\sidecar.json");
+        await Assert.That(FileRenameKernel.ExtendedPath(@"C:\" + name)).IsEqualTo(@"\\?\C:\" + name);
+        await Assert.That(FileRenameKernel.ExtendedPath(@"\\server\share\" + name)).IsEqualTo(@"\\?\UNC\server\share\" + name);
+        await Assert.That(FileRenameKernel.ExtendedPath(@"\\?\C:\" + name)).IsEqualTo(@"\\?\C:\" + name);
+    }
+#endif
+
+    /// <summary>A system or volume without POSIX-semantics rename refuses the call with these errors: Windows before 10 1607, some Windows Server 2016 installations, FAT, ReFS, some network shares.</summary>
     [Test]
     [Arguments(WindowsInterop.InvalidParameter)]
     [Arguments(WindowsInterop.NotSupported)]
+    [Arguments(WindowsInterop.InvalidFunction)]
     public async Task Rename_Should_Fall_Back_To_The_Platform_Replace_When_The_Volume_Refuses_The_Posix_Rename(int error)
     {
         using var directory = new OwnedTemporaryDirectory();
-        var source = directory.File("temporary.json");
-        var destination = directory.File("sidecar.json");
-        directory.FileSystem.File.WriteAllText(source, "published");
-        directory.FileSystem.File.WriteAllText(destination, "previous");
+        var (source, destination) = directory.Publication();
         var kernel = Substitute.For<IFileRenameKernel>();
         _ = kernel.Replace(source, destination).Returns(error);
 
@@ -272,10 +306,7 @@ public sealed class ServiceFileSystemTests
     public async Task Rename_Should_Throw_Without_Falling_Back_When_The_Posix_Rename_Is_Refused_Otherwise()
     {
         using var directory = new OwnedTemporaryDirectory();
-        var source = directory.File("temporary.json");
-        var destination = directory.File("sidecar.json");
-        directory.FileSystem.File.WriteAllText(source, "published");
-        directory.FileSystem.File.WriteAllText(destination, "previous");
+        var (source, destination) = directory.Publication();
         var kernel = Substitute.For<IFileRenameKernel>();
         _ = kernel.Replace(source, destination).Returns(WindowsInterop.AccessDenied);
 
@@ -338,6 +369,18 @@ public sealed class ServiceFileSystemTests
         public string Path { get; }
 
         public string File(params string[] segments) => FileSystem.Path.Combine([Path, .. segments]);
+
+        /// <summary>A temporary file holding "published" beside a sidecar holding "previous", in a folder under this directory.</summary>
+        public (string Source, string Destination) Publication(string folder = "")
+        {
+            var directory = File(folder);
+            _ = FileSystem.Directory.CreateDirectory(directory);
+            var source = FileSystem.Path.Combine(directory, "temporary.json");
+            var destination = FileSystem.Path.Combine(directory, "sidecar.json");
+            FileSystem.File.WriteAllText(source, "published");
+            FileSystem.File.WriteAllText(destination, "previous");
+            return (source, destination);
+        }
 
         public void Dispose() => FileSystem.Directory.Delete(Path, recursive: true);
     }

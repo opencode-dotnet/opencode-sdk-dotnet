@@ -10,6 +10,14 @@ namespace OpenCode.Sdk.Internal;
 /// </summary>
 internal sealed class FileRenameKernel : IFileRenameKernel
 {
+    /// <summary><c>MAX_PATH</c>: the length from which a path needs the extended-length prefix.</summary>
+    internal const int MaxShortPath = 260;
+
+    private const string ExtendedPrefix = @"\\?\";
+    private const string ExtendedUncPrefix = @"\\?\UNC\";
+    private const string DevicePrefix = @"\\.\";
+    private const string UncPrefix = @"\\";
+
     private static readonly int NameOffset = Marshal.OffsetOf<WindowsInterop.FileRenameInformation>(nameof(WindowsInterop.FileRenameInformation.FileName)).ToInt32();
     private static readonly int LengthOffset = Marshal.OffsetOf<WindowsInterop.FileRenameInformation>(nameof(WindowsInterop.FileRenameInformation.FileNameLength)).ToInt32();
     private static readonly int StructureSize = Marshal.SizeOf<WindowsInterop.FileRenameInformation>();
@@ -21,7 +29,7 @@ internal sealed class FileRenameKernel : IFileRenameKernel
     public int Replace(string source, string destination)
     {
         using var handle = WindowsInterop.CreateFile(
-            source,
+            ExtendedPath(source),
             WindowsInterop.DeleteAccess,
             WindowsInterop.ShareReadWriteDelete,
             IntPtr.Zero,
@@ -35,7 +43,7 @@ internal sealed class FileRenameKernel : IFileRenameKernel
 
         // The name is a full path, so the root directory stays null; the buffer is never smaller
         // than the structure itself, whose trailing padding the call may read.
-        var name = Path.GetFullPath(destination);
+        var name = ExtendedPath(destination);
         var nameBytes = name.Length * sizeof(char);
         var size = Math.Max(StructureSize, NameOffset + nameBytes + sizeof(char));
         var information = Marshal.AllocHGlobal(size);
@@ -60,5 +68,32 @@ internal sealed class FileRenameKernel : IFileRenameKernel
         {
             Marshal.FreeHGlobal(information);
         }
+    }
+
+    /// <summary>
+    /// The full path the kernel takes for <paramref name="path"/>, prefixed the way .NET's own
+    /// <c>CreateFile</c> wrapper prefixes it: a path of <see cref="MaxShortPath"/> characters or more
+    /// takes the extended-length prefix (<c>\\?\UNC\</c> for a share), which lifts the
+    /// <c>MAX_PATH</c> limit without the system's long-path opt-in, and an already prefixed or
+    /// device path is kept as it is. The platform replace this one stands in for prefixes the same
+    /// way, so no path it accepted is refused here.
+    /// </summary>
+    internal static string ExtendedPath(string path)
+    {
+        var full = Path.GetFullPath(path);
+        if (full.Length < MaxShortPath
+            || full.StartsWith(ExtendedPrefix, StringComparison.Ordinal)
+            || full.StartsWith(DevicePrefix, StringComparison.Ordinal))
+        {
+            return full;
+        }
+
+        return full.StartsWith(UncPrefix, StringComparison.Ordinal)
+#if NET
+            ? string.Concat(ExtendedUncPrefix, full.AsSpan(UncPrefix.Length))
+#else
+            ? ExtendedUncPrefix + full[UncPrefix.Length..]
+#endif
+            : ExtendedPrefix + full;
     }
 }

@@ -123,6 +123,9 @@ internal static partial class WindowsInterop
     /// <summary><c>ERROR_NOT_SUPPORTED</c>.</summary>
     internal const int NotSupported = 50;
 
+    /// <summary><c>ERROR_INVALID_FUNCTION</c>.</summary>
+    internal const int InvalidFunction = 1;
+
     /// <summary><c>DELETE</c>: the access a handle needs to rename the file it holds.</summary>
     internal const uint DeleteAccess = 0x00010000;
 

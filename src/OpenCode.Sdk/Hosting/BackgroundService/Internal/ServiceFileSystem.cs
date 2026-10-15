@@ -88,8 +88,9 @@ internal sealed class ServiceFileSystem : IServiceFileSystem
     /// <c>node:fs</c> rename: that rename fails while any handle holds the destination, and a
     /// reader the SDK does not control (an antivirus scanner, the indexer, another client polling
     /// the sidecar) holds it with delete sharing, which the POSIX-semantics rename replaces under
-    /// while the reader keeps the old contents. A volume that refuses that rename (FAT, some
-    /// network shares) takes the platform replace below.
+    /// while the reader keeps the old contents. A system or volume that refuses that rename (Windows
+    /// before 10 1607, some Windows Server 2016 installations, FAT, ReFS, some network shares) takes
+    /// the platform replace below, with the error codes Git's own POSIX-semantics rename falls back on.
     /// </summary>
     /// <param name="source">The file to publish.</param>
     /// <param name="destination">The name it replaces.</param>
@@ -105,7 +106,7 @@ internal sealed class ServiceFileSystem : IServiceFileSystem
                 return;
             }
 
-            if (error is not (WindowsInterop.InvalidParameter or WindowsInterop.NotSupported))
+            if (error is not (WindowsInterop.InvalidParameter or WindowsInterop.NotSupported or WindowsInterop.InvalidFunction))
             {
                 throw RenameFailure(error, source, destination);
             }
