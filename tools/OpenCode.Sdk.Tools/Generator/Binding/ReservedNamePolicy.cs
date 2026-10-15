@@ -177,6 +177,7 @@ internal static class ReservedNamePolicy
             "LoopbackSocketConnector",
             "LoopbackTransport",
             "MockSeam",
+            "NetworkTimeouts",
             "NulText",
             "OpenCodeErrorReader",
             "OpenCodeHttpMethod",

@@ -276,9 +276,18 @@ section it concerns (ADR-0031).
   failures on both one-shot and streaming paths (ADR-0007, ADR-0014).
 - Streaming operations return a stream rather than a response envelope and therefore expose no
   per-call request-options parameter. Their failures always throw (ADR-0007).
-- Network progress is bounded by an internal per-read window (100 s today): the send and every
-  buffered body read must progress inside it, and each read that progresses re-arms it, so a
-  slow-but-flowing body survives while a stalled one fails. A raw-byte request body is the caller's
+- Network progress is bounded by a per-read window: the send and every buffered body read must
+  progress inside it, and each read that progresses re-arms it, so a slow-but-flowing body
+  survives while a stalled one fails. Its length is the call's `OpenCodeRequestOptions.NetworkTimeout`
+  when set; otherwise an ordinary operation takes `OpenCodeClientOptions.NetworkTimeout`, or 100 s,
+  the .NET convention. The operations that answer only when work ends —
+  `experimental.session.wait`, `session.shell`, `session.command`, `session.generate`,
+  `experimental.generate.text` — run with no window
+  unless the call sets one, so the caller's token is their deadline, as upstream's client bounds
+  them; a client-wide value does not reach them. A hand-written table keyed by operation id names
+  them; a Tools test holds its ids to the pinned document, and the source watch pins the upstream
+  lines that block. Both members accept a value above zero and at most `int.MaxValue` ms, or
+  `Timeout.InfiniteTimeSpan`, refused when set. A raw-byte request body is the caller's
   `Stream`: it is read once from its current position to its end, never disposed, rewound, or
   buffered whole, declares a `Content-Length` only when the stream can seek, refuses a second
   send, and restarts the window with each chunk written, so the upload is bounded by progress as

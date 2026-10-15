@@ -15,6 +15,20 @@ public sealed class OpenCodeRequestOptions
     /// </summary>
     public LocationSelector? Location { get; init; }
 
+    /// <summary>
+    /// Gets how long this call may go without progress, which wins over
+    /// <see cref="OpenCodeClientOptions.NetworkTimeout"/> and over an operation's own default; a
+    /// long-poll operation, which runs with no window otherwise, is bounded by it too.
+    /// <see langword="null"/> keeps the default. Accepts a value above zero and at most
+    /// <see cref="int.MaxValue"/> milliseconds, or <see cref="Timeout.InfiniteTimeSpan"/> for no window.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is zero, negative other than <see cref="Timeout.InfiniteTimeSpan"/>, or longer than <see cref="int.MaxValue"/> milliseconds.</exception>
+    public TimeSpan? NetworkTimeout
+    {
+        get;
+        init => field = Internal.NetworkTimeouts.Validate(value, nameof(value));
+    }
+
     /// <summary>Gets a shared instance that returns API errors on the response envelope.</summary>
     public static OpenCodeRequestOptions NoThrow { get; } = new()
     {

@@ -39,4 +39,22 @@ public sealed class OpenCodeClientOptions
     /// which the server reads first.
     /// </summary>
     public LocationSelector? Location { get; set; }
+
+    /// <summary>
+    /// Gets or sets how long an ordinary call may go without progress: waiting for the response
+    /// headers, and then between reads of the body. The default, <see langword="null"/>, is
+    /// 100 seconds. The operations that answer only when work ends — waiting for a session to go
+    /// idle, running a shell command or a command, generating text — ignore this value and run with
+    /// no window,
+    /// so the call's cancellation token is their deadline; a value set on
+    /// <see cref="OpenCodeRequestOptions.NetworkTimeout"/> bounds them for that call. Accepts a
+    /// value above zero and at most <see cref="int.MaxValue"/> milliseconds, or
+    /// <see cref="Timeout.InfiniteTimeSpan"/> for no window.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is zero, negative other than <see cref="Timeout.InfiniteTimeSpan"/>, or longer than <see cref="int.MaxValue"/> milliseconds.</exception>
+    public TimeSpan? NetworkTimeout
+    {
+        get;
+        set => field = Internal.NetworkTimeouts.Validate(value, nameof(value));
+    }
 }

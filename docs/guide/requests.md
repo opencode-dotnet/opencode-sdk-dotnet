@@ -1,6 +1,6 @@
 # 📝 Requests
 
-Date: 2026-10-14
+Date: 2026-10-15
 
 Every operation that sends anything takes one request record. They are plain immutable records you
 fill with an object initializer — with one twist worth knowing before you write your first `PATCH`:
@@ -189,6 +189,49 @@ Calls on that session afterwards address the session's own directory.
 
 The options object also carries [`NoThrow`](errors-and-responses.md#-ask-for-the-failure-as-data-instead),
 so one per-call argument selects both it and the header override.
+
+## ⏱️ How long a call may wait
+
+A call fails with `OpenCodeTransportException` when the network makes no progress for a while:
+no response headers, or no new bytes of the body. That window is 100 seconds by default. Change it
+for the whole client, or for one call. On an event stream the window bounds only opening the
+stream; once it is open, the stream stays open until you stop reading, the server ends it, or it
+fails. A stream takes no per-call options, so only the client value applies to it:
+
+```csharp
+using var client = new OpenCodeClient(new OpenCodeClientOptions
+{
+    Endpoint = new Uri("http://localhost:4096"),
+    NetworkTimeout = TimeSpan.FromSeconds(30),
+});
+
+var sessions = await client.Sessions.ListSessionsAsync(requestOptions: new OpenCodeRequestOptions
+{
+    NetworkTimeout = TimeSpan.FromSeconds(5),
+});
+```
+
+Five calls answer only when work ends, so they wait with no window at all and your
+cancellation token is their deadline:
+
+- `client.Experimental.WaitForSessionAsync`, which waits for a session to go idle;
+- `session.RunShellCommandAsync`, which waits for the shell command to exit;
+- `session.RunCommandAsync`, which waits for the command to finish its work;
+- `session.GenerateTextAsync` and `client.Experimental.GenerateTextAsync`, which wait for the whole
+  generation.
+
+The client-wide value does not reach them; a per-call value does:
+
+```csharp
+using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+var result = await session.RunShellCommandAsync(new SessionShellRequest { Command = "dotnet test" }, cancellationToken: deadline.Token);
+```
+
+A shell command keeps running on the server when your call gives up, so retrying a failed
+`RunShellCommandAsync` runs the command twice.
+
+Both members take a value above zero and at most `int.MaxValue` milliseconds, or
+`Timeout.InfiniteTimeSpan` for no window; anything else is refused when you set it.
 
 ## 🧾 Members the schema does not explain
 
