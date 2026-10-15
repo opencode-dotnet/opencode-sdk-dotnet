@@ -84,6 +84,16 @@ Bun refuses the module with one error that names each missing piece and the comm
 It refuses a run filtered to tests that start no server too: every gate and CI leg prepares the
 checkout, so an unprepared one is named before it costs a run.
 
+One exception is explicit: `OPENCODE_SDK_TESTS_BUN_MISMATCH=allow` lets a gate host whose only Bun
+is another version run on it. It is for a host the maintainer has named, never a default, and CI
+never sets it; `setup-pinned-server` installs and verifies the exact pin. Such a host departs from
+the pin twice: its install and its gate both run on its own Bun. The frozen lockfile keeps the
+installed dependency tree identical to the pin's; the Bun that runs the server is what differs. The
+variable allows only a different version: a missing Bun, checkout or install is still refused, and
+any other value of the variable is refused with the one it takes. Each module that runs off the pin
+writes one line naming both versions, which the TRX keeps and `--output Detailed` shows, and results
+from such a host state the off-pin Bun.
+
 ```bash
 dotnet tool run slopwatch analyze --exclude ".scratchpad/**,external/**" --fail-on warning
 dotnet build --configuration Release
