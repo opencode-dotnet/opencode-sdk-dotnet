@@ -1,10 +1,11 @@
 # Deviation Protocol
 
-Date: 2026-08-18
+Date: 2026-10-15
 
 > *"No plan survives first contact with the enemy."* — Helmuth von Moltke
 
-What to do when implementation reality contradicts a spec, a plan, or a sealed decision.
+What to do when implementation reality contradicts current canon, an approved plan, or a sealed
+decision.
 This is the process rendering of the repo's engineering default — fail loudly rather than
 guess; silent fallbacks only as explicitly recorded tolerances in current canon. An executing
 agent never silently codes around a contradiction, and never silently "fixes" a sealed
@@ -16,9 +17,13 @@ Classify the deviation before acting. When in doubt between two levels, take the
 
 ### Level 0 — Implementation detail
 
-The spec is silent, or the question sits below spec resolution (a private helper's name,
-test internals, a local refactor). **Decide and move on.** Note it in the PR description
-only if a reviewer might wonder.
+Current canon and the approved plan are silent, or the question sits below their resolution (a
+private helper's name, test internals, a local refactor). **Decide and move on.** Note it in the
+PR description only if a reviewer might wonder.
+
+A departure from upstream's first-party behaviour at the pin is never level 0, even where canon is
+silent: whether to diverge is the maintainer's decision (`client-runtime.md`, ADR-0031). Bring it
+as level 2 with the evidence, the options, and a recommendation, and wait.
 
 ### Level 1 — Recorded fallback
 
@@ -36,11 +41,14 @@ upstream behaves differently, an API does not exist, a count is wrong, a detail 
 built as written. **Stop the affected task** (neighboring tasks may continue if
 untouched). Capture the evidence — commands, output, source references. Propose the
 correction to the maintainer; on approval, the document is corrected in place and the
-task resumes. Findings worth keeping go to the research log.
+task resumes. Evidence worth keeping goes to the research log; a correction that does not land in
+this change gets a record under the findings rule in `workflow.md`.
 
-Vision/reference documents (the plans and specs kept in the private companion repository) are
-not protocol subjects: contradicting one is a level-0 note in the PR, and the document is
-corrected opportunistically.
+Vision and reference documents in the private companion repository (design explorations and
+specs that no approved plan binds) are not protocol subjects: contradicting one is a level-0 note
+in the PR, and the document is corrected opportunistically. A binding constraint of the plan the
+maintainer approved for the current work (a named mechanism, order, or scope) is not reference
+material: contradicting it is level 2, and the mechanism is never swapped without the maintainer.
 
 ### Level 3 — Locked-decision challenge
 

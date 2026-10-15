@@ -58,7 +58,7 @@ Run from the repository root — see [`docs/engineering/quality-gates.md`](../do
 - [ ] `dotnet build --configuration Release`
 - [ ] `dotnet format whitespace --verify-no-changes --no-restore`
 - [ ] `dotnet format style --verify-no-changes --no-restore --severity warn`
-- [ ] `dotnet test --configuration Release --no-build`
+- [ ] The three test passes in `quality-gates.md` (main, `ServiceElection`, `NativeAot`), with the pinned Bun first on `PATH`
 
 ## 📚 Documentation
 

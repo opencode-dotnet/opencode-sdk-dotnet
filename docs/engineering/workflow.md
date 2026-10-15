@@ -1,6 +1,6 @@
 # Repository Workflow
 
-Date: 2026-10-14
+Date: 2026-10-15
 
 Canonical working agreements for research, implementation, temporary work, verification, and Git
 history.
@@ -61,10 +61,11 @@ class can be reverted alone, and the pull request passes the full completion gat
 
 ## Documentation sessions
 
-Research and decision sessions end with a documentation pass: a chronological research log in
-question -> finding -> decision form, topic evidence where it adds retrieval value, current canon or
-ADR updates when a decision changes, and operational state in the roadmap. The resulting change is
-one coherent commit after maintainer approval.
+Research and decision sessions end with a documentation pass. Current canon or ADR updates when a
+decision changes, and operational state in the roadmap, land here as one coherent commit after
+maintainer approval. The chronological research log (question -> finding -> decision) and topic
+evidence go to the private companion repository, and canon cites them by date and title
+(`documentation.md`).
 
 Documentation maintenance follows `documentation.md`, especially its lossless-relocation and
 single-owner rules.
@@ -74,9 +75,13 @@ single-owner rules.
 - Commit only with maintainer approval, except inside an explicitly agreed development loop where
   committing is part of the flow.
 - Use Conventional Commits: `feat`, `fix`, `perf`, `docs`, `test`, `refactor`, `build`, `ci`, or
-  `chore`. Do not add AI-attribution trailers.
+  `chore`. Commits and pull request descriptions carry no AI-attribution trailers or footers
+  (session links, co-author lines, "generated with" notes), even when a tool adds them by default.
 - `perf` is distinct from `refactor` because performance work requires before/after benchmark
   evidence.
+- Everything lands through a pull request, except a release: its changelog cut and its
+  post-publish note are Markdown-only commits pushed straight to `master` with `[skip ci]`, on the
+  maintainer's go for that release.
 - A documentation-only follow-up to an already-green mixed pull request may use `[skip ci]` only
   when every change since the tested commit is Markdown or `LICENSE`. Never skip CI for source,
   tests, project/build files, tool manifests or baselines, workflows, or generated artifacts.

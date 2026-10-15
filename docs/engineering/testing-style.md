@@ -23,7 +23,8 @@ sized to need:
   var context = SpecScenario.Define(spec =>
       spec.WithSchema("ToolResult", schema => schema.Unrestricted()))
       .Build();
-  var document = ingestion.Project(context.SpecPath);
+  var document = await new SpecIngestion(context.FileSystem)
+      .IngestAsync(context.SpecPath, CancellationToken.None);
   ```
 
 - **Named scenario classes are promoted, not automatic.** A `sealed` scenario class earns
@@ -42,7 +43,8 @@ sized to need:
   var context = new ConfigPluginTupleScenario().Build();
   ```
 
-  (Type names illustrative — the concrete infrastructure is named at slice planning.)
+  (`SpecScenario` and `SpecDocumentBuilder` live in `tests/OpenCode.Sdk.Tools.Tests/Support/`; the
+  promoted class name is illustrative.)
 - **Domain-aware fluent builders.** Scenario state is expressed in domain verbs
   (`WithSchema(...)`, `WithOperation(...)`, `WithResponse(...)`), not raw file writes
   scattered through test bodies. Builders compose over the canonical filesystem fake and
@@ -64,8 +66,9 @@ sized to need:
   one test path.
 - A helper or fixture one slice uses lives in that test slice's `Support/` or `Fixtures/`;
   helpers several slices share stay in the test project's root `Support/`. Live-server harness
-  code lives in `OpenCode.Sdk.Tests/Harness/`; the files linked into the service fixture stay in
-  `tests/Shared/`. There is no separate test-support project.
+  code lives in `tests/Shared/`, which `OpenCode.Sdk.Tests` compiles whole; harness files the
+  service fixture does not link move to `OpenCode.Sdk.Tests/Harness/` as the layout migration
+  reaches them, and the files linked into the service fixture stay in `tests/Shared/`. There is no separate test-support project.
 
 ## 2. Filesystem rule
 
@@ -74,11 +77,14 @@ sized to need:
 analyzer enforces it wherever an abstractions assembly is referenced — even test code reaches
 `Path` through `IFileSystem.Path`):
 
-- Levels 1–2 (unit, contract): `Testably.Abstractions.Testing.MockFileSystem`, assembled
+- Unit and contract tests: `Testably.Abstractions.Testing.MockFileSystem`, assembled
   through the scenario builders.
-- Level 3 and full-artifact smoke tests: `Testably.Abstractions.RealFileSystem`.
+- Tests that run a real process or server, and full-artifact smoke tests:
+  `Testably.Abstractions.RealFileSystem`.
 - Raw `System.IO` never appears in test code, and no second filesystem fake is ever
-  introduced — one canonical fake per repository.
+  introduced — one canonical fake per repository. Fault injection decorates that fake: an
+  NSubstitute `IFileSystem` that delegates to the Testably double and fails the chosen calls is
+  the same fake with a failure, not a second one.
 - Repository tooling and tests consume `IFileSystem` directly. Shipped SDK code carries no
   filesystem-abstraction dependency: the file access it performs sits behind its own internal
   seam (`IServiceFileSystem` for the background-service slice), whose test implementation is a
@@ -123,8 +129,8 @@ unsupported OpenAPI constructs and prove the exact required/null-representation 
   pure classes are constructed, never mocked.
 - **Never hand-build types you do not own** where a published contract can be exercised
   instead: ingestion fixtures load through the pinned reader — its DOM types are never
-  constructed by hand in tests. This is the authorship side of the sealed
-  no-mock-framework and fake-only-published-contracts principles.
+  constructed by hand in tests. This is the authorship side of the fakes-only-for-published-contracts
+  posture (`quality-gates.md`).
 - **No giant shared `TestBase`.** Shared behavior lives in scenario bases and small
   single-responsibility helpers; a base class accumulating unrelated conveniences is
   split like any other class (§1 red flags apply to test code).
@@ -293,14 +299,16 @@ true; the fixture hands the boundary to the child process it starts.
 ## 7. Anti-patterns (never)
 
 - Inline data dumps (§3), or the same literal appearing in two test methods.
-- Real file I/O in a level-1/2 test; raw `System.IO` anywhere in tests.
-- Full-spec count assertions against the pin — counts are research-doc facts, and a
+- Real file I/O in a unit or contract test; raw `System.IO` anywhere in tests.
+- Full-spec count assertions against the pin — a count describes one snapshot, and a
   count test turns every legitimate spec refresh into noise.
-- `Skip` outside a mechanism that is implemented, documented, and sanctioned by the current test
-  architecture. The container conditional skip is the only such mechanism today. A platform-gated
-  live leg is not a skip: it asserts the arm the platform can reach (the daemon-absent 503 where
-  the opencode-pty daemon cannot run, the full flow where it can), names the branch it took, and
-  both branches assert.
+- `Skip`. This document sanctions no skip mechanism; a missing prerequisite is an instructive
+  failure (§6). A platform-gated live leg is not a skip: it asserts the arm the platform can reach
+  (the daemon-absent 503 where the opencode-pty daemon cannot run, the full flow where it can),
+  names the branch it took, and both branches assert.
+- Retrying, widening a bound for, or quarantining a flaky test. A flaky test is fixed at its root
+  cause; a test is deleted only with evidence that its subject is gone or that another test proves
+  the same thing.
 - A second filesystem fake, a resurrected retired helper, or infrastructure kept "just
   in case" — deleted code is recoverable from git.
 - Testing library internals (the OpenAPI reader's conformance, TUnit itself, the BCL)

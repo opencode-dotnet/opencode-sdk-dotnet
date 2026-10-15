@@ -1,6 +1,6 @@
 # Documentation
 
-Date: 2026-09-02
+Date: 2026-10-15
 
 Canonical rules for documentation ownership, authority, lifecycle, references, and lossless
 maintenance.
@@ -16,6 +16,7 @@ maintenance.
 | Domain vocabulary | `CONTEXT.md` | Current terms and explicitly avoided synonyms |
 | Operational state | `docs/ROADMAP.md` | What is done, next, open, and known to be incomplete; shrinks as work lands |
 | Protocol provenance | `spec/SNAPSHOT.md` | Exact upstream pin and refresh procedure |
+| Consumer documentation | `README.md`, `docs/guide/`, `CHANGELOG.md` | How to use the shipped packages, complete on its own (Consumer documentation, below) |
 
 Dated research evidence and session operations live in a private companion repository
 (`opencode-dotnet/opencode-sdk-dotnet-internal`); the canonical documentation here is complete
@@ -68,9 +69,24 @@ by date and title, for example: internal research, 2026-08-24, "Runtime pipeline
 design". Naming the ROADMAP as the home of operational state, as the table above and `AGENTS.md`
 do, is routing, not a reference.
 
-Audience decides placement. Knowledge shared by humans and agents belongs in architecture,
-engineering, ADR, domain, or operational documents; guidance needed only by coding agents belongs
-in `AGENTS.md` or the private companion repository.
+Audience decides placement. Knowledge for consumers of the packages belongs in the consumer
+documentation; knowledge shared by maintainers and agents belongs in architecture, engineering,
+ADR, domain, or operational documents; guidance needed only by coding agents belongs in
+`AGENTS.md` or the private companion repository.
 
 ADRs are created lazily under the criteria in `docs/adr/README.md`. Handovers are consumed against
 live Git and GitHub, then deleted when the follow-up ships or a newer handoff supersedes them.
+
+## Consumer documentation
+
+`README.md`, `docs/guide/` and `CHANGELOG.md` speak to people using the packages.
+
+- A change that alters what a consumer sees updates the guide or README section that describes it,
+  in the same pull request.
+- `CHANGELOG.md` gets an entry under `[Unreleased]` for every user-facing change, in the same pull
+  request. A released section is the delta from the previous published package: it states the
+  status quo a consumer upgrading from that package meets, never the order of intermediate commits
+  or nightlies.
+- Consumer documentation names upstream where the server's behaviour matters, but never sends a
+  reader to upstream's code, issues or documentation to learn how the SDK behaves; what a consumer
+  needs is stated here.
