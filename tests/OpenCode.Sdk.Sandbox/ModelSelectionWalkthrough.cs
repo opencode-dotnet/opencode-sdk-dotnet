@@ -60,6 +60,9 @@ internal static class ModelSelectionWalkthrough
     /// <see cref="ServiceUnavailableError"/> until they have loaded, which is "still loading", not a
     /// failure.
     /// </summary>
+    [SlopwatchSuppress(
+        "SW004",
+        "The guide's documented wait for another process: the model list answers a declared 503 until the location's plugins have loaded, the server sends no signal this recipe can await, and the retry is bounded by a thirty-second deadline.")]
     private static async Task<ModelListResponse> ListModelsWhenLoadedAsync(OpenCodeClient client)
     {
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
