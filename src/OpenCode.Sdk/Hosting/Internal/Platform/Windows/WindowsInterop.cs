@@ -114,6 +114,29 @@ internal static partial class WindowsInterop
     /// <summary><c>ERROR_INVALID_PARAMETER</c>.</summary>
     internal const int InvalidParameter = 87;
 
+    /// <summary><c>ERROR_FILE_NOT_FOUND</c>.</summary>
+    internal const int FileNotFound = 2;
+
+    /// <summary><c>ERROR_PATH_NOT_FOUND</c>.</summary>
+    internal const int PathNotFound = 3;
+
+    /// <summary><c>ERROR_NOT_SUPPORTED</c>.</summary>
+    internal const int NotSupported = 50;
+
+    /// <summary><c>DELETE</c>: the access a handle needs to rename the file it holds.</summary>
+    internal const uint DeleteAccess = 0x00010000;
+
+    /// <summary><c>FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE</c>.</summary>
+    internal const uint ShareReadWriteDelete = 0x00000007;
+
+    /// <summary><c>FileRenameInfoEx</c>: <c>FILE_RENAME_INFO</c> whose first member is a flag set.</summary>
+    internal const int FileRenameInfoExClass = 22;
+
+    /// <summary><c>FILE_RENAME_FLAG_REPLACE_IF_EXISTS</c>.</summary>
+    internal const uint FileRenameFlagReplaceIfExists = 0x00000001;
+
+    /// <summary><c>FILE_RENAME_FLAG_POSIX_SEMANTICS</c>: the old destination is unlinked even while handles opened with delete sharing hold it.</summary>
+    internal const uint FileRenameFlagPosixSemantics = 0x00000002;
     /// <summary><c>PROC_THREAD_ATTRIBUTE_HANDLE_LIST</c>: only the listed handles cross into the child.</summary>
     internal static readonly IntPtr HandleListAttribute = new(0x20002);
 
@@ -211,6 +234,20 @@ internal static partial class WindowsInterop
         public nuint JobMemoryLimit;
         public nuint PeakProcessMemoryUsed;
         public nuint PeakJobMemoryUsed;
+    }
+
+    /// <summary>
+    /// The fixed head of <c>FILE_RENAME_INFO</c>; the name's UTF-16 code units continue from
+    /// <see cref="FileName"/>. Only its field offsets are read, so the layout follows the process's
+    /// bitness: 20 bytes to the name on 64-bit processes, 12 on x86.
+    /// </summary>
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct FileRenameInformation
+    {
+        public uint Flags;
+        public IntPtr RootDirectory;
+        public uint FileNameLength;
+        public char FileName;
     }
 
 #if NET
@@ -341,6 +378,11 @@ internal static partial class WindowsInterop
     internal static partial bool SetInformationJobObject(
         SafeJobHandle job, int informationClass, ref JobExtendedLimitInformation information, uint length);
 
+    [LibraryImport("kernel32", EntryPoint = "SetFileInformationByHandle", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetFileInformationByHandle(SafeFileHandle file, int informationClass, IntPtr information, uint length);
+
     [LibraryImport("kernel32", EntryPoint = "AssignProcessToJobObject", SetLastError = true)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -371,6 +413,11 @@ internal static partial class WindowsInterop
         uint creationDisposition,
         uint flagsAndAttributes,
         IntPtr templateFile);
+
+    [DllImport("kernel32", EntryPoint = "SetFileInformationByHandle", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool SetFileInformationByHandle(SafeFileHandle file, int informationClass, IntPtr information, uint length);
 
     [DllImport("kernel32", EntryPoint = "CreateNamedPipeW", SetLastError = true, CharSet = CharSet.Unicode)]
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
