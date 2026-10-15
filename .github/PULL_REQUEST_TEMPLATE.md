@@ -72,13 +72,16 @@ Run from the repository root — see [`docs/engineering/quality-gates.md`](../do
 ## ✅ Code Quality Checklist
 
 - [ ] Code follows the project's coding standards
-- [ ] No new analyzer warnings, and no rules disabled or suppressed to make the build pass
+- [ ] No new analyzer warnings; any new suppression follows the policy in [`docs/engineering/slop-review.md`](../docs/engineering/slop-review.md) and is named below
+- [ ] The change passes the slop rubric in the same file
 - [ ] No tests skipped, weakened, or deleted to make the suite pass
 - [ ] All tests pass locally
 - [ ] Branch is up to date with the target branch, no merge conflicts
 - [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) and carry **no AI-attribution trailers**
 
 ## 🔍 Additional Notes
+
+**Provenance:** lane / harness / model that wrote this change (for example: Surface / Claude Code / claude-opus-5-5; harness-drafted parts named).
 
 **Breaking Changes:**
 If this is a breaking change, describe the impact and the migration path for users.

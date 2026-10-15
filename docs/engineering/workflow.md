@@ -30,8 +30,8 @@ Upstream submodules under `external/` are read-only evidence. Never hand-edit th
 
 ## Verification and generated output
 
-Verification requirements live in `quality-gates.md`. Run them before claiming completion and state
-honestly what was not run. Generated SDK output changes through the generator and is reviewed as a
+Verification requirements live in `quality-gates.md`, including which changes need the full gate and
+which need only green CI. Run them before claiming completion and state honestly what was not run. Generated SDK output changes through the generator and is reviewed as a
 complete diff; it is never hand-edited.
 
 ## Findings
