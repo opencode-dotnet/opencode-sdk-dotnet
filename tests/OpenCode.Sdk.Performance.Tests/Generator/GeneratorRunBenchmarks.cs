@@ -3,6 +3,7 @@ using System.Diagnostics;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using Microsoft.Extensions.DependencyInjection;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Performance.Tests.Support;
 using OpenCode.Sdk.Tools;
 using OpenCode.Sdk.Tools.Generator;
@@ -23,7 +24,8 @@ namespace OpenCode.Sdk.Performance.Tests.Generator;
 /// <see cref="GeneratorStageBenchmarks"/>' rows, it is the writer plus the run's own preparation
 /// (curation, source watch, identity map) and orchestration. The format row puts the emitted bytes
 /// back into the repository's generated tree before each iteration, outside the measurement, so it
-/// formats what a real run formats; its allocations are this process's wrapper around the
+/// formats what a real run formats (the emitted bytes are the settled copy's, put back by file copy);
+/// its allocations are this process's wrapper around the
 /// subprocess, not the subprocess's own. The verify row runs <c>generate --verify</c> on the
 /// repository's tree, which rewrites it with identical bytes.
 /// </para>
@@ -88,9 +90,20 @@ public class GeneratorRunBenchmarks : IDisposable
     [Benchmark]
     public Task GenerateWithoutFormattingAsync() => RunUnformattedAsync(_copyRoot!);
 
-    /// <summary>Puts the emitted, unformatted sources back into the repository's tree for the next format iteration.</summary>
+    /// <summary>
+    /// Puts the emitted, unformatted sources back into the repository's tree for the next format
+    /// iteration: the settled copy holds exactly the emitted bytes, so a file copy restores them
+    /// without running the generator inside the hook.
+    /// </summary>
     [IterationSetup(Target = nameof(FormatEmittedAsync))]
-    public void RestoreEmittedSources() => RunUnformattedAsync(_input!.OutputRoot).GetAwaiter().GetResult();
+    public void RestoreEmittedSources()
+    {
+        foreach (var source in _generatedSources)
+        {
+            _fileSystem.File.Copy(
+                _fileSystem.Path.Combine(_copyRoot!, source), _fileSystem.Path.Combine(_input!.OutputRoot, source), overwrite: true);
+        }
+    }
 
     /// <summary>The <c>dotnet format</c> subprocess over freshly emitted sources, as a real run formats them.</summary>
     [Benchmark]
@@ -102,13 +115,13 @@ public class GeneratorRunBenchmarks : IDisposable
 
     /// <summary>Restores the committed tree after the format row and refuses one the generator would still change.</summary>
     [GlobalCleanup]
-    public void Cleanup()
+    public async Task CleanupAsync()
     {
         try
         {
             if (_coordinator is not null)
             {
-                RefuseChanges(RunVerifiedAsync().GetAwaiter().GetResult(), "the closing generate --verify");
+                RefuseChanges(await RunVerifiedAsync().ConfigureAwait(false), "the closing generate --verify");
             }
         }
         finally
@@ -162,7 +175,8 @@ public class GeneratorRunBenchmarks : IDisposable
                 $"The generator run benchmarks rewrite the repository's generated tree. Run them only in a disposable clean clone, with {RewriteVariable}={RewriteAllowed}.");
         }
 
-        using var git = Process.Start(new ProcessStartInfo("git")
+        var gitPath = new ExecutableResolver(ExecutableSearchEnvironment.ForCurrentProcess()).Resolve("git").Path;
+        using var git = Process.Start(new ProcessStartInfo(gitPath)
         {
             ArgumentList = { "-C", root, "status", "--porcelain" },
             RedirectStandardOutput = true,
