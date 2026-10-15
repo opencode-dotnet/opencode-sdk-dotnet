@@ -16,6 +16,8 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 [MemoryDiagnoser]
 public class MessageGetBenchmarks : IDisposable
 {
+    private const string OperationId = "session.message.get";
+
     private const string SessionId = "ses_bench0000000000000000001";
     private const string MessageId = "msg_bench00000000000000000001";
     private const int MediumParts = 120;
@@ -69,7 +71,7 @@ public class MessageGetBenchmarks : IDisposable
     /// <summary>The same pipeline through a no-op adapter: request, send, buffer, and UTF-8 validation only.</summary>
     [Benchmark]
     public Task<NoOpResponse> ExecuteWithoutAdapterAsync() =>
-        _pipeline!.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.GetMessage(SessionId, MessageId), NoOpResponseAdapter.Instance, options: null, CancellationToken.None);
+        _pipeline!.ExecuteAsync(OperationId, HttpMethod.Get, OpenCodeRoutes.Sessions.GetMessage(SessionId, MessageId), NoOpResponseAdapter.Instance, options: null, CancellationToken.None);
 
     /// <summary>The generated adapter over validated UTF-8: envelope materialization plus the response record.</summary>
     [Benchmark]

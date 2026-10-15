@@ -46,7 +46,7 @@ internal sealed class PersistentPtyRawClient
             declaredHeaders.Add(new DeclaredHeader("x-opencode-ticket", xOpencodeTicket));
         }
 
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.PersistentPtys.CreateConnectToken(PtyId), PersistentPtyConnectTokenResponseAdapter.Instance, requestOptions, declaredHeaders: declaredHeaders, cancellationToken);
+        return Pipeline.ExecuteAsync("persistentPty.connectToken", HttpMethod.Post, OpenCodeRoutes.PersistentPtys.CreateConnectToken(PtyId), PersistentPtyConnectTokenResponseAdapter.Instance, requestOptions, declaredHeaders: declaredHeaders, cancellationToken);
     }
 
     /// <summary>
@@ -62,7 +62,7 @@ internal sealed class PersistentPtyRawClient
     /// </remarks>
     internal Task<PersistentPtyResponse> GetAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.PersistentPtys.Get(PtyId), PersistentPtyResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("persistentPty.get", HttpMethod.Get, OpenCodeRoutes.PersistentPtys.Get(PtyId), PersistentPtyResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ internal sealed class PersistentPtyRawClient
     /// </remarks>
     internal Task<PersistentPtySnapshotResponse> GetSnapshotAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.PersistentPtys.GetSnapshot(PtyId), PersistentPtySnapshotResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("persistentPty.snapshot", HttpMethod.Get, OpenCodeRoutes.PersistentPtys.GetSnapshot(PtyId), PersistentPtySnapshotResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -94,7 +94,7 @@ internal sealed class PersistentPtyRawClient
     /// </remarks>
     internal Task<PersistentPtyRemoveResponse> RemoveAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.PersistentPtys.Remove(PtyId), PersistentPtyRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("persistentPty.remove", HttpMethod.Delete, OpenCodeRoutes.PersistentPtys.Remove(PtyId), PersistentPtyRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -112,6 +112,6 @@ internal sealed class PersistentPtyRawClient
     internal Task<PersistentPtyUpdateResponse> UpdateAsync(PersistentPtyUpdateRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Put, OpenCodeRoutes.PersistentPtys.Update(PtyId), request, OpenCodeJsonContext.Default.PersistentPtyUpdateRequest, PersistentPtyUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("persistentPty.update", HttpMethod.Put, OpenCodeRoutes.PersistentPtys.Update(PtyId), request, OpenCodeJsonContext.Default.PersistentPtyUpdateRequest, PersistentPtyUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

@@ -15,6 +15,8 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 [MemoryDiagnoser]
 public class InfoBenchmarks : IDisposable
 {
+    private const string OperationId = "server.info";
+
     private static readonly OpenCodeClientOptions Options = new()
     {
         Endpoint = new Uri("https://benchmark.invalid"),
@@ -59,7 +61,7 @@ public class InfoBenchmarks : IDisposable
     /// <summary>The same pipeline through a no-op adapter: everything above minus JSON and model cost.</summary>
     [Benchmark]
     public Task<NoOpResponse> ExecuteWithoutAdapterAsync() =>
-        _pipeline!.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Server.GetInfo, NoOpResponseAdapter.Instance, options: null, CancellationToken.None);
+        _pipeline!.ExecuteAsync(OperationId, HttpMethod.Get, OpenCodeRoutes.Server.GetInfo, NoOpResponseAdapter.Instance, options: null, CancellationToken.None);
 
     /// <summary>The generated adapter over validated UTF-8: materialization plus the response envelope.</summary>
     [Benchmark]

@@ -40,7 +40,7 @@ public class WorktreesClient
     public virtual Task<WorktreeCreateResponse> CreateWorktreeAsync(WorktreeCreateRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Worktrees.CreateWorktree, request, OpenCodeJsonContext.Default.WorktreeCreateRequest, WorktreeCreateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("worktree.create", HttpMethod.Post, OpenCodeRoutes.Worktrees.CreateWorktree, request, OpenCodeJsonContext.Default.WorktreeCreateRequest, WorktreeCreateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public class WorktreesClient
     public virtual Task<WorktreeListResponse> ListWorktreesAsync(WorktreeListRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Worktrees.ListWorktrees(request), WorktreeListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("worktree.list", HttpMethod.Get, OpenCodeRoutes.Worktrees.ListWorktrees(request), WorktreeListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -76,7 +76,7 @@ public class WorktreesClient
     public virtual Task<WorktreeRefreshResponse> RefreshWorktreesAsync(WorktreeRefreshRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Worktrees.RefreshWorktrees, request, OpenCodeJsonContext.Default.WorktreeRefreshRequest, WorktreeRefreshResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("worktree.refresh", HttpMethod.Post, OpenCodeRoutes.Worktrees.RefreshWorktrees, request, OpenCodeJsonContext.Default.WorktreeRefreshRequest, WorktreeRefreshResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -94,6 +94,6 @@ public class WorktreesClient
     public virtual Task<WorktreeRemoveResponse> RemoveWorktreeAsync(WorktreeRemoveRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Worktrees.RemoveWorktree, request, OpenCodeJsonContext.Default.WorktreeRemoveRequest, WorktreeRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("worktree.remove", HttpMethod.Delete, OpenCodeRoutes.Worktrees.RemoveWorktree, request, OpenCodeJsonContext.Default.WorktreeRemoveRequest, WorktreeRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

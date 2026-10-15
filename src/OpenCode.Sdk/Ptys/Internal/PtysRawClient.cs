@@ -48,7 +48,7 @@ internal sealed class PtysRawClient
     /// </remarks>
     internal Task<PtyCreateResponse> CreatePtyAsync(PtyCreateRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Ptys.CreatePty(request), request ?? EmptyPtyCreateRequest, OpenCodeJsonContext.Default.PtyCreateRequest, PtyCreateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("pty.create", HttpMethod.Post, OpenCodeRoutes.Ptys.CreatePty(request), request ?? EmptyPtyCreateRequest, OpenCodeJsonContext.Default.PtyCreateRequest, PtyCreateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -65,6 +65,6 @@ internal sealed class PtysRawClient
     /// </remarks>
     internal Task<PtyListResponse> ListPtysAsync(PtyListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Ptys.ListPtys(request), PtyListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("pty.list", HttpMethod.Get, OpenCodeRoutes.Ptys.ListPtys(request), PtyListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

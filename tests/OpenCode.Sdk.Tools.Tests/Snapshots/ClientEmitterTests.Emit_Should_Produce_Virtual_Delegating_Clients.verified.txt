@@ -84,7 +84,7 @@ public class OpenCodeClient : IDisposable
     /// </remarks>
     public virtual Task<PingResponse> GetPingAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Ping.Get, PingResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("ping.get", HttpMethod.Get, OpenCodeRoutes.Ping.Get, PingResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }
 
@@ -145,7 +145,7 @@ public class WidgetClient
     public virtual Task<WidgetItemResponse> GetItemAsync(string itemId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(itemId);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Widgets.GetItem(WidgetId, itemId), WidgetItemResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("widget.item.get", HttpMethod.Get, OpenCodeRoutes.Widgets.GetItem(WidgetId, itemId), WidgetItemResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -162,7 +162,7 @@ public class WidgetClient
     /// </remarks>
     public virtual Task<WidgetItemListResponse> ListItemsAsync(ItemListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Widgets.ListItems(WidgetId, request), WidgetItemListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("widget.item.list", HttpMethod.Get, OpenCodeRoutes.Widgets.ListItems(WidgetId, request), WidgetItemListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -244,7 +244,7 @@ public class WidgetsClient
     /// </remarks>
     public virtual Task<WidgetOverviewResponse> GetOverviewAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Widgets.GetOverview, WidgetOverviewResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("widget.overview.get", HttpMethod.Get, OpenCodeRoutes.Widgets.GetOverview, WidgetOverviewResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -262,7 +262,7 @@ public class WidgetsClient
     public virtual Task<WidgetListResponse> ListWidgetsAsync(WidgetListRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Widgets.ListWidgets(request), WidgetListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("widget.list", HttpMethod.Get, OpenCodeRoutes.Widgets.ListWidgets(request), WidgetListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -279,7 +279,7 @@ public class WidgetsClient
     /// </remarks>
     public virtual Task<WidgetCreateResponse> CreateWidgetAsync(WidgetCreateRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Widgets.CreateWidget(request), request ?? EmptyWidgetCreateRequest, OpenCodeJsonContext.Default.WidgetCreateRequest, WidgetCreateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("widget.create", HttpMethod.Post, OpenCodeRoutes.Widgets.CreateWidget(request), request ?? EmptyWidgetCreateRequest, OpenCodeJsonContext.Default.WidgetCreateRequest, WidgetCreateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -297,7 +297,7 @@ public class WidgetsClient
     public virtual Task<WidgetRemoveResponse> RemoveWidgetAsync(string widgetId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(widgetId);
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Widgets.RemoveWidget(widgetId), WidgetRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("widget.remove", HttpMethod.Delete, OpenCodeRoutes.Widgets.RemoveWidget(widgetId), WidgetRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -313,7 +313,7 @@ public class WidgetsClient
     /// </remarks>
     public virtual Task<WidgetSpotResponse> GetWidgetSpotAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Widgets.GetWidgetSpot, WidgetSpotResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("widget.spot.get", HttpMethod.Get, OpenCodeRoutes.Widgets.GetWidgetSpot, WidgetSpotResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -329,6 +329,6 @@ public class WidgetsClient
     /// </remarks>
     public virtual Task<WidgetSpotListResponse> ListWidgetSpotsAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Widgets.ListWidgetSpots, WidgetSpotListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("widget.spot.list", HttpMethod.Get, OpenCodeRoutes.Widgets.ListWidgetSpots, WidgetSpotListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

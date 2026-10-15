@@ -127,11 +127,14 @@ internal sealed class Pipeline : IDisposable
         return new Pipeline(httpClient, ownsHttpClient: false, options);
     }
 
-    public Task<TResponse> ExecuteAsync<TResponse>(HttpMethod method, string route, ResponseAdapter<TResponse> adapter,
+    public Task<TResponse> ExecuteAsync<TResponse>(string operationId, HttpMethod method, string route, ResponseAdapter<TResponse> adapter,
         OpenCodeRequestOptions? options, CancellationToken cancellationToken)
-        where TResponse : OpenCodeResponse =>
-        ExecuteCoreAsync<object, TResponse>(method, route, body: null, bodyTypeInfo: null, adapter, options,
+        where TResponse : OpenCodeResponse
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
+        return ExecuteCoreAsync<object, TResponse>(operationId, method, route, body: null, bodyTypeInfo: null, adapter, options,
             declaredHeaders: null, cancellationToken);
+    }
 
     /// <summary>
     /// The bodiless overload a generated internal-raw method calls when its operation declares
@@ -141,33 +144,38 @@ internal sealed class Pipeline : IDisposable
     /// body-bearing counterpart exists; one would surface as a generated-code compile failure
     /// rather than silently dropping the headers.
     /// </summary>
-    public Task<TResponse> ExecuteAsync<TResponse>(HttpMethod method, string route, ResponseAdapter<TResponse> adapter,
+    public Task<TResponse> ExecuteAsync<TResponse>(string operationId, HttpMethod method, string route, ResponseAdapter<TResponse> adapter,
         OpenCodeRequestOptions? options, IReadOnlyList<DeclaredHeader>? declaredHeaders, CancellationToken cancellationToken)
-        where TResponse : OpenCodeResponse =>
-        ExecuteCoreAsync<object, TResponse>(method, route, body: null, bodyTypeInfo: null, adapter, options,
+        where TResponse : OpenCodeResponse
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
+        return ExecuteCoreAsync<object, TResponse>(operationId, method, route, body: null, bodyTypeInfo: null, adapter, options,
             declaredHeaders, cancellationToken);
+    }
 
-    public Task<TResponse> ExecuteAsync<TBody, TResponse>(HttpMethod method, string route, TBody body,
+    public Task<TResponse> ExecuteAsync<TBody, TResponse>(string operationId, HttpMethod method, string route, TBody body,
         JsonTypeInfo<TBody> bodyTypeInfo, ResponseAdapter<TResponse> adapter, OpenCodeRequestOptions? options,
         CancellationToken cancellationToken)
         where TBody : class
         where TResponse : OpenCodeResponse
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
         ArgumentNullException.ThrowIfNull(body);
         ArgumentNullException.ThrowIfNull(bodyTypeInfo);
-        return ExecuteCoreAsync(method, route, body, bodyTypeInfo, adapter, options, declaredHeaders: null, cancellationToken);
+        return ExecuteCoreAsync(operationId, method, route, body, bodyTypeInfo, adapter, options, declaredHeaders: null, cancellationToken);
     }
 
     /// <summary>
     /// The overload a generated method calls when its operation takes raw bytes: the caller's
     /// stream is the body, sent as it is (<see cref="CallerStreamContent"/>).
     /// </summary>
-    public Task<TResponse> ExecuteAsync<TResponse>(HttpMethod method, string route, Stream content,
+    public Task<TResponse> ExecuteAsync<TResponse>(string operationId, HttpMethod method, string route, Stream content,
         ResponseAdapter<TResponse> adapter, OpenCodeRequestOptions? options, CancellationToken cancellationToken)
         where TResponse : OpenCodeResponse
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
         ArgumentNullException.ThrowIfNull(content);
-        return ExecuteCoreAsync<object, TResponse>(method, route, body: null, bodyTypeInfo: null, adapter, options,
+        return ExecuteCoreAsync<object, TResponse>(operationId, method, route, body: null, bodyTypeInfo: null, adapter, options,
             declaredHeaders: null, cancellationToken, content);
     }
 
@@ -177,10 +185,11 @@ internal sealed class Pipeline : IDisposable
     /// one-shot buffer is never involved, and a stream always throws on an error status —
     /// it has no envelope for one to ride.
     /// </summary>
-    public IAsyncEnumerable<TPayload> ExecuteStreamAsync<TPayload, TCause>(HttpMethod method, string route,
+    public IAsyncEnumerable<TPayload> ExecuteStreamAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
         IStreamAdapter<TPayload, TCause> adapter, CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(method);
         ArgumentException.ThrowIfNullOrWhiteSpace(route);
@@ -191,7 +200,7 @@ internal sealed class Pipeline : IDisposable
             throw new ArgumentException("Routes must start with '/'.", nameof(route));
         }
 
-        return ExecuteStreamCoreAsync(method, route, adapter, cancellationToken);
+        return ExecuteStreamCoreAsync(operationId, method, route, adapter, cancellationToken);
     }
 
     public void Dispose()
@@ -205,7 +214,7 @@ internal sealed class Pipeline : IDisposable
         _transport.Dispose();
     }
 
-    private async Task<TResponse> ExecuteCoreAsync<TBody, TResponse>(HttpMethod method, string route, TBody? body,
+    private async Task<TResponse> ExecuteCoreAsync<TBody, TResponse>(string operationId, HttpMethod method, string route, TBody? body,
         JsonTypeInfo<TBody>? bodyTypeInfo, ResponseAdapter<TResponse> adapter, OpenCodeRequestOptions? options,
         IReadOnlyList<DeclaredHeader>? declaredHeaders, CancellationToken cancellationToken, Stream? content = null)
         where TBody : class
@@ -229,7 +238,7 @@ internal sealed class Pipeline : IDisposable
         }
 
         TResponse adapted;
-        using (var message = CreateMessage(method, route, body, bodyTypeInfo, options?.Location, declaredHeaders, cancellationToken))
+        using (var message = CreateMessage(operationId, method, route, body, bodyTypeInfo, options?.Location, declaredHeaders, cancellationToken))
         {
             if (content is not null)
             {
@@ -245,12 +254,12 @@ internal sealed class Pipeline : IDisposable
             : adapted;
     }
 
-    private async IAsyncEnumerable<TPayload> ExecuteStreamCoreAsync<TPayload, TCause>(HttpMethod method, string route,
+    private async IAsyncEnumerable<TPayload> ExecuteStreamCoreAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
         IStreamAdapter<TPayload, TCause> adapter, [EnumeratorCancellation] CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        using var message = CreateStreamMessage(method, route, cancellationToken);
+        using var message = CreateStreamMessage(operationId, method, route, cancellationToken);
         await SendThroughPoliciesAsync(message).ConfigureAwait(false);
         var response = message.Response!;
         var status = (int)response.StatusCode;
@@ -316,7 +325,7 @@ internal sealed class Pipeline : IDisposable
     private ValueTask SendThroughPoliciesAsync(PipelineMessage message) =>
         _policies[0].ProcessAsync(message, _policies.AsMemory(1));
 
-    private PipelineMessage CreateMessage<TBody>(HttpMethod method, string route, TBody? body,
+    private PipelineMessage CreateMessage<TBody>(string operationId, HttpMethod method, string route, TBody? body,
         JsonTypeInfo<TBody>? bodyTypeInfo, LocationSelector? perCallLocation,
         IReadOnlyList<DeclaredHeader>? declaredHeaders, CancellationToken cancellationToken)
         where TBody : class
@@ -331,6 +340,7 @@ internal sealed class Pipeline : IDisposable
 
             return new PipelineMessage
             {
+                OperationId = operationId,
                 Request = request,
                 CancellationToken = cancellationToken,
                 NetworkToken = cancellationToken,
@@ -346,9 +356,10 @@ internal sealed class Pipeline : IDisposable
         }
     }
 
-    private PipelineMessage CreateStreamMessage(HttpMethod method, string route, CancellationToken cancellationToken) =>
+    private PipelineMessage CreateStreamMessage(string operationId, HttpMethod method, string route, CancellationToken cancellationToken) =>
         new()
         {
+            OperationId = operationId,
             Request = new HttpRequestMessage(method, new Uri(_endpointBase + route, UriKind.Absolute)),
             CancellationToken = cancellationToken,
             NetworkToken = cancellationToken,

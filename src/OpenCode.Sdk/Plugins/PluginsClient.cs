@@ -40,7 +40,7 @@ public class PluginsClient
     /// </remarks>
     public virtual Task<PluginCheckResponse> CheckPluginUpdatesAsync(PluginCheckRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Plugins.CheckPluginUpdates(request), request ?? EmptyPluginCheckRequest, OpenCodeJsonContext.Default.PluginCheckRequest, PluginCheckResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("plugin.check", HttpMethod.Post, OpenCodeRoutes.Plugins.CheckPluginUpdates(request), request ?? EmptyPluginCheckRequest, OpenCodeJsonContext.Default.PluginCheckRequest, PluginCheckResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -57,7 +57,7 @@ public class PluginsClient
     /// </remarks>
     public virtual Task<PluginListResponse> ListPluginsAsync(PluginListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Plugins.ListPlugins(request), PluginListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("plugin.list", HttpMethod.Get, OpenCodeRoutes.Plugins.ListPlugins(request), PluginListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -75,6 +75,6 @@ public class PluginsClient
     public virtual Task<PluginUpdateResponse> UpdatePluginsAsync(PluginUpdateRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Plugins.UpdatePlugins(request), request, OpenCodeJsonContext.Default.PluginUpdateRequest, PluginUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("plugin.update", HttpMethod.Post, OpenCodeRoutes.Plugins.UpdatePlugins(request), request, OpenCodeJsonContext.Default.PluginUpdateRequest, PluginUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

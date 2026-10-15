@@ -38,7 +38,7 @@ public class McpServersClient
     /// </remarks>
     public virtual Task<McpResourceCatalogResponse> GetResourceCatalogAsync(McpResourceCatalogRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.McpServers.GetResourceCatalog(request), McpResourceCatalogResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("mcp.resource.catalog", HttpMethod.Get, OpenCodeRoutes.McpServers.GetResourceCatalog(request), McpResourceCatalogResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -55,6 +55,6 @@ public class McpServersClient
     /// </remarks>
     public virtual Task<McpListResponse> ListMcpServersAsync(McpListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.McpServers.ListMcpServers(request), McpListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("mcp.list", HttpMethod.Get, OpenCodeRoutes.McpServers.ListMcpServers(request), McpListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

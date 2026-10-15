@@ -40,7 +40,7 @@ public class CredentialsClient
     public virtual Task<CredentialActivateResponse> ActivateCredentialAsync(string credentialId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(credentialId);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Credentials.ActivateCredential(credentialId), CredentialActivateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("credential.activate", HttpMethod.Post, OpenCodeRoutes.Credentials.ActivateCredential(credentialId), CredentialActivateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -58,7 +58,7 @@ public class CredentialsClient
     public virtual Task<CredentialCreateResponse> CreateCredentialAsync(CredentialCreateRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Credentials.CreateCredential, request, OpenCodeJsonContext.Default.CredentialCreateRequest, CredentialCreateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("credential.create", HttpMethod.Post, OpenCodeRoutes.Credentials.CreateCredential, request, OpenCodeJsonContext.Default.CredentialCreateRequest, CredentialCreateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -74,7 +74,7 @@ public class CredentialsClient
     /// </remarks>
     public virtual Task<CredentialListResponse> ListCredentialsAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Credentials.ListCredentials, CredentialListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("credential.list", HttpMethod.Get, OpenCodeRoutes.Credentials.ListCredentials, CredentialListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -92,7 +92,7 @@ public class CredentialsClient
     public virtual Task<CredentialRemoveResponse> RemoveCredentialAsync(string credentialId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(credentialId);
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Credentials.RemoveCredential(credentialId), CredentialRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("credential.remove", HttpMethod.Delete, OpenCodeRoutes.Credentials.RemoveCredential(credentialId), CredentialRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -112,6 +112,6 @@ public class CredentialsClient
     {
         ArgumentException.ThrowIfNullOrEmpty(credentialId);
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(OpenCodeHttpMethod.Patch, OpenCodeRoutes.Credentials.UpdateCredential(credentialId), request, OpenCodeJsonContext.Default.CredentialUpdateRequest, CredentialUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("credential.update", OpenCodeHttpMethod.Patch, OpenCodeRoutes.Credentials.UpdateCredential(credentialId), request, OpenCodeJsonContext.Default.CredentialUpdateRequest, CredentialUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

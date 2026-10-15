@@ -48,7 +48,7 @@ internal sealed class PtyRawClient
             declaredHeaders.Add(new DeclaredHeader("x-opencode-ticket", xOpencodeTicket));
         }
 
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Ptys.CreateConnectToken(PtyId, request), PtyConnectTokenResponseAdapter.Instance, requestOptions, declaredHeaders: declaredHeaders, cancellationToken);
+        return Pipeline.ExecuteAsync("pty.connect.token", HttpMethod.Post, OpenCodeRoutes.Ptys.CreateConnectToken(PtyId, request), PtyConnectTokenResponseAdapter.Instance, requestOptions, declaredHeaders: declaredHeaders, cancellationToken);
     }
 
     /// <summary>
@@ -65,7 +65,7 @@ internal sealed class PtyRawClient
     /// </remarks>
     internal Task<PtyResponse> GetAsync(PtyRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Ptys.Get(PtyId, request), PtyResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("pty.get", HttpMethod.Get, OpenCodeRoutes.Ptys.Get(PtyId, request), PtyResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -82,7 +82,7 @@ internal sealed class PtyRawClient
     /// </remarks>
     internal Task<PtyRemoveResponse> RemoveAsync(PtyRemoveRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Ptys.Remove(PtyId, request), PtyRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("pty.remove", HttpMethod.Delete, OpenCodeRoutes.Ptys.Remove(PtyId, request), PtyRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -99,6 +99,6 @@ internal sealed class PtyRawClient
     /// </remarks>
     internal Task<PtyUpdateResponse> UpdateAsync(PtyUpdateRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Put, OpenCodeRoutes.Ptys.Update(PtyId, request), request ?? EmptyPtyUpdateRequest, OpenCodeJsonContext.Default.PtyUpdateRequest, PtyUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("pty.update", HttpMethod.Put, OpenCodeRoutes.Ptys.Update(PtyId, request), request ?? EmptyPtyUpdateRequest, OpenCodeJsonContext.Default.PtyUpdateRequest, PtyUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

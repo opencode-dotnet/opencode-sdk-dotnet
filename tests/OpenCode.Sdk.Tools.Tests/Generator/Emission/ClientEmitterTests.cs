@@ -38,6 +38,8 @@ public sealed class ClientEmitterTests
             + "    /// Operation <c>widget.item.list</c>: <c>GET /api/widget/{widgetID}/item</c>.\n"
             + "    /// </remarks>\n"
             + "    public virtual CursorSequence<WidgetItemListResponse, ExampleItem> EnumerateItemsAsync(");
+        await Assert.That(source).Contains(
+            "return Pipeline.ExecuteAsync(\"widget.item.get\", HttpMethod.Get, OpenCodeRoutes.Widgets.GetItem(WidgetId, itemId),");
     }
 
     [Test]

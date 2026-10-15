@@ -38,7 +38,7 @@ public class PermissionsClient
     /// </remarks>
     public virtual Task<PermissionRequestListResponse> ListRequestsAsync(PermissionRequestListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Permissions.ListRequests(request), PermissionRequestListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("permission.request.list", HttpMethod.Get, OpenCodeRoutes.Permissions.ListRequests(request), PermissionRequestListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -55,7 +55,7 @@ public class PermissionsClient
     /// </remarks>
     public virtual Task<PermissionSavedListResponse> ListSavedAsync(PermissionSavedListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Permissions.ListSaved(request), PermissionSavedListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("permission.saved.list", HttpMethod.Get, OpenCodeRoutes.Permissions.ListSaved(request), PermissionSavedListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -73,6 +73,6 @@ public class PermissionsClient
     public virtual Task<PermissionSavedRemoveResponse> RemoveSavedAsync(string savedPermissionId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(savedPermissionId);
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Permissions.RemoveSaved(savedPermissionId), PermissionSavedRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("permission.saved.remove", HttpMethod.Delete, OpenCodeRoutes.Permissions.RemoveSaved(savedPermissionId), PermissionSavedRemoveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

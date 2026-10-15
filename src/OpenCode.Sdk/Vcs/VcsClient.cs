@@ -38,7 +38,7 @@ public class VcsClient
     /// </remarks>
     public virtual Task<VcsBaseResponse> GetBaseAsync(VcsBaseRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Vcs.GetBase(request), VcsBaseResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("vcs.base", HttpMethod.Get, OpenCodeRoutes.Vcs.GetBase(request), VcsBaseResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -56,7 +56,7 @@ public class VcsClient
     public virtual Task<VcsDiffResponse> GetDiffAsync(VcsDiffRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Vcs.GetDiff(request), VcsDiffResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("vcs.diff", HttpMethod.Get, OpenCodeRoutes.Vcs.GetDiff(request), VcsDiffResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -73,7 +73,7 @@ public class VcsClient
     /// </remarks>
     public virtual Task<VcsStatusResponse> GetStatusAsync(VcsStatusRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Vcs.GetStatus(request), VcsStatusResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("vcs.status", HttpMethod.Get, OpenCodeRoutes.Vcs.GetStatus(request), VcsStatusResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -90,7 +90,7 @@ public class VcsClient
     /// </remarks>
     public virtual Task<VcsResponse> GetVcsAsync(VcsRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Vcs.GetVcs(request), VcsResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("vcs.get", HttpMethod.Get, OpenCodeRoutes.Vcs.GetVcs(request), VcsResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -107,7 +107,7 @@ public class VcsClient
     /// </remarks>
     public virtual Task<VcsInitResponse> InitializeRepositoryAsync(VcsInitRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Vcs.InitializeRepository(request), VcsInitResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("vcs.init", HttpMethod.Post, OpenCodeRoutes.Vcs.InitializeRepository(request), VcsInitResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -124,6 +124,6 @@ public class VcsClient
     /// </remarks>
     public virtual Task<VcsBranchListResponse> ListBranchesAsync(VcsBranchListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Vcs.ListBranches(request), VcsBranchListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("vcs.branch.list", HttpMethod.Get, OpenCodeRoutes.Vcs.ListBranches(request), VcsBranchListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

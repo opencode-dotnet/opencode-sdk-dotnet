@@ -54,6 +54,6 @@ public class IntegrationsClient
     /// </remarks>
     public virtual Task<IntegrationListResponse> ListIntegrationsAsync(IntegrationListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Integrations.ListIntegrations(request), IntegrationListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("integration.list", HttpMethod.Get, OpenCodeRoutes.Integrations.ListIntegrations(request), IntegrationListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

@@ -11,6 +11,8 @@ namespace OpenCode.Sdk.Tests.Transport;
 /// </summary>
 public sealed class CallerStreamContentTests
 {
+    private const string OperationId = "test.operation";
+
     /// <summary>Bounds a wait for an event that never comes; it decides no verdict.</summary>
     private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
 
@@ -23,7 +25,7 @@ public sealed class CallerStreamContentTests
         using var source = new MemoryStream([0x00, 0x01, 0x02, 0xFF, 0xFE, 0x0A]);
         source.Position = 2;
 
-        _ = await pipeline.ExecuteAsync(
+        _ = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Post, "/api/experimental/fs/write?path=a.bin", source, new RecordingResponseAdapter(), options: null,
             CancellationToken.None);
 
@@ -43,7 +45,7 @@ public sealed class CallerStreamContentTests
         using var pipeline = PipelineFactory.Create(httpClient);
         using var source = new ForwardOnlyStream([0x41, 0x42, 0x43]);
 
-        _ = await pipeline.ExecuteAsync(
+        _ = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Post, "/api/experimental/fs/write?path=a.txt", source, new RecordingResponseAdapter(), options: null,
             CancellationToken.None);
 
@@ -56,7 +58,11 @@ public sealed class CallerStreamContentTests
     [Test]
     public async Task Content_Should_Refuse_A_Second_Send()
     {
-        using var message = new PipelineMessage { Request = new HttpRequestMessage(HttpMethod.Post, "http://localhost:4096/") };
+        using var message = new PipelineMessage
+        {
+            OperationId = OperationId,
+            Request = new HttpRequestMessage(HttpMethod.Post, "http://localhost:4096/"),
+        };
         using var source = new MemoryStream([0x01, 0x02]);
         using var content = new CallerStreamContent(source, message);
         using var first = new MemoryStream();
@@ -88,7 +94,7 @@ public sealed class CallerStreamContentTests
         using var source = new GatedStream([.. Enumerable.Range(0, 12).Select(static value => (byte)value)], chunkCount: 12);
 
         var delivering = source.DeliverAsync(() => time.Advance(window - TimeSpan.FromTicks(1)), HangGuard);
-        _ = await pipeline.ExecuteAsync(
+        _ = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Post, "/api/experimental/fs/write?path=a.txt", source, new RecordingResponseAdapter(), options: null,
             cancellationToken);
         await delivering;
@@ -107,7 +113,7 @@ public sealed class CallerStreamContentTests
         using var source = new TricklingStream(chunkCount: 2, gap: Timeout.InfiniteTimeSpan);
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Post, "/api/experimental/fs/write?path=a.txt", source, new RecordingResponseAdapter(), options: null,
                 CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5)))
             .Throws<OpenCodeTransportException>();

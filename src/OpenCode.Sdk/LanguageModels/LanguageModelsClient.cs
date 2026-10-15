@@ -38,7 +38,7 @@ public class LanguageModelsClient
     /// </remarks>
     public virtual Task<ModelDefaultResponse> GetDefaultAsync(ModelDefaultRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.LanguageModels.GetDefault(request), ModelDefaultResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("model.default", HttpMethod.Get, OpenCodeRoutes.LanguageModels.GetDefault(request), ModelDefaultResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -55,6 +55,6 @@ public class LanguageModelsClient
     /// </remarks>
     public virtual Task<ModelListResponse> ListModelsAsync(ModelListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.LanguageModels.ListModels(request), ModelListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("model.list", HttpMethod.Get, OpenCodeRoutes.LanguageModels.ListModels(request), ModelListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

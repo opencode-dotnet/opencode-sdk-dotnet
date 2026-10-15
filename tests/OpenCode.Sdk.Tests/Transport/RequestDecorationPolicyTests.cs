@@ -11,6 +11,8 @@ namespace OpenCode.Sdk.Tests.Transport;
 /// </summary>
 public sealed class RequestDecorationPolicyTests
 {
+    private const string OperationId = "test.operation";
+
     [Test]
     public async Task RequestDecorationPolicy_Should_Let_PerCall_Location_Win_Member_By_Member()
     {
@@ -25,7 +27,7 @@ public sealed class RequestDecorationPolicyTests
             Location = new LocationSelector { Directory = "/per/dir" },
         };
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None);
 
         var request = handler.Requests.Single();
         await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo("%2Fper%2Fdir");
@@ -50,7 +52,7 @@ public sealed class RequestDecorationPolicyTests
             Location = new LocationSelector(),
         };
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None);
 
         var request = handler.Requests.Single();
         await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo("%2Famb%2Fdir");
@@ -71,7 +73,7 @@ public sealed class RequestDecorationPolicyTests
             },
         };
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None);
 
         var request = handler.Requests.Single();
         // Pinned literal for Uri.EscapeDataString("/tmp/päth ü"), computed once rather than
@@ -87,7 +89,7 @@ public sealed class RequestDecorationPolicyTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient);
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         var request = handler.Requests.Single();
         await Assert.That(request.Headers.ContainsKey("x-opencode-directory")).IsFalse();
@@ -103,7 +105,7 @@ public sealed class RequestDecorationPolicyTests
 
         // The policy is told a name and a value and nothing else; it must write whatever it is
         // handed without recognizing the operation or the header.
-        _ = await pipeline.ExecuteAsync(
+        _ = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Post,
             "/api/info",
             new RecordingResponseAdapter(),
@@ -124,7 +126,7 @@ public sealed class RequestDecorationPolicyTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient);
 
-        _ = await pipeline.ExecuteAsync(
+        _ = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Post,
             "/api/info",
             new RecordingResponseAdapter(),
@@ -147,7 +149,7 @@ public sealed class RequestDecorationPolicyTests
             Location = new LocationSelector { Directory = "/per/dir" },
         };
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None);
 
         var request = handler.Requests.Single();
         await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo("%2Fper%2Fdir");
@@ -179,7 +181,7 @@ public sealed class RequestDecorationPolicyTests
         using var pipeline = PipelineFactory.Create(httpClient, location: ambient);
         var options = perCall is null ? null : new OpenCodeRequestOptions { Location = perCall };
 
-        _ = await pipeline.ExecuteAsync(HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None);
 
         var request = handler.Requests.Single();
         var wireDirectory = request.Headers.TryGetValue("x-opencode-directory", out var directoryHeader)

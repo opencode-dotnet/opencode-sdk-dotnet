@@ -10,6 +10,8 @@ namespace OpenCode.Sdk.Tests.Transport;
 
 public sealed class PipelineStreamTests
 {
+    private const string OperationId = "test.operation";
+
     private const string EventStreamMediaType = "text/event-stream";
     private const string FirstPayload = "{\"value\":\"first\"}";
     private const string SecondPayload = "{\"value\":\"second\"}";
@@ -40,7 +42,7 @@ public sealed class PipelineStreamTests
         using var handler = new RecordingHttpHandler(_ => EventStreamOf(body));
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient);
-        var stream = pipeline.ExecuteStreamAsync(
+        var stream = pipeline.ExecuteStreamAsync(OperationId,
             HttpMethod.Get, "/api/event", new TestStreamAdapter(), CancellationToken.None);
 
         await using var enumerator = stream.GetAsyncEnumerator(CancellationToken.None);
@@ -149,7 +151,7 @@ public sealed class PipelineStreamTests
         });
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient, networkTimeout: TimeSpan.FromMilliseconds(200));
-        var stream = pipeline.ExecuteStreamAsync(
+        var stream = pipeline.ExecuteStreamAsync(OperationId,
             HttpMethod.Get, "/api/event", new TestStreamAdapter(), callerCancellation.Token);
         await using var enumerator = stream.GetAsyncEnumerator(callerCancellation.Token);
 
@@ -377,7 +379,7 @@ public sealed class PipelineStreamTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient);
 
-        var frames = pipeline.ExecuteStreamAsync(
+        var frames = pipeline.ExecuteStreamAsync(OperationId,
             HttpMethod.Get, "/api/event", new TestStreamAdapter(), CancellationToken.None);
         await using (var enumerator = frames.GetAsyncEnumerator(CancellationToken.None))
         {
@@ -395,7 +397,7 @@ public sealed class PipelineStreamTests
         var pipeline = PipelineFactory.Create(httpClient);
         pipeline.Dispose();
 
-        _ = Assert.Throws<ObjectDisposedException>(() => _ = pipeline.ExecuteStreamAsync(
+        _ = Assert.Throws<ObjectDisposedException>(() => _ = pipeline.ExecuteStreamAsync(OperationId,
             HttpMethod.Get, "/api/event", new TestStreamAdapter(), CancellationToken.None));
 
         await Assert.That(handler.Requests).IsEmpty();
@@ -407,7 +409,7 @@ public sealed class PipelineStreamTests
         using var handler = new RecordingHttpHandler(static _ => EventStream(FirstFrame));
         using var httpClient = new HttpClient(handler);
         var pipeline = PipelineFactory.Create(httpClient);
-        var stream = pipeline.ExecuteStreamAsync(
+        var stream = pipeline.ExecuteStreamAsync(OperationId,
             HttpMethod.Get, "/api/event", new TestStreamAdapter(), CancellationToken.None);
         pipeline.Dispose();
 
@@ -429,7 +431,7 @@ public sealed class PipelineStreamTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient);
 
-        var exception = Assert.Throws<ArgumentException>(() => _ = pipeline.ExecuteStreamAsync(
+        var exception = Assert.Throws<ArgumentException>(() => _ = pipeline.ExecuteStreamAsync(OperationId,
             HttpMethod.Get, "api/event", new TestStreamAdapter(), CancellationToken.None));
 
         await Assert.That(exception.ParamName).IsEqualTo("route");
@@ -460,7 +462,7 @@ public sealed class PipelineStreamTests
         CancellationToken cancellationToken = default)
     {
         var payloads = new List<TestBody>();
-        var stream = pipeline.ExecuteStreamAsync(
+        var stream = pipeline.ExecuteStreamAsync(OperationId,
             HttpMethod.Get, "/api/event", adapter ?? new TestStreamAdapter(), cancellationToken);
         await foreach (var payload in stream)
         {

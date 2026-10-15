@@ -7,6 +7,8 @@ namespace OpenCode.Sdk.Tests.Transport;
 
 public sealed class PipelineResponseOwnershipTests
 {
+    private const string OperationId = "test.operation";
+
     [Test]
     public async Task ExecuteAsync_Should_Dispose_Response_Content_After_Success()
     {
@@ -16,7 +18,7 @@ public sealed class PipelineResponseOwnershipTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient);
 
-        _ = await pipeline.ExecuteAsync(
+        _ = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         await Assert.That(response.IsDisposed).IsTrue();
@@ -32,7 +34,7 @@ public sealed class PipelineResponseOwnershipTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient);
 
-        var result = await pipeline.ExecuteAsync(
+        var result = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Delete,
             "/api/shell/sh_1",
             ShellRemoveResponseAdapter.Instance,
@@ -63,7 +65,7 @@ public sealed class PipelineResponseOwnershipTests
         });
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None))
             .Throws<OpenCodeApiException>();
 
@@ -81,7 +83,7 @@ public sealed class PipelineResponseOwnershipTests
         using var pipeline = PipelineFactory.Create(httpClient);
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get,
                 "/api/info",
                 new RecordingResponseAdapter(),
@@ -104,7 +106,7 @@ public sealed class PipelineResponseOwnershipTests
         using var pipeline = PipelineFactory.Create(httpClient);
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(
+            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, cancellation.Token))
             .Throws<OperationCanceledException>();
 

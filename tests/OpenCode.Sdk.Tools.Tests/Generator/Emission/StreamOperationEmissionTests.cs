@@ -55,7 +55,7 @@ public sealed class StreamOperationEmissionTests
         await Assert
             .That(clientSource)
             .Contains(
-                "return Pipeline.ExecuteStreamAsync(HttpMethod.Get, OpenCodeRoutes.Example.GetEvents(exampleId), ExampleEventsResponseStreamAdapter.Instance, cancellationToken);");
+                "return Pipeline.ExecuteStreamAsync(\"example.events\", HttpMethod.Get, OpenCodeRoutes.Example.GetEvents(exampleId), ExampleEventsResponseStreamAdapter.Instance, cancellationToken);");
         await Assert.That(clientSource).DoesNotContain("ResponseAdapter.Instance");
         await Assert.That(clientSource).DoesNotContain("requestOptions");
         await Assert.That(clientSource).DoesNotContain("NoThrow");

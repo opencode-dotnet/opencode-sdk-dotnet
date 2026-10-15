@@ -38,7 +38,7 @@ public class DebugClient
     /// </remarks>
     public virtual Task<DebugLocationEvictResponse> EvictLocationAsync(DebugLocationEvictRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Delete, OpenCodeRoutes.Debug.EvictLocation(request), DebugLocationEvictResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("debug.location.evict", HttpMethod.Delete, OpenCodeRoutes.Debug.EvictLocation(request), DebugLocationEvictResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -54,6 +54,6 @@ public class DebugClient
     /// </remarks>
     public virtual Task<DebugLocationListResponse> ListLocationsAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Debug.ListLocations, DebugLocationListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("debug.location.list", HttpMethod.Get, OpenCodeRoutes.Debug.ListLocations, DebugLocationListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

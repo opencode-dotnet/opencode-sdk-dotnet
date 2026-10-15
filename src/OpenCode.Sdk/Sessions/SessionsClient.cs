@@ -56,7 +56,7 @@ public class SessionsClient
     /// </remarks>
     public virtual Task<SessionCreateResponse> CreateSessionAsync(SessionCreateRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Post, OpenCodeRoutes.Sessions.CreateSession, request ?? EmptySessionCreateRequest, OpenCodeJsonContext.Default.SessionCreateRequest, SessionCreateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.create", HttpMethod.Post, OpenCodeRoutes.Sessions.CreateSession, request ?? EmptySessionCreateRequest, OpenCodeJsonContext.Default.SessionCreateRequest, SessionCreateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -72,7 +72,7 @@ public class SessionsClient
     /// </remarks>
     public virtual Task<SessionActiveResponse> GetActiveAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.GetActive, SessionActiveResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.active", HttpMethod.Get, OpenCodeRoutes.Sessions.GetActive, SessionActiveResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -89,7 +89,7 @@ public class SessionsClient
     /// </remarks>
     public virtual Task<SessionListResponse> ListSessionsAsync(SessionListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteAsync(HttpMethod.Get, OpenCodeRoutes.Sessions.ListSessions(request), SessionListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("session.list", HttpMethod.Get, OpenCodeRoutes.Sessions.ListSessions(request), SessionListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
