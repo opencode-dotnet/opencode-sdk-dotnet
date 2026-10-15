@@ -1,9 +1,19 @@
 using System.Text.Json;
 
-namespace OpenCode.Sdk.Tools.Tests.Packaging;
+namespace OpenCode.Sdk.Tools.Tests.Support;
 
+/// <summary>
+/// The generator's manifest of every generated SDK file, by path relative to the SDK project. It is
+/// the one authority on which files are generated.
+/// </summary>
 internal sealed class GeneratedManifest
 {
+    /// <summary>The SDK project folder, relative to the repository root, that manifest paths are relative to.</summary>
+    internal const string SdkPath = "src/OpenCode.Sdk/";
+
+    /// <summary>The manifest itself, relative to the repository root.</summary>
+    internal const string ManifestPath = SdkPath + ".generated-manifest.json";
+
     public GeneratedManifest(string json)
     {
         using var document = JsonDocument.Parse(json);

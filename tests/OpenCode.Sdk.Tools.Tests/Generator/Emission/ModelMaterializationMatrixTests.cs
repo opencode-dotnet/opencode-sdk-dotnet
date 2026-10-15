@@ -743,7 +743,7 @@ public sealed class ModelMaterializationMatrixTests
     }
 
     /// <summary>
-    /// The addendum's array arm: a location envelope's array-of-inline-object <c>data</c>
+    /// The array arm: a location envelope's array-of-inline-object <c>data</c>
     /// promotes its item under the operation-scoped name and round-trips both siblings.
     /// </summary>
     [Test]

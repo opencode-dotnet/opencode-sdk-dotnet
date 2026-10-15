@@ -1300,9 +1300,9 @@ public sealed class OperationPlanBinderTests
 
     /// <summary>
     /// A RefNode item that resolves to a non-nominal target (a primitive alias, here) is
-    /// claimed by neither the nominal-component lookup nor the promotion resolver: it still
-    /// refuses exactly as before — the addendum narrows the guard, it does not resurrect a
-    /// mechanically-derived name for every RefNode.
+    /// claimed by neither the nominal-component lookup nor the promotion resolver: it is refused.
+    /// Promotion narrows the guard to inline objects; it does not give every RefNode a
+    /// mechanically derived name.
     /// </summary>
     [Test]
     public async Task Bind_Should_Refuse_A_Data_Location_List_Item_Referencing_A_Non_Nominal_Component()
