@@ -29,6 +29,9 @@ internal static class BenchmarkConfig
     /// <summary>The argument that adds the .NET 11 leg; it is taken off before BenchmarkDotNet reads the rest.</summary>
     public const string Net11Switch = "--net11";
 
+    /// <summary>How long one partition's build may take when the .NET 11 leg builds partitions one at a time.</summary>
+    private static readonly TimeSpan Net11BuildTimeout = TimeSpan.FromMinutes(10);
+
     public static IConfig Create(bool net11)
     {
         var config = ManualConfig.Create(DefaultConfig.Instance)
@@ -41,10 +44,13 @@ internal static class BenchmarkConfig
         // The runner asks each build partition's runtime for its version to decide whether it may
         // build in parallel, which 0.15.8 cannot answer for a runtime it does not know; building the
         // partitions one after another skips that question and changes nothing that is measured.
+        // A partition's build compiles the suite and the SDK for a target framework built nowhere
+        // else, which on a loaded host outlasts the default two minutes.
         return net11
             ? config
                 .AddJob(Job.Default.WithRuntime(CoreRuntime.CreateForNewVersion("net11.0", ".NET 11.0")).WithToolchain(new Net11Toolchain()))
                 .WithOptions(ConfigOptions.DisableParallelBuild)
+                .WithBuildTimeout(Net11BuildTimeout)
             : config;
     }
 }
