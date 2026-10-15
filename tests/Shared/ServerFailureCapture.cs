@@ -31,10 +31,11 @@ internal sealed class ServerFailureCapture(
     /// owned server's disposal has settled, so it is the launcher's final collection rather than a
     /// mid-shutdown view.
     /// </summary>
-    /// <param name="serverLogDirectory">
-    /// The folder the server writes its own log files to, or null. Only its <c>*.log</c> files are
-    /// kept, never the data root around them, which holds the server's database and registrations.
-    /// </param>
+    /// <remarks>
+    /// <c>serverLogDirectory</c> is the folder the server writes its own log files to, or null. Only
+    /// its <c>*.log</c> files are kept, never the data root around them, which holds the server's
+    /// database and registrations.
+    /// </remarks>
     public async Task<Exception?> CaptureAsync(OpenCodeServerOutput? output, int? processId, bool external,
         Exception? failure, IReadOnlyList<Exception> teardownFailures, string? serverLogDirectory = null)
     {
@@ -91,9 +92,8 @@ internal sealed class ServerFailureCapture(
         foreach (var file in fileSystem.Directory.EnumerateFiles(source, "*.log", SearchOption.TopDirectoryOnly).Take(MaxServerLogFiles))
         {
             _ = fileSystem.Directory.CreateDirectory(target);
-            var stream = fileSystem.File.Open(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             string text;
-            await using (stream.ConfigureAwait(false))
+            using (var stream = fileSystem.File.Open(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
             {
                 var skipped = Math.Max(0, stream.Length - MaxServerLogBytes);
                 _ = stream.Seek(skipped, SeekOrigin.Begin);

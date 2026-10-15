@@ -1,6 +1,7 @@
 using OpenCode.Sdk.TestSupport;
 using OpenCode.Sdk.TestSupport.Ownership;
 using Testably.Abstractions.Testing;
+using Testably.Abstractions.Testing.Initializer;
 
 namespace OpenCode.Sdk.Tests;
 
@@ -19,19 +20,20 @@ public sealed class ServerFailureCaptureTests
         var artifacts = new ServerFailureArtifacts(fileSystem, fileSystem.Path.GetFullPath("results"));
         var data = fileSystem.Path.GetFullPath(fileSystem.Path.Combine("run", "data"));
         var logs = fileSystem.Path.Combine(data, "opencode", "log");
-        _ = fileSystem.Directory.CreateDirectory(fileSystem.Path.Combine(logs, "opencode-local.log.trim"));
-        fileSystem.File.WriteAllText(fileSystem.Path.Combine(logs, "opencode-local.log"), "spawning process git rev-parse");
-        fileSystem.File.WriteAllText(fileSystem.Path.Combine(logs, "notes.txt"), "not a log");
-        fileSystem.File.WriteAllText(fileSystem.Path.Combine(data, "opencode.db"), "stored credentials");
+        _ = fileSystem.Initialize().With(
+            new DirectoryDescription(fileSystem.Path.Combine(logs, "opencode-local.log.trim")),
+            new FileDescription(fileSystem.Path.Combine(logs, "opencode-local.log"), "spawning process git rev-parse"),
+            new FileDescription(fileSystem.Path.Combine(logs, "notes.txt"), "not a log"),
+            new FileDescription(fileSystem.Path.Combine(data, "opencode.db"), "stored credentials"));
 
         var failed = await new ServerFailureCapture(artifacts, fileSystem, new OwnedOperationDeadline())
             .CaptureAsync(output: null, processId: null, external: false, failure: null, [], logs);
 
         var kept = fileSystem.Path.Combine(artifacts.Directory, "server-logs");
         await Assert.That(failed).IsNull();
-        await Assert.That(fileSystem.Directory.GetFileSystemEntries(kept).Select(fileSystem.Path.GetFileName))
+        await Assert.That(fileSystem.Directory.GetFileSystemEntries(kept).Select(fileSystem.Path.GetFileName).OfType<string>())
             .IsEquivalentTo(["opencode-local.log"]);
-        await Assert.That(fileSystem.File.ReadAllText(fileSystem.Path.Combine(kept, "opencode-local.log")))
+        await Assert.That(await ReadAsync(fileSystem, fileSystem.Path.Combine(kept, "opencode-local.log")))
             .IsEqualTo("spawning process git rev-parse");
         await Assert.That(fileSystem.Directory.EnumerateFiles(artifacts.Directory, "opencode.db", SearchOption.AllDirectories)).IsEmpty();
     }
@@ -42,14 +44,14 @@ public sealed class ServerFailureCaptureTests
         var fileSystem = new MockFileSystem();
         var artifacts = new ServerFailureArtifacts(fileSystem, fileSystem.Path.GetFullPath("results"));
         var logs = fileSystem.Path.GetFullPath(fileSystem.Path.Combine("run", "data", "opencode", "log"));
-        _ = fileSystem.Directory.CreateDirectory(logs);
         const string newest = "location services booted durationMs=61234";
-        fileSystem.File.WriteAllText(fileSystem.Path.Combine(logs, "opencode.log"), "oldest line\n" + new string('x', KeptBytes) + newest);
+        _ = fileSystem.Initialize().With(
+            new FileDescription(fileSystem.Path.Combine(logs, "opencode.log"), "oldest line\n" + new string('x', KeptBytes) + newest));
 
         _ = await new ServerFailureCapture(artifacts, fileSystem, new OwnedOperationDeadline())
             .CaptureAsync(output: null, processId: null, external: false, failure: null, [], logs);
 
-        var text = fileSystem.File.ReadAllText(fileSystem.Path.Combine(artifacts.Directory, "server-logs", "opencode.log"));
+        var text = await ReadAsync(fileSystem, fileSystem.Path.Combine(artifacts.Directory, "server-logs", "opencode.log"));
         await Assert.That(text).StartsWith("[truncated:");
         await Assert.That(text).EndsWith(newest);
         await Assert.That(text).DoesNotContain("oldest line");
@@ -67,5 +69,11 @@ public sealed class ServerFailureCaptureTests
 
         await Assert.That(failed).IsNull();
         await Assert.That(fileSystem.Directory.Exists(fileSystem.Path.Combine(artifacts.Directory, "server-logs"))).IsFalse();
+    }
+
+    private static async Task<string> ReadAsync(MockFileSystem fileSystem, string path)
+    {
+        using var reader = fileSystem.File.OpenText(path);
+        return await reader.ReadToEndAsync();
     }
 }
