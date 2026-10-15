@@ -360,7 +360,8 @@ public sealed class PinnedOpenCodeServerFixture : IAsyncInitializer, IAsyncDispo
 
             var capture = new ServerFailureCapture(Artifacts, _diagnostics?.FileSystem ?? _fileSystem,
                 _diagnostics?.Deadline ?? new OwnedOperationDeadline());
-            failure = await capture.CaptureAsync(_output, _server?.ProcessId, _externalMode, failure, teardown.OperationFailures);
+            failure = await capture.CaptureAsync(_output, _server?.ProcessId, _externalMode, failure, teardown.OperationFailures,
+                ServerLogDirectory());
             _lateReports.AddRange(capture.LateReports);
             Console.WriteLine("Pinned server diagnostics: " + Artifacts.Directory);
         }
@@ -374,6 +375,13 @@ public sealed class PinnedOpenCodeServerFixture : IAsyncInitializer, IAsyncDispo
             ExceptionDispatchInfo.Capture(failure).Throw();
         }
     }
+    /// <summary>
+    /// Where the owned server writes its own log files: <c>opencode/log</c> under the isolated data
+    /// root (<see cref="ServerIsolation"/>). An external server's logs are not ours to read.
+    /// </summary>
+    private string? ServerLogDirectory() =>
+        _externalMode || _runRoot is null ? null : _fileSystem.Path.Combine(_runRoot.Path, "data", "opencode", "log");
+
     private bool ShouldRetainLogs => _retainLogs || _diagnostics?.RetainLogs is true || string.Equals(
         Environment.GetEnvironmentVariable("OPENCODE_SDK_TESTS_KEEP_LOGS"), "1", StringComparison.Ordinal);
 
