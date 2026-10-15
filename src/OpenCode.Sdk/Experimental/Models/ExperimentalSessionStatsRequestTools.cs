@@ -25,6 +25,7 @@ public readonly struct ExperimentalSessionStatsRequestTools : IEquatable<Experim
     /// <summary>
     /// The pinned wire spellings, for a case label or a property pattern on Value.
     /// </summary>
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
     public static class Values
     {
         /// <summary>

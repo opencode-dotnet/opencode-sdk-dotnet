@@ -3693,6 +3693,8 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus left, OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus left, OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus right) { }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode001")]
         public static class Values
         {
             public const string Completed = "completed";
@@ -3785,6 +3787,8 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools left, OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools left, OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools right) { }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode001")]
         public static class Values
         {
             public const string Detail = "detail";
@@ -11130,6 +11134,8 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionUsageRecordedDataSource op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionUsageRecordedDataSource left, OpenCode.Sdk.Models.SessionUsageRecordedDataSource right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionUsageRecordedDataSource left, OpenCode.Sdk.Models.SessionUsageRecordedDataSource right) { }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode003")]
         public static class Values
         {
             public const string Compaction = "compaction";

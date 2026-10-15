@@ -127,6 +127,7 @@ internal static class ExtensibleEnumEmitter
     /// </summary>
     private static ClassDeclarationSyntax ValuesClass(EnumModelPlan model) => SyntaxFactory
         .ClassDeclaration(ExtensibleEnumMemberPolicy.Values)
+        .AddAttributeLists(ExperimentalAttributeSyntax.Emit(model.ExperimentalDiagnostic))
         .WithModifiers(SyntaxFactory.TokenList(
             SyntaxFactory.Token(SyntaxKind.PublicKeyword),
             SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
