@@ -117,7 +117,13 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    `1.0.0-rc.1`; every other cost becomes an issue in milestone `1.1`. After `1.0.0-rc.1` only a
    regression is fixed. A generator baseline and a full run of the suite on the release candidate
    close the gate. Exit: a reviewed full run with no unexplained regression.
-7. **`1.0.0`** ([#187](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/187)). Exit:
+7. **Playground.** The Sandbox and the other throwaway test applications leave the repository. A
+   `playground/` of small, runnable consumer samples replaces them, modeled on
+   [dotnet-aspire-for-localstack's playground](https://github.com/localstack-dotnet/dotnet-aspire-for-localstack/tree/master/playground)
+   and polished from the samples the developer-experience rounds wrote. The guides' compile-and-run
+   homes move with them. Exit: no throwaway application left, and every playground sample builds
+   in CI.
+8. **`1.0.0`** ([#187](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/187)). Exit:
    `1.0.0` on NuGet.org, the `OpenCodeAI.*` popularity moved to `OpenCodeDotNet.*`, the README's
    rename notice gone, and milestone `1.1` ordered with its first items assigned.
 
