@@ -56,9 +56,7 @@ internal sealed class PendingReadStream : Stream
     private static async Task<int> WaitForCancellationAsync(CancellationToken cancellationToken)
     {
         var read = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        // The registration's state is the source passed beside it, never null.
-        using (cancellationToken.Register(static state => ((TaskCompletionSource<int>)state!).TrySetCanceled(), read))
+        using (cancellationToken.Register(() => read.TrySetCanceled(cancellationToken)))
         {
             return await read.Task.ConfigureAwait(false);
         }
