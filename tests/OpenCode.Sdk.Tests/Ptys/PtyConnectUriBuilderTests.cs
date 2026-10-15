@@ -1,6 +1,6 @@
 using OpenCode.Sdk.Internal;
 
-namespace OpenCode.Sdk.Tests;
+namespace OpenCode.Sdk.Tests.Ptys;
 
 public sealed class PtyConnectUriBuilderTests
 {
