@@ -5,12 +5,12 @@ using Testably.Abstractions;
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Stop;
 
 /// <summary>
-/// Exact-pin process evidence for the stop door (design §13.3): the accepted pin's own
+/// Exact-pin process evidence for the stop door: the accepted pin's own
 /// <c>serve --service</c> daemon under isolated roots, one per test because the test ends it —
 /// stopped by registration file from this process and by channel from an isolated one, its
 /// registration and handoff sidecar removed once it is gone; and a registration that names
 /// another pid, which stops nothing and leaves the daemon answering. Keyless
-/// <c>[NotInParallel]</c> rather than the server-process key (research log Q157): the last
+/// <c>[NotInParallel]</c> rather than the server-process key: the last
 /// case proves liveness through the public discover door, whose probe is bounded by the pinned
 /// two seconds, a bound a loaded host can miss while other tests run beside it.
 /// </summary>

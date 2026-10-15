@@ -840,9 +840,9 @@ dotnet_diagnostic.MA0045.severity = none
 
 # DriveManifest.Write has the same in-memory Utf8JsonWriter shape as DriveProtocol.Compose, plus
 # an IFileSystem.WriteAllBytes call; its public contract is a synchronous `DriveManifest Write(...)`
-# (DriveManifestTests calls it without awaiting), matching the manifest-writing seam the drive
-# fixture needs before Task 5's live wiring exists. Winner: the synchronous manifest-writer
-# contract; MA0045 remains enabled for every other file.
+# (DriveManifestTests calls it without awaiting), the manifest-writing seam the drive fixture
+# composes synchronously. Winner: the synchronous manifest-writer contract; MA0045 remains enabled
+# for every other file.
 [tests/Shared/DriveManifest.cs]
 dotnet_diagnostic.MA0045.severity = none
 
@@ -1168,7 +1168,7 @@ dotnet_diagnostic.VSTHRD103.severity = none
 dotnet_diagnostic.S6966.severity = none
 
 # ReadPinnedUpstreamCommit reads spec/receipt.json for the external-endpoint mode's attach
-# banner (Task 6, real RealFileSystem I/O, not MockFileSystem). IFile.ReadAllTextAsync is
+# banner (real RealFileSystem I/O, not MockFileSystem). IFile.ReadAllTextAsync is
 # unavailable through this abstraction on the net472 leg - the same constraint
 # DriveManifestTests.cs documents above - so this one call stays synchronous. Winner: the
 # cross-TFM shape; MA0045 remains enabled for every other file.

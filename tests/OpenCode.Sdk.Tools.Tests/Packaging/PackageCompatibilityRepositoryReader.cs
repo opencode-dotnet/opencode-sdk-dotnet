@@ -2,14 +2,15 @@ using System.IO.Abstractions;
 using System.Text;
 using System.Xml.Linq;
 using OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
+using OpenCode.Sdk.Tools.Tests.Support;
 
 namespace OpenCode.Sdk.Tools.Tests.Packaging;
 
 /// <summary>Reads current sources and only the baseline blobs needed to classify removed types.</summary>
 internal sealed class PackageCompatibilityRepositoryReader(IFileSystem fileSystem, IProcessRunner processRunner)
 {
-    internal const string SdkPath = "src/OpenCode.Sdk/";
-    internal const string ManifestPath = SdkPath + ".generated-manifest.json";
+    internal const string SdkPath = GeneratedManifest.SdkPath;
+    internal const string ManifestPath = GeneratedManifest.ManifestPath;
 
     private static readonly string[] ProjectFolders = ["src", "tests", "tools"];
 

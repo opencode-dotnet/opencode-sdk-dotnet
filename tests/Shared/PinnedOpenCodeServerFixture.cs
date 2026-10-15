@@ -9,7 +9,7 @@ using TUnit.Core.Interfaces;
 namespace OpenCode.Sdk.TestSupport;
 
 /// <summary>
-/// The exact-pin server fixture (design §7.2): one pinned server per test session started
+/// The exact-pin server fixture: one pinned server per test session started
 /// through the SDK's own <see cref="OpenCodeServer"/> launcher with its output collector (the
 /// launcher is dogfooded by every live test), per-run home/state isolation, isolated
 /// workspaces, and logs retained on failure. Consumers declare
@@ -34,8 +34,7 @@ namespace OpenCode.Sdk.TestSupport;
 /// <item><c>OPENCODE_SDK_TESTS_PTY_DAEMON=0|1</c> - overrides <see cref="PersistentPtyDaemonGate"/>'s
 /// platform default (see its own remarks).</item>
 /// </list>
-/// External-endpoint mode (Task 6, the WSL2 recipe - <c>docs/engineering/developing-on-windows.md</c>
-/// carries the runnable steps): when <c>OPENCODE_SDK_TESTS_ENDPOINT</c>/
+/// External-endpoint mode (a server started outside the test host, such as one under WSL2): when <c>OPENCODE_SDK_TESTS_ENDPOINT</c>/
 /// <c>OPENCODE_SDK_TESTS_PASSWORD</c> name an operator-supplied server - or the internal
 /// <see cref="ExternalServerEndpoint"/> constructor supplies the pair directly -
 /// <see cref="InitializeAsync"/> spawns nothing: it probes the server's health instead of

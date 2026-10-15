@@ -7,7 +7,7 @@ using TUnit.Core.Interfaces;
 namespace OpenCode.Sdk.TestSupport;
 
 /// <summary>
-/// The exact-pin server fixture in simulation mode (design §7.4): a named drive instance with a
+/// The exact-pin server fixture in simulation mode: a named drive instance with a
 /// per-run manifest (never the fixed default ports), a config-seeded simulated provider, and an
 /// attached drive controller. Simulation denies all unregistered outbound network by
 /// construction (backend/index.ts:29-35), so the workflow runs with no provider credentials.

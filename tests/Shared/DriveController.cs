@@ -7,7 +7,7 @@ using OpenCode.Sdk.Internal;
 namespace OpenCode.Sdk.TestSupport;
 
 /// <summary>
-/// The repository-owned drive controller (design §7.4): a WebSocket JSON-RPC client for the
+/// The repository-owned drive controller: a WebSocket JSON-RPC client for the
 /// simulation backend. One JSON-RPC message per WebSocket text message
 /// (control-server.ts:149-169); responses correlate by numeric id; llm.request,
 /// tool.invocation, and tool.cancel arrive as id-less notifications, each on its own FIFO so

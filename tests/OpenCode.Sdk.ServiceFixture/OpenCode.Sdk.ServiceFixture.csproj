@@ -2,7 +2,7 @@
 
   <!-- The isolated discovery process: a tiny executable the live tests launch with an environment
        they control entirely, so DiscoverAsync's environment reading is proven from a process that
-       never sees the developer's own registration (design §13.1, decision 8). -->
+       never sees the developer's own registration. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>$(DefaultTargetFramework)</TargetFramework>

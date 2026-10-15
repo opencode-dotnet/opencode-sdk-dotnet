@@ -11,7 +11,7 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Stop;
 /// <summary>
 /// The stop lifecycle over substituted seams: the environment, the filesystem double, a scripted
 /// probe, a scripted persistent-terminal shutdown, and scripted process control. No socket, no
-/// real process; the pinned client's <c>stop</c> and <c>terminate</c> decisions only (design §13.3).
+/// real process; the pinned client's <c>stop</c> and <c>terminate</c> decisions only.
 /// The poll is real code under accelerated timing; the process control scripts what each look sees.
 /// </summary>
 public sealed class ServiceStopperTests

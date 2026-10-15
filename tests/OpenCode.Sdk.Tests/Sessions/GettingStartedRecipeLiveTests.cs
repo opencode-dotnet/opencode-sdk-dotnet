@@ -6,7 +6,7 @@ namespace OpenCode.Sdk.Tests.Sessions;
 
 /// <summary>
 /// The compile-and-run home of the getting-started guide's "wait for the session to go idle, then
-/// read its messages" recipe (<c>docs/guide/getting-started.md</c>): the guide's calls, in the
+/// read its messages" recipe: the guide's calls, in the
 /// guide's order, against the simulated server, with the Drive controller answering the model
 /// request the prompt starts. Session creation names no model, as the guide's does, so the turn
 /// reaching the simulated model also proves a model-less session gets the configured default.

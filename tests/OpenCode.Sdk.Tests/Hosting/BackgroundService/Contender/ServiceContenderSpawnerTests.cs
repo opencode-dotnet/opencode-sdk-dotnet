@@ -20,11 +20,10 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Contender;
 /// contender leads its own session on Unix; on Windows it has no console, starts hidden, and roots
 /// its own process group; stdin and stdout are NUL; the retained tail is the
 /// final 8 KiB of stderr; <see cref="ServiceContender.Release"/> drops the retention without
-/// killing and keeps the pipe draining; and a contender survives its parent's exit. Every test
-/// starts a real process. Keyless <c>[NotInParallel]</c> rather than the server-process key:
-/// the release-drain proof paces 1024 timer waits that lag under module overlap, and the
-/// three-vCPU macOS leg is where that lag bites, the same starvation profile research log
-/// Q157/Q172 records for the stop liveness proof.
+/// killing and keeps the pipe draining; and a contender survives its parent's exit. Every test but
+/// the missing-executable one starts a real process, and the class carries the keyless
+/// <c>[NotInParallel]</c> rather than the server-process key, so it runs alone after every other
+/// test.
 /// </summary>
 [NotInParallel]
 public sealed class ServiceContenderSpawnerTests

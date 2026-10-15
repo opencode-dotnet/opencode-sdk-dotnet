@@ -20,10 +20,10 @@ namespace OpenCode.Sdk.Tests.Sessions;
 /// documentation event, not a defect. The replay test fails when upstream starts persisting by
 /// default; the follow test fails when a follow on such a server starts delivering live durable
 /// items, whether because upstream persists by default or because its live tail stops depending on
-/// persistence. Either way the account of the CLI-started server in <c>docs/guide/streaming.md</c>,
-/// the known-issue relay in <c>README.md</c>, and the persistence sentence in
-/// <c>docs/architecture/client-runtime.md</c>'s server-sent-events section have to change with it,
-/// and the change belongs in <c>CHANGELOG.md</c> because it widens what a default server answers.
+/// persistence. Either way the streaming guide's account of the CLI-started server, the README's
+/// known-issue relay, and the client-runtime architecture's persistence sentence for server-sent
+/// events have to change with it, and the change belongs in the changelog because it widens what a
+/// default server answers.
 /// Replay observed marker-only on <c>@opencode/cli@2.0.2</c> and on the pinned source this fixture
 /// runs; follow observed marker-only on <c>@opencode/cli@2.0.2</c>, <c>2.0.3</c>, and <c>2.0.15</c>
 /// and on the pinned source.

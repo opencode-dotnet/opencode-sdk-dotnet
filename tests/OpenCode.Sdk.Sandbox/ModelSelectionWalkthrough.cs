@@ -4,8 +4,8 @@ using OpenCode.Sdk.Models;
 namespace OpenCode.Sdk.Sandbox;
 
 /// <summary>
-/// The compile-and-run home for the "choosing a model" recipe in
-/// <c>docs/guide/getting-started.md</c>: read the catalog the
+/// The compile-and-run home for the getting-started guide's "choosing a model" recipe: read the
+/// catalog the
 /// location actually has, and place the chosen model on session creation. Runs on the
 /// launcher-started leg, where status has just answered — which is exactly the moment the catalog
 /// can still be empty.
