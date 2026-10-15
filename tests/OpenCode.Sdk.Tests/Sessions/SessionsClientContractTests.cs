@@ -30,7 +30,7 @@ public sealed class SessionsClientContractTests
 
         _ = await scenario.Client.Sessions.ListSessionsAsync(new SessionListRequest
         {
-            Limit = "5",
+            Limit = 5,
             Order = ListOrder.Descending,
             Search = "a b",
             ParentId = SessionParentFilter.RootOnly,
@@ -58,7 +58,7 @@ public sealed class SessionsClientContractTests
         var sequence = scenario.Client.Sessions.EnumerateSessionsAsync(
             new SessionListRequest
             {
-                Limit = "1",
+                Limit = 1,
                 Order = ListOrder.Descending,
                 Search = "a b",
                 ParentId = SessionParentFilter.RootOnly,
@@ -169,14 +169,14 @@ public sealed class SessionsClientContractTests
     }
 
     [Test]
-    public async Task ListSessionsAsync_Should_Send_The_OpenApi_String_Limit_Without_Local_Validation()
+    public async Task ListSessionsAsync_Should_Send_A_Limit_Outside_The_Server_Range_Without_Local_Validation()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.Page(""));
 
-        _ = await scenario.Client.Sessions.ListSessionsAsync(new SessionListRequest { Limit = "not-a-number" });
+        _ = await scenario.Client.Sessions.ListSessionsAsync(new SessionListRequest { Limit = 0 });
 
         await Assert.That(scenario.Requests.Single().RequestUri!.AbsoluteUri)
-            .IsEqualTo("http://localhost:4096/api/session?limit=not-a-number");
+            .IsEqualTo("http://localhost:4096/api/session?limit=0");
     }
 
     [Test]
@@ -375,12 +375,12 @@ public sealed class SessionsClientContractTests
 
         _ = await scenario.Client.Experimental.GetSessionStatsAsync(new ExperimentalSessionStatsRequest
         {
-            From = "2026-08-01",
+            From = 1_785_542_400_000,
             Tools = ExperimentalSessionStatsRequestTools.Summary,
         });
 
         await Assert.That(scenario.Requests.Single().RequestUri!.AbsoluteUri)
-            .IsEqualTo("http://localhost:4096/api/experimental/session/stats?from=2026-08-01&tools=summary");
+            .IsEqualTo("http://localhost:4096/api/experimental/session/stats?from=1785542400000&tools=summary");
     }
 
     [Test]

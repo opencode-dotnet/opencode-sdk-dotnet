@@ -85,7 +85,7 @@
     {
       "path": "packages/protocol/src/groups/persistent-pty.ts",
       "sha256": "052b0fcf88a6f890f2cc0f8a9ee7275690cec947023e22e373f6bce4e02ef70f",
-      "behavior": "The handoff response is a single-key body whose handoff value is nullable, and the persistent connect endpoint reuses the PTY ticket query and header.",
+      "behavior": "The handoff response is a single-key body whose handoff value is nullable, and the persistent connect endpoint reuses the PTY ticket query and header. The terminal read decodes lines from the query text as an integer from 1 to 65535, which its int query type mirrors (ADR-0037).",
       "anchor": {
         "type": "contains",
         "text": "success: Schema.Struct({ handoff: Schema.NullOr(PersistentPty.Handoff) })"
@@ -364,7 +364,7 @@
     {
       "path": "packages/protocol/src/groups/session.ts",
       "sha256": "1eb38a3bc9c463e2923d9f4fc12597aeebece8eadba6f6aa5ff5b917cd2df1e5",
-      "behavior": "The session list declares limit, order and cursor, where order applies to the first page only and the opaque cursor carries the continuation, which the cursor-list spine and CursorSequence depend on; the file is also the Restore patch preimage for the SSE payloads.",
+      "behavior": "The session list declares limit, order and cursor, where order applies to the first page only and the opaque cursor carries the continuation, which the cursor-list spine and CursorSequence depend on; the file is also the Restore patch preimage for the SSE payloads. The session list decodes limit, and the session log decodes after (an Event.Seq), from the query text as numbers, which their int and long query types mirror (ADR-0037).",
       "anchor": {
         "type": "contains",
         "text": "Session order for the first page"
@@ -391,7 +391,7 @@
     {
       "path": "packages/protocol/src/groups/message.ts",
       "sha256": "bfc9fdb58bd8d3288b4d223ed2645d1a201bae12edc0eceafe72b67915b14de1",
-      "behavior": "The message list declares limit, order, cursor and a type filter that must be passed again on every continuation, which the message-list spine, CursorSequence and EnumerateMessagesAsync depend on.",
+      "behavior": "The message list declares limit, order, cursor and a type filter that must be passed again on every continuation, which the message-list spine, CursorSequence and EnumerateMessagesAsync depend on. The message list decodes limit from the query text as an integer from 1 to 200, which its int query type mirrors (ADR-0037).",
       "anchor": {
         "type": "contains",
         "text": "Message order for the first page"
@@ -710,6 +710,33 @@
       "anchor": {
         "type": "contains",
         "text": "a version mismatch replaces the service, handing off terminals only when it is ready"
+      }
+    },
+    {
+      "path": "packages/protocol/src/groups/fs.ts",
+      "sha256": "ea869274ea124adb59f8a1c99bdf64cc736456e87eed652531e31cd47f8c7e25",
+      "behavior": "The file search decodes limit from the query text as a positive integer, which the fs.find limit query type mirrors (ADR-0037).",
+      "anchor": {
+        "type": "contains",
+        "text": "limit: Schema.NumberFromString.pipe(Schema.decodeTo(PositiveInt), Schema.optional)"
+      }
+    },
+    {
+      "path": "packages/protocol/src/groups/vcs.ts",
+      "sha256": "a430373cb7cc4ba06a920d2130a30a8d0fb07cfbe0d52281b62c3b0c12d47fdc",
+      "behavior": "The branch list decodes limit from the query text as a positive integer, which the vcs.branch.list limit query type mirrors (ADR-0037).",
+      "anchor": {
+        "type": "contains",
+        "text": "limit: Schema.NumberFromString.pipe(Schema.decodeTo(PositiveInt), Schema.optional)"
+      }
+    },
+    {
+      "path": "packages/schema/src/shell.ts",
+      "sha256": "1ed56036245671a9abbac8dd38359c4f4527f72f3ae9fbe2d1c080fee8c24946",
+      "behavior": "The shell output query takes cursor and limit as non-negative integers, which the shell.output cursor and limit query types mirror (ADR-0037).",
+      "anchor": {
+        "type": "contains",
+        "text": "export const OutputInput = Schema.Struct({"
       }
     }
   ]

@@ -45,7 +45,7 @@ public sealed class SessionLogTranscriptTests
         var transcript = new SessionLogTranscript(new EventDiagnosticScenario { IncludeMarker = true });
         try
         {
-            await transcript.AttachAsync("1", CancellationToken.None);
+            await transcript.AttachAsync(1, CancellationToken.None);
             var thrown = await Assert.That(() => transcript.ReadTurnAsync("ses_owned", "reply"))
                 .Throws<InvalidOperationException>();
 

@@ -60,7 +60,7 @@ public sealed class SessionDiffLiveTests(SimulatedDriveServerFixture server)
             await Assert.That(idle.Outcome).IsEqualTo(SessionMessageIdleOutcome.Succeeded);
 
             var turnDiff = await session.GetDiffAsync(
-                new SessionDiffRequest { From = user.Id, Context = "3" },
+                new SessionDiffRequest { From = user.Id, Context = 3 },
                 cancellationToken: cancellationToken);
             await Assert.That(turnDiff.Status).IsEqualTo(200);
             await Assert.That(turnDiff.IsError).IsFalse();

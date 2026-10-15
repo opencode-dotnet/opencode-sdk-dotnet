@@ -89,8 +89,8 @@ public static partial class OpenCodeRoutes
 
             var query = new QueryStringBuilder();
             query.AddLocation("location", request.Location);
-            query.AddText("cursor", request.Cursor);
-            query.AddText("limit", request.Limit);
+            query.AddInteger("cursor", request.Cursor);
+            query.AddInteger("limit", request.Limit);
             return path + query.Value;
         }
 

@@ -261,20 +261,18 @@ and materialize no typed member. A concrete event's own `Durable` property is st
 | Member | Type | Meaning |
 |---|---|---|
 | `Follow` | `QueryBoolean?` | `True` keeps the stream open and keeps delivering; otherwise the stream ends when the existing log has been sent. |
-| `After` | `string?` | Continue after an aggregate sequence you have already processed — the explicit continuation channel the global bus does not have. |
+| `After` | `long?` | Continue after an aggregate sequence you have already processed — the explicit continuation channel the global bus does not have. |
 
-The cursor is an exclusive numeric aggregate sequence, encoded as a string. Record the
-`Durable.Seq` of the last durable event you processed — through the union interface, so the recipe
-works for every durable event rather than one leaf type — then format it with invariant culture:
+The cursor is an exclusive aggregate sequence. Record the `Durable.Seq` of the last durable event
+you processed — through the union interface, so the recipe works for every durable event rather
+than one leaf type — and pass it back as it is:
 
 ```csharp
-using System.Globalization;
-
 static SessionLogRequest? FollowAfter(ISessionEventDurable lastProcessed) =>
     lastProcessed.Durable is { } envelope
         ? new SessionLogRequest
         {
-            After = envelope.Seq.ToString(CultureInfo.InvariantCulture),
+            After = envelope.Seq,
             Follow = QueryBoolean.True,
         }
         : null;

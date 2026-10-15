@@ -222,7 +222,7 @@ public sealed class SessionLogContractTests
 
         _ = await CollectAsync(scenario, new SessionLogRequest
         {
-            After = "12",
+            After = 12,
             Follow = QueryBoolean.True,
         });
 

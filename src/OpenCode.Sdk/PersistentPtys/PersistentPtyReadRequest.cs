@@ -10,5 +10,5 @@ public sealed record PersistentPtyReadRequest
     /// <summary>
     /// Gets the &apos;lines&apos; query value; the server default applies when unset.
     /// </summary>
-    public string? Lines { get; init; }
+    public int? Lines { get; init; }
 }

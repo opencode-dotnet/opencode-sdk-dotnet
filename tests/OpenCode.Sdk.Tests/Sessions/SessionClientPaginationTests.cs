@@ -11,7 +11,7 @@ public sealed class SessionClientPaginationTests
         var client = new StubSessionClient(Page(next: string.Empty), Page(next: null));
         var initialRequest = new SessionMessageListRequest
         {
-            Limit = "2",
+            Limit = 2,
             Order = ListOrder.Descending,
             Cursor = "cur_start",
         };
@@ -147,7 +147,7 @@ public sealed class SessionClientPaginationTests
         var client = new StubSessionsClient(SessionPage("cur_1"), SessionPage(next: null));
         var initialRequest = new SessionListRequest
         {
-            Limit = "3",
+            Limit = 3,
             Order = ListOrder.Descending,
             Search = "needle",
             Project = "prj_1",

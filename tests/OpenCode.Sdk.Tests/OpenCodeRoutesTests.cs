@@ -80,7 +80,7 @@ public sealed class OpenCodeRoutesTests
             Location = new LocationSelector { Directory = "/repo" },
             Query = "todo",
             Type = FsFindRequestType.Directory,
-            Limit = "25",
+            Limit = 25,
         });
 
         await Assert.That(route).IsEqualTo("/api/fs/find?location[directory]=%2Frepo&query=todo&type=directory&limit=25");
@@ -148,32 +148,33 @@ public sealed class OpenCodeRoutesTests
     }
 
     /// <summary>
-    /// The wire declares 'cursor' and 'limit' as strings, not integers, and the builder carries
-    /// them as the strings they are - escaping where the value needs it.
+    /// The document declares 'cursor' and 'limit' as strings, but the server decodes both as
+    /// non-negative integers, so they bind as numbers and travel as their decimal text. The byte
+    /// cursor is a <see langword="long"/>: an offset past the 32-bit range reaches the wire whole.
     /// </summary>
     [Test]
-    public async Task GetOutput_Should_Carry_The_Cursor_And_Limit_As_The_Strings_They_Are()
+    public async Task GetOutput_Should_Write_The_Cursor_And_Limit_As_Decimal_Text()
     {
         var route = OpenCodeRoutes.Shells.GetOutput("sh_100", new ShellOutputRequest
         {
             Location = new LocationSelector { Directory = "/repo" },
-            Cursor = "1.5e3",
-            Limit = "+0",
+            Cursor = 3_000_000_000,
+            Limit = 0,
         });
 
-        await Assert.That(route).IsEqualTo("/api/shell/sh_100/output?location[directory]=%2Frepo&cursor=1.5e3&limit=%2B0");
+        await Assert.That(route).IsEqualTo("/api/shell/sh_100/output?location[directory]=%2Frepo&cursor=3000000000&limit=0");
     }
 
     /// <summary>
-    /// The declared numeric pattern is never validated client-side (ADR-0014). The values above
-    /// satisfy it, so they cannot show that; this one does not, and the builder still writes it.
+    /// The range is the server's to enforce (ADR-0014): a cursor it would refuse still reaches the
+    /// wire as written.
     /// </summary>
     [Test]
-    public async Task GetOutput_Should_Write_A_Cursor_The_Wire_Pattern_Does_Not_Admit()
+    public async Task GetOutput_Should_Write_A_Cursor_Outside_The_Server_Range()
     {
-        var route = OpenCodeRoutes.Shells.GetOutput("sh_100", new ShellOutputRequest { Cursor = "not-a-number" });
+        var route = OpenCodeRoutes.Shells.GetOutput("sh_100", new ShellOutputRequest { Cursor = -1 });
 
-        await Assert.That(route).IsEqualTo("/api/shell/sh_100/output?cursor=not-a-number");
+        await Assert.That(route).IsEqualTo("/api/shell/sh_100/output?cursor=-1");
     }
 
     [Test]

@@ -185,7 +185,7 @@ public sealed class VcsClientContractTests
         {
             Mode = VcsMode.Committed,
             Base = "main",
-            Context = "3",
+            Context = 3,
         });
 
         await Assert.That(response.Diffs.Count).IsEqualTo(0);

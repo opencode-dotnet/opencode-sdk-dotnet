@@ -23,6 +23,7 @@ internal sealed class CurationValidator
         ValidateGroups(selected, selectedGroups, documentGroups, curation, errors);
         ValidateOperationNames(selectedIds, documentIds, curation, errors);
         ValidateParameterNames(selected, curation, errors);
+        QueryParameterCurationValidator.Validate(document, selected, curation, errors);
         ValidateSchemaNames(document, reachable, curation, errors);
         ValidateEnumMemberNames(document, reachable, curation, errors);
         ValidateEnvelopeNames(selectedIds, documentIds, curation, errors);

@@ -4,6 +4,7 @@ using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Abstractions;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
+using OpenCode.Sdk.Tools.Generator.Refresh;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Abstractions;
 using OpenCode.Sdk.Tools.Output;
 using OpenCode.Sdk.Tools.Output.Abstractions;
@@ -16,6 +17,7 @@ internal sealed class GenerationCoordinator(
     CurationLoader curationLoader,
     ISpecBinder binder,
     PendingOperationBindabilityProbe pendingProbe,
+    SourceWatchLoader sourceWatchLoader,
     IGenerationWriter writer)
 {
     private readonly ISpecIngestion _ingestion = ingestion ?? throw new ArgumentNullException(nameof(ingestion));
@@ -23,6 +25,7 @@ internal sealed class GenerationCoordinator(
     private readonly CurationLoader _curationLoader = curationLoader ?? throw new ArgumentNullException(nameof(curationLoader));
     private readonly ISpecBinder _binder = binder ?? throw new ArgumentNullException(nameof(binder));
     private readonly PendingOperationBindabilityProbe _pendingProbe = pendingProbe ?? throw new ArgumentNullException(nameof(pendingProbe));
+    private readonly SourceWatchLoader _sourceWatchLoader = sourceWatchLoader ?? throw new ArgumentNullException(nameof(sourceWatchLoader));
     private readonly IGenerationWriter _writer = writer ?? throw new ArgumentNullException(nameof(writer));
 
     public async Task<GenerationReport> GenerateAsync(GenerationRequest request, CancellationToken cancellationToken)
@@ -32,6 +35,7 @@ internal sealed class GenerationCoordinator(
         // Curation loads first: its operation-identity rows are an ingestion input (ADR-0013),
         // so their static validity is checked before the document is read.
         var curation = await _curationLoader.LoadAsync(request.CurationPath, cancellationToken).ConfigureAwait(false);
+        await RefuseUnwatchedEvidenceAsync(curation, cancellationToken).ConfigureAwait(false);
         var operationIdentities = OperationIdentityPolicy.BuildMap(curation);
         var document = await _ingestion.IngestAsync(request.SpecPath, operationIdentities, cancellationToken).ConfigureAwait(false);
         var selection = await _selectionLoader.LoadAsync(request.ProfilePath, cancellationToken).ConfigureAwait(false);
@@ -115,6 +119,23 @@ internal sealed class GenerationCoordinator(
             ReachReportContent = reach.Content,
             Verify = request.Verify,
         };
+
+    /// <summary>
+    /// The source watch is read for one check only: a query parameter type row's evidence must be
+    /// a watched file. It never reaches ingestion or emission.
+    /// </summary>
+    private async Task RefuseUnwatchedEvidenceAsync(GenerationCuration curation, CancellationToken cancellationToken)
+    {
+        if (curation.QueryParameterTypes.Count is 0)
+        {
+            return;
+        }
+
+        var watch = await _sourceWatchLoader.LoadAsync(cancellationToken).ConfigureAwait(false);
+        var errors = new BindingErrorCollector();
+        QueryParameterEvidencePolicy.Check(curation, watch, errors);
+        errors.ThrowIfAny();
+    }
 
     /// <summary>
     /// A decline states that a wall stands over the operation. The probe binds it through the real

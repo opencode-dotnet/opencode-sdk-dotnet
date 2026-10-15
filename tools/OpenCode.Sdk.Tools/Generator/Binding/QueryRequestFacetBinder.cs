@@ -114,6 +114,15 @@ internal sealed class QueryRequestFacetBinder(OperationFacetContext context)
             return _context.RefuseNull<QueryPropertyPlan>($"query parameter '{parameter.Name}' has an unsupported schema shape");
         }
 
+        if (kind is QueryValueKind.Text)
+        {
+            kind = QueryParameterTypePolicy.Classify(_context, parameter.Name);
+            if (kind is null)
+            {
+                return null;
+            }
+        }
+
         return new QueryPropertyPlan
         {
             WireName = parameter.Name,

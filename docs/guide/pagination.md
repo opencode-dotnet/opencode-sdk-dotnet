@@ -1,6 +1,6 @@
 # 📑 Pagination
 
-Date: 2026-09-17
+Date: 2026-10-15
 
 Two operations in the API return more than fits in one response, and both use the same opaque
 cursor envelope: **listing a session's messages** and **listing sessions**. Both can be paged by
@@ -36,7 +36,7 @@ page carries `Status`, `IsError`, `Error`, and `RawBody` and accepts per-call `N
 
 ```csharp
 var page = await sessions.ListSessionsAsync(
-    new SessionListRequest { Limit = "25" },
+    new SessionListRequest { Limit = 25 },
     OpenCodeRequestOptions.NoThrow);
 
 Console.WriteLine(page.IsError
@@ -50,7 +50,7 @@ Three channels do the paging, and both request types carry all three:
 
 | Member | Type | Meaning |
 |---|---|---|
-| `Limit` | `string?` | Page size. A string, because that is how the API declares the query parameter — pass `"50"`, not `50`. |
+| `Limit` | `int?` | Page size. The server applies its default when unset and enforces its own range. |
 | `Order` | `ListOrder?` | `Ascending` or `Descending`. **First page only.** |
 | `Cursor` | `string?` | The opaque continuation from the previous page's `Cursor.Next`. |
 
@@ -69,7 +69,7 @@ Ask for a page, use it, and stop when `Next` is gone:
 
 ```csharp
 var session = client.Sessions.GetSessionClient(sessionId);
-var request = new SessionMessageListRequest { Limit = "50", Order = ListOrder.Ascending };
+var request = new SessionMessageListRequest { Limit = 50, Order = ListOrder.Ascending };
 
 while (true)
 {
@@ -92,7 +92,7 @@ while (true)
 Sessions page identically — the only differences are the request type and the item collection:
 
 ```csharp
-var request = new SessionListRequest { Limit = "25", Order = ListOrder.Descending };
+var request = new SessionListRequest { Limit = 25, Order = ListOrder.Descending };
 
 while (true)
 {
@@ -124,7 +124,7 @@ following `Next` for you:
 ```csharp
 var stream = session.EnumerateMessagesAsync(new SessionMessageListRequest
 {
-    Limit = "50",
+    Limit = 50,
     Order = ListOrder.Ascending,
 });
 
@@ -139,7 +139,7 @@ Sessions enumerate the same way, filters and all:
 ```csharp
 var stream = client.Sessions.EnumerateSessionsAsync(new SessionListRequest
 {
-    Limit = "25",
+    Limit = 25,
     Order = ListOrder.Descending,
     Search = "build",
 });

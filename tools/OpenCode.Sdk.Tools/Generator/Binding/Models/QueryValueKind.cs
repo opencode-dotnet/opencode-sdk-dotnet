@@ -26,4 +26,16 @@ internal enum QueryValueKind
     /// segment into the path, never sent as a query parameter (ADR-0029).
     /// </summary>
     RouteTail = 6,
+
+    /// <summary>
+    /// A plain-string parameter upstream decodes as a 32-bit-range integer, exposed as <c>int</c>
+    /// and written as invariant query text (ADR-0037).
+    /// </summary>
+    Int32 = 7,
+
+    /// <summary>
+    /// A plain-string parameter upstream decodes as an integer that may pass the 32-bit range,
+    /// exposed as <c>long</c> and written as invariant query text (ADR-0037).
+    /// </summary>
+    Int64 = 8,
 }

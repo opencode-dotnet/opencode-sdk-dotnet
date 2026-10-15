@@ -22,7 +22,7 @@ public class RouteCompositionBenchmarks : IDisposable
 
     private static readonly SessionMessageListRequest FullQuery = new()
     {
-        Limit = "50",
+        Limit = 50,
         Order = ListOrder.Descending,
         Cursor = "cur_0123456789abcdef",
     };

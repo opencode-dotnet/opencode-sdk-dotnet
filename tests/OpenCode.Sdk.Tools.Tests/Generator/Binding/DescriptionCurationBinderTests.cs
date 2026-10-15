@@ -131,7 +131,10 @@ public sealed class DescriptionCurationBinderTests
             .WithOperation("widget.get", configure: static operation => operation
                 .Parameter("query", "query", static schema => schema.Type("string"))
                 .WithoutResponse(200).Response(204))));
-        var curation = Curation(Groups("widget", RootGroup())) with { Descriptions = [Description(type, member, remarks: "The curated remarks.")] };
+        var curation = Curation(Groups("widget", RootGroup()), stringQueryParameters: [StringQueryParameter("widget.get", "query")]) with
+        {
+            Descriptions = [Description(type, member, remarks: "The curated remarks.")],
+        };
         var plan = new BindingTestHost().Bind(document, Selection("widget.get"), curation);
 
         var source = Encoding.UTF8.GetString(SourceEmitter.Emit(plan)

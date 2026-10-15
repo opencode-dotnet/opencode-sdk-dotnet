@@ -26,7 +26,9 @@ internal static class BindingScenarioData
         IReadOnlyList<RedactedOpenMembersCuration>? redactedOpenMembers = null,
         IReadOnlyList<ModelOwnerCuration>? modelOwners = null,
         IReadOnlyList<SessionAreaCuration>? sessionAreas = null,
-        SessionScopedEventCuration? sessionScopedEvent = null) =>
+        SessionScopedEventCuration? sessionScopedEvent = null,
+        IReadOnlyList<QueryParameterTypeCuration>? queryParameterTypes = null,
+        IReadOnlyList<StringQueryParameterCuration>? stringQueryParameters = null) =>
         new()
         {
             Groups = groups,
@@ -47,6 +49,8 @@ internal static class BindingScenarioData
             ModelOwners = modelOwners ?? [],
             SessionAreas = sessionAreas ?? [],
             SessionScopedEvent = sessionScopedEvent,
+            QueryParameterTypes = queryParameterTypes ?? [],
+            StringQueryParameters = stringQueryParameters ?? [],
         };
 
     public static ParameterNameCuration ParameterName(string operationId, string parameter, string dotnetName,
@@ -56,6 +60,28 @@ internal static class BindingScenarioData
             OperationId = operationId,
             Parameter = parameter,
             DotNetName = dotnetName,
+            Reason = reason,
+        };
+
+    public static QueryParameterTypeCuration QueryParameterType(string operationId, string parameter, string dotnetType,
+        string reason = "Scenario: the server decodes the parameter as a number.",
+        string evidencePath = "packages/protocol/src/groups/scenario.ts",
+        string evidenceAnchor = "limit: Schema.NumberFromString") =>
+        new()
+        {
+            OperationId = operationId,
+            Parameter = parameter,
+            DotNetType = dotnetType,
+            Reason = reason,
+            Evidence = new QueryParameterEvidence { Path = evidencePath, Anchor = evidenceAnchor },
+        };
+
+    public static StringQueryParameterCuration StringQueryParameter(string operationId, string parameter,
+        string reason = "Scenario: the parameter is free text.") =>
+        new()
+        {
+            OperationId = operationId,
+            Parameter = parameter,
             Reason = reason,
         };
 

@@ -197,8 +197,8 @@ public static partial class OpenCodeRoutes
             }
 
             var query = new QueryStringBuilder();
-            query.AddText("from", request.From);
-            query.AddText("to", request.To);
+            query.AddInteger("from", request.From);
+            query.AddInteger("to", request.To);
             query.AddText("project", request.Project);
             query.AddText("timezone", request.Timezone);
             query.AddText("tools", ToWireValue(request.Tools));

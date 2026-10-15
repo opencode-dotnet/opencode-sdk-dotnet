@@ -31,7 +31,8 @@ internal static class ListRequestSpinePolicy
 
         return property switch
         {
-            { WireName: "limit" or "cursor", Kind: QueryValueKind.Text, IsRequired: false } => true,
+            { WireName: "limit", Kind: QueryValueKind.Int32, IsRequired: false } => true,
+            { WireName: "cursor", Kind: QueryValueKind.Text, IsRequired: false } => true,
             { WireName: "order", Kind: QueryValueKind.ListOrder, IsRequired: false } => true,
             _ => false,
         };
