@@ -6,6 +6,9 @@ internal enum SuppressionChannel
     /// <summary>A <c>#pragma warning disable</c> directive.</summary>
     Pragma,
 
+    /// <summary>A <c>#nullable disable</c> directive, which turns nullable warnings off from that line on.</summary>
+    NullableDirective,
+
     /// <summary>A <c>[SuppressMessage]</c> or <c>[UnconditionalSuppressMessage]</c> attribute.</summary>
     SuppressMessage,
 
@@ -30,6 +33,9 @@ internal enum SuppressionChannel
     /// <summary>A diagnostic ID in a <c>WarningsNotAsErrors</c> property.</summary>
     WarningsNotAsErrors,
 
-    /// <summary>An assignment of a build property that switches the analyzer wall or its severity as a whole.</summary>
+    /// <summary>
+    /// An assignment of a build property that switches the analyzer wall, its severity or nullable
+    /// analysis as a whole, in an MSBuild file, a file-based app directive or a workflow's command line.
+    /// </summary>
     BuildSwitch,
 }

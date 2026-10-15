@@ -2,7 +2,11 @@ using System.Text.Json;
 
 namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 
-/// <summary>Reads <c>.slopwatch/baseline.json</c>: one suppression per entry, scoped to the file the entry names.</summary>
+/// <summary>
+/// Reads <c>.slopwatch/baseline.json</c>: one suppression per entry, scoped to the file the entry
+/// names, with the entry's hash as its value. Slopwatch matches an entry by that hash (rule, path and
+/// normalized code), so re-pointing an entry at another occurrence moves the ledger.
+/// </summary>
 internal static class SlopwatchBaselineReader
 {
     public static IReadOnlyList<Suppression> Read(string origin, string json)
@@ -19,8 +23,8 @@ internal static class SlopwatchBaselineReader
                 SuppressionChannel.SlopwatchBaseline,
                 origin,
                 Required(origin, entry, "filePath").Replace('\\', '/'),
-                Required(origin, entry, "ruleId"),
-                string.Empty)),
+                DiagnosticId.Normalize(Required(origin, entry, "ruleId")),
+                Required(origin, entry, "hash"))),
         ];
     }
 

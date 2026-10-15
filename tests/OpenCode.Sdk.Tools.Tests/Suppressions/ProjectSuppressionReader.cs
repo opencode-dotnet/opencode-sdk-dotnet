@@ -1,30 +1,53 @@
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 
 /// <summary>
 /// Reads the suppressions an MSBuild file declares: every diagnostic ID in a <c>NoWarn</c> or
-/// <c>WarningsNotAsErrors</c> property (an inherited <c>$(…)</c> reference is not an ID), every
-/// assignment of a property that switches the analyzer wall as a whole, and every slopwatch-ignore
-/// comment.
+/// <c>WarningsNotAsErrors</c> property, every assignment of a property that switches the analyzer
+/// wall, its severity or nullable analysis as a whole, and every slopwatch-ignore comment. A
+/// property's scope is the condition it is set under, so widening a condition moves the ledger.
+/// Property names compare without case, as MSBuild compares them. Forms the ledger does not model
+/// are refused rather than skipped: a warning list on an item or a task, and a warning list that
+/// takes IDs from another property.
 /// </summary>
-internal static class ProjectSuppressionReader
+internal static partial class ProjectSuppressionReader
 {
+    private static readonly string[] WarningLists = ["NoWarn", "WarningsNotAsErrors"];
+
     private static readonly string[] BuildSwitches =
     [
-        "TreatWarningsAsErrors", "CodeAnalysisTreatWarningsAsErrors", "RunAnalyzers", "RunAnalyzersDuringBuild",
-        "EnableNETAnalyzers", "EnforceCodeStyleInBuild", "WarningLevel",
+        "TreatWarningsAsErrors", "CodeAnalysisTreatWarningsAsErrors", "WarningsAsErrors", "EnableNETAnalyzers",
+        "EnforceCodeStyleInBuild", "WarningLevel", "Nullable", "CodeAnalysisRuleSet",
     ];
 
-    private static readonly string[] BuildSwitchPrefixes = ["AnalysisLevel", "AnalysisMode"];
+    private static readonly string[] BuildSwitchPrefixes = ["RunAnalyzers", "AnalysisLevel", "AnalysisMode"];
+
+    private static readonly string[] TaskWarningParameters = ["NoWarn", "WarningsNotAsErrors", "DisabledWarnings"];
 
     public static IReadOnlyList<Suppression> Read(string origin, string text)
     {
         var document = XDocument.Parse(text);
         var result = new List<Suppression>();
-        foreach (var element in document.Descendants().Where(static element => !element.HasElements))
+        foreach (var element in document.Descendants())
         {
-            result.AddRange(Property(origin, element.Name.LocalName, element.Value));
+            var name = element.Name.LocalName;
+            if (element.Parent is { } parent && Is(parent.Name.LocalName, "PropertyGroup"))
+            {
+                result.AddRange(Property(origin, name, element.Value, Condition(element)));
+            }
+            else if (WarningLists.Any(list => Is(list, name)))
+            {
+                throw new InvalidOperationException(
+                    $"{origin}: <{name}> outside a PropertyGroup (item metadata) is a warning list the suppression ledger does not read; set it as a property.");
+            }
+
+            if (element.Attributes().FirstOrDefault(attribute => TaskWarningParameters.Any(parameter => Is(parameter, attribute.Name.LocalName))) is { } warnings)
+            {
+                throw new InvalidOperationException(
+                    $"{origin}: <{name} {warnings.Name.LocalName}=\"…\"> is a warning list on an item or a task, which the suppression ledger does not read; set NoWarn as a property.");
+            }
         }
 
         foreach (var comment in document.DescendantNodes().OfType<XComment>())
@@ -39,25 +62,64 @@ internal static class ProjectSuppressionReader
     public static IReadOnlyList<string> CompileIncludes(string text) =>
     [
         .. XDocument.Parse(text).Descendants()
-            .Where(static element => element.Name.LocalName == "Compile")
+            .Where(static element => Is(element.Name.LocalName, "Compile"))
             .Select(static element => (string?)element.Attribute("Include"))
             .OfType<string>(),
     ];
 
-    /// <summary>The suppressions one property assignment makes, in a project file or a file-based app directive.</summary>
-    internal static IEnumerable<Suppression> Property(string origin, string name, string value)
+    /// <summary>
+    /// The build-property assignments on a workflow or script's command lines (<c>-p:</c>,
+    /// <c>/p:</c> and <c>--property:</c>) that set a warning list or switch the analyzer wall.
+    /// </summary>
+    public static IReadOnlyList<Suppression> CommandLine(string origin, string text) =>
+    [
+        .. CommandLineProperty().Matches(text)
+            .SelectMany(match => Property(origin, match.Groups["name"].Value, match.Groups["value"].Value.Trim('"', '\''), "command line")),
+    ];
+
+    /// <summary>The suppressions one property assignment makes, under the scope it is set in.</summary>
+    internal static IEnumerable<Suppression> Property(string origin, string name, string value, string scope)
     {
-        if (name is "NoWarn" or "WarningsNotAsErrors")
+        if (WarningLists.FirstOrDefault(list => Is(list, name)) is { } list)
         {
-            var channel = name == "NoWarn" ? SuppressionChannel.NoWarn : SuppressionChannel.WarningsNotAsErrors;
-            return value.Split([';', ','], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-                .Where(static id => !id.StartsWith("$(", StringComparison.Ordinal))
-                .Select(id => new Suppression(channel, origin, string.Empty, id, string.Empty));
+            var channel = Is(list, "NoWarn") ? SuppressionChannel.NoWarn : SuppressionChannel.WarningsNotAsErrors;
+            var ids = new List<Suppression>();
+            foreach (var id in value.Split([';', ','], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (id.StartsWith("$(", StringComparison.Ordinal))
+                {
+                    if (!Is(id, $"$({list})"))
+                    {
+                        throw new InvalidOperationException(
+                            $"{origin}: {name} takes IDs from {id}, which the suppression ledger cannot see; list the IDs in {name} itself.");
+                    }
+
+                    continue;
+                }
+
+                ids.Add(new Suppression(channel, origin, scope, DiagnosticId.Normalize(id), string.Empty));
+            }
+
+            return ids;
         }
 
-        return BuildSwitches.Contains(name, StringComparer.Ordinal)
-            || BuildSwitchPrefixes.Any(prefix => name.StartsWith(prefix, StringComparison.Ordinal))
-            ? [new Suppression(SuppressionChannel.BuildSwitch, origin, string.Empty, name, value.Trim())]
-            : [];
+        var buildSwitch = BuildSwitches.FirstOrDefault(candidate => Is(candidate, name))
+            ?? BuildSwitchPrefixes.Where(prefix => name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).Select(_ => name).FirstOrDefault();
+        return buildSwitch is null ? [] : [new Suppression(SuppressionChannel.BuildSwitch, origin, scope, buildSwitch, value.Trim())];
     }
+
+    private static string Condition(XElement element)
+    {
+        var conditions = element.AncestorsAndSelf()
+            .Select(static ancestor => (string?)ancestor.Attribute("Condition"))
+            .OfType<string>()
+            .Select(static condition => string.Join(' ', condition.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)))
+            .Reverse();
+        return string.Join(" and ", conditions);
+    }
+
+    private static bool Is(string actual, string expected) => string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase);
+
+    [GeneratedRegex(@"(?:^|\s)(?:-p:|/p:|--property:|-property:)(?<name>[A-Za-z]+)=(?<value>""[^""]*""|'[^']*'|\S+)", RegexOptions.Multiline, 1000)]
+    private static partial Regex CommandLineProperty();
 }

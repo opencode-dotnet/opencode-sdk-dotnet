@@ -58,6 +58,7 @@ internal static class SuppressionLedger
     private static string Name(SuppressionChannel channel) => channel switch
     {
         SuppressionChannel.Pragma => "pragma",
+        SuppressionChannel.NullableDirective => "nullable",
         SuppressionChannel.SuppressMessage => "suppress-message",
         SuppressionChannel.SlopwatchSuppress => "slopwatch-suppress",
         SuppressionChannel.SlopwatchIgnore => "slopwatch-ignore",

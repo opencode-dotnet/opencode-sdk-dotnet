@@ -1,7 +1,7 @@
 ﻿Suppression ledger: every channel that lowers, silences or switches off a diagnostic, counted.
 A change that adds, removes or alters a suppression updates this file in the same commit.
 
-build-switch: 7
+build-switch: 10
 editorconfig: 162
 globalconfig: 1
 no-warn: 18
@@ -9,12 +9,15 @@ pragma: 22
 slopwatch-ignore: 7
 slopwatch-suppress: 30
 
+build-switch .github/workflows/ci.yml [command line] RunAnalyzers = false
 build-switch Directory.Build.props AnalysisLevel = 10.0
 build-switch Directory.Build.props AnalysisMode = All
 build-switch Directory.Build.props CodeAnalysisTreatWarningsAsErrors = true
 build-switch Directory.Build.props EnableNETAnalyzers = true
 build-switch Directory.Build.props EnforceCodeStyleInBuild = true
+build-switch Directory.Build.props Nullable = enable
 build-switch Directory.Build.props RunAnalyzersDuringBuild = true
+build-switch Directory.Build.props RunAnalyzersDuringLiveAnalysis = true
 build-switch Directory.Build.props TreatWarningsAsErrors = true
 editorconfig .editorconfig [*.cs] MA0004.report = Always
 editorconfig .editorconfig [*.cs] MA0011.exclude_tostring_methods = true

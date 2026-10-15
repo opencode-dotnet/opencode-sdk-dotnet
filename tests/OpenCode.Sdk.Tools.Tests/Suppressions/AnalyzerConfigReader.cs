@@ -4,11 +4,12 @@ using System.Text.RegularExpressions;
 namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 
 /// <summary>
-/// Reads an analyzer config (an <c>.editorconfig</c> or a global config) the way Roslyn does: <c>#</c>
-/// and <c>;</c> start comments, a bracketed line opens a section, and a <c>key = value</c> line
-/// belongs to the section above it. Every entry that can lower a diagnostic becomes a
-/// <see cref="Suppression"/>: a severity of none, silent or suggestion (for one rule, one category,
-/// or every analyzer), a code-style option whose severity suffix is one of those,
+/// Reads an analyzer config (an <c>.editorconfig</c> or a global config) the way Roslyn does: any
+/// line break ends a line, <c>#</c> and <c>;</c> start comments, a bracketed line opens a section, a
+/// <c>key = value</c> line belongs to the section above it, and an <c>is_global</c> key in the
+/// preamble makes the file global whatever its value. Every entry that can lower a diagnostic
+/// becomes a <see cref="Suppression"/>: a severity of none, silent, refactoring or suggestion (for
+/// one rule, one category, or every analyzer), a code-style option whose severity suffix is one of those,
 /// <c>generated_code = true</c>, Roslynator off by default, and every rule option (a key that starts
 /// with a rule ID or with <c>dotnet_code_quality</c>), because a loosened threshold lowers a rule as
 /// surely as a severity does. A line that is none of these is refused rather than skipped.
@@ -16,13 +17,14 @@ namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 internal static partial class AnalyzerConfigReader
 {
     private const string GlobalConfigFileName = ".globalconfig";
+    private static readonly string[] LowSeverities = ["none", "silent", "refactoring", "suggestion"];
 
     public static AnalyzerConfigDocument Parse(string origin, string fullPath, string text)
     {
         var preamble = new List<AnalyzerConfigEntry>();
         var sections = new List<AnalyzerConfigSection>();
         List<AnalyzerConfigEntry>? entries = null;
-        var lines = text.Split('\n');
+        var lines = text.ReplaceLineEndings("\n").Split('\n');
         for (var index = 0; index < lines.Length; index++)
         {
             var line = lines[index].Trim();
@@ -50,7 +52,7 @@ internal static partial class AnalyzerConfigReader
         }
 
         var isGlobal = origin.EndsWith(GlobalConfigFileName, StringComparison.OrdinalIgnoreCase)
-            || preamble.Any(static entry => Is(entry.Key, "is_global") && Is(entry.Value, "true"));
+            || preamble.Any(static entry => Is(entry.Key, "is_global"));
         return new AnalyzerConfigDocument(origin, fullPath, text, isGlobal, preamble, sections);
     }
 
@@ -92,7 +94,7 @@ internal static partial class AnalyzerConfigReader
     }
 
     private static bool IsLowSeverity(string value) =>
-        Is(value.Trim(), "none") || Is(value.Trim(), "silent") || Is(value.Trim(), "suggestion");
+        LowSeverities.Any(severity => Is(value.Trim(), severity));
 
     private static bool Is(string actual, string expected) => string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase);
 
@@ -102,6 +104,6 @@ internal static partial class AnalyzerConfigReader
     [GeneratedRegex(@"^(?<key>[\w.\-]+)\s*[=:]\s*(?<value>.*?)\s*(?:[#;].*)?$", RegexOptions.None, 1000)]
     private static partial Regex PropertyLine();
 
-    [GeneratedRegex(@"^(?:[A-Za-z]{1,8}[0-9]{3,5}|dotnet_code_quality)[._]", RegexOptions.None, 1000)]
+    [GeneratedRegex(@"^(?:[A-Za-z]{1,8}[0-9]{3,5}|dotnet_code_quality)[._]", RegexOptions.IgnoreCase, 1000)]
     private static partial Regex RuleOption();
 }

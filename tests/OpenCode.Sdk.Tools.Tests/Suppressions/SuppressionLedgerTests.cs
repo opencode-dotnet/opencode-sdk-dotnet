@@ -6,8 +6,8 @@ namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 /// <summary>
 /// A suppression silences a gate, so every one is counted against the committed ledger, and the
 /// ledger moves in the same pull request as the suppression it records. Beside the count stand the
-/// shape rules that keep a suppression visible: one declaration per section glob, no section scoped
-/// to a path that is gone, and one channel per rule per file. The ledger counts suppressions; it does
+/// shape rules that keep a suppression visible: one declaration per section glob, no section naming
+/// a file that is gone, and one channel per rule per file. The ledger counts suppressions; it does
 /// not judge their reasons, which review and the maintainer's approval do.
 /// </summary>
 public sealed class SuppressionLedgerTests
@@ -31,7 +31,7 @@ public sealed class SuppressionLedgerTests
     }
 
     [Test]
-    public async Task EditorConfig_Should_Scope_Every_Path_Section_To_An_Existing_File()
+    public async Task EditorConfig_Should_Name_Only_Existing_Files()
     {
         var inventory = await ScanAsync();
 

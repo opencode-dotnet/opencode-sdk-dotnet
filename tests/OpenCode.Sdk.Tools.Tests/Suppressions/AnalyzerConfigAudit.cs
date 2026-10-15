@@ -6,16 +6,18 @@ namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 
 /// <summary>
 /// Checks the shape of the repository's <c>.editorconfig</c> files: a section glob is declared once
-/// per file, and a section scoped to a path still matches a file. A glob with a <c>/</c> is anchored
-/// to the config's directory and names a place in the tree, so each of its brace alternatives must
-/// match at least one repository file; a glob without one matches file names anywhere and names a
-/// kind of file, which may have no instance today. Matching runs through Roslyn's own analyzer-config
-/// matcher, so the audit reads globs exactly as the build does. Global configs carry no section globs
-/// here and are not audited.
+/// per file, and a section that names files still matches one. Two kinds of section name files: a
+/// glob with a <c>/</c>, which is anchored to the config's directory and names a place in the tree,
+/// and a glob without wildcards, which names one file by its name. Each of their brace alternatives
+/// must match at least one repository file, probed with the anchoring the whole glob has. Any other
+/// glob names a kind of file, which may have no instance today. Matching runs through Roslyn's own
+/// analyzer-config matcher, so the audit reads globs as the build does. Global configs carry no
+/// section globs here and are not audited.
 /// </summary>
 internal static class AnalyzerConfigAudit
 {
     private const string ProbeKeyPrefix = "suppression_ledger_probe_";
+    private static readonly char[] Wildcards = ['*', '?', '[', '{'];
 
     public static IReadOnlyList<string> FindDuplicateSections(IEnumerable<AnalyzerConfigDocument> configs) =>
     [
@@ -33,7 +35,7 @@ internal static class AnalyzerConfigAudit
         foreach (var config in inventory.AnalyzerConfigs.Where(static config => !config.IsGlobal))
         {
             var probes = config.Sections
-                .Where(static section => section.Name.Contains('/', StringComparison.Ordinal))
+                .Where(static section => section.Name.Contains('/', StringComparison.Ordinal) || section.Name.IndexOfAny(Wildcards) < 0)
                 .SelectMany(static section => ExpandAlternatives(section.Name).Select(alternative => (Section: section, Alternative: alternative)))
                 .ToList();
             if (probes.Count == 0)
@@ -44,7 +46,8 @@ internal static class AnalyzerConfigAudit
             var text = new StringBuilder();
             for (var index = 0; index < probes.Count; index++)
             {
-                text.Append('[').Append(probes[index].Alternative).Append("]\n").Append(ProbeKey(index)).Append(" = true\n");
+                text.Append('[').Append(Anchored(probes[index].Section.Name, probes[index].Alternative)).Append("]\n")
+                    .Append(ProbeKey(index)).Append(" = true\n");
             }
 
             var matcher = AnalyzerConfigSet.Create(new[] { AnalyzerConfig.Parse(text.ToString(), config.FullPath) });
@@ -64,34 +67,59 @@ internal static class AnalyzerConfigAudit
         return result;
     }
 
-    private static string ProbeKey(int index) => ProbeKeyPrefix + Number(index);
-
-    private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
-
     /// <summary>A repository file's full path in the form Roslyn's analyzer-config matcher compares.</summary>
     internal static string FullPath(string root, string file) => root.TrimEnd('/', '\\') + "/" + file;
 
     /// <summary>
-    /// Every glob a brace group with comma-separated alternatives stands for, nested groups included.
-    /// A brace group without a top-level comma, such as a numeric range, stays as written.
+    /// Every glob a brace group with comma-separated alternatives stands for, nested groups included,
+    /// also inside a group that has a single alternative. A brace group without a comma at any level,
+    /// such as a numeric range, stays as written, and so does a character class, braces included.
     /// </summary>
     internal static IReadOnlyList<string> ExpandAlternatives(string glob)
     {
+        ArgumentNullException.ThrowIfNull(glob);
+
+        if (FirstGroup(glob) is not { } group)
+        {
+            return [glob];
+        }
+
+        var (open, close) = group;
+        var prefix = glob[..open];
+        var suffix = glob[(close + 1)..];
+        var alternatives = SplitTopLevel(glob[(open + 1)..close]);
+        if (alternatives.Count > 1)
+        {
+            return [.. alternatives.SelectMany(alternative => ExpandAlternatives(prefix + alternative + suffix))];
+        }
+
+        var inner = ExpandAlternatives(alternatives[0]);
+        var rest = ExpandAlternatives(suffix);
+        return [.. inner.SelectMany(body => rest.Select(tail => prefix + "{" + body + "}" + tail))];
+    }
+
+    /// <summary>
+    /// The alternative as the whole glob anchors it: an alternative without a <c>/</c> taken from a
+    /// glob with one is anchored to the config's directory too, so the probe keeps that anchoring.
+    /// </summary>
+    private static string Anchored(string glob, string alternative) =>
+        glob.Contains('/', StringComparison.Ordinal) && !alternative.Contains('/', StringComparison.Ordinal) ? "/" + alternative : alternative;
+
+    /// <summary>The first top-level brace group outside a character class, by the indices of its braces.</summary>
+    private static (int Open, int Close)? FirstGroup(string glob)
+    {
         var depth = 0;
         var open = -1;
-        var escaped = false;
-        for (var index = 0; index < glob.Length; index++)
+        var index = 0;
+        while (index < glob.Length)
         {
-            if (escaped)
-            {
-                escaped = false;
-                continue;
-            }
-
             switch (glob[index])
             {
                 case '\\':
-                    escaped = true;
+                    index++;
+                    break;
+                case '[':
+                    index = ClassEnd(glob, index);
                     break;
                 case '{':
                     if (depth++ == 0)
@@ -101,19 +129,13 @@ internal static class AnalyzerConfigAudit
 
                     break;
                 case '}' when depth > 0 && --depth == 0:
-                    var alternatives = SplitTopLevel(glob[(open + 1)..index]);
-                    if (alternatives.Count > 1)
-                    {
-                        var prefix = glob[..open];
-                        var suffix = glob[(index + 1)..];
-                        return [.. alternatives.SelectMany(alternative => ExpandAlternatives(prefix + alternative + suffix))];
-                    }
-
-                    break;
+                    return (open, index);
             }
+
+            index++;
         }
 
-        return [glob];
+        return null;
     }
 
     private static List<string> SplitTopLevel(string body)
@@ -121,19 +143,16 @@ internal static class AnalyzerConfigAudit
         var parts = new List<string>();
         var depth = 0;
         var start = 0;
-        var escaped = false;
-        for (var index = 0; index < body.Length; index++)
+        var index = 0;
+        while (index < body.Length)
         {
-            if (escaped)
-            {
-                escaped = false;
-                continue;
-            }
-
             switch (body[index])
             {
                 case '\\':
-                    escaped = true;
+                    index++;
+                    break;
+                case '[':
+                    index = ClassEnd(body, index);
                     break;
                 case '{':
                     depth++;
@@ -146,9 +165,22 @@ internal static class AnalyzerConfigAudit
                     start = index + 1;
                     break;
             }
+
+            index++;
         }
 
         parts.Add(body[start..]);
         return parts;
     }
+
+    /// <summary>The index of the bracket that closes the character class opening at <paramref name="open"/>, or the opening bracket when none does.</summary>
+    private static int ClassEnd(string glob, int open)
+    {
+        var close = glob.AsSpan(open + 1).IndexOf(']');
+        return close < 0 ? open : open + 1 + close;
+    }
+
+    private static string ProbeKey(int index) => ProbeKeyPrefix + Number(index);
+
+    private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
 }

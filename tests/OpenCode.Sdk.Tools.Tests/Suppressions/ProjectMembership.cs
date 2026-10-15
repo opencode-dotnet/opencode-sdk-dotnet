@@ -1,59 +1,43 @@
 namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 
 /// <summary>
-/// The C# files each project compiles, as far as a project-wide warning list needs them: the files
-/// under the project's directory that no nearer project owns, and the files its
-/// <c>&lt;Compile Include&gt;</c> items link, either by path or as <c>folder/**/*.cs</c>. Any other
-/// include shape is refused, because a file the membership missed would hide an overlap.
+/// The C# files a project-wide warning list can reach, over-approximated on purpose: every C# file
+/// below the project's directory (a nested project's files included, as the SDK's default compile
+/// glob includes them), plus every file a <c>&lt;Compile Include&gt;</c> item names, a wildcard
+/// include standing for every C# file below its fixed folder. Removals and conditions are not
+/// evaluated. An over-wide reach can only report an overlap that is not there, loudly; it never
+/// hides one.
 /// </summary>
 internal sealed class ProjectMembership
 {
-    private const string ProjectExtension = ".csproj";
     private const string SourceExtension = ".cs";
-    private const string RecursiveSources = "/**/*.cs";
 
-    private readonly Dictionary<string, List<string>> _files = new(StringComparer.Ordinal);
+    private readonly IReadOnlyList<string> _sources;
+    private readonly IReadOnlyDictionary<string, IReadOnlyList<string>> _compileIncludes;
 
     public ProjectMembership(IReadOnlyList<string> files, IReadOnlyDictionary<string, IReadOnlyList<string>> compileIncludes)
     {
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(compileIncludes);
 
-        var projects = files.Where(static file => file.EndsWith(ProjectExtension, StringComparison.Ordinal)).ToList();
-        foreach (var project in projects)
-        {
-            _files.Add(project, []);
-        }
-
-        var directories = projects.ToDictionary(DirectoryOf, static project => project, StringComparer.Ordinal);
-        foreach (var file in files.Where(static file => file.EndsWith(SourceExtension, StringComparison.Ordinal)))
-        {
-            for (var directory = DirectoryOf(file); directory is not null; directory = Parent(directory))
-            {
-                if (directories.TryGetValue(directory, out var owner))
-                {
-                    _files[owner].Add(file);
-                    break;
-                }
-            }
-        }
-
-        foreach (var (project, includes) in compileIncludes)
-        {
-            foreach (var include in includes)
-            {
-                _files[project].AddRange(Resolve(project, include, files));
-            }
-        }
+        _sources = [.. files.Where(static file => file.EndsWith(SourceExtension, StringComparison.Ordinal))];
+        _compileIncludes = compileIncludes;
     }
 
-    /// <summary>The C# files the projects at or below <paramref name="directory"/> compile.</summary>
+    /// <summary>Every C# file below <paramref name="directory"/> (the whole repository for an empty one).</summary>
     public IEnumerable<string> FilesUnder(string directory) =>
-        _files.Where(pair => IsUnder(DirectoryOf(pair.Key), directory)).SelectMany(static pair => pair.Value).Distinct(StringComparer.Ordinal);
+        _sources.Where(file => IsUnder(DirectoryOf(file), directory));
 
-    /// <summary>The C# files one project compiles.</summary>
-    public IReadOnlyList<string> FilesOf(string project) =>
-        _files.TryGetValue(project, out var files) ? files : throw new InvalidOperationException($"'{project}' is not a project in the repository.");
+    /// <summary>The C# files one project can compile.</summary>
+    public IEnumerable<string> FilesOf(string project)
+    {
+        var includes = _compileIncludes.TryGetValue(project, out var found)
+            ? found
+            : throw new InvalidOperationException($"'{project}' is not a project in the repository.");
+        return FilesUnder(DirectoryOf(project))
+            .Concat(includes.SelectMany(include => Resolve(DirectoryOf(project), include)))
+            .Distinct(StringComparer.Ordinal);
+    }
 
     internal static string DirectoryOf(string path)
     {
@@ -61,24 +45,15 @@ internal sealed class ProjectMembership
         return separator < 0 ? string.Empty : path[..separator];
     }
 
-    private static string? Parent(string directory) => directory.Length == 0 ? null : DirectoryOf(directory);
-
     private static bool IsUnder(string path, string directory) =>
         directory.Length == 0 || string.Equals(path, directory, StringComparison.Ordinal)
         || path.StartsWith(directory + "/", StringComparison.Ordinal);
 
-    private static IEnumerable<string> Resolve(string project, string include, IReadOnlyList<string> files)
+    private IEnumerable<string> Resolve(string projectDirectory, string include)
     {
-        var path = Normalize(DirectoryOf(project), include.Replace('\\', '/'));
-        if (path.EndsWith(RecursiveSources, StringComparison.Ordinal) && !path[..^RecursiveSources.Length].Contains('*', StringComparison.Ordinal))
-        {
-            var folder = path[..^RecursiveSources.Length];
-            return files.Where(file => file.EndsWith(SourceExtension, StringComparison.Ordinal) && IsUnder(DirectoryOf(file), folder));
-        }
-
-        return path.Contains('*', StringComparison.Ordinal)
-            ? throw new InvalidOperationException($"{project} compiles '{include}'; the suppression ledger resolves only a path or 'folder/**/*.cs'.")
-            : [path];
+        var path = Normalize(projectDirectory, include.Replace('\\', '/'));
+        var wildcard = path.IndexOfAny(['*', '?']);
+        return wildcard < 0 ? [path] : FilesUnder(DirectoryOf(path[..wildcard]));
     }
 
     private static string Normalize(string directory, string relative)

@@ -4,18 +4,29 @@ namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 
 /// <summary>
 /// Finds a rule that one file suppresses through more than one channel. Each channel reaches files
-/// its own way: a source suppression reaches its own file, a slopwatch baseline entry the file it
-/// names, a project's warning list every C# file the project compiles (a <c>Directory.Build</c>
-/// file's list every project below it), a global config every C# file, and the <c>.editorconfig</c>
-/// files whatever Roslyn resolves for that file, so a later section that raises a rule again
-/// cancels an earlier one exactly as it does in the build. A category-wide or every-analyzer
-/// severity names no rule and is not attributed; a pragma without IDs names none either.
+/// its own way:
+/// <list type="bullet">
+/// <item>a source suppression reaches its own file, and a slopwatch baseline entry the file it names;</item>
+/// <item>a project's warning list reaches every C# file the project can compile
+/// (<see cref="ProjectMembership"/>); a file-based app's reaches the app; any other MSBuild file's
+/// or command line's reaches every C# file below that file's folder, the whole repository for a
+/// workflow;</item>
+/// <item>the <c>.editorconfig</c> files reach whatever Roslyn resolves for the file, so a later
+/// section that raises a rule again cancels an earlier one, as in the build;</item>
+/// <item>a global config reaches every C# file, except where an <c>.editorconfig</c> raises the rule,
+/// because the file-level setting wins.</item>
+/// </list>
+/// Every reach errs wide: a wide reach can only report an overlap that is not there, loudly, and
+/// never hides one. A category-wide or every-analyzer severity names no rule and is not attributed;
+/// a pragma without IDs names none either.
 /// </summary>
 internal static class SuppressionOverlap
 {
     private const string DiagnosticKeyPrefix = "dotnet_diagnostic.";
     private const string SeverityKeySuffix = ".severity";
     private const string EveryRule = "*";
+    private const string DirectoryBuildPrefix = "Directory.Build.";
+    private const string WorkflowFolder = ".github/";
 
     public static IReadOnlyList<string> Find(SuppressionInventory inventory)
     {
@@ -45,9 +56,18 @@ internal static class SuppressionOverlap
                 var severities = resolver.GetOptionsForSourcePath(AnalyzerConfigAudit.FullPath(inventory.Root, group.Key)).TreeOptions;
                 foreach (var (key, set) in group)
                 {
-                    if (severities.TryGetValue(key.Rule, out var severity) && severity is ReportDiagnostic.Suppress or ReportDiagnostic.Hidden or ReportDiagnostic.Info)
+                    if (!severities.TryGetValue(key.Rule, out var severity))
+                    {
+                        continue;
+                    }
+
+                    if (severity is ReportDiagnostic.Suppress or ReportDiagnostic.Hidden or ReportDiagnostic.Info)
                     {
                         set.Add(SuppressionChannel.EditorConfig);
+                    }
+                    else
+                    {
+                        set.Remove(SuppressionChannel.GlobalConfig);
                     }
                 }
             }
@@ -70,36 +90,35 @@ internal static class SuppressionOverlap
                 or SuppressionChannel.SlopwatchIgnore => [(suppression.Origin, suppression.Rule)],
             SuppressionChannel.SlopwatchBaseline => [(suppression.Scope, suppression.Rule)],
             SuppressionChannel.NoWarn or SuppressionChannel.WarningsNotAsErrors =>
-                ProjectFiles(inventory, suppression.Origin).Select(file => (file, suppression.Rule)),
+                WarningListFiles(inventory, suppression.Origin).Select(file => (file, suppression.Rule)),
             SuppressionChannel.GlobalConfig => SeverityRule(suppression) is { } rule
-                ? inventory.Files.Where(static file => file.EndsWith(".cs", StringComparison.Ordinal)).Select(file => (file, rule))
+                ? inventory.Projects.FilesUnder(string.Empty).Select(file => (file, rule))
                 : [],
-            SuppressionChannel.EditorConfig or SuppressionChannel.BuildSwitch => [],
+            SuppressionChannel.EditorConfig or SuppressionChannel.BuildSwitch or SuppressionChannel.NullableDirective => [],
             _ => throw new ArgumentOutOfRangeException(nameof(suppression), suppression.Channel, "The overlap check does not know how this channel reaches files."),
         };
 
-    private static IEnumerable<string> ProjectFiles(SuppressionInventory inventory, string origin)
+    private static IEnumerable<string> WarningListFiles(SuppressionInventory inventory, string origin)
     {
-        var name = origin[(origin.LastIndexOf('/', StringComparison.Ordinal) + 1)..];
         if (origin.EndsWith(".csproj", StringComparison.Ordinal))
         {
             return inventory.Projects.FilesOf(origin);
         }
 
-        if (name.StartsWith("Directory.Build.", StringComparison.Ordinal))
+        if (origin.EndsWith(".cs", StringComparison.Ordinal))
         {
-            return inventory.Projects.FilesUnder(ProjectMembership.DirectoryOf(origin));
+            return [origin];
         }
 
-        return origin.EndsWith(".cs", StringComparison.Ordinal)
-            ? [origin]
-            : throw new InvalidOperationException(
-                $"{origin} sets a warning list, but only a project, a Directory.Build file or a file-based app can be attributed to the files it reaches.");
+        var name = origin[(origin.LastIndexOf('/', StringComparison.Ordinal) + 1)..];
+        return name.StartsWith(DirectoryBuildPrefix, StringComparison.Ordinal) && !origin.StartsWith(WorkflowFolder, StringComparison.Ordinal)
+            ? inventory.Projects.FilesUnder(ProjectMembership.DirectoryOf(origin))
+            : inventory.Projects.FilesUnder(string.Empty);
     }
 
     private static string? SeverityRule(Suppression suppression) =>
         suppression.Rule.StartsWith(DiagnosticKeyPrefix, StringComparison.OrdinalIgnoreCase)
         && suppression.Rule.EndsWith(SeverityKeySuffix, StringComparison.OrdinalIgnoreCase)
-            ? suppression.Rule[DiagnosticKeyPrefix.Length..^SeverityKeySuffix.Length]
+            ? DiagnosticId.Normalize(suppression.Rule[DiagnosticKeyPrefix.Length..^SeverityKeySuffix.Length])
             : null;
 }
