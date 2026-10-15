@@ -11,6 +11,8 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// The declared API-error channel over a canned 404: the <c>NoThrow</c> envelope, the default
 /// throwing channel, and the tolerant typed-error reader alone. Raw-body retention on errors is
 /// a contract (ADR-0007), so these rows baseline that contract's cost rather than hunt for waste.
+/// The raw-send rung is the harness alone (<see cref="CannedExchange"/>), so a pipeline rung minus
+/// it is the SDK's share.
 /// </summary>
 [MemoryDiagnoser]
 public class ErrorChannelBenchmarks : IDisposable
@@ -31,6 +33,7 @@ public class ErrorChannelBenchmarks : IDisposable
     private CannedResponseHandler? _handler;
     private HttpClient? _httpClient;
     private OpenCodeClient? _client;
+    private CannedExchange? _raw;
     private SessionClient? _session;
 
     public static IEnumerable<WireFixture> Fixtures()
@@ -49,6 +52,7 @@ public class ErrorChannelBenchmarks : IDisposable
         _handler = new CannedResponseHandler(Fixture.Bytes, status: HttpStatusCode.NotFound);
         _httpClient = new HttpClient(_handler);
         _client = new OpenCodeClient(_httpClient, Options);
+        _raw = new CannedExchange(_httpClient, HttpMethod.Get, Options.Endpoint!);
         _session = _client.Sessions.GetSessionClient("ses_bench0000000000000000001");
 
         var response = await GetSessionNoThrowAsync().ConfigureAwait(false);
@@ -81,6 +85,10 @@ public class ErrorChannelBenchmarks : IDisposable
     /// <summary>The tolerant typed-error reader alone over the decoded body.</summary>
     [Benchmark]
     public IOpenCodeError? ReadTolerantError() => OpenCodeErrorReader.Read(_rawBody, NotFoundTags);
+
+    /// <summary>The harness floor: the same canned handler through a bare <see cref="HttpClient"/> send with the body drained, no SDK.</summary>
+    [Benchmark]
+    public Task<int> SendRawRequestAsync() => _raw!.SendAndDrainAsync();
 
     [GlobalCleanup]
     public void Cleanup() => Dispose();

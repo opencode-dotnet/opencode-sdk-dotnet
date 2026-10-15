@@ -12,7 +12,11 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// source-generated union dispatch), the reader plus per-frame materialization without HTTP,
 /// and per-frame materialization alone over the exact frame strings the pipeline would
 /// deserialize. The workloads cover many small watermarks, large long-string events, large
-/// structured events whose content is nested union payload, and a realistic mix.
+/// structured events whose content is nested union payload, and a realistic mix. The suspending
+/// operation reads the same body in socket-sized reads that each suspend, as a live stream does, so
+/// it adds cross-read assembly and the resumes the buffered operation never pays.
+/// The raw-send rung is the harness alone (<see cref="CannedExchange"/>), so a pipeline rung minus
+/// it is the SDK's share.
 /// </summary>
 [MemoryDiagnoser]
 public class SessionLogStreamBenchmarks : IDisposable
@@ -23,6 +27,7 @@ public class SessionLogStreamBenchmarks : IDisposable
     private const int MixedTitleCharacters = 512;
     private const int SmallFrameCount = 1024;
     private const int StructuredContentParts = 16;
+    private const int SocketChunkBytes = 1460;
 
     private static readonly OpenCodeClientOptions Options = new()
     {
@@ -35,7 +40,12 @@ public class SessionLogStreamBenchmarks : IDisposable
     private CannedResponseHandler? _handler;
     private HttpClient? _httpClient;
     private OpenCodeClient? _client;
+    private CannedExchange? _raw;
     private SessionClient? _session;
+    private CannedResponseHandler? _suspendingHandler;
+    private HttpClient? _suspendingHttpClient;
+    private OpenCodeClient? _suspendingClient;
+    private SessionClient? _suspendingSession;
 
     public static IEnumerable<WireFixture> Fixtures()
     {
@@ -55,7 +65,12 @@ public class SessionLogStreamBenchmarks : IDisposable
         _handler = new CannedResponseHandler(_body, "text/event-stream");
         _httpClient = new HttpClient(_handler);
         _client = new OpenCodeClient(_httpClient, Options);
+        _raw = new CannedExchange(_httpClient, HttpMethod.Get, Options.Endpoint!);
         _session = _client.Sessions.GetSessionClient("ses_bench");
+        _suspendingHandler = new CannedResponseHandler(_body, "text/event-stream", suspendingChunkBytes: SocketChunkBytes);
+        _suspendingHttpClient = new HttpClient(_suspendingHandler);
+        _suspendingClient = new OpenCodeClient(_suspendingHttpClient, Options);
+        _suspendingSession = _suspendingClient.Sessions.GetSessionClient("ses_bench");
         _frames = await CollectFramesAsync(_body).ConfigureAwait(false);
 
         var count = 0;
@@ -73,6 +88,13 @@ public class SessionLogStreamBenchmarks : IDisposable
         {
             throw new InvalidOperationException("The stream fixture did not materialize the expected frame count.");
         }
+
+        if (await GetLogSuspendingAsync().ConfigureAwait(false) != Fixture.Items
+            || _suspendingHandler.LastBody is not { } body
+            || body.SuspendedReads < _body.Length / SocketChunkBytes)
+        {
+            throw new InvalidOperationException("The suspending stream operation did not read its frames over suspended reads.");
+        }
     }
 
     /// <summary>The complete generated stream operation over one canned response.</summary>
@@ -80,6 +102,21 @@ public class SessionLogStreamBenchmarks : IDisposable
     public async Task<int> GetLogAsync()
     {
         var session = _session!;
+        var count = 0;
+        await foreach (var item in session.GetLogAsync().ConfigureAwait(false))
+        {
+            _ = item;
+            count++;
+        }
+
+        return count;
+    }
+
+    /// <summary>The complete generated stream operation over a body whose every socket-sized read suspends.</summary>
+    [Benchmark]
+    public async Task<int> GetLogSuspendingAsync()
+    {
+        var session = _suspendingSession!;
         var count = 0;
         await foreach (var item in session.GetLogAsync().ConfigureAwait(false))
         {
@@ -119,6 +156,10 @@ public class SessionLogStreamBenchmarks : IDisposable
         return count;
     }
 
+    /// <summary>The harness floor: the same canned handler through a bare <see cref="HttpClient"/> send with the body drained, no SDK.</summary>
+    [Benchmark]
+    public Task<int> SendRawRequestAsync() => _raw!.SendAndDrainAsync();
+
     [GlobalCleanup]
     public void Cleanup() => Dispose();
 
@@ -135,6 +176,9 @@ public class SessionLogStreamBenchmarks : IDisposable
             return;
         }
 
+        _suspendingClient?.Dispose();
+        _suspendingHttpClient?.Dispose();
+        _suspendingHandler?.Dispose();
         _client?.Dispose();
         _httpClient?.Dispose();
         _handler?.Dispose();

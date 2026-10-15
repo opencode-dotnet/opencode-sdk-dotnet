@@ -10,12 +10,17 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// The live event bus over a canned stream of the small idle events it carries most of: the
 /// complete generated subscription through the wide <c>IEvent</c> union, per-frame
 /// materialization alone over the exact frame strings the pipeline deserializes, and the
-/// no-dispatch control materializing the same frames into the known record.
+/// no-dispatch control materializing the same frames into the known record. The suspending
+/// subscription reads the same body in socket-sized reads that each suspend, as a live bus does, so
+/// it adds cross-read assembly and the resumes the buffered subscription never pays.
+/// The raw-send rung is the harness alone (<see cref="CannedExchange"/>), so a pipeline rung minus
+/// it is the SDK's share.
 /// </summary>
 [MemoryDiagnoser]
 public class EventStreamBenchmarks : IDisposable
 {
     private const int FrameCount = 1024;
+    private const int SocketChunkBytes = 1460;
 
     private static readonly OpenCodeClientOptions Options = new()
     {
@@ -27,6 +32,10 @@ public class EventStreamBenchmarks : IDisposable
     private CannedResponseHandler? _handler;
     private HttpClient? _httpClient;
     private OpenCodeClient? _client;
+    private CannedExchange? _raw;
+    private CannedResponseHandler? _suspendingHandler;
+    private HttpClient? _suspendingHttpClient;
+    private OpenCodeClient? _suspendingClient;
 
     public static IEnumerable<WireFixture> Fixtures()
     {
@@ -43,6 +52,10 @@ public class EventStreamBenchmarks : IDisposable
         _handler = new CannedResponseHandler(Fixture.Bytes, "text/event-stream");
         _httpClient = new HttpClient(_handler);
         _client = new OpenCodeClient(_httpClient, Options);
+        _raw = new CannedExchange(_httpClient, HttpMethod.Get, Options.Endpoint!);
+        _suspendingHandler = new CannedResponseHandler(Fixture.Bytes, "text/event-stream", suspendingChunkBytes: SocketChunkBytes);
+        _suspendingHttpClient = new HttpClient(_suspendingHandler);
+        _suspendingClient = new OpenCodeClient(_suspendingHttpClient, Options);
 
         var frames = new List<string>();
         using (var stream = new MemoryStream(Fixture.Bytes))
@@ -69,6 +82,13 @@ public class EventStreamBenchmarks : IDisposable
         {
             throw new InvalidOperationException("The event fixture did not materialize the expected frame count.");
         }
+
+        if (await SubscribeSuspendingAsync().ConfigureAwait(false) != FrameCount
+            || _suspendingHandler.LastBody is not { } body
+            || body.SuspendedReads < Fixture.Bytes.Length / SocketChunkBytes)
+        {
+            throw new InvalidOperationException("The suspending subscription did not read its frames over suspended reads.");
+        }
     }
 
     /// <summary>The complete generated subscription over one canned response.</summary>
@@ -76,6 +96,21 @@ public class EventStreamBenchmarks : IDisposable
     public async Task<int> SubscribeAsync()
     {
         var client = _client!;
+        var count = 0;
+        await foreach (var item in client.Events.SubscribeAsync().ConfigureAwait(false))
+        {
+            _ = item;
+            count++;
+        }
+
+        return count;
+    }
+
+    /// <summary>The complete generated subscription over a body whose every socket-sized read suspends.</summary>
+    [Benchmark]
+    public async Task<int> SubscribeSuspendingAsync()
+    {
+        var client = _suspendingClient!;
         var count = 0;
         await foreach (var item in client.Events.SubscribeAsync().ConfigureAwait(false))
         {
@@ -114,6 +149,10 @@ public class EventStreamBenchmarks : IDisposable
         return count;
     }
 
+    /// <summary>The harness floor: the same canned handler through a bare <see cref="HttpClient"/> send with the body drained, no SDK.</summary>
+    [Benchmark]
+    public Task<int> SendRawRequestAsync() => _raw!.SendAndDrainAsync();
+
     [GlobalCleanup]
     public void Cleanup() => Dispose();
 
@@ -130,6 +169,9 @@ public class EventStreamBenchmarks : IDisposable
             return;
         }
 
+        _suspendingClient?.Dispose();
+        _suspendingHttpClient?.Dispose();
+        _suspendingHandler?.Dispose();
         _client?.Dispose();
         _httpClient?.Dispose();
         _handler?.Dispose();

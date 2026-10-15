@@ -10,6 +10,8 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// The first body-carrying operation: a POST whose typed request serializes onto the wire and
 /// whose envelope materializes the created session. The serialization row isolates the request
 /// side, which no response-only benchmark can see.
+/// The raw-send rung is the harness alone (<see cref="CannedExchange"/>), so a pipeline rung minus
+/// it is the SDK's share.
 /// </summary>
 [MemoryDiagnoser]
 public class SessionCreateBenchmarks : IDisposable
@@ -28,6 +30,7 @@ public class SessionCreateBenchmarks : IDisposable
     private CannedResponseHandler? _handler;
     private HttpClient? _httpClient;
     private OpenCodeClient? _client;
+    private CannedExchange? _raw;
 
     public static IEnumerable<WireFixture> Fixtures()
     {
@@ -44,6 +47,7 @@ public class SessionCreateBenchmarks : IDisposable
         _handler = new CannedResponseHandler(Fixture.Bytes);
         _httpClient = new HttpClient(_handler);
         _client = new OpenCodeClient(_httpClient, Options);
+        _raw = new CannedExchange(_httpClient, HttpMethod.Post, Options.Endpoint!);
 
         var response = await CreateSessionAsync().ConfigureAwait(false);
         if (response.Session is not { Id: "ses_bench0000000000000000001" })
@@ -63,6 +67,10 @@ public class SessionCreateBenchmarks : IDisposable
     /// <summary>Request-body serialization alone, exactly as the pipeline produces the JSON content bytes.</summary>
     [Benchmark]
     public byte[] SerializeRequest() => JsonSerializer.SerializeToUtf8Bytes(Request, OpenCodeJsonContext.Default.SessionCreateRequest);
+
+    /// <summary>The harness floor: the same canned handler through a bare <see cref="HttpClient"/> send with the body drained, no SDK.</summary>
+    [Benchmark]
+    public Task<int> SendRawRequestAsync() => _raw!.SendAndDrainAsync();
 
     [GlobalCleanup]
     public void Cleanup() => Dispose();

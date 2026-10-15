@@ -11,6 +11,8 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// the complete call, the same pipeline through an adapter that materializes nothing, the
 /// generated adapter alone, and source-generated materialization alone. Each row is the one
 /// above it minus one layer.
+/// The raw-send rung is the harness alone (<see cref="CannedExchange"/>), so a pipeline rung minus
+/// it is the SDK's share.
 /// </summary>
 [MemoryDiagnoser]
 public class InfoBenchmarks : IDisposable
@@ -27,6 +29,7 @@ public class InfoBenchmarks : IDisposable
     private CannedResponseHandler? _handler;
     private HttpClient? _httpClient;
     private OpenCodeClient? _client;
+    private CannedExchange? _raw;
     private Pipeline? _pipeline;
 
     public static IEnumerable<WireFixture> Fixtures()
@@ -45,6 +48,7 @@ public class InfoBenchmarks : IDisposable
         _handler = new CannedResponseHandler(_body);
         _httpClient = new HttpClient(_handler);
         _client = new OpenCodeClient(_httpClient, Options);
+        _raw = new CannedExchange(_httpClient, HttpMethod.Get, Options.Endpoint!);
         _pipeline = new Pipeline(_httpClient, ownsHttpClient: false, Options);
 
         var response = await GetInfoAsync().ConfigureAwait(false);
@@ -70,6 +74,10 @@ public class InfoBenchmarks : IDisposable
     /// <summary>Source-generated materialization alone.</summary>
     [Benchmark]
     public ServerInfo? Deserialize() => JsonSerializer.Deserialize(_body, OpenCodeJsonContext.Default.ServerInfo);
+
+    /// <summary>The harness floor: the same canned handler through a bare <see cref="HttpClient"/> send with the body drained, no SDK.</summary>
+    [Benchmark]
+    public Task<int> SendRawRequestAsync() => _raw!.SendAndDrainAsync();
 
     [GlobalCleanup]
     public void Cleanup() => Dispose();
