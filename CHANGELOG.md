@@ -70,6 +70,16 @@ Nightly builds of `master` are on
   implemented explicitly, so the events gain no public member and serialize as before. The form
   events are not session-scoped: a form's session id can be `"global"`.
 
+- **`NetworkTimeout` sets how long a call may go without network progress.**
+  `OpenCodeClientOptions.NetworkTimeout` sets it for the client and
+  `OpenCodeRequestOptions.NetworkTimeout` for one call; the default stays 100 seconds.
+  `WaitForSessionAsync`, `RunShellCommandAsync`, `RunCommandAsync` and both `GenerateTextAsync`
+  methods (on `SessionClient` and `ExperimentalClient`) answer only when their work ends, so they now wait with no window and the call's
+  cancellation token is their deadline; before, each failed after 100 seconds without headers, and
+  a shell command kept running on the server. A
+  client-wide value does not reach them; a per-call value does. `OpenCodeServer.CreateClient` carries
+  the client value over. See [Requests](docs/guide/requests.md#️-how-long-a-call-may-wait).
+
 ### 🔧 Changes
 
 - **Generated XML documentation says what each record is.** The pinned API describes almost none of

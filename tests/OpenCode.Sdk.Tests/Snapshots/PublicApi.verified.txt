@@ -659,6 +659,7 @@ namespace OpenCode.Sdk
         public OpenCodeClientOptions() { }
         public System.Uri? Endpoint { get; set; }
         public OpenCode.Sdk.LocationSelector? Location { get; set; }
+        public System.TimeSpan? NetworkTimeout { get; set; }
         public string? Password { get; set; }
         public string Username { get; set; }
     }
@@ -673,6 +674,7 @@ namespace OpenCode.Sdk
         public OpenCodeRequestOptions() { }
         public OpenCode.Sdk.ErrorBehavior ErrorBehavior { get; init; }
         public OpenCode.Sdk.LocationSelector? Location { get; init; }
+        public System.TimeSpan? NetworkTimeout { get; init; }
         public static OpenCode.Sdk.OpenCodeRequestOptions NoThrow { get; }
     }
     public abstract class OpenCodeResponse : System.IEquatable<OpenCode.Sdk.OpenCodeResponse>

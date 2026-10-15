@@ -27,7 +27,7 @@ internal sealed class Pipeline : IDisposable
 
     private readonly string _endpointBase;
     private readonly IEventStreamFramer _framer;
-    private readonly TimeSpan _networkTimeout;
+    private readonly TimeSpan? _clientNetworkTimeout;
     private readonly PipelinePolicy[] _policies;
     private readonly TransportPolicy _transport;
     private bool _disposed;
@@ -55,7 +55,7 @@ internal sealed class Pipeline : IDisposable
 
         _endpointBase = EndpointPolicy.Normalize(endpoint);
         _framer = framer ?? new ServerSentEventFramer();
-        _networkTimeout = networkTimeout ?? PipelineMessage.DefaultNetworkTimeout;
+        _clientNetworkTimeout = networkTimeout ?? options.NetworkTimeout;
 
         // The options are read exactly once, here: the policies hold an immutable snapshot,
         // so mutating the options object after construction never changes a built client. Only a
@@ -238,7 +238,7 @@ internal sealed class Pipeline : IDisposable
         }
 
         TResponse adapted;
-        using (var message = CreateMessage(operationId, method, route, body, bodyTypeInfo, options?.Location, declaredHeaders, cancellationToken))
+        using (var message = CreateMessage(operationId, method, route, body, bodyTypeInfo, options?.Location, options?.NetworkTimeout, declaredHeaders, cancellationToken))
         {
             if (content is not null)
             {
@@ -326,7 +326,7 @@ internal sealed class Pipeline : IDisposable
         _policies[0].ProcessAsync(message, _policies.AsMemory(1));
 
     private PipelineMessage CreateMessage<TBody>(string operationId, HttpMethod method, string route, TBody? body,
-        JsonTypeInfo<TBody>? bodyTypeInfo, LocationSelector? perCallLocation,
+        JsonTypeInfo<TBody>? bodyTypeInfo, LocationSelector? perCallLocation, TimeSpan? perCallNetworkTimeout,
         IReadOnlyList<DeclaredHeader>? declaredHeaders, CancellationToken cancellationToken)
         where TBody : class
     {
@@ -344,7 +344,7 @@ internal sealed class Pipeline : IDisposable
                 Request = request,
                 CancellationToken = cancellationToken,
                 NetworkToken = cancellationToken,
-                NetworkTimeout = _networkTimeout,
+                NetworkTimeout = NetworkTimeouts.Resolve(operationId, perCallNetworkTimeout, _clientNetworkTimeout),
                 PerCallLocation = perCallLocation,
                 DeclaredHeaders = declaredHeaders,
             };
@@ -363,7 +363,7 @@ internal sealed class Pipeline : IDisposable
             Request = new HttpRequestMessage(method, new Uri(_endpointBase + route, UriKind.Absolute)),
             CancellationToken = cancellationToken,
             NetworkToken = cancellationToken,
-            NetworkTimeout = _networkTimeout,
+            NetworkTimeout = NetworkTimeouts.Resolve(operationId, perCall: null, _clientNetworkTimeout),
             BufferBody = false,
         };
 

@@ -137,22 +137,30 @@ public sealed class OpenCodeServerContractTests
             .Select(property => property.Name)
             .ToArray();
 
-        // A newly added OpenCodeClientOptions behavior member (the queued network-timeout option, for
-        // instance) lands here first: CreateClient's hand-written copy-list cannot know about it
-        // on its own, so this assertion is what turns that silence loud instead of quiet. Extend
-        // both the expected list and the propagation check below in the same change that adds
-        // the member.
-        await Assert.That(behaviorMembers).IsEquivalentTo(["Location"]);
+        // A newly added OpenCodeClientOptions behavior member lands here first: CreateClient's
+        // hand-written copy-list cannot know about it on its own, so this assertion is what turns
+        // that silence loud instead of quiet. Extend both the expected list and the propagation
+        // check below in the same change that adds the member.
+        await Assert.That(behaviorMembers).IsEquivalentTo(["Location", "NetworkTimeout"]);
 
         var server = CreateStartedDoor();
         var sentinelLocation = new LocationSelector { Directory = "/sentinel-workspace" };
+        var sentinelWindow = TimeSpan.FromSeconds(42);
 
-        using var client = server.CreateClient(options => options.Location = sentinelLocation);
+        using var client = server.CreateClient(options =>
+        {
+            options.Location = sentinelLocation;
+            options.NetworkTimeout = sentinelWindow;
+        });
 
         var pipeline = (Pipeline)typeof(OpenCodeClient)
             .GetField("_pipeline", BindingFlags.NonPublic | BindingFlags.Instance)!
             .GetValue(client)!;
         await Assert.That(pipeline.Connection.Location).IsSameReferenceAs(sentinelLocation);
+        var carriedWindow = (TimeSpan?)typeof(Pipeline)
+            .GetField("_clientNetworkTimeout", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(pipeline);
+        await Assert.That(carriedWindow).IsEqualTo(sentinelWindow);
     }
 
     [Test]

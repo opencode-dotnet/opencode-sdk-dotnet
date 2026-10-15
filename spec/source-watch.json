@@ -299,6 +299,42 @@
       }
     },
     {
+      "path": "packages/core/src/session/session.ts",
+      "sha256": "53d67aef56a1a6b518fad623d51a15b26f071db25c7e5f1c71a21c36ac3a9d11",
+      "behavior": "session.shell answers only after the shell command ends (it joins the running fiber) and experimental.session.wait only after the session's execution is idle, so neither sends response headers while it waits; the SDK's network timeout leaves both unbounded unless a call sets a window.",
+      "anchor": {
+        "type": "contains",
+        "text": "yield* execution.awaitIdle(sessionID)"
+      }
+    },
+    {
+      "path": "packages/server/src/handlers/generate.ts",
+      "sha256": "9231f95384e907545dc53cab06c6577a4a7c34abbd709b6a685da534226de4d3",
+      "behavior": "experimental.generate.text answers with the whole generation in one body, so it sends no response headers until the model finishes; the SDK's network timeout leaves it unbounded unless a call sets a window.",
+      "anchor": {
+        "type": "contains",
+        "text": ".text(request.payload)"
+      }
+    },
+    {
+      "path": "packages/core/src/session/generate.ts",
+      "sha256": "ad58915073c82d64d50c48641d5a6160e20b5788cb26190026f1a4ba517a3257",
+      "behavior": "session.generate returns the whole generation in one body, so it sends no response headers until the model finishes; the SDK's network timeout leaves it unbounded unless a call sets a window.",
+      "anchor": {
+        "type": "contains",
+        "text": "const response = yield* llm.generate(prepared.request, prepared.options)"
+      }
+    },
+    {
+      "path": "packages/core/src/session/command.ts",
+      "sha256": "90f3c32cfb52746de287dbbad1f9bbc9ccbff9c9bc9dc565a652e55831eda32f",
+      "behavior": "session.command awaits the command's execution before it answers, so a command that does long work holds the response headers until it ends; the SDK's network timeout leaves it unbounded unless a call sets a window.",
+      "anchor": {
+        "type": "contains",
+        "text": "yield* commands.execute({"
+      }
+    },
+    {
       "path": "packages/server/src/event-feed.ts",
       "sha256": "8867fb8ca3b1d7d667038ac1210a69a33b2cc264be0782d3e735e9bbf6eba568",
       "behavior": "Each event subscriber is buffered at 4,096 events and frames are written as data: lines only, which the SDK\u0027s SSE parser and its backpressure assumptions depend on.",
