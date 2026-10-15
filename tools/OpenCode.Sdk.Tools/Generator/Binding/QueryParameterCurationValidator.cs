@@ -113,23 +113,10 @@ internal static class QueryParameterCurationValidator
         }
     }
 
-    /// <summary>Follows references and one nullable wrapper to the value a query parameter carries.</summary>
+    /// <summary>Follows references and one nullable wrapper to the value a query parameter carries, as the binder does.</summary>
     private static SchemaNode ResolveValue(SpecDocument document, SchemaNode schema)
     {
-        var resolved = Resolve(document, schema);
-        return resolved is NullableNode { Format: null } nullable ? Resolve(document, nullable.Inner) : resolved;
-    }
-
-    private static SchemaNode Resolve(SpecDocument document, SchemaNode schema)
-    {
-        var visited = new HashSet<string>(StringComparer.Ordinal);
-        var current = schema;
-        while (current is RefNode reference && visited.Add(reference.Target)
-                                            && document.Schemas.TryGetValue(reference.Target, out var target))
-        {
-            current = target;
-        }
-
-        return current;
+        var resolved = OperationFacetContext.Resolve(document, schema);
+        return resolved is NullableNode { Format: null } nullable ? OperationFacetContext.Resolve(document, nullable.Inner) : resolved;
     }
 }
