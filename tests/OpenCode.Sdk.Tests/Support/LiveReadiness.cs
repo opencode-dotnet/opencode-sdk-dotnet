@@ -23,9 +23,6 @@ internal static class LiveReadiness
     /// provider routes declare it while their catalog warms up), so it reads as not ready and the
     /// poll goes on; every other error ends the wait at once.
     /// </summary>
-    [SlopwatchSuppress(
-        "SW004",
-        "Readiness poll of another process: plugin activation and VCS provider detection settle on the server's own schedule after the request that triggers them has answered, no wire signal is awaited for either (the event bus has no replay, so a subscription opened after the trigger can miss it), and the poll is bounded by a thirty-second deadline that also cancels with the caller.")]
     public static Task<T> WaitAsync<T>(
         Func<CancellationToken, Task<T>> observe,
         Func<T, bool> ready,
@@ -35,6 +32,9 @@ internal static class LiveReadiness
         WaitAsync(observe, ready, description, describe, Budget, cancellationToken);
 
     /// <summary>The readiness poll with its budget named, so a test can prove what the end of the budget reports.</summary>
+    [SlopwatchSuppress(
+        "SW004",
+        "Readiness poll of another process: plugin activation and VCS provider detection settle on the server's own schedule after the request that triggers them has answered, no wire signal is awaited for either (the event bus has no replay, so a subscription opened after the trigger can miss it), the model routes' declared 503 while a location's plugins activate is waited through the same way, and the poll is bounded by a thirty-second deadline that also cancels with the caller.")]
     internal static async Task<T> WaitAsync<T>(
         Func<CancellationToken, Task<T>> observe,
         Func<T, bool> ready,
