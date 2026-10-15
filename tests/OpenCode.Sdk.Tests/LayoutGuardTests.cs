@@ -4,7 +4,8 @@ namespace OpenCode.Sdk.Tests;
 
 /// <summary>
 /// Folders the vertical-slice layout emptied stay empty: a file added to one, for example by a
-/// branch that started before the move, fails here with the folder its kind now lives in.
+/// branch that started before the move, fails here with the folder its kind now lives in. The root
+/// <c>Internal/</c> holds area folders only, so no source file sits directly in it.
 /// </summary>
 public sealed class LayoutGuardTests
 {
@@ -52,6 +53,38 @@ public sealed class LayoutGuardTests
         await Assert.That(intruders[0]).StartsWith(relativePath);
     }
 
+    [Test]
+    public async Task RootInternal_Should_Hold_No_Source_File_Directly()
+    {
+        var files = await new SdkSourceTree().LoadAsync();
+
+        await Assert.That(files).IsNotEmpty();
+        await Assert.That(LooseInRootInternal(files)).IsEmpty();
+    }
+
+    [Test]
+    public async Task LooseInRootInternal_Should_Name_A_File_Placed_Directly_In_Internal()
+    {
+        const string relativePath = "Internal/IntruderPolicy.cs";
+
+        var intruders = LooseInRootInternal([new SdkSourceFile(relativePath, [])]);
+
+        await Assert.That(intruders).HasSingleItem();
+        await Assert.That(intruders[0]).IsEqualTo($"{relativePath} belongs in {RootInternalHome}");
+    }
+
+    /// <summary>Area folders under the root <c>Internal/</c> and every slice's own <c>Internal/</c> are where machinery belongs.</summary>
+    [Test]
+    [Arguments("Internal/Transport/Pipeline.cs")]
+    [Arguments("Ptys/Internal/PtyConnectUriBuilder.cs")]
+    [Arguments("Hosting/Internal/ExecutableResolver.cs")]
+    public async Task LooseInRootInternal_Should_Ignore_A_File_In_An_Internal_Folder_Below_The_Root(string relativePath)
+    {
+        var intruders = LooseInRootInternal([new SdkSourceFile(relativePath, [])]);
+
+        await Assert.That(intruders).IsEmpty();
+    }
+
     /// <summary>A folder that only shares a vacated folder's name prefix is not inside it.</summary>
     [Test]
     public async Task Intruders_Should_Ignore_A_Sibling_Folder_That_Shares_The_Name_Prefix()
@@ -68,9 +101,19 @@ public sealed class LayoutGuardTests
             .Select(folder => $"{file.RelativePath} belongs in {folder.NewHome}")),
     ];
 
+    private static string[] LooseInRootInternal(IEnumerable<SdkSourceFile> files) =>
+    [
+        .. files
+            .Where(static file => string.Equals(string.Join('/', file.Folders), "Internal", StringComparison.Ordinal))
+            .Select(static file => $"{file.RelativePath} belongs in {RootInternalHome}"),
+    ];
+
     /// <summary>A folder holds its own files and every file below it, never a sibling that merely shares its name prefix.</summary>
     private static bool IsWithin(string fileFolder, string folder) =>
         string.Equals(fileFolder, folder, StringComparison.Ordinal) || fileFolder.StartsWith($"{folder}/", StringComparison.Ordinal);
+
+    private const string RootInternalHome =
+        "Internal/<Area>/ when several slices share it, or that slice's Internal/ when one slice uses it";
 
     private sealed record VacatedFolder(string Path, string NewHome);
 }
