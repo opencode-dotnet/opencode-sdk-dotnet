@@ -37,7 +37,7 @@ Nightly builds of `master` are on
   and at most `int.MaxValue` milliseconds is accepted, but not `Timeout.InfiniteTimeSpan`: a bus
   that never times out would hang on a half-open connection. The 2-second connect bound and the
   1-second delay before a new attempt stay fixed.
-- **Enum values work in `switch` and patterns again.** Every generated enum carries its pinned wire
+- **Enum values work in `switch` and in patterns.** Every generated enum carries its pinned wire
   spellings as `const string` members of a nested `Values` class, and a `Value` property that
   returns a value's spelling. Match one against the other in a `case` label or a property pattern;
   a value a newer server sends matches none of them:
