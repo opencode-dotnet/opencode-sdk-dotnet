@@ -158,9 +158,9 @@ distinction handles upstream identifiers reused for different public and event p
 treating the numeric suffix as evidence of structural equivalence.
 
 Curation may not add a wire type, format, constraint, cross-field rule, or runtime validation
-absent from the pin, apart from ADR-0037's gated type exception. Descriptions generate documentation, not executable semantics. Projection
-loss remains faithful or fails closed and is reported upstream rather than repaired from private
-implementation knowledge (ADR-0013).
+absent from the pin, apart from ADR-0037's gated type exception. Descriptions generate
+documentation, not executable semantics. Projection loss remains faithful or fails closed and is
+reported upstream rather than repaired from private implementation knowledge (ADR-0013).
 
 ## Generated model shape
 
@@ -329,9 +329,9 @@ dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).
   enters curation or generated code, and a header-bearing operation forgoes the cursor-enumeration
   companion (ADR-0013, ADR-0021).
 - A query binds the `ListRequest` base by inclusion: it must carry the admitted optional `limit`
-  (typed `int` by its row), `order`, and `cursor` parameters in their admitted shapes, and every further optional parameter
-  binds beside them as its own request property. A missing spine member, or one whose schema is not
-  the admitted shape, keeps the request flat and unpaginated.
+  (typed `int` by its row), `order`, and `cursor` parameters in their admitted shapes, and every
+  further optional parameter binds beside them as its own request property. A missing spine member,
+  or one whose schema is not the admitted shape, keeps the request flat and unpaginated.
 - A cursor-list operation emits an additive `Enumerate*Async` companion only when binding proves the
   admitted `ListRequest` query, `ListCursor` response, item collection, and operation signature, and
   the query declares no required parameter — a continuation must be constructible from no request at

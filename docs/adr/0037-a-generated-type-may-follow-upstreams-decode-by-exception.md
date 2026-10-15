@@ -25,8 +25,8 @@ exception that meets all four conditions:
 This adopts upstream's decode schemas and generated client as a second pinned artifact under
 ADR-0013's reversal trigger, bounded to these rows; it does not reopen curation in general. Its
 first and only current application is query parameters that the document projects as strings and
-upstream decodes as integers. They bind as .NET integers, the wire still carries their decimal
-text, and the server keeps enforcing their ranges.
+upstream decodes as numbers. They bind as .NET integers (`long` for epoch milliseconds and sequence
+numbers), the wire still carries their decimal text, and the server keeps enforcing their ranges.
 
 ## Considered options
 
