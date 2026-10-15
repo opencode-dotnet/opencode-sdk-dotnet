@@ -18,34 +18,57 @@ internal static class LiveReadiness
 
     /// <summary>
     /// The readiness poll, naming what it last observed when it gives up: a timeout that only says
-    /// "not ready" cannot tell a slow server from a wrong answer.
+    /// "not ready" cannot tell a slow server from a wrong answer. A declared
+    /// <see cref="ServiceUnavailableError"/> is the server saying "not available yet" (the model and
+    /// provider routes declare it while their catalog warms up), so it reads as not ready and the
+    /// poll goes on; every other error ends the wait at once.
     /// </summary>
-    [SlopwatchSuppress(
-        "SW004",
-        "Readiness poll of another process: plugin activation and VCS provider detection settle on the server's own schedule after the request that triggers them has answered, no wire signal is awaited for either (the event bus has no replay, so a subscription opened after the trigger can miss it), and the poll is bounded by a thirty-second deadline that also cancels with the caller.")]
-    public static async Task<T> WaitAsync<T>(
+    public static Task<T> WaitAsync<T>(
         Func<CancellationToken, Task<T>> observe,
         Func<T, bool> ready,
         string description,
         Func<T, string>? describe,
+        CancellationToken cancellationToken) =>
+        WaitAsync(observe, ready, description, describe, Budget, cancellationToken);
+
+    /// <summary>The readiness poll with its budget named, so a test can prove what the end of the budget reports.</summary>
+    [SlopwatchSuppress(
+        "SW004",
+        "Readiness poll of another process: plugin activation and VCS provider detection settle on the server's own schedule after the request that triggers them has answered, no wire signal is awaited for either (the event bus has no replay, so a subscription opened after the trigger can miss it), the model routes' declared 503 while a location's plugins activate is waited through the same way, and the poll is bounded by a thirty-second deadline that also cancels with the caller.")]
+    internal static async Task<T> WaitAsync<T>(
+        Func<CancellationToken, Task<T>> observe,
+        Func<T, bool> ready,
+        string description,
+        Func<T, string>? describe,
+        TimeSpan budget,
         CancellationToken cancellationToken)
     {
         var elapsed = Stopwatch.StartNew();
         var last = default(T);
         var observedOnce = false;
+        OpenCodeApiException? unavailable = null;
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(Budget);
+        deadline.CancelAfter(budget);
         try
         {
             while (true)
             {
                 deadline.Token.ThrowIfCancellationRequested();
-                var observed = await observe(deadline.Token);
-                last = observed;
-                observedOnce = true;
-                if (ready(observed))
+                try
                 {
-                    return observed;
+                    var observed = await observe(deadline.Token);
+                    last = observed;
+                    observedOnce = true;
+                    unavailable = null;
+                    if (ready(observed))
+                    {
+                        return observed;
+                    }
+                }
+                catch (OpenCodeApiException exception) when (exception.Error is ServiceUnavailableError)
+                {
+                    // Not ready yet, in the server's own words; the timeout below names it if it lasts.
+                    unavailable = exception;
                 }
 
                 await Task.Delay(PollInterval, deadline.Token);
@@ -53,7 +76,10 @@ internal static class LiveReadiness
         }
         catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
         {
-            throw new TimeoutException($"Timed out waiting for {description} after {elapsed.Elapsed}{Seen(describe, observedOnce, last)}.", exception);
+            var seen = unavailable is not null
+                ? $"; the last answer was {unavailable.Status.ToString(System.Globalization.CultureInfo.InvariantCulture)} ServiceUnavailableError"
+                : Seen(describe, observedOnce, last);
+            throw new TimeoutException($"Timed out waiting for {description} after {elapsed.Elapsed}{seen}.", unavailable ?? (Exception)exception);
         }
     }
 

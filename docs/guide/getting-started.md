@@ -195,6 +195,31 @@ if (model is not null)
   does not make them complete, and the server exposes no activation barrier: when your application
   expects a particular provider or model, wait for that identity under a caller-owned cancellation
   deadline (`CONTEXT.md`, Plugin activation).
+- **Three calls wait for the location's plugins; take that wait once, at startup.**
+  `ListModelsAsync`, `GetDefaultAsync` and `client.Experimental.GenerateTextAsync` wait up to five
+  seconds for the location's plugins to load. On the first request to a location, after a config
+  or plugin change, or on the server's periodic plugin refresh, they can answer `503` with a
+  `ServiceUnavailableError`, which means "plugins still loading". Every other call is unaffected.
+  Make one readiness step before anything model-related, as opencode's own CLI does: ask for the
+  default model, and on that answer wait briefly and ask again, under a deadline. After that, use
+  the client normally; if a later config or plugin change brings the answer back for a moment, the
+  same step handles it there too.
+
+  ```csharp
+  using var startup = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+  while (true)
+  {
+      try
+      {
+          await client.LanguageModels.GetDefaultAsync(cancellationToken: startup.Token);
+          break;
+      }
+      catch (OpenCodeApiException failure) when (failure.Error is ServiceUnavailableError)
+      {
+          await Task.Delay(TimeSpan.FromMilliseconds(250), startup.Token);
+      }
+  }
+  ```
 - **The VCS summary settles the same way, per location.** `client.Vcs.GetVcsAsync()` for a
   directory the server has not served before can answer before that location's git plugin has
   reported: `Vcs.Provider` is `null` and both branch values are `null`, which means *not known
