@@ -9,6 +9,21 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+## [0.9.0-preview.11] - 2026-10-15
+
+**The event bus reconnects the way upstream's own client does, and the calls that answer only when
+their work ends now wait for it.** `EventsClient.SubscribeAsync` replaces a dropped, failed or
+silent connection one second later, starts every connection with `EventServerConnected`, and gives
+up after one minute in which every attempt failed, so a wrong address or password surfaces after a
+minute rather than at once. `NetworkTimeout` sets how long a call may go without network progress,
+and `WaitForSessionAsync`, `RunShellCommandAsync`, `RunCommandAsync` and `GenerateTextAsync` wait
+with no window. The other breaking changes: generated string enums are extensible value types, the
+upstream-experimental surface is `[Experimental]` and needs an opt-in, and `OAuth`, `shellId` and
+`savedPermissionId` are spelled as they should be. Events that belong to a session implement
+`ISessionScopedEvent`, the generated XML documentation says what each record is, the guides carry
+the fixes from the preview.10 evaluation, and on Windows the background service's sidecar
+publishes even while another process reads it.
+
 ### 💥 Breaking changes
 
 - **`EventsClient.SubscribeAsync` reconnects, as upstream's client does.**
@@ -144,6 +159,12 @@ Nightly builds of `master` are on
   never publishes `session.idle` or `session.status`, so a loop that waited for `SessionIdle` never
   ended. A turn ends with exactly one of `SessionExecutionSucceeded`, `SessionExecutionFailed` or
   `SessionExecutionInterrupted`.
+
+### 📋 Important Notes
+
+- **This release is built on the .NET 11 release-candidate SDK.** A preview package may build on a
+  go-live release candidate (ADR-0002); the first non-preview package waits for the GA SDK. The
+  `net11.0` asset needs the .NET 11 runtime, and a `net10.0` app keeps using the `net10.0` asset.
 
 ## [0.9.0-preview.10] - 2026-10-14
 
@@ -1496,6 +1517,7 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[0.9.0-preview.11]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.11
 [0.9.0-preview.10]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.10
 [0.9.0-preview.9]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.9
 [0.9.0-preview.8]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.8
