@@ -66,9 +66,12 @@ sized to need:
   one test path.
 - A helper or fixture one slice uses lives in that test slice's `Support/` or `Fixtures/`;
   helpers several slices share stay in the test project's root `Support/`. Live-server harness
-  code lives in `tests/Shared/`, which `OpenCode.Sdk.Tests` compiles whole; harness files the
-  service fixture does not link move to `OpenCode.Sdk.Tests/Harness/` as the layout migration
-  reaches them, and the files linked into the service fixture stay in `tests/Shared/`. There is no separate test-support project.
+  code lives in `tests/OpenCode.Sdk.Tests/Harness/`. Files another test project links, and the
+  embedded-fixture loader, stay in `tests/Shared/`, compiled through explicit links. There is no
+  separate test-support project.
+- The mirror rule also applies to test infrastructure: `Harness/X.cs` is tested in
+  `Harness/XTests.cs`, and `Support/X.cs` is tested in `Support/XTests.cs`. A subject with
+  several test files keeps those files beside the subject.
 
 ## 2. Filesystem rule
 
@@ -88,7 +91,8 @@ analyzer enforces it wherever an abstractions assembly is referenced — even te
 - Repository tooling and tests consume `IFileSystem` directly. Shipped SDK code carries no
   filesystem-abstraction dependency: the file access it performs sits behind its own internal
   seam (`IServiceFileSystem` for the background-service slice), whose test implementation is a
-  `tests/Shared/` adapter over the same `IFileSystem`, so the fake stays the one above.
+  `tests/OpenCode.Sdk.Tests/Harness/TestablyServiceFileSystem.cs` adapter over the same
+  `IFileSystem`, so the fake stays the one above.
 
 ## 3. Test data policy — no inline dumps
 
@@ -177,7 +181,8 @@ A live test runs against a server its fixture owns, and that server may read not
 did not put there. No test, and no developer running `dotnet test`, exports anything to make that
 true; the fixture hands the boundary to the child process it starts.
 
-- **One environment policy.** `tests/Shared/ServerIsolation.cs` is the only place an owned launch
+- **One environment policy.** `tests/OpenCode.Sdk.Tests/Harness/ServerIsolation.cs` is the only
+  place an owned launch
   takes its environment from: the XDG roots, the config root and database, a temp directory
   (`TMPDIR`, and `TMP` and `TEMP` on Windows), an empty config seed, an emptied explicit config
   file, no model-catalog fetch, project configuration discovery off, and a home that exists inside
@@ -216,9 +221,10 @@ true; the fixture hands the boundary to the child process it starts.
   its run root. On Linux (`/etc/opencode`) and macOS (`/Library/Application Support/opencode` and
   the `ai.opencode.managed.plist` files under `/Library/Managed Preferences`) no variable moves
   them, so `ServerIsolation.For` refuses an owned launch while one exists
-  (`tests/Shared/SystemConfigurationSources.cs`).
+  (`tests/OpenCode.Sdk.Tests/Harness/SystemConfigurationSources.cs`).
 - **The host's own environment is scrubbed first.** A child inherits whatever the isolation map
-  does not set, so `tests/Shared/InheritedEnvironment.cs` runs once per test session, before any
+  does not set, so `tests/OpenCode.Sdk.Tests/Harness/InheritedEnvironment.cs` runs once per test
+  session, before any
   fixture starts a child: it removes every `OPENCODE_*` variable except the suite's own
   `OPENCODE_SDK_TESTS_*` knobs, every `OTEL_*` variable, every provider credential and credential
   switch the pinned checkout names (`ProviderCredentialVariables`: each provider's `env` names in

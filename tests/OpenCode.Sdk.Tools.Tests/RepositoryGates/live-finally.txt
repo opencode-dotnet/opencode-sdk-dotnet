@@ -1,7 +1,7 @@
 tests/OpenCode.Sdk.Tests/Config/ConfigClientLiveTests.cs	1
 tests/OpenCode.Sdk.Tests/Events/EventsClientLiveTests.cs	1
-tests/OpenCode.Sdk.Tests/HeldProcessLiveTests.cs	2
-tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Ensure/EnsureServiceContextLiveTests.cs	2
+tests/OpenCode.Sdk.Tests/Harness/EnsureServiceContextLiveTests.cs	2
+tests/OpenCode.Sdk.Tests/Harness/HeldProcessLiveTests.cs	2
 tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Ensure/OpenCodeServerEnsureLiveTests.cs	3
 tests/OpenCode.Sdk.Tests/LocationTargetingLiveTests.cs	1
 tests/OpenCode.Sdk.Tests/Sessions/GettingStartedRecipeLiveTests.cs	1

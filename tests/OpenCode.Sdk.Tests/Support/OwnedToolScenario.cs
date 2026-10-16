@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Harness.Ownership;
+using OpenCode.Sdk.Tests.Sessions.Support;
 
 namespace OpenCode.Sdk.Tests.Support;
 

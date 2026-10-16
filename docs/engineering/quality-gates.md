@@ -111,7 +111,8 @@ cd external/opencode && bun install --frozen-lockfile --ignore-scripts
 ```
 
 `OpenCode.Sdk.Tests` checks all three before test discovery
-(`tests/Shared/PinnedServerPrerequisites.cs`): a missing checkout, a missing install, or another
+(`tests/OpenCode.Sdk.Tests/Harness/PinnedServerPrerequisites.cs`): a missing checkout, a missing
+install, or another
 Bun refuses the module with one error that names each missing piece and the command that fixes it.
 It refuses a run filtered to tests that start no server too: every gate and CI leg prepares the
 checkout, so an unprepared one is named before it costs a run.
@@ -196,7 +197,8 @@ and four, nine runs (run 36342010141); macOS at three and four, six runs (run 36
 
 The local gate on a workstation needs no cap. A verdict never rides the clock (`testing-style.md`);
 a test whose hang guard a loaded host can still reach — a real server's own bound, a `[Timeout]`
-measured in seconds — carries the keyless `[NotInParallel]` (`tests/Shared/ParallelConstraintKeys.cs`).
+measured in seconds — carries the keyless `[NotInParallel]`
+(`tests/OpenCode.Sdk.Tests/Harness/ParallelConstraintKeys.cs`).
 
 The suite runs in three passes, locally and in CI. The main pass runs every test except two
 categories. The background-service election classes carry the `ServiceElection` category

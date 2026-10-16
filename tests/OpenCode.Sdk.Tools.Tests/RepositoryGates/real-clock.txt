@@ -9,6 +9,13 @@ tests/OpenCode.Sdk.ServiceFixture/EnsureMode.cs	1
 tests/OpenCode.Sdk.ServiceFixture/ProbeTimeline.cs	4
 tests/OpenCode.Sdk.ServiceFixture/StopMode.cs	1
 tests/OpenCode.Sdk.ServiceFixture/WindowsLauncherProbe.cs	3
+tests/OpenCode.Sdk.Tests/Harness/DriveController.cs	3
+tests/OpenCode.Sdk.Tests/Harness/EnsureServiceContext.cs	1
+tests/OpenCode.Sdk.Tests/Harness/MachineLock.cs	1
+tests/OpenCode.Sdk.Tests/Harness/Ownership/OwnedCleanup.cs	3
+tests/OpenCode.Sdk.Tests/Harness/PinnedManagedServiceFixture.cs	4
+tests/OpenCode.Sdk.Tests/Harness/PinnedOpenCodeServerFixture.cs	1
+tests/OpenCode.Sdk.Tests/Harness/SimulatedSessionWorkflowTests.cs	3
 tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Stop/OpenCodeServerStopEscalationTests.cs	1
 tests/OpenCode.Sdk.Tests/Hosting/Launcher/OpenCodeServerDescriptorTests.cs	1
 tests/OpenCode.Sdk.Tests/Hosting/Launcher/OpenCodeServerJobTests.cs	4
@@ -23,7 +30,6 @@ tests/OpenCode.Sdk.Tests/Ptys/PtySessionTests.cs	1
 tests/OpenCode.Sdk.Tests/Sessions/SessionLogCliProfileLiveTests.cs	2
 tests/OpenCode.Sdk.Tests/Sessions/SessionMetadataLiveTests.cs	1
 tests/OpenCode.Sdk.Tests/Sessions/SessionPermissionRulesLiveTests.cs	1
-tests/OpenCode.Sdk.Tests/SimulatedSessionWorkflowTests.cs	3
 tests/OpenCode.Sdk.Tests/Support/LadderTree.cs	2
 tests/OpenCode.Sdk.Tests/Support/LiveReadiness.cs	3
 tests/OpenCode.Sdk.Tests/Support/OwnedEventReader.cs	1
@@ -36,9 +42,3 @@ tests/OpenCode.Sdk.Tests/Support/ServerStartupTreeHandshake.cs	1
 tests/OpenCode.Sdk.Tests/Support/ServerStartupTreeScenario.cs	3
 tests/OpenCode.Sdk.Tests/Support/SessionEventProbe.cs	1
 tests/OpenCode.Sdk.Tests/Support/SessionLogTranscript.cs	1
-tests/Shared/DriveController.cs	3
-tests/Shared/EnsureServiceContext.cs	1
-tests/Shared/MachineLock.cs	1
-tests/Shared/Ownership/OwnedCleanup.cs	3
-tests/Shared/PinnedManagedServiceFixture.cs	4
-tests/Shared/PinnedOpenCodeServerFixture.cs	1
