@@ -17,14 +17,20 @@ public sealed class LoopbackHttpServerTests
         listener.Start();
         using var shutdown = new CancellationTokenSource();
         var served = 0;
-
-        // The loop has passed its shutdown check when it calls accept; disposal lands right there.
-        await LoopbackHttpServer.AcceptUntilShutdownAsync(async () =>
+        try
         {
-            await shutdown.CancelOnWorkerAsync();
+            // The loop has passed its shutdown check when it calls accept; disposal lands right there.
+            await LoopbackHttpServer.AcceptUntilShutdownAsync(async () =>
+            {
+                await shutdown.CancelOnWorkerAsync();
+                listener.Stop();
+                return await listener.AcceptTcpClientAsync();
+            }, _ => served++, shutdown.Token).WaitAsync(HangGuard.Bound, CancellationToken.None);
+        }
+        finally
+        {
             listener.Stop();
-            return await listener.AcceptTcpClientAsync();
-        }, _ => served++, shutdown.Token).WaitAsync(HangGuard.Bound, CancellationToken.None);
+        }
 
         await Assert.That(served).IsEqualTo(0);
     }
