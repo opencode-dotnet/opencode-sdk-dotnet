@@ -14,10 +14,12 @@ linker: a workstation needs the Visual Studio Build Tools workload "Desktop deve
 (MSVC and a Windows SDK). Without it the publish fails with "Platform linker not found".
 
 With the Visual Studio 2026 Build Tools, ILCompiler finds the linker through `VsDevCmd.bat`, which
-calls `vswhere.exe` by its bare name from the Visual Studio Installer folder. A shell that sets
-`NoDefaultCurrentDirectoryInExePath`, as agent shells do, stops cmd from finding it there, and the
-link fails with MSB3073. Put `C:\Program Files (x86)\Microsoft Visual Studio\Installer` on `PATH`
-for that process; do not clear the variable.
+calls `vswhere.exe` by its bare name from the Visual Studio Installer folder. The packed-consumer
+fixture puts that folder on its publish's `PATH` itself. A native AOT publish run by hand, from a
+shell that sets `NoDefaultCurrentDirectoryInExePath` and has no Installer folder on `PATH`, fails
+with "'vswhere.exe' is not recognized" inside the linker command and then MSB3073: put
+`C:\Program Files (x86)\Microsoft Visual Studio\Installer` on that process's `PATH` rather than
+clearing the variable.
 
 ## Live legs that need a Linux-hosted server
 

@@ -203,19 +203,19 @@ The lint job runs `dotnet run --file tools/opencode-tool.cs -- verify-clones`: t
 scopes. Hand-written `src/`, `tools/` and `tests/` are gated against the committed baselines in
 `tools/jscpd/`: a clone a baseline does not hold fails the job, `tools/` also fails above 3%
 duplicated lines, and `tests/` above 8.5%. The tests threshold only falls: a change that removes
-test clones lowers it to its new measurement, rounded up to the next 0.5%. A baseline only takes a
-fingerprint the change does not add: each one entering a baseline maps, in the pull request body, to
-the fingerprint it replaces (the same file pair, moved or re-tokened by the change), or is a new clone
-with a named reason and the change that will remove it. Generated output is
+test clones lowers it to its new measurement, rounded up to the next 0.5%. Generated output is
 reported, not gated. The generator's manifest decides which `src/` files are generated, so the split
 needs no path convention. A failure names each new clone with its
 two `file:line` ranges and its size in tokens, and the job keeps the jscpd reports as an artifact. Locally the same command runs from the
 repository root once `bun install --frozen-lockfile --ignore-scripts` has run in `tools/jscpd/`; it is
 not part of the completion gate above.
 
-`verify-clones --update-baseline` rewrites the baselines. A pull request that grows a baseline names
-each new clone in its body with the reason it stays, or says that it is a deliberate rename, the
-same way a new suppression is called out. A shrinking baseline needs no reason.
+`verify-clones --update-baseline` rewrites the baselines, mechanically. A pull request whose baseline
+gains a fingerprint or a higher count accounts for each gain in its body, the same way a new
+suppression is called out. A duplicate that existed before and that the change only moved, renamed
+or re-tokened maps to the old fingerprint it replaces, with the fragments' locations before and
+after. Any other gain is a new clone: the body names the reason it stays and the change that will
+remove it. A shrinking baseline needs no reason.
 
 ## Package compatibility
 
