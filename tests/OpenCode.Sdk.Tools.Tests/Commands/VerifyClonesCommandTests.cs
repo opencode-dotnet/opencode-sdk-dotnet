@@ -14,6 +14,35 @@ public sealed class VerifyClonesCommandTests
     private const string Command = "verify-clones";
 
     [Test]
+    [Arguments("src")]
+    [Arguments("tools")]
+    [Arguments("tests")]
+    public async Task Execute_Should_Fail_On_Each_Stale_Fingerprint_Until_The_Baseline_Is_Updated(string scope)
+    {
+        var scenario = await new CloneScenario()
+            .WithBaseline(scope, CloneScenario.KnownFingerprint, "deadbeefdeadbeef", "fedcbafedcbafedcb")
+            .WithPassingRuns()
+            .WithPassingRuns(updateBaseline: true)
+            .WithPassingRuns()
+            .BuildAsync();
+
+        var stale = await RunAsync(scenario, Command);
+        var updated = await RunAsync(scenario, Command, "--update-baseline");
+        var current = await RunAsync(scenario, Command);
+
+        await Assert.That(stale.ExitCode).IsEqualTo(1);
+        await Assert.That(stale.Output).Contains($"Clone gate failed for '{scope}'");
+        await Assert.That(stale.Output).Contains("stale baseline fingerprint: deadbeefdeadbeef");
+        await Assert.That(stale.Output).Contains("stale baseline fingerprint: fedcbafedcbafedcb");
+        await Assert.That(stale.Output).Contains("verify-clones --update-baseline");
+        await Assert.That(stale.Output).DoesNotContain("stale baseline fingerprint: " + CloneScenario.KnownFingerprint);
+        await Assert.That(updated.ExitCode).IsEqualTo(0);
+        await Assert.That(current.ExitCode).IsEqualTo(0);
+        await Assert.That(current.Output).Contains("Clone gate passed");
+        await Assert.That(scenario.Runner.Invocations.Count).IsEqualTo(12);
+    }
+
+    [Test]
     public async Task Execute_Should_Keep_A_Refusal_Unwrapped_And_Restore_The_Console_Width()
     {
         var scenario = await new CloneScenario().WithoutSolution().BuildAsync();

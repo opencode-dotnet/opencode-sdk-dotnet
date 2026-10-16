@@ -11,7 +11,7 @@ namespace OpenCode.Sdk.Tools.Clones;
 /// Runs the pinned jscpd over one clone scope: it writes the scope's jscpd config into a work
 /// folder, runs the detector through the pinned Bun from the repository root, and reads the totals of
 /// the JSON report it writes. A gated scope runs against its baseline and fails on a new clone or
-/// above its threshold; with an update it rewrites the baseline instead. Every scope fails when it
+/// stale baseline entry or above its threshold; with an update it rewrites the baseline instead. Every scope fails when it
 /// analyses no file. jscpd's own defaults stay: it honours .gitignore, follows no symbolic link, and
 /// skips files above 1 MiB.
 /// </summary>
@@ -97,6 +97,9 @@ internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner proce
             total.GetProperty("percentage").GetDouble(),
             total.TryGetProperty("newClones", out var newClones) ? newClones.GetInt32() : 0,
             NewCloneLocations(scope, document.RootElement),
+            scope.Baseline is not null && !updateBaseline
+                ? await StaleFingerprintsAsync(root, scope.Baseline, output, cancellationToken).ConfigureAwait(false)
+                : [],
             result.StandardError.Trim());
     }
 
@@ -106,6 +109,19 @@ internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner proce
         ArgumentNullException.ThrowIfNull(scope);
 
         return _fileSystem.Path.Combine(workDirectory, scope.Name, ReportFileName);
+    }
+
+    /// <summary>Uses the detector's own content fingerprints from the same scan, rather than reproducing its hash algorithm.</summary>
+    private async Task<IReadOnlyList<string>> StaleFingerprintsAsync(string root, string baseline, string output, CancellationToken cancellationToken)
+    {
+        using var accepted = JsonDocument.Parse(await _fileSystem.File.ReadAllTextAsync(_fileSystem.Path.Combine(root, baseline), cancellationToken).ConfigureAwait(false));
+        using var reported = JsonDocument.Parse(await _fileSystem.File.ReadAllTextAsync(_fileSystem.Path.Combine(output, "jscpd-report.sarif"), cancellationToken).ConfigureAwait(false));
+        var current = reported.RootElement.GetProperty("runs").EnumerateArray()
+            .SelectMany(static run => run.GetProperty("results").EnumerateArray())
+            .Select(static result => result.GetProperty("partialFingerprints").GetProperty("jscpdCloneHash/v1").GetString()!)
+            .ToHashSet(StringComparer.Ordinal);
+        return [.. accepted.RootElement.GetProperty("fingerprints").EnumerateObject()
+            .Select(static entry => entry.Name).Except(current, StringComparer.Ordinal).Order(StringComparer.Ordinal)];
     }
 
     /// <summary>
@@ -183,6 +199,9 @@ internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner proce
             }
 
             writer.WriteEndArray();
+            writer.WriteStartArray("ignorePattern");
+            writer.WriteStringValue(@"(?m)^[ \t]*(global[ \t]+)?using[ \t]+(static[ \t]+)?([A-Za-z_][A-Za-z0-9_]*[ \t]*=[ \t]*)?[A-Za-z_][A-Za-z0-9_.]*[ \t]*;");
+            writer.WriteEndArray();
             writer.WriteStartArray("format");
             writer.WriteStringValue("csharp");
             writer.WriteEndArray();
@@ -190,6 +209,7 @@ internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner proce
             writer.WriteStartArray("reporters");
             writer.WriteStringValue("console");
             writer.WriteStringValue("json");
+            writer.WriteStringValue("sarif");
             writer.WriteEndArray();
             writer.WriteString("output", output);
             writer.WriteEndObject();

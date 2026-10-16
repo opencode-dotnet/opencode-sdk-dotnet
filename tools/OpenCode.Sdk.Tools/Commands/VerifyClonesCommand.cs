@@ -12,7 +12,7 @@ namespace OpenCode.Sdk.Tools.Commands;
 /// <summary>
 /// The clone gate: runs the pinned jscpd over every <see cref="CloneScopes"/> scope from the
 /// repository root, prints each scope's totals, and fails when a gated scope finds a clone its
-/// baseline does not hold or crosses its threshold. A scope that only reports carries no gate
+/// baseline does not hold, leaves a stale baseline entry, or crosses its threshold. A scope that only reports carries no gate
 /// arguments, so a nonzero exit there is a failed run, and it fails the gate too. Every scope runs
 /// and prints before the verdict.
 /// </summary>
@@ -57,7 +57,7 @@ internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCom
                 var result = await _detector.RunAsync(root, scope, split, work, settings.UpdateBaseline, cancellationToken).ConfigureAwait(false);
                 KeepReport(work, scope, settings.ReportDirectory);
                 _console.MarkupLineUnwrapped(Markup.Escape(Summary(result)));
-                if (result.ExitCode != 0)
+                if (result.ExitCode != 0 || result.StaleFingerprints.Count > 0)
                 {
                     failed.Add(result);
                 }
@@ -67,10 +67,16 @@ internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCom
             {
                 foreach (var result in failed)
                 {
-                    _console.MarkupLineUnwrapped($"[red]Clone gate failed for '{Markup.Escape(result.Scope.Name)}':[/] {Markup.Escape(Verdict(result.StandardError))}");
+                    var verdict = result.ExitCode != 0 ? Verdict(result.StandardError) : "stale baseline entries";
+                    _console.MarkupLineUnwrapped($"[red]Clone gate failed for '{Markup.Escape(result.Scope.Name)}':[/] {Markup.Escape(verdict)}");
                     foreach (var location in result.NewCloneLocations)
                     {
                         _console.MarkupLineUnwrapped(Markup.Escape(Location(location)));
+                    }
+
+                    foreach (var fingerprint in result.StaleFingerprints)
+                    {
+                        _console.MarkupLineUnwrapped(Markup.Escape($"  stale baseline fingerprint: {fingerprint}; run verify-clones --update-baseline"));
                     }
                 }
 
