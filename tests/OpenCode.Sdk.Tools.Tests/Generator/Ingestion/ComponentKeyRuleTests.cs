@@ -3,6 +3,7 @@ using Microsoft.OpenApi;
 using Microsoft.OpenApi.Reader;
 using OpenCode.Sdk.Tools.Generator.Ingestion;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
+using OpenCode.Sdk.Tools.Tests.Generator.Ingestion.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
 using TUnit.Assertions.Enums;
 

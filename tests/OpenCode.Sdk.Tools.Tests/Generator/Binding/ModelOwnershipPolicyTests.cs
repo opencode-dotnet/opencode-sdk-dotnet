@@ -1,8 +1,9 @@
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using OpenCode.Sdk.Tools.Tests.Generator.Binding.Support;
 using TUnit.Assertions.Enums;
+using static OpenCode.Sdk.Tools.Tests.Generator.Binding.Support.OwnershipPlanData;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
-using static OpenCode.Sdk.Tools.Tests.Support.OwnershipPlanData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
@@ -73,7 +74,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models(ModelsDevRefreshed), Ownership(FamiliesWithModelAlias()));
+        var placement = Place(errors, OwnershipPlanData.Models(ModelsDevRefreshed), Ownership(FamiliesWithModelAlias()));
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(placement.HomeOf(ModelsDevRefreshed)).IsEqualTo(TypeHome.Family(LanguageModels));
@@ -87,7 +88,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models(model),
+        var placement = Place(errors, OwnershipPlanData.Models(model),
             Ownership(prefixAlias ? FamiliesWithModelAlias() : Families(), owners: [Owner(match, family)]));
 
         var exception = Assert.Throws<BindingException>(errors.ThrowIfAny);
@@ -102,7 +103,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models(ModelsDevRefreshed),
+        var placement = Place(errors, OwnershipPlanData.Models(ModelsDevRefreshed),
             Ownership(FamiliesWithModelAlias(), owners: [Owner("ModelsDev", OtherFamily)]));
 
         await Assert.That(placement.HomeOf(ModelsDevRefreshed)).IsEqualTo(TypeHome.Family(OtherFamily));
@@ -138,7 +139,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        _ = Place(errors, Models(SessionInfo), Ownership(FamiliesWithModelAlias(SessionAlias)));
+        _ = Place(errors, OwnershipPlanData.Models(SessionInfo), Ownership(FamiliesWithModelAlias(SessionAlias)));
 
         await AssertRefusedAsync(errors, SessionAlias, $"the name prefix places models in both '{LanguageModels}' and '{Sessions}'");
     }
@@ -149,7 +150,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        _ = Place(errors, Models(ModelInfo), Ownership(FamiliesWithModelAlias(ModelAlias)));
+        _ = Place(errors, OwnershipPlanData.Models(ModelInfo), Ownership(FamiliesWithModelAlias(ModelAlias)));
 
         await AssertRefusedAsync(errors, ModelAlias, $"the prefix alias repeats a prefix family '{LanguageModels}' already has");
     }
@@ -163,7 +164,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models("PersistentPtyInfo", "PersistentStore"), Ownership(PersistentFamilies()));
+        var placement = Place(errors, OwnershipPlanData.Models("PersistentPtyInfo", "PersistentStore"), Ownership(PersistentFamilies()));
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(placement.HomeOf("PersistentPtyInfo")).IsEqualTo(TypeHome.Family("PersistentPtys"));
@@ -175,7 +176,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models("FormInfo", "FormatInfo"));
+        var placement = Place(errors, OwnershipPlanData.Models("FormInfo", "FormatInfo"));
 
         await Assert.That(placement.HomeOf("FormInfo")).IsEqualTo(TypeHome.Family("Forms"));
         await Assert.That(placement.Unplaced).IsEquivalentTo(["FormatInfo"]);
@@ -186,7 +187,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models("WebSearchResult"));
+        var placement = Place(errors, OwnershipPlanData.Models("WebSearchResult"));
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(placement.HomeOf("WebSearchResult")).IsEqualTo(TypeHome.Family("Websearch"));
@@ -236,7 +237,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models(SessionLoginRequest), bodyOperations: [BodyOperation(Credentials, SessionLoginRequest)]);
+        var placement = Place(errors, OwnershipPlanData.Models(SessionLoginRequest), bodyOperations: [BodyOperation(Credentials, SessionLoginRequest)]);
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(placement.HomeOf(SessionLoginRequest)).IsEqualTo(TypeHome.Family(Credentials));
@@ -248,7 +249,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models("SessionUpload"), bodyOperations: [BodyOperation(Credentials, "SessionUpload", isBinary: true)]);
+        var placement = Place(errors, OwnershipPlanData.Models("SessionUpload"), bodyOperations: [BodyOperation(Credentials, "SessionUpload", isBinary: true)]);
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(placement.HomeOf("SessionUpload")).IsEqualTo(TypeHome.Family(Sessions));
@@ -260,7 +261,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        _ = Place(errors, Models(SessionLoginRequest),
+        _ = Place(errors, OwnershipPlanData.Models(SessionLoginRequest),
             bodyOperations: [BodyOperation(Credentials, SessionLoginRequest), BodyOperation(McpServers, SessionLoginRequest)]);
 
         await AssertRefusedAsync(errors, SessionLoginRequest, "has no single family root");
@@ -273,7 +274,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models(model), Ownership(owners: [Owner(match, owner)]));
+        var placement = Place(errors, OwnershipPlanData.Models(model), Ownership(owners: [Owner(match, owner)]));
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(placement.HomeOf(model)).IsEqualTo(TypeHome.Family(owner));
@@ -284,7 +285,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models("SessionError"), Ownership(owners: [Owner("SessionError", TypeHome.CommonSlice)]));
+        var placement = Place(errors, OwnershipPlanData.Models("SessionError"), Ownership(owners: [Owner("SessionError", TypeHome.CommonSlice)]));
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(placement.HomeOf("SessionError")).IsEqualTo(TypeHome.Family(TypeHome.CommonSlice));
@@ -295,7 +296,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        _ = Place(errors, Models(ProviderAuthMethod), Ownership(owners: [Owner("Provider", Credentials), Owner(ProviderAuth, McpServers)]));
+        _ = Place(errors, OwnershipPlanData.Models(ProviderAuthMethod), Ownership(owners: [Owner("Provider", Credentials), Owner(ProviderAuth, McpServers)]));
 
         await AssertRefusedAsync(errors, ProviderAuthMethod, "all match the model");
     }
@@ -315,7 +316,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        _ = Place(errors, Models(ProviderAuthMethod), Ownership(owners: [Owner(ProviderAuth, "Providers")]));
+        _ = Place(errors, OwnershipPlanData.Models(ProviderAuthMethod), Ownership(owners: [Owner(ProviderAuth, "Providers")]));
 
         await AssertRefusedAsync(errors, ProviderAuth, "is neither an admitted family nor 'Common'");
     }
@@ -325,7 +326,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        _ = Place(errors, Models(ProviderAuthMethod), Ownership(owners: [Owner(ProviderAuth, Credentials, reason: BlankReason)]));
+        _ = Place(errors, OwnershipPlanData.Models(ProviderAuthMethod), Ownership(owners: [Owner(ProviderAuth, Credentials, reason: BlankReason)]));
 
         await AssertRefusedAsync(errors, ProviderAuth, "must declare a reason");
     }
@@ -335,7 +336,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models("OutputFormat"));
+        var placement = Place(errors, OwnershipPlanData.Models("OutputFormat"));
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(placement.Homes.ContainsKey("OutputFormat")).IsFalse();
@@ -350,7 +351,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models(SessionCreated, "SessionCreatedData", "SessionCreatedDurable"),
+        var placement = Place(errors, OwnershipPlanData.Models(SessionCreated, "SessionCreatedData", "SessionCreatedDurable"),
             Ownership(areas: [Area(Lifecycle, SessionCreated)]));
 
         await Assert.That(errors.Count).IsEqualTo(0);
@@ -362,7 +363,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models(SessionCreated, SessionInfo), Ownership(areas: [Area(Lifecycle, SessionCreated)]));
+        var placement = Place(errors, OwnershipPlanData.Models(SessionCreated, SessionInfo), Ownership(areas: [Area(Lifecycle, SessionCreated)]));
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(placement.HomeOf(SessionInfo)).IsEqualTo(TypeHome.Family(Sessions));
@@ -373,7 +374,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models("SessionForkBoundary", "SessionForked"), Ownership(areas: [Area("Fork", "SessionFork")]));
+        var placement = Place(errors, OwnershipPlanData.Models("SessionForkBoundary", "SessionForked"), Ownership(areas: [Area("Fork", "SessionFork")]));
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(placement.HomeOf("SessionForkBoundary")).IsEqualTo(SessionsArea("Fork"));
@@ -385,7 +386,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models("ToolPart", "ToolDefinition"),
+        var placement = Place(errors, OwnershipPlanData.Models("ToolPart", "ToolDefinition"),
             Ownership(owners: [Owner("ToolPart", Sessions), Owner("ToolDefinition", McpServers)], areas: [Area("Turn", "Tool")]));
 
         await Assert.That(errors.Count).IsEqualTo(0);
@@ -398,7 +399,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models("SessionCreateRequest", "SessionCreateOptions"), Ownership(areas: [Area("Create", "SessionCreate")]),
+        var placement = Place(errors, OwnershipPlanData.Models("SessionCreateRequest", "SessionCreateOptions"), Ownership(areas: [Area("Create", "SessionCreate")]),
             bodyOperations: [BodyOperation(Sessions, "SessionCreateRequest")]);
 
         await Assert.That(errors.Count).IsEqualTo(0);
@@ -411,7 +412,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        _ = Place(errors, Models(SessionCreated), Ownership(areas: [Area(Lifecycle, SessionCreated), Area("Events", "Session")]));
+        _ = Place(errors, OwnershipPlanData.Models(SessionCreated), Ownership(areas: [Area(Lifecycle, SessionCreated), Area("Events", "Session")]));
 
         await AssertRefusedAsync(errors, SessionCreated, "place the model in more than one area");
     }
@@ -421,7 +422,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        _ = Place(errors, Models(SessionCreated), Ownership(areas: [Area(Lifecycle, SessionCreated, "SessionMoved")]));
+        _ = Place(errors, OwnershipPlanData.Models(SessionCreated), Ownership(areas: [Area(Lifecycle, SessionCreated, "SessionMoved")]));
 
         await AssertRefusedAsync(errors, $"{Lifecycle}/SessionMoved", "session area pattern places no generated model");
     }
@@ -437,7 +438,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        _ = Place(errors, Models(SessionCreated), Ownership(areas: [Area(area, SessionCreated)]));
+        _ = Place(errors, OwnershipPlanData.Models(SessionCreated), Ownership(areas: [Area(area, SessionCreated)]));
 
         await AssertRefusedAsync(errors, area, "reserved");
     }
@@ -447,7 +448,7 @@ public sealed class ModelOwnershipPolicyTests
     {
         var errors = new BindingErrorCollector();
 
-        _ = Place(errors, Models(SessionCreated), Ownership(areas: [Area(Lifecycle, SessionCreated) with { Reason = BlankReason }]));
+        _ = Place(errors, OwnershipPlanData.Models(SessionCreated), Ownership(areas: [Area(Lifecycle, SessionCreated) with { Reason = BlankReason }]));
 
         await AssertRefusedAsync(errors, Lifecycle, "session area curation must declare a reason");
     }
@@ -459,7 +460,7 @@ public sealed class ModelOwnershipPolicyTests
         var groups = Families();
         _ = groups.Remove("session");
 
-        _ = Place(errors, Models(SessionCreated), Ownership(groups, areas: [Area(Lifecycle, SessionCreated)]));
+        _ = Place(errors, OwnershipPlanData.Models(SessionCreated), Ownership(groups, areas: [Area(Lifecycle, SessionCreated)]));
 
         await AssertRefusedAsync(errors, "sessionAreas", "session areas need the 'Sessions' family");
     }

@@ -64,15 +64,18 @@ sized to need:
   like a BCL type shadows it there: tests under `Debug/` declare `OpenCode.Sdk.Tests.Debug` and
   qualify `System.Diagnostics.Debug`. A guard test refuses two source types that project onto
   one test path.
-- In SDK.Tests, a helper or fixture used by one slice lives in that slice's `Support/` or
-  `Fixtures/`. Helpers and fixtures used by several slices stay in the test project's root
-  `Support/` and `Fixtures/`. Embedded fixtures retain their `Fixtures.` resource-name prefix
-  through explicit `LogicalName` metadata. Live-server harness code lives in
+- In SDK.Tests and Tools.Tests, a helper or fixture used by one slice lives in that slice's
+  `Support/` or `Fixtures/`. Helpers and fixtures used by several slices stay in the test project's
+  root `Support/` and `Fixtures/`. Tools.Tests also keeps its Roslyn compiler helpers
+  (`GeneratedSourceCompiler` and its closure) in the root `Support/`, whichever slices use them
+  today. Embedded fixtures retain their `Fixtures.` resource-name prefix through explicit
+  `LogicalName` metadata. Live-server harness code lives in
   `tests/OpenCode.Sdk.Tests/Harness/`. Files another test project links, and the
   embedded-fixture loader, stay in `tests/Shared/`, compiled through explicit links. There is no
   separate test-support project.
 - The mirror rule also applies to test infrastructure: `Harness/X.cs` is tested in
-  `Harness/XTests.cs`, and `Support/X.cs` is tested in `Support/XTests.cs`. A subject with
+  `Harness/XTests.cs`, and `Support/X.cs` is tested in `Support/XTests.cs`, including the
+  `Support/` folder in Tools.Tests. A subject with
   several test files keeps those files beside the subject.
 
 ## 2. Filesystem rule

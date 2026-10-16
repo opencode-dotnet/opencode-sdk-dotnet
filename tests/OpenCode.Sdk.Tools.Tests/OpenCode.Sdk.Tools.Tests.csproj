@@ -83,6 +83,46 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Fixtures/**/*.json" />
+    <EmbeddedResource Include="Benchmarks/Fixtures/missing-memory-report-full.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Benchmarks.missing-memory-report-full.json" />
+    <EmbeddedResource Include="Benchmarks/Fixtures/wire-metrics-report-full.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Benchmarks.wire-metrics-report-full.json" />
+    <EmbeddedResource Include="Benchmarks/Fixtures/zero-median-report-full.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Benchmarks.zero-median-report-full.json" />
+    <EmbeddedResource Include="Commands/Fixtures/net10-only-report-full.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Benchmarks.net10-only-report-full.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/alias-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.alias-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/declined-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.declined-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/duplicate-group-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.duplicate-group-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/duplicate-row-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.duplicate-row-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/duplicate-section-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.duplicate-section-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/internal-raw-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.internal-raw-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/mutually-exclusive-queries-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.mutually-exclusive-queries-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/null-member-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.null-member-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/operation-name-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.operation-name-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/property-overrides-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.property-overrides-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/redacted-open-members-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.redacted-open-members-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/redacted-open-members-missing-redact-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.redacted-open-members-missing-redact-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/session-scoped-event-missing-reason-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.session-scoped-event-missing-reason-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/transport-owned-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.transport-owned-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/unknown-curation-field.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.unknown-curation-field.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/unknown-emission-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.unknown-emission-curation.json" />
+    <EmbeddedResource Include="Generator/Binding/Fixtures/valid-curation.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Binding.valid-curation.json" />
+    <EmbeddedResource Include="Generator/Emission/Fixtures/first-match-cases.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Serialization.first-match-cases.json" />
+    <EmbeddedResource Include="Generator/Emission/Fixtures/shared-live-durable-event.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Serialization.shared-live-durable-event.json" />
+    <EmbeddedResource Include="Generator/Emission/Fixtures/structural-boolean.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Serialization.structural-boolean.json" />
+    <EmbeddedResource Include="Generator/Emission/Fixtures/structural-malformed-string-list.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Serialization.structural-malformed-string-list.json" />
+    <EmbeddedResource Include="Generator/Emission/Fixtures/structural-named-number-string.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Serialization.structural-named-number-string.json" />
+    <EmbeddedResource Include="Generator/Emission/Fixtures/structural-number.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Serialization.structural-number.json" />
+    <EmbeddedResource Include="Generator/Emission/Fixtures/structural-string-list.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Serialization.structural-string-list.json" />
+    <EmbeddedResource Include="Generator/Emission/Fixtures/structural-string.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Serialization.structural-string.json" />
+    <EmbeddedResource Include="Generator/Emission/Fixtures/structural-unknown.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Serialization.structural-unknown.json" />
+    <EmbeddedResource Include="Generator/Emission/Fixtures/unknown-phase-with-secret.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Serialization.unknown-phase-with-secret.json" />
+    <EmbeddedResource Include="Generator/Ingestion/Fixtures/boolean-property-schema.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.boolean-property-schema.json" />
+    <EmbeddedResource Include="Generator/Ingestion/Fixtures/config-plugin-tuple.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.config-plugin-tuple.json" />
+    <EmbeddedResource Include="Generator/Ingestion/Fixtures/envelope-cursor-data.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.envelope-cursor-data.json" />
+    <EmbeddedResource Include="Generator/Ingestion/Fixtures/envelope-data-has-more.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.envelope-data-has-more.json" />
+    <EmbeddedResource Include="Generator/Ingestion/Fixtures/envelope-data-location.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.envelope-data-location.json" />
+    <EmbeddedResource Include="Generator/Ingestion/Fixtures/envelope-data.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.envelope-data.json" />
+    <EmbeddedResource Include="Generator/Ingestion/Fixtures/envelope-single-key.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.envelope-single-key.json" />
+    <EmbeddedResource Include="Generator/Ingestion/Fixtures/path-level-parameters.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.path-level-parameters.json" />
+    <EmbeddedResource Include="Generator/Ingestion/Fixtures/special-number.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.special-number.json" />
     <None Include="../../spec/openapi.json"
           Link="Fixtures/openapi.json"
           CopyToOutputDirectory="PreserveNewest" />

@@ -1,5 +1,5 @@
 using OpenCode.Sdk.Tools.Generator.Emission;
-using OpenCode.Sdk.Tools.Tests.Support;
+using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 using static OpenCode.Sdk.Tools.Tests.Support.UnionHoistPlanData;
 

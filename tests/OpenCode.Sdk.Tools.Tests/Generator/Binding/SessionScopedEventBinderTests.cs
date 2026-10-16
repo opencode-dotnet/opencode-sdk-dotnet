@@ -1,5 +1,4 @@
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
-using OpenCode.Sdk.Tools.Tests.Generator.Binding.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 

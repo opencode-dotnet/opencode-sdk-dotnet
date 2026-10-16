@@ -7,4 +7,4 @@ tests/OpenCode.Sdk.Tests/Transport/PipelineTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/OperationPlanBinderTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/SpecBinderTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Generator/Emission/ModelMaterializationMatrixTests.cs	1
-tests/OpenCode.Sdk.Tools.Tests/Support/EmitterPlanFixture.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Emission/Support/EmitterPlanFixture.cs	1

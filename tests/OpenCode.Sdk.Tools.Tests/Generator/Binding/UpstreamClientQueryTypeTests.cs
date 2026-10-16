@@ -3,6 +3,7 @@ using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Serialization;
+using OpenCode.Sdk.Tools.Tests.Generator.Binding.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions;
 
