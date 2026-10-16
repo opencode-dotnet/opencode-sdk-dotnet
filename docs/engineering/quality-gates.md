@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-10-15
+Date: 2026-10-16
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -194,10 +194,12 @@ target framework updates it in the same change.
 
 The lint job runs `dotnet run --file tools/opencode-tool.cs -- verify-clones`: the pinned jscpd in
 `tools/jscpd/`, installed with the pinned Bun from its own lockfile, at a 50-token minimum over four
-scopes. Hand-written `src/` and `tools/` are gated against the committed baselines in `tools/jscpd/`:
-a clone a baseline does not hold fails the job, and `tools/` also fails above 3% duplicated lines.
-Tests and generated output are reported, not gated. The generator's manifest decides which `src/`
-files are generated, so the split needs no path convention. A failure names each new clone with its
+scopes. Hand-written `src/`, `tools/` and `tests/` are gated against the committed baselines in
+`tools/jscpd/`: a clone a baseline does not hold fails the job, `tools/` also fails above 3%
+duplicated lines, and `tests/` above 8.5%. The tests threshold only falls: a change that removes
+test clones lowers it to its new measurement, rounded up to the next 0.5%. Generated output is
+reported, not gated. The generator's manifest decides which `src/` files are generated, so the split
+needs no path convention. A failure names each new clone with its
 two `file:line` ranges and its size in tokens, and the job keeps the jscpd reports as an artifact. Locally the same command runs from the
 repository root once `bun install --frozen-lockfile --ignore-scripts` has run in `tools/jscpd/`; it is
 not part of the completion gate above.

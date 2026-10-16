@@ -32,7 +32,15 @@ public sealed class CloneDetectorTests
     }
 
     [Test]
-    [Arguments("tests", "tests")]
+    public async Task Arguments_Should_Gate_Tests_Against_Its_Baseline_And_The_Threshold()
+    {
+        var arguments = CloneDetector.Arguments(Scope("tests"), Config, updateBaseline: false);
+
+        await Assert.That(arguments).IsEquivalentTo(
+            [CloneDetector.RunnerPath, "tests", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/tests.baseline.json", Fingerprints, "--threshold", "8.5"]);
+    }
+
+    [Test]
     [Arguments("generated", "src")]
     public async Task Arguments_Should_Run_A_Report_Scope_Without_Gate_Arguments(string name, string path)
     {

@@ -11,7 +11,7 @@ internal sealed record CloneScope(
     CloneScopeFilter Filter,
     IReadOnlyList<string> Ignore,
     string? Baseline,
-    int? Threshold)
+    decimal? Threshold)
 {
     /// <summary>Gets whether new clones in this scope fail the gate.</summary>
     public bool IsGated => Baseline is not null;
