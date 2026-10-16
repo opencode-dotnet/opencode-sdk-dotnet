@@ -203,7 +203,10 @@ The lint job runs `dotnet run --file tools/opencode-tool.cs -- verify-clones`: t
 scopes. Hand-written `src/`, `tools/` and `tests/` are gated against the committed baselines in
 `tools/jscpd/`: a clone a baseline does not hold fails the job, `tools/` also fails above 3%
 duplicated lines, and `tests/` above 8.5%. The tests threshold only falls: a change that removes
-test clones lowers it to its new measurement, rounded up to the next 0.5%. Generated output is
+test clones lowers it to its new measurement, rounded up to the next 0.5%. A baseline only takes a
+fingerprint the change does not add: each one entering a baseline maps, in the pull request body, to
+the fingerprint it replaces (the same file pair, moved or re-tokened by the change), or is a new clone
+with a named reason and the change that will remove it. Generated output is
 reported, not gated. The generator's manifest decides which `src/` files are generated, so the split
 needs no path convention. A failure names each new clone with its
 two `file:line` ranges and its size in tokens, and the job keeps the jscpd reports as an artifact. Locally the same command runs from the
