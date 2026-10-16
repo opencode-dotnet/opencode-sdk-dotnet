@@ -1,20 +1,36 @@
 using System.Globalization;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Sessions;
 
 /// <summary>
 /// The session permission ruleset's live proof against the pinned server: the PATCH answers the
-/// declared 204 and the session the rules were written to reports them back, so the operation is
-/// verified by the state it leaves rather than by its status alone.
+/// declared 204 and the session the rules were written to reports exactly the new ruleset back,
+/// with nothing left of the one it was created with, so the operation is verified as a replacement
+/// by the state it leaves rather than by its status alone.
 /// </summary>
 [ClassDataSource<SimulatedDriveServerFixture>(Shared = SharedType.PerTestSession)]
 [NotInParallel(ParallelConstraintKeys.ServerProcess)]
 public sealed class SessionPermissionRulesLiveTests(SimulatedDriveServerFixture server)
 {
-    private const string DeniedResource = "sdk-live-denied";
     private static readonly TimeSpan CleanupTimeout = TimeSpan.FromSeconds(15);
+
+    /// <summary>The ruleset the session is created with, which the replacement must leave no trace of.</summary>
+    private static readonly PermissionRule OriginalRule = new()
+    {
+        Action = SimulationConfigSeed.PermissionProbeAction,
+        Resource = "sdk-live-original",
+        Effect = PermissionEffect.Allow,
+    };
+
+    private static readonly PermissionRule ReplacementRule = new()
+    {
+        Action = SimulationConfigSeed.PermissionProbeAction,
+        Resource = "sdk-live-denied",
+        Effect = PermissionEffect.Deny,
+    };
 
     [Test]
     [Timeout(120_000)]
@@ -27,6 +43,7 @@ public sealed class SessionPermissionRulesLiveTests(SimulatedDriveServerFixture 
             {
                 Title = "session-permission-rules-live",
                 Location = new LocationPublicRef { Directory = workspace.Path },
+                Permissions = new Optional<IReadOnlyList<PermissionRule>?>([OriginalRule]),
             },
             cancellationToken: cancellationToken);
         await Assert.That(created.Status).IsEqualTo(200);
@@ -35,17 +52,12 @@ public sealed class SessionPermissionRulesLiveTests(SimulatedDriveServerFixture 
 
         try
         {
+            await Assert.That(created.Session.Permissions).IsEquivalentTo([OriginalRule], CollectionOrdering.Matching);
+
             var response = await session.UpdateAsync(
                 new SessionUpdateRequest
                 {
-                    Permissions = new Optional<IReadOnlyList<PermissionRule>?>([
-                        new PermissionRule
-                        {
-                            Action = SimulationConfigSeed.PermissionProbeAction,
-                            Resource = DeniedResource,
-                            Effect = PermissionEffect.Deny,
-                        },
-                    ]),
+                    Permissions = new Optional<IReadOnlyList<PermissionRule>?>([ReplacementRule]),
                 },
                 cancellationToken: cancellationToken);
 
@@ -54,16 +66,15 @@ public sealed class SessionPermissionRulesLiveTests(SimulatedDriveServerFixture 
 
             var reread = await session.GetAsync(cancellationToken: cancellationToken);
 
+            // Exact equality, as upstream's oracle asserts: a server or client that merged or
+            // appended rules would still carry the original one.
             await Assert.That(reread.Status).IsEqualTo(200);
-            await Assert.That(reread.Session.Permissions).IsNotNull();
-            var rule = reread.Session.Permissions!.Single(static candidate => candidate.Resource == DeniedResource);
-            await Assert.That(rule.Action).IsEqualTo(SimulationConfigSeed.PermissionProbeAction);
-            await Assert.That(rule.Effect).IsEqualTo(PermissionEffect.Deny);
+            await Assert.That(reread.Session.Permissions).IsEquivalentTo([ReplacementRule], CollectionOrdering.Matching);
 
             Console.WriteLine(
                 "session-permission-rules-live: patch=" + Number(response.Status) +
                 " reread=" + Number(reread.Status) +
-                " rules=" + Number(reread.Session.Permissions.Count));
+                " rules=" + Number(reread.Session.Permissions!.Count));
         }
         catch (Exception exception)
         {
