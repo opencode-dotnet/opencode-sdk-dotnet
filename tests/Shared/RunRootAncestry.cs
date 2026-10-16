@@ -74,24 +74,26 @@ internal sealed class RunRootAncestry
     /// Linux and macOS layout, and such a server would read them but run nothing from them.
     /// </summary>
     /// <param name="directory">The first directory, walking up, that the checkout does not own.</param>
+    /// <param name="repositoryRoot">The checkout's root, the only place the edit hook is accepted.</param>
     /// <returns>The offending path, or null when the whole chain is clean.</returns>
-    public string? FindProjectConfiguration(string directory) =>
-        Walk(directory, ConfigurationDirectories, ConfigurationFiles, IsRepositoryEditHook);
+    public string? FindProjectConfiguration(string directory, string repositoryRoot)
+    {
+        var editHook = _fileSystem.Path.Combine(_fileSystem.Path.GetFullPath(repositoryRoot), ".opencode");
+        return Walk(directory, ConfigurationDirectories, ConfigurationFiles, candidate => IsRepositoryEditHook(candidate, editHook));
+    }
 
     /// <summary>
-    /// Whether <paramref name="candidate"/> is this repository's own project directory, holding
-    /// exactly the edit-time Slopwatch plugin and nothing else, byte for byte. It is the one project
-    /// configuration a checkout carries on purpose, and it stays inert in any server whose location
-    /// is not the repository root, which every server this guard protects is. Another file, another
-    /// name, a changed plugin, or the same directory anywhere but beside <c>OpenCode.slnx</c> is
-    /// refused like any other project configuration, so a change to the plugin is a change here.
+    /// Whether <paramref name="candidate"/> is this checkout's own project directory, holding exactly
+    /// the edit-time Slopwatch plugin and nothing else, byte for byte, with no link anywhere in it. It
+    /// is the one project configuration a checkout carries on purpose, and it stays inert in any
+    /// server whose location is not the repository root, which every server this guard protects is.
+    /// Another file or directory, a link, a changed plugin, or the same layout anywhere but the
+    /// checkout's root is refused like any other project configuration, so a change to the plugin is
+    /// a change here.
     /// </summary>
-    private bool IsRepositoryEditHook(string candidate)
+    private bool IsRepositoryEditHook(string candidate, string editHook)
     {
-        var root = _fileSystem.Path.GetDirectoryName(candidate);
-        if (root is null
-            || !string.Equals(_fileSystem.Path.GetFileName(candidate), ".opencode", StringComparison.Ordinal)
-            || !_fileSystem.File.Exists(_fileSystem.Path.Combine(root, "OpenCode.slnx")))
+        if (!string.Equals(candidate, editHook, StringComparison.Ordinal))
         {
             return false;
         }
@@ -102,7 +104,10 @@ internal sealed class RunRootAncestry
         if (entries.Length != 2
             || !entries.Contains(plugins, StringComparer.Ordinal)
             || !entries.Contains(plugin, StringComparer.Ordinal)
-            || !_fileSystem.File.Exists(plugin))
+            || !_fileSystem.File.Exists(plugin)
+            || IsLink(_fileSystem.DirectoryInfo.New(candidate))
+            || IsLink(_fileSystem.DirectoryInfo.New(plugins))
+            || IsLink(_fileSystem.FileInfo.New(plugin)))
         {
             return false;
         }
@@ -113,6 +118,8 @@ internal sealed class RunRootAncestry
         var digest = string.Concat(hash.GetHashAndReset().Select(static value => value.ToString("x2", CultureInfo.InvariantCulture)));
         return string.Equals(digest, EditHookPluginSha256, StringComparison.Ordinal);
     }
+
+    private static bool IsLink(IFileSystemInfo entry) => entry.Attributes.HasFlag(FileAttributes.ReparsePoint);
 
     /// <summary>Reads a whole file on the synchronous path the guard runs on (a property getter).</summary>
     internal static byte[] ReadAllBytes(IFileSystem fileSystem, string path)

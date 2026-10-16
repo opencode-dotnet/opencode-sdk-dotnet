@@ -58,7 +58,8 @@ internal sealed class PinnedServerCommand
     /// is the server whose subject is project configuration, for a request without a location, and
     /// an installed command an override names, which may not read the switch; for them a checkout
     /// with configuration that would run inside the server in <c>external</c> or above it refuses
-    /// to launch. Every owned server is located through <see cref="Resolve"/>, this directory, or
+    /// to launch, except the checkout's own edit-time plugin exactly as checked in
+    /// (<see cref="RunRootAncestry.FindProjectConfiguration"/>). Every owned server is located through <see cref="Resolve"/>, this directory, or
     /// both - an installed command an override names still starts here - so both are where a
     /// session that could not scrub the provider credentials stops.
     /// </summary>
@@ -73,7 +74,7 @@ internal sealed class PinnedServerCommand
             InheritedEnvironment.RequireProviderCredentialsScrubbed();
             var external = _fileSystem.Path.Combine(RepositoryRoot, "external");
             var directory = _fileSystem.Path.Combine(external, "opencode", "packages", "cli");
-            if (new RunRootAncestry(_fileSystem).FindProjectConfiguration(external) is { } configuration)
+            if (new RunRootAncestry(_fileSystem).FindProjectConfiguration(external, RepositoryRoot) is { } configuration)
             {
                 throw new InvalidOperationException(
                     $"The pinned server starts in '{directory}', and '{configuration}' above it is project "
