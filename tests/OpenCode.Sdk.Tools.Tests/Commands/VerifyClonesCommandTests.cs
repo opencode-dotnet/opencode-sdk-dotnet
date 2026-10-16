@@ -1,7 +1,7 @@
 using System.IO.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
-using OpenCode.Sdk.Tools.Tests.Clones.Support;
+using OpenCode.Sdk.Tools.Tests.Support;
 using Spectre.Console;
 using Spectre.Console.Cli.Testing;
 using Spectre.Console.Testing;

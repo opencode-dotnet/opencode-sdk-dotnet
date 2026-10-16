@@ -1,4 +1,4 @@
-using OpenCode.Sdk.Tools.Tests.Support;
+using OpenCode.Sdk.Tools.Tests.Suppressions.Support;
 
 namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 

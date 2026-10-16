@@ -1,6 +1,6 @@
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
-using static OpenCode.Sdk.Tools.Tests.Support.OwnershipPlanData;
+using static OpenCode.Sdk.Tools.Tests.Generator.Binding.Support.OwnershipPlanData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 

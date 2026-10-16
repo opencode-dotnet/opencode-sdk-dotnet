@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using OpenCode.Sdk.Tools.Clones;
-using OpenCode.Sdk.Tools.Tests.Clones.Support;
+using OpenCode.Sdk.Tools.Tests.Support;
 
 namespace OpenCode.Sdk.Tools.Tests.Clones;
 
