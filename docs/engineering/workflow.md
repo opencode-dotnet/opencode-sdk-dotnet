@@ -84,7 +84,7 @@ single-owner rules.
   local check, has passed it, so the CI the pull request triggers runs on finished work.
 - Everything lands on `master` through the merge queue, releases included: the changelog cut and
   the post-publish note are Markdown-only pull requests, on the maintainer's go for that release. A
-  NuGet.org release also needs a green consumer leg on the commit it packs (`quality-gates.md`).
+  NuGet.org release also waits for the consumer leg run that `quality-gates.md` describes.
   `master` requires the queue and the `CI result` check, for administrators too.
 - A pull request joins the queue once the `CI result` check of its own head is green. The queue
   tests it again on top of current `master` and the entries ahead of it, and merges only on that
