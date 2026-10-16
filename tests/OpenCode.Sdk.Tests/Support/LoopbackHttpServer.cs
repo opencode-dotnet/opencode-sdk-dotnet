@@ -20,6 +20,7 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
     private readonly ConcurrentQueue<LoopbackRequest> _requests = [];
     private readonly Func<string, LoopbackHttpResponse> _respond;
     private readonly CancellationTokenSource _shutdown = new();
+    private volatile bool _released;
 
     private LoopbackHttpServer(Func<string, LoopbackHttpResponse> respond)
     {
@@ -64,68 +65,85 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
 
     public void ReleaseResponses()
     {
+        _released = true;
         foreach (var client in _clients)
         {
             client.Close();
         }
     }
 
-    private async Task AcceptLoopAsync()
+    /// <summary>Accepts clients until shutdown; an accept the shutdown interrupted ends the loop.</summary>
+    internal static async Task AcceptUntilShutdownAsync(Func<Task<TcpClient>> accept, Action<TcpClient> serve, CancellationToken shutdown)
     {
-        while (!_shutdown.IsCancellationRequested)
+        while (!shutdown.IsCancellationRequested)
         {
             TcpClient client;
             try
             {
-                client = await _listener.AcceptTcpClientAsync();
+                client = await accept();
             }
-            catch (Exception exception) when (_shutdown.IsCancellationRequested && exception is ObjectDisposedException or SocketException)
+            // A listener stopped after the shutdown check refuses the accept as not listening.
+            catch (Exception exception) when (shutdown.IsCancellationRequested
+                && exception is ObjectDisposedException or SocketException or InvalidOperationException)
             {
                 break;
             }
 
-            _clients.Add(client);
-            _connections.Add(ServeAsync(client));
+            serve(client);
         }
     }
+
+    private Task AcceptLoopAsync() => AcceptUntilShutdownAsync(_listener.AcceptTcpClientAsync, client =>
+    {
+        _clients.Add(client);
+        _connections.Add(ServeAsync(client));
+    }, _shutdown.Token);
 
     private async Task ServeAsync(TcpClient client)
     {
         using (client)
         {
-            try
-            {
-                // Taking the stream belongs to the exchange too: the accept loop records the
-                // client before it starts serving it, so a concurrent ReleaseResponses can close
-                // the socket first, and GetStream then refuses the disposed client.
-                using var stream = client.GetStream();
-                var request = await ReadRequestAsync(stream);
-                if (request is null)
-                {
-                    // The peer opened the connection and closed it before writing a request line:
-                    // a client whose own bound fired first (the probe's request timeout under a
-                    // loaded machine), not a handler that wrote something wrong.
-                    _ = _clientDisconnected.TrySetResult(null);
-                    return;
-                }
+            await ServeExchangeAsync(client.GetStream);
+        }
+    }
 
-                _requests.Enqueue(request);
-                var response = _respond(request.Path);
-                await WriteResponseAsync(stream, response);
-                if (response.KeepOpen)
-                {
-                    await WaitForClientDisconnectAsync(stream);
-                    _ = _clientDisconnected.TrySetResult(null);
-                }
-            }
-            catch (Exception exception) when (exception is IOException or ObjectDisposedException or SocketException)
+    /// <summary>Serves one exchange; a connection ReleaseResponses tore down ends it quietly.</summary>
+    internal async Task ServeExchangeAsync(Func<Stream> takeStream)
+    {
+        try
+        {
+            // Taking the stream belongs to the exchange too: the accept loop records the
+            // client before it starts serving it, so a concurrent ReleaseResponses can close
+            // the socket first, and GetStream then refuses the disposed client.
+            using var stream = takeStream();
+            var request = await ReadRequestAsync(stream);
+            if (request is null)
             {
-                // The peer aborting mid-exchange, or ReleaseResponses closing the socket under an
-                // in-flight write, is connection teardown rather than a fixture failure; DisposeAsync
-                // awaits this task, so a propagated fault would fail the test from teardown. A torn
-                // connection is also the disconnect signal the kept-open fixtures await.
+                // The peer opened the connection and closed it before writing a request line:
+                // a client whose own bound fired first (the probe's request timeout under a
+                // loaded machine), not a handler that wrote something wrong.
+                _ = _clientDisconnected.TrySetResult(null);
+                return;
+            }
+
+            _requests.Enqueue(request);
+            var response = _respond(request.Path);
+            await WriteResponseAsync(stream, response);
+            if (response.KeepOpen)
+            {
+                await WaitForClientDisconnectAsync(stream);
                 _ = _clientDisconnected.TrySetResult(null);
             }
+        }
+        // A reader over a stream ReleaseResponses already closed refuses it as not readable.
+        catch (Exception exception) when (exception is IOException or ObjectDisposedException or SocketException
+            || (_released && exception is ArgumentException))
+        {
+            // The peer aborting mid-exchange, or ReleaseResponses closing the socket under an
+            // in-flight write, is connection teardown rather than a fixture failure; DisposeAsync
+            // awaits this task, so a propagated fault would fail the test from teardown. A torn
+            // connection is also the disconnect signal the kept-open fixtures await.
+            _ = _clientDisconnected.TrySetResult(null);
         }
     }
 
