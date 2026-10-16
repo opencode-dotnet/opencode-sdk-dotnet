@@ -17,9 +17,7 @@ public sealed class PosixServerChildTests
     {
         var reaping = typeof(PosixServerChild).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
             .Single(method => string.Equals(method.Name, "ReapWithinAsync", StringComparison.Ordinal));
-        var suppressions = reaping.GetCustomAttributes<SlopwatchSuppressAttribute>()
-            .Where(attribute => string.Equals(attribute.RuleId, "SW003", StringComparison.Ordinal))
-            .ToArray();
+        var suppressions = SuppressionDeclaration.BestEffortFailures(reaping);
 
         await Assert.That(suppressions).Count().IsEqualTo(1);
         await Assert.That(suppressions.Single().Reason).IsEqualTo(
@@ -40,11 +38,7 @@ public sealed class PosixServerChildTests
             .Throws<IOException>();
 
         await Assert.That(exception).IsSameReferenceAs(failure);
-        await Assert.That(standardInput.CanRead).IsFalse();
-        await Assert.That(standardError.CanRead).IsFalse();
-        _ = seams.Signals.Received(1).SignalGroup(ProcessId, ProcessSignal.Kill);
-        _ = seams.Exits.Received(1).Reap(ProcessId);
-        _ = seams.Exits.DidNotReceive().WaitUntilExited(Arg.Any<int>());
+        await AssertForegroundCleanupAsync(seams, standardInput, standardError);
     }
 
     [Test]
@@ -62,11 +56,7 @@ public sealed class PosixServerChildTests
             .Throws<InvalidOperationException>();
 
         await Assert.That(exception!.Message).Contains("spawn returned no read end");
-        await Assert.That(standardInput.CanRead).IsFalse();
-        await Assert.That(standardError.CanRead).IsFalse();
-        _ = seams.Signals.Received(1).SignalGroup(ProcessId, ProcessSignal.Kill);
-        _ = seams.Exits.Received(1).Reap(ProcessId);
-        _ = seams.Exits.DidNotReceive().WaitUntilExited(Arg.Any<int>());
+        await AssertForegroundCleanupAsync(seams, standardInput, standardError);
     }
 
     [Test]
@@ -121,6 +111,15 @@ public sealed class PosixServerChildTests
         _ = seams.Exits.DidNotReceive().Reap(Arg.Any<int>());
         _ = seams.Exits.DidNotReceive().WaitUntilExited(Arg.Any<int>());
         await Assert.That(seams.Signals.ReceivedCalls()).IsEmpty();
+    }
+
+    private static async Task AssertForegroundCleanupAsync(LauncherSeams seams, Stream standardInput, Stream standardError)
+    {
+        await Assert.That(standardInput.CanRead).IsFalse();
+        await Assert.That(standardError.CanRead).IsFalse();
+        _ = seams.Signals.Received(1).SignalGroup(ProcessId, ProcessSignal.Kill);
+        _ = seams.Exits.Received(1).Reap(ProcessId);
+        _ = seams.Exits.DidNotReceive().WaitUntilExited(Arg.Any<int>());
     }
 
     private static ServerChildStart Start(bool includeResolutionAndDirectory = false) => new()

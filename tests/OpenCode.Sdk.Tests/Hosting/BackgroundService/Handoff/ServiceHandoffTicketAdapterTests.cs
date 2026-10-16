@@ -19,8 +19,7 @@ public sealed class ServiceHandoffTicketAdapterTests
         var exception = await Assert.That(() => ServiceHandoffTicketAdapter.Instance.AdaptSuccess(200, bytes))
             .Throws<OpenCodeTransportException>();
 
-        await Assert.That(exception!.InnerException).IsAssignableTo<JsonException>();
-        await Assert.That(exception.Message).Contains("malformed success body");
+        await AssertMalformedBodyAsync(exception!);
     }
 
     [Test]
@@ -33,8 +32,7 @@ public sealed class ServiceHandoffTicketAdapterTests
         var exception = await Assert.That(() => ServiceHandoffTicketAdapter.Instance.Adapt(200, body))
             .Throws<OpenCodeTransportException>();
 
-        await Assert.That(exception!.InnerException).IsAssignableTo<JsonException>();
-        await Assert.That(exception.Message).Contains("malformed success body");
+        await AssertMalformedBodyAsync(exception!);
     }
 
     [Test]
@@ -54,5 +52,11 @@ public sealed class ServiceHandoffTicketAdapterTests
         await Assert.That(response.HasHandoffMember).IsTrue();
         await Assert.That(response.Handoff).IsNotNull();
         await Assert.That(response.Handoff!.Value.GetRawText()).IsEqualTo(expected.RootElement.GetProperty("handoff").GetRawText());
+    }
+
+    private static async Task AssertMalformedBodyAsync(OpenCodeTransportException exception)
+    {
+        await Assert.That(exception.InnerException).IsAssignableTo<JsonException>();
+        await Assert.That(exception.Message).Contains("malformed success body");
     }
 }

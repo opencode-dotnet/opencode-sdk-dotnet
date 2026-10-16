@@ -20,20 +20,12 @@ public sealed class ServicePtyHandoffCancellationTests
         await using var server = LoopbackHttpServer.Start(_ => Pending(arrived));
         using var caller = new CancellationTokenSource();
         var shutdown = Substitute.For<IServicePtyShutdown>();
-        var handoff = new ServicePtyHandoff(new TestablyServiceFileSystem(_scenario.FileSystem), _scenario.Clock, shutdown);
-        var pending = handoff.PrepareAsync(_scenario.RegistrationPath(), ServicePtyHandoffScenario.Registration(server.Endpoint), RequestTimeout, caller.Token);
+        var pending = PrepareAsync(server.Endpoint, shutdown, caller.Token);
         try
         {
-            await arrived.Task.WaitAsync(RequestTimeout);
-            await caller.CancelOnWorkerAsync();
-
-            Task[] pendingTasks = [pending];
-            var exception = await Assert.That(async () => await Task.WhenAll(pendingTasks).WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
-
-            await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
-            await Assert.That(_scenario.ReadSidecar()).IsNull();
-            await Assert.That(_scenario.TemporaryFiles()).IsEmpty();
-            await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath], CollectionOrdering.Matching);
+            Task[] arrivalTasks = [arrived.Task];
+            await Task.WhenAll(arrivalTasks).WaitAsync(HangGuard.Bound);
+            await AssertCanceledPreparationAsync(pending, caller, server);
             _ = shutdown.DidNotReceiveWithAnyArgs().ShutdownAsync(default!, default);
         }
         finally
@@ -41,7 +33,7 @@ public sealed class ServicePtyHandoffCancellationTests
             await caller.CancelOnWorkerAsync();
             server.ReleaseResponses();
             Task[] cleanupTasks = [pending];
-            _ = await Assert.That(async () => await Task.WhenAll(cleanupTasks).WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
+            _ = await Assert.That(async () => await Task.WhenAll(cleanupTasks).WaitAsync(HangGuard.Bound)).Throws<OperationCanceledException>();
         }
     }
 
@@ -61,28 +53,38 @@ public sealed class ServicePtyHandoffCancellationTests
             Task[] heldTasks = [held.Task];
             await Task.WhenAll(heldTasks).WaitAsync(token);
         });
-        var handoff = new ServicePtyHandoff(new TestablyServiceFileSystem(_scenario.FileSystem), _scenario.Clock, shutdown);
-        var pending = handoff.PrepareAsync(_scenario.RegistrationPath(), ServicePtyHandoffScenario.Registration(server.Endpoint), RequestTimeout, caller.Token);
+        var pending = PrepareAsync(server.Endpoint, shutdown, caller.Token);
         try
         {
-            var boundToken = await entered.Task.WaitAsync(RequestTimeout);
+            Task[] entryTasks = [entered.Task];
+            await Task.WhenAll(entryTasks).WaitAsync(HangGuard.Bound);
+            var boundToken = await entered.Task;
             await Assert.That(boundToken).IsNotEqualTo(caller.Token);
-            await caller.CancelOnWorkerAsync();
-
-            Task[] pendingTasks = [pending];
-            var exception = await Assert.That(async () => await Task.WhenAll(pendingTasks).WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
-
-            await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
-            await Assert.That(_scenario.ReadSidecar()).IsNull();
-            await Assert.That(_scenario.TemporaryFiles()).IsEmpty();
-            await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath], CollectionOrdering.Matching);
+            await AssertCanceledPreparationAsync(pending, caller, server);
             _ = shutdown.Received(1).ShutdownAsync(Arg.Any<ServiceRegistration>(), boundToken);
         }
         finally
         {
             await caller.CancelOnWorkerAsync();
             Task[] cleanupTasks = [pending];
-            _ = await Assert.That(async () => await Task.WhenAll(cleanupTasks).WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
+            _ = await Assert.That(async () => await Task.WhenAll(cleanupTasks).WaitAsync(HangGuard.Bound)).Throws<OperationCanceledException>();
         }
+    }
+
+    private Task PrepareAsync(Uri endpoint, IServicePtyShutdown shutdown, CancellationToken cancellationToken) =>
+        new ServicePtyHandoff(new TestablyServiceFileSystem(_scenario.FileSystem), _scenario.Clock, shutdown)
+            .PrepareAsync(_scenario.RegistrationPath(), ServicePtyHandoffScenario.Registration(endpoint), RequestTimeout, cancellationToken);
+
+    private async Task AssertCanceledPreparationAsync(Task pending, CancellationTokenSource caller, LoopbackHttpServer server)
+    {
+        await caller.CancelOnWorkerAsync();
+
+        Task[] pendingTasks = [pending];
+        var exception = await Assert.That(async () => await Task.WhenAll(pendingTasks).WaitAsync(HangGuard.Bound, CancellationToken.None)).Throws<OperationCanceledException>();
+
+        await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
+        await Assert.That(_scenario.ReadSidecar()).IsNull();
+        await Assert.That(_scenario.TemporaryFiles()).IsEmpty();
+        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath], CollectionOrdering.Matching);
     }
 }

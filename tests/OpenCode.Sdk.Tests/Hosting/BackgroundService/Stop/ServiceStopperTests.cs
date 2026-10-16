@@ -142,12 +142,7 @@ public sealed class ServiceStopperTests
     [Test]
     public async Task StopAsync_Should_Ignore_A_Refused_Terminal_Shutdown_And_Still_Terminate()
     {
-        SeedModern();
-        Answer(new ServiceProbeResult(ServiceState.Ready, Version, TimedOut: false, Compatible: true));
-        _ptyShutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>())
-            .ThrowsAsync(new OpenCodeApiException("The daemon refused the shutdown."));
-
-        await Stopper().StopAsync(options: null, CancellationToken.None);
+        await StopWithFailedShutdownAsync(new OpenCodeApiException("The daemon refused the shutdown."));
 
         _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
         await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
@@ -156,12 +151,7 @@ public sealed class ServiceStopperTests
     [Test]
     public async Task StopAsync_Should_Ignore_An_Unreachable_Terminal_Shutdown_And_Still_Terminate()
     {
-        SeedModern();
-        Answer(new ServiceProbeResult(ServiceState.Ready, Version, TimedOut: false, Compatible: true));
-        _ptyShutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>())
-            .ThrowsAsync(new OpenCodeTransportException("The daemon went away."));
-
-        await Stopper().StopAsync(options: null, CancellationToken.None);
+        await StopWithFailedShutdownAsync(new OpenCodeTransportException("The daemon went away."));
 
         _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
         await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
@@ -551,6 +541,15 @@ public sealed class ServiceStopperTests
         _ = await Assert
             .That(async () => await Stopper().StopAsync(options: null, cancelled))
             .Throws<OperationCanceledException>();
+    }
+
+    private async Task StopWithFailedShutdownAsync(Exception failure)
+    {
+        SeedModern();
+        Answer(new ServiceProbeResult(ServiceState.Ready, Version, TimedOut: false, Compatible: true));
+        _ptyShutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>()).ThrowsAsync(failure);
+
+        await Stopper().StopAsync(options: null, CancellationToken.None);
     }
 
     private ServiceStopper Stopper() =>

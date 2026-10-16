@@ -39,7 +39,7 @@ public sealed class ServicePtyHandoffTests
             Json(HttpStatusCode.OK, Fixtures.LoadJson("BackgroundService.pty-handoff-response-ticket.json")));
         var registration = ServicePtyHandoffScenario.Registration(server.Endpoint);
 
-        await Handoff().PrepareAsync(_scenario.RegistrationPath(), registration, RequestTimeout, CancellationToken.None);
+        await PrepareAsync(registration);
 
         var sidecar = _scenario.ReadSidecar();
         await Assert.That(sidecar).IsNotNull();
@@ -60,7 +60,7 @@ public sealed class ServicePtyHandoffTests
         var registration = ServicePtyHandoffScenario.Registration(server.Endpoint);
         Seed(_scenario.SidecarPath(), Sidecar(registration, handoff: null, NowMilliseconds + 60_000).ToUtf8Json());
 
-        await Handoff().PrepareAsync(_scenario.RegistrationPath(), registration, RequestTimeout, CancellationToken.None);
+        await PrepareAsync(registration);
 
         await Assert.That(server.Requests).IsEmpty();
         await Assert.That(_scenario.ReadSidecar()).IsNotNull();
@@ -75,12 +75,9 @@ public sealed class ServicePtyHandoffTests
             : Json(HttpStatusCode.NotFound, "{}"));
         var registration = ServicePtyHandoffScenario.Registration(server.Endpoint);
 
-        await Handoff().PrepareAsync(_scenario.RegistrationPath(), registration, RequestTimeout, CancellationToken.None);
+        await PrepareAsync(registration);
 
-        var sidecar = _scenario.ReadSidecar();
-        await Assert.That(sidecar).IsNotNull();
-        await Assert.That(sidecar!.Handoff).IsNull();
-        await Assert.That(sidecar.ExpiresAt).IsEqualTo(NowMilliseconds + 30_000d);
+        _ = await AssertNullSidecarAsync();
         await Assert.That(server.RequestPaths).Contains(ShutdownPath);
     }
 
@@ -93,16 +90,11 @@ public sealed class ServicePtyHandoffTests
         // An expired ticket, a ticket missing a member the pin knows, and an answer without a handoff
         // member are refused, and a refusal takes the same best-effort fallback a failed request does.
         _scenario.EnsureSidecarDirectory();
-        await using var server = LoopbackHttpServer.Start(path => path == ShutdownPath
-            ? NoContent()
-            : Json(HttpStatusCode.OK, Fixtures.LoadJson(fixture)));
+        await using var server = StartShutdownFallbackServer(fixture);
 
         await PrepareAsync(server.Endpoint);
 
-        var sidecar = _scenario.ReadSidecar();
-        await Assert.That(sidecar).IsNotNull();
-        await Assert.That(sidecar!.Handoff).IsNull();
-        await Assert.That(sidecar.ExpiresAt).IsEqualTo(NowMilliseconds + 30_000d);
+        _ = await AssertNullSidecarAsync();
         await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath, ShutdownPath]);
     }
 
@@ -112,16 +104,11 @@ public sealed class ServicePtyHandoffTests
     public async Task PrepareAsync_Should_Take_The_Shutdown_Fallback_For_A_Ticket_With_Trailing_Content(string fixture)
     {
         _scenario.EnsureSidecarDirectory();
-        await using var server = LoopbackHttpServer.Start(path => path == ShutdownPath
-            ? NoContent()
-            : Json(HttpStatusCode.OK, Fixtures.LoadJson(fixture)));
+        await using var server = StartShutdownFallbackServer(fixture);
 
         await PrepareAsync(server.Endpoint);
 
-        var sidecar = _scenario.ReadSidecar();
-        await Assert.That(sidecar).IsNotNull();
-        await Assert.That(sidecar!.Handoff).IsNull();
-        await Assert.That(sidecar.ExpiresAt).IsEqualTo(NowMilliseconds + 30_000d);
+        _ = await AssertNullSidecarAsync();
         await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath, ShutdownPath], CollectionOrdering.Matching);
         await Assert.That(_scenario.TemporaryFiles()).IsEmpty();
     }
@@ -175,10 +162,7 @@ public sealed class ServicePtyHandoffTests
             .PrepareAsync(_scenario.RegistrationPath(), registration!, RequestTimeout, CancellationToken.None);
 
         _ = shutdown.Received(1).ShutdownAsync(registration!, Arg.Any<CancellationToken>());
-        var sidecar = _scenario.ReadSidecar();
-        await Assert.That(sidecar).IsNotNull();
-        await Assert.That(sidecar!.Handoff).IsNull();
-        await Assert.That(sidecar.ExpiresAt).IsEqualTo(NowMilliseconds + 30_000d);
+        var sidecar = await AssertNullSidecarAsync();
         await Assert.That(sidecar.SourceUrl).IsEqualTo(registration!.Url);
         await Assert.That(_scenario.TemporaryFiles()).IsEmpty();
     }
@@ -248,9 +232,9 @@ public sealed class ServicePtyHandoffTests
     public async Task EnvironmentAsync_Should_Adopt_A_Fresh_Matching_Sidecar()
     {
         Seed(_scenario.RegistrationPath(), ServiceRegistrationData.Passwordless);
-        Seed(_scenario.SidecarPath(), Sidecar(FixedRegistration(), Ticket, NowMilliseconds + 60_000).ToUtf8Json());
+        SeedFreshSidecar(Ticket);
 
-        var overlay = await Handoff().EnvironmentAsync(_scenario.RegistrationPath(), Caller(), CancellationToken.None);
+        var overlay = await EnvironmentAsync(Caller());
 
         await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsEqualTo(Ticket.GetRawText());
         await Assert.That(overlay["KEEP"]).IsEqualTo("1");
@@ -259,9 +243,9 @@ public sealed class ServicePtyHandoffTests
     [Test]
     public async Task EnvironmentAsync_Should_Adopt_When_The_Registration_Is_Absent()
     {
-        Seed(_scenario.SidecarPath(), Sidecar(FixedRegistration(), Ticket, NowMilliseconds + 60_000).ToUtf8Json());
+        SeedFreshSidecar(Ticket);
 
-        var overlay = await Handoff().EnvironmentAsync(_scenario.RegistrationPath(), callerEnvironment: null, CancellationToken.None);
+        var overlay = await EnvironmentAsync(caller: null);
 
         await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsEqualTo(Ticket.GetRawText());
     }
@@ -272,7 +256,7 @@ public sealed class ServicePtyHandoffTests
         Seed(_scenario.RegistrationPath(), ServiceRegistrationData.Passwordless);
         Seed(_scenario.SidecarPath(), Sidecar(FixedRegistration(), Ticket, NowMilliseconds - 1).ToUtf8Json());
 
-        var overlay = await Handoff().EnvironmentAsync(_scenario.RegistrationPath(), Caller(), CancellationToken.None);
+        var overlay = await EnvironmentAsync(Caller());
 
         await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsNull();
     }
@@ -281,9 +265,9 @@ public sealed class ServicePtyHandoffTests
     public async Task EnvironmentAsync_Should_Remove_The_Variable_When_The_Source_Does_Not_Match_The_Registration()
     {
         Seed(_scenario.RegistrationPath(), ServiceRegistrationData.DuplicatePidResolved);
-        Seed(_scenario.SidecarPath(), Sidecar(FixedRegistration(), Ticket, NowMilliseconds + 60_000).ToUtf8Json());
+        SeedFreshSidecar(Ticket);
 
-        var overlay = await Handoff().EnvironmentAsync(_scenario.RegistrationPath(), Caller(), CancellationToken.None);
+        var overlay = await EnvironmentAsync(Caller());
 
         await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsNull();
     }
@@ -298,7 +282,7 @@ public sealed class ServicePtyHandoffTests
         Seed(_scenario.RegistrationPath(), ServiceRegistrationData.Passwordless);
         Seed(_scenario.SidecarPath(), FractionalSourceSidecar());
 
-        var overlay = await Handoff().EnvironmentAsync(_scenario.RegistrationPath(), Caller(), CancellationToken.None);
+        var overlay = await EnvironmentAsync(Caller());
 
         await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsNull();
         await Assert.That(overlay["KEEP"]).IsEqualTo("1");
@@ -310,7 +294,7 @@ public sealed class ServicePtyHandoffTests
     {
         Seed(_scenario.SidecarPath(), FractionalSourceSidecar());
 
-        var overlay = await Handoff().EnvironmentAsync(_scenario.RegistrationPath(), callerEnvironment: null, CancellationToken.None);
+        var overlay = await EnvironmentAsync(caller: null);
 
         await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsEqualTo(Ticket.GetRawText());
     }
@@ -318,7 +302,7 @@ public sealed class ServicePtyHandoffTests
     [Test]
     public async Task EnvironmentAsync_Should_Remove_The_Variable_When_The_Sidecar_Is_Absent()
     {
-        var overlay = await Handoff().EnvironmentAsync(_scenario.RegistrationPath(), Caller(), CancellationToken.None);
+        var overlay = await EnvironmentAsync(Caller());
 
         await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsNull();
         await Assert.That(overlay["KEEP"]).IsEqualTo("1");
@@ -328,10 +312,10 @@ public sealed class ServicePtyHandoffTests
     public async Task EnvironmentAsync_Should_Replace_A_Caller_Provided_Handoff_Value()
     {
         Seed(_scenario.RegistrationPath(), ServiceRegistrationData.Passwordless);
-        Seed(_scenario.SidecarPath(), Sidecar(FixedRegistration(), Ticket, NowMilliseconds + 60_000).ToUtf8Json());
+        SeedFreshSidecar(Ticket);
         var caller = new Dictionary<string, string>(StringComparer.Ordinal) { ["OPENCODE_PTY_HANDOFF"] = "stale" };
 
-        var overlay = await Handoff().EnvironmentAsync(_scenario.RegistrationPath(), caller, CancellationToken.None);
+        var overlay = await EnvironmentAsync(caller);
 
         await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsEqualTo(Ticket.GetRawText());
     }
@@ -339,7 +323,7 @@ public sealed class ServicePtyHandoffTests
     [Test]
     public async Task CompleteAsync_Should_Clear_A_Foreign_Source_Sidecar()
     {
-        Seed(_scenario.SidecarPath(), Sidecar(FixedRegistration(), Ticket, NowMilliseconds + 60_000).ToUtf8Json());
+        SeedFreshSidecar(Ticket);
         var winner = new ServiceRegistration(SourceId, ServicePtyHandoffScenario.Version, FixedUrl, new Uri(FixedUrl), RegisteredPid + 1, Password);
 
         await Handoff().CompleteAsync(_scenario.RegistrationPath(), winner, CancellationToken.None);
@@ -368,7 +352,7 @@ public sealed class ServicePtyHandoffTests
     [Test]
     public async Task ClearAsync_Should_Remove_The_Sidecar_And_Be_Idempotent()
     {
-        Seed(_scenario.SidecarPath(), Sidecar(FixedRegistration(), null, NowMilliseconds + 60_000).ToUtf8Json());
+        SeedFreshSidecar(handoff: null);
 
         await Handoff().ClearAsync(_scenario.RegistrationPath(), CancellationToken.None);
         await Assert.That(_scenario.ReadSidecar()).IsNull();
@@ -438,9 +422,9 @@ public sealed class ServicePtyHandoffTests
     public async Task EnvironmentAsync_Should_Remove_The_Variable_For_A_Fresh_Matching_Sidecar_Without_A_Ticket()
     {
         Seed(_scenario.RegistrationPath(), ServiceRegistrationData.Passwordless);
-        Seed(_scenario.SidecarPath(), Sidecar(FixedRegistration(), handoff: null, NowMilliseconds + 60_000).ToUtf8Json());
+        SeedFreshSidecar(handoff: null);
 
-        var overlay = await Handoff().EnvironmentAsync(_scenario.RegistrationPath(), Caller(), CancellationToken.None);
+        var overlay = await EnvironmentAsync(Caller());
 
         await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsNull();
         await Assert.That(overlay["KEEP"]).IsEqualTo("1");
@@ -491,10 +475,7 @@ public sealed class ServicePtyHandoffTests
 
         await PrepareAsync(server.Endpoint);
 
-        var sidecar = _scenario.ReadSidecar();
-        await Assert.That(sidecar).IsNotNull();
-        await Assert.That(sidecar!.Handoff).IsNull();
-        await Assert.That(sidecar.ExpiresAt).IsEqualTo(NowMilliseconds + 30_000d);
+        _ = await AssertNullSidecarAsync();
     }
 
     [Test]
@@ -554,7 +535,7 @@ public sealed class ServicePtyHandoffTests
         });
         registration = ServicePtyHandoffScenario.Registration(server.Endpoint);
 
-        await Handoff().PrepareAsync(_scenario.RegistrationPath(), registration, RequestTimeout, CancellationToken.None);
+        await PrepareAsync(registration);
 
         await Assert.That(server.RequestPaths).DoesNotContain(ShutdownPath);
         await Assert.That(_scenario.ReadSidecar()!.Handoff).IsNotNull();
@@ -565,7 +546,7 @@ public sealed class ServicePtyHandoffTests
     [Arguments(SourceId, "http://127.0.0.1:49999")]
     public async Task CompleteAsync_Should_Clear_A_Sidecar_Whose_Source_Differs_In_One_Member(string id, string address)
     {
-        Seed(_scenario.SidecarPath(), Sidecar(FixedRegistration(), Ticket, NowMilliseconds + 60_000).ToUtf8Json());
+        SeedFreshSidecar(Ticket);
         var winner = new ServiceRegistration(id, ServicePtyHandoffScenario.Version, address, new Uri(address), RegisteredPid, Password);
 
         await Handoff().CompleteAsync(_scenario.RegistrationPath(), winner, CancellationToken.None);
@@ -579,9 +560,9 @@ public sealed class ServicePtyHandoffTests
         // The SDK reads an undecodable registration as absent, which the adoption rule accepts;
         // upstream compares whatever JSON.parse returned instead (recorded, harmless).
         Seed(_scenario.RegistrationPath(), "{\"id\":123}");
-        Seed(_scenario.SidecarPath(), Sidecar(FixedRegistration(), Ticket, NowMilliseconds + 60_000).ToUtf8Json());
+        SeedFreshSidecar(Ticket);
 
-        var overlay = await Handoff().EnvironmentAsync(_scenario.RegistrationPath(), callerEnvironment: null, CancellationToken.None);
+        var overlay = await EnvironmentAsync(caller: null);
 
         await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsEqualTo(Ticket.GetRawText());
     }
@@ -592,8 +573,30 @@ public sealed class ServicePtyHandoffTests
         return document.RootElement.GetProperty("handoff").Clone();
     }
 
-    private async Task PrepareAsync(Uri endpoint) =>
-        await Handoff().PrepareAsync(_scenario.RegistrationPath(), ServicePtyHandoffScenario.Registration(endpoint), RequestTimeout, CancellationToken.None);
+    private Task PrepareAsync(Uri endpoint) => PrepareAsync(ServicePtyHandoffScenario.Registration(endpoint));
+
+    private async Task PrepareAsync(ServiceRegistration registration) =>
+        await Handoff().PrepareAsync(_scenario.RegistrationPath(), registration, RequestTimeout, CancellationToken.None);
+
+    private static LoopbackHttpServer StartShutdownFallbackServer(string fixture) =>
+        LoopbackHttpServer.Start(path => path == ShutdownPath
+            ? NoContent()
+            : Json(HttpStatusCode.OK, Fixtures.LoadJson(fixture)));
+
+    private async Task<PtyHandoffSidecar> AssertNullSidecarAsync()
+    {
+        var sidecar = _scenario.ReadSidecar();
+        await Assert.That(sidecar).IsNotNull();
+        await Assert.That(sidecar!.Handoff).IsNull();
+        await Assert.That(sidecar.ExpiresAt).IsEqualTo(NowMilliseconds + 30_000d);
+        return sidecar;
+    }
+
+    private void SeedFreshSidecar(JsonElement? handoff) =>
+        Seed(_scenario.SidecarPath(), Sidecar(FixedRegistration(), handoff, NowMilliseconds + 60_000).ToUtf8Json());
+
+    private Task<IReadOnlyDictionary<string, string?>> EnvironmentAsync(IReadOnlyDictionary<string, string>? caller) =>
+        Handoff().EnvironmentAsync(_scenario.RegistrationPath(), caller, CancellationToken.None);
 
     private ServicePtyHandoff Handoff() => new(new TestablyServiceFileSystem(_scenario.FileSystem), _scenario.Clock, new ServicePtyShutdown());
 

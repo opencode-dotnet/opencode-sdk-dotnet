@@ -59,10 +59,7 @@ public sealed class OpenCodeServerReadinessTests
             await WaitForChildAsync(output, cancellationToken);
             await caller.CancelOnWorkerAsync();
             Task[] startingTasks = [starting];
-            var exception = await Assert.That(async () => await Task.WhenAll(startingTasks).WaitAsync(CleanupObservationBound, cancellationToken))
-                .Throws<OperationCanceledException>();
-
-            await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
+            await AssertStartCanceledAsync(startingTasks, caller.Token, cancellationToken);
             await AssertFinalizedAsync(output);
         }
         finally
@@ -277,10 +274,15 @@ public sealed class OpenCodeServerReadinessTests
         Task<OpenCodeServer> starting, CancellationTokenSource caller, int processId, CancellationToken cancellationToken)
     {
         Task[] startingTasks = [starting];
+        await AssertStartCanceledAsync(startingTasks, caller.Token, cancellationToken);
+        await Assert.That(ProcessObservation.IsRunning(processId)).IsFalse();
+    }
+
+    private static async Task AssertStartCanceledAsync(Task[] startingTasks, CancellationToken callerToken, CancellationToken cancellationToken)
+    {
         var exception = await Assert.That(async () => await Task.WhenAll(startingTasks).WaitAsync(CleanupObservationBound, cancellationToken))
             .Throws<OperationCanceledException>();
-        await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
-        await Assert.That(ProcessObservation.IsRunning(processId)).IsFalse();
+        await Assert.That(exception!.CancellationToken).IsEqualTo(callerToken);
     }
 
     private static async Task AdvanceEarlyEndAsync(
