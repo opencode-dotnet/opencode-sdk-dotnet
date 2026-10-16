@@ -105,6 +105,19 @@ Nightly builds of `master` are on
 
 ### 🐛 Fixes
 
+- **Caller cancellation preserves your token across public async doors:** HTTP, SSE, cursor
+  traversal, and both terminal families. `OperationCanceledException.CancellationToken` is the
+  token you supplied at either entry point, including the same token at both enumeration entry
+  points; two distinct cancellable tokens are observed without an identity guarantee.
+- **Disposing the root client interrupts HTTP calls and SSE streams with `ObjectDisposedException`,**
+  rather than misreporting a transport timeout. Caller cancellation already observed takes precedence;
+  terminal sessions keep their separate ownership and disposal rules.
+- **SSE releases its live response on cancellation or client disposal on every target,** even while
+  your code holds an event. A suspended enumeration reports the exception on its next pull.
+- **A stream positioned past its end uploads zero bytes,** with a zero `Content-Length` when it can
+  seek, without rewinding or disposing the caller's stream.
+- **Malformed PTY cursor control documents are refused,** including truncation after the cursor
+  value, trailing garbage, or a second JSON value. Trailing whitespace remains valid.
 - **`AddOpenCode` keeps existing client registrations.** Calling it again does not add another
   `OpenCodeClient` or sub-client registration. A consumer's earlier registration of the root client
   or any sub-client wins; missing sub-clients are resolved from the registered root client.
