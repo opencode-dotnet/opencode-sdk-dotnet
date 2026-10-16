@@ -20,6 +20,7 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
     private readonly ConcurrentQueue<LoopbackRequest> _requests = [];
     private readonly Func<string, LoopbackHttpResponse> _respond;
     private readonly CancellationTokenSource _shutdown = new();
+    private volatile bool _released;
 
     private LoopbackHttpServer(Func<string, LoopbackHttpResponse> respond)
     {
@@ -64,6 +65,7 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
 
     public void ReleaseResponses()
     {
+        _released = true;
         foreach (var client in _clients)
         {
             client.Close();
@@ -133,7 +135,9 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
                 _ = _clientDisconnected.TrySetResult(null);
             }
         }
-        catch (Exception exception) when (exception is IOException or ObjectDisposedException or SocketException)
+        // A reader over a stream ReleaseResponses already closed refuses it as not readable.
+        catch (Exception exception) when (exception is IOException or ObjectDisposedException or SocketException
+            || (_released && exception is ArgumentException))
         {
             // The peer aborting mid-exchange, or ReleaseResponses closing the socket under an
             // in-flight write, is connection teardown rather than a fixture failure; DisposeAsync
