@@ -1,6 +1,6 @@
 # 🖥️ Terminals
 
-Date: 2026-10-14
+Date: 2026-10-16
 
 opencode has two terminal families, and they are genuinely different animals:
 
@@ -111,7 +111,7 @@ frames: everything you write on it is terminal input. Set the new size on the PT
 upstream's web terminal does:
 
 ```csharp
-await pty.UpdateAsync(new PtyUpdateRequest { Size = new PtyUpdateSize { Cols = 100, Rows = 30 } });
+await pty.UpdateAsync(new PtyUpdateRequest { Size = new PtySize { Cols = 100, Rows = 30 } });
 ```
 
 The persistent family is the other way round: it resizes through `ResizeAsync` on its socket,

@@ -14,7 +14,7 @@ internal static class SessionActionsWalkthrough
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(handle);
 
-        var export = await client.Experimental.GetSessionExportAsync(sessionId, new ExperimentalSessionExportRequest { Sanitize = QueryBoolean.True }).ConfigureAwait(false);
+        var export = await client.Experimental.GetSessionExportAsync(sessionId, new ExperimentalSessionExportRequest { Sanitize = true }).ConfigureAwait(false);
 
         Console.WriteLine($"export:  status={export.Status} id={export.SessionExport.Info.Id} messages={export.SessionExport.Messages.Count}");
 

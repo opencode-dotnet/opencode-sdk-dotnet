@@ -86,7 +86,6 @@ internal static class ReservedNamePolicy
             "PtyOutputFrame",
             "PtysClient",
             "PtySession",
-            "QueryBoolean",
             "SessionParentFilter",
         ],
         StringComparer.Ordinal);

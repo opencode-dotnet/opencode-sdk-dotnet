@@ -231,7 +231,7 @@ session. Upstream serves it as an experimental route, so it needs an
 ```csharp
 var session = client.Sessions.GetSessionClient(sessionId);
 
-await foreach (var item in session.ReadLogAsync(new SessionLogRequest { Follow = QueryBoolean.True }, cancellationToken))
+await foreach (var item in session.ReadLogAsync(new SessionLogRequest { Follow = true }, cancellationToken))
 {
     switch (item)
     {
@@ -262,7 +262,7 @@ and materialize no typed member. A concrete event's own `Durable` property is st
 
 | Member | Type | Meaning |
 |---|---|---|
-| `Follow` | `QueryBoolean?` | `True` keeps the stream open and keeps delivering; otherwise the stream ends when the existing log has been sent. |
+| `Follow` | `bool?` | `true` keeps the stream open and keeps delivering; otherwise the stream ends when the existing log has been sent. |
 | `After` | `long?` | Continue after an aggregate sequence you have already processed — the explicit continuation channel the global bus does not have. |
 
 The cursor is an exclusive aggregate sequence. Record the `Durable.Seq` of the last durable event
@@ -275,7 +275,7 @@ static SessionLogRequest? FollowAfter(ISessionEventDurable lastProcessed) =>
         ? new SessionLogRequest
         {
             After = envelope.Seq,
-            Follow = QueryBoolean.True,
+            Follow = true,
         }
         : null;
 ```
@@ -283,9 +283,9 @@ static SessionLogRequest? FollowAfter(ISessionEventDurable lastProcessed) =>
 An unknown durable event has no envelope to read, so there is no sequence to resume from; keep the
 last one you did read.
 
-With `Follow = False`, a server that persists the requested history replays the available durable
+With `Follow = false`, a server that persists the requested history replays the available durable
 events and ends with one `EventLogSynced`. The marker reports the captured aggregate watermark.
-With `Follow = True`, read through any replayed events until that marker arrives; the same stream
+With `Follow = true`, read through any replayed events until that marker arrives; the same stream
 then delivers live events committed after the attachment boundary, from a server that persists
 them. The marker is a transition boundary, not a durable event to save as the next `After` value.
 

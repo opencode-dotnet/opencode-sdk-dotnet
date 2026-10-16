@@ -9,5 +9,5 @@ public sealed record ProjectListRequest
     /// <summary>
     /// Gets the &apos;archived&apos; query value; the server default applies when unset.
     /// </summary>
-    public QueryBoolean? Archived { get; init; }
+    public bool? Archived { get; init; }
 }

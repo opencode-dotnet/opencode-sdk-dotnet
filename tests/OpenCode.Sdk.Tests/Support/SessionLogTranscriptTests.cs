@@ -13,7 +13,7 @@ public sealed class SessionLogTranscriptTests
         var thrown = await Assert.That(async () =>
         {
             _ = await transcript.ReadToEndAsync(
-                new SessionLogRequest { Follow = QueryBoolean.False }, CancellationToken.None);
+                new SessionLogRequest { Follow = false }, CancellationToken.None);
         })
             .Throws<InvalidOperationException>();
 
@@ -32,7 +32,7 @@ public sealed class SessionLogTranscriptTests
         var transcript = new SessionLogTranscript(new EventDiagnosticScenario());
 
         var items = await transcript.ReadToEndAsync(
-            new SessionLogRequest { Follow = QueryBoolean.False }, CancellationToken.None);
+            new SessionLogRequest { Follow = false }, CancellationToken.None);
 
         await Assert.That(items).Count().IsEqualTo(100);
         await Assert.That(items.All(item => item.Type.Length > 4000)).IsTrue();

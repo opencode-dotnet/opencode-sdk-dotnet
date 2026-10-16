@@ -376,7 +376,7 @@ public sealed class SessionClientContractTests
 
         var response = await scenario.Client.Experimental.GetSessionExportAsync("ses_100", new ExperimentalSessionExportRequest
         {
-            Sanitize = QueryBoolean.True,
+            Sanitize = true,
         });
 
         await Assert.That(response.SessionExport.Info.Id).IsEqualTo("ses_100");

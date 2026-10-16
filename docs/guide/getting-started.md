@@ -1,6 +1,6 @@
 # 🚀 Getting started
 
-Date: 2026-10-15
+Date: 2026-10-16
 
 Install the package, point a client at a server, and make three calls. Ten minutes, and the last
 one talks to a model.
@@ -249,17 +249,17 @@ and `Experimental.ImportSessionAsync` takes that same shape back at a location (
 already exists):
 
 ```csharp
-var export = await client.Experimental.GetSessionExportAsync(created.Session.Id, new ExperimentalSessionExportRequest { Sanitize = QueryBoolean.True });
+var export = await client.Experimental.GetSessionExportAsync(created.Session.Id, new ExperimentalSessionExportRequest { Sanitize = true });
 
 Console.WriteLine($"{export.SessionExport.Messages.Count} messages from {export.SessionExport.Info.Id}");
 ```
 
-> **✂️ `Sanitize` redacts by design.** With `Sanitize = QueryBoolean.True` the server rewrites
+> **✂️ `Sanitize` redacts by design.** With `Sanitize = true` the server rewrites
 > message text to placeholders before it answers — `[redacted:text:<messageId>]` for user text,
 > `[redacted:synthetic:<messageId>]` for synthetic text, `[redacted:session-title:<sessionId>]` for
 > the title, and the same treatment for the directory. Ids, types, order, and count all survive
 > untouched. So a sanitized export is for sharing the *shape* of a conversation, never for
-> comparing transcripts: compare ids, not text. Leave `Sanitize` unset or `False` when you want the
+> comparing transcripts: compare ids, not text. Leave `Sanitize` unset or `false` when you want the
 > conversation itself. Verified on `@opencode/cli@2.0.2`.
 
 `Experimental` methods take route identifiers explicitly, including session IDs. Import uses

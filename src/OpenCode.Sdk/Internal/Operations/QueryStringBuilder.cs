@@ -50,20 +50,14 @@ internal sealed class QueryStringBuilder
         Append(name, wire);
     }
 
-    public void AddBoolean(string name, QueryBoolean? value)
+    public void AddBoolean(string name, bool? value)
     {
         if (value is null)
         {
             return;
         }
 
-        var wire = value switch
-        {
-            QueryBoolean.True => "true",
-            QueryBoolean.False => "false",
-            _ => throw new ArgumentOutOfRangeException(nameof(value), value, "Unknown QueryBoolean value."),
-        };
-        Append(name, wire);
+        Append(name, value.Value ? "true" : "false");
     }
 
     public void AddParentFilter(string name, SessionParentFilter? value)

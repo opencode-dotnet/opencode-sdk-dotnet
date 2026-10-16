@@ -1,6 +1,6 @@
 # 📝 Requests
 
-Date: 2026-10-15
+Date: 2026-10-16
 
 Every operation that sends anything takes one request record. They are plain immutable records you
 fill with an object initializer — with one twist worth knowing before you write your first `PATCH`:
@@ -139,13 +139,12 @@ simply not written, and the server's own default applies:
 ```csharp
 var export = await client.Experimental.GetSessionExportAsync("ses_1", new ExperimentalSessionExportRequest
 {
-    Sanitize = QueryBoolean.True,
+    Sanitize = true,
 });
 ```
 
-`QueryBoolean` exists because the API declares these as the *strings* `"true"` and `"false"`, not
-as JSON booleans. `QueryBoolean.True` writes `true`, `QueryBoolean.False` writes `false`, and null
-writes nothing.
+Boolean query members are `bool?`. `true` writes the query text `true`, `false` writes `false`, and
+`null` writes nothing; the wire still carries text, not a JSON boolean.
 
 A request record can carry both at once — the body members serialize, the query members go into the
 URL, and the initializer does not distinguish them. `PluginCheckRequest.Target` is a body

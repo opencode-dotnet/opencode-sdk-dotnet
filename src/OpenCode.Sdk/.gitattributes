@@ -582,7 +582,6 @@
 /PersistentPtys/Internal/PersistentPtysRawClient.cs linguist-generated
 /PersistentPtys/Models/PersistentPtyAdded.cs linguist-generated
 /PersistentPtys/Models/PersistentPtyAddedData.cs linguist-generated
-/PersistentPtys/Models/PersistentPtyCreateInputSize.cs linguist-generated
 /PersistentPtys/Models/PersistentPtyHandoff.cs linguist-generated
 /PersistentPtys/Models/PersistentPtyInfo.cs linguist-generated
 /PersistentPtys/Models/PersistentPtyInfoOutput.cs linguist-generated
@@ -595,7 +594,6 @@
 /PersistentPtys/Models/PersistentPtyRemovedData.cs linguist-generated
 /PersistentPtys/Models/PersistentPtySnapshot.cs linguist-generated
 /PersistentPtys/Models/PersistentPtySnapshotCursor.cs linguist-generated
-/PersistentPtys/Models/PersistentPtyUpdateInputSize.cs linguist-generated
 /PersistentPtys/PersistentPtyConnectTokenResponse.cs linguist-generated
 /PersistentPtys/PersistentPtyCreateRequest.cs linguist-generated
 /PersistentPtys/PersistentPtyCreateResponse.cs linguist-generated
@@ -714,9 +712,9 @@
 /Ptys/Models/PtyExited.cs linguist-generated
 /Ptys/Models/PtyExitedData.cs linguist-generated
 /Ptys/Models/PtyNotFoundError.cs linguist-generated
+/Ptys/Models/PtySize.cs linguist-generated
 /Ptys/Models/PtyStatus.cs linguist-generated
 /Ptys/Models/PtyTicketConnectToken.cs linguist-generated
-/Ptys/Models/PtyUpdateSize.cs linguist-generated
 /Ptys/Models/PtyUpdated.cs linguist-generated
 /Ptys/Models/PtyUpdatedData.cs linguist-generated
 /Ptys/PtyConnectTokenRequest.cs linguist-generated
@@ -814,7 +812,6 @@
 /Sessions/Internal/SessionListResponseEnvelope.cs linguist-generated
 /Sessions/Internal/SessionLogItemJsonConverter.cs linguist-generated
 /Sessions/Internal/SessionLogResponseStreamAdapter.cs linguist-generated
-/Sessions/Internal/SessionMessageAssistantContentEncodedJsonConverter.cs linguist-generated
 /Sessions/Internal/SessionMessageAssistantContentJsonConverter.cs linguist-generated
 /Sessions/Internal/SessionMessageAssistantFinishJsonConverter.cs linguist-generated
 /Sessions/Internal/SessionMessageCompactionCompletedReasonJsonConverter.cs linguist-generated
@@ -865,7 +862,6 @@
 /Sessions/Internal/UnknownSessionInboxInfoJsonConverter.cs linguist-generated
 /Sessions/Internal/UnknownSessionInboxItemJsonConverter.cs linguist-generated
 /Sessions/Internal/UnknownSessionLogItemJsonConverter.cs linguist-generated
-/Sessions/Internal/UnknownSessionMessageAssistantContentEncodedJsonConverter.cs linguist-generated
 /Sessions/Internal/UnknownSessionMessageAssistantContentJsonConverter.cs linguist-generated
 /Sessions/Internal/UnknownSessionMessageCompactionJsonConverter.cs linguist-generated
 /Sessions/Internal/UnknownSessionMessageInfoJsonConverter.cs linguist-generated
@@ -983,7 +979,6 @@
 /Sessions/Models/Lifecycle/SessionViewedDurable.cs linguist-generated
 /Sessions/Models/MessageNotFoundError.cs linguist-generated
 /Sessions/Models/Messages/ISessionMessageAssistantContent.cs linguist-generated
-/Sessions/Models/Messages/ISessionMessageAssistantContentEncoded.cs linguist-generated
 /Sessions/Models/Messages/ISessionMessageCompaction.cs linguist-generated
 /Sessions/Models/Messages/ISessionMessageCompactionTime.cs linguist-generated
 /Sessions/Models/Messages/ISessionMessageInfo.cs linguist-generated
@@ -1038,7 +1033,6 @@
 /Sessions/Models/Messages/SessionMessageUser.cs linguist-generated
 /Sessions/Models/Messages/SessionMessageUserTime.cs linguist-generated
 /Sessions/Models/Messages/UnknownSessionMessageAssistantContent.cs linguist-generated
-/Sessions/Models/Messages/UnknownSessionMessageAssistantContentEncoded.cs linguist-generated
 /Sessions/Models/Messages/UnknownSessionMessageCompaction.cs linguist-generated
 /Sessions/Models/Messages/UnknownSessionMessageInfo.cs linguist-generated
 /Sessions/Models/Messages/UnknownSessionMessageToolState.cs linguist-generated

@@ -97,24 +97,15 @@ public sealed class QueryStringBuilderTests
     }
 
     [Test]
-    [Arguments(QueryBoolean.True, "?follow=true")]
-    [Arguments(QueryBoolean.False, "?follow=false")]
-    public async Task AddBoolean_Should_Write_The_Declared_String_Token(QueryBoolean value, string expected)
+    [Arguments(true, "?follow=true")]
+    [Arguments(false, "?follow=false")]
+    public async Task AddBoolean_Should_Write_The_Declared_String_Token(bool value, string expected)
     {
         var query = new QueryStringBuilder();
 
         query.AddBoolean("follow", value);
 
         await Assert.That(query.Value).IsEqualTo(expected);
-    }
-
-    [Test]
-    public async Task AddBoolean_Should_Refuse_An_Undefined_Value()
-    {
-        var query = new QueryStringBuilder();
-
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => query.AddBoolean("follow", (QueryBoolean)7));
-        await Task.CompletedTask;
     }
 
     [Test]

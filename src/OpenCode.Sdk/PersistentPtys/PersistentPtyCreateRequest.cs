@@ -47,7 +47,7 @@ public sealed record PersistentPtyCreateRequest
     /// </summary>
     [JsonPropertyName("size")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public PersistentPtyCreateInputSize? Size { get; init; }
+    public PtySize? Size { get; init; }
 
     /// <summary>
     /// Prints the record&apos;s members with its secret members masked.

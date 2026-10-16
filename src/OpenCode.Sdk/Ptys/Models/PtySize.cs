@@ -4,10 +4,9 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a persistent pty update input size value.
+/// Represents a pty size value.
 /// </summary>
-[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
-public sealed record PersistentPtyUpdateInputSize
+public sealed record PtySize
 {
     /// <summary>
     /// Gets the cols value.

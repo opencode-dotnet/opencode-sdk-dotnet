@@ -179,7 +179,6 @@ ISessionInboxInfoTime owner=Sessions reached-by=Sessions
 ISessionInboxItem owner=Sessions reached-by=Events,Sessions
 ISessionLogItem owner=Sessions reached-by=Events,Sessions
 ISessionMessageAssistantContent owner=Sessions reached-by=Experimental,Sessions
-ISessionMessageAssistantContentEncoded owner=Sessions reached-by=Experimental,Sessions
 ISessionMessageCompaction owner=Sessions reached-by=Experimental,Sessions
 ISessionMessageCompactionTime owner=Sessions reached-by=Experimental,Sessions
 ISessionMessageInfo owner=Sessions reached-by=Experimental,Sessions
@@ -294,7 +293,6 @@ PermissionSavedInfoTime owner=Permissions reached-by=Permissions
 PermissionSourceTool owner=Permissions reached-by=Events,Permissions,Sessions
 PersistentPtyAdded owner=PersistentPtys reached-by=Events
 PersistentPtyAddedData owner=PersistentPtys reached-by=Events
-PersistentPtyCreateInputSize owner=PersistentPtys reached-by=PersistentPtys
 PersistentPtyCreateRequest owner=PersistentPtys reached-by=PersistentPtys
 PersistentPtyHandoff owner=PersistentPtys reached-by=PersistentPtys
 PersistentPtyInfo owner=PersistentPtys reached-by=Events,PersistentPtys
@@ -308,7 +306,6 @@ PersistentPtyRemoved owner=PersistentPtys reached-by=Events
 PersistentPtyRemovedData owner=PersistentPtys reached-by=Events
 PersistentPtySnapshot owner=PersistentPtys reached-by=PersistentPtys
 PersistentPtySnapshotCursor owner=PersistentPtys reached-by=PersistentPtys
-PersistentPtyUpdateInputSize owner=PersistentPtys reached-by=PersistentPtys
 PersistentPtyUpdateRequest owner=PersistentPtys reached-by=PersistentPtys
 PluginCheckRequest owner=Plugins reached-by=Plugins
 PluginFeatures owner=Plugins reached-by=Plugins
@@ -363,10 +360,10 @@ PtyDeletedData owner=Ptys reached-by=Events
 PtyExited owner=Ptys reached-by=Events
 PtyExitedData owner=Ptys reached-by=Events
 PtyNotFoundError owner=Ptys reached-by=PersistentPtys,Ptys
+PtySize owner=Ptys reached-by=PersistentPtys,Ptys
 PtyStatus owner=Ptys reached-by=Events,Ptys
 PtyTicketConnectToken owner=Ptys reached-by=PersistentPtys,Ptys
 PtyUpdateRequest owner=Ptys reached-by=Ptys
-PtyUpdateSize owner=Ptys reached-by=Ptys
 PtyUpdated owner=Ptys reached-by=Events
 PtyUpdatedData owner=Ptys reached-by=Events
 ReferenceGitSource owner=References reached-by=References
@@ -710,7 +707,6 @@ UnknownSessionInboxInfo owner=Sessions reached-by=Sessions
 UnknownSessionInboxItem owner=Sessions reached-by=Events,Sessions
 UnknownSessionLogItem owner=Sessions reached-by=Events,Sessions
 UnknownSessionMessageAssistantContent owner=Sessions reached-by=Experimental,Sessions
-UnknownSessionMessageAssistantContentEncoded owner=Sessions reached-by=Experimental,Sessions
 UnknownSessionMessageCompaction owner=Sessions reached-by=Experimental,Sessions
 UnknownSessionMessageInfo owner=Sessions reached-by=Experimental,Sessions
 UnknownSessionMessageToolState owner=Sessions reached-by=Experimental,Sessions

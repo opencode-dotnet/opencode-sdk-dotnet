@@ -13,9 +13,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 internal static class QueryEnumShapePolicy
 {
     /// <summary>
-    /// Recognizes the enum value sets the hand-written spine types already carry, so those
-    /// schemas keep binding to <c>ListOrder</c> and <c>QueryBoolean</c> instead of growing
-    /// a second, generated spelling of the same two values.
+    /// Recognizes list-order and boolean-text value sets so query binding uses their
+    /// existing representations instead of emitting enum models.
     /// </summary>
     public static QueryValueKind? ResolveSpineKind(EnumNode node)
     {

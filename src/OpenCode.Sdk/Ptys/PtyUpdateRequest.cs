@@ -20,7 +20,7 @@ public sealed record PtyUpdateRequest
     /// </summary>
     [JsonPropertyName("size")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public PtyUpdateSize? Size { get; init; }
+    public PtySize? Size { get; init; }
 
     /// <summary>
     /// Gets the &apos;location&apos; query value; the server default applies when unset.

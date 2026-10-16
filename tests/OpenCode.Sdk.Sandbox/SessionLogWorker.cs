@@ -31,7 +31,7 @@ internal sealed partial class SessionLogWorker(
             await foreach (var item in session
                                .ReadLogAsync(new SessionLogRequest
                                {
-                                   Follow = QueryBoolean.True,
+                                   Follow = true,
                                }, stoppingToken)
                                .ConfigureAwait(false))
             {
