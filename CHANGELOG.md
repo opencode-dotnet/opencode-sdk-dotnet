@@ -106,9 +106,20 @@ Nightly builds of `master` are on
 ### 🐛 Fixes
 
 - **Caller cancellation preserves your token across public async doors:** HTTP, SSE, cursor
-  traversal, and both terminal families. `OperationCanceledException.CancellationToken` is the
+  traversal, both terminal families, and `OpenCodeServer.StartAsync`, `DiscoverAsync`, `EnsureAsync`,
+  and `StopAsync`. `OperationCanceledException.CancellationToken` is the
   token you supplied at either entry point, including the same token at both enumeration entry
   points; two distinct cancellable tokens are observed without an identity guarantee.
+- **A caller token already canceled at the launch boundary prevents the server process from starting.**
+- **Readiness timeouts preserve recorded outcomes:** a readiness line, root exit, or stdout end
+  recorded before timeout arbitration is reported instead of a timeout. Cancellation arriving only
+  during teardown does not replace the selected failure.
+- **POSIX pipe-creation failures throw `OpenCodeServerException` naming the command,** with the
+  underlying `IOException` retained.
+- **Malformed PTY-handoff sidecar and ticket documents are refused,** including trailing garbage
+  or a second JSON value; trailing whitespace remains valid.
+- **Endpoints with a query, fragment, or user info no longer escape best-effort service shutdown
+  and handoff paths,** so endpoint refusal does not prevent termination or replacement.
 - **Disposing the root client interrupts HTTP calls and SSE streams with `ObjectDisposedException`,**
   rather than misreporting a transport timeout. Caller cancellation already observed takes precedence;
   terminal sessions keep their separate ownership and disposal rules.

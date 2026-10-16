@@ -279,10 +279,10 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   failures on both one-shot and streaming paths (ADR-0007, ADR-0014).
 - Caller cancellation of a public asynchronous operation or enumeration throws
   `OperationCanceledException` carrying the caller's token, not an SDK-owned linked token. The rule
-  applies to HTTP operations, SSE, cursor traversal, and both terminal families. This identity
-  guarantee applies when one caller token is supplied, including the same token supplied at both
-  enumeration entry points; two distinct cancellable entry tokens are both observed but have no
-  token-identity guarantee.
+  applies to HTTP operations, SSE, cursor traversal, both terminal families, and `StartAsync`,
+  `DiscoverAsync`, `EnsureAsync`, and `StopAsync`. This identity guarantee applies when one caller
+  token is supplied, including the same token supplied at both enumeration entry points; two distinct
+  cancellable entry tokens are both observed but have no token-identity guarantee.
 - Disposing the root client interrupts its in-flight HTTP operations and SSE streams and reports
   `ObjectDisposedException`; caller cancellation already observed for the same failure takes
   precedence. A terminal session owns its connection separately: its session-disposal rules apply.
@@ -598,6 +598,12 @@ upstream also fails at once. The output is then drained once,
 for at most one second — a descendant holding stdout open costs that second and no more — and a
 readiness line already in the pipe still wins, because the first line wins whatever follows it.
 
+At a canceled readiness wait, caller cancellation is captured before failed-start cleanup. Without
+that caller cancellation, a recorded readiness line wins over a recorded root exit, then stdout
+completion; only the absence of those outcomes is a readiness timeout. An early-end diagnostic
+drain still gives the first readiness line priority. Cancellation arriving during cleanup does not
+replace the failure already selected.
+
 Disposal is a ladder, bounded at every step so it never hangs the caller. On Windows it follows
 upstream's rungs on upstream's clock: the grace (`GracefulShutdownTimeout`, default 3 seconds — the
 reference client's own force-kill window) starts with the first rung and bounds it.
@@ -674,7 +680,9 @@ runs once per server, and releasing a server's handles runs it first when nothin
 start that an unexpected failure ended still ends its server. A server whose readers or exit watch
 cannot start is killed with its group at once and reaped by the failing start
 itself, which asks `waitpid` without hanging for at most 10 seconds and then leaves the asking to a
-background loop that holds no thread; the watch, once it started, is the child's only reaper. Stdin is
+background loop that holds no thread and ends with an unknown exit on an unexpected fault, because the
+failed start already threw to its caller, no caller remains to receive the fault, and the system
+reaps an orphaned child when the host exits; the watch, once it started, is the child's only reaper. Stdin is
 the ownership lease on Linux and macOS too, and it is the only channel left when the owner dies
 without disposing: the session the server leads takes the hangup and interrupt paths away, so the
 server exits on the lease's end-of-stream.
@@ -727,14 +735,15 @@ terminating signal), a stdout that closed before readiness, a readiness timeout 
 configured bound), and a non-contract first stdout line (quoting it) all carry it. The pre-spawn
 failures carry none, because nothing ran: an unresolvable command (naming the command, the
 directories searched, and the extensions tried), a refused batch argument (naming the argument and
-the shim), an unsupported POSIX platform, a spawn failure (wrapping the underlying
-`Win32Exception`, naming the caller's spelling and, when they differ, the resolved path, and the
-working directory when one was set), and on Windows a server that could not be placed in the job
+the shim), an unsupported POSIX platform, a spawn or pipe-creation failure (wrapping the underlying
+`Win32Exception` or `IOException`, naming the caller's spelling and, when they differ, the resolved
+path, and the working directory when one was set), and on Windows a server that could not be placed in the job
 or resumed (wrapping the `Win32Exception`; the server was ended before it ran). A NUL in a command
 entry or an environment entry is refused with `ArgumentException`, because the spawn would silently
-end the entry there. Caller cancellation during the readiness wait stays
-`OperationCanceledException` rather than being folded into the exception type, after the child is
-torn down.
+end the entry there. A caller token canceled before the launch boundary prevents process creation.
+Caller cancellation observed during the readiness wait is reported through the public cancellation
+contract after the child is torn down; cancellation during teardown does not reclassify an earlier
+failure.
 
 Launcher acceptance is real-process and three-OS. Platform-specific behavior is tested on the
 platform it represents; a successful compile is not a lifecycle proof.

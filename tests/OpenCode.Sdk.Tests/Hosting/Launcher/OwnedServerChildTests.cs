@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Text;
+using NSubstitute;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
@@ -48,6 +50,10 @@ public sealed class OwnedServerChildTests
     [Timeout(120_000)]
     public async Task EndAsync_Should_Collect_A_Line_Its_Reader_Delivers_After_The_Server_Ended(CancellationToken cancellationToken)
     {
+        // Both the exit observation and the held reader must outlast the ladder they wrap.
+        var ladderObservationBound = Grace + (OperatingSystem.IsWindows()
+            ? WindowsLadderBounds.Default.TreeKill + WindowsLadderBounds.Default.ForcedExit
+            : PosixServerLadder.ForcedExitTimeout) + ObservationBound;
         var output = new OpenCodeServerOutput();
         var readyLine = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var bodyHeld = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -63,7 +69,7 @@ public sealed class OwnedServerChildTests
                 if (!readyLine.TrySetResult(line))
                 {
                     _ = bodyHeld.TrySetResult();
-                    _ = deliverBody.Wait(ObservationBound, cancellationToken);
+                    _ = deliverBody.Wait(ladderObservationBound, cancellationToken);
                 }
 
                 output.AppendStandardOutput(line);
@@ -77,7 +83,7 @@ public sealed class OwnedServerChildTests
             await bodyHeld.Task.WaitAsync(ObservationBound, cancellationToken);
             var beforeDisposal = output.GetSnapshot().StandardOutput;
             var ending = child.EndAsync();
-            var exit = await child.Exited.WaitAsync(ObservationBound, cancellationToken);
+            var exit = await child.Exited.WaitAsync(ladderObservationBound, cancellationToken);
             deliverBody.Set();
             await ending.WaitAsync(ObservationBound, cancellationToken);
 
@@ -222,6 +228,146 @@ public sealed class OwnedServerChildTests
         {
             await EndUnadoptedAsync(spawn, cancellationToken);
         }
+    }
+
+    [Test]
+    public async Task ResolveRecordedReadinessAsync_Should_Return_Null_Without_An_Outcome()
+    {
+        var time = new ManualTimeProvider();
+        var exited = new TaskCompletionSource<ChildExitStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var ladder = Substitute.For<IServerLadder>();
+        using var stdout = new GatedStream([0xef, 0xbb, 0xbf], 1);
+        var pump = PipeOutputPump.Start(stdout, null, IgnoreLine, IgnoreLine);
+        var child = ReadinessChild(pump, exited, ladder, time);
+        try
+        {
+            var resolving = child.ResolveRecordedReadinessAsync(new TaskCompletionSource<string>().Task);
+            Task[] resolvingTasks = [resolving];
+            await Task.WhenAll(resolvingTasks).WaitAsync(HangGuard.Bound);
+            var outcome = await resolving;
+
+            await Assert.That(outcome).IsNull();
+            await Assert.That(ladder.ReceivedCalls()).IsEmpty();
+            await Assert.That(time.ArmedIn(OwnedServerChild.EarlyEndBound)).IsEqualTo(0);
+        }
+        finally
+        {
+            stdout.Release();
+            try
+            {
+                await child.DisposeAsync().AsTask().WaitAsync(HangGuard.Bound);
+            }
+            finally
+            {
+                await child.ReadersEnded.WaitAsync(HangGuard.Bound);
+            }
+        }
+    }
+
+    [Test]
+    public async Task ResolveRecordedReadinessAsync_Should_Prefer_The_Line_Over_Exit_And_Stdout_End()
+    {
+        var time = new ManualTimeProvider();
+        var exited = new TaskCompletionSource<ChildExitStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _ = exited.TrySetResult(new ChildExitStatus { ExitCode = 23 });
+        var ladder = Substitute.For<IServerLadder>();
+        var child = await ClosedStdoutChildAsync(exited, ladder, time);
+        try
+        {
+            var outcome = await child.ResolveRecordedReadinessAsync(Task.FromResult(ReadyLine)).WaitAsync(HangGuard.Bound);
+
+            await Assert.That(outcome).IsNotNull();
+            await Assert.That(outcome!.ReadyLine).IsEqualTo(ReadyLine);
+            await Assert.That(outcome.Exit).IsNull();
+            await Assert.That(ladder.ReceivedCalls()).IsEmpty();
+        }
+        finally
+        {
+            await child.DisposeAsync().AsTask().WaitAsync(HangGuard.Bound);
+        }
+    }
+
+    [Test]
+    public async Task ResolveRecordedReadinessAsync_Should_Accept_A_Line_Delivered_During_The_Early_Exit_Drain()
+    {
+        var time = new ManualTimeProvider();
+        var exited = new TaskCompletionSource<ChildExitStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _ = exited.TrySetResult(new ChildExitStatus { ExitCode = 23 });
+        var readyLine = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var stdout = new GatedStream(Encoding.UTF8.GetBytes(ReadyLine + "\n"), 1);
+        var pump = PipeOutputPump.Start(stdout, null, line => _ = readyLine.TrySetResult(line), IgnoreLine);
+        var ladder = Substitute.For<IServerLadder>();
+        var child = ReadinessChild(pump, exited, ladder, time);
+        try
+        {
+            var resolving = child.ResolveRecordedReadinessAsync(readyLine.Task);
+            await time.WaitForArmedAsync(OwnedServerChild.EarlyEndBound, HangGuard.Bound, count: 2);
+            stdout.Release();
+            var outcome = await resolving.WaitAsync(HangGuard.Bound);
+
+            await Assert.That(outcome).IsNotNull();
+            await Assert.That(outcome!.ReadyLine).IsEqualTo(ReadyLine);
+            await Assert.That(ladder.ReceivedCalls()).IsEmpty();
+            await child.EndFailedStartAsync().WaitAsync(HangGuard.Bound);
+            _ = ladder.Received(1).RunAsync(Grace);
+        }
+        finally
+        {
+            stdout.Release();
+            await child.DisposeAsync().AsTask().WaitAsync(HangGuard.Bound);
+        }
+    }
+
+    [Test]
+    public async Task ResolveRecordedReadinessAsync_Should_Drain_Closed_Stdout_Only_Once_Before_Ending()
+    {
+        var time = new ManualTimeProvider();
+        var exited = new TaskCompletionSource<ChildExitStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var ladder = Substitute.For<IServerLadder>();
+        var child = await ClosedStdoutChildAsync(exited, ladder, time);
+        try
+        {
+            var resolving = child.ResolveRecordedReadinessAsync(new TaskCompletionSource<string>().Task);
+            await time.WaitForArmedAsync(OwnedServerChild.EarlyEndBound, HangGuard.Bound);
+            await Assert.That(ladder.ReceivedCalls()).IsEmpty();
+            time.Advance(OwnedServerChild.EarlyEndBound);
+            var outcome = await resolving.WaitAsync(HangGuard.Bound);
+
+            await Assert.That(outcome).IsSameReferenceAs(ReadinessOutcome.OutputClosed);
+            await child.EndFailedStartAsync().WaitAsync(HangGuard.Bound);
+            _ = ladder.Received(1).RunAsync(Grace);
+            await Assert.That(time.ArmedIn(OwnedServerChild.EarlyEndBound)).IsEqualTo(0);
+        }
+        finally
+        {
+            await child.DisposeAsync().AsTask().WaitAsync(HangGuard.Bound);
+        }
+    }
+
+    private static async Task<OwnedServerChild> ClosedStdoutChildAsync(
+        TaskCompletionSource<ChildExitStatus> exited, IServerLadder ladder, TimeProvider time)
+    {
+        var pump = PipeOutputPump.Start(Stream.Null, null, IgnoreLine, IgnoreLine);
+        await pump.StandardOutputEnded.WaitAsync(HangGuard.Bound);
+        return ReadinessChild(pump, exited, ladder, time);
+    }
+
+    private static OwnedServerChild ReadinessChild(
+        PipeOutputPump pump, TaskCompletionSource<ChildExitStatus> exited, IServerLadder ladder, TimeProvider time)
+    {
+        _ = ladder.RunAsync(Arg.Any<TimeSpan>()).Returns(call =>
+        {
+            _ = exited.TrySetResult(new ChildExitStatus { ExitCode = 0 });
+            return Task.CompletedTask;
+        });
+        return new OwnedServerChild(new OwnedServerProcess
+        {
+            ProcessId = 1,
+            StandardInput = null,
+            Output = pump,
+            Exited = exited.Task,
+            Ladder = ladder,
+        }, Start(new OpenCodeServerOptions { Command = ["bun", "--version"], GracefulShutdownTimeout = Grace }, IgnoreLine, output: null), time);
     }
 
     private static string Platform() => OperatingSystem.IsWindows() ? "Windows" : "POSIX";

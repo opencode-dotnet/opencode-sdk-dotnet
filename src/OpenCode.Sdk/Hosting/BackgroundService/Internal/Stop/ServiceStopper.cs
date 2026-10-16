@@ -82,7 +82,7 @@ internal sealed class ServiceStopper(
     /// </summary>
     [SlopwatchSuppress(
         "SW003",
-        "The pinned CLI wraps this exchange in Effect.ignore (stop.ts): a refused, failed, or unreachable shutdown changes nothing, because the daemon is ended next either way.")]
+        "The pinned CLI wraps this exchange in Effect.ignore (stop.ts): endpoint refusal or a failed shutdown does not prevent termination, whose completion is the observable stop outcome.")]
     private async Task ShutdownPersistentTerminalsAsync(ServiceRegistration registration, CancellationToken cancellationToken)
     {
         var answer = await probe.ProbeAsync(registration, cancellationToken).ConfigureAwait(false);
@@ -96,7 +96,7 @@ internal sealed class ServiceStopper(
         {
             await ptyShutdown.ShutdownAsync(registration, cancellationToken).ConfigureAwait(false);
         }
-        catch (OpenCodeException)
+        catch (Exception failure) when (failure is OpenCodeException or ArgumentException { ParamName: "endpoint" })
         {
             // Effect.ignore: the daemon is about to be ended either way.
         }

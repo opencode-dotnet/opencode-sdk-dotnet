@@ -547,7 +547,7 @@ public sealed class OpenCodeServerLifecycleTests
     private static async Task<int> PassTheDrainOnceReportedAsync(ManualTimeProvider time, OpenCodeServerOutput output)
     {
         var processId = await LadderTree.WaitForPidAsync(output, LadderTree.Root, StartHangGuard);
-        await time.WaitForTimerAsync(StartHangGuard);
+        await time.WaitForArmedAsync(PastTheDrainBound, StartHangGuard);
         time.Advance(PastTheDrainBound);
         return processId;
     }

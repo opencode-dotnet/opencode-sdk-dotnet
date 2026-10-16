@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics;
 
 namespace OpenCode.Sdk.Internal;
 
@@ -55,7 +54,7 @@ internal static class PosixServerChild
                 "The standalone server needs a session of its own, which this platform cannot provide through posix_spawn. Nothing was started.",
                 exception);
         }
-        catch (Win32Exception exception)
+        catch (Exception exception) when (exception is Win32Exception or IOException)
         {
             throw new OpenCodeServerException(
                 $"Failed to start the server command '{start.Executable.Command}'{ServerChild.DescribeResolution(start.Executable)}{ServerChild.DescribeDirectory(request.WorkingDirectory)}.",
@@ -118,27 +117,30 @@ internal static class PosixServerChild
                     Ladder = ladder,
                 },
                 start,
-                seams.Time);
+                seams.Time,
+                seams.ReadinessWait);
         }
         catch
         {
-            _ = seams.Signals.SignalGroup(spawned.ProcessId, ProcessSignal.Kill);
-
-            // With a watch running, it reaps the child once the kill ends it, as its only reaper.
-            if (watch is null &&
-                !await ReapWithinAsync(spawned.ProcessId, seams.Exits, PosixServerLadder.ForcedExitTimeout, UnadoptedReapInterval).ConfigureAwait(false))
+            try
             {
-                _ = ReapWithinAsync(spawned.ProcessId, seams.Exits, TimeSpan.MaxValue, UnadoptedBackgroundReapInterval)
-                    .ContinueWith(
-                        static reaping => _ = reaping.Exception,
-                        CancellationToken.None,
-                        TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
-                        TaskScheduler.Default);
-            }
+                _ = seams.Signals.SignalGroup(spawned.ProcessId, ProcessSignal.Kill);
 
-            await DisposeStreamAsync(spawned.StandardInput).ConfigureAwait(false);
-            await DisposeStreamAsync(spawned.StandardOutput).ConfigureAwait(false);
-            await DisposeStreamAsync(spawned.StandardError).ConfigureAwait(false);
+                // With a watch running, it reaps the child once the kill ends it, as its only reaper.
+                if (watch is null &&
+                    await ReapWithinAsync(spawned.ProcessId, seams, PosixServerLadder.ForcedExitTimeout, UnadoptedReapInterval).ConfigureAwait(false) is null)
+                {
+                    // No watch owns this child. The loop reaps it, or ends with an unknown exit on
+                    // an unexpected fault; the failed start has no remaining caller for that fault.
+                    _ = ReapWithinAsync(spawned.ProcessId, seams, TimeSpan.MaxValue, UnadoptedBackgroundReapInterval);
+                }
+            }
+            finally
+            {
+                await DisposeStreamAsync(spawned.StandardInput).ConfigureAwait(false);
+                await DisposeStreamAsync(spawned.StandardOutput).ConfigureAwait(false);
+                await DisposeStreamAsync(spawned.StandardError).ConfigureAwait(false);
+            }
             throw;
         }
     }
@@ -148,21 +150,38 @@ internal static class PosixServerChild
     /// <paramref name="interval"/>. A child the kernel already reaped, or a pid that is no child of
     /// this process any more, ends the asking as well.
     /// </summary>
-    /// <returns>True once the child is reaped or gone; false when the bound expired first.</returns>
-    private static async Task<bool> ReapWithinAsync(int processId, IChildExitStatus exits, TimeSpan bound, TimeSpan interval)
+    /// <returns>The child's exit, unknown on a background fault, or null when the foreground bound expired first.</returns>
+    [SlopwatchSuppress(
+        "SW003",
+        "The failed start already threw to its caller, no caller remains to receive a reap fault, and the system reaps an orphaned child when the host exits.")]
+    private static async Task<ChildExitStatus?> ReapWithinAsync(int processId, LauncherSeams seams, TimeSpan bound, TimeSpan interval)
     {
-        var elapsed = Stopwatch.StartNew();
-        while (exits.Reap(processId) is null)
+        try
         {
-            if (elapsed.Elapsed >= bound)
+            var started = seams.Time.GetTimestamp();
+            while (true)
             {
-                return false;
+                if (seams.Exits.Reap(processId) is { } status)
+                {
+                    return status;
+                }
+
+                if (seams.Time.GetElapsedTime(started) >= bound)
+                {
+                    return null;
+                }
+
+#if NET
+                await Task.Delay(interval, seams.Time).ConfigureAwait(false);
+#else
+                await seams.Time.Delay(interval).ConfigureAwait(false);
+#endif
             }
-
-            await Task.Delay(interval).ConfigureAwait(false);
         }
-
-        return true;
+        catch (Exception) when (bound == TimeSpan.MaxValue)
+        {
+            return ChildExitStatus.Unknown;
+        }
     }
 
     private static async ValueTask DisposeStreamAsync(Stream? stream)

@@ -42,7 +42,7 @@ internal sealed class PtyHandoffSidecar
         {
             var reader = new Utf8JsonReader(utf8);
             using var document = JsonDocument.ParseValue(ref reader);
-            return Read(document.RootElement);
+            return reader.Read() ? null : Read(document.RootElement);
         }
         catch (Exception exception) when (exception is JsonException or InvalidOperationException)
         {

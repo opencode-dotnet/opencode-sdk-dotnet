@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
 
@@ -18,10 +19,8 @@ public sealed class PtyHandoffSidecarTests
     {
         var sidecar = Decode("BackgroundService.pty-handoff-valid.json");
 
-        await Assert.That(sidecar).IsNotNull();
-        await Assert.That(sidecar!.SourceId).IsEqualTo("srv_1");
-        await Assert.That(sidecar.SourcePid).IsEqualTo(48213);
-        await Assert.That(sidecar.SourceUrl).IsEqualTo("http://127.0.0.1:49374");
+        await AssertRegisteredSourceAsync(sidecar);
+        await Assert.That(sidecar!.SourceUrl).IsEqualTo("http://127.0.0.1:49374");
         await Assert.That(sidecar.ExpiresAt).IsEqualTo(1700000060000d);
         await Assert.That(sidecar.Handoff).IsNotNull();
         await Assert.That(sidecar.Handoff!.Value.GetProperty("ticket").GetString()).IsEqualTo("ticket-abc123");
@@ -100,6 +99,26 @@ public sealed class PtyHandoffSidecarTests
     }
 
     [Test]
+    [Arguments("BackgroundService.pty-handoff-sidecar-trailing-garbage.json")]
+    [Arguments("BackgroundService.pty-handoff-sidecar-second-value.json")]
+    public async Task TryRead_Should_Refuse_Content_After_A_Valid_Sidecar(string fixture)
+    {
+        await Assert.That(Decode(fixture)).IsNull();
+    }
+
+    [Test]
+    public async Task TryRead_Should_Admit_Trailing_Whitespace_And_Preserve_The_Raw_Ticket()
+    {
+        var body = Fixtures.LoadJson("BackgroundService.pty-handoff-unknown-members.json");
+        var sidecar = PtyHandoffSidecar.TryRead(Encoding.UTF8.GetBytes(body + " \t\r\n"));
+        using var expected = JsonDocument.Parse(body);
+
+        await AssertRegisteredSourceAsync(sidecar);
+        await Assert.That(sidecar!.ExpiresAt).IsEqualTo(1700000060000d);
+        await Assert.That(sidecar.Handoff!.Value.GetRawText()).IsEqualTo(expected.RootElement.GetProperty("handoff").GetRawText());
+    }
+
+    [Test]
     public async Task ToUtf8Json_Should_Round_Trip_A_Sidecar()
     {
         var original = Decode("BackgroundService.pty-handoff-valid.json")!;
@@ -150,6 +169,13 @@ public sealed class PtyHandoffSidecarTests
         var suffix = Encoding.UTF8.GetBytes("\"},\"handoff\":null,\"expiresAt\":1700000060000}");
 
         await Assert.That(DecodeBytes([.. prefix, 0xC3, 0x28, .. suffix])).IsNull();
+    }
+
+    private static async Task AssertRegisteredSourceAsync(PtyHandoffSidecar? sidecar)
+    {
+        await Assert.That(sidecar).IsNotNull();
+        await Assert.That(sidecar!.SourceId).IsEqualTo("srv_1");
+        await Assert.That(sidecar.SourcePid).IsEqualTo(48213);
     }
 
     private static PtyHandoffSidecar? Decode(string fixture) =>

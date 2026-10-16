@@ -4,6 +4,7 @@ using NSubstitute.ExceptionExtensions;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
+using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions.Testing;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Stop;
@@ -141,12 +142,7 @@ public sealed class ServiceStopperTests
     [Test]
     public async Task StopAsync_Should_Ignore_A_Refused_Terminal_Shutdown_And_Still_Terminate()
     {
-        SeedModern();
-        Answer(new ServiceProbeResult(ServiceState.Ready, Version, TimedOut: false, Compatible: true));
-        _ptyShutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>())
-            .ThrowsAsync(new OpenCodeApiException("The daemon refused the shutdown."));
-
-        await Stopper().StopAsync(options: null, CancellationToken.None);
+        await StopWithFailedShutdownAsync(new OpenCodeApiException("The daemon refused the shutdown."));
 
         _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
         await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
@@ -155,15 +151,64 @@ public sealed class ServiceStopperTests
     [Test]
     public async Task StopAsync_Should_Ignore_An_Unreachable_Terminal_Shutdown_And_Still_Terminate()
     {
-        SeedModern();
-        Answer(new ServiceProbeResult(ServiceState.Ready, Version, TimedOut: false, Compatible: true));
-        _ptyShutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>())
-            .ThrowsAsync(new OpenCodeTransportException("The daemon went away."));
-
-        await Stopper().StopAsync(options: null, CancellationToken.None);
+        await StopWithFailedShutdownAsync(new OpenCodeTransportException("The daemon went away."));
 
         _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
         await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
+    }
+
+    [Test]
+    [Arguments("http://127.0.0.1:49374?query=1")]
+    [Arguments("http://127.0.0.1:49374#fragment")]
+    [Arguments("http://synthetic@127.0.0.1:49374")]
+    public async Task StopAsync_Should_Still_Terminate_When_The_Registered_Endpoint_Is_Refused(string address)
+    {
+        Seed(SharedRegistrationPath(), ServiceRegistrationDocument.Compose(
+            "srv_refused", Version, new Uri(address), RegisteredPid, ServiceRegistrationData.Password));
+        Seed(Sidecar(), SidecarContent);
+        Answer(new ServiceProbeResult(ServiceState.Ready, Version, TimedOut: false, Compatible: true));
+        _ptyShutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>())
+            .Returns(call => new ServicePtyShutdown().ShutdownAsync(call.Arg<ServiceRegistration>(), call.Arg<CancellationToken>()));
+        var alive = true;
+        _processControl.TrySnapshot(RegisteredPid).Returns(_ => alive ? Live : null);
+        _processControl.TrySignal(Live, ProcessSignal.Terminate).Returns(_ =>
+        {
+            // A successor publishes while the old process leaves; the terminator must keep its record.
+            Seed(SharedRegistrationPath(), ServiceRegistrationData.Minimal);
+            alive = false;
+            return true;
+        });
+
+        await Stopper().StopAsync(options: null, CancellationToken.None);
+
+        Received.InOrder(() =>
+        {
+            _ = _ptyShutdown.ShutdownAsync(Arg.Is<ServiceRegistration>(value => value.Url == new Uri(address).ToString()), Arg.Any<CancellationToken>());
+            _ = _processControl.TrySignal(Live, ProcessSignal.Terminate);
+        });
+        _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
+        _ = _processControl.DidNotReceive().TrySignal(Arg.Any<ProcessIdentity>(), ProcessSignal.Kill);
+        await Assert.That(_fileSystem.Directory.GetFiles(_fileSystem.Path.Combine(Root("state"), "opencode"), "*" + SidecarSuffix)).IsEmpty();
+        await Assert.That(ReadText(SharedRegistrationPath())).IsEqualTo(ServiceRegistrationData.Minimal);
+    }
+
+    [Test]
+    [Arguments("options")]
+    [Arguments(null)]
+    public async Task StopAsync_Should_Propagate_An_Unrelated_Shutdown_Argument_Error_Without_Signalling(string? parameterName)
+    {
+        SeedModern();
+        Seed(Sidecar(), SidecarContent);
+        Answer(new ServiceProbeResult(ServiceState.Ready, Version, TimedOut: false, Compatible: true));
+        var failure = new ArgumentException("The shutdown implementation rejected another parameter.", parameterName);
+        _ptyShutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>()).Returns(Task.FromException(failure));
+
+        var exception = await Assert.That(async () => await Stopper().StopAsync(options: null, CancellationToken.None))
+            .Throws<ArgumentException>();
+
+        await Assert.That(exception).IsSameReferenceAs(failure);
+        _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
+        await Assert.That(ReadText(Sidecar())).IsEqualTo(SidecarContent);
     }
 
     [Test]
@@ -496,6 +541,15 @@ public sealed class ServiceStopperTests
         _ = await Assert
             .That(async () => await Stopper().StopAsync(options: null, cancelled))
             .Throws<OperationCanceledException>();
+    }
+
+    private async Task StopWithFailedShutdownAsync(Exception failure)
+    {
+        SeedModern();
+        Answer(new ServiceProbeResult(ServiceState.Ready, Version, TimedOut: false, Compatible: true));
+        _ptyShutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>()).ThrowsAsync(failure);
+
+        await Stopper().StopAsync(options: null, CancellationToken.None);
     }
 
     private ServiceStopper Stopper() =>
