@@ -2,6 +2,7 @@ using System.Globalization;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Sessions;
 
@@ -20,6 +21,84 @@ public sealed class SessionDiffLiveTests(SimulatedDriveServerFixture server)
     private const string Reply = "Session diff live reply.";
     private const string UnknownMessageId = "msg_00000000000000000000000000";
     private static readonly TimeSpan CleanupTimeout = TimeSpan.FromSeconds(15);
+
+    [Test]
+    [Timeout(180_000)]
+    public async Task CommitRevertAsync_Should_Remove_The_Staged_Tail_When_A_Boundary_Is_Staged(
+        CancellationToken cancellationToken)
+    {
+        const string secondPrompt = "Revert excluded prompt";
+        const string secondReply = "Revert excluded reply.";
+        await WithOwnedSessionAsync(async (client, sessionId, session) =>
+        {
+            var first = await CompleteHistoryAsync(client, session, sessionId, cancellationToken);
+            var turn = new SimulatedSessionTurn(server, client, session, sessionId);
+            _ = await turn.CompleteAsync(secondPrompt, secondReply, cancellationToken);
+            _ = await client.Experimental.WaitForSessionAsync(sessionId, cancellationToken: cancellationToken);
+            var before = await EnumerateMessagesAsync(session, cancellationToken);
+            var boundary = before.OfType<SessionMessageUser>().Single(message => message.Text == secondPrompt).Id;
+            await StageAndVerifyBoundaryAsync(session, boundary, cancellationToken);
+
+            _ = await session.CommitRevertAsync(cancellationToken: cancellationToken);
+
+            var after = await EnumerateMessagesAsync(session, cancellationToken);
+            await Assert.That(after.Select(message => message.Id)).DoesNotContain(boundary);
+            await Assert.That(after.Select(message => message.Id))
+                .IsEquivalentTo(first.Select(message => message.Id), CollectionOrdering.Matching);
+            var evidence = new SessionMessageEvidenceProjector().Project(after);
+            await Assert.That(evidence.Where(message => message.Type is "user" or "assistant").Select(message => message.Text))
+                .IsEquivalentTo([Prompt, Reply], CollectionOrdering.Matching);
+            var state = await session.GetAsync(cancellationToken: cancellationToken);
+            await Assert.That(state.Session.Revert).IsNull();
+        }, cancellationToken);
+    }
+
+    [Test]
+    [Timeout(180_000)]
+    public async Task StageRevertAsync_Should_Record_The_Boundary_When_File_Reversion_Is_Disabled(
+        CancellationToken cancellationToken)
+    {
+        await WithOwnedSessionAsync(async (client, sessionId, session) =>
+        {
+            var before = await CompleteHistoryAsync(client, session, sessionId, cancellationToken);
+            var boundary = PromptMessageId(before);
+
+            var staged = await StageBoundaryAsync(session, boundary, cancellationToken);
+
+            await Assert.That(staged.Revert).IsNotNull();
+            await Assert.That(staged.Revert!.MessageId).IsEqualTo(boundary);
+            await Assert.That(staged.Revert.Files).IsEmpty();
+            var after = await EnumerateMessagesAsync(session, cancellationToken);
+            await Assert.That(after.Select(message => message.Id))
+                .IsEquivalentTo(before.Select(message => message.Id), CollectionOrdering.Matching);
+        }, cancellationToken);
+    }
+
+    [Test]
+    [Timeout(180_000)]
+    public async Task ClearRevertAsync_Should_Preserve_The_History_When_A_Staged_Revert_Is_Cleared(
+        CancellationToken cancellationToken)
+    {
+        await WithOwnedSessionAsync(async (client, sessionId, session) =>
+        {
+            var before = await CompleteHistoryAsync(client, session, sessionId, cancellationToken);
+            var boundary = PromptMessageId(before);
+            await StageAndVerifyBoundaryAsync(session, boundary, cancellationToken);
+
+            _ = await session.ClearRevertAsync(cancellationToken: cancellationToken);
+            _ = await client.Experimental.WaitForSessionAsync(sessionId, cancellationToken: cancellationToken);
+
+            var state = await session.GetAsync(cancellationToken: cancellationToken);
+            await Assert.That(state.Session.Revert).IsNull();
+            var after = await EnumerateMessagesAsync(session, cancellationToken);
+            // Clearing wakes execution and may append an idle marker, but preserves the exchange.
+            await Assert.That(after.Where(message => message is SessionMessageUser or SessionMessageAssistant).Select(message => message.Id))
+                .IsEquivalentTo(before.Where(message => message is SessionMessageUser or SessionMessageAssistant).Select(message => message.Id), CollectionOrdering.Matching);
+            var evidence = new SessionMessageEvidenceProjector().Project(after);
+            await Assert.That(evidence.Where(message => message.Type is "user" or "assistant").Select(message => message.Text))
+                .IsEquivalentTo([Prompt, Reply], CollectionOrdering.Matching);
+        }, cancellationToken);
+    }
 
     [Test]
     [Timeout(180_000)]
@@ -130,4 +209,79 @@ public sealed class SessionDiffLiveTests(SimulatedDriveServerFixture server)
     }
 
     private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
+
+    private async Task WithOwnedSessionAsync(
+        Func<OpenCodeClient, string, SessionClient, Task> scenario,
+        CancellationToken cancellationToken)
+    {
+        using var workspace = server.CreateWorkspace();
+        using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
+        var sessionId = await CreateOwnedSessionAsync(client, workspace.Path, cancellationToken);
+        var session = client.Sessions.GetSessionClient(sessionId);
+        var cleanup = new OwnedSessionInboxCleanup(session, client.Experimental, sessionId, server.Controller, CleanupTimeout);
+        Exception? failure = null;
+        try
+        {
+            await scenario(client, sessionId, session);
+        }
+        catch (Exception exception)
+        {
+            failure = exception;
+        }
+
+        await cleanup.CompleteAsync(failure);
+    }
+
+    private static async Task<string> CreateOwnedSessionAsync(
+        OpenCodeClient client,
+        string directory,
+        CancellationToken cancellationToken)
+    {
+        var created = await client.Sessions.CreateSessionAsync(new SessionCreateRequest
+        {
+            Title = "session-revert-live",
+            Location = new LocationPublicRef { Directory = directory },
+            Model = new ModelRef { Id = SimulationConfigSeed.ModelId, ProviderId = SimulationConfigSeed.ProviderId },
+        }, cancellationToken: cancellationToken);
+        return created.Session.Id;
+    }
+
+    private static async Task StageAndVerifyBoundaryAsync(
+        SessionClient session,
+        string boundary,
+        CancellationToken cancellationToken)
+    {
+        var state = await StageBoundaryAsync(session, boundary, cancellationToken);
+        await Assert.That(state.Revert).IsNotNull();
+        await Assert.That(state.Revert!.MessageId).IsEqualTo(boundary);
+    }
+
+    private static string PromptMessageId(IEnumerable<ISessionMessageInfo> messages) =>
+        messages.OfType<SessionMessageUser>().Single(message => message.Text == Prompt).Id;
+
+    private async Task<List<ISessionMessageInfo>> CompleteHistoryAsync(
+        OpenCodeClient client,
+        SessionClient session,
+        string sessionId,
+        CancellationToken cancellationToken)
+    {
+        var turn = new SimulatedSessionTurn(server, client, session, sessionId);
+        _ = await turn.CompleteAsync(Prompt, Reply, cancellationToken);
+        _ = await client.Experimental.WaitForSessionAsync(sessionId, cancellationToken: cancellationToken);
+        return await EnumerateMessagesAsync(session, cancellationToken);
+    }
+
+    private static async Task<SessionInfo> StageBoundaryAsync(
+        SessionClient session,
+        string boundary,
+        CancellationToken cancellationToken)
+    {
+        _ = await session.StageRevertAsync(new SessionRevertStageRequest
+        {
+            MessageId = boundary,
+            Files = false,
+        }, cancellationToken: cancellationToken);
+        var state = await session.GetAsync(cancellationToken: cancellationToken);
+        return state.Session;
+    }
 }
