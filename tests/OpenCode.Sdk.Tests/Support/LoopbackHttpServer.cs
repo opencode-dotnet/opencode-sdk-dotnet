@@ -101,39 +101,45 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
     {
         using (client)
         {
-            try
-            {
-                // Taking the stream belongs to the exchange too: the accept loop records the
-                // client before it starts serving it, so a concurrent ReleaseResponses can close
-                // the socket first, and GetStream then refuses the disposed client.
-                using var stream = client.GetStream();
-                var request = await ReadRequestAsync(stream);
-                if (request is null)
-                {
-                    // The peer opened the connection and closed it before writing a request line:
-                    // a client whose own bound fired first (the probe's request timeout under a
-                    // loaded machine), not a handler that wrote something wrong.
-                    _ = _clientDisconnected.TrySetResult(null);
-                    return;
-                }
+            await ServeExchangeAsync(client.GetStream);
+        }
+    }
 
-                _requests.Enqueue(request);
-                var response = _respond(request.Path);
-                await WriteResponseAsync(stream, response);
-                if (response.KeepOpen)
-                {
-                    await WaitForClientDisconnectAsync(stream);
-                    _ = _clientDisconnected.TrySetResult(null);
-                }
-            }
-            catch (Exception exception) when (exception is IOException or ObjectDisposedException or SocketException)
+    /// <summary>Serves one exchange; a connection ReleaseResponses tore down ends it quietly.</summary>
+    internal async Task ServeExchangeAsync(Func<Stream> takeStream)
+    {
+        try
+        {
+            // Taking the stream belongs to the exchange too: the accept loop records the
+            // client before it starts serving it, so a concurrent ReleaseResponses can close
+            // the socket first, and GetStream then refuses the disposed client.
+            using var stream = takeStream();
+            var request = await ReadRequestAsync(stream);
+            if (request is null)
             {
-                // The peer aborting mid-exchange, or ReleaseResponses closing the socket under an
-                // in-flight write, is connection teardown rather than a fixture failure; DisposeAsync
-                // awaits this task, so a propagated fault would fail the test from teardown. A torn
-                // connection is also the disconnect signal the kept-open fixtures await.
+                // The peer opened the connection and closed it before writing a request line:
+                // a client whose own bound fired first (the probe's request timeout under a
+                // loaded machine), not a handler that wrote something wrong.
+                _ = _clientDisconnected.TrySetResult(null);
+                return;
+            }
+
+            _requests.Enqueue(request);
+            var response = _respond(request.Path);
+            await WriteResponseAsync(stream, response);
+            if (response.KeepOpen)
+            {
+                await WaitForClientDisconnectAsync(stream);
                 _ = _clientDisconnected.TrySetResult(null);
             }
+        }
+        catch (Exception exception) when (exception is IOException or ObjectDisposedException or SocketException)
+        {
+            // The peer aborting mid-exchange, or ReleaseResponses closing the socket under an
+            // in-flight write, is connection teardown rather than a fixture failure; DisposeAsync
+            // awaits this task, so a propagated fault would fail the test from teardown. A torn
+            // connection is also the disconnect signal the kept-open fixtures await.
+            _ = _clientDisconnected.TrySetResult(null);
         }
     }
 

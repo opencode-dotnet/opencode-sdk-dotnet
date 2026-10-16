@@ -34,4 +34,29 @@ public sealed class LoopbackHttpServerTests
 
         await Assert.That(served).IsEqualTo(0);
     }
+
+    [Test]
+    public async Task ServeExchangeAsync_Should_End_As_Teardown_When_A_Released_Connection_Is_No_Longer_Readable()
+    {
+        await using var server = LoopbackHttpServer.Start(_ => throw new InvalidOperationException("No request is served."));
+        server.ReleaseResponses();
+        var released = new MemoryStream();
+        await released.DisposeAsync();
+
+        // The release closed the socket after GetStream and before the request reader took it.
+        await server.ServeExchangeAsync(() => released).WaitAsync(HangGuard.Bound, CancellationToken.None);
+
+        await Assert.That(server.ClientDisconnected.IsCompleted).IsTrue();
+    }
+
+    [Test]
+    public async Task ServeExchangeAsync_Should_Fault_When_An_Unreleased_Connection_Is_Not_Readable()
+    {
+        await using var server = LoopbackHttpServer.Start(_ => throw new InvalidOperationException("No request is served."));
+        var unreadable = new MemoryStream();
+        await unreadable.DisposeAsync();
+
+        _ = await Assert.That(server.ServeExchangeAsync(() => unreadable).WaitAsync(HangGuard.Bound, CancellationToken.None))
+            .Throws<ArgumentException>();
+    }
 }
