@@ -3,6 +3,8 @@
 // completion gate and CI stay the enforcement.
 import { Plugin } from "@opencode/plugin"
 import { execFile } from "node:child_process"
+import { existsSync } from "node:fs"
+import { join } from "node:path"
 
 // The direct tools that change files.
 const MUTATING = new Set(["edit", "write", "patch"])
@@ -28,6 +30,9 @@ function slopwatch(directory: string): Promise<string | undefined> {
 export default Plugin.define({
   id: "repo.slopwatch-gate",
   setup: async (ctx) => {
+    // Only a session located at this repository's root edits it. Anywhere else, such as a test
+    // server that starts inside external/, the plugin registers nothing.
+    if (!existsSync(join(ctx.location.directory, "OpenCode.slnx"))) return
     await ctx.tool.hook("execute.after", async (event) => {
       if (event.status !== "completed" || !MUTATING.has(event.tool)) return
       const verdict = await slopwatch(ctx.location.directory)

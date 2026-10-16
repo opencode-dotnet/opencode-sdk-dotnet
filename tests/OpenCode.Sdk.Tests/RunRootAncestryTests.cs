@@ -1,4 +1,5 @@
 using OpenCode.Sdk.TestSupport;
+using Testably.Abstractions;
 using Testably.Abstractions.Testing;
 using Testably.Abstractions.Testing.Initializer;
 
@@ -125,6 +126,77 @@ public sealed class RunRootAncestryTests
         var found = new RunRootAncestry(fileSystem).FindProjectConfiguration(runs);
 
         await Assert.That(found).IsNull();
+    }
+
+    [Test]
+    public async Task FindProjectConfiguration_Should_Accept_The_Repository_Edit_Hook_Exactly()
+    {
+        var fileSystem = new MockFileSystem();
+        var runs = Runs(fileSystem);
+        _ = EditHook(fileSystem, CheckedInPlugin());
+
+        var found = new RunRootAncestry(fileSystem).FindProjectConfiguration(runs);
+
+        await Assert.That(found).IsNull();
+    }
+
+    [Test]
+    public async Task FindProjectConfiguration_Should_Refuse_The_Edit_Hook_With_A_Changed_Plugin()
+    {
+        var fileSystem = new MockFileSystem();
+        var runs = Runs(fileSystem);
+        var changed = CheckedInPlugin();
+        changed[^1] ^= 1;
+        var directory = EditHook(fileSystem, changed);
+
+        var found = new RunRootAncestry(fileSystem).FindProjectConfiguration(runs);
+
+        await Assert.That(found).IsEqualTo(directory);
+    }
+
+    [Test]
+    public async Task FindProjectConfiguration_Should_Refuse_The_Edit_Hook_Beside_Another_File()
+    {
+        var fileSystem = new MockFileSystem();
+        var runs = Runs(fileSystem);
+        var directory = EditHook(fileSystem, CheckedInPlugin());
+        _ = fileSystem.Initialize().With(new FileDescription(fileSystem.Path.Combine(directory, "plugins", "other.ts"), "export {}"));
+
+        var found = new RunRootAncestry(fileSystem).FindProjectConfiguration(runs);
+
+        await Assert.That(found).IsEqualTo(directory);
+    }
+
+    [Test]
+    public async Task FindProjectConfiguration_Should_Refuse_The_Edit_Hook_Outside_The_Repository_Root()
+    {
+        var fileSystem = new MockFileSystem();
+        var runs = Runs(fileSystem);
+        var directory = EditHook(fileSystem, CheckedInPlugin());
+        fileSystem.File.Delete(fileSystem.Path.Combine(Ancestor(fileSystem), "OpenCode.slnx"));
+
+        var found = new RunRootAncestry(fileSystem).FindProjectConfiguration(runs);
+
+        await Assert.That(found).IsEqualTo(directory);
+    }
+
+    /// <summary>The plugin as checked in, read from this checkout so the pinned hash is proven against the real file.</summary>
+    private static byte[] CheckedInPlugin()
+    {
+        var real = new RealFileSystem();
+        var root = new PinnedServerCommand(real).RepositoryRoot;
+        return RunRootAncestry.ReadAllBytes(real, real.Path.Combine(root, ".opencode", "plugins", "slopwatch-gate.ts"));
+    }
+
+    /// <summary>Lays out the repository's edit hook in the mock checkout and returns its <c>.opencode</c> directory.</summary>
+    private static string EditHook(MockFileSystem fileSystem, byte[] plugin)
+    {
+        var ancestor = Ancestor(fileSystem);
+        var directory = fileSystem.Path.Combine(ancestor, ".opencode");
+        _ = fileSystem.Initialize()
+            .With(new FileDescription(fileSystem.Path.Combine(ancestor, "OpenCode.slnx"), "<Solution />"))
+            .With(new FileDescription(fileSystem.Path.Combine(directory, "plugins", "slopwatch-gate.ts"), plugin));
+        return directory;
     }
 
     /// <summary>MockFileSystem simulates the host OS, so the chain is built from its own temp root.</summary>
