@@ -251,7 +251,7 @@ public sealed class SessionMessagePaginationLiveTests(SimulatedDriveServerFixtur
         var messages = new List<ISessionMessageInfo>();
         await foreach (var message in session.EnumerateMessagesAsync(
                            new SessionMessageListRequest { Limit = 1, Order = ListOrder.Ascending },
-                           cancellationToken))
+                           cancellationToken: cancellationToken))
         {
             messages.Add(message);
         }

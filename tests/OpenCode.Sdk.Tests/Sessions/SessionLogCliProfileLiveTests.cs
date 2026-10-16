@@ -127,12 +127,12 @@ public sealed class SessionLogCliProfileLiveTests(PinnedOpenCodeServerFixture se
             // The instance bus is the positive control: it carries the rename whether or not the
             // follow does, so a silent follow reads as the server's answer rather than as a
             // mutation that never happened.
-            probe.Start(client.Events.SubscribeAsync(reader.Token));
+            probe.Start(client.Events.SubscribeAsync(cancellationToken: reader.Token));
             await probe.WaitForConnectedAsync(cancellationToken);
 
             await using var log = session.ReadLogAsync(
                     new SessionLogRequest { Follow = true },
-                    follow.Token)
+                    cancellationToken: follow.Token)
                 .GetAsyncEnumerator(follow.Token);
             var marker = await ReadMarkerAsync(log, followed, follow, cancellationToken);
             await Assert.That(marker.AggregateId).IsEqualTo(sessionId);

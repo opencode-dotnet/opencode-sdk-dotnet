@@ -13,9 +13,4 @@ namespace OpenCode.Sdk.Models;
 [JsonConverter(typeof(StreamFailureCauseJsonConverter))]
 public interface IStreamFailureCause : IOpenCodeStreamFailureCause
 {
-    /// <summary>
-    /// Gets the &apos;_tag&apos; union marker.
-    /// </summary>
-    [JsonPropertyName("_tag")]
-    public string Tag { get; }
 }

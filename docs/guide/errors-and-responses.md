@@ -87,11 +87,14 @@ depends on the call, not on the client.
 Two limits worth internalising:
 
 - **`NoThrow` covers declared API errors only.** It never suppresses a transport failure.
-- **Streaming operations have no `requestOptions` parameter at all** — a stream has no envelope to
-  put an error on, so it always throws. See [streaming](streaming.md#-streams-always-throw).
+- **Streams and automatic cursor traversals refuse `NoThrow` at the call, before enumeration.**
+  They take `requestOptions`, but their API errors always throw. A stream has no response envelope
+  to carry an error. See [streaming](streaming.md#-streams-always-throw) and [pagination](pagination.md).
 
-`OpenCodeRequestOptions` also carries `Location`, the per-call project override, which merges over
+`OpenCodeRequestOptions` also carries `Location`, the per-call directory override, which merges over
 the client's ambient location member by member — a set member wins, an unset one inherits.
+Streams apply it on every connection attempt and traversals on every page request; the server may
+ignore it on a route that resolves location from a session or needs no location.
 
 ## 🏷️ The typed error family
 

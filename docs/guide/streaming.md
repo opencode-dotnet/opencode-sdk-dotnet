@@ -14,13 +14,13 @@ process, and the **per-session log** for one conversation.
 
 ## 🔊 The global event bus
 
-`EventsClient.SubscribeAsync(CancellationToken)` yields `IEvent` — the union of every event the
+`EventsClient.SubscribeAsync(OpenCodeRequestOptions?, CancellationToken)` yields `IEvent` — the union of every event the
 pinned snapshot declares. Pattern-match the ones you care about and let the rest fall through:
 
 ```csharp
 using var window = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 
-await foreach (var @event in client.Events.SubscribeAsync(window.Token))
+await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: window.Token))
 {
     switch (@event)
     {
@@ -47,7 +47,7 @@ Every event that belongs to one session implements `ISessionScopedEvent`, whose 
 that session, so you can keep the events of one session without listing their types:
 
 ```csharp
-await foreach (var @event in client.Events.SubscribeAsync(window.Token))
+await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: window.Token))
 {
     if (@event is ISessionScopedEvent { SessionId: var id } && id == sessionId)
     {
@@ -76,7 +76,7 @@ you prompt, because an event published before you listen is gone; the first even
 ```csharp
 var session = client.Sessions.GetSessionClient(sessionId);
 using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-await using var events = client.Events.SubscribeAsync(deadline.Token).GetAsyncEnumerator();
+await using var events = client.Events.SubscribeAsync(cancellationToken: deadline.Token).GetAsyncEnumerator();
 
 // The first event is server.connected: from here on, nothing the session publishes is missed.
 await events.MoveNextAsync();
@@ -105,7 +105,7 @@ does:
 ```csharp
 var session = client.Sessions.GetSessionClient(sessionId);
 using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-await using var events = client.Events.SubscribeAsync(deadline.Token).GetAsyncEnumerator();
+await using var events = client.Events.SubscribeAsync(cancellationToken: deadline.Token).GetAsyncEnumerator();
 
 // 1. The stream is ready once its first event, server.connected, has arrived.
 if (!await events.MoveNextAsync() || events.Current is not EventServerConnected)
@@ -206,7 +206,7 @@ The SDK **reconnects** the bus the way upstream's own client does, and it tells 
 
 ```csharp
 var connectedBefore = false;
-await foreach (var @event in client.Events.SubscribeAsync(cancellationToken))
+await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: cancellationToken))
 {
     if (@event is EventServerConnected && connectedBefore)
     {
@@ -225,14 +225,14 @@ guarantees below has the whole story.
 
 ## 📜 A single session's log
 
-`SessionClient.ReadLogAsync(SessionLogRequest?, CancellationToken)` yields `ISessionLogItem` for one
+`SessionClient.ReadLogAsync(SessionLogRequest?, OpenCodeRequestOptions?, CancellationToken)` yields `ISessionLogItem` for one
 session. Upstream serves it as an experimental route, so it needs an
 [opt-in](experimental.md#opencode003) (`OPENCODE003`).
 
 ```csharp
 var session = client.Sessions.GetSessionClient(sessionId);
 
-await foreach (var item in session.ReadLogAsync(new SessionLogRequest { Follow = true }, cancellationToken))
+await foreach (var item in session.ReadLogAsync(new SessionLogRequest { Follow = true }, cancellationToken: cancellationToken))
 {
     switch (item)
     {
@@ -358,20 +358,25 @@ cannot be read is a protocol failure and throws — the carrier is for *unknown*
 - **Disposing the enumerator ends the connection**, which `await foreach` does for you on `break`,
   on `return`, and on an exception.
 - On the event bus, a connection that receives nothing for its idle window (45 seconds unless you
-  set `EventStreamIdleTimeout`) is replaced, as above. The
-  session log is bounded only while it opens: once open, a silent log stays open until you cancel,
+  set `EventStreamIdleTimeout`) is replaced, as above. It refuses a per-call `NetworkTimeout`,
+  including `Timeout.InfiniteTimeSpan`; its connection and idle windows apply instead. On the
+  session log, a per-call `NetworkTimeout` overrides the client value only while opening:
+  once open, a silent log stays open until you cancel,
   the server ends it, or it fails.
 
 ## 💥 Streams always throw
 
-Streaming operations return a stream, not a response envelope — so they have **no `requestOptions`
-parameter**, and [`NoThrow`](errors-and-responses.md#-ask-for-the-failure-as-data-instead) is not
-available on them. There is no envelope to put an error on, so every failure is an exception:
+Streaming operations take `requestOptions`, but return a stream, not a response envelope.
+[`NoThrow`](errors-and-responses.md#-ask-for-the-failure-as-data-instead) is refused with
+`ArgumentException` naming `requestOptions` at the call, before enumeration; an undefined
+`ErrorBehavior` is also refused. Per-call `Location` is sent on every connection attempt, including
+reconnects; it does not filter the global event bus or change a session's directory. There is no
+envelope to put an error on, so every failure is an exception:
 
 ```csharp
 try
 {
-    await foreach (var @event in client.Events.SubscribeAsync(cancellationToken))
+    await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: cancellationToken))
     {
         Console.WriteLine(@event.Type);
     }

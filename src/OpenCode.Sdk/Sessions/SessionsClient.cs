@@ -96,6 +96,7 @@ public class SessionsClient
     /// Enumerates the items returned by &apos;GET /api/session&apos; by following each opaque next cursor; every filter of the first request rides each continuation.
     /// </summary>
     /// <param name = "request">The request shaping the first page.</param>
+    /// <param name = "requestOptions">The per-call options applied to every page; NoThrow is refused.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;SessionInfo&apos; sequence, whose Pages expose each &apos;SessionListResponse&apos;.</returns>
     /// <exception cref = "OpenCodeApiException">The API returned a declared error status (declared: 400, 401); pagination API errors always throw.</exception>
@@ -103,8 +104,8 @@ public class SessionsClient
     /// <remarks>
     /// Operation <c>session.list</c>: <c>GET /api/session</c>.
     /// </remarks>
-    public virtual CursorSequence<SessionListResponse, SessionInfo> EnumerateSessionsAsync(SessionListRequest? request = null, CancellationToken cancellationToken = default)
+    public virtual CursorSequence<SessionListResponse, SessionInfo> EnumerateSessionsAsync(SessionListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return CursorPaginator.EnumerateAsync(ListSessionsAsync, request, SessionListResponseAdapter.Instance, cancellationToken);
+        return CursorPaginator.EnumerateAsync(ListSessionsAsync, request, SessionListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }

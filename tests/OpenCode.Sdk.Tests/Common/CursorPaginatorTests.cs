@@ -45,7 +45,7 @@ public sealed class CursorPaginatorTests
         var exception = await RefusePaginatorOptionsAsync<ArgumentException>(OpenCodeRequestOptions.NoThrow);
 
         await Assert.That(exception.GetType()).IsEqualTo(typeof(ArgumentException));
-        await Assert.That(exception.ParamName).IsEqualTo("options");
+        await Assert.That(exception.ParamName).IsEqualTo("requestOptions");
     }
 
     [Test]
@@ -55,7 +55,7 @@ public sealed class CursorPaginatorTests
 
         var exception = await RefusePaginatorOptionsAsync<ArgumentOutOfRangeException>(options);
 
-        await Assert.That(exception.ParamName).IsEqualTo("options");
+        await Assert.That(exception.ParamName).IsEqualTo("requestOptions");
         await Assert.That(exception.ActualValue).IsEqualTo(options.ErrorBehavior);
     }
 

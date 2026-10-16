@@ -22,6 +22,7 @@ internal static class PaginationMethodEmitter
             SyntaxFactory.Argument(EmissionSyntax.MemberAccess(
                 SyntaxFactory.IdentifierName(operation.Envelope!.AdapterTypeName),
                 "Instance")),
+            SyntaxFactory.Argument(SyntaxFactory.IdentifierName(ReservedNamePolicy.RequestOptionsParameter)),
             SyntaxFactory.Argument(SyntaxFactory.IdentifierName(ReservedNamePolicy.CancellationTokenParameter)));
         return SyntaxFactory
             .MethodDeclaration(
@@ -36,6 +37,9 @@ internal static class PaginationMethodEmitter
             [
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier(ReservedNamePolicy.RequestParameter))
                     .WithType(SyntaxFactory.NullableType(TypeSyntaxEmitter.EmitNamed(pagination.RequestTypeName)))
+                    .WithDefault(SyntaxFactory.EqualsValueClause(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))),
+                SyntaxFactory.Parameter(SyntaxFactory.Identifier(ReservedNamePolicy.RequestOptionsParameter))
+                    .WithType(SyntaxFactory.NullableType(TypeSyntaxEmitter.EmitNamed("OpenCodeRequestOptions")))
                     .WithDefault(SyntaxFactory.EqualsValueClause(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))),
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier(ReservedNamePolicy.CancellationTokenParameter))
                     .WithType(TypeSyntaxEmitter.EmitNamed("CancellationToken"))
@@ -72,6 +76,7 @@ internal static class PaginationMethodEmitter
             + "by following each opaque next cursor; every filter of the first request rides each continuation.",
             [
                 new DocumentedParameter(ReservedNamePolicy.RequestParameter, "The request shaping the first page."),
+                new DocumentedParameter(ReservedNamePolicy.RequestOptionsParameter, "The per-call options applied to every page; NoThrow is refused."),
                 new DocumentedParameter(ReservedNamePolicy.CancellationTokenParameter, "The cancellation token."),
             ],
             $"The '{pagination.ItemTypeName}' sequence, whose Pages expose each '{pagination.PageTypeName}'.",

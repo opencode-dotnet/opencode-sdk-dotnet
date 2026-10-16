@@ -18,7 +18,7 @@ public sealed class SessionClientPaginationTests
         var itemCount = 0;
 
         await foreach (var _ in client
-                           .EnumerateMessagesAsync(initialRequest, CancellationToken.None)
+                           .EnumerateMessagesAsync(initialRequest, cancellationToken: CancellationToken.None)
                            .WithCancellation(CancellationToken.None))
         {
             itemCount++;

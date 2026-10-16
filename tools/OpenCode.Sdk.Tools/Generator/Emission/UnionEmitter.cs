@@ -41,8 +41,8 @@ internal static class UnionEmitter
                     .AccessorDeclaration(SyntaxKind.GetAccessorDeclaration)
                     .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)))))
             .WithLeadingTrivia(EmissionSyntax.Documentation($"Gets the '{union.MarkerWireName}' union marker."));
-        // A nested union that discriminates on its parent's marker inherits that member;
-        // redeclaring it would hide the one the parent already promises.
+        // A union inherits a matching discriminator from its generated parent or the stream-cause
+        // marker; redeclaring it would hide the member its base already promises.
         var declaresMarker = !InheritsMarker(union, unions);
         // Every member declares the hoisted properties in the same shape, so the interface can
         // promise them; each is nullable because the unknown carrier materializes none of them.
@@ -140,7 +140,9 @@ internal static class UnionEmitter
             current = outer.BaseTypeName;
         }
 
-        return false;
+        return string.Equals(current, EffectStreamTypeNamePolicy.CauseMarkerInterface, StringComparison.Ordinal)
+            && string.Equals(union.MarkerWireName, ErrorMarkerPolicy.WireName, StringComparison.Ordinal)
+            && union.MarkerKind == LiteralKind.String;
     }
 
     private static GeneratedSource EmitUnknown(UnionPlan union, IReadOnlyDictionary<string, UnionPlan> unions, string relativePath)

@@ -385,6 +385,7 @@ public class SessionClient
     /// Enumerates the items returned by &apos;GET /api/session/{sessionID}/message&apos; by following each opaque next cursor; every filter of the first request rides each continuation.
     /// </summary>
     /// <param name = "request">The request shaping the first page.</param>
+    /// <param name = "requestOptions">The per-call options applied to every page; NoThrow is refused.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;ISessionMessageInfo&apos; sequence, whose Pages expose each &apos;SessionMessageListResponse&apos;.</returns>
     /// <exception cref = "OpenCodeApiException">The API returned a declared error status (declared: 400, 401, 404, 500); pagination API errors always throw.</exception>
@@ -392,9 +393,9 @@ public class SessionClient
     /// <remarks>
     /// Operation <c>session.message.list</c>: <c>GET /api/session/{sessionID}/message</c>.
     /// </remarks>
-    public virtual CursorSequence<SessionMessageListResponse, ISessionMessageInfo> EnumerateMessagesAsync(SessionMessageListRequest? request = null, CancellationToken cancellationToken = default)
+    public virtual CursorSequence<SessionMessageListResponse, ISessionMessageInfo> EnumerateMessagesAsync(SessionMessageListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return CursorPaginator.EnumerateAsync(ListMessagesAsync, request, SessionMessageListResponseAdapter.Instance, cancellationToken);
+        return CursorPaginator.EnumerateAsync(ListMessagesAsync, request, SessionMessageListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -487,6 +488,7 @@ public class SessionClient
     /// Read the session log. Experimental durable session event log. Reads events after an exclusive aggregate sequence and continues with live events when follow=true.
     /// </summary>
     /// <param name = "request">The request shaping the query.</param>
+    /// <param name = "requestOptions">The per-call options; NoThrow is refused. NetworkTimeout bounds only the opening and is refused for reconnecting streams, including Timeout.InfiniteTimeSpan.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;ISessionLogItem&apos; stream.</returns>
     /// <exception cref = "OpenCodeApiException">The API returned a declared error status (declared: 400, 401, 404); streaming API errors always throw.</exception>
@@ -496,9 +498,9 @@ public class SessionClient
     /// Operation <c>session.log</c>: <c>GET /api/experimental/session/{sessionID}/log</c>.
     /// </remarks>
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
-    public virtual IAsyncEnumerable<ISessionLogItem> ReadLogAsync(SessionLogRequest? request = null, CancellationToken cancellationToken = default)
+    public virtual IAsyncEnumerable<ISessionLogItem> ReadLogAsync(SessionLogRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteStreamAsync("session.log", HttpMethod.Get, OpenCodeRoutes.Sessions.ReadLog(SessionId, request), SessionLogResponseStreamAdapter.Instance, cancellationToken);
+        return Pipeline.ExecuteStreamAsync("session.log", HttpMethod.Get, OpenCodeRoutes.Sessions.ReadLog(SessionId, request), SessionLogResponseStreamAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>

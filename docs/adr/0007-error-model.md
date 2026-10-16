@@ -1,19 +1,28 @@
 # Error model: typed exception spine carrying tagged error data
 
-Date: 2026-08-26
+Date: 2026-10-16
 
 API failures throw through a typed exception spine (`OpenCodeException` →
 `OpenCodeApiException`) by default; per-call `NoThrow` returns them on the response spine.
 The per-call options type carries that choice plus the typed `LocationSelector` location —
 no arbitrary header dictionary (sealed 2026-08-26; internal research, 2026-08-25, "What did the
-coverage-program grilling seal?"). **Streaming operations carry no per-call options today**: a
-stream yields an `IAsyncEnumerable<T>` rather than a response envelope, so there is nothing for
-`NoThrow` to answer on, and neither of the two instance-global streams is location-scoped. Offering
-a parameter a stream must refuse at run time would leave the compiler unable to prevent a mistake
-it can see, so when a stream operation first needs a meaningful per-call member (location
-qualifies; `NoThrow` never will), it receives a dedicated stream options type without an
-error-behavior member — additive, decided per operation at admission. The retry/telemetry/hooks
-work remains a trigger for the same mechanism, and the packages are pre-1.0 while it stays cheap.
+coverage-program grilling seal?").
+
+Streams and automatic cursor traversals take the shared `OpenCodeRequestOptions`.
+`Location` applies to each stream connection attempt and every page request. A stream yields
+an `IAsyncEnumerable<T>` rather than a response envelope, so it has no envelope to carry an
+API error; streams and automatic traversals refuse `NoThrow` at the call, before enumeration,
+and always throw API errors when encountered. Explicit page methods retain `NoThrow`.
+On `event.subscribe`, per-call `NetworkTimeout` is refused, including
+`Timeout.InfiniteTimeSpan`: its 2-second connection and default 45-second idle windows follow
+upstream's first-party behavior. Other streams apply `NetworkTimeout` only while opening;
+automatic traversal applies it separately to every page request.
+
+Upstream's `event.subscribe` takes `RequestOptions`. One shared options type across the
+surface is chosen over a dedicated stream options type so callers use the same per-call
+location and behavior vocabulary. The trade-off is that the compiler cannot prevent a caller
+from selecting a member a stream or traversal must refuse at run time.
+
 Transport and protocol failures always throw `OpenCodeTransportException`. The spec's tagged error
 payloads are generated as typed models under an `OpenCodeError` base and ride **as data** on either
 channel, pattern-matchable without string sniffing. There is no client-level switch. Throwing API

@@ -149,13 +149,10 @@ internal static class OperationMethodEmitter
                 .WithDefault(SyntaxFactory.EqualsValueClause(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)));
         }
 
-        if (operation.Stream is null)
-        {
-            yield return SyntaxFactory
-                .Parameter(SyntaxFactory.Identifier(ReservedNamePolicy.RequestOptionsParameter))
-                .WithType(SyntaxFactory.NullableType(TypeSyntaxEmitter.EmitNamed("OpenCodeRequestOptions")))
-                .WithDefault(SyntaxFactory.EqualsValueClause(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)));
-        }
+        yield return SyntaxFactory
+            .Parameter(SyntaxFactory.Identifier(ReservedNamePolicy.RequestOptionsParameter))
+            .WithType(SyntaxFactory.NullableType(TypeSyntaxEmitter.EmitNamed("OpenCodeRequestOptions")))
+            .WithDefault(SyntaxFactory.EqualsValueClause(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)));
 
         yield return SyntaxFactory
             .Parameter(SyntaxFactory.Identifier(ReservedNamePolicy.CancellationTokenParameter))
@@ -190,14 +187,11 @@ internal static class OperationMethodEmitter
             }
         }
 
-        // A stream yields its payloads directly, so it carries no per-call options (ADR-0007).
+        // The pipeline applies the per-call options for both response and stream doors.
         arguments.Add(SyntaxFactory.Argument(EmissionSyntax.MemberAccess(
             SyntaxFactory.IdentifierName(operation.Stream?.AdapterTypeName ?? operation.Envelope!.AdapterTypeName),
             "Instance")));
-        if (operation.Stream is null)
-        {
-            arguments.Add(SyntaxFactory.Argument(SyntaxFactory.IdentifierName(ReservedNamePolicy.RequestOptionsParameter)));
-        }
+        arguments.Add(SyntaxFactory.Argument(SyntaxFactory.IdentifierName(ReservedNamePolicy.RequestOptionsParameter)));
 
         // The collected headers are named so the overload reads at the call site and so the
         // channel cannot bind silently to the wrong pipeline parameter.
@@ -294,10 +288,9 @@ internal static class OperationMethodEmitter
         parameters.AddRange(operation.DeclaredHeaders.Select(static header =>
             new DocumentedParameter(header.Name, $"The '{header.WireName}' request header; omitted when null.")));
 
-        if (operation.Stream is null)
-        {
-            parameters.Add(new DocumentedParameter(ReservedNamePolicy.RequestOptionsParameter, "The per-call options."));
-        }
+        parameters.Add(new DocumentedParameter(ReservedNamePolicy.RequestOptionsParameter, operation.Stream is null
+            ? "The per-call options."
+            : "The per-call options; NoThrow is refused. NetworkTimeout bounds only the opening and is refused for reconnecting streams, including Timeout.InfiniteTimeSpan."));
 
         parameters.Add(new DocumentedParameter(ReservedNamePolicy.CancellationTokenParameter, "The cancellation token."));
 

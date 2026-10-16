@@ -47,6 +47,18 @@ internal sealed class ContractScenario : IDisposable
 
     public static ContractScenario Responding() => new(new RecordingHttpHandler());
 
+    /// <summary>Answers each request with the next page body, in order, as a cursor traversal reads them.</summary>
+    public static ContractScenario RespondingWithPages(params string[] pages)
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+
+        var bodies = new Queue<string>(pages);
+        return new(new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(bodies.Dequeue()),
+        }));
+    }
+
     /// <summary>The same canned response, reached by a client that carries a Basic password.</summary>
     public static ContractScenario RespondingToCredentialed(HttpStatusCode status, string body, string password)
     {

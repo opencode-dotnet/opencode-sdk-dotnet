@@ -27,7 +27,7 @@ public sealed class PipelineStreamTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient);
         await using var enumerator = pipeline.ExecuteStreamAsync(
-            OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), caller.Token).GetAsyncEnumerator();
+            OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, caller.Token).GetAsyncEnumerator();
         var first = enumerator.MoveNextAsync().AsTask();
         await Assert.That(await first.WaitAsync(HangGuard.Bound)).IsTrue();
 
@@ -55,7 +55,7 @@ public sealed class PipelineStreamTests
         using var handler = new RecordingHttpHandler(_ => EventStreamOf(body));
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient);
-        var stream = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), caller.Token);
+        var stream = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, caller.Token);
         await using var enumerator = stream.GetAsyncEnumerator();
 
         var reading = CaptureFailureAsync(async () => _ = await enumerator.MoveNextAsync());
@@ -101,7 +101,7 @@ public sealed class PipelineStreamTests
         using var pipeline = PipelineFactory.Create(httpClient);
         var methodToken = tokenEntry is "enumeration" ? CancellationToken.None : caller.Token;
         var enumerationToken = tokenEntry is "method" ? CancellationToken.None : caller.Token;
-        var frames = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), methodToken);
+        var frames = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, methodToken);
         await using var enumerator = frames.GetAsyncEnumerator(enumerationToken);
         await Assert.That(await enumerator.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(enumerator.Current.Value).IsEqualTo("first");
@@ -143,7 +143,7 @@ public sealed class PipelineStreamTests
         using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient);
-        var frames = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), caller.Token);
+        var frames = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, caller.Token);
         await using var enumerator = frames.GetAsyncEnumerator();
 
         var opening = CaptureFailureAsync(async () => _ = await enumerator.MoveNextAsync());
@@ -221,7 +221,7 @@ public sealed class PipelineStreamTests
             OperationId, new TestStreamAdapter(), OpenCodeRequestOptions.NoThrow);
 
         await Assert.That(exception.GetType()).IsEqualTo(typeof(ArgumentException));
-        await Assert.That(exception.ParamName).IsEqualTo("options");
+        await Assert.That(exception.ParamName).IsEqualTo("requestOptions");
     }
 
     [Test]
@@ -232,7 +232,7 @@ public sealed class PipelineStreamTests
         var exception = await RefuseStreamOptionsAsync<ArgumentOutOfRangeException, TestBody, TestStreamFailureCause[]>(
             OperationId, new TestStreamAdapter(), options);
 
-        await Assert.That(exception.ParamName).IsEqualTo("options");
+        await Assert.That(exception.ParamName).IsEqualTo("requestOptions");
         await Assert.That(exception.ActualValue).IsEqualTo(options.ErrorBehavior);
     }
 
@@ -247,7 +247,7 @@ public sealed class PipelineStreamTests
             "event.subscribe", EventSubscribeResponseStreamAdapter.Instance, options);
 
         await Assert.That(exception.GetType()).IsEqualTo(typeof(ArgumentException));
-        await Assert.That(exception.ParamName).IsEqualTo("options");
+        await Assert.That(exception.ParamName).IsEqualTo("requestOptions");
     }
 
     [Test]
@@ -302,7 +302,7 @@ public sealed class PipelineStreamTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient);
         var stream = pipeline.ExecuteStreamAsync(OperationId,
-            HttpMethod.Get, "/api/event", new TestStreamAdapter(), CancellationToken.None);
+            HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, CancellationToken.None);
 
         await using var enumerator = stream.GetAsyncEnumerator(CancellationToken.None);
         var moved = await enumerator.MoveNextAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(5));
@@ -412,7 +412,7 @@ public sealed class PipelineStreamTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient, networkTimeout: window, time: time);
         var stream = pipeline.ExecuteStreamAsync(OperationId,
-            HttpMethod.Get, "/api/event", new TestStreamAdapter(), caller.Token);
+            HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, caller.Token);
         await using var enumerator = stream.GetAsyncEnumerator(caller.Token);
         var moving = enumerator.MoveNextAsync().AsTask();
         await content.ReadStarted.WaitAsync(HangGuard.Bound);
@@ -643,7 +643,7 @@ public sealed class PipelineStreamTests
         using var pipeline = PipelineFactory.Create(httpClient);
 
         var frames = pipeline.ExecuteStreamAsync(OperationId,
-            HttpMethod.Get, "/api/event", new TestStreamAdapter(), CancellationToken.None);
+            HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, CancellationToken.None);
         await using (var enumerator = frames.GetAsyncEnumerator(CancellationToken.None))
         {
             _ = await enumerator.MoveNextAsync();
@@ -661,7 +661,7 @@ public sealed class PipelineStreamTests
         pipeline.Dispose();
 
         _ = Assert.Throws<ObjectDisposedException>(() => _ = pipeline.ExecuteStreamAsync(OperationId,
-            HttpMethod.Get, "/api/event", new TestStreamAdapter(), CancellationToken.None));
+            HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, CancellationToken.None));
 
         await Assert.That(handler.Requests).IsEmpty();
     }
@@ -673,7 +673,7 @@ public sealed class PipelineStreamTests
         using var httpClient = new HttpClient(handler);
         var pipeline = PipelineFactory.Create(httpClient);
         var stream = pipeline.ExecuteStreamAsync(OperationId,
-            HttpMethod.Get, "/api/event", new TestStreamAdapter(), CancellationToken.None);
+            HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, CancellationToken.None);
         pipeline.Dispose();
 
         _ = await Assert
@@ -695,7 +695,7 @@ public sealed class PipelineStreamTests
         using var pipeline = PipelineFactory.Create(httpClient);
 
         var exception = Assert.Throws<ArgumentException>(() => _ = pipeline.ExecuteStreamAsync(OperationId,
-            HttpMethod.Get, "api/event", new TestStreamAdapter(), CancellationToken.None));
+            HttpMethod.Get, "api/event", new TestStreamAdapter(), null, CancellationToken.None));
 
         await Assert.That(exception.ParamName).IsEqualTo("route");
     }
@@ -742,7 +742,7 @@ public sealed class PipelineStreamTests
     {
         var payloads = new List<TestBody>();
         var stream = pipeline.ExecuteStreamAsync(OperationId,
-            HttpMethod.Get, "/api/event", adapter ?? new TestStreamAdapter(), cancellationToken);
+            HttpMethod.Get, "/api/event", adapter ?? new TestStreamAdapter(), null, cancellationToken);
         await foreach (var payload in stream)
         {
             payloads.Add(payload);

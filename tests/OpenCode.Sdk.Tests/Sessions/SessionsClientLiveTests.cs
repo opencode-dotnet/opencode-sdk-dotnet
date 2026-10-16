@@ -219,7 +219,7 @@ public sealed class SessionsClientLiveTests(SimulatedDriveServerFixture server)
             };
             var pages = new List<SessionListResponse>();
             await foreach (var page in client.Sessions
-                               .EnumerateSessionsAsync(request, cancellationToken)
+                               .EnumerateSessionsAsync(request, cancellationToken: cancellationToken)
                                .Pages
                                .WithCancellation(cancellationToken))
             {
@@ -227,7 +227,7 @@ public sealed class SessionsClientLiveTests(SimulatedDriveServerFixture server)
             }
 
             var enumerated = new List<SessionInfo>();
-            await foreach (var session in client.Sessions.EnumerateSessionsAsync(request, cancellationToken))
+            await foreach (var session in client.Sessions.EnumerateSessionsAsync(request, cancellationToken: cancellationToken))
             {
                 enumerated.Add(session);
             }

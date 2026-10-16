@@ -19,7 +19,7 @@ internal sealed partial class EventBusWorker(
             LogServerIdentity(logger, health.ServerInfo.Version, health.ServerInfo.Pid);
             LogOpeningBus(logger);
 
-            await foreach (var item in events.SubscribeAsync(stoppingToken).ConfigureAwait(false))
+            await foreach (var item in events.SubscribeAsync(cancellationToken: stoppingToken).ConfigureAwait(false))
             {
                 LogFrame(logger, item.GetType().Name, item.Type);
             }

@@ -47,7 +47,7 @@ internal sealed class SessionLogTranscript
         var observed = new EventDiagnosticSummary();
         try
         {
-            await foreach (var item in Session.ReadLogAsync(request, cancellationToken))
+            await foreach (var item in Session.ReadLogAsync(request, cancellationToken: cancellationToken))
             {
                 items.Add(item);
                 observed.Add(item.Type);
@@ -74,7 +74,7 @@ internal sealed class SessionLogTranscript
         _window.CancelAfter(FollowWindow);
         _enumerator = Session.ReadLogAsync(
                 new SessionLogRequest { After = after, Follow = true },
-                _window.Token)
+                cancellationToken: _window.Token)
             .GetAsyncEnumerator(_window.Token);
         while (await MoveNextAsync("the log.synced attachment marker"))
         {

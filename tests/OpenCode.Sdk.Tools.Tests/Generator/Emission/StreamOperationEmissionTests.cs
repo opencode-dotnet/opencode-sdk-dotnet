@@ -51,14 +51,13 @@ public sealed class StreamOperationEmissionTests
         await Assert
             .That(clientSource)
             .Contains(
-                "public virtual IAsyncEnumerable<ExampleEvent> GetEventsAsync(string exampleId, CancellationToken cancellationToken = default)");
+                "public virtual IAsyncEnumerable<ExampleEvent> GetEventsAsync(string exampleId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)");
         await Assert
             .That(clientSource)
             .Contains(
-                "return Pipeline.ExecuteStreamAsync(\"example.events\", HttpMethod.Get, OpenCodeRoutes.Example.GetEvents(exampleId), ExampleEventsResponseStreamAdapter.Instance, cancellationToken);");
+                "return Pipeline.ExecuteStreamAsync(\"example.events\", HttpMethod.Get, OpenCodeRoutes.Example.GetEvents(exampleId), ExampleEventsResponseStreamAdapter.Instance, requestOptions, cancellationToken);");
         await Assert.That(clientSource).DoesNotContain("ResponseAdapter.Instance");
-        await Assert.That(clientSource).DoesNotContain("requestOptions");
-        await Assert.That(clientSource).DoesNotContain("NoThrow");
+        await Assert.That(clientSource).Contains("<param name = \"requestOptions\">The per-call options; NoThrow is refused. NetworkTimeout bounds only the opening and is refused for reconnecting streams, including Timeout.InfiniteTimeSpan.</param>");
         await Assert.That(clientSource).Contains("OpenCodeStreamFailureException");
         await Assert.That(clientSource).Contains("schema-valid failure with a typed cause");
         await Assert.That(clientSource).Contains("The example stream is volatile by contract.");

@@ -114,7 +114,7 @@ public sealed class ConfigClientLiveTests(SimulatedDriveServerFixture server)
         });
         try
         {
-            probe.Start(client.Events.SubscribeAsync(reader.Token));
+            probe.Start(client.Events.SubscribeAsync(cancellationToken: reader.Token));
             await probe.WaitForConnectedAsync(cancellationToken);
 
             var set = await client.Experimental.UpdateConfigAsync(

@@ -48,7 +48,7 @@ public sealed class EventsClientLiveTests(PinnedOpenCodeServerFixture server)
         {
             // The subscription is attached before the emit call, so the proof rests on a causal
             // barrier rather than on replay.
-            probe.Start(client.Events.SubscribeAsync(reader.Token));
+            probe.Start(client.Events.SubscribeAsync(cancellationToken: reader.Token));
             await probe.WaitForConnectedAsync(cancellationToken);
 
             var emitted = await client.Rpc.CallAsync(

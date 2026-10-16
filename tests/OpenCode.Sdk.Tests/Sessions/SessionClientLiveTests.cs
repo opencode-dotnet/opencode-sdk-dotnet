@@ -38,7 +38,7 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
 
         try
         {
-            probe.Start(client.Events.SubscribeAsync(reader.Token));
+            probe.Start(client.Events.SubscribeAsync(cancellationToken: reader.Token));
             await probe.WaitForConnectedAsync(cancellationToken);
             _ = await session.RunCommandAsync(new SessionCommandRequest
             {
@@ -320,7 +320,7 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
         {
             // The subscription is attached before the move is admitted, so the applied event is
             // observed by construction rather than by racing the subscription.
-            probe.Start(sourceClient.Events.SubscribeAsync(reader.Token));
+            probe.Start(sourceClient.Events.SubscribeAsync(cancellationToken: reader.Token));
             await probe.WaitForConnectedAsync(cancellationToken);
 
             var admitted = await sourceSession.MoveAsync(

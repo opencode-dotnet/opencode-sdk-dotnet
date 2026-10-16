@@ -5,22 +5,12 @@ namespace OpenCode.Sdk.Internal;
 /// <summary>Lazily traverses generated cursor-list operations through their ordinary one-page methods.</summary>
 internal static class CursorPaginator
 {
-    /// <summary>Creates a lazy sequence over the operation's opaque next cursors.</summary>
+    /// <summary>Creates a lazy traversal over opaque next cursors with options applied to every page; API errors always throw.</summary>
     public static CursorSequence<TResponse, TItem> EnumerateAsync<TRequest, TResponse, TItem>(
         Func<TRequest?, OpenCodeRequestOptions?, CancellationToken, Task<TResponse>> fetchPage,
         TRequest? initialRequest,
         ICursorPageAdapter<TRequest, TResponse, TItem> adapter,
-        CancellationToken cancellationToken)
-        where TRequest : ListRequest
-        where TResponse : OpenCodeResponse =>
-        EnumerateAsync(fetchPage, initialRequest, adapter, options: null, cancellationToken);
-
-    /// <summary>Creates a lazy traversal with options applied to every page; API errors always throw.</summary>
-    public static CursorSequence<TResponse, TItem> EnumerateAsync<TRequest, TResponse, TItem>(
-        Func<TRequest?, OpenCodeRequestOptions?, CancellationToken, Task<TResponse>> fetchPage,
-        TRequest? initialRequest,
-        ICursorPageAdapter<TRequest, TResponse, TItem> adapter,
-        OpenCodeRequestOptions? options,
+        OpenCodeRequestOptions? requestOptions,
         CancellationToken cancellationToken)
         where TRequest : ListRequest
         where TResponse : OpenCodeResponse
@@ -28,10 +18,10 @@ internal static class CursorPaginator
         ArgumentNullException.ThrowIfNull(fetchPage);
         ArgumentNullException.ThrowIfNull(adapter);
 
-        ErrorBehaviorPolicy.RefuseNoThrow(options, "Cursor traversals");
+        ErrorBehaviorPolicy.RefuseNoThrow(requestOptions, "Cursor traversals");
 
         return new CursorSequence<TResponse, TItem>(
-            token => EnumeratePagesCoreAsync(fetchPage, initialRequest, adapter, options, token),
+            token => EnumeratePagesCoreAsync(fetchPage, initialRequest, adapter, requestOptions, token),
             adapter.GetItems,
             cancellationToken);
     }
@@ -44,7 +34,7 @@ internal static class CursorPaginator
         Func<TRequest?, OpenCodeRequestOptions?, CancellationToken, Task<TResponse>> fetchPage,
         TRequest? initialRequest,
         ICursorPageAdapter<TRequest, TResponse, TItem> adapter,
-        OpenCodeRequestOptions? options,
+        OpenCodeRequestOptions? requestOptions,
         [EnumeratorCancellation] CancellationToken cancellationToken)
         where TRequest : ListRequest
         where TResponse : OpenCodeResponse
@@ -52,7 +42,7 @@ internal static class CursorPaginator
         var request = initialRequest;
         while (true)
         {
-            var page = await fetchPage(request, options, cancellationToken).ConfigureAwait(false);
+            var page = await fetchPage(request, requestOptions, cancellationToken).ConfigureAwait(false);
             yield return page;
 
             if (adapter.GetNextCursor(page) is not { } cursor)

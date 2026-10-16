@@ -269,7 +269,7 @@ internal sealed class OwnedToolScenario
     {
         // The subscription is attached before anything is registered or created, so every
         // later event is observed by construction rather than by racing the subscription.
-        Probe.Start(_client.Events.SubscribeAsync(_reader.Token));
+        Probe.Start(_client.Events.SubscribeAsync(cancellationToken: _reader.Token));
         await Probe.WaitForConnectedAsync(cancellationToken);
 
         var registration = DriveToolRegistration.Parse(new FixtureLoader().LoadText("Simulation.drive-echo-tool.json"));

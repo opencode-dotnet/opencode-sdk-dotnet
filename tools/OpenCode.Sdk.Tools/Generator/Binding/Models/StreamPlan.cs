@@ -2,7 +2,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 /// <summary>
 /// A streaming operation's contract. A stream yields its payloads directly rather than through
-/// a response envelope, so it carries no envelope plan and no per-call options (ADR-0007).
+/// a response envelope, so it carries no envelope plan; the pipeline owns per-call options.
 /// </summary>
 internal sealed record StreamPlan
 {
