@@ -16,6 +16,43 @@ public sealed class SessionMessagePaginationLiveTests(SimulatedDriveServerFixtur
 
     [Test]
     [Timeout(180_000)]
+    public async Task GetMessageAsync_Should_Return_The_Requested_Message_When_Several_Messages_Exist(
+        CancellationToken cancellationToken)
+    {
+        using var workspace = server.CreateWorkspace();
+        using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
+        var sessionId = await CreateOwnedSessionAsync(client, workspace.Path, cancellationToken);
+        var session = client.Sessions.GetSessionClient(sessionId);
+        var cleanup = new OwnedSessionCleanup(session, CleanupTimeout);
+        Exception? primaryFailure = null;
+
+        try
+        {
+            var turn = new SimulatedSessionTurn(server, client, session, sessionId);
+            _ = await turn.CompleteAsync(Prompt, Reply, cancellationToken);
+            cleanup.MarkTurnCompleted();
+            var messages = await EnumerateMessagesAsync(session, cancellationToken);
+            var assistants = OwnedReplies(messages);
+            await Assert.That(assistants).Count().IsEqualTo(1);
+            await Assert.That(messages.OfType<SessionMessageUser>().Select(message => message.Text)).Contains(Prompt);
+
+            var response = await session.GetMessageAsync(assistants[0].Id, cancellationToken: cancellationToken);
+
+            await Assert.That(response.Message).IsTypeOf<SessionMessageAssistant>();
+            var assistant = (SessionMessageAssistant)response.Message;
+            await Assert.That(assistant.Id).IsEqualTo(assistants[0].Id);
+            await Assert.That(assistant.Content.OfType<SessionMessageAssistantText>().Select(text => text.Text)).Contains(Reply);
+        }
+        catch (Exception exception)
+        {
+            primaryFailure = exception;
+        }
+
+        await cleanup.CompleteAsync(primaryFailure);
+    }
+
+    [Test]
+    [Timeout(180_000)]
     public async Task ListMessagesAsync_Should_Round_Trip_The_Server_Cursor_And_Match_The_Paginator(CancellationToken cancellationToken)
     {
         using var workspace = server.CreateWorkspace();
