@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using OpenCode.Sdk.Tools.Tests.Support;
 
 namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 
@@ -29,12 +30,19 @@ internal sealed class SuppressionScan(IFileSystem fileSystem, IReadOnlyList<stri
         var suppressions = new List<Suppression>();
         var configs = new List<AnalyzerConfigDocument>();
         var compileIncludes = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+        var generated = new HashSet<string>(StringComparer.Ordinal);
+        if (files.Contains(GeneratedManifest.ManifestPath, StringComparer.Ordinal))
+        {
+            var manifest = new GeneratedManifest(await ReadAsync(root, GeneratedManifest.ManifestPath, cancellationToken));
+            generated.UnionWith(manifest.Files.Select(static file => GeneratedManifest.SdkPath + file));
+        }
+
         foreach (var file in files)
         {
             var name = file[(file.LastIndexOf('/', StringComparison.Ordinal) + 1)..];
             if (file.EndsWith(".cs", StringComparison.Ordinal))
             {
-                suppressions.AddRange(CSharpSuppressionReader.Read(file, await ReadAsync(root, file, cancellationToken)));
+                suppressions.AddRange(CSharpSuppressionReader.Read(file, await ReadAsync(root, file, cancellationToken), generated));
             }
             else if (MSBuildExtensions.Any(extension => file.EndsWith(extension, StringComparison.Ordinal)))
             {

@@ -89,12 +89,13 @@ internal static class SuppressionOverlap
             SuppressionChannel.Pragma or SuppressionChannel.SuppressMessage or SuppressionChannel.SlopwatchSuppress
                 or SuppressionChannel.SlopwatchIgnore => [(suppression.Origin, suppression.Rule)],
             SuppressionChannel.SlopwatchBaseline => [(suppression.Scope, suppression.Rule)],
-            SuppressionChannel.NoWarn or SuppressionChannel.WarningsNotAsErrors =>
+            SuppressionChannel.NoWarn or SuppressionChannel.WarningsNotAsErrors or SuppressionChannel.MSBuildWarningsAsMessages =>
                 WarningListFiles(inventory, suppression.Origin).Select(file => (file, suppression.Rule)),
             SuppressionChannel.GlobalConfig => SeverityRule(suppression) is { } rule
                 ? inventory.Projects.FilesUnder(string.Empty).Select(file => (file, rule))
                 : [],
-            SuppressionChannel.EditorConfig or SuppressionChannel.BuildSwitch or SuppressionChannel.NullableDirective => [],
+            SuppressionChannel.EditorConfig or SuppressionChannel.BuildSwitch or SuppressionChannel.NullableDirective
+                or SuppressionChannel.GeneratedCodeHeader or SuppressionChannel.GeneratedCodeAttribute => [],
             _ => throw new ArgumentOutOfRangeException(nameof(suppression), suppression.Channel, "The overlap check does not know how this channel reaches files."),
         };
 

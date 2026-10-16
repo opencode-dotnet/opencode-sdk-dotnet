@@ -5,7 +5,7 @@ namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 
 /// <summary>
 /// Reads the suppressions an MSBuild file declares: every diagnostic ID in a <c>NoWarn</c> or
-/// <c>WarningsNotAsErrors</c> property, every assignment of a property that switches the analyzer
+/// <c>WarningsNotAsErrors</c> or <c>MSBuildWarningsAsMessages</c> property, every assignment of a property that switches the analyzer
 /// wall, its severity or nullable analysis as a whole, and every slopwatch-ignore comment. A
 /// property's scope is the condition it is set under, so widening a condition moves the ledger.
 /// Property names compare without case, as MSBuild compares them. Forms the ledger does not model
@@ -14,17 +14,18 @@ namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 /// </summary>
 internal static partial class ProjectSuppressionReader
 {
-    private static readonly string[] WarningLists = ["NoWarn", "WarningsNotAsErrors"];
+    private static readonly string[] WarningLists = ["NoWarn", "WarningsNotAsErrors", "MSBuildWarningsAsMessages"];
 
     private static readonly string[] BuildSwitches =
     [
         "TreatWarningsAsErrors", "CodeAnalysisTreatWarningsAsErrors", "WarningsAsErrors", "EnableNETAnalyzers",
         "EnforceCodeStyleInBuild", "WarningLevel", "Nullable", "CodeAnalysisRuleSet",
+        "IsAotCompatible", "IsTrimmable", "EnableTrimAnalyzer", "EnableAotAnalyzer", "EnableSingleFileAnalyzer",
     ];
 
     private static readonly string[] BuildSwitchPrefixes = ["RunAnalyzers", "AnalysisLevel", "AnalysisMode"];
 
-    private static readonly string[] TaskWarningParameters = ["NoWarn", "WarningsNotAsErrors", "DisabledWarnings"];
+    private static readonly string[] TaskWarningParameters = [.. WarningLists, "DisabledWarnings"];
 
     public static IReadOnlyList<Suppression> Read(string origin, string text)
     {
@@ -82,7 +83,12 @@ internal static partial class ProjectSuppressionReader
     {
         if (WarningLists.FirstOrDefault(list => Is(list, name)) is { } list)
         {
-            var channel = Is(list, "NoWarn") ? SuppressionChannel.NoWarn : SuppressionChannel.WarningsNotAsErrors;
+            var channel = list switch
+            {
+                "NoWarn" => SuppressionChannel.NoWarn,
+                "MSBuildWarningsAsMessages" => SuppressionChannel.MSBuildWarningsAsMessages,
+                _ => SuppressionChannel.WarningsNotAsErrors,
+            };
             var ids = new List<Suppression>();
             foreach (var id in value.Split([';', ','], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
             {

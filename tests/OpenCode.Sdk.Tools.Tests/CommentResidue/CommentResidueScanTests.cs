@@ -1,5 +1,6 @@
 using OpenCode.Sdk.Tools.Tests.CommentResidue.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.CommentResidue;
 
@@ -15,6 +16,92 @@ public sealed class CommentResidueScanTests
     private const string TaskFive = "Task 5";
     private const string Inactive = "#if NEVER_DEFINED";
     private const string EndInactive = "#endif";
+
+    [Test]
+    public async Task Scan_Should_Preserve_Comments_And_Identifiers_Across_Nested_Inactive_Regions()
+    {
+        var hits = await new CommentResidueScenario()
+            .WithFile(Source,
+                Inactive,
+                "// AutoVerify",
+                Inactive,
+                "/// Q123",
+                "class B { void M() => VerifierSettings.@AutoVerify(); string Text = \"AutoVerify // Q124\"; }",
+                EndInactive,
+                EndInactive,
+                Type)
+            .ScanAsync();
+
+        await Assert.That(hits).IsEquivalentTo(
+        [
+            $"{Source}:4: {CommentResidueScan.ResearchLogNumber}: 'Q123'",
+            $"{Source}:5: {CommentResidueScan.SnapshotAutoAccept}: 'AutoVerify'",
+            $"{Source}:2: {CommentResidueScan.SnapshotAutoAccept}: '// AutoVerify'",
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments(".editorconfig", "#")]
+    [Arguments(".editorconfig", ";")]
+    [Arguments(".globalconfig", "#")]
+    [Arguments(".globalconfig", ";")]
+    public async Task Scan_Should_Report_Full_Line_Analyzer_Config_Comments_Without_Quote_Tracking(string path, string prefix)
+    {
+        var hits = await new CommentResidueScenario()
+            .WithFile(path,
+                $"  {prefix} pin's \"unbalanced Q123",
+                $"\t{prefix} Q124",
+                "value = text # Q125",
+                "other = text ; Q126")
+            .ScanAsync();
+
+        await Assert.That(hits).IsEquivalentTo(
+        [
+            $"{path}:1: {CommentResidueScan.ResearchLogNumber}: 'Q123'",
+            $"{path}:2: {CommentResidueScan.ResearchLogNumber}: 'Q124'",
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments(".editorconfig")]
+    [Arguments(".globalconfig")]
+    public async Task Scan_Should_Report_Full_Line_Analyzer_Config_Comments_When_Lines_End_In_A_Bare_Carriage_Return(string path)
+    {
+        var hits = await new CommentResidueScenario().WithFile(path, "root = true\r; Q123\r# Q124").ScanAsync();
+
+        await Assert.That(hits).IsEquivalentTo(
+        [
+            $"{path}:2: {CommentResidueScan.ResearchLogNumber}: 'Q123'",
+            $"{path}:3: {CommentResidueScan.ResearchLogNumber}: 'Q124'",
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments("", "\"")]
+    [Arguments(" ", "'")]
+    [Arguments(":", "\"")]
+    [Arguments("=", "'")]
+    [Arguments("[", "\"")]
+    [Arguments(",", "'")]
+    public async Task Scan_Should_Report_A_Hash_Comment_After_A_Midword_Apostrophe(string boundary, string quote)
+    {
+        var hits = await new CommentResidueScenario()
+            .WithFile(Workflow,
+                "run: echo pin's value # Q123",
+                $"{boundary}{quote}quoted # Q124{quote}",
+                $"{boundary}{quote}quoted{quote} # Q125",
+                "run: word\\'tail # Q126",
+                "run: \"value\\\" # Q127")
+            .ScanAsync();
+
+        await Assert.That(hits).IsEquivalentTo(
+        [
+            $"{Workflow}:1: {CommentResidueScan.ResearchLogNumber}: 'Q123'",
+            $"{Workflow}:3: {CommentResidueScan.ResearchLogNumber}: 'Q125'",
+            $"{Workflow}:4: {CommentResidueScan.ResearchLogNumber}: 'Q126'",
+            $"{Workflow}:5: {CommentResidueScan.ResearchLogNumber}: 'Q127'",
+        ], CollectionOrdering.Matching);
+    }
 
     [Test]
     public async Task Scan_Should_Read_Only_The_Supplied_Nonignored_File_Set()

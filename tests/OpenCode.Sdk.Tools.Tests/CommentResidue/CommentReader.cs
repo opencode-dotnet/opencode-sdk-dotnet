@@ -3,6 +3,7 @@ using System.Xml;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using OpenCode.Sdk.Tools.Tests.Support;
 
 namespace OpenCode.Sdk.Tools.Tests.CommentResidue;
 
@@ -12,7 +13,8 @@ namespace OpenCode.Sdk.Tools.Tests.CommentResidue;
 /// <item>C# is parsed, so a string never reads as a comment; an inactive <c>#if</c> region is
 /// parsed as C# too.</item>
 /// <item>MSBuild and other XML files give their XML comments.</item>
-/// <item>Configuration, workflow, shell and PowerShell files give their <c>#</c> comments: a
+/// <item>Analyzer configs give full-line <c>#</c> and <c>;</c> comments, without quote tracking.</item>
+/// <item>Other configuration, workflow, shell and PowerShell files give their <c>#</c> comments: a
 /// <c>#</c> at the start of a line or after a space, outside a quoted string. PowerShell also gives
 /// its <c>&lt;# … #&gt;</c> blocks.</item>
 /// <item>JavaScript and TypeScript are lexed: strings, template literals and regular expression
@@ -29,27 +31,32 @@ internal static partial class CommentReader
     private const char Backslash = '\\';
 
     private static readonly string[] XmlExtensions = [".csproj", ".props", ".targets", ".slnx", ".config", ".xml"];
-    private static readonly string[] HashExtensions = [".yml", ".yaml", ".editorconfig", ".globalconfig", ".gitattributes", ".gitignore", ".gitmodules", ".ps1", ".psm1", ".sh"];
+    private static readonly string[] AnalyzerConfigExtensions = [".editorconfig", ".globalconfig"];
+    private static readonly string[] HashExtensions = [".yml", ".yaml", ".gitattributes", ".gitignore", ".gitmodules", ".ps1", ".psm1", ".sh"];
     private static readonly string[] PowerShellExtensions = [".ps1", ".psm1"];
     private static readonly string[] HashFileNames = ["CODEOWNERS", "BannedSymbols.txt"];
     private static readonly string[] ScriptExtensions = [".js", ".mjs", ".ts"];
 
     /// <summary>Whether the reader knows how comments look in this file.</summary>
     public static bool Reads(string path) =>
-        path.EndsWith(".cs", StringComparison.Ordinal) || IsXml(path) || IsHash(path) || IsScript(path);
+        path.EndsWith(".cs", StringComparison.Ordinal) || IsXml(path) || IsHash(path) || IsScript(path) || IsAnalyzerConfig(path);
 
     public static IReadOnlyList<SourceLine> Read(string path, string text)
     {
         if (path.EndsWith(".cs", StringComparison.Ordinal))
         {
-            var comments = new List<SourceLine>();
-            ReadCSharp(text, 0, comments, identifiers: null);
-            return comments;
+            throw new ArgumentException("A C# file is read from its parsed source, through Read(CSharpSourceFile).", nameof(path));
         }
 
         if (IsXml(path))
         {
             return Xml(text);
+        }
+
+        if (IsAnalyzerConfig(path))
+        {
+            // The analyzer config reader accepts any line ending, so the comment reader must too.
+            return [.. Lines(text.ReplaceLineEndings("\n"), 1).Where(static line => line.Text.AsSpan().TrimStart() is ['#' or ';', ..])];
         }
 
         if (IsHash(path))
@@ -66,33 +73,23 @@ internal static partial class CommentReader
         return IsScript(path) ? ScriptComments(text) : [];
     }
 
-    /// <summary>Every identifier token in a C# file, inactive regions included, with its 1-based line.</summary>
-    public static IReadOnlyList<SourceLine> CSharpIdentifiers(string text)
-    {
-        var identifiers = new List<SourceLine>();
-        ReadCSharp(text, 0, comments: null, identifiers);
-        return identifiers;
-    }
+    /// <summary>The cached C# regions' comments in physical source order, inactive regions included.</summary>
+    public static IReadOnlyList<SourceLine> Read(CSharpSourceFile source) =>
+    [
+        .. source.Regions.SelectMany(static region => region.Root.DescendantTrivia(descendIntoTrivia: true)
+                .Where(IsComment)
+                .SelectMany(trivia => Lines(trivia.ToFullString(), region.LineOffset + LineOf(trivia.GetLocation()))))
+            .OrderBy(static line => line.Line),
+    ];
 
-    private static void ReadCSharp(string text, int lineOffset, List<SourceLine>? comments, List<SourceLine>? identifiers)
-    {
-        var root = CSharpSyntaxTree.ParseText(text).GetCompilationUnitRoot();
-        identifiers?.AddRange(root.DescendantTokens()
-            .Where(static token => token.IsKind(SyntaxKind.IdentifierToken))
-            .Select(token => new SourceLine(lineOffset + LineOf(token.GetLocation()), token.ValueText)));
-        foreach (var trivia in root.DescendantTrivia(descendIntoTrivia: true))
-        {
-            var line = lineOffset + LineOf(trivia.GetLocation());
-            if (trivia.IsKind(SyntaxKind.DisabledTextTrivia))
-            {
-                ReadCSharp(trivia.ToFullString(), line - 1, comments, identifiers);
-            }
-            else if (comments is not null && IsComment(trivia))
-            {
-                comments.AddRange(Lines(trivia.ToFullString(), line));
-            }
-        }
-    }
+    /// <summary>Every cached C# identifier, with active code first, then inactive regions in nesting order.</summary>
+    public static IReadOnlyList<SourceLine> CSharpIdentifiers(CSharpSourceFile source) =>
+    [
+        .. source.Regions.OrderBy(static region => region.LineOffset)
+            .SelectMany(static region => region.Root.DescendantTokens()
+                .Where(static token => token.IsKind(SyntaxKind.IdentifierToken))
+                .Select(token => new SourceLine(region.LineOffset + LineOf(token.GetLocation()), token.ValueText))),
+    ];
 
     private static int LineOf(Location location) => location.GetLineSpan().StartLinePosition.Line + 1;
 
@@ -106,7 +103,7 @@ internal static partial class CommentReader
             .SelectMany(static comment => Lines(comment.Value, ((IXmlLineInfo)comment).LineNumber)),
     ];
 
-    /// <summary>The <c>#</c> comment of each line: a <c>#</c> that opens the line or follows whitespace, outside single or double quotes.</summary>
+    /// <summary>The <c>#</c> comment of each line, outside quotes opened at a token boundary; a midword apostrophe is ordinary text.</summary>
     private static List<SourceLine> HashComments(string text)
     {
         var result = new List<SourceLine>();
@@ -122,7 +119,7 @@ internal static partial class CommentReader
                 {
                     quote = character == quote ? null : quote;
                 }
-                else if (character is '"' or '\'')
+                else if (character is '"' or '\'' && (position == 0 || char.IsWhiteSpace(line[position - 1]) || line[position - 1] is ':' or '=' or '[' or ','))
                 {
                     quote = character;
                 }
@@ -233,6 +230,8 @@ internal static partial class CommentReader
         text.Split(LineFeed).Select((part, offset) => new SourceLine(firstLine + offset, part.TrimEnd(CarriageReturn)));
 
     private static bool IsXml(string path) => XmlExtensions.Any(extension => path.EndsWith(extension, StringComparison.Ordinal));
+
+    private static bool IsAnalyzerConfig(string path) => AnalyzerConfigExtensions.Any(extension => path.EndsWith(extension, StringComparison.Ordinal));
 
     private static bool IsHash(string path) =>
         HashExtensions.Any(extension => path.EndsWith(extension, StringComparison.Ordinal))

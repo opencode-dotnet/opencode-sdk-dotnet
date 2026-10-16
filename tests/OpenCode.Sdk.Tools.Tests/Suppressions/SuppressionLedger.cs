@@ -67,6 +67,9 @@ internal static class SuppressionLedger
         SuppressionChannel.GlobalConfig => "globalconfig",
         SuppressionChannel.NoWarn => "no-warn",
         SuppressionChannel.WarningsNotAsErrors => "warnings-not-as-errors",
+        SuppressionChannel.MSBuildWarningsAsMessages => "msbuild-warnings-as-messages",
+        SuppressionChannel.GeneratedCodeHeader => "generated-code-header",
+        SuppressionChannel.GeneratedCodeAttribute => "generated-code-attribute",
         SuppressionChannel.BuildSwitch => "build-switch",
         _ => throw new ArgumentOutOfRangeException(nameof(channel), channel, "The ledger has no name for this channel."),
     };
