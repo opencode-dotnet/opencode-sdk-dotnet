@@ -1,3 +1,4 @@
+using System.Reflection;
 using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Tests.Transport;
@@ -11,6 +12,21 @@ namespace OpenCode.Sdk.Tests.Transport;
 public sealed class ProgressWindowTests
 {
     private static readonly TimeSpan Window = TimeSpan.FromSeconds(10);
+
+    [Test]
+    public async Task OnTimer_Should_Declare_A_Reasoned_Best_Effort_Cancellation_Suppression()
+    {
+        var cancellation = typeof(ProgressWindow).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+            .Single(method => method.GetParameters() is [{ ParameterType: var parameterType }]
+                && parameterType == typeof(CancellationTokenSource));
+        var suppressions = cancellation.GetCustomAttributes<SlopwatchSuppressAttribute>()
+            .Where(attribute => string.Equals(attribute.RuleId, "SW003", StringComparison.Ordinal))
+            .ToArray();
+
+        await Assert.That(suppressions).Count().IsEqualTo(1);
+        await Assert.That(suppressions.Single().Reason).IsEqualTo(
+            "An in-flight timer can reach a source the completed exchange already disposed; disposal is observed by the owning exchange, which has no remaining work to cancel.");
+    }
 
     [Test]
     public async Task A_Callback_At_The_Deadline_Should_Cancel()

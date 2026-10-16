@@ -93,9 +93,8 @@ internal sealed class ProgressWindow : IDisposable
             }
 
             _deadline = NoDeadline;
+            Cancel(_source);
         }
-
-        _ = TryCancel(_source);
     }
 
     private long ToTimestamp(TimeSpan length) =>
@@ -108,16 +107,16 @@ internal sealed class ProgressWindow : IDisposable
     /// Cancels the window's source. A timer callback already in flight when the window is disposed
     /// finds the source disposed; the exchange is over by then, so there is nothing left to cancel.
     /// </summary>
-    private static bool TryCancel(CancellationTokenSource source)
+    [SlopwatchSuppress("SW003", "An in-flight timer can reach a source the completed exchange already disposed; disposal is observed by the owning exchange, which has no remaining work to cancel.")]
+    private static void Cancel(CancellationTokenSource source)
     {
         try
         {
             source.Cancel();
-            return true;
         }
         catch (ObjectDisposedException)
         {
-            return false;
+            // The owning exchange has already observed disposal and has no remaining work to cancel.
         }
     }
 }
