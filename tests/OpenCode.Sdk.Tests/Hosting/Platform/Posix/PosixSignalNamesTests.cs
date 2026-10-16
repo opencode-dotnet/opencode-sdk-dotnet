@@ -11,6 +11,20 @@ public sealed class PosixSignalNamesTests
 {
     public static IEnumerable<int> StandardSignals() => Enumerable.Range(1, 31);
 
+    /// <summary>The host selects macOS's numbering only on macOS; Windows exposes the otherwise-unused Linux table.</summary>
+    [Test]
+    public async Task ForCurrentProcess_Should_Select_The_Hosts_Signal_Numbering()
+    {
+        if (OperatingSystem.IsMacOS())
+        {
+            await Assert.That(PosixSignalNames.ForCurrentProcess.NameOf(10)).IsEqualTo("SIGBUS");
+        }
+        else
+        {
+            await Assert.That(PosixSignalNames.ForCurrentProcess.NameOf(10)).IsEqualTo("SIGUSR1");
+        }
+    }
+
     [Test]
     [MethodDataSource(nameof(StandardSignals))]
     public async Task NameOf_Should_Name_Every_Standard_Signal_On_Both_Systems(int number)

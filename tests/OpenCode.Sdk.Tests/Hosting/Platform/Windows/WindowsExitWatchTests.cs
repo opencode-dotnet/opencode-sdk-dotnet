@@ -27,6 +27,7 @@ public sealed class WindowsExitWatchTests
     [Timeout(120_000)]
     [Arguments(AccessViolation)]
     [Arguments(7)]
+    [Arguments(259)]
     public async Task Exited_Should_Report_The_Code_In_Its_Full_32_Bits(int code, CancellationToken cancellationToken)
     {
         if (!OperatingSystem.IsWindows())
