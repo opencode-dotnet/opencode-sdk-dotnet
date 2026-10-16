@@ -198,7 +198,7 @@ public sealed class ServiceStopperTests
         });
         _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
         _ = _processControl.DidNotReceive().TrySignal(Arg.Any<ProcessIdentity>(), ProcessSignal.Kill);
-        await Assert.That(_fileSystem.File.Exists(Sidecar())).IsFalse();
+        await Assert.That(_fileSystem.Directory.GetFiles(_fileSystem.Path.Combine(Root("state"), "opencode"), "*" + SidecarSuffix)).IsEmpty();
         await Assert.That(ReadText(SharedRegistrationPath())).IsEqualTo(ServiceRegistrationData.Minimal);
     }
 
@@ -218,7 +218,7 @@ public sealed class ServiceStopperTests
 
         await Assert.That(exception).IsSameReferenceAs(failure);
         _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
-        await Assert.That(_fileSystem.File.Exists(Sidecar())).IsTrue();
+        await Assert.That(ReadText(Sidecar())).IsEqualTo(SidecarContent);
     }
 
     [Test]

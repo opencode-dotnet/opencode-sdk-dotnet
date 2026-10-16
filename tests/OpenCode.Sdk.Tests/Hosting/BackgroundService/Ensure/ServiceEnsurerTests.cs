@@ -695,7 +695,7 @@ public sealed class ServiceEnsurerTests
             CancellationToken.None);
 
         await Assert.That(steps).IsEquivalentTo(["handoff", "terminate", "winner"], CollectionOrdering.Matching);
-        await Assert.That(_signalled).IsEquivalentTo([RegisteredPid]);
+        await Assert.That(_signalled).IsEquivalentTo([RegisteredPid], CollectionOrdering.Matching);
         await Assert.That(registration.Id).IsEqualTo("srv_successor");
         await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
         await Assert.That(registration.Endpoint).IsEqualTo(ElectedEndpoint);
@@ -746,7 +746,7 @@ public sealed class ServiceEnsurerTests
             new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
             caller.Token)).Throws<OperationCanceledException>();
 
-        await Assert.That(exception!.CancellationToken == caller.Token).IsTrue();
+        await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
         await Assert.That(_signalled).IsEmpty();
         await Assert.That(_starts).IsEmpty();
     }
