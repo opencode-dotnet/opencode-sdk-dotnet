@@ -70,24 +70,30 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
         }
     }
 
-    private async Task AcceptLoopAsync()
+    /// <summary>Accepts clients until shutdown; an accept the shutdown interrupted ends the loop.</summary>
+    internal static async Task AcceptUntilShutdownAsync(Func<Task<TcpClient>> accept, Action<TcpClient> serve, CancellationToken shutdown)
     {
-        while (!_shutdown.IsCancellationRequested)
+        while (!shutdown.IsCancellationRequested)
         {
             TcpClient client;
             try
             {
-                client = await _listener.AcceptTcpClientAsync();
+                client = await accept();
             }
-            catch (Exception exception) when (_shutdown.IsCancellationRequested && exception is ObjectDisposedException or SocketException)
+            catch (Exception exception) when (shutdown.IsCancellationRequested && exception is ObjectDisposedException or SocketException)
             {
                 break;
             }
 
-            _clients.Add(client);
-            _connections.Add(ServeAsync(client));
+            serve(client);
         }
     }
+
+    private Task AcceptLoopAsync() => AcceptUntilShutdownAsync(_listener.AcceptTcpClientAsync, client =>
+    {
+        _clients.Add(client);
+        _connections.Add(ServeAsync(client));
+    }, _shutdown.Token);
 
     private async Task ServeAsync(TcpClient client)
     {
