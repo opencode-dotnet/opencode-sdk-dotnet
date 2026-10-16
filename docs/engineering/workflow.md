@@ -82,14 +82,14 @@ single-owner rules.
   evidence.
 - A pull request opens once its change is reviewed and, where `quality-gates.md` asks for the
   local check, has passed it, so the CI the pull request triggers runs on finished work.
-- Merge only a head that is rebased onto current `master` and has passed the CI it triggers. If
-  `master` moved after that run, rebase and run CI again: the repository guards count exactly over
-  every test file, so a green result from an older base can turn `master` red. A documentation-only
-  follow-up under the `[skip ci]` rule below keeps the evidence of the tested commit it follows.
-  After the merge, the work is done when the CI the merge commit triggers on `master` is green.
-- Everything lands through a pull request, except a release: its changelog cut and its
-  post-publish note are Markdown-only commits pushed straight to `master` with `[skip ci]`, on the
-  maintainer's go for that release.
-- A documentation-only follow-up to an already-green mixed pull request may use `[skip ci]` only
-  when every change since the tested commit is Markdown or `LICENSE`. Never skip CI for source,
-  tests, project/build files, tool manifests or baselines, workflows, or generated artifacts.
+- Everything lands on `master` through the merge queue, releases included: the changelog cut and
+  the post-publish note are Markdown-only pull requests, on the maintainer's go for that release.
+  `master` requires the queue and the `CI result` check, for administrators too.
+- A pull request joins the queue once the `CI result` check of its own head is green. The queue
+  tests it again on top of current `master` and the entries ahead of it, and merges only on that
+  green: the repository guards count exactly over every test file, so a green result from an older
+  base is not enough. After the merge, the work is done when the CI the merge commit triggers on
+  `master` is green.
+- CI runs on every pull request and queue entry. A change that touches only Markdown or `LICENSE`
+  passes without the build and test jobs. Never put `[skip ci]` in a pull request's commits: the
+  required check would not report, and the pull request could not join the queue.
