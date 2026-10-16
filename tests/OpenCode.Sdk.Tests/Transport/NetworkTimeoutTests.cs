@@ -17,8 +17,6 @@ public sealed class NetworkTimeoutTests
 
     private const string LongPollOperation = "session.shell";
 
-    private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
-
     private static readonly TimeSpan DefaultWindow = TimeSpan.FromSeconds(100);
 
     private static readonly TimeSpan ClientWindow = TimeSpan.FromMinutes(2);
@@ -170,7 +168,7 @@ public sealed class NetworkTimeoutTests
             var caller = new CancellationTokenSource();
             var options = callWindow is null ? null : new OpenCodeRequestOptions { NetworkTimeout = callWindow };
             var call = pipeline.ExecuteAsync(operationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, caller.Token);
-            var sentUnder = await handler.WaitForSendAsync(HangGuard);
+            var sentUnder = await handler.WaitForSendAsync(HangGuard.Bound);
             return new HangingScenario(handler, httpClient, pipeline, time, caller, call, sentUnder);
         }
 
@@ -182,7 +180,7 @@ public sealed class NetworkTimeoutTests
             _time.Advance(OneTick);
 
             await Assert.That(_sentUnder.IsCancellationRequested).IsTrue();
-            await Assert.That(_call.WaitAsync(HangGuard, CancellationToken.None)).Throws<OpenCodeTransportException>();
+            await Assert.That(_call.WaitAsync(HangGuard.Bound, CancellationToken.None)).Throws<OpenCodeTransportException>();
         }
 
         /// <summary>Far past every finite window the exchange is whole, and only the caller's token ends it.</summary>
@@ -192,7 +190,7 @@ public sealed class NetworkTimeoutTests
             await Assert.That(_sentUnder.IsCancellationRequested).IsFalse();
             await _caller.CancelOnWorkerAsync();
 
-            await Assert.That(_call.WaitAsync(HangGuard, CancellationToken.None)).Throws<OperationCanceledException>();
+            await Assert.That(_call.WaitAsync(HangGuard.Bound, CancellationToken.None)).Throws<OperationCanceledException>();
         }
 
         public void Dispose()

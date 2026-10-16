@@ -53,7 +53,6 @@ internal static class LiveReadiness
         {
             while (true)
             {
-                deadline.Token.ThrowIfCancellationRequested();
                 try
                 {
                     var observed = await observe(deadline.Token);
@@ -71,6 +70,7 @@ internal static class LiveReadiness
                     unavailable = exception;
                 }
 
+                deadline.Token.ThrowIfCancellationRequested();
                 await Task.Delay(PollInterval, deadline.Token);
             }
         }

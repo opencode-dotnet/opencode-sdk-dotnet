@@ -36,7 +36,7 @@ public sealed class ResponseBufferingPolicyTests
     {
         var payload = "{\"value\":\"" + new string('x', 2048) + "\"}";
         var pool = new TrackingByteArrayPool();
-        using var content = new TricklingContent(Encoding.UTF8.GetBytes(payload), chunkCount: 4, gap: TimeSpan.FromMilliseconds(1));
+        using var content = new StreamContent(ChunkedStream.OfBytes(payload, chunkSize: payload.Length / 4));
         using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = content,

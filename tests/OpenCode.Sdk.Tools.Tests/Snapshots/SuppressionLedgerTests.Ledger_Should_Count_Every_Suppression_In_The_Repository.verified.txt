@@ -5,9 +5,9 @@ build-switch: 10
 editorconfig: 163
 globalconfig: 1
 no-warn: 18
-pragma: 22
+pragma: 21
 slopwatch-ignore: 7
-slopwatch-suppress: 31
+slopwatch-suppress: 28
 
 build-switch .github/workflows/ci.yml [command line] RunAnalyzers = false
 build-switch Directory.Build.props AnalysisLevel = 10.0
@@ -213,9 +213,8 @@ pragma src/OpenCode.Sdk/Internal/Terminal/TerminalReceivePump.cs VSTHRD003
 pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Ensure/ServiceEnsurerTests.cs MA0045
 pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Handoff/ServicePtyHandoffTests.cs MA0045 x2
 pragma tests/OpenCode.Sdk.Tests/PersistentPtys/PersistentPtySessionTests.cs CA2025
-pragma tests/OpenCode.Sdk.Tests/Support/BlockingContent.cs VSTHRD003
 pragma tests/OpenCode.Sdk.Tests/Support/DiagnosticWriteBarrier.cs VSTHRD003
-pragma tests/OpenCode.Sdk.Tests/Support/InterruptedBufferingContent.cs VSTHRD003
+pragma tests/OpenCode.Sdk.Tests/Support/Gate.cs VSTHRD003
 pragma tests/OpenCode.Sdk.Tests/Support/LauncherHost.cs VSTHRD003
 pragma tests/OpenCode.Sdk.Tests/Support/LoopbackHttpServer.cs VSTHRD003
 pragma tests/OpenCode.Sdk.Tests/Support/PtyDiagnosticServer.cs VSTHRD003
@@ -244,12 +243,10 @@ slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/ContenderProbe.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/WindowsLauncherProbe.cs SW003
 slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/WindowsLauncherProbe.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Hosting/Launcher/OpenCodeServerJobTests.cs SW004
-slopwatch-suppress tests/OpenCode.Sdk.Tests/Hosting/Platform/Windows/WindowsExitWatchTests.cs SW004 x2
+slopwatch-suppress tests/OpenCode.Sdk.Tests/Hosting/Platform/Windows/WindowsExitWatchTests.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Support/LadderTree.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Support/LiveReadiness.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Support/ProcessObservation.cs SW003
-slopwatch-suppress tests/OpenCode.Sdk.Tests/Support/TricklingContent.cs SW004
-slopwatch-suppress tests/OpenCode.Sdk.Tests/Transport/CallerStreamContentTests.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tools.Tests/Packaging/PackedConsumerFeed.cs SW003
 slopwatch-suppress tests/Shared/MachineLock.cs SW004
 slopwatch-suppress tests/Shared/PinnedManagedServiceFixture.cs SW004

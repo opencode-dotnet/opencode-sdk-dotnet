@@ -13,9 +13,6 @@ public sealed class CallerStreamContentTests
 {
     private const string OperationId = "test.operation";
 
-    /// <summary>Bounds a wait for an event that never comes; it decides no verdict.</summary>
-    private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
-
     [Test]
     public async Task ExecuteAsync_Should_Send_The_Stream_From_Its_Position_Without_Disposing_Or_Rewinding_It()
     {
@@ -93,7 +90,7 @@ public sealed class CallerStreamContentTests
         using var pipeline = PipelineFactory.Create(httpClient, networkTimeout: window, time: time);
         using var source = new GatedStream([.. Enumerable.Range(0, 12).Select(static value => (byte)value)], chunkCount: 12);
 
-        var delivering = source.DeliverAsync(() => time.Advance(window - TimeSpan.FromTicks(1)), HangGuard);
+        var delivering = source.DeliverAsync(() => time.Advance(window - TimeSpan.FromTicks(1)), HangGuard.Bound);
         _ = await pipeline.ExecuteAsync(OperationId,
             HttpMethod.Post, "/api/experimental/fs/write?path=a.txt", source, new RecordingResponseAdapter(), options: null,
             cancellationToken);
@@ -104,19 +101,29 @@ public sealed class CallerStreamContentTests
     }
 
     [Test]
-    [NotInParallel]
     public async Task ExecuteAsync_Should_Fail_A_Stalled_Upload_At_The_Progress_Window()
     {
+        var window = TimeSpan.FromMinutes(2);
+        var time = new ManualTimeProvider();
         using var handler = new RecordingHttpHandler();
         using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient, networkTimeout: TimeSpan.FromMilliseconds(250));
-        using var source = new TricklingStream(chunkCount: 2, gap: Timeout.InfiniteTimeSpan);
+        using var pipeline = PipelineFactory.Create(httpClient, networkTimeout: window, time: time);
+        using var source = new BlockingStream([0x00]);
 
-        _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
-                HttpMethod.Post, "/api/experimental/fs/write?path=a.txt", source, new RecordingResponseAdapter(), options: null,
-                CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(5)))
-            .Throws<OpenCodeTransportException>();
+        // The prepared byte and its write complete synchronously; the next read is the first yield.
+        var assertion = AssertStalledAsync();
+        await time.WaitForTimerAsync(HangGuard.Bound);
+        time.Advance(window);
+        await assertion;
+
+        async Task AssertStalledAsync()
+        {
+            _ = await Assert
+                .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+                    HttpMethod.Post, "/api/experimental/fs/write?path=a.txt", source, new RecordingResponseAdapter(), options: null,
+                    CancellationToken.None).WaitAsync(HangGuard.Bound))
+                .Throws<OpenCodeTransportException>();
+        }
     }
 
     /// <summary>A readable stream that can neither seek nor report a length.</summary>
@@ -131,64 +138,5 @@ public sealed class CallerStreamContentTests
             get => throw new NotSupportedException();
             set => throw new NotSupportedException();
         }
-    }
-
-    /// <summary>Yields one byte per read after waiting <c>gap</c>; the first byte comes at once.</summary>
-    private sealed class TricklingStream(int chunkCount, TimeSpan gap) : Stream
-    {
-        private int _sent;
-
-        public override bool CanRead => true;
-
-        public override bool CanSeek => false;
-
-        public override bool CanWrite => false;
-
-        public override long Length => throw new NotSupportedException();
-
-        public override long Position
-        {
-            get => throw new NotSupportedException();
-            set => throw new NotSupportedException();
-        }
-
-        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
-            ReadChunkAsync(buffer.AsMemory(offset, count), cancellationToken);
-
-#if NET
-        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
-            new(ReadChunkAsync(buffer, cancellationToken));
-#endif
-
-        [SlopwatchSuppress("SW004", "The delay is the subject under test: it paces a trickling upload against the progress window")]
-        private async Task<int> ReadChunkAsync(Memory<byte> buffer, CancellationToken cancellationToken)
-        {
-            if (_sent >= chunkCount)
-            {
-                return 0;
-            }
-
-            if (_sent > 0)
-            {
-                await Task.Delay(gap, cancellationToken).ConfigureAwait(false);
-            }
-
-            buffer.Span[0] = (byte)_sent;
-            _sent++;
-            return 1;
-        }
-
-        public override int Read(byte[] buffer, int offset, int count) =>
-            throw new NotSupportedException("The trickling stream is read asynchronously only.");
-
-        public override void Flush()
-        {
-        }
-
-        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-
-        public override void SetLength(long value) => throw new NotSupportedException();
-
-        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }
