@@ -31,7 +31,7 @@ public sealed class CancellationIdentityTests
         yield return new("http", "raw-upload", caller => AtBodyAsync(upload: true, caller));
         yield return new("pty-resize-http", "headers", caller => AtHeadersAsync(
             static (client, token) => client.Ptys.GetPtyClient(PtyId).UpdateAsync(
-                new PtyUpdateRequest { Size = new PtyUpdateSize { Cols = 100, Rows = 30 } }, cancellationToken: token), caller));
+                new PtyUpdateRequest { Size = new PtySize { Cols = 100, Rows = 30 } }, cancellationToken: token), caller));
         yield return new("pty-connect", "upgrade", caller => AtConnectAsync(persistent: false, attach: false, caller));
         yield return new("persistent-connect", "upgrade", caller => AtConnectAsync(persistent: true, attach: false, caller));
         yield return new("persistent-connect", "awaiting-attached", caller => AtConnectAsync(persistent: true, attach: true, caller));
