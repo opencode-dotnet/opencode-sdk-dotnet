@@ -121,7 +121,7 @@ public sealed class BenchmarkRunReaderTests
     public async Task ReadAsync_Should_Refuse_An_Export_Without_Cases()
     {
         var fileSystem = new MockFileSystem();
-        const string reportPath = "runs/results/empty-report-full.json";
+        var reportPath = fileSystem.Path.Combine("runs", "results", "empty-report-full.json");
         fileSystem.Initialize().With(new FileDescription(reportPath,
             JsonSerializer.Serialize(new BenchmarkReportDocument { Benchmarks = [] })));
         var message = await RefusalAsync(fileSystem, "runs");

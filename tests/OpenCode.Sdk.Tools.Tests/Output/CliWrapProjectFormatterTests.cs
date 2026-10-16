@@ -112,19 +112,18 @@ public sealed class CliWrapProjectFormatterTests
     {
         var fs = CreateFileSystem();
         var runner = Discovery(fs);
-        var injected = false;
-        using var fault = fs.Intercept.Creating(FileSystemTypes.File, change =>
+        var existedAtFault = false;
+        using var fault = fs.Intercept.Changing(FileSystemTypes.File, change =>
         {
-            injected = true;
-            fs.Initialize().WithFile(change.Path).Which(f => f.HasStringContent("partial response"));
+            existedAtFault = fs.File.Exists(change.Path);
             throw new IOException("response write failed");
-        }, predicate: change => !injected && change.Path.EndsWith(".rsp", StringComparison.Ordinal));
+        }, predicate: change => change.Path.EndsWith(".rsp", StringComparison.Ordinal));
 
         var exception = await Assert.That(() => new CliWrapProjectFormatter(fs, runner)
             .FormatAsync("Sdk.csproj", ["Models/A.cs"], CancellationToken.None)).Throws<IOException>();
 
         await Assert.That(exception!.Message).IsEqualTo("response write failed");
-        await Assert.That(injected).IsTrue();
+        await Assert.That(existedAtFault).IsTrue();
         await Assert.That(fs.Directory.EnumerateFiles(fs.Path.GetTempPath(), "*.rsp")).IsEmpty();
         await Assert.That(runner.Invocations).Count().IsEqualTo(2);
     }
