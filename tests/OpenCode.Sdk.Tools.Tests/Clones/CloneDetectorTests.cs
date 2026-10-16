@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using OpenCode.Sdk.Tools.Clones;
 using OpenCode.Sdk.Tools.Tests.Clones.Support;
 
@@ -12,6 +13,23 @@ public sealed class CloneDetectorTests
     private const string HandWrittenClient = "src/OpenCode.Sdk/OpenCodeClient.cs";
     private const string Fingerprints = "--fail-on-new-clones";
     private const string FailOnEmpty = "--fail-on-empty";
+
+    [Test]
+    public async Task ReadSourceSplitAsync_Should_Refuse_A_Null_Files_Member()
+    {
+        var scenario = await new CloneScenario().BuildAsync();
+        var json = JsonNode.Parse(await scenario.FileSystem.File.ReadAllTextAsync(CloneScenario.ManifestPath))!;
+        json["files"] = null;
+        await scenario.FileSystem.File.WriteAllTextAsync(CloneScenario.ManifestPath, json.ToJsonString());
+
+        var detector = Detector(scenario);
+        var exception = await Assert.That(async () => _ = await detector.ReadSourceSplitAsync(scenario.Root, CancellationToken.None))
+            .Throws<CloneDetectorException>();
+
+        await Assert.That(exception!.InnerException).IsTypeOf<JsonException>();
+        await Assert.That(exception.InnerException!.Message).Contains("files");
+        await Assert.That(exception.Message).Contains(".generated-manifest.json' is not a file list.");
+    }
 
     [Test]
     public async Task Arguments_Should_Gate_Hand_Written_Src_Against_Its_Baseline()

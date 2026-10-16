@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// door depends on its shape instead — so this is the only generation-time check standing
 /// between a spec refresh and silent drift on that door.
 /// </summary>
-internal sealed record TransportOwnedCuration
+internal sealed record TransportOwnedCuration : IReasonedRow
 {
     [JsonPropertyName("operationId")] public required string OperationId { get; init; }
 

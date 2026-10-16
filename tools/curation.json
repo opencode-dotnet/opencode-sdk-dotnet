@@ -1370,11 +1370,6 @@
       "reason": "It is the file system operations' not-found error."
     },
     {
-      "match": "ModelsDevRefreshed",
-      "owner": "LanguageModels",
-      "reason": "The models.dev catalog refresh notifies about the language model catalog; the Models alias places it too, and the row records the decision."
-    },
-    {
       "match": "InstructionEntry",
       "owner": "Experimental",
       "reason": "The three instruction entry models stay together: upstream defines them in one schema module, and Experimental reaches two of them alone."
@@ -1488,20 +1483,20 @@
     }
   ],
   "declined": [],
-  "envelopePayloadNames": {
-    "mcp.list": "McpServers",
-    "vcs.status": "Changes",
-    "location.get": "ResolvedLocation",
-    "session.permission.list": "Requests",
-    "fs.list": "Entries",
-    "fs.find": "Entries",
-    "experimental.fs.write": "File",
-    "server.pair": "PairingCode",
-    "server.connect": "PairingSession",
-    "vcs.diff": "Diffs",
-    "session.diff": "Diffs",
-    "server.info": "ServerInfo"
-  },
+  "envelopePayloadNames": [
+    { "operationId": "mcp.list", "name": "McpServers", "reason": "The data array contains Mcp.Server records; McpServers names those servers rather than the mechanical group plural Mcps." },
+    { "operationId": "vcs.status", "name": "Changes", "reason": "The data array contains Vcs.FileStatus records; Changes names the collection of file-status entries rather than making Status look like a single status value." },
+    { "operationId": "location.get", "name": "ResolvedLocation", "reason": "The bare response is Location.PublicInfo; ResolvedLocation names that returned location and avoids the response spine's reserved Location member." },
+    { "operationId": "session.permission.list", "name": "Requests", "reason": "The data array contains Permission.Request records; Requests names the pending requests rather than the mechanical Permissions subject." },
+    { "operationId": "fs.list", "name": "Entries", "reason": "The data array contains FileSystem.Entry records for a directory's direct children; Entries names those records rather than the mechanical group plural Fses." },
+    { "operationId": "fs.find", "name": "Entries", "reason": "The data array contains FileSystem.Entry records returned by the filesystem search; Entries names the same record kind as fs.list rather than the action Find." },
+    { "operationId": "experimental.fs.write", "name": "File", "reason": "The data member carries FileSystem.Write, the result of writing one file; File names that result rather than the operation subject FsWrite." },
+    { "operationId": "server.pair", "name": "PairingCode", "reason": "The bare response is PairingCode; the member names the code this operation creates, not the action Pair." },
+    { "operationId": "server.connect", "name": "PairingSession", "reason": "The bare JSON response is PairingSession; the member names the pairing session returned when a code is redeemed, not the action Connect." },
+    { "operationId": "vcs.diff", "name": "Diffs", "reason": "The data array contains FileDiff.Info records; Diffs names the multiple file diffs rather than the singular operation subject Diff." },
+    { "operationId": "session.diff", "name": "Diffs", "reason": "The data array contains FileDiff.Info records for the session diff; Diffs names the collection consistently with vcs.diff rather than the singular subject Diff." },
+    { "operationId": "server.info", "name": "ServerInfo", "reason": "The bare response is ServerInfo; ServerInfo names the returned server identity and readiness information rather than the unqualified subject Info." }
+  ],
   "schemaAliases": [
     {
       "schema": "op:pty.update#/requestBody/content/application~1json/schema/properties/size",

@@ -184,12 +184,16 @@ public sealed class SnapshotSynchronizerTests
     {
         var fileSystem = await CreateRepositoryAsync();
         using var scenario = new RefreshScenario(fileSystem, CreateMutationRunner(fileSystem));
-        var receipt = CreateReceipt(CandidateDocument, "scratch/openapi.json") with { GeneratedBaselineSha256 = null! };
+        var receipt = CreateReceipt(CandidateDocument, "scratch/openapi.json");
         await scenario.StageCandidateAsync(receipt, CandidateDocument);
+        await fileSystem.File.WriteAllTextAsync("scratch/receipt.json",
+            RefreshScenarioData.WithNullMember(RefreshScenarioData.Serialize(receipt), "generatedBaselineSha256"));
         var exception = await scenario.ApplyRefusalAsync();
 
-        await Assert.That(exception.Message).Contains("records no generator baseline");
-        await Assert.That(await fileSystem.File.ReadAllBytesAsync(SnapshotPaths.AcceptedDocument, CancellationToken.None)).IsEquivalentTo(AcceptedDocument);
+        await Assert.That(exception.Message).Contains("is invalid:");
+        await Assert.That(exception.Message).Contains("generatedBaselineSha256");
+        await Assert.That(await fileSystem.File.ReadAllBytesAsync(SnapshotPaths.AcceptedDocument, CancellationToken.None))
+            .IsEquivalentTo(AcceptedDocument, CollectionOrdering.Matching);
     }
 
     [Test]

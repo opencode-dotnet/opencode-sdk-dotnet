@@ -26,6 +26,7 @@ public sealed class GenerationWriterTests
     [Test]
     [Arguments("null", "The generation manifest cannot be JSON null.")]
     [Arguments("malformed", "The generation manifest is invalid.")]
+    [Arguments("null-files", "The generation manifest is invalid.")]
     [Arguments("duplicate", "Generation manifest path 'Common/Errors/Stale.cs' is duplicated.")]
     public async Task WriteAsync_Should_Refuse_An_Invalid_Manifest_Without_Changing_Output(string kind, string diagnostic)
     {
@@ -39,6 +40,7 @@ public sealed class GenerationWriterTests
         {
             "null" => "null",
             "malformed" => "{",
+            "null-files" => """{"files":null}""",
             _ => JsonSerializer.Serialize(new GenerationManifest { Files = [stalePath, stalePath] }),
         };
         await fs.File.WriteAllTextAsync(GenerationTestData.ManifestPath, manifest);
@@ -55,7 +57,7 @@ public sealed class GenerationWriterTests
             .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).IsEqualTo(diagnostic);
-        if (kind == "malformed")
+        if (kind is "malformed" or "null-files")
         {
             await Assert.That(exception.InnerException).IsTypeOf<JsonException>();
         }

@@ -5,12 +5,31 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions.Testing;
 using Testably.Abstractions.Testing.Initializer;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 public sealed class CurationLoaderTests
 {
     private const string CurationPath = "tools/curation.json";
+
+    [Test]
+    [Arguments("duplicate-group-curation.json", "(at $.groups.health)")]
+    [Arguments("duplicate-row-curation.json", "operationId")]
+    [Arguments("duplicate-section-curation.json", "sessionScopedEvent")]
+    [Arguments("null-member-curation.json", "descriptions")]
+    public async Task LoadAsync_Should_Refuse_Invalid_Json_Members(string fixture, string member)
+    {
+        var fileSystem = CreateFileSystem("Binding." + fixture);
+        var exception = await Assert.That(async () => _ = await new CurationLoader(fileSystem)
+            .LoadAsync(CurationPath, CancellationToken.None)).Throws<BindingException>();
+
+        var error = exception!.Errors.Single();
+        await Assert.That(error.Subject).IsEqualTo(CurationPath);
+        await Assert.That(error.Category).IsEqualTo(BindingErrorCategory.Curation);
+        await Assert.That(error.Problem).Contains(member);
+        await Assert.That(exception.Message).StartsWith("Binding failed with 1 error(s):\n- Curation [" + CurationPath + "]: ");
+    }
 
     [Test]
     public async Task LoadAsync_Should_Read_Strict_Curation()
@@ -91,19 +110,25 @@ public sealed class CurationLoaderTests
     [Test]
     public async Task GenerationCuration_Should_Expose_Only_Allowed_Curation_Sections()
     {
-        var sections = typeof(GenerationCuration)
-            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-            .Select(static property => property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
-                                       ?? throw new InvalidOperationException($"Curation property '{property.Name}' has no JSON name."))
-            .Order(StringComparer.Ordinal);
+        var properties = typeof(GenerationCuration).GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        foreach (var property in properties)
+        {
+            await Assert.That(property.GetCustomAttribute<JsonPropertyNameAttribute>()).IsNotNull();
+            var shape = property.PropertyType;
+            var rowType = shape.IsGenericType ? shape.GetGenericTypeDefinition() switch
+            {
+                var list when list == typeof(IReadOnlyList<>) => shape.GenericTypeArguments.Single(),
+                var dictionary when dictionary == typeof(IReadOnlyDictionary<,>) && shape.GenericTypeArguments[0] == typeof(string)
+                    => shape.GenericTypeArguments[1],
+                _ => throw new InvalidOperationException($"Unrecognized row shape: {shape}."),
+            } : shape;
+            await Assert.That(rowType).IsAssignableTo<IReasonedRow>().Because(property.Name);
+            await Assert.That(property.GetCustomAttribute<JsonPropertyNameAttribute>()!.Name)
+                .IsEqualTo(CurationRowContract.RegisteredSection(property.Name)).Because(property.Name);
+        }
 
-        await Assert
-            .That(sections)
-            .IsEquivalentTo([
-                "declined", "descriptions", "enumMemberNames", "envelopePayloadNames", "groups", "hoistedMemberNames", "modelOwners", "operationIdentities", "parameterNames",
-                "operationNames", "queryParameterTypes", "redactedMembers", "redactedOpenMembers", "schemaAliases", "schemaNames", "secretLookingNames",
-                "sessionAreas", "sessionScopedEvent", "stringQueryParameters", "transportOwned"
-            ]);
+        await Assert.That(properties.Select(static property => property.Name).Order(StringComparer.Ordinal))
+            .IsEquivalentTo(CurationRowContract.RegisteredProperties.Order(StringComparer.Ordinal), CollectionOrdering.Matching);
     }
 
     [Test]

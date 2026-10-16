@@ -11,6 +11,21 @@ public sealed class PatchSetLoaderTests
     private const string PatchContent = "diff --git a/x b/x";
 
     [Test]
+    public async Task LoadAsync_Should_Refuse_A_Null_Touches_Member()
+    {
+        var manifest = RefreshScenarioData.Manifest(sha256: PatchSha());
+        var fileSystem = await CreatePatchSetAsync(manifest);
+        await fileSystem.File.WriteAllTextAsync("spec/patches/001-test.json",
+            RefreshScenarioData.WithNullMember(RefreshScenarioData.Serialize(manifest), "touches"));
+
+        var exception = await Assert.That(async () => _ = await new PatchSetLoader(fileSystem)
+            .LoadAsync(CancellationToken.None)).Throws<SnapshotRefreshException>();
+
+        await Assert.That(exception!.Message).StartsWith("patch manifest '001-test.json' is invalid:");
+        await Assert.That(exception.Message).Contains("touches");
+    }
+
+    [Test]
     public async Task LoadAsync_Should_Return_Empty_Without_A_Patches_Directory()
     {
         var loader = new PatchSetLoader(new MockFileSystem());

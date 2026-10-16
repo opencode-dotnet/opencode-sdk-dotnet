@@ -34,6 +34,7 @@ internal sealed class SpecBinder(
         var operationsById = document.Operations.ToDictionary(static operation => operation.OperationId, StringComparer.Ordinal);
         var selected = SelectOperations(selection, operationsById, errors);
         var reachable = _reachableSchemas.Collect(document, selected, errors);
+        CurationRowContract.ValidateBeforeAliases(curation, errors);
         // Upstream stabilize's per-site duplicates collapse mechanically, ahead of curation:
         // curated rows are then judged against the graph as it will be bound, and a row that
         // repeats a mechanical fold is refused as redundant instead of shadowing it.
@@ -53,6 +54,8 @@ internal sealed class SpecBinder(
             selected = Array.AsReadOnly([.. selected.Select(operation => aliasedById[operation.OperationId])]);
             reachable = _reachableSchemas.Collect(document, selected, errors);
         }
+
+        CurationValidator.ValidateCollapsedSchemas(document, reachable, curation, collapse, errors);
 
         // Type names are resolved exactly once per bind; schema and operation binding
         // consume the same map so neither can reinterpret a schema under another name.
@@ -90,14 +93,7 @@ internal sealed class SpecBinder(
             Clients = clients,
             PendingOperations = pending,
             TransportOwnedOperationIds = [.. curation.TransportOwned.Select(static row => row.OperationId).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)],
-            DeclinedOperations =
-            [
-                .. curation
-                    .Declined
-                    .DistinctBy(static row => row.OperationId, StringComparer.Ordinal)
-                    .OrderBy(static row => row.OperationId, StringComparer.Ordinal)
-                    .Select(static row => new DeclinedOperationPlan { OperationId = row.OperationId, Reason = row.Reason })
-            ],
+            DeclinedOperations = DeclinedOperations(curation),
             ImplicitAliases = collapse,
             Placement = placement,
             ModelReach = reach,
@@ -106,6 +102,15 @@ internal sealed class SpecBinder(
         errors.ThrowIfAny();
         return plan;
     }
+
+    /// <summary>Declined operations retain their reviewed reasons in ordinal identity order.</summary>
+    private static IReadOnlyList<DeclinedOperationPlan> DeclinedOperations(GenerationCuration curation) =>
+    [
+        .. curation.Declined
+            .DistinctBy(static row => row.OperationId, StringComparer.Ordinal)
+            .OrderBy(static row => row.OperationId, StringComparer.Ordinal)
+            .Select(static row => new DeclinedOperationPlan { OperationId = row.OperationId, Reason = row.Reason }),
+    ];
 
     /// <summary>Every operation the selection, a transport-owned row and a declined row all leave out, ordinal-sorted.</summary>
     private static PendingOperationPlan[] PendingOperations(SpecDocument document, IReadOnlyList<SpecOperation> selected,

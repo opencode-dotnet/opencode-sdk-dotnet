@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// word boundary, so one row can place a whole name group; <see cref="Owner"/> is an admitted
 /// family or <c>Common</c>, the shared home of the cross-cutting error spine.
 /// </summary>
-internal sealed record ModelOwnerCuration
+internal sealed record ModelOwnerCuration : IReasonedRow
 {
     [JsonPropertyName("match")] public required string Match { get; init; }
 

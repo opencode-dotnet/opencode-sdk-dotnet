@@ -90,6 +90,7 @@ public sealed class OperationNamePolicyTests
     [Test]
     [Arguments("GetMessagesAsync")]
     [Arguments("ListMessages")]
+    [Arguments("ListAsync")]
     public async Task EnumerationMethodName_Should_Return_Null_Outside_Async_List_Methods(string methodName)
     {
         await Assert.That(OperationNamePolicy.EnumerationMethodName(methodName)).IsNull();
@@ -241,6 +242,17 @@ public sealed class OperationNamePolicyTests
     public async Task RouteMemberName_Should_Return_Null_For_A_Non_Get_Without_A_Grammar_Verb_Or_Row()
     {
         await Assert.That(OperationNamePolicy.RouteMemberName(Operation("session.prompt", "post"), GroupPlacement.Client)).IsNull();
+    }
+
+    [Test]
+    [Arguments("Async", null)]
+    [Arguments("FooAsync", "Foo")]
+    [Arguments("Foo", null)]
+    [Arguments("Fooasync", null)]
+    public async Task RouteMemberName_Should_Strip_Only_A_Complete_Async_Suffix(string methodName, string? expected)
+    {
+        var row = new OperationNameCuration { OperationId = "widget.get", MethodName = methodName, Reason = "Scenario names the method." };
+        await Assert.That(OperationNamePolicy.RouteMemberName(Operation("widget.get"), GroupPlacement.Root, row)).IsEqualTo(expected);
     }
 
     private static SpecOperation Operation(string operationId, string method = "get")

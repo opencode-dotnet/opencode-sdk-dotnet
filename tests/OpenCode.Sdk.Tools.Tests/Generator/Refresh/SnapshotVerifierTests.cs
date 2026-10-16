@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using OpenCode.Sdk.Tools.Generator.Refresh;
 using OpenCode.Sdk.Tools.Generator.Refresh.Models;
@@ -8,6 +9,17 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Refresh;
 
 public sealed class SnapshotVerifierTests
 {
+    [Test]
+    public async Task ParseReceipt_Should_Refuse_A_Null_Patches_Member()
+    {
+        using var scenario = await RefreshScenario.CreateAsync();
+        var bytes = Encoding.UTF8.GetBytes(RefreshScenarioData.WithNullMember(RefreshScenarioData.Serialize(scenario.Receipt), "patches"));
+        var exception = Assert.Throws<SnapshotRefreshException>(() => SnapshotStateReader.ParseReceipt(bytes, "spec/receipt.json"));
+
+        await Assert.That(exception.Message).StartsWith("receipt 'spec/receipt.json' is invalid:");
+        await Assert.That(exception.Message).Contains("patches");
+    }
+
     [Test]
     [Arguments("hash", "accepted document hash")]
     [Arguments("digest", "operation-set digest")]
@@ -22,7 +34,7 @@ public sealed class SnapshotVerifierTests
     {
         using var scenario = await RefreshScenario.CreateAsync();
         var receipt = RefreshScenarioData.WithStatistic(scenario.Receipt, variation);
-        var state = scenario.State with { Receipt = System.Text.Encoding.UTF8.GetBytes(RefreshScenarioData.Serialize(receipt)) };
+        var state = scenario.State with { Receipt = Encoding.UTF8.GetBytes(RefreshScenarioData.Serialize(receipt)) };
         if (variation == "checkout")
         {
             state = state with { Checkout = new string('b', 40) };
@@ -41,7 +53,7 @@ public sealed class SnapshotVerifierTests
         if (variation == "observation")
         {
             var watch = RefreshScenarioData.Watch(1, RefreshScenarioData.Watched("lost.ts", "anchor", "anchor"));
-            state = state with { SourceWatch = System.Text.Encoding.UTF8.GetBytes(RefreshScenarioData.Serialize(watch)) };
+            state = state with { SourceWatch = Encoding.UTF8.GetBytes(RefreshScenarioData.Serialize(watch)) };
             scenario.Runner.Expect("git", ["show", $"{state.Checkout}:lost.ts"], scenario.FileSystem.Path.GetFullPath(SnapshotPaths.Submodule), ScriptedProcessRunner.Fail("missing"));
         }
 
@@ -55,7 +67,7 @@ public sealed class SnapshotVerifierTests
     public async Task VerifyAsync_Should_Throw_For_An_Unreadable_Receipt(string text, string diagnostic)
     {
         using var scenario = await RefreshScenario.CreateAsync();
-        var state = scenario.State with { Receipt = System.Text.Encoding.UTF8.GetBytes(text) };
+        var state = scenario.State with { Receipt = Encoding.UTF8.GetBytes(text) };
         var exception = await Assert.That(async () => _ = await scenario.Services.GetRequiredService<SnapshotVerifier>()
             .VerifyAsync(state, CancellationToken.None)).Throws<SnapshotRefreshException>();
         await Assert.That(exception!.Message).Contains(diagnostic);
@@ -82,7 +94,7 @@ public sealed class SnapshotVerifierTests
             "reordered" => [second, first],
             _ => [first, second],
         };
-        var state = scenario.State with { Receipt = System.Text.Encoding.UTF8.GetBytes(RefreshScenarioData.Serialize(scenario.Receipt with { Patches = recorded })) };
+        var state = scenario.State with { Receipt = Encoding.UTF8.GetBytes(RefreshScenarioData.Serialize(scenario.Receipt with { Patches = recorded })) };
 
         var outcome = await scenario.Services.GetRequiredService<SnapshotVerifier>().VerifyAsync(state, CancellationToken.None);
 

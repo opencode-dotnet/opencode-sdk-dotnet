@@ -20,7 +20,7 @@
       "reason": "The transport prefix is not part of the reviewed .NET domain name."
     }
   ],
-  "envelopePayloadNames": {},
+  "envelopePayloadNames": [],
   "schemaAliases": [],
   "enumMemberNames": [],
   "descriptions": [],

@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using OpenCode.Sdk.Tools.Generator.Refresh;
 using OpenCode.Sdk.Tools.Generator.Refresh.Models;
 using OpenCode.Sdk.Tools.Serialization;
@@ -127,6 +128,13 @@ internal static class RefreshScenarioData
         "content" => receipt with { ContentSchemaCount = 2 },
         _ => receipt,
     };
+
+    public static string WithNullMember(string json, string member)
+    {
+        var document = JsonNode.Parse(json)!;
+        document[member] = null;
+        return document.ToJsonString();
+    }
 
     public static string Serialize(PatchManifest manifest) => JsonSerializer.Serialize(manifest, ToolJsonContext.Default.PatchManifest);
 

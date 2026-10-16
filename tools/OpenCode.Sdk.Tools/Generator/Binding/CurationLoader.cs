@@ -32,7 +32,9 @@ internal sealed class CurationLoader(IFileSystem fileSystem)
             }
             catch (JsonException exception)
             {
-                throw CreateException(curationPath, exception.Message);
+                throw CreateException(curationPath, string.IsNullOrEmpty(exception.Path)
+                    ? exception.Message
+                    : exception.Message + " (at " + exception.Path + ")");
             }
         }
     }

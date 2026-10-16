@@ -77,15 +77,15 @@ internal sealed record GenerationCuration
     } = Array.AsReadOnly(Array.Empty<SchemaNameCuration>());
 
     [JsonPropertyName("envelopePayloadNames")]
-    public required IReadOnlyDictionary<string, string> EnvelopePayloadNames
+    public required IReadOnlyList<EnvelopePayloadNameCuration> EnvelopePayloadNames
     {
         get;
         init
         {
             ArgumentNullException.ThrowIfNull(value);
-            field = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(value, StringComparer.Ordinal));
+            field = Array.AsReadOnly([.. value]);
         }
-    } = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
+    } = Array.AsReadOnly(Array.Empty<EnvelopePayloadNameCuration>());
 
     [JsonPropertyName("schemaAliases")]
     public required IReadOnlyList<SchemaAlias> SchemaAliases

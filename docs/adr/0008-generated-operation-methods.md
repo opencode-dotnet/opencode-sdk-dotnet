@@ -67,8 +67,10 @@ envelope; `text/*` → `string`); an unknown content type breaks generation.
   and grammar verb (`SessionPromptResponse`, `PtyUpdateResponse`, `SessionListResponse`). A plural
   the rule cannot form or a subject the domain names differently rides the same row kind; so does
   an action outside the grammar (`event.subscribe` → `Events.SubscribeAsync`, not
-  `GetSubscribeAsync`). An `operationNames` or `envelopePayloadNames` list row that restates the
-  plural rule's output refuses generation with its operation identity and derived value. The binder
+  `GetSubscribeAsync`). An `operationNames` list row that restates the plural rule's output refuses
+  generation with its operation identity and derived value. An `envelopePayloadNames` row that
+  restates the mechanically derived payload member name refuses for every operation, not only
+  lists; a SingleKey envelope derives that name from its wire member. The binder
   validates every final identifier and all collisions; emitters consume the bound name mechanically
   and never branch on an operation ID. Enum members follow the same shape: a value whose mechanical
   casing is graceless (`2026-07-28` → `Value20260728`) takes its member name from a reason-bearing

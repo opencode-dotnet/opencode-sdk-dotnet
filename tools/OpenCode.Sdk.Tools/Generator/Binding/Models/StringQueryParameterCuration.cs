@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// query parameter carries either this row or a <see cref="QueryParameterTypeCuration"/> row, so a
 /// refresh that adds one stops until someone decides which it is.
 /// </summary>
-internal sealed record StringQueryParameterCuration
+internal sealed record StringQueryParameterCuration : IReasonedRow
 {
     /// <summary>Gets the operation the query parameter belongs to.</summary>
     [JsonPropertyName("operationId")] public required string OperationId { get; init; }

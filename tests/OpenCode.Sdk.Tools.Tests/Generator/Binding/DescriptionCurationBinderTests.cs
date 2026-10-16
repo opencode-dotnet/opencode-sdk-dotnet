@@ -10,6 +10,17 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class DescriptionCurationBinderTests
 {
     [Test]
+    [Arguments(null, "curation is null")]
+    [Arguments("Type", "curation names no type")]
+    public async Task Bind_Should_Refuse_Unsafe_Description_Rows(string? blankField, string problem)
+    {
+        var exception = await BindUnsafeContractRowAsync("Descriptions", blankField);
+
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation,
+            "descriptions[0]", "descriptions[0] " + problem));
+    }
+
+    [Test]
     public async Task Bind_Should_Replace_The_Summary_Even_When_The_Spec_Describes_The_Type()
     {
         var document = await BindingTestHost.IngestAsync(new EventDocumentationScenario(description: "The schema summary."));

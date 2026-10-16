@@ -17,7 +17,9 @@ internal static class QueryParameterEvidencePolicy
         ArgumentNullException.ThrowIfNull(errors);
 
         var watched = watch.Sources.Select(static source => source.Path).ToHashSet(StringComparer.Ordinal);
-        foreach (var row in curation.QueryParameterTypes.Where(row => !watched.Contains(row.Evidence.Path)))
+        foreach (var row in curation.QueryParameterTypes.Where(row => row is not null
+                     && !string.IsNullOrWhiteSpace(row.OperationId) && !string.IsNullOrWhiteSpace(row.Parameter)
+                     && !watched.Contains(row.Evidence.Path)))
         {
             errors.Add(
                 BindingErrorCategory.Curation,

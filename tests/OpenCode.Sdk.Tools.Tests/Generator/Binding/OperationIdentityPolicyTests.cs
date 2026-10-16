@@ -1,11 +1,25 @@
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 public sealed class OperationIdentityPolicyTests
 {
+    [Test]
+    public async Task BuildMap_Should_Check_The_Reason_Even_When_The_Subject_Is_Blank()
+    {
+        var exception = Assert.Throws<BindingException>(() => OperationIdentityPolicy.BuildMap(
+            IdentityCuration(OperationIdentity(" ", "pty.list", reason: " "))));
+
+        await Assert.That(exception.Errors.Select(static error => error.Subject + ": " + error.Problem))
+            .IsEquivalentTo([
+                "operationIdentities[0]: operationIdentities[0] curation names no operationId",
+                "operationIdentities[0]: operation identity curation must declare a reason",
+            ], CollectionOrdering.Matching);
+    }
+
     [Test]
     public async Task BuildMap_Should_Return_The_Mapped_Identities()
     {
@@ -39,8 +53,7 @@ public sealed class OperationIdentityPolicyTests
 
         var error = exception.Errors.Single();
         await Assert.That(error.Subject).IsEqualTo("server.experimental.pty.list");
-        await Assert.That(error.Problem).Contains("reason");
-        await Assert.That(error.Problem).Contains("upstream report");
+        await Assert.That(error.Problem).IsEqualTo("operation identity curation must declare a reason");
     }
 
     [Test]

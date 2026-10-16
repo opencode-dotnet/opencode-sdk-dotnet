@@ -15,6 +15,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// </summary>
 internal static class OperationNamePolicy
 {
+    internal const string AsyncSuffix = "Async";
+
     private const string ResponseSuffix = "Response";
     private const string ReadVerb = "Get";
 
@@ -65,7 +67,7 @@ internal static class OperationNamePolicy
         }
 
         var subject = handle ? Subject(operation, pluralize: true) : SubjectOrGroupFallback(operation, verb);
-        return $"{verb}{subject}Async";
+        return $"{verb}{subject}{AsyncSuffix}";
     }
 
     /// <summary>
@@ -92,8 +94,8 @@ internal static class OperationNamePolicy
         ArgumentException.ThrowIfNullOrWhiteSpace(methodName);
 
         return methodName.StartsWith("List", StringComparison.Ordinal)
-               && methodName.EndsWith("Async", StringComparison.Ordinal)
-               && methodName.Length > "ListAsync".Length
+               && methodName.EndsWith(AsyncSuffix, StringComparison.Ordinal)
+               && methodName.Length > "List".Length + AsyncSuffix.Length
             ? $"Enumerate{methodName[4..]}"
             : null;
     }
@@ -131,9 +133,9 @@ internal static class OperationNamePolicy
 
         if (curation is not null)
         {
-            return curation.MethodName.EndsWith("Async", StringComparison.Ordinal)
-                   && curation.MethodName.Length > 5
-                ? curation.MethodName[..^5]
+            return curation.MethodName.EndsWith(AsyncSuffix, StringComparison.Ordinal)
+                   && curation.MethodName.Length > AsyncSuffix.Length
+                ? curation.MethodName[..^AsyncSuffix.Length]
                 : null;
         }
 

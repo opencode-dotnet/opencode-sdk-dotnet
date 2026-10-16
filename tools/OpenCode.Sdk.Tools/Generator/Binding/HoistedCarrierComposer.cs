@@ -28,7 +28,8 @@ internal sealed class HoistedCarrierComposer(
     private readonly IReadOnlyDictionary<string, ObjectModelPlan> _models = models ?? throw new ArgumentNullException(nameof(models));
 
     private readonly IReadOnlyList<HoistedMemberNameCuration> _namingRows =
-        namingRows ?? throw new ArgumentNullException(nameof(namingRows));
+        CurationRowContract.Validate(nameof(GenerationCuration.HoistedMemberNames),
+            namingRows ?? throw new ArgumentNullException(nameof(namingRows)), errors) ? namingRows : [];
 
     private readonly ISet<string> _takenNames = takenNames ?? throw new ArgumentNullException(nameof(takenNames));
 

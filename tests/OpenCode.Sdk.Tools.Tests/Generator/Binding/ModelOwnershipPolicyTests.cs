@@ -1,5 +1,6 @@
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 using static OpenCode.Sdk.Tools.Tests.Support.OwnershipPlanData;
 
@@ -34,6 +35,39 @@ public sealed class ModelOwnershipPolicyTests
     private const string SessionAlias = "Session";
     private const string HoistedExampleTime = "IExampleTime";
 
+    public static IEnumerable<object?[]> UnsafeOwnershipRows() =>
+    [
+        ["ModelOwners", null, IndexedContractError("modelOwners", "curation is null")],
+        ["ModelOwners", "Match", IndexedContractError("modelOwners", "curation names no match")],
+        ["SessionAreas", null, IndexedContractError("sessionAreas", "curation is null")],
+        ["SessionAreas", "Area", IndexedContractError("sessionAreas", "curation names no area")],
+    ];
+
+    [Test]
+    [MethodDataSource(nameof(UnsafeOwnershipRows))]
+    public async Task Bind_Should_Refuse_Unsafe_Ownership_Rows(string property, string? blankField, BindingError expected)
+    {
+        var exception = await BindUnsafeContractRowAsync(property, blankField);
+
+        await Assert.That(exception.Errors.Single()).IsEqualTo(expected);
+    }
+
+    [Test]
+    [Arguments("Common")]
+    [Arguments("not-an-identifier")]
+    public async Task Create_Should_Check_The_Reason_Before_Rejecting_An_Area(string area)
+    {
+        var errors = new BindingErrorCollector();
+        _ = SessionAreaRows.Create([new SessionAreaCuration { Area = area, Matches = ["Session"], Reason = " " }],
+            new HashSet<string>(StringComparer.Ordinal) { Sessions }, errors);
+        var exception = Assert.Throws<BindingException>(errors.ThrowIfAny);
+
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Curation, area, "session area curation must declare a reason"),
+            new BindingError(BindingErrorCategory.Curation, area, "session area name is empty, reserved, not an identifier, or duplicated"),
+        ], CollectionOrdering.Matching);
+    }
+
     [Test]
     public async Task Place_Should_Place_A_Model_By_A_Group_Prefix_Alias()
     {
@@ -45,17 +79,21 @@ public sealed class ModelOwnershipPolicyTests
         await Assert.That(placement.HomeOf(ModelsDevRefreshed)).IsEqualTo(TypeHome.Family(LanguageModels));
     }
 
-    /// <summary>The owner row places the model, yet the alias its name also matches still counts as used.</summary>
+    /// <summary>A row cannot restate the placement a family prefix already supplies.</summary>
     [Test]
-    public async Task Place_Should_Not_Report_A_Prefix_Alias_Dead_When_An_Owner_Row_Confirms_The_Model_It_Matches()
+    [Arguments(ModelsDevRefreshed, "ModelsDev", LanguageModels, true)]
+    [Arguments(SessionInfo, "Session", Sessions, false)]
+    public async Task Place_Should_Refuse_An_Owner_Row_That_Confirms_A_Family_Prefix(string model, string match, string family, bool prefixAlias)
     {
         var errors = new BindingErrorCollector();
 
-        var placement = Place(errors, Models(ModelsDevRefreshed),
-            Ownership(FamiliesWithModelAlias(), owners: [Owner("ModelsDev", LanguageModels)]));
+        var placement = Place(errors, Models(model),
+            Ownership(prefixAlias ? FamiliesWithModelAlias() : Families(), owners: [Owner(match, family)]));
 
-        await Assert.That(errors.Count).IsEqualTo(0);
-        await Assert.That(placement.HomeOf(ModelsDevRefreshed)).IsEqualTo(TypeHome.Family(LanguageModels));
+        var exception = Assert.Throws<BindingException>(errors.ThrowIfAny);
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation, match,
+            $"model owner row is redundant: family prefix already places model '{model}' in '{family}'"));
+        await Assert.That(placement.HomeOf(model)).IsEqualTo(TypeHome.Family(family));
     }
 
     /// <summary>An owner row that sends the alias's only model elsewhere leaves the alias placing nothing.</summary>
@@ -411,7 +449,7 @@ public sealed class ModelOwnershipPolicyTests
 
         _ = Place(errors, Models(SessionCreated), Ownership(areas: [Area(Lifecycle, SessionCreated) with { Reason = BlankReason }]));
 
-        await AssertRefusedAsync(errors, Lifecycle, "session area row must declare a reason");
+        await AssertRefusedAsync(errors, Lifecycle, "session area curation must declare a reason");
     }
 
     [Test]

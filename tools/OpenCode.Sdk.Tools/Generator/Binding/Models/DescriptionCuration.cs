@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 /// <summary>Plain text documentation for one generated C# type or property.</summary>
-internal sealed record DescriptionCuration
+internal sealed record DescriptionCuration : IReasonedRow
 {
     [JsonPropertyName("type")]
     public required string Type { get; init; }

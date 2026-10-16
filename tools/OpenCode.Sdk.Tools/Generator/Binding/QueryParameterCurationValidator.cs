@@ -26,24 +26,15 @@ internal static class QueryParameterCurationValidator
         foreach (var row in curation.QueryParameterTypes)
         {
             var subject = row.OperationId + ":" + row.Parameter;
-            if (!typed.Add(subject))
-            {
-                errors.Add(BindingErrorCategory.Curation, subject, "query parameter type curation is duplicated");
-            }
+            _ = typed.Add(subject);
 
             ValidateSubject(document, documentIds, operations, row.OperationId, row.Parameter, subject, errors);
             ValidateTypedRow(row, subject, errors);
         }
 
-        var strings = new HashSet<string>(StringComparer.Ordinal);
         foreach (var row in curation.StringQueryParameters)
         {
             var subject = row.OperationId + ":" + row.Parameter;
-            if (!strings.Add(subject))
-            {
-                errors.Add(BindingErrorCategory.Curation, subject, "string query parameter curation is duplicated");
-            }
-
             if (typed.Contains(subject))
             {
                 errors.Add(BindingErrorCategory.Curation, subject,
@@ -51,10 +42,6 @@ internal static class QueryParameterCurationValidator
             }
 
             ValidateSubject(document, documentIds, operations, row.OperationId, row.Parameter, subject, errors);
-            if (string.IsNullOrWhiteSpace(row.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, subject, "string query parameter curation must declare a reason");
-            }
         }
     }
 
@@ -64,11 +51,6 @@ internal static class QueryParameterCurationValidator
         {
             errors.Add(BindingErrorCategory.Curation, subject,
                 $"query parameter type '{row.DotNetType}' is not '{QueryParameterTypePolicy.Int32Keyword}' or '{QueryParameterTypePolicy.Int64Keyword}'");
-        }
-
-        if (string.IsNullOrWhiteSpace(row.Reason))
-        {
-            errors.Add(BindingErrorCategory.Curation, subject, "query parameter type curation must declare a reason");
         }
 
         if (string.IsNullOrWhiteSpace(row.Evidence.Path) || string.IsNullOrWhiteSpace(row.Evidence.Anchor))

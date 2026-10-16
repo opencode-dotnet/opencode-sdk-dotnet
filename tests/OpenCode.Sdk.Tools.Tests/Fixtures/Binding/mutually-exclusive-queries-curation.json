@@ -4,7 +4,7 @@
       "placement": "root"
     }
   },
-  "envelopePayloadNames": {},
+  "envelopePayloadNames": [],
   "schemaAliases": [],
   "mutuallyExclusiveQueries": [
     {

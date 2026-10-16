@@ -26,28 +26,18 @@ internal sealed class SchemaAliasValidator
         ArgumentNullException.ThrowIfNull(errors);
 
         var reachableKeys = reachable.GraphKeys.ToHashSet(_comparer);
-        var sources = new HashSet<string>(_comparer);
+        var sources = curation.SchemaAliases.Select(static row => row.Schema).ToHashSet(_comparer);
         // Identity is judged on the graph as it will be bound, so one alias can be what makes
         // a second pair identical — the mechanical collapse included.
-        // A duplicated source is reported below rather than throwing here.
+        // A duplicated source is refused by the row contract; Compose tolerates it.
         var aliasTargets = SchemaAliasApplier.Compose(collapse, curation.SchemaAliases);
         foreach (var alias in curation.SchemaAliases)
         {
-            if (!sources.Add(alias.Schema))
-            {
-                errors.Add(BindingErrorCategory.Curation, alias.Schema, "schema alias is duplicated");
-            }
-
             if (collapse.Aliases.TryGetValue(alias.Schema, out var implied))
             {
                 errors.Add(BindingErrorCategory.Curation, alias.Schema,
                     $"schema alias is redundant: the stabilize-duplicate collapse already folds it into '{implied}'");
                 continue;
-            }
-
-            if (string.IsNullOrWhiteSpace(alias.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, alias.Schema, "schema alias must declare a reason");
             }
 
             if (string.Equals(alias.Schema, alias.AliasOf, StringComparison.Ordinal))

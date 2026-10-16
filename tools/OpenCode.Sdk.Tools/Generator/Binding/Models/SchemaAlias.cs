@@ -6,7 +6,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// Declares one component schema as a spelling of another; the collapse is validated
 /// fail-closed for structural identity so upstream drift on either side breaks generation.
 /// </summary>
-internal sealed record SchemaAlias
+internal sealed record SchemaAlias : IReasonedRow
 {
     [JsonPropertyName("schema")]
     public required string Schema { get; init; }

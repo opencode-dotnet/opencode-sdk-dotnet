@@ -16,10 +16,7 @@ internal static class SessionScopedEventValidator
         ArgumentNullException.ThrowIfNull(errors);
 
         var row = context.Row;
-        if (string.IsNullOrWhiteSpace(row.Reason))
-        {
-            errors.Add(BindingErrorCategory.Curation, "sessionScopedEvent", "session-scoped event curation must declare a reason");
-        }
+        _ = CurationRowContract.Validate(nameof(GenerationCuration.SessionScopedEvent), [row], errors);
 
         if (string.IsNullOrWhiteSpace(row.Identifier) || !context.Document.Schemas.TryGetValue(row.Identifier, out var identifier))
         {

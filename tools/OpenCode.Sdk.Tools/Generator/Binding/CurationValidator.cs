@@ -24,26 +24,28 @@ internal sealed class CurationValidator
         ValidateOperationNames(selected, documentIds, curation, errors);
         ValidateParameterNames(selected, curation, errors);
         QueryParameterCurationValidator.Validate(document, selected, curation, errors);
-        ValidateSchemaNames(document, reachable, curation, errors);
-        ValidateEnumMemberNames(document, reachable, curation, errors);
         ValidateEnvelopeNames(selectedIds, documentIds, curation, errors);
         ValidateTransportOwned(document, selectedIds, curation, errors);
         ValidateDeclined(documentIds, selectedIds, curation, errors);
+    }
+
+    public static void ValidateCollapsedSchemas(SpecDocument document, ReachableSchemaSet reachable,
+        GenerationCuration curation, StabilizeDuplicateCollapse collapse, BindingErrorCollector errors)
+    {
+        // Mechanical folds already refuse their schema-name rows as redundant, not missing.
+        ValidateSchemaNames(document, reachable, curation with
+        {
+            SchemaNames = [.. curation.SchemaNames.Where(row => !collapse.Aliases.ContainsKey(row.Schema))],
+        }, errors);
+        ValidateEnumMemberNames(document, reachable, curation, errors);
     }
 
     private static void ValidateSchemaNames(SpecDocument document, ReachableSchemaSet reachable,
         GenerationCuration curation, BindingErrorCollector errors)
     {
         var reachableKeys = reachable.GraphKeys.ToHashSet(StringComparer.Ordinal);
-        var curated = new HashSet<string>(StringComparer.Ordinal);
         foreach (var schemaName in curation.SchemaNames)
         {
-            if (!curated.Add(schemaName.Schema))
-            {
-                errors.Add(BindingErrorCategory.Curation, schemaName.Schema,
-                    "schema name curation is duplicated");
-            }
-
             if (!document.Schemas.ContainsKey(schemaName.Schema))
             {
                 errors.Add(BindingErrorCategory.Curation, schemaName.Schema,
@@ -53,12 +55,6 @@ internal sealed class CurationValidator
             {
                 errors.Add(BindingErrorCategory.Curation, schemaName.Schema,
                     "curated schema is not referenced by the selected profile");
-            }
-
-            if (string.IsNullOrWhiteSpace(schemaName.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, schemaName.Schema,
-                    "schema name curation must declare a reason");
             }
 
             if (!CSharpNamePolicy.IsValidIdentifier(schemaName.DotNetName))
@@ -77,20 +73,9 @@ internal sealed class CurationValidator
         GenerationCuration curation, BindingErrorCollector errors)
     {
         var reachableKeys = reachable.GraphKeys.ToHashSet(StringComparer.Ordinal);
-        var curated = new HashSet<string>(StringComparer.Ordinal);
         foreach (var row in curation.EnumMemberNames)
         {
             var subject = row.Schema + "/" + row.Value;
-            if (!curated.Add(subject))
-            {
-                errors.Add(BindingErrorCategory.Curation, subject, "enum member name curation is duplicated");
-            }
-
-            if (string.IsNullOrWhiteSpace(row.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, subject, "enum member name curation must declare a reason");
-            }
-
             if (!CSharpNamePolicy.IsValidIdentifier(row.DotNetName))
             {
                 errors.Add(BindingErrorCategory.Naming, subject, $"enum member name '{row.DotNetName}' is not a valid C# identifier");
@@ -140,15 +125,8 @@ internal sealed class CurationValidator
         GenerationCuration curation, BindingErrorCollector errors)
     {
         var operations = selected.ToDictionary(static operation => operation.OperationId, StringComparer.Ordinal);
-        var curated = new HashSet<string>(StringComparer.Ordinal);
         foreach (var operationName in curation.OperationNames)
         {
-            if (!curated.Add(operationName.OperationId))
-            {
-                errors.Add(BindingErrorCategory.Curation, operationName.OperationId,
-                    "operation name curation is duplicated");
-            }
-
             if (!documentIds.Contains(operationName.OperationId))
             {
                 errors.Add(BindingErrorCategory.Curation, operationName.OperationId,
@@ -175,18 +153,12 @@ internal sealed class CurationValidator
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(operationName.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, operationName.OperationId,
-                    "operation name curation must declare a reason");
-            }
-
             if (!CSharpNamePolicy.IsValidIdentifier(operationName.MethodName)
-                || !operationName.MethodName.EndsWith("Async", StringComparison.Ordinal)
-                || operationName.MethodName.Length is 5)
+                || !operationName.MethodName.EndsWith(OperationNamePolicy.AsyncSuffix, StringComparison.Ordinal)
+                || operationName.MethodName.Length == OperationNamePolicy.AsyncSuffix.Length)
             {
                 errors.Add(BindingErrorCategory.Naming, operationName.OperationId,
-                    $"method name '{operationName.MethodName}' must be a valid C# identifier ending in 'Async'");
+                    $"method name '{operationName.MethodName}' must be a valid C# identifier ending in '{OperationNamePolicy.AsyncSuffix}'");
             }
         }
     }
@@ -201,15 +173,9 @@ internal sealed class CurationValidator
         BindingErrorCollector errors)
     {
         var operations = selected.ToDictionary(static operation => operation.OperationId, _comparer);
-        var curated = new HashSet<string>(StringComparer.Ordinal);
         foreach (var row in curation.ParameterNames)
         {
             var subject = row.OperationId + ":" + row.Parameter;
-            if (!curated.Add(subject))
-            {
-                errors.Add(BindingErrorCategory.Curation, subject, "parameter name curation is duplicated");
-            }
-
             if (!operations.TryGetValue(row.OperationId, out var operation))
             {
                 errors.Add(BindingErrorCategory.Curation, subject, "curated operation is not selected by the current profile");
@@ -218,11 +184,6 @@ internal sealed class CurationValidator
                                                             && string.Equals(parameter.Name, row.Parameter, StringComparison.Ordinal)))
             {
                 errors.Add(BindingErrorCategory.Curation, subject, "curated parameter is not a route value of the operation");
-            }
-
-            if (string.IsNullOrWhiteSpace(row.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, subject, "parameter name curation must declare a reason");
             }
 
             if (!CSharpNamePolicy.IsValidIdentifier(row.DotNetName) || !char.IsLower(row.DotNetName[0]))
@@ -274,13 +235,6 @@ internal sealed class CurationValidator
 
         foreach (var (wireName, group) in curation.Groups.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
         {
-            // Placement is an API decision (ADR-0019); like every other curation row it
-            // documents itself or refuses.
-            if (string.IsNullOrWhiteSpace(group.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, wireName, "group curation must carry a reason");
-            }
-
             if (!documentGroups.Contains(wireName))
             {
                 errors.Add(BindingErrorCategory.Curation, wireName, "curated group does not exist in the spec");
@@ -484,14 +438,16 @@ internal sealed class CurationValidator
 
     /// <summary>
     /// Curated payload names are overrides only, so validation covers orphans and identifier
-    /// legality, never presence. The envelope binder refuses redundant list rows against the
+    /// legality, never presence. The envelope binder refuses redundant rows against the
     /// mechanical name for the response shape.
     /// </summary>
     private static void ValidateEnvelopeNames(HashSet<string> selectedIds, HashSet<string> documentIds,
         GenerationCuration curation, BindingErrorCollector errors)
     {
-        foreach (var (operationId, payloadName) in curation.EnvelopePayloadNames.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
+        foreach (var row in curation.EnvelopePayloadNames.OrderBy(static row => row.OperationId, StringComparer.Ordinal))
         {
+            var operationId = row.OperationId;
+            var payloadName = row.Name;
             if (!documentIds.Contains(operationId))
             {
                 errors.Add(BindingErrorCategory.Curation, operationId, "curated operation does not exist in the spec");
@@ -520,19 +476,8 @@ internal sealed class CurationValidator
         BindingErrorCollector errors)
     {
         var operationsById = document.Operations.ToDictionary(static operation => operation.OperationId, StringComparer.Ordinal);
-        var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var row in curation.TransportOwned)
         {
-            if (!seen.Add(row.OperationId))
-            {
-                errors.Add(BindingErrorCategory.Curation, row.OperationId, "transport-owned curation is duplicated");
-            }
-
-            if (string.IsNullOrWhiteSpace(row.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, row.OperationId, "transport-owned curation must declare a reason");
-            }
-
             if (!IsSha256Hex(row.SubtreeSha256))
             {
                 errors.Add(
@@ -581,33 +526,22 @@ internal sealed class CurationValidator
         BindingErrorCollector errors)
     {
         var transportOwnedIds = curation.TransportOwned.Select(static row => row.OperationId).ToHashSet(StringComparer.Ordinal);
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var row in curation.Declined)
+        foreach (var operationId in curation.Declined.Select(static row => row.OperationId))
         {
-            if (!seen.Add(row.OperationId))
+            if (!documentIds.Contains(operationId))
             {
-                errors.Add(BindingErrorCategory.Curation, row.OperationId, "declined curation is duplicated");
-            }
-
-            if (string.IsNullOrWhiteSpace(row.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, row.OperationId, "declined curation must declare a reason");
-            }
-
-            if (!documentIds.Contains(row.OperationId))
-            {
-                errors.Add(BindingErrorCategory.Curation, row.OperationId, "curated operation does not exist in the spec");
+                errors.Add(BindingErrorCategory.Curation, operationId, "curated operation does not exist in the spec");
                 continue;
             }
 
-            if (selectedIds.Contains(row.OperationId))
+            if (selectedIds.Contains(operationId))
             {
-                errors.Add(BindingErrorCategory.Curation, row.OperationId, "declined operation cannot be selected");
+                errors.Add(BindingErrorCategory.Curation, operationId, "declined operation cannot be selected");
             }
 
-            if (transportOwnedIds.Contains(row.OperationId))
+            if (transportOwnedIds.Contains(operationId))
             {
-                errors.Add(BindingErrorCategory.Curation, row.OperationId, "declined operation cannot also be transport-owned");
+                errors.Add(BindingErrorCategory.Curation, operationId, "declined operation cannot also be transport-owned");
             }
         }
     }

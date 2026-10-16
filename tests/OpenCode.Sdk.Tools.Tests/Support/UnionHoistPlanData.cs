@@ -11,6 +11,20 @@ namespace OpenCode.Sdk.Tools.Tests.Support;
 /// </summary>
 internal static class UnionHoistPlanData
 {
+    public static UnionHoistPlan HoistDurableCarrier(GenerationCuration curation)
+    {
+        var errors = new BindingErrorCollector();
+        var arms = new[] { (Name: "CreatedEvent", Tag: "created", Version: "1"), (Name: "DeletedEvent", Tag: "deleted", Version: "2") };
+        var result = new UnionMemberHoistBinder().Bind(
+            [Union("IExampleEvent", [.. arms.Select(static arm => Arm(arm.Name))])],
+            [
+                .. arms.Select(static arm => Variant(arm.Name, arm.Tag, Property("durable", Named(arm.Name + "Durable"), isRequired: true))),
+                .. arms.Select(static arm => Envelope(arm.Name + "Durable", arm.Version)),
+            ], curation, errors);
+        errors.ThrowIfAny();
+        return result;
+    }
+
     public static UnionPlan Union(string name, params UnionVariantPlan[] variants)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);

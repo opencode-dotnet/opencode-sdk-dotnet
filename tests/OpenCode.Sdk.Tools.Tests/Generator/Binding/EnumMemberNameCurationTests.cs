@@ -15,6 +15,32 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class EnumMemberNameCurationTests
 {
     [Test]
+    [Arguments("Original", false)]
+    [Arguments("Canonical", true)]
+    [Arguments("Canonical_1", false)]
+    public async Task Bind_Should_Validate_Enum_Rows_On_The_Collapsed_Graph(string key, bool survives)
+    {
+        var source = key == "Canonical_1" ? key : "Original";
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
+            .WithSchema(source, static schema => schema.Type("string").Enum("legacy", "auto"))
+            .WithSchema("Canonical", static schema => schema.Type("string").Enum("legacy", "auto"))
+            .WithOperation("widget.get", configure: operation => operation.Response(200, "application/json", schema => schema.Ref(source)))));
+        var curation = Curation(Groups("widget", RootGroup()), schemaAliases: source == "Original" ? [Alias(source, "Canonical")] : [],
+            enumMemberNames: [EnumMemberName(key, "legacy", "Previous")]);
+
+        if (survives)
+        {
+            var plan = new BindingTestHost().Bind(document, Selection("widget.get"), curation);
+            await Assert.That(plan.Models.OfType<EnumModelPlan>().Single().Values.Select(static value => value.Name)).Contains("Previous");
+        }
+        else
+        {
+            var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("widget.get"), curation));
+            await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation, key + "/legacy", "curated schema does not exist in the spec"));
+        }
+    }
+
+    [Test]
     public async Task Bind_Should_Name_A_Digit_Led_Value_Mechanically_Without_A_Row()
     {
         var document = await BindingTestHost.IngestAsync(Scenario());
