@@ -3,6 +3,8 @@ using System.Text.Json;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
+using OpenCode.Sdk.TestSupport;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Events;
 
@@ -25,6 +27,33 @@ public sealed class EventsClientReconnectTests
     private static readonly TimeSpan OneTick = TimeSpan.FromTicks(1);
 
     private static readonly string ConnectedFrame = WireBodyData.Frames(ScriptedEventServer.Connected);
+
+    [Test]
+    public async Task ExecuteStreamAsync_Should_Carry_Per_Call_Location_On_Every_Reconnect_Attempt()
+    {
+        var time = new ManualTimeProvider();
+        using var handler = new RecordingHttpHandler(static _ => ScriptedEventServer.StreamOf(ConnectedFrame, ends: true));
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient, location: new LocationSelector { Directory = "/ambient" }, time: time);
+        var options = new OpenCodeRequestOptions { Location = new LocationSelector { Directory = "/per-call" } };
+        var stream = pipeline.ExecuteStreamAsync("event.subscribe", HttpMethod.Get, "/api/event",
+            EventSubscribeResponseStreamAdapter.Instance, options, CancellationToken.None);
+        await using var events = stream.GetAsyncEnumerator();
+        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
+
+        for (var attempt = 2; attempt <= 3; attempt++)
+        {
+            var next = PendingNext(events);
+            await time.WaitForArmedAsync(Delay, HangGuard.Bound);
+            time.Advance(Delay);
+            await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
+            await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
+            await Assert.That(handler.Requests.Count).IsEqualTo(attempt);
+        }
+
+        await Assert.That(handler.Requests.Select(static request => request.Headers["x-opencode-directory"]))
+            .IsEquivalentTo(["%2Fper-call", "%2Fper-call", "%2Fper-call"], CollectionOrdering.Matching);
+    }
 
     [Test]
     public async Task A_Dropped_Stream_Should_Reconnect_After_One_Second_And_Announce_It_With_Server_Connected()
