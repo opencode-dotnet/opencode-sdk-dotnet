@@ -91,7 +91,7 @@ public sealed class OpenCodeServerExitedTests
             FileSystem.File.WriteAllText(marker, string.Empty);
 #endif
             var rootExit = await server.ChildExited.WaitAsync(HangGuard, cancellationToken);
-            await time.WaitForTimerAsync(HangGuard);
+            await time.WaitForArmedAsync(CloseBound, HangGuard);
 
             time.Advance(JustBeforeTheBound);
             var completedBeforeTheBound = server.Exited.IsCompleted;
@@ -137,7 +137,7 @@ public sealed class OpenCodeServerExitedTests
             _ = await server.ChildExited.WaitAsync(HangGuard, cancellationToken);
 
             // The bound starts while stderr is held; a close that ignored stderr completes instead.
-            _ = await Task.WhenAny(time.WaitForTimerAsync(HangGuard), server.Exited).WaitAsync(HangGuard, cancellationToken);
+            _ = await Task.WhenAny(time.WaitForArmedAsync(CloseBound, HangGuard), server.Exited).WaitAsync(HangGuard, cancellationToken);
             var completedWhileHeld = server.Exited.IsCompleted;
             ProcessObservation.KillIfRunning(LadderTree.Pid(output, LadderTree.StderrHolder));
             var exit = await server.Exited.WaitAsync(HangGuard, cancellationToken);
