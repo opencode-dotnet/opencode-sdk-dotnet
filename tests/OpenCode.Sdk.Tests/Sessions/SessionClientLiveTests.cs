@@ -89,12 +89,7 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
     {
         using var workspace = server.CreateWorkspace();
         using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
-        var created = await client.Sessions.CreateSessionAsync(new SessionCreateRequest
-        {
-            Title = "session-shell-live",
-            Location = new LocationPublicRef { Directory = workspace.Path },
-        }, cancellationToken: cancellationToken);
-        var session = client.Sessions.GetSessionClient(created.Session.Id);
+        var session = await CreateOwnedSessionAsync(client, workspace.Path, "session-shell-live", cancellationToken);
         var cleanup = new OwnedSessionCleanup(session, CleanupTimeout);
         cleanup.MarkTurnCompleted();
         var messageId = "msg_shell_" + Guid.NewGuid().ToString("N");
@@ -104,18 +99,8 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
 
         try
         {
-            _ = await session.RunShellCommandAsync(new SessionShellRequest
-            {
-                Id = messageId,
-                Command = command,
-            }, cancellationToken: cancellationToken);
-            var messages = await session.ListMessagesAsync(cancellationToken: cancellationToken);
-            var shells = messages.Messages.OfType<SessionMessageShell>().Where(message => message.Id == messageId).ToList();
-            foreach (var shell in shells)
-            {
-                cleanup.Own("shell removal", async token =>
-                    _ = await client.Shells.GetShellClient(shell.ShellId).RemoveAsync(cancellationToken: token));
-            }
+            var shells = await RunShellCommandAsync(session, messageId, command, cancellationToken);
+            OwnShellRemoval(client, cleanup, shells, "shell removal");
 
             await Assert.That(shells).Count().IsEqualTo(1);
             await Assert.That(shells[0].Command).IsEqualTo(command);
@@ -182,12 +167,7 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
     {
         using var workspace = server.CreateWorkspace();
         using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
-        var created = await client.Sessions.CreateSessionAsync(new SessionCreateRequest
-        {
-            Title = "session-model-live",
-            Location = new LocationPublicRef { Directory = workspace.Path },
-        }, cancellationToken: cancellationToken);
-        var session = client.Sessions.GetSessionClient(created.Session.Id);
+        var session = await CreateOwnedSessionAsync(client, workspace.Path, "session-model-live", cancellationToken);
         var cleanup = new OwnedSessionCleanup(session, CleanupTimeout);
         cleanup.MarkTurnCompleted();
         Exception? primaryFailure = null;
@@ -285,12 +265,7 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
             // Persist before this test's location is first resolved: config updates do not join reloads.
             _ = await configClient.Experimental.UpdateConfigAsync(
                 new ExperimentalConfigUpdateRequest { Shell = selected.Path }, cancellationToken: cancellationToken);
-            var created = await client.Sessions.CreateSessionAsync(new SessionCreateRequest
-            {
-                Title = "session-environment-live",
-                Location = new LocationPublicRef { Directory = workspace.Path },
-            }, cancellationToken: cancellationToken);
-            var session = client.Sessions.GetSessionClient(created.Session.Id);
+            var session = await CreateOwnedSessionAsync(client, workspace.Path, "session-environment-live", cancellationToken);
             sessionCleanup = new OwnedSessionCleanup(session, CleanupTimeout);
             sessionCleanup.MarkTurnCompleted();
             var shellName = new Testably.Abstractions.RealFileSystem().Path.GetFileNameWithoutExtension(selected.Path).ToLowerInvariant();
@@ -305,18 +280,8 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
             {
                 Variables = new Dictionary<string, string>(StringComparer.Ordinal) { [variable] = marker },
             }, cancellationToken: cancellationToken);
-            _ = await session.RunShellCommandAsync(new SessionShellRequest
-            {
-                Id = messageId,
-                Command = command,
-            }, cancellationToken: cancellationToken);
-            var messages = await session.ListMessagesAsync(cancellationToken: cancellationToken);
-            var shells = messages.Messages.OfType<SessionMessageShell>().Where(message => message.Id == messageId).ToList();
-            foreach (var shell in shells)
-            {
-                sessionCleanup.Own("environment shell removal", async token =>
-                    _ = await client.Shells.GetShellClient(shell.ShellId).RemoveAsync(cancellationToken: token));
-            }
+            var shells = await RunShellCommandAsync(session, messageId, command, cancellationToken);
+            OwnShellRemoval(client, sessionCleanup, shells, "environment shell removal");
 
             await Assert.That(shells).Count().IsEqualTo(1);
             await Assert.That(shells[0].Status).IsEqualTo(SessionMessageShellStatus.Exited);
@@ -432,6 +397,48 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
 
         Console.WriteLine(
             "session-move-missing-live: status=" + Number(response.Status) + " error=" + error?.Tag);
+    }
+
+    private static async Task<SessionClient> CreateOwnedSessionAsync(
+        OpenCodeClient client,
+        string directory,
+        string title,
+        CancellationToken cancellationToken)
+    {
+        var created = await client.Sessions.CreateSessionAsync(new SessionCreateRequest
+        {
+            Title = title,
+            Location = new LocationPublicRef { Directory = directory },
+        }, cancellationToken: cancellationToken);
+        return client.Sessions.GetSessionClient(created.Session.Id);
+    }
+
+    private static async Task<List<SessionMessageShell>> RunShellCommandAsync(
+        SessionClient session,
+        string messageId,
+        string command,
+        CancellationToken cancellationToken)
+    {
+        _ = await session.RunShellCommandAsync(new SessionShellRequest
+        {
+            Id = messageId,
+            Command = command,
+        }, cancellationToken: cancellationToken);
+        var messages = await session.ListMessagesAsync(cancellationToken: cancellationToken);
+        return [.. messages.Messages.OfType<SessionMessageShell>().Where(message => message.Id == messageId)];
+    }
+
+    private static void OwnShellRemoval(
+        OpenCodeClient client,
+        OwnedSessionCleanup cleanup,
+        IEnumerable<SessionMessageShell> shells,
+        string stepName)
+    {
+        foreach (var shell in shells)
+        {
+            cleanup.Own(stepName, async token =>
+                _ = await client.Shells.GetShellClient(shell.ShellId).RemoveAsync(cancellationToken: token));
+        }
     }
 
     private static OwnedSessionCleanup CreateCleanup(SessionClient session, string sessionId)

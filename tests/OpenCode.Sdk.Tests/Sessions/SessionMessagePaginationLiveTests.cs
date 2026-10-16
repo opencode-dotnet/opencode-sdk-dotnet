@@ -20,10 +20,9 @@ public sealed class SessionMessagePaginationLiveTests(SimulatedDriveServerFixtur
         CancellationToken cancellationToken)
     {
         using var workspace = server.CreateWorkspace();
-        using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
+        using var client = CreateWorkspaceClient(workspace);
         var sessionId = await CreateOwnedSessionAsync(client, workspace.Path, cancellationToken);
-        var session = client.Sessions.GetSessionClient(sessionId);
-        var cleanup = new OwnedSessionCleanup(session, CleanupTimeout);
+        var cleanup = CreateSessionCleanup(client, sessionId, out var session);
         Exception? primaryFailure = null;
 
         try
@@ -56,7 +55,7 @@ public sealed class SessionMessagePaginationLiveTests(SimulatedDriveServerFixtur
     public async Task ListMessagesAsync_Should_Round_Trip_The_Server_Cursor_And_Match_The_Paginator(CancellationToken cancellationToken)
     {
         using var workspace = server.CreateWorkspace();
-        using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
+        using var client = CreateWorkspaceClient(workspace);
         var sessionId = await CreateOwnedSessionAsync(client, workspace.Path, cancellationToken);
         var session = client.Sessions.GetSessionClient(sessionId);
         var turnCompleted = false;
@@ -188,6 +187,18 @@ public sealed class SessionMessagePaginationLiveTests(SimulatedDriveServerFixtur
                 await report.WaitForAllAsync(CancellationToken.None);
             }
         }
+    }
+
+    private OpenCodeClient CreateWorkspaceClient(TestWorkspace workspace) =>
+        server.CreateClient(new LocationSelector { Directory = workspace.Path });
+
+    private static OwnedSessionCleanup CreateSessionCleanup(
+        OpenCodeClient client,
+        string sessionId,
+        out SessionClient session)
+    {
+        session = client.Sessions.GetSessionClient(sessionId);
+        return new OwnedSessionCleanup(session, CleanupTimeout);
     }
 
     private static async Task<string> CreateOwnedSessionAsync(
