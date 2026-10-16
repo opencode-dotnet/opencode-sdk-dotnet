@@ -32,9 +32,9 @@ public sealed class CancellationIdentityTests
         yield return new("pty-resize-http", "headers", caller => AtHeadersAsync(
             static (client, token) => client.Ptys.GetPtyClient(PtyId).UpdateAsync(
                 new PtyUpdateRequest { Size = new PtySize { Cols = 100, Rows = 30 } }, cancellationToken: token), caller));
-        yield return new("pty-connect", "upgrade", caller => AtConnectAsync(persistent: false, attach: false, caller));
-        yield return new("persistent-connect", "upgrade", caller => AtConnectAsync(persistent: true, attach: false, caller));
-        yield return new("persistent-connect", "awaiting-attached", caller => AtConnectAsync(persistent: true, attach: true, caller));
+        yield return new("pty-connect", "upgrade", caller => AtConnectAsync(persistent: false, caller));
+        yield return new("persistent-connect", "upgrade", caller => AtConnectAsync(persistent: true, caller));
+        yield return new("persistent-connect", "awaiting-attached", AtAttachAsync);
 
         foreach (var entry in new[] { "method", "enumeration", "both" })
         {
@@ -173,7 +173,7 @@ public sealed class CancellationIdentityTests
             .GetAsyncEnumerator(EnumerationToken(entry, caller.Token));
         if (phase == "delay")
         {
-            await Assert.That(await events.MoveNextAsync()).IsTrue();
+            await Assert.That(await events.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound, CancellationToken.None)).IsTrue();
         }
 
         var observed = CancellationAsync(() => events.MoveNextAsync().AsTask());
@@ -287,7 +287,7 @@ public sealed class CancellationIdentityTests
         return failure;
     }
 
-    private static async Task<OperationCanceledException> AtConnectAsync(bool persistent, bool attach, CancellationTokenSource caller)
+    private static async Task<OperationCanceledException> AtConnectAsync(bool persistent, CancellationTokenSource caller)
     {
         var reservation = new TcpListener(IPAddress.Loopback, 0);
         reservation.Start();
@@ -302,20 +302,11 @@ public sealed class CancellationIdentityTests
         listener.Start();
         using var client = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = endpoint });
         var observed = CancellationAsync(() => ConnectAndDisposeAsync(client, persistent, caller.Token));
-        WebSocket? peer = null;
         HttpListenerContext? context = null;
         try
         {
             context = await listener.GetContextAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
             await Assert.That(context.Request.IsWebSocketRequest).IsTrue();
-            if (attach)
-            {
-                var upgraded = await context.AcceptWebSocketAsync(subProtocol: null).WaitAsync(HangGuard.Bound, CancellationToken.None);
-                peer = upgraded.WebSocket;
-                await Assert.That(peer.State).IsEqualTo(WebSocketState.Open);
-                // A real upgrade completed, but the server withholds attached for this connection.
-            }
-
             await caller.CancelOnWorkerAsync();
             return await observed;
         }
@@ -328,11 +319,32 @@ public sealed class CancellationIdentityTests
             }
             finally
             {
-                peer?.Dispose();
                 context?.Response.Abort();
                 listener.Stop();
             }
         }
+    }
+
+    // PersistentPtyClient.ConnectAsync hands the caller's token to this attachment once the upgrade
+    // completes; the parked receive witnesses that the attachment is waiting for its frame.
+    private static async Task<OperationCanceledException> AtAttachAsync(CancellationTokenSource caller)
+    {
+        using var socket = new ScriptedTerminalWebSocket().Parking();
+        var observed = CancellationAsync(async () =>
+        {
+            await using var session = await PersistentPtySession.AttachAsync(socket, PtyId, caller.Token);
+        });
+        try
+        {
+            await socket.Parked.WaitAsync(HangGuard.Bound, CancellationToken.None);
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+            _ = await observed;
+        }
+
+        return await observed;
     }
 
     private static async Task ConnectAndDisposeAsync(OpenCodeClient client, bool persistent, CancellationToken token)
