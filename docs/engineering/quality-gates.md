@@ -74,7 +74,7 @@ Before a pull request opens, run the local check from the repository root. It ca
 before they cost a CI run. A current handoff may add scope-specific checks but cannot weaken it.
 
 1. The static steps: slopwatch, the Release build and both format passes, exactly as the full gate
-   below runs them.
+   below runs them, and the clone gate (`verify-clones`, below).
 2. The whole `OpenCode.Sdk.Tools.Tests` project except its `NativeAot` category; its repository
    guards and registries read every file, so a narrow filter misses them.
 3. The test project of every product area the change touches, on every target framework the host
