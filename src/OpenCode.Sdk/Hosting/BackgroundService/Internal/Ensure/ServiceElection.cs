@@ -182,7 +182,7 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
     /// </summary>
     [SlopwatchSuppress(
         "SW003",
-        "The pinned client's stop catches a failed handoff or clear and only warns (service.ts): persistent terminals are best-effort and must never keep the old service running.")]
+        "The pinned client's stop catches a failed handoff or clear and only warns (service.ts): endpoint refusal is best-effort too, and termination of the old service remains the observable outcome.")]
     private async Task PrepareOrClearAsync(ServiceRegistration? registration, bool handOff, CancellationToken cancellationToken)
     {
         try
@@ -198,7 +198,7 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
                 await seams.Handoff.ClearAsync(paths.RegistrationFile, cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (OpenCodeServerException)
+        catch (Exception failure) when (failure is OpenCodeServerException or ArgumentException { ParamName: "endpoint" })
         {
             // Best-effort: the old service is terminated next either way.
         }

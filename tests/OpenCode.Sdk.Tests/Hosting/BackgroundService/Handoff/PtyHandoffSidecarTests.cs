@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
 
@@ -97,6 +98,28 @@ public sealed class PtyHandoffSidecarTests
     public async Task TryRead_Should_Return_Null_For_A_Shape_Failure(string fixture)
     {
         await Assert.That(Decode(fixture)).IsNull();
+    }
+
+    [Test]
+    [Arguments("BackgroundService.pty-handoff-sidecar-trailing-garbage.json")]
+    [Arguments("BackgroundService.pty-handoff-sidecar-second-value.json")]
+    public async Task TryRead_Should_Refuse_Content_After_A_Valid_Sidecar(string fixture)
+    {
+        await Assert.That(Decode(fixture)).IsNull();
+    }
+
+    [Test]
+    public async Task TryRead_Should_Admit_Trailing_Whitespace_And_Preserve_The_Raw_Ticket()
+    {
+        var body = Fixtures.LoadJson("BackgroundService.pty-handoff-unknown-members.json");
+        var sidecar = PtyHandoffSidecar.TryRead(Encoding.UTF8.GetBytes(body + " \t\r\n"));
+        using var expected = JsonDocument.Parse(body);
+
+        await Assert.That(sidecar).IsNotNull();
+        await Assert.That(sidecar!.SourceId).IsEqualTo("srv_1");
+        await Assert.That(sidecar.SourcePid).IsEqualTo(48213);
+        await Assert.That(sidecar.ExpiresAt).IsEqualTo(1700000060000d);
+        await Assert.That(sidecar.Handoff!.Value.GetRawText()).IsEqualTo(expected.RootElement.GetProperty("handoff").GetRawText());
     }
 
     [Test]

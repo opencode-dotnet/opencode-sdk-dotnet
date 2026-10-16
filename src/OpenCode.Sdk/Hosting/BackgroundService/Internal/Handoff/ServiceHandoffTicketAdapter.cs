@@ -58,6 +58,11 @@ internal sealed class ServiceHandoffTicketAdapter : ResponseAdapter<ServiceHando
         {
             var reader = new Utf8JsonReader(utf8Body);
             using var document = JsonDocument.ParseValue(ref reader);
+            if (reader.Read())
+            {
+                throw new JsonException("The handoff response must contain only one JSON value.");
+            }
+
             var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("handoff", out var handoff))
             {

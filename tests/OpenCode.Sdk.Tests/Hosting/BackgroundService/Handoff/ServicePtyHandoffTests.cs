@@ -127,6 +127,42 @@ public sealed class ServicePtyHandoffTests
     }
 
     [Test]
+    [Arguments("BackgroundService.pty-handoff-ticket-trailing-garbage.json")]
+    [Arguments("BackgroundService.pty-handoff-ticket-second-value.json")]
+    public async Task PrepareAsync_Should_Take_The_Shutdown_Fallback_For_A_Ticket_With_Trailing_Content(string fixture)
+    {
+        EnsureSidecarDirectory();
+        await using var server = LoopbackHttpServer.Start(path => path == ShutdownPath
+            ? NoContent()
+            : Json(HttpStatusCode.OK, Fixtures.LoadJson(fixture)));
+
+        await PrepareAsync(server.Endpoint);
+
+        var sidecar = ReadSidecar();
+        await Assert.That(sidecar).IsNotNull();
+        await Assert.That(sidecar!.Handoff).IsNull();
+        await Assert.That(sidecar.ExpiresAt).IsEqualTo(NowMilliseconds + 30_000d);
+        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath, ShutdownPath]);
+        await Assert.That(TemporaryFiles()).IsEmpty();
+    }
+
+    [Test]
+    public async Task PrepareAsync_Should_Admit_Trailing_Whitespace_And_Publish_The_Raw_Ticket()
+    {
+        EnsureSidecarDirectory();
+        var body = Fixtures.LoadJson("BackgroundService.pty-handoff-unknown-members.json") + " \t\r\n";
+        using var expected = JsonDocument.Parse(body);
+        await using var server = LoopbackHttpServer.Start(_ => Json(HttpStatusCode.OK, body));
+
+        await PrepareAsync(server.Endpoint);
+
+        var sidecar = ReadSidecar();
+        await Assert.That(sidecar).IsNotNull();
+        await Assert.That(sidecar!.Handoff!.Value.GetRawText()).IsEqualTo(expected.RootElement.GetProperty("handoff").GetRawText());
+        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath]);
+    }
+
+    [Test]
     public async Task PrepareAsync_Should_Shut_The_Daemon_Down_And_Publish_A_Null_Sidecar_When_The_Daemon_Answers_An_Error()
     {
         EnsureSidecarDirectory();
@@ -138,6 +174,51 @@ public sealed class ServicePtyHandoffTests
 
         await Assert.That(ReadSidecar()!.Handoff).IsNull();
         await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath, ShutdownPath]);
+    }
+
+    [Test]
+    [Arguments("http://127.0.0.1:49374?query=1")]
+    [Arguments("http://127.0.0.1:49374#fragment")]
+    [Arguments("http://synthetic@127.0.0.1:49374")]
+    public async Task PrepareAsync_Should_Fall_Back_When_The_Registered_Endpoint_Is_Refused(string address)
+    {
+        EnsureSidecarDirectory();
+        Seed(RegistrationPath(), ServiceRegistrationDocument.Compose(SourceId, Version, new Uri(address), RegisteredPid, Password));
+        var registration = await ServiceRegistrationReader.TryReadAsync(
+            new TestablyServiceFileSystem(_fileSystem), RegistrationPath(), CancellationToken.None);
+        await Assert.That(registration).IsNotNull();
+        var shutdown = Substitute.For<IServicePtyShutdown>();
+        shutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>())
+            .Returns(call => new ServicePtyShutdown().ShutdownAsync(call.Arg<ServiceRegistration>(), call.Arg<CancellationToken>()));
+
+        await new ServicePtyHandoff(new TestablyServiceFileSystem(_fileSystem), _clock, shutdown)
+            .PrepareAsync(RegistrationPath(), registration!, RequestTimeout, CancellationToken.None);
+
+        _ = shutdown.Received(1).ShutdownAsync(registration!, Arg.Any<CancellationToken>());
+        var sidecar = ReadSidecar();
+        await Assert.That(sidecar).IsNotNull();
+        await Assert.That(sidecar!.Handoff).IsNull();
+        await Assert.That(sidecar.ExpiresAt).IsEqualTo(NowMilliseconds + 30_000d);
+        await Assert.That(sidecar.SourceUrl).IsEqualTo(registration!.Url);
+        await Assert.That(TemporaryFiles()).IsEmpty();
+    }
+
+    [Test]
+    [Arguments("options")]
+    [Arguments(null)]
+    public async Task PrepareAsync_Should_Propagate_An_Unrelated_Shutdown_Argument_Error(string? parameterName)
+    {
+        await using var server = LoopbackHttpServer.Start(static _ => Json(HttpStatusCode.NotFound, "{}"));
+        var failure = new ArgumentException("The shutdown implementation rejected another parameter.", parameterName);
+        var shutdown = Substitute.For<IServicePtyShutdown>();
+        shutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>()).Returns(Task.FromException(failure));
+        var handoff = new ServicePtyHandoff(new TestablyServiceFileSystem(_fileSystem), _clock, shutdown);
+
+        var exception = await Assert.That(async () => await handoff.PrepareAsync(
+            RegistrationPath(), Registration(server.Endpoint), RequestTimeout, CancellationToken.None)).Throws<ArgumentException>();
+
+        await Assert.That(exception).IsSameReferenceAs(failure);
+        await Assert.That(ReadSidecar()).IsNull();
     }
 
     [Test]
@@ -370,6 +451,75 @@ public sealed class ServicePtyHandoffTests
         // Cancellation, never the fallback a daemon error takes.
         await Assert.That(caught).IsNotNull();
         server.ReleaseResponses();
+    }
+
+    [Test]
+    public async Task PrepareAsync_Should_Preserve_The_Caller_Token_During_The_Ticket_Request()
+    {
+        EnsureSidecarDirectory();
+        var arrived = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var server = LoopbackHttpServer.Start(_ => Pending(arrived));
+        using var caller = new CancellationTokenSource();
+        var shutdown = Substitute.For<IServicePtyShutdown>();
+        var handoff = new ServicePtyHandoff(new TestablyServiceFileSystem(_fileSystem), _clock, shutdown);
+        var pending = handoff.PrepareAsync(RegistrationPath(), Registration(server.Endpoint), RequestTimeout, caller.Token);
+        try
+        {
+            await arrived.Task.WaitAsync(RequestTimeout);
+            await caller.CancelOnWorkerAsync();
+
+            var exception = await Assert.That(async () => await pending.WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
+
+            await Assert.That(exception!.CancellationToken == caller.Token).IsTrue();
+            await Assert.That(ReadSidecar()).IsNull();
+            await Assert.That(TemporaryFiles()).IsEmpty();
+            await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath]);
+            _ = shutdown.DidNotReceiveWithAnyArgs().ShutdownAsync(default!, default);
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+            server.ReleaseResponses();
+            _ = await Assert.That(async () => await pending.WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
+        }
+    }
+
+    [Test]
+    public async Task PrepareAsync_Should_Preserve_The_Caller_Token_During_Shutdown_Fallback()
+    {
+        EnsureSidecarDirectory();
+        await using var server = LoopbackHttpServer.Start(static _ => Json(HttpStatusCode.NotFound, "{}"));
+        using var caller = new CancellationTokenSource();
+        var entered = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var held = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var shutdown = Substitute.For<IServicePtyShutdown>();
+        shutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>()).Returns(async call =>
+        {
+            var token = call.Arg<CancellationToken>();
+            entered.SetResult(token);
+            _ = await held.Task.WaitAsync(token);
+        });
+        var handoff = new ServicePtyHandoff(new TestablyServiceFileSystem(_fileSystem), _clock, shutdown);
+        var pending = handoff.PrepareAsync(RegistrationPath(), Registration(server.Endpoint), RequestTimeout, caller.Token);
+        try
+        {
+            var boundToken = await entered.Task.WaitAsync(RequestTimeout);
+            await Assert.That(boundToken).IsNotEqualTo(caller.Token);
+            await caller.CancelOnWorkerAsync();
+
+            var exception = await Assert.That(async () => await pending.WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
+
+            await Assert.That(exception!.CancellationToken == caller.Token).IsTrue();
+            await Assert.That(ReadSidecar()).IsNull();
+            await Assert.That(TemporaryFiles()).IsEmpty();
+            await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath]);
+            _ = shutdown.Received(1).ShutdownAsync(Arg.Any<ServiceRegistration>(), boundToken);
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+            _ = await Assert.That(async () => await pending.WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
+        }
     }
 
     /// <summary>The pinned client's <c>environment</c> reads a JSON-null ticket as no ticket and removes the variable.</summary>

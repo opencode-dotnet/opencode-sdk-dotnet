@@ -58,11 +58,11 @@ internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, IServiceC
             var answer = await RequestTicketAsync(registration, timeout, cancellationToken).ConfigureAwait(false);
             sidecar = Parse(answer, registration);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException failure) when (cancellationToken.IsCancellationRequested)
         {
-            throw;
+            throw FailureClassification.CallerCancellation(failure, "The persistent-terminal handoff request was canceled.", cancellationToken);
         }
-        catch (Exception failure) when (failure is OpenCodeException or OperationCanceledException)
+        catch (Exception failure) when (failure is OpenCodeException or OperationCanceledException or ArgumentException { ParamName: "endpoint" })
         {
             // Another caller may already have prepared and stopped this server; otherwise the
             // daemon's terminals are shut down and the replacement starts without a handoff.
@@ -190,7 +190,7 @@ internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, IServiceC
     /// </summary>
     [SlopwatchSuppress(
         "SW003",
-        "The pinned client's shutdown .catch(() => {}) ignores every error (prepare in pty-handoff.ts): terminals are best-effort, and the daemon is replaced next either way.")]
+        "The pinned client's shutdown .catch(() => {}) is best-effort (prepare in pty-handoff.ts): endpoint refusal or a failed shutdown leads to a null sidecar and replacement without these terminals.")]
     private async Task ShutdownAsync(ServiceRegistration registration, TimeSpan timeout, CancellationToken cancellationToken)
     {
         using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -199,11 +199,11 @@ internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, IServiceC
         {
             await ptyShutdown.ShutdownAsync(registration, bound.Token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException failure) when (cancellationToken.IsCancellationRequested)
         {
-            throw;
+            throw FailureClassification.CallerCancellation(failure, "The persistent-terminal shutdown fallback was canceled.", cancellationToken);
         }
-        catch (Exception failure) when (failure is OpenCodeException or OperationCanceledException)
+        catch (Exception failure) when (failure is OpenCodeException or OperationCanceledException or ArgumentException { ParamName: "endpoint" })
         {
             // Best-effort: the replacement starts without these terminals.
         }

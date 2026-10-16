@@ -651,6 +651,107 @@ public sealed class ServiceEnsurerTests
     }
 
     [Test]
+    [Arguments("http://127.0.0.1:49374?query=1", false)]
+    [Arguments("http://127.0.0.1:49374#fragment", false)]
+    [Arguments("http://synthetic@127.0.0.1:49374", false)]
+    [Arguments("http://127.0.0.1:49374?query=1", true)]
+    [Arguments("http://127.0.0.1:49374#fragment", true)]
+    [Arguments("http://synthetic@127.0.0.1:49374", true)]
+    public async Task EnsureAsync_Should_Still_Terminate_And_Continue_After_An_Endpoint_Refusal_During_Handoff(string address, bool refuseAtEntry)
+    {
+        Seed(SharedRegistrationPath(), ServiceRegistrationDocument.Compose(
+            "srv_refused", Version, new Uri(address), RegisteredPid, ServiceRegistrationData.Password));
+        AnswerRegistered(Ready);
+        var steps = new List<string>();
+        var handoff = new ServicePtyHandoff(new TestablyServiceFileSystem(_fileSystem), _clock, new ServicePtyShutdown());
+        _handoff.PrepareAsync(Arg.Any<string>(), Arg.Any<ServiceRegistration>(), Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                steps.Add("handoff");
+                if (refuseAtEntry)
+                {
+                    // An implementation may validate before entering its own best-effort region.
+                    _ = EndpointPolicy.Normalize(call.Arg<ServiceRegistration>().Endpoint);
+                }
+
+                return handoff.PrepareAsync(call.Arg<string>(), call.Arg<ServiceRegistration>(), call.Arg<TimeSpan>(), call.Arg<CancellationToken>());
+            });
+        var successor = ServiceRegistrationDocument.Compose("srv_successor", "2.0.4", ElectedEndpoint, ElectedPid, "synthetic-successor");
+        _processControl.TrySignal(Arg.Any<ProcessIdentity>(), ProcessSignal.Terminate).Returns(call =>
+        {
+            steps.Add("terminate");
+            _ = _signalled.Add(call.Arg<ProcessIdentity>().ProcessId);
+            Seed(SharedRegistrationPath(), successor);
+            return true;
+        });
+        _probe.ProbeAsync(WithPid(ElectedPid), Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            steps.Add("winner");
+            return Ready with { Version = "2.0.4" };
+        });
+
+        var registration = await Ensurer().EnsureAsync(
+            new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
+            CancellationToken.None);
+
+        await Assert.That(steps).IsEquivalentTo(["handoff", "terminate", "winner"], CollectionOrdering.Matching);
+        await Assert.That(_signalled).IsEquivalentTo([RegisteredPid]);
+        await Assert.That(registration.Id).IsEqualTo("srv_successor");
+        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+        await Assert.That(registration.Endpoint).IsEqualTo(ElectedEndpoint);
+        var persisted = await ServiceRegistrationReader.TryReadAsync(
+            new TestablyServiceFileSystem(_fileSystem), SharedRegistrationPath(), CancellationToken.None);
+        await Assert.That(persisted).IsNotNull();
+        await Assert.That(ServiceRegistrationIdentity.Of(persisted!)).IsEqualTo(ServiceRegistrationIdentity.Of(registration));
+        await Assert.That(persisted!.Password).IsEqualTo(registration.Password);
+        await Assert.That(_starts).IsEmpty();
+        _ = _handoff.Received(1).CompleteAsync(SharedRegistrationPath(), registration, Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    [Arguments("options")]
+    [Arguments(null)]
+    public async Task EnsureAsync_Should_Propagate_An_Unrelated_Handoff_Argument_Error_Without_Signalling(string? parameterName)
+    {
+        SeedRegistered();
+        AnswerRegistered(Ready);
+        var failure = new ArgumentException("The handoff implementation rejected another parameter.", parameterName);
+        _handoff.PrepareAsync(Arg.Any<string>(), Arg.Any<ServiceRegistration>(), Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(failure));
+
+        var exception = await Assert.That(async () => _ = await Ensurer().EnsureAsync(
+            new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
+            CancellationToken.None)).Throws<ArgumentException>();
+
+        await Assert.That(exception).IsSameReferenceAs(failure);
+        await Assert.That(_signalled).IsEmpty();
+        await Assert.That(_starts).IsEmpty();
+    }
+
+    [Test]
+    public async Task EnsureAsync_Should_Not_Signal_When_The_Caller_Cancels_During_An_Endpoint_Refusal()
+    {
+        var endpoint = new Uri("http://127.0.0.1:49374?query=1");
+        Seed(SharedRegistrationPath(), ServiceRegistrationDocument.Compose("srv_refused", Version, endpoint, RegisteredPid, ServiceRegistrationData.Password));
+        AnswerRegistered(Ready);
+        using var caller = new CancellationTokenSource();
+        _handoff.PrepareAsync(Arg.Any<string>(), Arg.Any<ServiceRegistration>(), Arg.Any<TimeSpan>(), Arg.Any<CancellationToken>())
+            .Returns(async call =>
+            {
+                await caller.CancelOnWorkerAsync();
+                _ = EndpointPolicy.Normalize(call.Arg<ServiceRegistration>().Endpoint);
+            });
+
+        var exception = await Assert.That(async () => _ = await Ensurer().EnsureAsync(
+            new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
+            caller.Token)).Throws<OperationCanceledException>();
+
+        await Assert.That(exception!.CancellationToken == caller.Token).IsTrue();
+        await Assert.That(_signalled).IsEmpty();
+        await Assert.That(_starts).IsEmpty();
+    }
+
+    [Test]
     public async Task EnsureAsync_Should_Terminate_A_Mismatched_Service_That_Is_Not_Ready_Even_When_The_Clear_Fails()
     {
         // A service that is not ready has no terminals to hand off, so the stop clears the sidecar
