@@ -7,16 +7,21 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
+using Testably.Abstractions;
 using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests;
 
 /// <summary>One caller identity through each public cancellation path, not every operation.</summary>
+[NotInParallel]
 public sealed class CancellationIdentityTests
 {
     private const string SessionId = "ses_9";
     private const string PtyId = "pty_persistent_7";
     private const string Input = "echo identity";
+    private const string HandoffPath = "/api/experimental/persistent-pty/handoff";
+    private const string ShutdownPath = "/api/experimental/persistent-pty/shutdown";
+    private const string ServicePassword = "synthetic-identity-password";
     private static readonly TimeSpan ReconnectDelay = TimeSpan.FromSeconds(1);
 
     public static IEnumerable<Func<(string Row, string Variant)>> CancellationCases() =>
@@ -34,6 +39,11 @@ public sealed class CancellationIdentityTests
         yield return new("pty-connect", "upgrade", caller => AtHeadersAsync((client, token) => ConnectAndDisposeAsync(client, persistent: false, token), caller));
         yield return new("persistent-connect", "upgrade", caller => AtHeadersAsync((client, token) => ConnectAndDisposeAsync(client, persistent: true, token), caller));
         yield return new("persistent-connect", "awaiting-attached", AtAttachAsync);
+        yield return new("start", "child-before-readiness", AtStartAsync);
+        yield return new("discover", "authenticated-probe", caller => AtServiceRequestAsync("discover", "probe", caller));
+        yield return new("ensure", "handoff-ticket", caller => AtServiceRequestAsync("ensure", "ticket", caller));
+        yield return new("ensure", "shutdown-fallback", caller => AtServiceRequestAsync("ensure", "fallback", caller));
+        yield return new("stop", "daemon-shutdown", caller => AtServiceRequestAsync("stop", "shutdown", caller));
 
         foreach (var entry in new[] { "method", "enumeration", "both" })
         {
@@ -249,7 +259,7 @@ public sealed class CancellationIdentityTests
         return await observed;
     }
 
-    private static Task<bool> PendingNext<T>(IAsyncEnumerator<T> enumerator) => enumerator.MoveNextAsync().AsTask();
+    private static async Task<bool> PendingNext<T>(IAsyncEnumerator<T> enumerator) => await enumerator.MoveNextAsync();
 
     private static Task<OperationCanceledException> AtCursorRequestAsync(bool pages, string entry, CancellationTokenSource caller) =>
         AtHeadersAsync((client, token) =>
@@ -412,6 +422,160 @@ public sealed class CancellationIdentityTests
         }
     }
 
+    private static async Task<OperationCanceledException> AtStartAsync(CancellationTokenSource caller)
+    {
+        var fileSystem = new RealFileSystem();
+        using var root = new TestRunRoot(fileSystem);
+        var isolation = ServerIsolation.For(fileSystem, root.Path);
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((IPEndPoint)listener.LocalEndpoint).Port.ToString(CultureInfo.InvariantCulture);
+        var output = new OpenCodeServerOutput();
+        var observed = CancellationAsync(async () =>
+        {
+            await using var server = await OpenCodeServer.StartAsync(new OpenCodeServerOptions
+            {
+                // A socket line witnesses actual child execution without polling its output or
+                // waiting on a clock. The child never writes a readiness line to stdout.
+                Command = ["bun", "-e", "require('net').connect(" + port + ", '127.0.0.1', function() { this.write(process.pid + '\\n'); }); process.stdin.resume();"],
+                WorkingDirectory = root.Path,
+                Environment = isolation.Environment,
+                ReadinessTimeout = Timeout.InfiniteTimeSpan,
+                GracefulShutdownTimeout = TimeSpan.Zero,
+                Output = output,
+            }, caller.Token);
+        });
+        var processId = 0;
+        try
+        {
+            using var peer = await listener.AcceptTcpClientAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
+            using var reader = new StreamReader(peer.GetStream(), Encoding.ASCII);
+            var line = await reader.ReadLineAsync().WaitAsync(HangGuard.Bound, CancellationToken.None)
+                ?? throw new InvalidOperationException("The child closed its witness socket without reporting its pid.");
+            processId = int.Parse(line, CultureInfo.InvariantCulture);
+            await Assert.That(ProcessObservation.IsRunning(processId)).IsTrue();
+            await caller.CancelOnWorkerAsync();
+            var failure = await observed;
+            await Assert.That(ProcessObservation.IsRunning(processId)).IsFalse();
+            return failure;
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+            try
+            {
+                _ = await observed;
+            }
+            finally
+            {
+                listener.Stop();
+#if NET
+                listener.Dispose();
+#endif
+                ProcessObservation.KillIfRunning(processId);
+            }
+        }
+    }
+
+    private static async Task<OperationCanceledException> AtServiceRequestAsync(string row, string stage, CancellationTokenSource caller)
+    {
+        var fileSystem = new RealFileSystem();
+        using var root = new TestRunRoot(fileSystem);
+        var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var heldPath = (row, stage) switch
+        {
+            ("discover", _) => "/api/info",
+            (_, "ticket") => HandoffPath,
+            _ => ShutdownPath,
+        };
+        await using var daemon = LoopbackHttpServer.Start(path =>
+        {
+            if (path == heldPath)
+            {
+                _ = entered.TrySetResult(true);
+                return new LoopbackHttpResponse
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    ContentType = "application/json",
+                    Body = ServiceInfoBodyData.Ready,
+                    KeepOpen = true,
+                };
+            }
+
+            return new LoopbackHttpResponse
+            {
+                StatusCode = path == HandoffPath ? HttpStatusCode.NotFound : HttpStatusCode.OK,
+                ContentType = "application/json",
+                Body = ServiceInfoBodyData.Ready,
+            };
+        });
+        var registrationPath = fileSystem.Path.Combine(root.Path, "service.json");
+        var document = ServiceRegistrationDocument.Compose("srv_identity", ServiceInfoBodyData.Version,
+            daemon.Endpoint, ServiceInfoBodyData.Pid, ServicePassword);
+        var registrationFiles = new TestablyServiceFileSystem(fileSystem);
+        await Assert.That(await registrationFiles.TryCreateExclusiveAsync(
+            registrationPath, Encoding.UTF8.GetBytes(document), CancellationToken.None)).IsTrue();
+        var observed = CancellationAsync(() => InvokeServiceAsync(row, registrationPath, caller.Token));
+        try
+        {
+            Task[] signals = [entered.Task];
+            await Task.WhenAll(signals).WaitAsync(HangGuard.Bound, CancellationToken.None);
+            await caller.CancelOnWorkerAsync();
+            var failure = await observed;
+            var request = daemon.Requests.Single(request => request.Path == heldPath);
+            await Assert.That(request.Headers["Authorization"]).IsEqualTo(
+                "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes("opencode:" + ServicePassword)));
+            string[] expectedPaths = (row, stage) switch
+            {
+                ("discover", _) => ["/api/info"],
+                (_, "fallback") => ["/api/info", HandoffPath, ShutdownPath],
+                _ => ["/api/info", heldPath],
+            };
+            await Assert.That(daemon.RequestPaths).IsEquivalentTo(expectedPaths, CollectionOrdering.Matching);
+            var retained = await registrationFiles.TryReadAllBytesAsync(registrationPath, CancellationToken.None);
+            await Assert.That(retained).IsEquivalentTo(Encoding.UTF8.GetBytes(document), CollectionOrdering.Matching);
+            await Assert.That(fileSystem.Directory.GetFiles(root.Path, "*" + ServicePtyHandoff.SidecarSuffix)).IsEmpty();
+            return failure;
+        }
+        finally
+        {
+            // The response stays held until cancellation settled: Ensure cannot reach termination
+            // or recruit a contender, and Stop cannot reach its first process signal.
+            await caller.CancelOnWorkerAsync();
+            try
+            {
+                _ = await observed;
+            }
+            finally
+            {
+                daemon.ReleaseResponses();
+            }
+        }
+    }
+
+    private static async Task InvokeServiceAsync(string row, string registrationPath, CancellationToken caller)
+    {
+        if (row == "stop")
+        {
+            await OpenCodeServer.StopAsync(new OpenCodeServerStopOptions { RegistrationFilePath = registrationPath }, caller);
+        }
+        else if (row == "discover")
+        {
+            await using var server = await OpenCodeServer.DiscoverAsync(
+                new OpenCodeServerDiscoverOptions { RegistrationFilePath = registrationPath }, caller);
+        }
+        else
+        {
+            await using var server = await OpenCodeServer.EnsureAsync(new OpenCodeServerEnsureOptions
+            {
+                RegistrationFilePath = registrationPath,
+                ExpectedVersion = "0.0.0-other",
+                VersionPolicy = OpenCodeServerVersionPolicy.Replace,
+                Command = ["bun", "--version"],
+            }, caller);
+        }
+    }
+
     [Test]
     public async Task PublicAsyncMembers_Should_Map_To_A_Cancellation_Identity_Row()
     {
@@ -422,16 +586,8 @@ public sealed class CancellationIdentityTests
             .Where(CancellationDoorClassifier.Selects)
             .ToArray();
         var used = new HashSet<string>(StringComparer.Ordinal);
-        var deferred = new List<string>();
         foreach (var member in members)
         {
-            if (CancellationDoorClassifier.DeferredHostingRow(member) is { } hosting)
-            {
-                deferred.Add(hosting);
-                TestContext.Current!.Output.WriteLine($"G1 temporarily deferred: {member}");
-                continue;
-            }
-
             var row = CancellationDoorClassifier.RequireRow(member, rows);
             _ = used.Add(row);
             if (row == "cursor-items")
@@ -444,10 +600,7 @@ public sealed class CancellationIdentityTests
 
         await Assert.That(members).IsNotEmpty();
         await Assert.That(rows.Except(used, StringComparer.Ordinal).ToArray()).IsEmpty();
-        await Assert.That(deferred.OrderBy(static row => row, StringComparer.Ordinal).ToArray())
-            .IsEquivalentTo(["discover", "ensure", "start", "stop"], CollectionOrdering.Matching);
-        TestContext.Current!.Output.WriteLine($"G1 staged only: {members.Length} signatures inspected; " +
-            "StartAsync, DiscoverAsync, EnsureAsync and StopAsync are deferred. G1 is not yet complete.");
+        TestContext.Current!.Output.WriteLine($"G1: {members.Length} signatures classified across {rows.Count} executable row kinds; no deferrals.");
     }
 
     [Test]
@@ -504,20 +657,6 @@ public sealed class CancellationIdentityTests
         public static bool Selects(MemberSignature member) => member.Parameters.Contains(typeof(CancellationToken)) &&
             (IsAsyncShape(member.ReturnType) || member.Name.EndsWith("Async", StringComparison.Ordinal));
 
-        /// <summary>An exact, temporary set, not a hosting-family exemption. Remove it when the four rows execute.</summary>
-        public static string? DeferredHostingRow(MemberSignature member) => member switch
-        {
-            _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.StartAsync), typeof(Task<OpenCodeServer>),
-                typeof(OpenCodeServerOptions), typeof(CancellationToken)) => "start",
-            _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.DiscoverAsync), typeof(Task<OpenCodeServer>),
-                typeof(OpenCodeServerDiscoverOptions), typeof(CancellationToken)) => "discover",
-            _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.EnsureAsync), typeof(Task<OpenCodeServer>),
-                typeof(OpenCodeServerEnsureOptions), typeof(CancellationToken)) => "ensure",
-            _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.StopAsync), typeof(Task),
-                typeof(OpenCodeServerStopOptions), typeof(CancellationToken)) => "stop",
-            _ => null,
-        };
-
         public static string RequireRow(MemberSignature member, IReadOnlyCollection<string> rows)
         {
             var row = Map(member) ?? throw new InvalidOperationException($"Unclassified cancellation signature: {member}");
@@ -531,7 +670,14 @@ public sealed class CancellationIdentityTests
 
         private static string? Map(MemberSignature member) => member switch
         {
-            _ when DeferredHostingRow(member) is { } hosting => hosting,
+            _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.StartAsync), typeof(Task<OpenCodeServer>),
+                typeof(OpenCodeServerOptions), typeof(CancellationToken)) => "start",
+            _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.DiscoverAsync), typeof(Task<OpenCodeServer>),
+                typeof(OpenCodeServerDiscoverOptions), typeof(CancellationToken)) => "discover",
+            _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.EnsureAsync), typeof(Task<OpenCodeServer>),
+                typeof(OpenCodeServerEnsureOptions), typeof(CancellationToken)) => "ensure",
+            _ when member.Is(typeof(OpenCodeServer), nameof(OpenCodeServer.StopAsync), typeof(Task),
+                typeof(OpenCodeServerStopOptions), typeof(CancellationToken)) => "stop",
             _ when member.Is(typeof(PtyClient), nameof(PtyClient.ConnectAsync), typeof(Task<PtySession>),
                 typeof(PtyConnectOptions), typeof(CancellationToken)) => "pty-connect",
             _ when member.Is(typeof(PersistentPtyClient), nameof(PersistentPtyClient.ConnectAsync), typeof(Task<PersistentPtySession>),

@@ -50,7 +50,7 @@ public partial class OpenCodeServer
     /// releasing the output readers.
     /// </summary>
     /// <param name="options">The launch options; null uses the defaults.</param>
-    /// <param name="cancellationToken">The cancellation token checked before launch and ending the wait for readiness.</param>
+    /// <param name="cancellationToken">The caller's token, checked immediately before process launch and observed during the readiness wait.</param>
     /// <returns>The started server, disposed by the caller.</returns>
     /// <exception cref="ArgumentException">The options are unusable: an empty command, a blank command entry, a non-positive readiness timeout, a negative grace, an output collector an earlier start already bound, or a NUL in a command entry or an environment entry.</exception>
     /// <exception cref="OpenCodeServerException">The command did not resolve on PATH, a leading argument was refused for a Windows batch shim, the platform is neither Windows, Linux, nor macOS, or the process could not start, could not be placed in the job that ends it with its owner (Windows), exited or closed its stdout before readiness, timed out, or broke the readiness contract.</exception>
@@ -66,7 +66,7 @@ public partial class OpenCodeServer
     /// </summary>
     /// <param name="options">The launch options; null uses the defaults.</param>
     /// <param name="seams">The seams for this start and the server's disposal.</param>
-    /// <param name="cancellationToken">The cancellation token checked before launch and ending the wait for readiness.</param>
+    /// <param name="cancellationToken">The caller's token, checked immediately before process launch and observed during the readiness wait.</param>
     /// <returns>The started server, disposed by the caller.</returns>
     internal static async Task<OpenCodeServer> StartWithSeamsAsync(
         OpenCodeServerOptions? options,

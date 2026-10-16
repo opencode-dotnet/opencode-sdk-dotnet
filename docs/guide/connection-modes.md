@@ -183,6 +183,12 @@ Startup failures throw `OpenCodeServerException`, carrying a bounded tail of the
 whenever a child actually ran — see
 [errors and responses](errors-and-responses.md#-when-a-local-server-door-fails).
 
+A caller token already canceled at the pre-launch check prevents process creation. Cancellation
+observed during the readiness wait ends the child before throwing `OperationCanceledException`
+carrying that token; cancellation arriving only during teardown does not replace an earlier failure.
+See the [launcher contract](../architecture/client-runtime.md#launcher) for readiness arbitration
+and bounded cleanup.
+
 ## 🔗 A server you already run
 
 If you already know an endpoint, construct the client directly. There is no separate verb for this
