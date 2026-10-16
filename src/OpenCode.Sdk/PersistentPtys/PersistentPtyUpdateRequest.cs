@@ -20,5 +20,5 @@ public sealed record PersistentPtyUpdateRequest
     /// Gets the size value.
     /// </summary>
     [JsonPropertyName("size")]
-    public required PersistentPtyUpdateInputSize Size { get; init; }
+    public required PtySize Size { get; init; }
 }

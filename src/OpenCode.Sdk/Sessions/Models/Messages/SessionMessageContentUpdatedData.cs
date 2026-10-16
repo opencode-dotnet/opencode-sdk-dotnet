@@ -25,5 +25,5 @@ public sealed record SessionMessageContentUpdatedData
     /// Gets the content value.
     /// </summary>
     [JsonPropertyName("content")]
-    public required IReadOnlyList<ISessionMessageAssistantContentEncoded> Content { get; init; }
+    public required IReadOnlyList<ISessionMessageAssistantContent> Content { get; init; }
 }

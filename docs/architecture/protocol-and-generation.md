@@ -142,7 +142,8 @@ Curation may:
   reason-bearing `sessionAreas` row names a Sessions model area by name prefixes; a Sessions model
   no row matches stays in the family's `Models/`. A row, pattern or alias that places nothing
   refuses as stale (ADR-0033);
-- collapse OpenAPI shapes proven structurally equivalent;
+- collapse OpenAPI shapes proven structurally equivalent, ignoring the order in which an object
+  declares its properties and emitting the surviving schema's order;
 - fingerprint exclusions already evidenced by the pinned document; and
 - map an operation whose upstream identity violates upstream's own conventions onto its intended
   identity through a reason-bearing operation-identity row carrying the upstream report; the row

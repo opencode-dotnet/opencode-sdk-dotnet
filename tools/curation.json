@@ -1016,6 +1016,16 @@
   ],
   "schemaNames": [
     {
+      "schema": "PersistentPty.CreateInput#/properties/size",
+      "dotnetName": "PtySize",
+      "reason": "The viewport size is shared by normal and persistent PTYs, not specific to the create operation; the Pty prefix places it with the PTY family."
+    },
+    {
+      "schema": "Session.Message.AssistantContent.Encoded",
+      "dotnetName": "ISessionMessageAssistantContent",
+      "reason": "Upstream's Session.Message.AssistantContent: the assistant message content items and the content-updated event share it through schemaAliases; the mechanical *Encoded strip refuses here because it would empty the last dotted segment."
+    },
+    {
       "schema": "Config.ModelEncoded#/properties/cost",
       "dotnetName": "ConfigModelPricing",
       "reason": "A configured model's cost is one Config.Model.Cost or a list of context-size tiers of it; the mechanical Config.Model + cost name is taken by the Cost schema itself."
@@ -1493,6 +1503,21 @@
     "server.info": "ServerInfo"
   },
   "schemaAliases": [
+    {
+      "schema": "op:pty.update#/requestBody/content/application~1json/schema/properties/size",
+      "aliasOf": "PersistentPty.CreateInput#/properties/size",
+      "reason": "Normal and persistent PTY requests carry the same required integer columns and rows; one size record represents the terminal viewport."
+    },
+    {
+      "schema": "PersistentPty.UpdateInput#/properties/size",
+      "aliasOf": "PersistentPty.CreateInput#/properties/size",
+      "reason": "Normal and persistent PTY requests carry the same required integer columns and rows; one size record represents the terminal viewport."
+    },
+    {
+      "schema": "Session.Message.Assistant#/properties/content/items",
+      "aliasOf": "Session.Message.AssistantContent.Encoded",
+      "reason": "The assistant message content items and the content-updated event carry the same text, reasoning and tool union, inlined on the message and named on the event."
+    },
     {
       "schema": "op:event.subscribe#/responses/200/content/text~1event-stream/x-effect-stream/causeSchema/items",
       "aliasOf": "op:session.log#/responses/200/content/text~1event-stream/x-effect-stream/causeSchema/items",

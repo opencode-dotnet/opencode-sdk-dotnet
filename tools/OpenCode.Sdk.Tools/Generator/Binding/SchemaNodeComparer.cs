@@ -6,7 +6,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// Structural equality over projected schema trees; node kinds without an explicit rule
 /// compare unequal, so aliasing them refuses instead of guessing. Promoted inline schemas
 /// carry no nominal identity, so their references compare by resolved structure while
-/// nominal component references keep target identity.
+/// nominal component references keep target identity. Object properties compare by name,
+/// independently of declaration order.
 /// </summary>
 internal static class SchemaNodeComparer
 {
@@ -102,11 +103,17 @@ internal static class SchemaNodeComparer
             && left.ErrorStyle == right.ErrorStyle
             && AdditionalSchemasEqual(left, right)
             && left.Properties.Count == right.Properties.Count
-            && left.Properties.Zip(right.Properties).All(pair => PropertiesEqual(pair.First, pair.Second))
+            && left.Properties.OrderBy(static property => property.Name, StringComparer.Ordinal)
+                .Zip(right.Properties.OrderBy(static property => property.Name, StringComparer.Ordinal))
+                .All(pair => PropertiesEqual(pair.First, pair.Second))
             && left.LiteralMarkers.Count == right.LiteralMarkers.Count
-            && left.LiteralMarkers.Zip(right.LiteralMarkers).All(static pair => MarkersEqual(pair.First, pair.Second))
+            && left.LiteralMarkers.OrderBy(static marker => marker.PropertyName, StringComparer.Ordinal)
+                .Zip(right.LiteralMarkers.OrderBy(static marker => marker.PropertyName, StringComparer.Ordinal))
+                .All(static pair => MarkersEqual(pair.First, pair.Second))
             && left.PrefixMarkers.Count == right.PrefixMarkers.Count
-            && left.PrefixMarkers.Zip(right.PrefixMarkers).All(static pair => pair.First == pair.Second);
+            && left.PrefixMarkers.OrderBy(static marker => marker.PropertyName, StringComparer.Ordinal)
+                .Zip(right.PrefixMarkers.OrderBy(static marker => marker.PropertyName, StringComparer.Ordinal))
+                .All(static pair => pair.First == pair.Second);
 
         private bool AdditionalSchemasEqual(ObjectNode left, ObjectNode right) =>
             (left.AdditionalPropertiesSchema, right.AdditionalPropertiesSchema) switch

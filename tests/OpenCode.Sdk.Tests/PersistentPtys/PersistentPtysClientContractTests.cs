@@ -94,7 +94,7 @@ public sealed class PersistentPtysClientContractTests
         _ = await scenario.Client.PersistentPtys.CreatePersistentPtyAsync("ses_1", CreateRequest() with
         {
             Cwd = "/repo",
-            Size = new PersistentPtyCreateInputSize { Cols = 100, Rows = 30 },
+            Size = new PtySize { Cols = 100, Rows = 30 },
         });
 
         await Assert.That(scenario.Requests.Single().Body).IsEqualTo(
@@ -495,7 +495,7 @@ public sealed class PersistentPtysClientContractTests
 
     private static PersistentPtyUpdateRequest UpdateRequest() => new()
     {
-        Size = new PersistentPtyUpdateInputSize { Cols = 120, Rows = 40 },
+        Size = new PtySize { Cols = 120, Rows = 40 },
     };
 
     private sealed class MockPersistentPtysClient : PersistentPtysClient

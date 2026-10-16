@@ -28,6 +28,25 @@ Nightly builds of `master` are on
 - **`OpenCodeRoutes` is no longer public.** Call the typed clients to build and send request
   paths instead of using route constants or builders directly. Request paths on the wire are
   unchanged.
+- **Assistant content has one union type.** Message content and content-updated events use
+  `ISessionMessageAssistantContent`; the encoded duplicate and its unknown carrier are removed.
+  Existing text, reasoning, and tool records implement the surviving interface. The wire is unchanged.
+
+  | Surface | Was | Now |
+  |---|---|---|
+  | `SessionMessageContentUpdatedData.Content` item | `ISessionMessageAssistantContentEncoded` | `ISessionMessageAssistantContent` |
+  | Unknown assistant-content record | `UnknownSessionMessageAssistantContentEncoded` | `UnknownSessionMessageAssistantContent` |
+
+- **PTY requests share `PtySize`.** Replace the three old size names with `PtySize`.
+  Its `Cols` and `Rows` members remain required `long` values. The persistent requests remain experimental.
+  The `pty.update` body now writes `cols` before `rows`, which the server does not observe.
+
+  | Property | Was | Now |
+  |---|---|---|
+  | `PtyUpdateRequest.Size` | `PtyUpdateSize?` | `PtySize?` |
+  | `PersistentPtyCreateRequest.Size` | `PersistentPtyCreateInputSize?` | `PtySize?` |
+  | `PersistentPtyUpdateRequest.Size` | `PersistentPtyUpdateInputSize` | `PtySize` |
+
 - **Boolean query parameters use `bool?`.** `QueryBoolean` is removed. Pass `true` or `false`,
   not `QueryBoolean.True` or `QueryBoolean.False`; leave the member null to omit it.
   The query text remains lowercase `true` or `false`.

@@ -2,6 +2,7 @@ using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
@@ -23,6 +24,71 @@ public sealed class StabilizeDuplicatePolicyTests
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(Folds(collapse)).IsEquivalentTo(["Widget_1 -> Widget"]);
+    }
+
+    [Test]
+    public async Task Resolve_Should_Fold_Objects_Whose_Properties_Are_Declared_In_A_Different_Order()
+    {
+        var errors = new BindingErrorCollector();
+
+        var reorderedObjects = ReorderedDuplicateScenario("Widget",
+            static schema => schema
+                .Type("object")
+                .Property("id", static property => property.Type("string"), required: true)
+                .Property("count", static property => property.Type("integer")),
+            static schema => schema
+                .Type("object")
+                .Property("count", static property => property.Type("integer"))
+                .Property("id", static property => property.Type("string"), required: true));
+
+        var collapse = await ResolveAsync(reorderedObjects, errors);
+
+        await Assert.That(errors.Count).IsEqualTo(0);
+        await Assert.That(Folds(collapse)).IsEquivalentTo(["Widget_1 -> Widget"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Resolve_Should_Fold_Objects_Whose_Required_Literal_Properties_Are_Declared_In_A_Different_Order()
+    {
+        var errors = new BindingErrorCollector();
+
+        var reorderedLiterals = ReorderedDuplicateScenario("Widget",
+            static schema => schema
+                .Type("object")
+                .Property("type", static property => property.Type("string").Const("widget"), required: true)
+                .Property("state", static property => property.Type("string").Const("ready"), required: true),
+            static schema => schema
+                .Type("object")
+                .Property("state", static property => property.Type("string").Const("ready"), required: true)
+                .Property("type", static property => property.Type("string").Const("widget"), required: true));
+
+        var collapse = await ResolveAsync(reorderedLiterals, errors);
+
+        await Assert.That(errors.Count).IsEqualTo(0);
+        await Assert.That(Folds(collapse)).IsEquivalentTo(["Widget_1 -> Widget"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Resolve_Should_Fold_Objects_Whose_Required_Prefix_And_Literal_Properties_Are_Declared_In_A_Different_Order()
+    {
+        var errors = new BindingErrorCollector();
+
+        var reorderedPrefixesAndLiterals = ReorderedDuplicateScenario("Rpc.Event",
+            static schema => schema
+                .Type("object")
+                .Property("type", static property => property.Type("string").Const("event"), required: true)
+                .Property("id", static property => property.Type("string").Pattern("^rpc\\.[\\s\\S]*?$"), required: true)
+                .Property("source", static property => property.Type("string").Pattern("^plugin\\.[\\s\\S]*?$"), required: true),
+            static schema => schema
+                .Type("object")
+                .Property("source", static property => property.Type("string").Pattern("^plugin\\.[\\s\\S]*?$"), required: true)
+                .Property("id", static property => property.Type("string").Pattern("^rpc\\.[\\s\\S]*?$"), required: true)
+                .Property("type", static property => property.Type("string").Const("event"), required: true));
+
+        var collapse = await ResolveAsync(reorderedPrefixesAndLiterals, errors);
+
+        await Assert.That(errors.Count).IsEqualTo(0);
+        await Assert.That(Folds(collapse)).IsEquivalentTo(["Rpc.Event_1 -> Rpc.Event"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -245,6 +311,24 @@ public sealed class StabilizeDuplicatePolicyTests
     /// <summary>One reachable duplicate of <c>Widget</c> under the shape the caller supplies.</summary>
     private static SpecScenario TwoWidgetsScenario(Action<SchemaBuilder> duplicate) =>
         SpecScenario.Define(spec => DefineWidgets(spec, duplicate, "Widget_1"));
+
+    /// <summary>A reachable base and stabilize twin with independently configured property order.</summary>
+    private static SpecScenario ReorderedDuplicateScenario(
+        string baseName,
+        Action<SchemaBuilder> configureBase,
+        Action<SchemaBuilder> configureDuplicate)
+    {
+        var duplicateName = $"{baseName}_1";
+        var resource = baseName[(baseName.AsSpan().LastIndexOf('.') + 1)..].ToLowerInvariant();
+        return SpecScenario.Define(spec => _ = spec
+            .WithSchema(baseName, configureBase)
+            .WithSchema(duplicateName, configureDuplicate)
+            .WithOperation($"{resource}.get", path: $"/api/{resource}", configure: operation => operation
+                .Response(200, "application/json", schema => schema
+                    .Type("object")
+                    .Property("primary", property => property.Ref(baseName), required: true)
+                    .Property("secondary", property => property.Ref(duplicateName), required: true))));
+    }
 
     /// <summary>
     /// A duplicate whose identity runs through a second duplicate: <c>Gadget_1</c> matches
