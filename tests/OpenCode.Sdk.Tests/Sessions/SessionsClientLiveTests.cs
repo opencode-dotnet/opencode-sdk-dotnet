@@ -2,6 +2,7 @@ using System.Globalization;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Sessions;
 
@@ -17,6 +18,59 @@ public sealed class SessionsClientLiveTests(SimulatedDriveServerFixture server)
     private const string StatsReply = "Task two statistics reply.";
     private static readonly TimeSpan CleanupTimeout = TimeSpan.FromSeconds(15);
     private readonly SessionMessageEvidenceProjector _messageEvidence = new();
+
+    [Test]
+    [Timeout(180_000)]
+    public async Task ForkAsync_Should_Copy_Only_Earlier_History_When_A_Before_Boundary_Is_Supplied(
+        CancellationToken cancellationToken)
+    {
+        using var workspace = server.CreateWorkspace();
+        using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
+        var created = await CreateOwnedSessionAsync(client, workspace.Path, "session-fork-live", cancellationToken);
+        var session = client.Sessions.GetSessionClient(created.Id);
+        var cleanup = CreateCleanup(session, created.Id);
+        const string firstPrompt = "Fork retained prompt";
+        const string firstReply = "Fork retained reply.";
+        const string secondPrompt = "Fork excluded prompt";
+        const string secondReply = "Fork excluded reply.";
+        Exception? primaryFailure = null;
+
+        try
+        {
+            var turn = new SimulatedSessionTurn(server, client, session, created.Id);
+            _ = await turn.CompleteAsync(firstPrompt, firstReply, cancellationToken);
+            _ = await client.Experimental.WaitForSessionAsync(created.Id, cancellationToken: cancellationToken);
+            _ = await turn.CompleteAsync(secondPrompt, secondReply, cancellationToken);
+            _ = await client.Experimental.WaitForSessionAsync(created.Id, cancellationToken: cancellationToken);
+            cleanup.MarkTurnCompleted();
+            var source = await session.ListMessagesAsync(
+                new SessionMessageListRequest { Order = ListOrder.Ascending }, cancellationToken: cancellationToken);
+            var boundary = source.Messages.OfType<SessionMessageUser>().Single(message => message.Text == secondPrompt).Id;
+
+            var response = await session.ForkAsync(new SessionForkRequest { Before = boundary }, cancellationToken: cancellationToken);
+            var fork = client.Sessions.GetSessionClient(response.Fork.Id);
+            cleanup.Own("fork removal", token => RemoveOwnedSessionAsync(fork, response.Fork.Id, token));
+            var copied = await fork.ListMessagesAsync(
+                new SessionMessageListRequest { Order = ListOrder.Ascending }, cancellationToken: cancellationToken);
+            var evidence = _messageEvidence.Project(copied.Messages);
+
+            await Assert.That(evidence.Select(message => message.Text)).DoesNotContain(secondPrompt);
+            await Assert.That(evidence.Select(message => message.Text)).DoesNotContain(secondReply);
+            await Assert.That(evidence.Where(message => message.Type is "user" or "assistant").Select(message => message.Text))
+                .IsEquivalentTo([firstPrompt, firstReply], CollectionOrdering.Matching);
+            await Assert.That(response.Fork.Id).IsNotEqualTo(created.Id);
+            await Assert.That(response.Fork.Fork).IsNotNull();
+            await Assert.That(response.Fork.Fork!.SessionId).IsEqualTo(created.Id);
+            await Assert.That(response.Fork.Fork.Boundary).IsTypeOf<SessionForkBoundaryBefore>();
+            await Assert.That(((SessionForkBoundaryBefore)response.Fork.Fork.Boundary).MessageId).IsEqualTo(boundary);
+        }
+        catch (Exception exception)
+        {
+            primaryFailure = exception;
+        }
+
+        await cleanup.CompleteAsync(primaryFailure);
+    }
 
     [Test]
     [Timeout(180_000)]

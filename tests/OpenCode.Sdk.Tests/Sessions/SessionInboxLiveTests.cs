@@ -17,6 +17,48 @@ public sealed class SessionInboxLiveTests(SimulatedDriveServerFixture server)
 
     [Test]
     [Timeout(180_000)]
+    public async Task AddSyntheticMessageAsync_Should_Admit_The_Synthetic_Input_When_Resume_Is_False(
+        CancellationToken cancellationToken)
+    {
+        using var workspace = server.CreateWorkspace();
+        using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
+        var sessionId = await CreateOwnedSessionAsync(client, workspace.Path, "session-synthetic-live", cancellationToken);
+        var session = client.Sessions.GetSessionClient(sessionId);
+        var cleanup = new OwnedSessionInboxCleanup(session, client.Experimental, sessionId, server.Controller, CleanupTimeout);
+        var inboxId = "msg_synthetic_" + Guid.NewGuid().ToString("N");
+        const string text = "Synthetic coverage input";
+        const string description = "Owned synthetic coverage description";
+        Exception? primaryFailure = null;
+
+        try
+        {
+            _ = await session.AddSyntheticMessageAsync(new SessionSyntheticRequest
+            {
+                Id = inboxId,
+                Text = text,
+                Description = description,
+                Delivery = SessionInboxDelivery.Queue,
+                Resume = false,
+            }, cancellationToken: cancellationToken);
+
+            var pending = await session.ListInboxAsync(cancellationToken: cancellationToken);
+            var rows = pending.Inbox.OfType<SessionInboxSynthetic>().Where(item => item.Id == inboxId).ToList();
+            await Assert.That(rows).Count().IsEqualTo(1);
+            await Assert.That(rows[0].SessionId).IsEqualTo(sessionId);
+            await Assert.That(rows[0].Payload.Text).IsEqualTo(text);
+            await Assert.That(rows[0].Payload.Description).IsEqualTo(description);
+            await Assert.That(rows[0].Delivery).IsEqualTo(SessionInboxDelivery.Queue);
+        }
+        catch (Exception exception)
+        {
+            primaryFailure = exception;
+        }
+
+        await cleanup.CompleteAsync(primaryFailure);
+    }
+
+    [Test]
+    [Timeout(180_000)]
     public async Task DeleteInboxCancelAsync_Should_Remove_A_Queued_Prompt_While_PostWaitAsync_Completes_The_Held_Turn(
         CancellationToken cancellationToken)
     {

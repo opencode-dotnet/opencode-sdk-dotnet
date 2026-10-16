@@ -3,6 +3,7 @@ using System.Text.Json;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Sessions;
 
@@ -16,10 +17,50 @@ public sealed class SessionMessagePaginationLiveTests(SimulatedDriveServerFixtur
 
     [Test]
     [Timeout(180_000)]
+    public async Task GetMessageAsync_Should_Return_The_Requested_Message_When_Several_Messages_Exist(
+        CancellationToken cancellationToken)
+    {
+        using var workspace = server.CreateWorkspace();
+        using var client = CreateWorkspaceClient(workspace);
+        var sessionId = await CreateOwnedSessionAsync(client, workspace.Path, cancellationToken);
+        var cleanup = CreateSessionCleanup(client, sessionId, out var session);
+        Exception? primaryFailure = null;
+
+        try
+        {
+            var turn = new SimulatedSessionTurn(server, client, session, sessionId);
+            _ = await turn.CompleteAsync(Prompt, Reply, cancellationToken);
+            const string laterReply = "Later message lookup reply.";
+            _ = await turn.CompleteAsync("Later message lookup prompt", laterReply, cancellationToken);
+            cleanup.MarkTurnCompleted();
+            var messages = await EnumerateMessagesAsync(session, cancellationToken);
+            var assistants = messages.OfType<SessionMessageAssistant>().ToList();
+            await Assert.That(assistants).Count().IsEqualTo(2);
+            await Assert.That(assistants.SelectMany(message => message.Content.OfType<SessionMessageAssistantText>()).Select(text => text.Text))
+                .IsEquivalentTo([Reply, laterReply], CollectionOrdering.Matching);
+            await Assert.That(messages.OfType<SessionMessageUser>().Select(message => message.Text)).Contains(Prompt);
+
+            var response = await session.GetMessageAsync(assistants[0].Id, cancellationToken: cancellationToken);
+
+            await Assert.That(response.Message).IsTypeOf<SessionMessageAssistant>();
+            var assistant = (SessionMessageAssistant)response.Message;
+            await Assert.That(assistant.Id).IsEqualTo(assistants[0].Id);
+            await Assert.That(assistant.Content.OfType<SessionMessageAssistantText>().Select(text => text.Text)).Contains(Reply);
+        }
+        catch (Exception exception)
+        {
+            primaryFailure = exception;
+        }
+
+        await cleanup.CompleteAsync(primaryFailure);
+    }
+
+    [Test]
+    [Timeout(180_000)]
     public async Task ListMessagesAsync_Should_Round_Trip_The_Server_Cursor_And_Match_The_Paginator(CancellationToken cancellationToken)
     {
         using var workspace = server.CreateWorkspace();
-        using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
+        using var client = CreateWorkspaceClient(workspace);
         var sessionId = await CreateOwnedSessionAsync(client, workspace.Path, cancellationToken);
         var session = client.Sessions.GetSessionClient(sessionId);
         var turnCompleted = false;
@@ -151,6 +192,18 @@ public sealed class SessionMessagePaginationLiveTests(SimulatedDriveServerFixtur
                 await report.WaitForAllAsync(CancellationToken.None);
             }
         }
+    }
+
+    private OpenCodeClient CreateWorkspaceClient(TestWorkspace workspace) =>
+        server.CreateClient(new LocationSelector { Directory = workspace.Path });
+
+    private static OwnedSessionCleanup CreateSessionCleanup(
+        OpenCodeClient client,
+        string sessionId,
+        out SessionClient session)
+    {
+        session = client.Sessions.GetSessionClient(sessionId);
+        return new OwnedSessionCleanup(session, CleanupTimeout);
     }
 
     private static async Task<string> CreateOwnedSessionAsync(
