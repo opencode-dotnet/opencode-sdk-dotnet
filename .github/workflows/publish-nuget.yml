@@ -1,5 +1,5 @@
 # Manual, human-triggered release lane. Nightlies publish automatically from ci.yml's
-# publish-nightly job on every master push; this workflow is the ONLY path to a stable version
+# publish-nightly job on every master push that changes more than Markdown or LICENSE; this workflow is the ONLY path to a stable version
 # number, and it is never triggered by a push, tag, or GitHub Release event.
 #
 # The lane refuses any ref but master: "Run workflow" offers every branch in its selector, so a

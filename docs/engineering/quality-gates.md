@@ -68,8 +68,7 @@ this policy.
 
 "Builds" and "works" are different claims. A change is complete when the CI its pull request
 triggers is green: the lint job and the three operating-system legs run every step of the full gate
-listed below. When CI is triggered and when it may be skipped, and what a merge requires, are in
-`workflow.md`.
+listed below. Which changes skip those jobs, and what a merge requires, are in `workflow.md`.
 
 Before a pull request opens, run the local check from the repository root. It catches failures
 before they cost a CI run. A current handoff may add scope-specific checks but cannot weaken it.

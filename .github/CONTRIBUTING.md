@@ -245,7 +245,9 @@ Scratch work belongs under the gitignored `.scratchpad/`; nothing permanent may 
 
 ## 🔍 Review Process
 
-1. **Automated checks** must pass (build, format, analyzers, tests, on all three OSes)
+1. **Automated checks** must pass: the required `CI result` check stands for the build, format,
+   analyzer and test jobs on all three OSes, and the merge queue runs it again before the merge
+   ([`docs/engineering/workflow.md`](../docs/engineering/workflow.md))
 2. **Maintainer review** — we aim to respond within 48 hours
 3. **Iterative improvements** — address feedback promptly
 4. **Final approval** and merge
