@@ -236,7 +236,7 @@ public sealed class OwnedServerChildTests
         var time = new ManualTimeProvider();
         var exited = new TaskCompletionSource<ChildExitStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
         var ladder = Substitute.For<IServerLadder>();
-        using var stdout = new BlockingStream([]);
+        using var stdout = new GatedStream([0xef, 0xbb, 0xbf], 1);
         var pump = PipeOutputPump.Start(stdout, null, IgnoreLine, IgnoreLine);
         var child = ReadinessChild(pump, exited, ladder, time);
         try
@@ -252,7 +252,15 @@ public sealed class OwnedServerChildTests
         }
         finally
         {
-            await child.DisposeAsync().AsTask().WaitAsync(HangGuard.Bound);
+            stdout.Release();
+            try
+            {
+                await child.DisposeAsync().AsTask().WaitAsync(HangGuard.Bound);
+            }
+            finally
+            {
+                await child.ReadersEnded.WaitAsync(HangGuard.Bound);
+            }
         }
     }
 

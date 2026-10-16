@@ -9,6 +9,7 @@ using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions.Testing;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Handoff;
 
@@ -142,7 +143,7 @@ public sealed class ServicePtyHandoffTests
         await Assert.That(sidecar).IsNotNull();
         await Assert.That(sidecar!.Handoff).IsNull();
         await Assert.That(sidecar.ExpiresAt).IsEqualTo(NowMilliseconds + 30_000d);
-        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath, ShutdownPath]);
+        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath, ShutdownPath], CollectionOrdering.Matching);
         await Assert.That(TemporaryFiles()).IsEmpty();
     }
 

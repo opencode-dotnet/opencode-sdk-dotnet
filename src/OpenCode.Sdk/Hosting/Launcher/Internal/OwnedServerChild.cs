@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
@@ -82,8 +84,14 @@ internal sealed class OwnedServerChild : IAsyncDisposable
         // its stdout and keeps running is a failed start as much as one that exits.
         var pending = Task.WhenAny(readyLine, Exited, _process.Output.StandardOutputEnded);
         await (_readinessWait is null ? pending.WaitAsync(readiness) : _readinessWait(pending, readiness)).ConfigureAwait(false);
-        return await ResolveRecordedReadinessAsync(readyLine).ConfigureAwait(false)
-            ?? throw new InvalidOperationException("The readiness wait completed without a recorded outcome.");
+        var outcome = await ResolveRecordedReadinessAsync(readyLine).ConfigureAwait(false);
+        Debug.Assert(outcome is not null, "The readiness wait completed with a recorded outcome.");
+#if NET
+        return outcome;
+#else
+        // Downlevel Debug.Assert has no nullable-flow annotation; the assertion establishes the invariant.
+        return outcome!;
+#endif
     }
 
     /// <summary>

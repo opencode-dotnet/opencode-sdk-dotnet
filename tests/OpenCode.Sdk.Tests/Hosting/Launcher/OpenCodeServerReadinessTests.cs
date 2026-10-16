@@ -168,13 +168,14 @@ public sealed class OpenCodeServerReadinessTests
         Stream? input = null;
         Stream? originalOutput = null;
         GatedStream? closingOutput = null;
+        GatedStream? pendingOutput = null;
         var processId = 0;
         var seams = ObserveEnding(ObserveSpawn(LauncherSeams.ForCurrentProcess(), (pid, stdin) =>
         {
             processId = pid;
             input = stdin;
         }, stdout => RecordedOutput(stdout, diagnostic,
-            original => originalOutput = original, closing => closingOutput = closing))) with
+            original => originalOutput = original, closing => closingOutput = closing, pending => pendingOutput = pending))) with
         {
             Time = time,
             ReadinessWait = HoldCanceledWait(entered, canceled, arbitrate, cancellationToken),
@@ -225,13 +226,22 @@ public sealed class OpenCodeServerReadinessTests
         finally
         {
             _ = arbitrate.TrySetResult();
-            await caller.CancelOnWorkerAsync();
-            await ReleaseStartAsync(starting, originalOutput, processId);
+            closingOutput?.Release();
+            pendingOutput?.Release();
+            try
+            {
+                await caller.CancelOnWorkerAsync();
+            }
+            finally
+            {
+                await ReleaseStartAsync(starting, originalOutput, processId);
+            }
         }
     }
 
     private static Stream? RecordedOutput(
-        Stream? stdout, string? diagnostic, Action<Stream?> retainOriginal, Action<GatedStream> captureClosing)
+        Stream? stdout, string? diagnostic, Action<Stream?> retainOriginal, Action<GatedStream> captureClosing,
+        Action<GatedStream> capturePending)
     {
         if (diagnostic is null)
         {
@@ -248,7 +258,9 @@ public sealed class OpenCodeServerReadinessTests
         }
 
         // Keep stdout pending so only the root exit can complete the owner's wait.
-        return new BlockingStream([]);
+        var pending = new GatedStream([0xef, 0xbb, 0xbf], 1);
+        capturePending(pending);
+        return pending;
     }
 
     private static async Task PublishRecordedOutcomeAsync(
@@ -265,7 +277,7 @@ public sealed class OpenCodeServerReadinessTests
         Task<OpenCodeServer> starting, CancellationTokenSource caller, int processId, CancellationToken cancellationToken)
     {
         Task[] startingTasks = [starting];
-        var exception = await Assert.That(async () => await Task.WhenAll(startingTasks).WaitAsync(Support.HangGuard.Bound, cancellationToken))
+        var exception = await Assert.That(async () => await Task.WhenAll(startingTasks).WaitAsync(CleanupObservationBound, cancellationToken))
             .Throws<OperationCanceledException>();
         await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
         await Assert.That(ProcessObservation.IsRunning(processId)).IsFalse();
@@ -343,7 +355,7 @@ public sealed class OpenCodeServerReadinessTests
         Task<OpenCodeServer>[] startingTasks = [starting];
         if (diagnostic is not null)
         {
-            var exception = await Assert.That(async () => await Task.WhenAll(startingTasks).WaitAsync(Support.HangGuard.Bound, cancellationToken))
+            var exception = await Assert.That(async () => await Task.WhenAll(startingTasks).WaitAsync(CleanupObservationBound, cancellationToken))
                 .Throws<OpenCodeServerException>();
             await Assert.That(exception!.Message).IsEqualTo("The server " + diagnostic + " before reporting readiness.");
             await Assert.That(ProcessObservation.IsRunning(processId)).IsFalse();
@@ -359,23 +371,48 @@ public sealed class OpenCodeServerReadinessTests
 
     private static async Task ReleaseStartAsync(Task<OpenCodeServer> starting, Stream? originalOutput, int processId)
     {
-        // Join and observe a failed start even when an earlier assertion failed; cleanup must outlive caller cancellation.
-        await starting.ContinueWith(static completed => _ = completed.Exception, CancellationToken.None,
-            TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default).WaitAsync(Support.HangGuard.Bound);
-        if (starting.Status == TaskStatus.RanToCompletion)
+        try
         {
-            Task<OpenCodeServer>[] startingTasks = [starting];
-            await Task.WhenAll(startingTasks).WaitAsync(Support.HangGuard.Bound);
-            var server = await startingTasks[0];
-            await server.DisposeAsync().AsTask().WaitAsync(Support.HangGuard.Bound);
+            // Observe a failed start even when an earlier assertion failed; cleanup outlives caller cancellation.
+            await starting.ContinueWith(static completed => _ = completed.Exception, CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default).WaitAsync(CleanupObservationBound);
         }
-
-        if (originalOutput is not null)
+        finally
         {
-            await originalOutput.DisposeAsync().AsTask().WaitAsync(Support.HangGuard.Bound);
+            try
+            {
+                if (starting.Status == TaskStatus.RanToCompletion)
+                {
+                    Task<OpenCodeServer>[] startingTasks = [starting];
+                    await Task.WhenAll(startingTasks).WaitAsync(CleanupObservationBound);
+                    var server = await startingTasks[0];
+                    await server.DisposeAsync().AsTask().WaitAsync(CleanupObservationBound);
+                }
+            }
+            finally
+            {
+                try
+                {
+                    if (originalOutput is not null)
+                    {
+                        await originalOutput.DisposeAsync().AsTask().WaitAsync(Support.HangGuard.Bound);
+                    }
+                }
+                finally
+                {
+                    try
+                    {
+                        ProcessObservation.KillIfRunning(processId);
+                    }
+                    finally
+                    {
+                        // Closing retained pipes and ending the root also settle cleanup after a failed join.
+                        await starting.ContinueWith(static completed => _ = completed.Exception, CancellationToken.None,
+                            TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default).WaitAsync(CleanupObservationBound);
+                    }
+                }
+            }
         }
-
-        ProcessObservation.KillIfRunning(processId);
     }
 
     private static OpenCodeServerOptions RecordedOptions(string publish) => new()
