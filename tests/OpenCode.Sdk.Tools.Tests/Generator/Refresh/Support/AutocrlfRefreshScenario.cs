@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tools.Generator.Refresh;
 using OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
 using OpenCode.Sdk.Tools.Generator.Refresh.Models;
@@ -103,5 +104,5 @@ internal sealed class AutocrlfRefreshScenario : IProcessRunner, IDisposable
         return result;
     }
 
-    public void Dispose() => _fileSystem.Directory.Delete(_root, recursive: true);
+    public void Dispose() => _ = BestEffortDelete.TryDeleteTree(_fileSystem, _root);
 }

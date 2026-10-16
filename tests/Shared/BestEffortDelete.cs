@@ -4,7 +4,7 @@ namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// Deletes a temporary directory tree without letting the deletion itself end a test run.
-/// <see cref="TestRunRoot"/> and <see cref="TestWorkspace"/> both dispose directories a launched
+/// <c>TestRunRoot</c> and <c>TestWorkspace</c> both dispose directories a launched
 /// server was writing into moments earlier, so losing the race against a straggling child handle
 /// is expected rather than exceptional. Only that contention is absorbed: the failure is reported
 /// as a false result, and anything else the file system raises is a real defect and propagates.
