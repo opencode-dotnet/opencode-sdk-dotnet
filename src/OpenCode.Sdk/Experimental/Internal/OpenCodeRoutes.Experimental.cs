@@ -9,7 +9,6 @@ internal static partial class OpenCodeRoutes
     /// <summary>
     /// Defines the &apos;Experimental&apos; routes.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
     internal static class Experimental
     {
         /// <summary>

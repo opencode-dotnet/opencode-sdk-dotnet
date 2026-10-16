@@ -7,7 +7,6 @@ internal static partial class OpenCodeRoutes
     /// <summary>
     /// Defines the &apos;PersistentPtys&apos; routes.
     /// </summary>
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
     internal static class PersistentPtys
     {
         /// <summary>

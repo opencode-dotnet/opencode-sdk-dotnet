@@ -47,7 +47,7 @@ public sealed class StreamOperationEmissionTests
         var causeConverterSource = EmitterSnapshot.Create(
             [sources.Single(static source => source.RelativePath == "Example/Internal/StreamFailureCauseJsonConverter.cs")]);
         var routeSource = EmitterSnapshot.Create(
-            [sources.Single(static source => source.RelativePath == "Example/OpenCodeRoutes.Example.cs")]);
+            [sources.Single(static source => source.RelativePath == "Example/Internal/OpenCodeRoutes.Example.cs")]);
         await Assert
             .That(clientSource)
             .Contains(
@@ -72,7 +72,7 @@ public sealed class StreamOperationEmissionTests
         await Assert.That(causeConverterSource).DoesNotContain("typeof(StreamFailureCauseFail)");
         await Assert.That(adapterSource).Contains("private static readonly string[] Status400Tags = [\"ExampleBadRequestError\"];");
         await Assert.That(adapterSource).Contains("private static readonly string[] Status401Tags = [\"ExampleUnauthorizedError\"];");
-        await Assert.That(routeSource).Contains("using OpenCode.Sdk.Internal;");
+        await Assert.That(routeSource).Contains("namespace OpenCode.Sdk.Internal;");
         await Assert.That(routeSource).Contains("RouteValuePolicy.Escape(exampleId, nameof(exampleId))");
         await Assert
             .That(adapterSource)

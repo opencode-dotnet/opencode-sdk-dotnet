@@ -20,9 +20,6 @@ public sealed class GeneratedModelNestingTests
     /// <summary>The section that turns CA1034 off for the generated models.</summary>
     private const string ModelsSection = "[src/OpenCode.Sdk/**/Models/**.cs]";
 
-    /// <summary>The older section that turns CA1034 off for the generated route containers.</summary>
-    private const string RoutesSection = "[src/OpenCode.Sdk/*/OpenCodeRoutes.*.cs]";
-
     /// <summary>A wider glob, or a second SDK section, fails here until someone decides it.</summary>
     [Test]
     public async Task The_CA1034_Arbitration_Should_Cover_The_Generated_Models_And_Nothing_Wider()
@@ -46,7 +43,7 @@ public sealed class GeneratedModelNestingTests
         }
 
         await Assert.That(sections.Where(static section => section.StartsWith("[src/OpenCode.Sdk", StringComparison.Ordinal)))
-            .IsEquivalentTo([RoutesSection, ModelsSection]);
+            .IsEquivalentTo([ModelsSection]);
     }
 
     [Test]

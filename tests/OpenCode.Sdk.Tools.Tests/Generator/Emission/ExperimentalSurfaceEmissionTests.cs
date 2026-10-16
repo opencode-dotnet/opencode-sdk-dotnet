@@ -97,30 +97,6 @@ public sealed class ExperimentalSurfaceEmissionTests
     }
 
     [Test]
-    public async Task Emit_Should_Mark_An_All_Experimental_Routes_Container_Instead_Of_Its_Members()
-    {
-        var routes = Type<ClassDeclarationSyntax>(SourceEmitter.Emit(await PlanAsync()), "Probes");
-
-        await Assert.That(Diagnostic(routes)).IsEqualTo("OPENCODE001");
-        await Assert.That(routes.Members.All(static member => Diagnostic(member) is null)).IsTrue();
-    }
-
-    [Test]
-    public async Task Emit_Should_Mark_The_Experimental_Route_Template_And_Builder_In_A_Mixed_Container()
-    {
-        var plan = await PlanAsync(stable: true);
-        var routes = Type<ClassDeclarationSyntax>(SourceEmitter.Emit(plan), "Probes");
-        var operation = plan.Clients.SelectMany(static value => value.Operations).Single(static operation => operation.OperationId == "probe.get");
-
-        await Assert.That(Diagnostic(routes)).IsNull();
-        await Assert.That(Diagnostic(routes.Members.OfType<MethodDeclarationSyntax>().Single(method => method.Identifier.ValueText == operation.RouteMemberName)))
-            .IsEqualTo("OPENCODE001");
-        await Assert.That(Diagnostic(routes.Members.OfType<FieldDeclarationSyntax>().Single(field => field.Declaration.Variables.Single().Identifier.ValueText == operation.RouteMemberName + "Template")))
-            .IsEqualTo("OPENCODE001");
-        await Assert.That(routes.Members.Count(static member => Diagnostic(member) is not null)).IsEqualTo(2);
-    }
-
-    [Test]
     public async Task Emit_Should_Mark_Per_Operation_Records_And_An_Experimental_Only_Model()
     {
         var plan = await PlanAsync();
@@ -181,8 +157,8 @@ public sealed class ExperimentalSurfaceEmissionTests
         var root = Type<ClassDeclarationSyntax>(sources, "OpenCodeClient");
 
         await Assert.That(Diagnostic(Type<ClassDeclarationSyntax>(sources, "ProbesRawClient"))).IsNull();
-        // The routes, records and models stay public under an internal-raw family, so they carry the id.
-        await Assert.That(Diagnostic(Type<ClassDeclarationSyntax>(sources, "Probes"))).IsEqualTo("OPENCODE001");
+        // The records and models stay public under an internal-raw family, so they carry the id.
+        await Assert.That(Diagnostic(Type<ClassDeclarationSyntax>(sources, "Probes"))).IsNull();
         await Assert.That(Diagnostic(Type<RecordDeclarationSyntax>(sources, operation.Envelope!.ResponseTypeName))).IsEqualTo("OPENCODE001");
         await Assert.That(Diagnostic(Type<RecordDeclarationSyntax>(sources, operation.QueryRequest!.TypeName))).IsEqualTo("OPENCODE001");
         await Assert.That(Diagnostic(root.Members.OfType<PropertyDeclarationSyntax>().Single(static property => property.Identifier.ValueText == "Probes")))

@@ -526,7 +526,6 @@ internal static partial class OpenCodeRoutes
         /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>
         /// <param name = "request">The request shaping the query.</param>
         /// <returns>The escaped route.</returns>
-        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
         public static string ReadLog(string sessionId, SessionLogRequest? request = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
