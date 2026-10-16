@@ -31,7 +31,8 @@ Upstream submodules under `external/` are read-only evidence. Never hand-edit th
 ## Verification and generated output
 
 Verification requirements live in `quality-gates.md`, including the local check a change needs before
-its pull request and the full gate CI runs on it. Run them before claiming completion and state honestly what was not run. Generated SDK output changes through the generator and is reviewed as a
+its pull request and the full gate CI runs on it. Run the local check, confirm the CI result before
+claiming completion, and state honestly what was not run. Generated SDK output changes through the generator and is reviewed as a
 complete diff; it is never hand-edited.
 
 ## Findings

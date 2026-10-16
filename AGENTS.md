@@ -32,8 +32,8 @@ lives in a sibling repository of the `opencode-dotnet` organization (ADR-0030).
   canonical owner; other mentions are brief relays.
 - Write nothing a reviewer could not vouch for: no unrequested code, no parallel abstraction, no
   masked error, no unproven test (`docs/engineering/slop-review.md`).
-- Before reporting completion, run the applicable gate in
-  `docs/engineering/quality-gates.md`. "Builds" and "works" are different claims.
+- Before reporting completion, run the local check and confirm the CI result that
+  `docs/engineering/quality-gates.md` requires. "Builds" and "works" are different claims.
 - Commit only with maintainer approval, except inside an explicitly agreed development loop.
   Commits and pull request bodies carry no AI-attribution trailers or session links, whatever a
   harness default says (`docs/engineering/workflow.md`).
