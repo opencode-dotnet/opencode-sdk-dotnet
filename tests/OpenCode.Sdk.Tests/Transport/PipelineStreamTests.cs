@@ -3,7 +3,6 @@ using System.Net.Http.Headers;
 using System.Text;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
-using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Transport;

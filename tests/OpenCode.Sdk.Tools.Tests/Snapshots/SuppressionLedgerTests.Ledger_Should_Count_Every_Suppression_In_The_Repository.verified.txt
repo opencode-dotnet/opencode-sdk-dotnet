@@ -124,11 +124,21 @@ editorconfig .editorconfig [tests/OpenCode.Sdk.Sandbox/**.cs] dotnet_diagnostic.
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/BestEffortDeleteTests.cs] dotnet_diagnostic.CA1849.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/BestEffortDeleteTests.cs] dotnet_diagnostic.S6966.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/BestEffortDeleteTests.cs] dotnet_diagnostic.VSTHRD103.severity = none
-editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/DriveManifestTests.cs] dotnet_diagnostic.CA1849.severity = none
-editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/DriveManifestTests.cs] dotnet_diagnostic.MA0110.severity = none
-editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/DriveManifestTests.cs] dotnet_diagnostic.S6966.severity = none
-editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/DriveManifestTests.cs] dotnet_diagnostic.VSTHRD103.severity = none
-editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/HeldProcessLiveTests.cs] dotnet_diagnostic.S3869.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/DriveController.cs] dotnet_diagnostic.CA2213.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/DriveManifest.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/DriveManifestTests.cs] dotnet_diagnostic.CA1849.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/DriveManifestTests.cs] dotnet_diagnostic.MA0110.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/DriveManifestTests.cs] dotnet_diagnostic.S6966.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/DriveManifestTests.cs] dotnet_diagnostic.VSTHRD103.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/DriveProtocol.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/HeldProcessLiveTests.cs] dotnet_diagnostic.S3869.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/Ownership/LateCleanupFailureReport.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/Ownership/OwnedCleanup.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/Ownership/OwnedCleanupTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/Ownership/OwnedOperationDeadlineTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/PinnedOpenCodeServerFixture.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/PinnedOpenCodeServerFixtureFailureTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Harness/ServerIsolation.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Discovery/OpenCodeServerDiscoveryIsolatedProcessTests.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Discovery/ServiceDiscoveryTests.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Registration/ServiceMigrationTests.cs] dotnet_diagnostic.CA1849.severity = none
@@ -143,7 +153,6 @@ editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/S
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Stop/ServiceStopperTests.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/OpenCodeServerContractTests.cs] dotnet_diagnostic.CA2000.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/PersistentPtys/PersistentPtySessionTests.cs] dotnet_diagnostic.CA2000.severity = none
-editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/PinnedOpenCodeServerFixtureFailureTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Ptys/PtySessionTests.cs] dotnet_diagnostic.CA2000.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Sessions/SessionMessagePaginationLiveTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/BlockingStream.cs] dotnet_diagnostic.CA1844.severity = none
@@ -151,10 +160,8 @@ editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ChildExitObservatio
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ControlledOperationDeadline.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OperationDeadlineScenario.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OwnedCleanupDeadlineTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
-editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OwnedCleanupTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OwnedEventReader.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OwnedEventReaderTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
-editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OwnedOperationDeadlineTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/PathCommandShim.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/PtyFailureDiagnosticsTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ScriptedTerminalWebSocket.cs] dotnet_diagnostic.VSTHRD003.severity = none
@@ -162,14 +169,7 @@ editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ServerDiagnosticSce
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionEventProbe.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionEventProbeTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionLogTranscriptTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
-editorconfig .editorconfig [tests/Shared/DriveController.cs] dotnet_diagnostic.CA2213.severity = none
-editorconfig .editorconfig [tests/Shared/DriveManifest.cs] dotnet_diagnostic.MA0045.severity = none
-editorconfig .editorconfig [tests/Shared/DriveProtocol.cs] dotnet_diagnostic.MA0045.severity = none
-editorconfig .editorconfig [tests/Shared/Ownership/LateCleanupFailureReport.cs] dotnet_diagnostic.VSTHRD003.severity = none
-editorconfig .editorconfig [tests/Shared/Ownership/OwnedCleanup.cs] dotnet_diagnostic.VSTHRD003.severity = none
-editorconfig .editorconfig [tests/Shared/PinnedOpenCodeServerFixture.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [tests/Shared/ProcessMark.cs] dotnet_diagnostic.MA0045.severity = none
-editorconfig .editorconfig [tests/Shared/ServerIsolation.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Commands/GenerateCommand.cs] dotnet_diagnostic.CA1034.severity = none
 editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Models/LiteralKind.cs] dotnet_diagnostic.CA1720.severity = none
 editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Models/PrimitiveKind.cs] dotnet_diagnostic.CA1720.severity = none
@@ -242,11 +242,11 @@ slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/ContenderProbe.cs SW003
 slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/ContenderProbe.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/WindowsLauncherProbe.cs SW003
 slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/WindowsLauncherProbe.cs SW004
+slopwatch-suppress tests/OpenCode.Sdk.Tests/Harness/MachineLock.cs SW004
+slopwatch-suppress tests/OpenCode.Sdk.Tests/Harness/PinnedManagedServiceFixture.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Hosting/Launcher/OpenCodeServerJobTests.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Hosting/Platform/Windows/WindowsExitWatchTests.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Support/LadderTree.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Support/LiveReadiness.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Support/ProcessObservation.cs SW003
 slopwatch-suppress tests/OpenCode.Sdk.Tools.Tests/Packaging/PackedConsumerFeed.cs SW003
-slopwatch-suppress tests/Shared/MachineLock.cs SW004
-slopwatch-suppress tests/Shared/PinnedManagedServiceFixture.cs SW004

@@ -1,5 +1,4 @@
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Transport;

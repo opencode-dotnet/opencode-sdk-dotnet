@@ -1,6 +1,6 @@
 # Coding Style — hand-written code
 
-Date: 2026-10-15
+Date: 2026-10-16
 
 Binding authoring style for every hand-written line in this repository — product code,
 `tools/`, and tests. Generated output is governed by the generator's emitters (ADR-0003);
@@ -144,6 +144,10 @@ for a pile of static steps.
   `OpenCode.Sdk.Internal`, with no sub-namespaces. A fail-closed namespace-policy test
   enforces both directions for the SDK project, where IDE0130 is off, so moving a file
   never changes a namespace (ADR-0033).
+- The SDK project's root `Internal/` contains area folders only; machinery used by one slice
+  lives in that slice's `Internal/` folder.
+- `Hosting/Internal/Platform/` is the hosting OS layer: files are placed with their OS siblings
+  by OS cohesion, not by consumer count, including the OS helpers used only by the launcher.
 - **A test project mirrors the layout of the project under test**: the folder path of a
   SUT predicts the folder path of its tests (`testing-style.md` owns the rule).
 - File = type (MA0048) is mechanical everywhere; folder = namespace (IDE0130) is

@@ -40,7 +40,14 @@
 
   <!-- Cross-project test support compiles into each consuming test project as shared source. -->
   <ItemGroup>
-    <Compile Include="../Shared/**/*.cs" LinkBase="Shared" />
+    <Compile Include="../Shared/BestEffortDelete.cs" LinkBase="Shared" />
+    <Compile Include="../Shared/ContenderLedger.cs" LinkBase="Shared" />
+    <Compile Include="../Shared/FixtureLoader.cs" LinkBase="Shared" />
+    <Compile Include="../Shared/LauncherHandleCensus.cs" LinkBase="Shared" />
+    <Compile Include="../Shared/LauncherHandles.cs" LinkBase="Shared" />
+    <Compile Include="../Shared/ProcessMark.cs" LinkBase="Shared" />
+    <Compile Include="../Shared/ShippedAssetSurface.cs" LinkBase="Shared" />
+    <Compile Include="../Shared/TestCategories.cs" LinkBase="Shared" />
   </ItemGroup>
 
   <!-- .NET Framework ships HttpClient in this framework assembly; no NuGet HTTP stack is added. -->

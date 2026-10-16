@@ -6,7 +6,8 @@
 # only lane that would notice upstream removing an operation from a published build on its own.
 #
 # There is no server management here, by design. `OPENCODE_SDK_TESTS_SERVER_COMMAND` points the
-# exact-pin fixture (tests/Shared/PinnedOpenCodeServerFixture.cs) at the installed command, and the
+# exact-pin fixture (tests/OpenCode.Sdk.Tests/Harness/PinnedOpenCodeServerFixture.cs) at the
+# installed command, and the
 # fixture keeps doing what it always does: isolated XDG roots, the repository-owned RPC plugin
 # seeded through OPENCODE_CONFIG_CONTENT, a generated password, readiness and teardown through the
 # SDK's own launcher, logs retained on request. A workflow that re-implemented any of that would be
@@ -214,7 +215,8 @@ jobs:
           XDG_STATE_HOME: ${{ runner.temp }}/consumer-leg-standalone/state
           XDG_CACHE_HOME: ${{ runner.temp }}/consumer-leg-standalone/cache
           # The models catalog fetch is the one outbound call the server makes unprompted, and the
-          # suite's posture is to keep it off (ADR-0022; tests/Shared/ServerIsolation.cs sets the
+          # suite's posture is to keep it off (ADR-0022;
+          # tests/OpenCode.Sdk.Tests/Harness/ServerIsolation.cs sets the
           # same variable for the owned server).
           OPENCODE_DISABLE_MODELS_FETCH: "1"
         run: |
