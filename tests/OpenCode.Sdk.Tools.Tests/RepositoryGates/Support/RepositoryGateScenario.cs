@@ -31,7 +31,7 @@ internal sealed class RepositoryGateScenario
 
     public RepositoryGateScenario WithGitFiles(params string[] paths)
     {
-        Runner.Expect("git", "ls-files -z --cached --others --exclude-standard", ScriptedProcessRunner.Ok(string.Join('\0', paths) + "\0"));
+        Runner.Expect("git", "ls-files -z --cached", ScriptedProcessRunner.Ok(string.Join('\0', paths) + "\0"));
         return this;
     }
 

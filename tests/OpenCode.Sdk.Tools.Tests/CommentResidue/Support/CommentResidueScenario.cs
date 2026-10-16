@@ -16,7 +16,7 @@ internal sealed class CommentResidueScenario
         return this;
     }
 
-    public CommentResidueScenario WithIgnoredFile(string path, params string[] lines)
+    public CommentResidueScenario WithUntrackedFile(string path, params string[] lines)
     {
         _ignored.Add(path);
         return WithFile(path, lines);

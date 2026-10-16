@@ -24,7 +24,7 @@ internal sealed class SuppressionScenario
         return this;
     }
 
-    public SuppressionScenario WithIgnoredFile(string path, params string[] lines)
+    public SuppressionScenario WithUntrackedFile(string path, params string[] lines)
     {
         _ignored.Add(path);
         return WithFile(path, lines);

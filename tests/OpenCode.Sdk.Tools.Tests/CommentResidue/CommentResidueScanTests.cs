@@ -21,7 +21,7 @@ public sealed class CommentResidueScanTests
     {
         var hits = await new CommentResidueScenario()
             .WithFile("src/bin/A.cs", "// Task 5")
-            .WithIgnoredFile("ignored.cs", "// Q157")
+            .WithUntrackedFile("ignored.cs", "// Q157")
             .ScanAsync();
 
         await Assert.That(hits).Contains($"src/bin/A.cs:1: {CommentResidueScan.TaskNumber}: '{TaskFive}'");
@@ -32,7 +32,7 @@ public sealed class CommentResidueScanTests
     public async Task Scan_Should_Ignore_A_Manifest_Outside_The_Supplied_File_Set()
     {
         var hits = await new CommentResidueScenario().WithFile(Source, "// Task 5")
-            .WithIgnoredFile(GeneratedManifest.ManifestPath, "not a manifest").ScanAsync();
+            .WithUntrackedFile(GeneratedManifest.ManifestPath, "not a manifest").ScanAsync();
 
         await Assert.That(hits).Contains($"{Source}:1: {CommentResidueScan.TaskNumber}: '{TaskFive}'");
         await Assert.That(hits).Count().IsEqualTo(1);

@@ -349,9 +349,9 @@ public sealed class SuppressionScanTests
     public async Task Scan_Should_Skip_Build_Output_And_Upstream_Checkouts()
     {
         var lines = await new SuppressionScenario()
-            .WithIgnoredFile("src/bin/A.cs", Pragma)
-            .WithIgnoredFile("tests/P/obj/B.cs", Pragma)
-            .WithIgnoredFile("external/upstream/C.cs", Pragma)
+            .WithUntrackedFile("src/bin/A.cs", Pragma)
+            .WithUntrackedFile("tests/P/obj/B.cs", Pragma)
+            .WithUntrackedFile("external/upstream/C.cs", Pragma)
             .LedgerLinesAsync();
 
         await Assert.That(lines).IsEmpty();
@@ -361,7 +361,7 @@ public sealed class SuppressionScanTests
     public async Task Scan_Should_Read_A_Nonignored_File_In_A_Formerly_Excluded_Folder()
     {
         var inventory = await new SuppressionScenario().WithFile("src/bin/A.cs", Pragma)
-            .WithIgnoredFile("ignored.cs", Pragma).ScanAsync();
+            .WithUntrackedFile("ignored.cs", Pragma).ScanAsync();
 
         await Assert.That(inventory.Suppressions.Select(static suppression => suppression.Origin)).Contains("src/bin/A.cs");
         await Assert.That(inventory.Suppressions).Count().IsEqualTo(1);

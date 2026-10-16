@@ -5,7 +5,8 @@ using OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
 namespace OpenCode.Sdk.Tools.Tests.Support;
 
 /// <summary>
-/// Files git does not ignore, read from the working tree rather than the index contents.
+/// The files git tracks, read from the working tree rather than the index contents. Untracked files are
+/// never read: a test run writes its results into the tree, and another process may hold them open.
 /// </summary>
 internal sealed class RepositoryFileSet(IFileSystem fileSystem)
 {
@@ -15,7 +16,7 @@ internal sealed class RepositoryFileSet(IFileSystem fileSystem)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
 
-        var result = await runner.RunAsync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard"], root, cancellationToken);
+        var result = await runner.RunAsync("git", ["ls-files", "-z", "--cached"], root, cancellationToken);
         if (result.ExitCode != 0)
         {
             throw new InvalidOperationException("git ls-files failed: " + result.StandardError);
