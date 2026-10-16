@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// Whether persistentPty tests should expect the <c>opencode-pty</c> daemon to be reachable.

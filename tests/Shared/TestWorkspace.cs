@@ -1,6 +1,6 @@
 using System.IO.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>An isolated workspace directory under the fixture's per-run root.</summary>
 public sealed class TestWorkspace : IDisposable

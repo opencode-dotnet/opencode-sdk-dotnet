@@ -2,7 +2,7 @@ using System.Globalization;
 using System.IO.Abstractions;
 using System.Security.Cryptography;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// What the pinned server would load from above a location when its project configuration

@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32.SafeHandles;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.TestSupport;
+using OpenCode.Sdk.Tests.Harness;
 using Testably.Abstractions;
 
 namespace OpenCode.Sdk.Tests.Support;

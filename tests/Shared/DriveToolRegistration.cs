@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// One direct (non-codemode, un-namespaced) simulated tool registration for <c>tool.attach</c>

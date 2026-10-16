@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// The exact-pin fixture's explicit-endpoint pair: an

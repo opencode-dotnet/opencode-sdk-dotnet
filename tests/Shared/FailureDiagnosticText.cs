@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
 using System.Text;
-using OpenCode.Sdk.TestSupport.Ownership;
+using OpenCode.Sdk.Tests.Harness.Ownership;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>Bounds each failure summary without serializing arbitrary exception data.</summary>
 internal sealed class FailureDiagnosticText(int maximumCharacters = 16_384)

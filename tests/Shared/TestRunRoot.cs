@@ -1,6 +1,6 @@
 using System.IO.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// An isolated per-run directory, deleted best-effort on dispose. <see cref="TestRunRootLocation"/>

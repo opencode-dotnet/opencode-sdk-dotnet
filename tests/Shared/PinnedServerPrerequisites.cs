@@ -6,7 +6,7 @@ using System.Text.Json;
 using OpenCode.Sdk.Internal;
 using Testably.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// What every source-run server in this assembly needs before its first test: the pinned submodule

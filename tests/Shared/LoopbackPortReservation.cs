@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// Reserves a currently-free loopback port by binding port zero and releasing it. The window

@@ -1,5 +1,5 @@
-using OpenCode.Sdk.TestSupport.Ownership;
-using OpenCode.Sdk.TestSupport.Ownership.Abstractions;
+using OpenCode.Sdk.Tests.Harness.Ownership;
+using OpenCode.Sdk.Tests.Harness.Ownership.Abstractions;
 
 namespace OpenCode.Sdk.Tests.Support;
 

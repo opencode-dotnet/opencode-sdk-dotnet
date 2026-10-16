@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using OpenCode.Sdk.TestSupport;
+using OpenCode.Sdk.Tests.Harness;
 using Testably.Abstractions.Testing;
 
 namespace OpenCode.Sdk.Tests;

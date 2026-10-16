@@ -1,6 +1,6 @@
 using System.IO.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 internal sealed class DiagnosticFileWriter(IFileSystem fileSystem)
 {

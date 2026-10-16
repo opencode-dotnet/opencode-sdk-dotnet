@@ -6,7 +6,7 @@ using Microsoft.Win32.SafeHandles;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// A process held open from while it still runs, so that its end is observed as the operating

@@ -1,5 +1,5 @@
 using System.Globalization;
-using OpenCode.Sdk.TestSupport;
+using OpenCode.Sdk.Tests.Harness;
 using Testably.Abstractions;
 
 namespace OpenCode.Sdk.Tests;

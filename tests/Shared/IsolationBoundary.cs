@@ -1,6 +1,6 @@
 using System.IO.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// One owned server's isolation boundary: the environment every global root the server resolves

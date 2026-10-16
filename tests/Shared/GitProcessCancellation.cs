@@ -1,6 +1,6 @@
-using OpenCode.Sdk.TestSupport.Ownership;
+using OpenCode.Sdk.Tests.Harness.Ownership;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 internal sealed class GitProcessCancellation(TimeSpan timeout)
 {

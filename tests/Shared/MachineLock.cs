@@ -2,7 +2,7 @@ using System.Globalization;
 using System.IO.Abstractions;
 using OpenCode.Sdk.Internal;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// A named lock every test host on the machine contends for. The legs of one run start in the

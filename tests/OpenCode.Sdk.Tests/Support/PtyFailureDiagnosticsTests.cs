@@ -1,6 +1,6 @@
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.TestSupport;
-using OpenCode.Sdk.TestSupport.Ownership;
+using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Harness.Ownership;
 using Testably.Abstractions;
 
 namespace OpenCode.Sdk.Tests.Support;

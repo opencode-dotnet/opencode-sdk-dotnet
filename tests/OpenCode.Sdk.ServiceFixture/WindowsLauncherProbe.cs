@@ -5,7 +5,7 @@ using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.TestSupport;
+using OpenCode.Sdk.Tests.Harness;
 using Testably.Abstractions;
 
 namespace OpenCode.Sdk.ServiceFixture;

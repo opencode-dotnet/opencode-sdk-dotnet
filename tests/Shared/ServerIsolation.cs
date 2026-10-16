@@ -1,6 +1,6 @@
 using System.IO.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// Per-run home/state isolation for a spawned pinned server, in the shape of upstream's own test

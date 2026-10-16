@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// A <c>tool.cancel</c> notification: the backend removed the pending simulated-tool invocation

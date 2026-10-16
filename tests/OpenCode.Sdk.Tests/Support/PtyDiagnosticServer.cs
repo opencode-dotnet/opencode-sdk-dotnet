@@ -1,5 +1,5 @@
 using System.Net;
-using OpenCode.Sdk.TestSupport;
+using OpenCode.Sdk.Tests.Harness;
 
 namespace OpenCode.Sdk.Tests.Support;
 

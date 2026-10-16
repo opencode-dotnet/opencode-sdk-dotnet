@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
 using OpenCode.Sdk.Models;
-using OpenCode.Sdk.TestSupport;
+using OpenCode.Sdk.Tests.Harness;
 
 namespace OpenCode.Sdk.Tests.FileSystem;
 

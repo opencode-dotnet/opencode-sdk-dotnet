@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using System.Globalization;
-using OpenCode.Sdk.TestSupport.Abstractions;
+using OpenCode.Sdk.Tests.Harness.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 internal sealed class GitProcess : IGitProcess
 {

@@ -3,7 +3,7 @@ using System.IO.Abstractions;
 using System.Text;
 using OpenCode.Sdk.Internal;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// Every process the Ensure elections of one test started, learned where the election starts

@@ -1,6 +1,6 @@
 using NSubstitute;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.TestSupport.Ownership;
+using OpenCode.Sdk.Tests.Harness.Ownership;
 
 namespace OpenCode.Sdk.Tests.Support;
 

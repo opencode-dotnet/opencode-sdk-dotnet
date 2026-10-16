@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.ExceptionServices;
-using OpenCode.Sdk.TestSupport.Ownership.Abstractions;
+using OpenCode.Sdk.Tests.Harness.Ownership.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport.Ownership;
+namespace OpenCode.Sdk.Tests.Harness.Ownership;
 
 internal sealed class OwnedCleanup(TimeSpan timeout, IOwnedOperationDeadline deadline)
 {

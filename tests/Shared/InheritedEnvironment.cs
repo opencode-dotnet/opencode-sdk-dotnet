@@ -1,7 +1,7 @@
 using System.Globalization;
 using Testably.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// The test host's own environment, scrubbed once per test session before any fixture starts a

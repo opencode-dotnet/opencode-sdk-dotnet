@@ -1,7 +1,7 @@
 using System.Globalization;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
-using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;
 
 namespace OpenCode.Sdk.Tests.Hosting.Launcher;

@@ -1,6 +1,6 @@
 using System.Globalization;
-using OpenCode.Sdk.TestSupport;
-using OpenCode.Sdk.TestSupport.Ownership;
+using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Harness.Ownership;
 using Testably.Abstractions.Testing;
 using Testably.Abstractions.Testing.Initializer;
 

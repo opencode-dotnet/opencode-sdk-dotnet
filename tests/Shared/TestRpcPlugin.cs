@@ -1,6 +1,6 @@
 using System.IO.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>The repository-owned local plugin used by the pinned server's RPC live tests.</summary>
 internal sealed class TestRpcPlugin

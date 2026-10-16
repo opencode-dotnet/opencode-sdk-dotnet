@@ -1,7 +1,7 @@
 using System.Globalization;
 using OpenCode.Sdk.Models;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
-using OpenCode.Sdk.TestSupport;
 
 namespace OpenCode.Sdk.Tests.Providers;
 

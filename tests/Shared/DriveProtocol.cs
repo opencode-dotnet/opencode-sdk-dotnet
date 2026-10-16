@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// Composes the drive backend's JSON-RPC requests (protocol source of truth:

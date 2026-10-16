@@ -2,8 +2,8 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using OpenCode.Sdk.Models;
-using OpenCode.Sdk.TestSupport;
-using OpenCode.Sdk.TestSupport.Ownership;
+using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Harness.Ownership;
 
 namespace OpenCode.Sdk.Tests.Support;
 

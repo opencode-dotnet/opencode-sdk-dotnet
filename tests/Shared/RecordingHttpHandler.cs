@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>Records every request flowing through the handler, answering from the supplied responder.</summary>
 internal sealed class RecordingHttpHandler : HttpMessageHandler

@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.TestSupport.Abstractions;
+namespace OpenCode.Sdk.Tests.Harness.Abstractions;
 
 internal interface IGitProcess
 {

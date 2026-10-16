@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>The credential variable names a session scrubs, and why they are incomplete when they are.</summary>
 /// <param name="Names">The names to remove, compared without regard to case.</param>

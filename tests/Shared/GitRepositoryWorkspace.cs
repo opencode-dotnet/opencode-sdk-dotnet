@@ -1,7 +1,7 @@
 using System.IO.Abstractions;
-using OpenCode.Sdk.TestSupport.Abstractions;
+using OpenCode.Sdk.Tests.Harness.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 public sealed class GitRepositoryWorkspace : IDisposable
 {

@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 using Testably.Abstractions;
 using TUnit.Core.Interfaces;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// The accepted pin's own background service, started once per test session as

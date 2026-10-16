@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 #endif
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// The whole-tree kill test cleanup uses on every OS, reporting rather than raising whatever the

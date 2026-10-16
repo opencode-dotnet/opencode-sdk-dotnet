@@ -1,7 +1,7 @@
 using System.IO.Abstractions;
 using System.Text.Json;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// Every package name the pinned snapshot declares: the workspace packages under the submodule's

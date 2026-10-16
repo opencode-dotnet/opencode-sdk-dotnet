@@ -1,7 +1,7 @@
 using System.IO.Abstractions;
 using NSubstitute;
-using OpenCode.Sdk.TestSupport;
-using OpenCode.Sdk.TestSupport.Abstractions;
+using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Harness.Abstractions;
 using Testably.Abstractions.Testing;
 
 namespace OpenCode.Sdk.Tests;

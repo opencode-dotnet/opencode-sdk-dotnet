@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// An <c>llm.request</c> notification: the pending provider invocation the controller answers

@@ -1,7 +1,7 @@
 using System.IO.Abstractions;
 using System.Text.Json;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// The variables through which the pinned server takes a provider credential, or the switch that

@@ -4,7 +4,7 @@ using System.IO.Abstractions;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// One mode of the isolated service fixture, started and owned by a test: a real process of this
