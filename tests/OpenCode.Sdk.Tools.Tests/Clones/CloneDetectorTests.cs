@@ -90,7 +90,7 @@ public sealed class CloneDetectorTests
 
         var result = await RunAsync(scenario, "src");
 
-        await Assert.That(result.NewCloneLocations).IsEquivalentTo([new CloneLocation("src/Deep/A0.cs:3-33", "src/Deep/B0.cs:5-35", 212)]);
+        await Assert.That(result.NewCloneLocations).IsEquivalentTo([new CloneLocation("src/NestedFolderPastTheWrapColumn/A0.cs:3-33", "src/NestedFolderPastTheWrapColumn/B0.cs:5-35", 212)]);
     }
 
     [Test]

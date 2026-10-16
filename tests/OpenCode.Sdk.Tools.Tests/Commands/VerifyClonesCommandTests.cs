@@ -49,8 +49,11 @@ public sealed class VerifyClonesCommandTests
         await Assert.That(scenario.Runner.Invocations.Count).IsEqualTo(4);
         await Assert.That(result.Output).Contains("Clone gate failed for 'src'").And.Contains("1 new clones not in the baseline");
         await Assert.That(result.Output).DoesNotContain("Using config from");
-        await Assert.That(result.Output).Contains("new clone (212 tokens): src/Deep/A0.cs:3-33 <-> src/Deep/B0.cs:5-35");
+        await Assert.That(result.Output).Contains("new clone (212 tokens): src/NestedFolderPastTheWrapColumn/A0.cs:3-33 <-> src/NestedFolderPastTheWrapColumn/B0.cs:5-35");
         await Assert.That(result.Output).DoesNotContain("Old.cs");
+        // The test console is 80 columns wide, as a redirected CI log is; both lines are longer and
+        // must still arrive whole.
+        await Assert.That(result.Output).Contains("Clone gate failed for 'src': ERROR: jscpd found 1 new clones not in the baseline (allowed: 0)");
     }
 
     [Test]
@@ -100,7 +103,7 @@ public sealed class VerifyClonesCommandTests
         var result = await RunAsync(scenario, Command, "--report-directory", reports);
 
         await Assert.That(result.ExitCode).IsEqualTo(1);
-        await Assert.That(scenario.FileSystem.Directory.EnumerateFiles(reports).Select(path => scenario.FileSystem.Path.GetFileName(path)!))
+        await Assert.That(scenario.FileSystem.Directory.EnumerateFiles(reports).Select(path => scenario.FileSystem.Path.GetFileName(path)))
             .IsEquivalentTo(["src.json", "tools.json", "tests.json", "generated.json"]);
         await Assert.That(await scenario.FileSystem.File.ReadAllTextAsync(scenario.FileSystem.Path.Combine(reports, "src.json")))
             .Contains("\"isNew\": true");

@@ -141,7 +141,7 @@ internal sealed class CloneScenario
     /// baseline holds it.
     /// </summary>
     internal static string Duplicate(string first, string second, bool isNew) =>
-        $$"""{ "firstFile": { "name": "Deep\\{{first}}", "start": 3, "end": 33 }, "secondFile": { "name": "Deep\\{{second}}", "start": 5, "end": 35 }, "tokens": 212, "lines": 31, "isNew": {{(isNew ? "true" : "false")}} }""";
+        $$"""{ "firstFile": { "name": "NestedFolderPastTheWrapColumn\\{{first}}", "start": 3, "end": 33 }, "secondFile": { "name": "NestedFolderPastTheWrapColumn\\{{second}}", "start": 5, "end": 35 }, "tokens": 212, "lines": 31, "isNew": {{(isNew ? "true" : "false")}} }""";
 
     /// <summary>Writes the report the detector would write, into the output folder named by the scope's config.</summary>
     private async Task WriteReportAsync(string scope, int clones, int newClones)
