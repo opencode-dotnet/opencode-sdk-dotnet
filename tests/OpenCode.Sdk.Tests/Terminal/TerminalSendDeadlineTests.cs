@@ -10,8 +10,7 @@ public sealed class TerminalSendDeadlineTests
     public async Task Map_Should_Preserve_A_Connection_Outcome_Recorded_Before_Expiry()
     {
         using var timer = new CancellationTokenSource();
-        var timers = Substitute.For<ITerminalDeadlineFactory>();
-        _ = timers.Create(Arg.Any<TimeSpan>()).Returns(timer);
+        var timers = CreateTimers(timer);
         TerminalConnectionOutcome? recorded = null;
         using var deadline = new TerminalSendDeadline(
             typeof(PtySession), TerminalSocketBounds.DefaultSendTimeout, timers, () => recorded, CancellationToken.None);
@@ -29,8 +28,7 @@ public sealed class TerminalSendDeadlineTests
     {
         using var timer = new CancellationTokenSource();
         using var caller = new CancellationTokenSource();
-        var timers = Substitute.For<ITerminalDeadlineFactory>();
-        _ = timers.Create(Arg.Any<TimeSpan>()).Returns(timer);
+        var timers = CreateTimers(timer);
         using var deadline = new TerminalSendDeadline(
             typeof(PtySession), TerminalSocketBounds.DefaultSendTimeout, timers, static () => null, caller.Token);
         await timer.CancelOnWorkerAsync();
@@ -48,8 +46,7 @@ public sealed class TerminalSendDeadlineTests
     public async Task Map_Should_Preserve_A_Reset_That_Precedes_Deadline_Interruption()
     {
         using var timer = new CancellationTokenSource();
-        var timers = Substitute.For<ITerminalDeadlineFactory>();
-        _ = timers.Create(Arg.Any<TimeSpan>()).Returns(timer);
+        var timers = CreateTimers(timer);
         using var socket = Substitute.For<ITerminalWebSocket>();
         var send = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         _ = socket.SendAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<WebSocketMessageType>(), Arg.Any<CancellationToken>())
@@ -74,5 +71,12 @@ public sealed class TerminalSendDeadlineTests
 
         await Assert.That(failure).IsTypeOf<OpenCodeTransportException>();
         await Assert.That(failure.InnerException).IsSameReferenceAs(reset);
+    }
+
+    internal static ITerminalDeadlineFactory CreateTimers(CancellationTokenSource timer)
+    {
+        var timers = Substitute.For<ITerminalDeadlineFactory>();
+        _ = timers.Create(Arg.Any<TimeSpan>()).Returns(timer);
+        return timers;
     }
 }

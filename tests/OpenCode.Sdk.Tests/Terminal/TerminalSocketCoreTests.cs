@@ -17,8 +17,7 @@ public sealed class TerminalSocketCoreTests
     public async Task SendAsync_Should_Report_A_Timeout_When_The_Deadline_Abort_Reaches_Receive_First()
     {
         using var timer = new CancellationTokenSource();
-        var timers = Substitute.For<ITerminalDeadlineFactory>();
-        _ = timers.Create(Arg.Any<TimeSpan>()).Returns(timer);
+        var timers = TerminalSendDeadlineTests.CreateTimers(timer);
         using var socket = Substitute.For<ITerminalWebSocket>();
         var receive = new TaskCompletionSource<PtyReceiveResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         var send = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);

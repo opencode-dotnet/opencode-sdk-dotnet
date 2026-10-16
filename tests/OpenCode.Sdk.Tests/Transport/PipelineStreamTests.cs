@@ -17,8 +17,6 @@ public sealed class PipelineStreamTests
     private const string FirstFrame = "data: " + FirstPayload + "\n\n";
     private const string FirstAndSecondFrames = FirstFrame + "data: " + SecondPayload + "\n\n";
 
-    private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
-
     [Test]
     [Arguments(false)]
     [Arguments(true)]
@@ -32,48 +30,26 @@ public sealed class PipelineStreamTests
         var stream = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), caller.Token);
         await using var enumerator = stream.GetAsyncEnumerator();
 
-        async Task<Exception?> ReadAsync()
-        {
-            try
-            {
-                _ = await enumerator.MoveNextAsync();
-                return null;
-            }
-            catch (Exception exception)
-            {
-                return exception;
-            }
-        }
-
-        var reading = ReadAsync();
+        var reading = CaptureFailureAsync(() => enumerator.MoveNextAsync().AsTask());
         Exception? failure;
         try
         {
-            await body.WaitForReadAsync(HangGuard);
+            await body.WaitForReadAsync(HangGuard.Bound);
             if (cancelCaller)
             {
                 await caller.CancelOnWorkerAsync();
             }
 
             pipeline.Dispose();
-            failure = await reading.WaitAsync(HangGuard);
+            failure = await reading.WaitAsync(HangGuard.Bound);
         }
         finally
         {
             await caller.CancelOnWorkerAsync();
-            _ = await reading.WaitAsync(HangGuard);
+            _ = await reading.WaitAsync(HangGuard.Bound);
         }
 
-        if (cancelCaller)
-        {
-            await Assert.That(failure).IsAssignableTo<OperationCanceledException>();
-            await Assert.That(((OperationCanceledException)failure!).CancellationToken == caller.Token).IsTrue();
-        }
-        else
-        {
-            await Assert.That(failure).IsTypeOf<ObjectDisposedException>();
-            await Assert.That(((ObjectDisposedException)failure!).ObjectName).IsEqualTo(typeof(OpenCodeClient).FullName);
-        }
+        await AssertInterruptionAsync(failure, cancelCaller, caller.Token);
     }
 
     [Test]
@@ -99,7 +75,7 @@ public sealed class PipelineStreamTests
         var enumerationToken = tokenEntry is "method" ? CancellationToken.None : caller.Token;
         var frames = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), methodToken);
         await using var enumerator = frames.GetAsyncEnumerator(enumerationToken);
-        await Assert.That(await enumerator.MoveNextAsync().AsTask().WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(await enumerator.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(enumerator.Current.Value).IsEqualTo("first");
 
         if (disposeClient)
@@ -122,7 +98,7 @@ public sealed class PipelineStreamTests
         else
         {
             var exception = await Assert.That(async () => _ = await enumerator.MoveNextAsync()).Throws<OperationCanceledException>();
-            await Assert.That(exception!.CancellationToken == caller.Token).IsTrue();
+            await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
         }
 
         await Assert.That(handler.Requests.Count).IsEqualTo(1);
@@ -142,24 +118,11 @@ public sealed class PipelineStreamTests
         var frames = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), caller.Token);
         await using var enumerator = frames.GetAsyncEnumerator();
 
-        async Task<Exception?> OpenAsync()
-        {
-            try
-            {
-                _ = await enumerator.MoveNextAsync();
-                return null;
-            }
-            catch (Exception exception)
-            {
-                return exception;
-            }
-        }
-
-        var opening = OpenAsync();
+        var opening = CaptureFailureAsync(() => enumerator.MoveNextAsync().AsTask());
         Exception? failure;
         try
         {
-            await content.ReadStarted.WaitAsync(HangGuard);
+            await content.ReadStarted.WaitAsync(HangGuard.Bound);
             if (disposeClient)
             {
                 pipeline.Dispose();
@@ -169,25 +132,43 @@ public sealed class PipelineStreamTests
                 await caller.CancelOnWorkerAsync();
             }
 
-            failure = await opening.WaitAsync(HangGuard);
+            failure = await opening.WaitAsync(HangGuard.Bound);
         }
         finally
         {
             content.Dispose();
-            _ = await opening.WaitAsync(HangGuard);
+            _ = await opening.WaitAsync(HangGuard.Bound);
         }
 
-        await content.ReadCompleted.WaitAsync(HangGuard);
+        await content.ReadCompleted.WaitAsync(HangGuard.Bound);
         await Assert.That(content.IsDisposed).IsTrue();
-        if (disposeClient)
+        await AssertInterruptionAsync(failure, !disposeClient, caller.Token);
+    }
+
+    internal static async Task<Exception?> CaptureFailureAsync(Func<Task> operation)
+    {
+        try
         {
-            await Assert.That(failure).IsTypeOf<ObjectDisposedException>();
-            await Assert.That(((ObjectDisposedException)failure!).ObjectName).IsEqualTo(typeof(OpenCodeClient).FullName);
+            await operation();
+            return null;
+        }
+        catch (Exception exception)
+        {
+            return exception;
+        }
+    }
+
+    internal static async Task AssertInterruptionAsync(Exception? failure, bool cancelCaller, CancellationToken callerToken)
+    {
+        if (cancelCaller)
+        {
+            await Assert.That(failure).IsAssignableTo<OperationCanceledException>();
+            await Assert.That(((OperationCanceledException)failure!).CancellationToken).IsEqualTo(callerToken);
         }
         else
         {
-            await Assert.That(failure).IsAssignableTo<OperationCanceledException>();
-            await Assert.That(((OperationCanceledException)failure!).CancellationToken == caller.Token).IsTrue();
+            await Assert.That(failure).IsTypeOf<ObjectDisposedException>();
+            await Assert.That(((ObjectDisposedException)failure!).ObjectName).IsEqualTo(typeof(OpenCodeClient).FullName);
         }
     }
 

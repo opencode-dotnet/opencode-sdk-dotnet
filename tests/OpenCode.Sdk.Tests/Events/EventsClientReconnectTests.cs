@@ -529,47 +529,6 @@ public sealed class EventsClientReconnectTests
         await Assert.That(server.RequestCount).IsEqualTo(1);
     }
 
-    [Test]
-    [Arguments(false)]
-    [Arguments(true)]
-    public async Task SubscribeAsync_Should_Release_The_Response_While_The_Consumer_Holds_An_Event(bool disposeClient)
-    {
-        using var body = new LiveEventBody(ConnectedFrame);
-        using var server = new ScriptedEventServer(_ => ScriptedEventServer.Stream(body));
-        using var caller = new CancellationTokenSource();
-        await using var events = server.Events.SubscribeAsync(caller.Token).GetAsyncEnumerator();
-        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
-        server.Time.Advance(TimeSpan.FromMinutes(10));
-        await Assert.That(body.IsDisposed).IsFalse();
-
-        if (disposeClient)
-        {
-            server.DisposeClient();
-        }
-        else
-        {
-            await caller.CancelOnWorkerAsync();
-        }
-
-        // Assert release while still suspended at the yield, before requesting another event.
-        await Assert.That(server.AllResponsesReleased).IsTrue();
-        await Assert.That(body.IsDisposed).IsTrue();
-        if (disposeClient)
-        {
-            var exception = await Assert.That(async () => _ = await events.MoveNextAsync()).Throws<ObjectDisposedException>();
-            await Assert.That(exception!.ObjectName).IsEqualTo(typeof(OpenCodeClient).FullName);
-        }
-        else
-        {
-            var exception = await PendingCancellationAsync(events).WaitAsync(HangGuard);
-            await Assert.That(exception).IsNotNull();
-            await Assert.That(exception!.CancellationToken == caller.Token).IsTrue();
-        }
-
-        server.Time.Advance(TimeSpan.FromMinutes(2));
-        await Assert.That(server.RequestCount).IsEqualTo(1);
-    }
-
     /// <summary>A disposed client ends the stream at once, whatever it is doing, and nothing opens again.</summary>
     [Test]
     [Arguments("awaiting-headers")]
@@ -615,6 +574,47 @@ public sealed class EventsClientReconnectTests
         server.Time.Advance(TimeSpan.FromMinutes(2));
         await Assert.That(server.RequestCount).IsEqualTo(1);
         await Assert.That(server.AllResponsesReleased).IsTrue();
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task SubscribeAsync_Should_Release_The_Response_While_The_Consumer_Holds_An_Event(bool disposeClient)
+    {
+        using var body = new LiveEventBody(ConnectedFrame);
+        using var server = new ScriptedEventServer(_ => ScriptedEventServer.Stream(body));
+        using var caller = new CancellationTokenSource();
+        await using var events = server.Events.SubscribeAsync(caller.Token).GetAsyncEnumerator();
+        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
+        server.Time.Advance(TimeSpan.FromMinutes(10));
+        await Assert.That(body.IsDisposed).IsFalse();
+
+        if (disposeClient)
+        {
+            server.DisposeClient();
+        }
+        else
+        {
+            await caller.CancelOnWorkerAsync();
+        }
+
+        // Assert release while still suspended at the yield, before requesting another event.
+        await Assert.That(server.AllResponsesReleased).IsTrue();
+        await Assert.That(body.IsDisposed).IsTrue();
+        if (disposeClient)
+        {
+            var exception = await Assert.That(async () => _ = await events.MoveNextAsync()).Throws<ObjectDisposedException>();
+            await Assert.That(exception!.ObjectName).IsEqualTo(typeof(OpenCodeClient).FullName);
+        }
+        else
+        {
+            var exception = await PendingCancellationAsync(events).WaitAsync(HangGuard.Bound);
+            await Assert.That(exception).IsNotNull();
+            await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
+        }
+
+        server.Time.Advance(TimeSpan.FromMinutes(2));
+        await Assert.That(server.RequestCount).IsEqualTo(1);
     }
 
     /// <summary>

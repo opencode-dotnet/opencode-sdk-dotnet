@@ -285,7 +285,7 @@ public sealed class FailureClassificationTests
 
             await Assert.That(mapped).IsTypeOf<OperationCanceledException>();
             var canceled = (OperationCanceledException)mapped;
-            await Assert.That(canceled.CancellationToken == caller.Token).IsTrue();
+            await Assert.That(canceled.CancellationToken).IsEqualTo(caller.Token);
             await Assert.That(canceled.InnerException).IsSameReferenceAs(original);
             await Assert.That(canceled.Message).IsEqualTo(message);
         }

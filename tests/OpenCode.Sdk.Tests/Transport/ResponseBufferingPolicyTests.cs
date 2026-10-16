@@ -9,60 +9,21 @@ public sealed class ResponseBufferingPolicyTests
 {
     private const string OperationId = "test.operation";
 
-    private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
-
     [Test]
     [Arguments(false)]
     [Arguments(true)]
-    public async Task ProcessAsync_Should_Preserve_The_Caller_Token_During_A_Buffered_Read(bool disposalInduced)
-    {
-        var pool = new TrackingByteArrayPool();
-        using var caller = new CancellationTokenSource();
-        using var body = new GatedStream([0x41], chunkCount: 1);
-        using var interrupted = new InterruptedBufferingContent();
-        using HttpContent content = disposalInduced ? interrupted : new StreamContent(body);
-        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient, bufferPool: pool);
-
-        var execution = pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info",
-            new RecordingResponseAdapter(), options: null, caller.Token);
-        OperationCanceledException? canceled = null;
-        try
-        {
-            await (disposalInduced ? interrupted.ReadStarted.WaitAsync(HangGuard) : body.WaitForReadAsync(HangGuard));
-        }
-        finally
-        {
-            await caller.CancelOnWorkerAsync();
-            try
-            {
-                _ = await execution;
-            }
-            catch (OperationCanceledException exception)
-            {
-                canceled = exception;
-            }
-        }
-
-        await Assert.That(canceled).IsNotNull();
-        await Assert.That(canceled!.CancellationToken == caller.Token).IsTrue();
-        await Assert.That(canceled.InnerException).IsNotNull();
-        if (disposalInduced)
-        {
-            await interrupted.ReadCompleted.WaitAsync(HangGuard);
-            await Assert.That(interrupted.IsDisposed).IsTrue();
-        }
-
-        await Assert.That(pool.OutstandingCount).IsEqualTo(0);
-    }
+    public Task ProcessAsync_Should_Preserve_The_Caller_Token_During_A_Buffered_Read(bool disposalInduced) =>
+        AssertBufferedInterruptionAsync(disposalInduced, disposeClient: false, cancelCaller: true);
 
     [Test]
     [Arguments(false, false)]
     [Arguments(true, false)]
     [Arguments(false, true)]
     [Arguments(true, true)]
-    public async Task ExecuteAsync_Should_Report_Client_Disposal_During_A_Buffered_Read(bool disposalInduced, bool cancelCaller)
+    public Task ExecuteAsync_Should_Report_Client_Disposal_During_A_Buffered_Read(bool disposalInduced, bool cancelCaller) =>
+        AssertBufferedInterruptionAsync(disposalInduced, disposeClient: true, cancelCaller);
+
+    private static async Task AssertBufferedInterruptionAsync(bool disposalInduced, bool disposeClient, bool cancelCaller)
     {
         var pool = new TrackingByteArrayPool();
         using var caller = new CancellationTokenSource();
@@ -73,58 +34,68 @@ public sealed class ResponseBufferingPolicyTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient, bufferPool: pool);
 
-        async Task<Exception?> ExecuteAsync()
+        if (!disposeClient)
         {
+            var execution = pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info",
+                new RecordingResponseAdapter(), options: null, caller.Token);
+            OperationCanceledException? canceled = null;
             try
             {
-                _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info",
-                    new RecordingResponseAdapter(), options: null, caller.Token);
-                return null;
+                await WaitForBufferedReadAsync(disposalInduced, interrupted, body);
             }
-            catch (Exception exception)
-            {
-                return exception;
-            }
-        }
-
-        var execution = ExecuteAsync();
-        Exception? failure;
-        try
-        {
-            await (disposalInduced ? interrupted.ReadStarted.WaitAsync(HangGuard) : body.WaitForReadAsync(HangGuard));
-            if (cancelCaller)
+            finally
             {
                 await caller.CancelOnWorkerAsync();
+                try
+                {
+                    _ = await execution;
+                }
+                catch (OperationCanceledException exception)
+                {
+                    canceled = exception;
+                }
             }
 
-            pipeline.Dispose();
-            failure = await execution.WaitAsync(HangGuard);
-        }
-        finally
-        {
-            await caller.CancelOnWorkerAsync();
-            _ = await execution.WaitAsync(HangGuard);
-        }
-
-        if (cancelCaller)
-        {
-            await Assert.That(failure).IsAssignableTo<OperationCanceledException>();
-            await Assert.That(((OperationCanceledException)failure!).CancellationToken == caller.Token).IsTrue();
+            await Assert.That(canceled).IsNotNull();
+            await Assert.That(canceled!.CancellationToken).IsEqualTo(caller.Token);
+            await Assert.That(canceled.InnerException).IsNotNull();
         }
         else
         {
-            await Assert.That(failure).IsTypeOf<ObjectDisposedException>();
-            await Assert.That(((ObjectDisposedException)failure!).ObjectName).IsEqualTo(typeof(OpenCodeClient).FullName);
+            var execution = PipelineStreamTests.CaptureFailureAsync(() => pipeline.ExecuteAsync(
+                OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, caller.Token));
+            Exception? failure;
+            try
+            {
+                await WaitForBufferedReadAsync(disposalInduced, interrupted, body);
+                if (cancelCaller)
+                {
+                    await caller.CancelOnWorkerAsync();
+                }
+
+                pipeline.Dispose();
+                failure = await execution.WaitAsync(HangGuard.Bound);
+            }
+            finally
+            {
+                await caller.CancelOnWorkerAsync();
+                _ = await execution.WaitAsync(HangGuard.Bound);
+            }
+
+            await PipelineStreamTests.AssertInterruptionAsync(failure, cancelCaller, caller.Token);
         }
 
         if (disposalInduced)
         {
-            await interrupted.ReadCompleted.WaitAsync(HangGuard);
+            await interrupted.ReadCompleted.WaitAsync(HangGuard.Bound);
             await Assert.That(interrupted.IsDisposed).IsTrue();
         }
 
         await Assert.That(pool.OutstandingCount).IsEqualTo(0);
     }
+
+    private static Task WaitForBufferedReadAsync(bool disposalInduced, InterruptedBufferingContent interrupted, GatedStream body) =>
+        disposalInduced ? interrupted.ReadStarted.WaitAsync(HangGuard.Bound) : body.WaitForReadAsync(HangGuard.Bound);
 
     [Test]
     public async Task ExecuteAsync_Should_Return_The_Pooled_Body_After_Success()

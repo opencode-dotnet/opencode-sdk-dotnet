@@ -785,7 +785,7 @@ public sealed class PipelineTests
         {
             try
             {
-                await source.WaitForReadAsync(HangGuard);
+                await source.WaitForReadAsync(HangGuard.Bound);
             }
             finally
             {
@@ -810,7 +810,7 @@ public sealed class PipelineTests
         }
 
         await Assert.That(canceled).IsNotNull();
-        await Assert.That(canceled!.CancellationToken == caller.Token).IsTrue();
+        await Assert.That(canceled!.CancellationToken).IsEqualTo(caller.Token);
         await Assert.That(canceled.InnerException).IsNotNull();
         await Assert.That(source.CanRead).IsTrue();
         await Assert.That(handler.Requests).IsEmpty();
@@ -1111,26 +1111,13 @@ public sealed class PipelineTests
             using var httpClient = new HttpClient();
             using var pipeline = CreatePipeline(httpClient, ownsHttpClient, endpoint);
 
-            async Task<Exception?> ExecuteAsync()
-            {
-                try
-                {
-                    _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info",
-                        new RecordingResponseAdapter(), options: null, caller.Token);
-                    return null;
-                }
-                catch (Exception exception)
-                {
-                    return exception;
-                }
-            }
-
-            var execution = ExecuteAsync();
+            var execution = PipelineStreamTests.CaptureFailureAsync(() => pipeline.ExecuteAsync(
+                OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, caller.Token));
             try
             {
-                using var peer = await listener.AcceptTcpClientAsync().WaitAsync(HangGuard);
+                using var peer = await listener.AcceptTcpClientAsync().WaitAsync(HangGuard.Bound);
                 var request = new byte[4096];
-                var read = await peer.GetStream().ReadAsync(request.AsMemory()).AsTask().WaitAsync(HangGuard);
+                var read = await peer.GetStream().ReadAsync(request.AsMemory()).AsTask().WaitAsync(HangGuard.Bound);
                 await Assert.That(read).IsGreaterThan(0);
                 if (cancelCaller)
                 {
@@ -1138,29 +1125,20 @@ public sealed class PipelineTests
                 }
 
                 pipeline.Dispose();
-                var failure = await execution.WaitAsync(HangGuard);
-                if (cancelCaller)
-                {
-                    await Assert.That(failure).IsAssignableTo<OperationCanceledException>();
-                    await Assert.That(((OperationCanceledException)failure!).CancellationToken == caller.Token).IsTrue();
-                }
-                else
-                {
-                    await Assert.That(failure).IsTypeOf<ObjectDisposedException>();
-                    await Assert.That(((ObjectDisposedException)failure!).ObjectName).IsEqualTo(typeof(OpenCodeClient).FullName);
-                }
+                var failure = await execution.WaitAsync(HangGuard.Bound);
+                await PipelineStreamTests.AssertInterruptionAsync(failure, cancelCaller, caller.Token);
 
                 if (!ownsHttpClient)
                 {
                     await using var server = LoopbackHttpServer.Start(static _ => new LoopbackHttpResponse { StatusCode = HttpStatusCode.OK });
-                    using var response = await httpClient.GetAsync(server.Endpoint).WaitAsync(HangGuard);
+                    using var response = await httpClient.GetAsync(server.Endpoint).WaitAsync(HangGuard.Bound);
                     await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
                 }
             }
             finally
             {
                 await caller.CancelOnWorkerAsync();
-                _ = await execution.WaitAsync(HangGuard);
+                _ = await execution.WaitAsync(HangGuard.Bound);
             }
         }
         finally

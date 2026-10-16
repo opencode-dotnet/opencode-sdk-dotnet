@@ -46,8 +46,7 @@ public sealed class CallerStreamContentTests
         using var source = new MemoryStream(new byte[length]);
         source.Position = position;
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Post, "/api/experimental/fs/write?path=a.bin",
-            source, new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await SendUploadAsync(pipeline, source);
 
         var recorded = handler.Requests.Single();
         await Assert.That(recorded.ContentLength).IsEqualTo(0);
@@ -56,6 +55,10 @@ public sealed class CallerStreamContentTests
         await Assert.That(source.Position).IsEqualTo(position);
         await Assert.That(source.CanRead).IsTrue();
     }
+
+    private static Task<TestResponse> SendUploadAsync(Pipeline pipeline, Stream source) =>
+        pipeline.ExecuteAsync(OperationId, HttpMethod.Post, "/api/experimental/fs/write?path=a.bin",
+            source, new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
     [Test]
     public async Task ExecuteAsync_Should_Send_A_Non_Seekable_Stream_Without_A_Declared_Length()
