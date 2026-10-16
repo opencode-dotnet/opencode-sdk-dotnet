@@ -1,6 +1,7 @@
 using System.Net;
 using NSubstitute;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions.Testing;
 

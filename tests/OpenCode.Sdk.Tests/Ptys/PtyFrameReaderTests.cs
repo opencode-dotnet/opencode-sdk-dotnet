@@ -1,7 +1,7 @@
 using System.Net.WebSockets;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
-using OpenCode.Sdk.Tests.Support;
+using OpenCode.Sdk.Tests.Ptys.Support;
 
 namespace OpenCode.Sdk.Tests.Ptys;
 

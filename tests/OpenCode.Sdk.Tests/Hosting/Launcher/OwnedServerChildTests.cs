@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using NSubstitute;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Hosting.Launcher.Support;
 using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
 

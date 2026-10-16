@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
-using OpenCode.Sdk.Tests.Support;
+using OpenCode.Sdk.Tests.Sessions.Support;
 
 namespace OpenCode.Sdk.Tests.Sessions;
 

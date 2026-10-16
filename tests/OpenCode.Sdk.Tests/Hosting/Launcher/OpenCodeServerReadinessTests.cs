@@ -1,6 +1,8 @@
 using NSubstitute;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Hosting.Launcher.Support;
 using OpenCode.Sdk.Tests.Support;
+using SdkTestSupport = OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Hosting.Launcher;
 
@@ -149,7 +151,7 @@ public sealed class OpenCodeServerReadinessTests
         AssertRecordedAtTimeoutAsync(ExitCommand, EarlyExitDiagnostic, cancellationToken, static async (time, arbitrate, caller) =>
         {
             _ = arbitrate.TrySetResult();
-            await time.WaitForArmedAsync(OwnedServerChild.EarlyEndBound, Support.HangGuard.Bound, count: 2);
+            await time.WaitForArmedAsync(OwnedServerChild.EarlyEndBound, SdkTestSupport.HangGuard.Bound, count: 2);
             await caller.CancelOnWorkerAsync();
         });
 
@@ -180,10 +182,10 @@ public sealed class OpenCodeServerReadinessTests
         var starting = OpenCodeServer.StartWithSeamsAsync(RecordedOptions(publish), seams, caller.Token);
         try
         {
-            var recorded = await entered.Task.WaitAsync(Support.HangGuard.Bound, cancellationToken);
-            await time.WaitForArmedAsync(ReadinessBound, Support.HangGuard.Bound);
+            var recorded = await entered.Task.WaitAsync(SdkTestSupport.HangGuard.Bound, cancellationToken);
+            await time.WaitForArmedAsync(ReadinessBound, SdkTestSupport.HangGuard.Bound);
             time.Advance(ReadinessBound);
-            await canceled.Task.WaitAsync(Support.HangGuard.Bound, cancellationToken);
+            await canceled.Task.WaitAsync(SdkTestSupport.HangGuard.Bound, cancellationToken);
             // The spawn supplied stdin before the owner entered its wait.
             await PublishRecordedOutcomeAsync(recorded, input!, closingOutput, cancellationToken);
             if (closingOutput is not null)
@@ -263,11 +265,11 @@ public sealed class OpenCodeServerReadinessTests
     private static async Task PublishRecordedOutcomeAsync(
         Task recorded, Stream input, GatedStream? closingOutput, CancellationToken cancellationToken)
     {
-        await input.WriteAsync(new byte[] { 1 }, cancellationToken).AsTask().WaitAsync(Support.HangGuard.Bound, cancellationToken);
-        await input.FlushAsync(cancellationToken).WaitAsync(Support.HangGuard.Bound, cancellationToken);
+        await input.WriteAsync(new byte[] { 1 }, cancellationToken).AsTask().WaitAsync(SdkTestSupport.HangGuard.Bound, cancellationToken);
+        await input.FlushAsync(cancellationToken).WaitAsync(SdkTestSupport.HangGuard.Bound, cancellationToken);
         closingOutput?.Release();
         Task[] recordedTasks = [recorded];
-        await Task.WhenAll(recordedTasks).WaitAsync(Support.HangGuard.Bound, cancellationToken);
+        await Task.WhenAll(recordedTasks).WaitAsync(SdkTestSupport.HangGuard.Bound, cancellationToken);
     }
 
     private static async Task AssertCallerCancellationAsync(
@@ -289,11 +291,11 @@ public sealed class OpenCodeServerReadinessTests
         ManualTimeProvider time, Task starting, int count, CancellationToken cancellationToken)
     {
         // A timeout can finish cleanup without a drain; a recorded early end drains first.
-        var draining = time.WaitForArmedAsync(OwnedServerChild.EarlyEndBound, Support.HangGuard.Bound, count);
+        var draining = time.WaitForArmedAsync(OwnedServerChild.EarlyEndBound, SdkTestSupport.HangGuard.Bound, count);
         Task[] startingTasks = [starting];
-        if (await Task.WhenAny(Task.WhenAll(startingTasks), draining).WaitAsync(Support.HangGuard.Bound, cancellationToken) == draining)
+        if (await Task.WhenAny(Task.WhenAll(startingTasks), draining).WaitAsync(SdkTestSupport.HangGuard.Bound, cancellationToken) == draining)
         {
-            await draining.WaitAsync(Support.HangGuard.Bound, cancellationToken);
+            await draining.WaitAsync(SdkTestSupport.HangGuard.Bound, cancellationToken);
             time.Advance(OwnedServerChild.EarlyEndBound);
         }
     }
@@ -340,13 +342,13 @@ public sealed class OpenCodeServerReadinessTests
         try
         {
             Task[] pendingTasks = [pending];
-            await Task.WhenAll(pendingTasks).WaitAsync(token).WaitAsync(Support.HangGuard.Bound, cancellationToken);
+            await Task.WhenAll(pendingTasks).WaitAsync(token).WaitAsync(SdkTestSupport.HangGuard.Bound, cancellationToken);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             _ = canceled.TrySetResult();
             Task[] arbitrationTasks = [arbitrate.Task];
-            await Task.WhenAll(arbitrationTasks).WaitAsync(Support.HangGuard.Bound, cancellationToken);
+            await Task.WhenAll(arbitrationTasks).WaitAsync(SdkTestSupport.HangGuard.Bound, cancellationToken);
             throw;
         }
     };
@@ -364,7 +366,7 @@ public sealed class OpenCodeServerReadinessTests
         }
         else
         {
-            await Assert.That(async () => await Task.WhenAll(startingTasks).WaitAsync(Support.HangGuard.Bound, cancellationToken)).ThrowsNothing();
+            await Assert.That(async () => await Task.WhenAll(startingTasks).WaitAsync(SdkTestSupport.HangGuard.Bound, cancellationToken)).ThrowsNothing();
             var server = await startingTasks[0];
             await Assert.That(server.Endpoint).IsEqualTo(new Uri(ReadyEndpoint));
             await Assert.That(server.ChildExited.IsCompleted).IsFalse();
@@ -397,7 +399,7 @@ public sealed class OpenCodeServerReadinessTests
                 {
                     if (originalOutput is not null)
                     {
-                        await originalOutput.DisposeAsync().AsTask().WaitAsync(Support.HangGuard.Bound);
+                        await originalOutput.DisposeAsync().AsTask().WaitAsync(SdkTestSupport.HangGuard.Bound);
                     }
                 }
                 finally

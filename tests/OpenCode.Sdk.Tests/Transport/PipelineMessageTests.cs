@@ -1,6 +1,6 @@
 using System.Net;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.Tests.Support;
+using OpenCode.Sdk.Tests.Transport.Support;
 
 namespace OpenCode.Sdk.Tests.Transport;
 

@@ -32,9 +32,9 @@ tests/OpenCode.Sdk.Tests/PersistentPtys/PersistentPtySessionTests.cs	1
 tests/OpenCode.Sdk.Tests/PersistentPtys/PersistentPtyUpgradeFailurePolicyTests.cs	1
 tests/OpenCode.Sdk.Tests/Ptys/PtySessionTests.cs	2
 tests/OpenCode.Sdk.Tests/Ptys/PtysClientContractTests.cs	3
-tests/OpenCode.Sdk.Tests/SecretMemberPrintingTests.cs	1
 tests/OpenCode.Sdk.Tests/Serialization/OpenCodeJsonContextTests.cs	4
 tests/OpenCode.Sdk.Tests/Serialization/OpenModelRoundTripTests.cs	1
+tests/OpenCode.Sdk.Tests/Serialization/SecretMemberPrintingTests.cs	1
 tests/OpenCode.Sdk.Tests/Server/ServerClientLiveTests.cs	1
 tests/OpenCode.Sdk.Tests/Sessions/SessionClientContractTests.cs	1
 tests/OpenCode.Sdk.Tests/Sessions/SessionClientPaginationTests.cs	4
@@ -46,9 +46,9 @@ tests/OpenCode.Sdk.Tests/Sessions/SessionParentFilterTests.cs	1
 tests/OpenCode.Sdk.Tests/Sessions/SessionPermissionLiveTests.cs	2
 tests/OpenCode.Sdk.Tests/Sessions/SessionsClientContractTests.cs	2
 tests/OpenCode.Sdk.Tests/Sessions/SessionsClientLiveTests.cs	11
+tests/OpenCode.Sdk.Tests/Sessions/Support/SessionLogTranscriptTests.cs	1
 tests/OpenCode.Sdk.Tests/Streaming/ServerSentEventReaderTests.cs	7
 tests/OpenCode.Sdk.Tests/Support/OwnedEventReaderTests.cs	1
-tests/OpenCode.Sdk.Tests/Support/SessionLogTranscriptTests.cs	1
 tests/OpenCode.Sdk.Tests/Transport/PipelineStreamTests.cs	2
 tests/OpenCode.Sdk.Tests/Transport/PipelineTests.cs	7
 tests/OpenCode.Sdk.Tests/Transport/RequestDecorationPolicyTests.cs	7

@@ -1,6 +1,6 @@
 # Testing Style — authoring tests
 
-Date: 2026-10-16
+Date: 2026-10-17
 
 Binding authorship style for every test in this repository. `quality-gates.md` owns the
 current assurance posture and completion gates; operational build-out state belongs in
@@ -64,9 +64,11 @@ sized to need:
   like a BCL type shadows it there: tests under `Debug/` declare `OpenCode.Sdk.Tests.Debug` and
   qualify `System.Diagnostics.Debug`. A guard test refuses two source types that project onto
   one test path.
-- A helper or fixture one slice uses lives in that test slice's `Support/` or `Fixtures/`;
-  helpers several slices share stay in the test project's root `Support/`. Live-server harness
-  code lives in `tests/OpenCode.Sdk.Tests/Harness/`. Files another test project links, and the
+- In SDK.Tests, a helper or fixture used by one slice lives in that slice's `Support/` or
+  `Fixtures/`. Helpers and fixtures used by several slices stay in the test project's root
+  `Support/` and `Fixtures/`. Embedded fixtures retain their `Fixtures.` resource-name prefix
+  through explicit `LogicalName` metadata. Live-server harness code lives in
+  `tests/OpenCode.Sdk.Tests/Harness/`. Files another test project links, and the
   embedded-fixture loader, stay in `tests/Shared/`, compiled through explicit links. There is no
   separate test-support project.
 - The mirror rule also applies to test infrastructure: `Harness/X.cs` is tested in
@@ -99,8 +101,9 @@ analyzer enforces it wherever an abstractions assembly is referenced — even te
 **Raw JSON/XML/string-literal dumps pasted inline in test methods are forbidden.** A
 test body states *intent*; the data it runs on lives in one of three sanctioned homes:
 
-1. **Embedded fixture files** — under the owning test project's `Fixtures/` folder,
-   loaded through a resource-loader helper by name. The default for wire-shaped data:
+1. **Embedded fixture files** — in the `Fixtures/` folder of the slice that uses them, or the test
+   project's root `Fixtures/` when several slices share them, loaded through a resource-loader helper
+   by name. The default for wire-shaped data:
    one small file per quirk, named for the construct it isolates, reviewable on its own.
 2. **Typed builders** — for variation families where files would multiply: red tests
    composing a valid base plus exactly one offending construct through the builder. The

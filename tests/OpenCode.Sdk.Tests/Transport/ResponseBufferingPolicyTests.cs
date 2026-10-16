@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
+using OpenCode.Sdk.Tests.Transport.Support;
 #if !NET
 using TUnit.Assertions.Enums;
 #endif

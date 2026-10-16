@@ -1,6 +1,6 @@
 // The parity oracle for the structural union first-match arm (ADR-0016).
 //
-// It decodes every value of tests/OpenCode.Sdk.Tests/Fixtures/Unions/first-match-corpus.json with
+// It decodes every value of tests/OpenCode.Sdk.Tests/Serialization/Fixtures/first-match-corpus.json with
 // upstream's own schemas and upstream's own Effect, then writes which union member took each value
 // to first-match-expected.json beside it. The SDK's parity test asserts that the generated
 // converters pick the same member. Re-run it when a refresh moves the pinned Effect version (the
@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url"
 const repository = join(dirname(fileURLToPath(import.meta.url)), "..", "..")
 const upstream = join(repository, "external", "opencode")
 const schemaPackage = join(upstream, "packages", "schema")
-const fixtures = join(repository, "tests", "OpenCode.Sdk.Tests", "Fixtures", "Unions")
+const fixtures = join(repository, "tests", "OpenCode.Sdk.Tests", "Serialization", "Fixtures")
 
 const { Schema } = await import(createRequire(join(schemaPackage, "package.json")).resolve("effect"))
 const reference = await import(join(schemaPackage, "src", "config", "reference.ts"))

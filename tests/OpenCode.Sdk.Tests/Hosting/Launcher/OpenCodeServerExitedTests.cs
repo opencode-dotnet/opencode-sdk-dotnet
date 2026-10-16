@@ -1,5 +1,6 @@
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Hosting.Launcher.Support;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
 
