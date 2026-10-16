@@ -1,10 +1,69 @@
+using System.IO.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
 using OpenCode.Sdk.Tools.Generator.Refresh;
+using OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
 using OpenCode.Sdk.Tools.Tests.Generator.Refresh.Support;
+using OpenCode.Sdk.Tools.Tests.Support;
+using Spectre.Console;
+using Spectre.Console.Testing;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Commands;
 
 public sealed class RefreshSpecCommandTests
 {
+    [Test]
+    public async Task Execute_Should_Cancel_Prepare_During_Install_And_Remove_Its_Worktree()
+    {
+        using var scenario = await RefreshScenario.CreateAsync();
+        var runner = scenario.ExpectReference(RefreshScenario.Document);
+        var fs = scenario.FileSystem;
+        var submodule = fs.Path.GetFullPath(SnapshotPaths.Submodule);
+        var worktree = fs.Path.GetFullPath(fs.Path.Combine(SnapshotPaths.ScratchRoot, RefreshScenarioData.Commit, "worktree"));
+        var registered = new HashSet<string>(StringComparer.Ordinal);
+        var entered = new TaskCompletionSource<CancellationToken>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var cancellation = new CancellationTokenSource();
+        runner.Expect("git", ["-c", "core.longpaths=true", "worktree", "add", "--detach", worktree, RefreshScenarioData.Commit], submodule,
+            sideEffect: () => { registered.Add(worktree); return Task.CompletedTask; });
+        runner.Expect("bun", ["install", "--frozen-lockfile", "--ignore-scripts"], worktree, sideEffect: async () =>
+        {
+            var received = runner.CancellationTokens[^1];
+            entered.SetResult(received);
+            if (!received.CanBeCanceled)
+            {
+                throw new InvalidOperationException("The running install received no cancellation token.");
+            }
+            var cancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var registration = received.Register(() => cancelled.SetResult());
+            await cancelled.Task;
+            received.ThrowIfCancellationRequested();
+        });
+        var removal = $"git -c core.longpaths=true worktree remove --force {worktree}";
+        runner.Expect("git", ["-c", "core.longpaths=true", "worktree", "remove", "--force", worktree], submodule,
+            sideEffect: () => { registered.Remove(worktree); return Task.CompletedTask; });
+        using var console = new TestConsole();
+        var run = ToolApp.RunAsync(["refresh-spec", "--ref", "origin/v2"], cancellation.Token, services =>
+        {
+            services.AddSingleton<IFileSystem>(fs);
+            services.AddSingleton<IProcessRunner>(runner);
+            services.AddSingleton<IAnsiConsole>(console);
+        });
+        var completed = await Task.WhenAny(entered.Task, run);
+        await Assert.That(completed).IsSameReferenceAs(entered.Task);
+        var token = await entered.Task;
+        await cancellation.CancelAsync();
+        var exitCode = await run;
+
+        await Assert.That(token).IsEqualTo(cancellation.Token);
+        await Assert.That(exitCode).IsEqualTo(130);
+        await Assert.That(registered).IsEmpty();
+        await Assert.That(runner.CancellationTokens[^1]).IsEqualTo(CancellationToken.None);
+        await Assert.That(runner.Invocations.TakeLast(2)).IsEquivalentTo(
+            ["bun install --frozen-lockfile --ignore-scripts", removal], CollectionOrdering.Matching);
+        await Assert.That(runner.Invocations.Count(invocation => string.Equals(invocation, removal, StringComparison.Ordinal))).IsEqualTo(1);
+        await Assert.That(console.Output).IsEmpty();
+    }
+
     [Test]
     [Arguments(false, false, false)]
     [Arguments(true, true, false)]

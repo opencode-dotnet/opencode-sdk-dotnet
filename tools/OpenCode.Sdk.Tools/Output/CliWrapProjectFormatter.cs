@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.IO.Abstractions;
+using System.Reflection;
 using System.Text;
-using CliWrap;
 using OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
 using OpenCode.Sdk.Tools.Output.Abstractions;
 
@@ -19,11 +19,13 @@ namespace OpenCode.Sdk.Tools.Output;
 /// the SDK's <c>FormatForwardingApp</c> does, and <c>dotnet-format</c> expands the file
 /// in-process.
 /// </remarks>
-internal sealed class CliWrapProjectFormatter(IFileSystem fileSystem, IProcessRunner processRunner) : IProjectFormatter
+internal sealed class CliWrapProjectFormatter(IFileSystem fileSystem, IProcessRunner processRunner, string? targetFramework = null) : IProjectFormatter
 {
     private const string AssemblyFileName = "dotnet-format.dll";
     private const string DepsFileName = "dotnet-format.deps.json";
     private const string RuntimeConfigFileName = "dotnet-format.runtimeconfig.json";
+    private static readonly string? DefaultTargetFramework = typeof(CliWrapProjectFormatter).Assembly
+        .GetCustomAttributes<AssemblyMetadataAttribute>().SingleOrDefault(static item => item.Key == "DefaultTargetFramework")?.Value;
 
     private readonly IFileSystem _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
     private readonly IProcessRunner _processRunner = processRunner ?? throw new ArgumentNullException(nameof(processRunner));
@@ -45,6 +47,12 @@ internal sealed class CliWrapProjectFormatter(IFileSystem fileSystem, IProcessRu
             throw new ArgumentException("Source paths cannot contain null or whitespace entries.", nameof(sourcePaths));
         }
 
+        var framework = targetFramework ?? DefaultTargetFramework;
+        if (string.IsNullOrWhiteSpace(framework))
+        {
+            throw new OutputRefusalException("The tool assembly has no DefaultTargetFramework metadata.");
+        }
+
         var fullProjectPath = _fileSystem.Path.GetFullPath(projectPath);
         var projectDirectory = _fileSystem.Path.GetDirectoryName(fullProjectPath)
                                ?? throw new InvalidOperationException($"Project path '{projectPath}' has no parent directory.");
@@ -54,25 +62,16 @@ internal sealed class CliWrapProjectFormatter(IFileSystem fileSystem, IProcessRu
         var responseFilePath = _fileSystem.Path.Combine(
             _fileSystem.Path.GetTempPath(),
             $"opencode-format-{Guid.NewGuid():N}.rsp");
-        await _fileSystem.File.WriteAllTextAsync(responseFilePath, ResponseFileContent(sourcePaths), cancellationToken)
-            .ConfigureAwait(false);
         try
         {
-            _ = await Cli.Wrap("dotnet")
-                .WithArguments(arguments => arguments
-                    .Add("exec")
-                    .Add("--depsfile")
-                    .Add(FormatterFile(formatterDirectory, DepsFileName))
-                    .Add("--runtimeconfig")
-                    .Add(FormatterFile(formatterDirectory, RuntimeConfigFileName))
-                    .Add(FormatterFile(formatterDirectory, AssemblyFileName))
-                    .Add(projectFileName)
-                    .Add("--no-restore")
-                    .Add($"@{responseFilePath}"))
-                .WithWorkingDirectory(projectDirectory)
-                .WithEnvironmentVariables(environment => environment.Set("TargetFramework", "net10.0"))
-                .WithValidation(CommandResultValidation.ZeroExitCode)
-                .ExecuteAsync(cancellationToken)
+            await _fileSystem.File.WriteAllTextAsync(responseFilePath, ResponseFileContent(sourcePaths), cancellationToken)
+                .ConfigureAwait(false);
+            _ = await RunDotnetAsync(
+                ["exec", "--depsfile", FormatterFile(formatterDirectory, DepsFileName),
+                    "--runtimeconfig", FormatterFile(formatterDirectory, RuntimeConfigFileName),
+                    FormatterFile(formatterDirectory, AssemblyFileName), projectFileName, "--no-restore", $"@{responseFilePath}"],
+                projectDirectory, cancellationToken,
+                new Dictionary<string, string?>(StringComparer.Ordinal) { ["TargetFramework"] = framework })
                 .ConfigureAwait(false);
         }
         finally
@@ -121,7 +120,7 @@ internal sealed class CliWrapProjectFormatter(IFileSystem fileSystem, IProcessRu
             var path = FormatterFile(formatterDirectory, fileName);
             if (!_fileSystem.File.Exists(path))
             {
-                throw new InvalidOperationException(
+                throw new OutputRefusalException(
                     $"SDK {version} has no '{path}'; the generator formats through the SDK's bundled dotnet-format.");
             }
         }
@@ -151,18 +150,20 @@ internal sealed class CliWrapProjectFormatter(IFileSystem fileSystem, IProcessRu
             }
         }
 
-        throw new InvalidOperationException($"'dotnet --list-sdks' does not list the selected SDK {version}.");
+        throw new OutputRefusalException($"'dotnet --list-sdks' does not list the selected SDK {version}.");
     }
 
     private async Task<string> RunDotnetAsync(
         IReadOnlyList<string> arguments,
         string workingDirectory,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, IReadOnlyDictionary<string, string?>? environment = null)
     {
-        var result = await _processRunner.RunAsync("dotnet", arguments, workingDirectory, cancellationToken).ConfigureAwait(false);
+        var result = environment is null
+            ? await _processRunner.RunAsync("dotnet", arguments, workingDirectory, cancellationToken).ConfigureAwait(false)
+            : await _processRunner.RunAsync("dotnet", arguments, workingDirectory, environment, cancellationToken).ConfigureAwait(false);
         return result.ExitCode is 0
             ? Encoding.UTF8.GetString(result.StandardOutput)
-            : throw new InvalidOperationException(
+            : throw new OutputRefusalException(
                 string.Create(
                     CultureInfo.InvariantCulture,
                     $"'dotnet {string.Join(' ', arguments)}' exited with code {result.ExitCode}: {result.StandardError}"));

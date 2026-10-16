@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Identifies a scalar primitive supported by schema projection.</summary>
-public enum PrimitiveKind
+internal enum PrimitiveKind
 {
     /// <summary>A JSON string.</summary>
     String = 0,

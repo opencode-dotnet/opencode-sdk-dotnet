@@ -27,7 +27,7 @@ namespace OpenCode.Sdk.Tools;
 public static class ToolApp
 {
     /// <summary>Builds the tool's complete production service collection.</summary>
-    public static ServiceCollection CreateServices(Action<IServiceCollection>? overrideServices = null)
+    internal static ServiceCollection CreateServices(Action<IServiceCollection>? overrideServices = null)
     {
         var services = new ServiceCollection();
         services.AddSingleton<IFileSystem, RealFileSystem>();
@@ -78,17 +78,22 @@ public static class ToolApp
     }
 
     /// <summary>Builds the DI registrar; tests inject service overrides.</summary>
-    public static DependencyInjectionRegistrar CreateRegistrar(Action<IServiceCollection>? overrideServices = null)
+    internal static DependencyInjectionRegistrar CreateRegistrar(Action<IServiceCollection>? overrideServices = null)
     {
         return new DependencyInjectionRegistrar(CreateServices(overrideServices));
     }
 
     /// <summary>Registers the command surface; shared by the app and <c>CommandAppTester</c>.</summary>
-    public static void Configure(IConfigurator configurator)
+    internal static void Configure(IConfigurator configurator) => Configure(configurator, CancellationToken.None);
+
+    internal static void Configure(IConfigurator configurator, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(configurator);
 
         configurator.SetApplicationName("opencode-tool");
+        configurator.SetExceptionHandler((exception, _) =>
+            new ToolExceptionHandler(configurator.Settings.Console ?? AnsiConsole.Console)
+                .Handle(exception, configurator.Settings.CancellationExitCode, cancellationToken));
         configurator
             .AddCommand<GenerateCommand>("generate")
             .WithDescription("Regenerate the SDK model layer from spec/openapi.json.");
@@ -107,13 +112,17 @@ public static class ToolApp
     }
 
     /// <summary>Entry point used by tools/opencode-tool.cs.</summary>
-    public static async Task<int> RunAsync(string[] args)
+    public static Task<int> RunAsync(string[] args, CancellationToken cancellationToken = default) =>
+        RunAsync(args, cancellationToken, null);
+
+    internal static async Task<int> RunAsync(string[] args, CancellationToken cancellationToken,
+        Action<IServiceCollection>? overrideServices = null)
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        using var registrar = CreateRegistrar();
+        using var registrar = CreateRegistrar(overrideServices);
         var app = new CommandApp(registrar);
-        app.Configure(Configure);
-        return await app.RunAsync(args).ConfigureAwait(false);
+        app.Configure(configurator => Configure(configurator, cancellationToken));
+        return await app.RunAsync(args, cancellationToken).ConfigureAwait(false);
     }
 }

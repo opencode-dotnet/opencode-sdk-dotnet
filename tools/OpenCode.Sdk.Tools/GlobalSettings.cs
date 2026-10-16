@@ -6,7 +6,7 @@ using Spectre.Console.Cli;
 namespace OpenCode.Sdk.Tools;
 
 /// <summary>Defines options shared by every tool command.</summary>
-public abstract class GlobalSettings : CommandSettings
+internal abstract class GlobalSettings : CommandSettings
 {
     /// <summary>Gets or sets the minimum logging level for the invocation.</summary>
     [CommandOption("--log-level <LEVEL>")]

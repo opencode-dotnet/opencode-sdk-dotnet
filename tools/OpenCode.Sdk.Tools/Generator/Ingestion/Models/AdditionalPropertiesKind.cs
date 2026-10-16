@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Identifies how an object schema treats properties not declared by name.</summary>
-public enum AdditionalPropertiesKind
+internal enum AdditionalPropertiesKind
 {
     /// <summary>Additional properties are permitted without a schema constraint.</summary>
     Open = 0,

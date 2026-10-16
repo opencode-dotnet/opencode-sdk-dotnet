@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Represents a projected union of schema branches.</summary>
-public sealed record UnionNode : SchemaNode
+internal sealed record UnionNode : SchemaNode
 {
     /// <summary>Gets the normalized branches in document order.</summary>
     public required IReadOnlyList<SchemaNode> Branches

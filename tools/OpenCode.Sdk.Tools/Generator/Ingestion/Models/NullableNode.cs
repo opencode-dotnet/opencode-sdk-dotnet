@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Represents a projected schema that also admits JSON null.</summary>
-public sealed record NullableNode : SchemaNode
+internal sealed record NullableNode : SchemaNode
 {
     /// <summary>Gets the projected non-null schema.</summary>
     public required SchemaNode Inner

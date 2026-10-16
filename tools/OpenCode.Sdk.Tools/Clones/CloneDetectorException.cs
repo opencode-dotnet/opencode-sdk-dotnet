@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Clones;
 
 /// <summary>A refusal of the clone gate: a prerequisite is missing, or the detector produced no report to judge.</summary>
-public sealed class CloneDetectorException : Exception
+public sealed class CloneDetectorException : ToolRefusalException
 {
     /// <summary>Creates the refusal with its message.</summary>
     public CloneDetectorException(string message)

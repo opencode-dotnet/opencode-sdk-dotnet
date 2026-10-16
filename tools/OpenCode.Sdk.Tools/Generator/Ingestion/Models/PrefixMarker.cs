@@ -4,7 +4,7 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 /// Describes a required string property whose value is constrained to a literal prefix —
 /// Effect's <c>TemplateLiteral([prefix, String])</c> projected as <c>^prefix[\s\S]*?$</c>.
 /// </summary>
-public sealed record PrefixMarker
+internal sealed record PrefixMarker
 {
     /// <summary>Gets the opaque wire property name.</summary>
     public required string PropertyName

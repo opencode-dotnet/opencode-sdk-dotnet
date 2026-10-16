@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Describes a required literal property that identifies an object variant.</summary>
-public sealed record LiteralMarker
+internal sealed record LiteralMarker
 {
     /// <summary>Gets the opaque wire property name.</summary>
     public required string PropertyName

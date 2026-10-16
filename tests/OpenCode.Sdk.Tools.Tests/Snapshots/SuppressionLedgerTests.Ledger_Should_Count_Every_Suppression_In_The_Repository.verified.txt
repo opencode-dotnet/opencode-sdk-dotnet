@@ -2,7 +2,7 @@
 A change that adds, removes or alters a suppression updates this file in the same commit.
 
 build-switch: 12
-editorconfig: 161
+editorconfig: 158
 globalconfig: 1
 no-warn: 18
 pragma: 21
@@ -170,9 +170,6 @@ editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionEventProbe.c
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionEventProbeTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionLogTranscriptTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/Shared/ProcessMark.cs] dotnet_diagnostic.MA0045.severity = none
-editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Commands/GenerateCommand.cs] dotnet_diagnostic.CA1034.severity = none
-editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Models/LiteralKind.cs] dotnet_diagnostic.CA1720.severity = none
-editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Models/PrimitiveKind.cs] dotnet_diagnostic.CA1720.severity = none
 editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/EnumSchemaProjector.cs] dotnet_diagnostic.CA1822.severity = none
 editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/EnumSchemaProjector.cs] dotnet_diagnostic.S2325.severity = none
 editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/ErrorStyleClassifier.cs] dotnet_diagnostic.CA1822.severity = none

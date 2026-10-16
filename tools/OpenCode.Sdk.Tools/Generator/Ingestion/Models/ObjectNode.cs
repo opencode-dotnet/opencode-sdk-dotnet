@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Represents a projected object with named properties.</summary>
-public sealed record ObjectNode : SchemaNode
+internal sealed record ObjectNode : SchemaNode
 {
     /// <summary>Gets the named properties in document order.</summary>
     public required IReadOnlyList<SpecProperty> Properties

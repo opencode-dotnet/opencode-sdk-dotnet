@@ -4,11 +4,10 @@ using Spectre.Console.Cli;
 namespace OpenCode.Sdk.Tools.Infrastructure;
 
 /// <summary>Applies global command options before command execution.</summary>
-public sealed class GlobalOptionsInterceptor : ICommandInterceptor
+internal sealed class GlobalOptionsInterceptor : ICommandInterceptor
 {
     private readonly ToolLoggingOptions _loggingOptions;
 
-    /// <summary>Initializes a new instance of the <see cref="GlobalOptionsInterceptor"/> class.</summary>
     public GlobalOptionsInterceptor(ToolLoggingOptions loggingOptions)
     {
         ArgumentNullException.ThrowIfNull(loggingOptions);

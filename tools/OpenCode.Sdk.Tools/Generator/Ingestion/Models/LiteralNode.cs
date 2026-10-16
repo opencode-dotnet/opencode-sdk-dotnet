@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Represents a schema constrained to one string, number, or boolean value.</summary>
-public sealed record LiteralNode : SchemaNode
+internal sealed record LiteralNode : SchemaNode
 {
     /// <summary>Gets the JSON primitive kind carried by the literal.</summary>
     public required LiteralKind Kind { get; init; }

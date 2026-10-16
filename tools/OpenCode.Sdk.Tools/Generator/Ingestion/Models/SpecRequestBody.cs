@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Describes one projected operation request body.</summary>
-public sealed record SpecRequestBody
+internal sealed record SpecRequestBody
 {
     /// <summary>Gets the request content type.</summary>
     public required SpecMediaType ContentType

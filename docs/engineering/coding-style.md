@@ -80,12 +80,12 @@ for a pile of static steps.
           return services;
       }
 
-      public static async Task<int> RunAsync(string[] args)
+      public static async Task<int> RunAsync(string[] args, CancellationToken cancellationToken = default)
       {
           using var registrar = new DependencyInjectionRegistrar(CreateServices());
           var app = new CommandApp(registrar);
           app.Configure(config => config.AddCommand<GenerateCommand>("generate"));
-          return await app.RunAsync(args);
+          return await app.RunAsync(args, cancellationToken);
       }
   }
   ```
@@ -98,8 +98,10 @@ for a pile of static steps.
   Testably-backed file provider configured by global log-level/log-file settings. Tests
   start from the same production registration path and replace seams after composition;
   they never reproduce the registration list in a parallel test-only root.
-- **Cross-cutting CLI concerns ride an interceptor** (logging verbosity, global
-  options), never copy-pasted per command.
+- **Cross-cutting CLI options ride an interceptor** (logging verbosity, global options), never
+  copy-pasted per command. The composition root registers one exception handler for refusal output
+  and exit mapping; commands do not catch refusals. The file-based entry owns Ctrl+C subscription
+  and forwards its cancellation token through the composition root to the CLI framework.
 - **Statics never perform outside-world operations.** The composition root may instantiate
   and register adapters; actual filesystem, console, time, environment, process, and network
   work occurs only through injected seams. The TestableIO analyzer enforces the filesystem

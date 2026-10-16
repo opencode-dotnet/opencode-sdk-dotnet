@@ -5,7 +5,7 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 /// distinct kind rather than a primitive so every plain-string expectation refuses it instead
 /// of silently matching; its binding representation is a deliberate later decision.
 /// </summary>
-public sealed record EncodedStringNode : SchemaNode
+internal sealed record EncodedStringNode : SchemaNode
 {
     /// <summary>Gets the declared content encoding, exactly as the wire schema states it.</summary>
     public required string ContentEncoding

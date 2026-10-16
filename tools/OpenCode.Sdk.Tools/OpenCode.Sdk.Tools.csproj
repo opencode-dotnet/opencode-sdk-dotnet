@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <AssemblyMetadata Include="DefaultTargetFramework" Value="$(DefaultTargetFramework)" />
     <PackageReference Include="CliWrap" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />

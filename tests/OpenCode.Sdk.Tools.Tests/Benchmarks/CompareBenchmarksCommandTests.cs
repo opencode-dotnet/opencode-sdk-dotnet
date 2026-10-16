@@ -12,6 +12,23 @@ namespace OpenCode.Sdk.Tools.Tests.Benchmarks;
 public sealed class CompareBenchmarksCommandTests
 {
     [Test]
+    public async Task Execute_Should_Refuse_A_Missing_Run_Through_The_Shared_Handler()
+    {
+        using var registrar = ToolApp.CreateRegistrar(services =>
+        {
+            services.AddSingleton<IFileSystem>(new MockFileSystem());
+            services.AddSingleton<IAnsiConsole, TestConsole>();
+        });
+        var tester = new CommandAppTester(registrar, new CommandAppTesterSettings { TrimConsoleOutput = false });
+        tester.Configure(ToolApp.Configure);
+
+        var result = await tester.RunAsync(["compare-benchmarks", "missing[run]", "after"]);
+
+        await Assert.That(result.ExitCode).IsEqualTo(1);
+        await Assert.That(result.Output).IsEqualTo("Refused: Benchmark run directory 'missing[run]' does not exist.\n");
+    }
+
+    [Test]
     public async Task Execute_Should_Compare_Runs_And_Write_The_Csv_Extract()
     {
         const string outputPath = ".benchmarks/health-comparison.csv";

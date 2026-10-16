@@ -80,7 +80,7 @@ tests/OpenCode.Sdk.Tools.Tests/Generator/Ingestion/PinnedSpecSmokeTests.cs	3
 tests/OpenCode.Sdk.Tools.Tests/Generator/Ingestion/SchemaProjectorTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Generator/Refresh/PatchSetLoaderTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Generator/Refresh/SnapshotSynchronizerTests.cs	7
-tests/OpenCode.Sdk.Tools.Tests/Output/GenerationWriterTests.cs	13
+tests/OpenCode.Sdk.Tools.Tests/Output/GenerationWriterTests.cs	11
 tests/OpenCode.Sdk.Tools.Tests/Packaging/NativeAotConsumerTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Support/Tests/SpecScenarioTests.cs	1
-tests/OpenCode.Sdk.Tools.Tests/ToolAppTests.cs	7
+tests/OpenCode.Sdk.Tools.Tests/ToolAppTests.cs	2

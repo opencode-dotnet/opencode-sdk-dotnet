@@ -5,7 +5,7 @@ using System.Text;
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Represents one or more failures that prevent OpenAPI ingestion.</summary>
-public sealed class IngestionException : Exception
+public sealed class IngestionException : ToolRefusalException
 {
     private static readonly IReadOnlyList<IngestionError> NoErrors = Array.AsReadOnly(Array.Empty<IngestionError>());
 

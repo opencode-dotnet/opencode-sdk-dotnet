@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>The ingested spec: the Binder's sole spec-side input.</summary>
-public sealed record SpecDocument
+internal sealed record SpecDocument
 {
     /// <summary>Gets the projected operations in document order.</summary>
     public required IReadOnlyList<SpecOperation> Operations

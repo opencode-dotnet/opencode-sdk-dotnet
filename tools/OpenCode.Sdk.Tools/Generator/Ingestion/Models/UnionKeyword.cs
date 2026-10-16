@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Identifies the OpenAPI keyword that declared a projected union.</summary>
-public enum UnionKeyword
+internal enum UnionKeyword
 {
     /// <summary>The union was declared with <c>anyOf</c>.</summary>
     AnyOf = 0,

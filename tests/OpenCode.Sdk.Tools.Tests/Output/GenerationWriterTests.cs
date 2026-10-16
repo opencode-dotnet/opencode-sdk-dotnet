@@ -5,6 +5,7 @@ using OpenCode.Sdk.Tools.Serialization;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions.Testing;
 using Testably.Abstractions.Testing.Initializer;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Output;
 
@@ -23,6 +24,51 @@ public sealed class GenerationWriterTests
     private const string InboxArea = "Sessions/Models/Inbox";
 
     [Test]
+    [Arguments("null", "The generation manifest cannot be JSON null.")]
+    [Arguments("malformed", "The generation manifest is invalid.")]
+    [Arguments("duplicate", "Generation manifest path 'Common/Errors/Stale.cs' is duplicated.")]
+    public async Task WriteAsync_Should_Refuse_An_Invalid_Manifest_Without_Changing_Output(string kind, string diagnostic)
+    {
+        const string stalePath = "Common/Errors/Stale.cs";
+        var fs = GenerationTestData.CreateFileSystem();
+        var formatter = new RecordingProjectFormatter(fs);
+        var writer = new GenerationWriter(fs, formatter);
+        _ = await writer.WriteAsync(Request([GenerationTestData.Source(stalePath, "stale")],
+            partialMarkerContent: "pending", reachReportContent: GenerationTestData.ReachReport), CancellationToken.None);
+        var manifest = kind switch
+        {
+            "null" => "null",
+            "malformed" => "{",
+            _ => JsonSerializer.Serialize(new GenerationManifest { Files = [stalePath, stalePath] }),
+        };
+        await fs.File.WriteAllTextAsync(GenerationTestData.ManifestPath, manifest);
+        var paths = fs.Directory.EnumerateFiles(GenerationTestData.OutputRoot, "*", SearchOption.AllDirectories)
+            .Order(StringComparer.Ordinal).ToArray();
+        var before = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        foreach (var path in paths)
+        {
+            before.Add(path, await fs.File.ReadAllBytesAsync(path));
+        }
+
+        var exception = await Assert.That(async () => _ = await writer.WriteAsync(
+            Request([GenerationTestData.Source("Common/Errors/Fresh.cs", "fresh")]), CancellationToken.None))
+            .Throws<OutputRefusalException>();
+
+        await Assert.That(exception!.Message).IsEqualTo(diagnostic);
+        if (kind == "malformed")
+        {
+            await Assert.That(exception.InnerException).IsTypeOf<JsonException>();
+        }
+        await Assert.That(fs.Directory.EnumerateFiles(GenerationTestData.OutputRoot, "*", SearchOption.AllDirectories)
+            .Order(StringComparer.Ordinal)).IsEquivalentTo(paths, CollectionOrdering.Matching);
+        foreach (var (path, bytes) in before)
+        {
+            await Assert.That(await fs.File.ReadAllBytesAsync(path)).IsEquivalentTo(bytes, CollectionOrdering.Matching);
+        }
+        await Assert.That(formatter.CallCount).IsEqualTo(1);
+    }
+
+    [Test]
     public async Task WriteAsync_Should_Refuse_Unsafe_Source_Paths()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
@@ -31,7 +77,7 @@ public sealed class GenerationWriterTests
         var exception = await Assert.That(async () => await writer.WriteAsync(
                 Request([GenerationTestData.Source("../escape.cs", "unsafe")]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("unsafe");
     }
@@ -48,7 +94,7 @@ public sealed class GenerationWriterTests
         var exception = await Assert.That(async () => await writer.WriteAsync(
                 Request([]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("unsafe");
     }
@@ -67,7 +113,7 @@ public sealed class GenerationWriterTests
         var exception = await Assert.That(async () => await writer.WriteAsync(
                 Request([GenerationTestData.Source("Models/Escape.cs", "unsafe")]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("symbolic link");
     }
@@ -86,7 +132,7 @@ public sealed class GenerationWriterTests
         var exception = await Assert.That(async () => await writer.WriteAsync(
                 Request([GenerationTestData.Source("Common/Errors/widget.cs", "new")]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("only by case");
     }
@@ -184,7 +230,7 @@ public sealed class GenerationWriterTests
 
         var exception = await Assert
             .That(async () => await writer.WriteAsync(Request([], familyFolders: ["models"]), CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("reserved");
     }
@@ -197,7 +243,7 @@ public sealed class GenerationWriterTests
 
         var exception = await Assert
             .That(async () => await writer.WriteAsync(Request([], familyFolders: ["Pagination"]), CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("reserved");
     }
@@ -212,7 +258,7 @@ public sealed class GenerationWriterTests
             .That(async () => await writer.WriteAsync(
                 Request([], familyFolders: ["Sessions", "sessions"]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("duplicated");
     }
@@ -243,7 +289,7 @@ public sealed class GenerationWriterTests
                     [GenerationTestData.Source("Widgets/WidgetsClient.cs", "client")],
                     familyFolders: ["Sessions"]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("outside the owned source directories");
     }
@@ -259,7 +305,7 @@ public sealed class GenerationWriterTests
                     [GenerationTestData.Source("Sessions/Deep/File.cs", "nested")],
                     familyFolders: ["Sessions"]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("outside the owned source directories");
     }
@@ -292,7 +338,7 @@ public sealed class GenerationWriterTests
         var exception = await Assert.That(async () => await writer.WriteAsync(
                 Request([], familyFolders: ["Models"]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("Models");
         await Assert.That(exception.Message).Contains("reserved");
@@ -309,7 +355,7 @@ public sealed class GenerationWriterTests
             .That(async () => _ = await writer.WriteAsync(
                 Request([GenerationTestData.Source("ExampleClient.cs", "generated")]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("unmanifested");
         var untouched = await fileSystem.File.ReadAllTextAsync("src/OpenCode.Sdk/ExampleClient.cs", CancellationToken.None);
@@ -330,7 +376,7 @@ public sealed class GenerationWriterTests
             .That(async () => _ = await writer.WriteAsync(
                 Request([GenerationTestData.Source("Common/Errors/Example.cs", "generated")]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("provenance");
     }
@@ -349,10 +395,11 @@ public sealed class GenerationWriterTests
             .That(async () => _ = await writer.WriteAsync(
                 Request([GenerationTestData.Source("Common/Errors/Fresh.cs", "generated")]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("provenance");
-        await Assert.That(fileSystem.File.Exists("src/OpenCode.Sdk/Common/Errors/Stale.cs")).IsTrue();
+        await Assert.That(fileSystem.Directory.EnumerateFiles(fileSystem.Path.GetFullPath(GenerationTestData.OutputRoot), "*.cs", SearchOption.AllDirectories))
+            .Contains(fileSystem.Path.GetFullPath("src/OpenCode.Sdk/Common/Errors/Stale.cs"));
     }
 
     [Test]
@@ -444,7 +491,7 @@ public sealed class GenerationWriterTests
 
         var exception = await Assert
             .That(async () => _ = await writer.WriteAsync(Request([], familyFolders: [folder]), CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("shadows");
     }
@@ -489,10 +536,11 @@ public sealed class GenerationWriterTests
         var exception = await Assert.That(async () => _ = await writer.WriteAsync(
                 Request([GenerationTestData.Source(relativePath, "generated")], familyFolders: [SessionsFamily]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("outside the owned source directories");
-        await Assert.That(fileSystem.File.Exists(OwnedPath(fileSystem, relativePath))).IsFalse();
+        await Assert.That(fileSystem.Directory.EnumerateFiles(fileSystem.Path.GetFullPath(GenerationTestData.OutputRoot), "*.cs", SearchOption.AllDirectories))
+            .DoesNotContain(fileSystem.Path.GetFullPath(OwnedPath(fileSystem, relativePath)));
     }
 
     /// <summary>The rerun reads the area source back from the manifest, so it also proves a four-segment manifest entry validates.</summary>
@@ -529,7 +577,7 @@ public sealed class GenerationWriterTests
         var exception = await Assert.That(async () => _ = await writer.WriteAsync(
                 Request([], familyFolders: [SessionsFamily], modelAreaFolders: [areaFolder]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("not an area of an admitted family");
     }
@@ -544,7 +592,7 @@ public sealed class GenerationWriterTests
         var exception = await Assert.That(async () => _ = await writer.WriteAsync(
                 Request([], familyFolders: [SessionsFamily], modelAreaFolders: [InboxArea, duplicate]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("duplicated");
     }
@@ -592,7 +640,7 @@ public sealed class GenerationWriterTests
         var exception = await Assert.That(async () => _ = await writer.WriteAsync(
                 Request([GenerationTestData.Source("Common/Errors/Widget.cs", "widget")]),
                 CancellationToken.None))
-            .Throws<InvalidOperationException>();
+            .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("generated header");
         var untouched = await fileSystem.File.ReadAllTextAsync(AttributesPath, CancellationToken.None);

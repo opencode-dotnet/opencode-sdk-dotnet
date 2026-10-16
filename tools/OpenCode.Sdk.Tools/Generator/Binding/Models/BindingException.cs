@@ -5,7 +5,7 @@ using System.Text;
 namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 /// <summary>Represents one or more failures that prevent generator binding.</summary>
-public sealed class BindingException : Exception
+public sealed class BindingException : ToolRefusalException
 {
     private static readonly IReadOnlyList<BindingError> NoErrors = Array.AsReadOnly(Array.Empty<BindingError>());
 

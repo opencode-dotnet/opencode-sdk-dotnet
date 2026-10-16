@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Identifies a recognized response-envelope property shape.</summary>
-public enum SpecEnvelopeShape
+internal enum SpecEnvelopeShape
 {
     /// <summary>The response has no content.</summary>
     None = 0,

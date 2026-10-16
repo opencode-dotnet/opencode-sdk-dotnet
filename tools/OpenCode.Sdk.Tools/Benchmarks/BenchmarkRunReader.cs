@@ -10,15 +10,6 @@ internal sealed class BenchmarkRunReader
     private const string ReportPattern = "*-report-full.json";
     private const string BenchmarkTypeSuffix = "Benchmarks";
 
-    /// <summary>Wire metric ids as the performance suite's <c>WireFixtureDiagnoser</c> emits them.</summary>
-    private const string WireBytesMetricId = "WireBytes";
-
-    /// <summary>See <see cref="WireBytesMetricId"/>.</summary>
-    private const string WireItemsMetricId = "WireItems";
-
-    /// <summary>See <see cref="WireBytesMetricId"/>.</summary>
-    private const string PayloadBytesPerItemMetricId = "PayloadBytesPerItem";
-
     private readonly IFileSystem _fileSystem;
 
     public BenchmarkRunReader(IFileSystem fileSystem)
@@ -39,7 +30,7 @@ internal sealed class BenchmarkRunReader
             .ToArray();
         if (reportPaths.Length == 0)
         {
-            throw new InvalidOperationException(
+            throw new BenchmarkRunException(
                 $"Benchmark run directory '{reportDirectory}' contains no '{ReportPattern}' exports.");
         }
 
@@ -51,7 +42,7 @@ internal sealed class BenchmarkRunReader
             {
                 if (!seenCases.Add((runCase.FullName, runCase.Runtime)))
                 {
-                    throw new InvalidOperationException(
+                    throw new BenchmarkRunException(
                         $"Benchmark case '{runCase.FullName}' on '{runCase.Runtime}' appears more than once under '{reportDirectory}'.");
                 }
 
@@ -72,7 +63,7 @@ internal sealed class BenchmarkRunReader
 
         if (!_fileSystem.Directory.Exists(runDirectory))
         {
-            throw new InvalidOperationException($"Benchmark run directory '{runDirectory}' does not exist.");
+            throw new BenchmarkRunException($"Benchmark run directory '{runDirectory}' does not exist.");
         }
 
         return runDirectory;
@@ -84,7 +75,7 @@ internal sealed class BenchmarkRunReader
         var document = JsonSerializer.Deserialize(reportBytes, BenchmarkReportJsonContext.Default.BenchmarkReportDocument);
         if (document?.Benchmarks is not { Count: > 0 } reportCases)
         {
-            throw new InvalidOperationException($"Benchmark report '{reportPath}' declares no benchmark cases.");
+            throw new BenchmarkRunException($"Benchmark report '{reportPath}' declares no benchmark cases.");
         }
 
         return reportCases.Select(reportCase => ProjectCase(reportPath, reportCase));
@@ -94,7 +85,7 @@ internal sealed class BenchmarkRunReader
     {
         if (reportCase.Memory is not { BytesAllocatedPerOperation: >= 0 } memory)
         {
-            throw new InvalidOperationException(
+            throw new BenchmarkRunException(
                 $"Benchmark case '{reportCase.FullName}' in '{reportPath}' carries no memory diagnostics; run with MemoryDiagnoser enabled.");
         }
 
@@ -109,9 +100,9 @@ internal sealed class BenchmarkRunReader
             // A constant-folded case measures at the noise floor and can report a zero median; it
             // carries no usable timing but its exact allocation still compares.
             MedianNanoseconds = reportCase.Statistics is { Median: > 0 } statistics ? statistics.Median : null,
-            WireBytes = FindWireMetric(reportCase, WireBytesMetricId),
-            WireItems = FindWireMetric(reportCase, WireItemsMetricId),
-            PayloadBytesPerItem = FindWireMetric(reportCase, PayloadBytesPerItemMetricId),
+            WireBytes = FindWireMetric(reportCase, WireMetricIds.WireBytes),
+            WireItems = FindWireMetric(reportCase, WireMetricIds.WireItems),
+            PayloadBytesPerItem = FindWireMetric(reportCase, WireMetricIds.PayloadBytesPerItem),
         };
     }
 

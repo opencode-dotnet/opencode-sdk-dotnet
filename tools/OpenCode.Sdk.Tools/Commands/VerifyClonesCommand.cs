@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
 using OpenCode.Sdk.Tools.Clones;
+using OpenCode.Sdk.Tools.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -18,7 +19,6 @@ namespace OpenCode.Sdk.Tools.Commands;
 internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCommand.Settings>
 {
     private const string SolutionFileName = "OpenCode.slnx";
-    private const int UnwrappedWidth = 4096;
 
     private readonly IFileSystem _fileSystem;
     private readonly IAnsiConsole _console;
@@ -56,7 +56,7 @@ internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCom
             {
                 var result = await _detector.RunAsync(root, scope, split, work, settings.UpdateBaseline, cancellationToken).ConfigureAwait(false);
                 KeepReport(work, scope, settings.ReportDirectory);
-                WriteLine(Markup.Escape(Summary(result)));
+                _console.MarkupLineUnwrapped(Markup.Escape(Summary(result)));
                 if (result.ExitCode != 0)
                 {
                     failed.Add(result);
@@ -67,23 +67,18 @@ internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCom
             {
                 foreach (var result in failed)
                 {
-                    WriteLine($"[red]Clone gate failed for '{Markup.Escape(result.Scope.Name)}':[/] {Markup.Escape(Verdict(result.StandardError))}");
+                    _console.MarkupLineUnwrapped($"[red]Clone gate failed for '{Markup.Escape(result.Scope.Name)}':[/] {Markup.Escape(Verdict(result.StandardError))}");
                     foreach (var location in result.NewCloneLocations)
                     {
-                        WriteLine(Markup.Escape(Location(location)));
+                        _console.MarkupLineUnwrapped(Markup.Escape(Location(location)));
                     }
                 }
 
                 return 1;
             }
 
-            WriteLine(settings.UpdateBaseline ? "[green]Clone baselines updated.[/]" : "[green]Clone gate passed.[/]");
+            _console.MarkupLineUnwrapped(settings.UpdateBaseline ? "[green]Clone baselines updated.[/]" : "[green]Clone gate passed.[/]");
             return 0;
-        }
-        catch (CloneDetectorException exception)
-        {
-            WriteLine($"[red]Refused:[/] {Markup.Escape(exception.Message)}");
-            return 1;
         }
         finally
         {
@@ -91,25 +86,6 @@ internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCom
             {
                 _fileSystem.Directory.Delete(work, recursive: true);
             }
-        }
-    }
-
-    /// <summary>
-    /// Writes one line of the gate's output unwrapped. With its output redirected, as in CI, the
-    /// console is 80 columns wide and would fold a clone's two locations over several lines, where a
-    /// search of the log for them misses; the line keeps its full width instead.
-    /// </summary>
-    private void WriteLine(string markup)
-    {
-        var width = _console.Profile.Width;
-        _console.Profile.Width = Math.Max(width, UnwrappedWidth);
-        try
-        {
-            _console.MarkupLine(markup);
-        }
-        finally
-        {
-            _console.Profile.Width = width;
         }
     }
 

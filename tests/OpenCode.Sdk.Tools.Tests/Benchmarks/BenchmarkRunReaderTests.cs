@@ -1,4 +1,7 @@
+using System.IO.Abstractions;
+using System.Text.Json;
 using OpenCode.Sdk.Tools.Benchmarks;
+using OpenCode.Sdk.Tools.Benchmarks.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions.Testing;
 using Testably.Abstractions.Testing.Initializer;
@@ -115,14 +118,24 @@ public sealed class BenchmarkRunReaderTests
     }
 
     [Test]
+    public async Task ReadAsync_Should_Refuse_An_Export_Without_Cases()
+    {
+        var fileSystem = new MockFileSystem();
+        var reportPath = fileSystem.Path.Combine("runs", "results", "empty-report-full.json");
+        fileSystem.Initialize().With(new FileDescription(reportPath,
+            JsonSerializer.Serialize(new BenchmarkReportDocument { Benchmarks = [] })));
+        var message = await RefusalAsync(fileSystem, "runs");
+
+        await Assert.That(message)
+            .IsEqualTo($"Benchmark report '{reportPath}' declares no benchmark cases.");
+    }
+
+    [Test]
     public async Task ReadAsync_Should_Refuse_A_Missing_Run_Directory()
     {
-        var reader = new BenchmarkRunReader(new MockFileSystem());
+        var message = await RefusalAsync(new MockFileSystem(), "missing");
 
-        var exception = await Assert.That(async () => await reader.ReadAsync("missing", CancellationToken.None))
-            .Throws<InvalidOperationException>();
-
-        await Assert.That(exception!.Message).Contains("does not exist");
+        await Assert.That(message).Contains("does not exist");
     }
 
     [Test]
@@ -130,12 +143,9 @@ public sealed class BenchmarkRunReaderTests
     {
         var fileSystem = new MockFileSystem();
         fileSystem.Directory.CreateDirectory("runs");
-        var reader = new BenchmarkRunReader(fileSystem);
+        var message = await RefusalAsync(fileSystem, "runs");
 
-        var exception = await Assert.That(async () => await reader.ReadAsync("runs", CancellationToken.None))
-            .Throws<InvalidOperationException>();
-
-        await Assert.That(exception!.Message).Contains("*-report-full.json");
+        await Assert.That(message).Contains("*-report-full.json");
     }
 
     [Test]
@@ -145,12 +155,9 @@ public sealed class BenchmarkRunReaderTests
         fileSystem.Initialize().With(new FileDescription(
             "runs/results/missing-memory-report-full.json",
             _fixtures.Load("Benchmarks.missing-memory-report-full.json")));
-        var reader = new BenchmarkRunReader(fileSystem);
+        var message = await RefusalAsync(fileSystem, "runs");
 
-        var exception = await Assert.That(async () => await reader.ReadAsync("runs", CancellationToken.None))
-            .Throws<InvalidOperationException>();
-
-        await Assert.That(exception!.Message).Contains("memory diagnostics");
+        await Assert.That(message).Contains("memory diagnostics");
     }
 
     [Test]
@@ -161,11 +168,16 @@ public sealed class BenchmarkRunReaderTests
         fileSystem.Initialize().With(
             new FileDescription("runs/results/first-report-full.json", report),
             new FileDescription("runs/results/second-report-full.json", report));
+        var message = await RefusalAsync(fileSystem, "runs");
+
+        await Assert.That(message).Contains("more than once");
+    }
+
+    private static async Task<string> RefusalAsync(IFileSystem fileSystem, string runDirectory)
+    {
         var reader = new BenchmarkRunReader(fileSystem);
-
-        var exception = await Assert.That(async () => await reader.ReadAsync("runs", CancellationToken.None))
-            .Throws<InvalidOperationException>();
-
-        await Assert.That(exception!.Message).Contains("more than once");
+        var exception = await Assert.That(async () => _ = await reader.ReadAsync(runDirectory, CancellationToken.None))
+            .Throws<BenchmarkRunException>();
+        return exception!.Message;
     }
 }

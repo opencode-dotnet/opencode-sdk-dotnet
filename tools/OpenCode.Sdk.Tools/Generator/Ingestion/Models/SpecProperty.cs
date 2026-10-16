@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Describes one property of a projected object schema.</summary>
-public sealed record SpecProperty
+internal sealed record SpecProperty
 {
     /// <summary>Gets the opaque wire property name.</summary>
     public required string Name

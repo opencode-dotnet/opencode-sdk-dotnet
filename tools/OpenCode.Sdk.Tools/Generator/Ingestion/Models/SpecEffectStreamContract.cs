@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Describes one projected <c>x-effect-stream</c> media extension.</summary>
-public sealed record SpecEffectStreamContract
+internal sealed record SpecEffectStreamContract
 {
     /// <summary>Gets the declared stream encoding, when supplied.</summary>
     public string? Encoding { get; init; }

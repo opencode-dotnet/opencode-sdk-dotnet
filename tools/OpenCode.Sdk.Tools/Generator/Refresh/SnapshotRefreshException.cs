@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Refresh;
 
 /// <summary>A refused synchronizer step; the message states the exact wall that answered.</summary>
-public sealed class SnapshotRefreshException : Exception
+public sealed class SnapshotRefreshException : ToolRefusalException
 {
     /// <summary>Creates the refusal with its wall message.</summary>
     public SnapshotRefreshException(string message)
