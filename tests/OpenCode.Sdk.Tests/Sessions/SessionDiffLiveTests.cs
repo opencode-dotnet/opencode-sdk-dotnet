@@ -27,16 +27,11 @@ public sealed class SessionDiffLiveTests(SimulatedDriveServerFixture server)
     public async Task CommitRevertAsync_Should_Remove_The_Staged_Tail_When_A_Boundary_Is_Staged(
         CancellationToken cancellationToken)
     {
-        const string secondPrompt = "Revert excluded prompt";
-        const string secondReply = "Revert excluded reply.";
         await WithOwnedSessionAsync(async (client, sessionId, session) =>
         {
-            var first = await CompleteHistoryAsync(client, session, sessionId, cancellationToken);
-            var turn = new SimulatedSessionTurn(server, client, session, sessionId);
-            _ = await turn.CompleteAsync(secondPrompt, secondReply, cancellationToken);
-            _ = await client.Experimental.WaitForSessionAsync(sessionId, cancellationToken: cancellationToken);
-            var before = await EnumerateMessagesAsync(session, cancellationToken);
-            var boundary = before.OfType<SessionMessageUser>().Single(message => message.Text == secondPrompt).Id;
+            var before = await CompleteHistoryAsync(client, session, sessionId, cancellationToken, exchangeCount: 3);
+            var boundary = before.OfType<SessionMessageUser>().ElementAt(1).Id;
+            var first = before.TakeWhile(message => message.Id != boundary).ToList();
             await StageAndVerifyBoundaryAsync(session, boundary, cancellationToken);
 
             _ = await session.CommitRevertAsync(cancellationToken: cancellationToken);
@@ -55,7 +50,7 @@ public sealed class SessionDiffLiveTests(SimulatedDriveServerFixture server)
 
     [Test]
     [Timeout(180_000)]
-    public async Task StageRevertAsync_Should_Record_The_Boundary_When_File_Reversion_Is_Disabled(
+    public async Task StageRevertAsync_Should_Record_The_Boundary_Without_Removing_History_When_A_Non_Latest_Message_Is_Selected(
         CancellationToken cancellationToken)
     {
         await WithOwnedSessionAsync(async (client, sessionId, session) =>
@@ -67,7 +62,6 @@ public sealed class SessionDiffLiveTests(SimulatedDriveServerFixture server)
 
             await Assert.That(staged.Revert).IsNotNull();
             await Assert.That(staged.Revert!.MessageId).IsEqualTo(boundary);
-            await Assert.That(staged.Revert.Files).IsEmpty();
             var after = await EnumerateMessagesAsync(session, cancellationToken);
             await Assert.That(after.Select(message => message.Id))
                 .IsEquivalentTo(before.Select(message => message.Id), CollectionOrdering.Matching);
@@ -91,12 +85,13 @@ public sealed class SessionDiffLiveTests(SimulatedDriveServerFixture server)
             var state = await session.GetAsync(cancellationToken: cancellationToken);
             await Assert.That(state.Session.Revert).IsNull();
             var after = await EnumerateMessagesAsync(session, cancellationToken);
-            // Clearing wakes execution and may append an idle marker, but preserves the exchange.
+            // Clearing wakes execution and may append an idle marker, but preserves both exchanges.
             await Assert.That(after.Where(message => message is SessionMessageUser or SessionMessageAssistant).Select(message => message.Id))
                 .IsEquivalentTo(before.Where(message => message is SessionMessageUser or SessionMessageAssistant).Select(message => message.Id), CollectionOrdering.Matching);
-            var evidence = new SessionMessageEvidenceProjector().Project(after);
+            var projector = new SessionMessageEvidenceProjector();
+            var evidence = projector.Project(after);
             await Assert.That(evidence.Where(message => message.Type is "user" or "assistant").Select(message => message.Text))
-                .IsEquivalentTo([Prompt, Reply], CollectionOrdering.Matching);
+                .IsEquivalentTo(projector.Project(before).Where(message => message.Type is "user" or "assistant").Select(message => message.Text), CollectionOrdering.Matching);
         }, cancellationToken);
     }
 
@@ -263,10 +258,16 @@ public sealed class SessionDiffLiveTests(SimulatedDriveServerFixture server)
         OpenCodeClient client,
         SessionClient session,
         string sessionId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int exchangeCount = 2)
     {
         var turn = new SimulatedSessionTurn(server, client, session, sessionId);
-        _ = await turn.CompleteAsync(Prompt, Reply, cancellationToken);
+        for (var exchange = 0; exchange < exchangeCount; exchange++)
+        {
+            var suffix = exchange == 0 ? string.Empty : " " + Number(exchange + 1);
+            _ = await turn.CompleteAsync(Prompt + suffix, Reply + suffix, cancellationToken);
+        }
+
         _ = await client.Experimental.WaitForSessionAsync(sessionId, cancellationToken: cancellationToken);
         return await EnumerateMessagesAsync(session, cancellationToken);
     }

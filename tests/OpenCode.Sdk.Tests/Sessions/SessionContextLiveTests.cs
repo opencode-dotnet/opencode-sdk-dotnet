@@ -49,24 +49,35 @@ public sealed class SessionContextLiveTests(SimulatedDriveServerFixture server)
         CancellationToken cancellationToken)
     {
         using var generationCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        const string prompt = "Session generation context prompt";
+        const string contextReply = "Session generation context reply.";
+        const string generationPrompt = "Generate a preview without adding a conversation message";
         const string reply = "One-shot session generation reply.";
         await WithOwnedSessionAsync(async (client, sessionId, sessionCleanup, cleanup) =>
         {
             cleanup.Own("generation cancellation", _ => generationCancellation.CancelOnWorkerAsync());
             var session = client.Sessions.GetSessionClient(sessionId);
-            var before = await CompleteConversationAsync(client, sessionId, cancellationToken);
+            var before = await CompleteConversationAsync(client, sessionId, cancellationToken, prompt, contextReply);
             var projector = new SessionMessageEvidenceProjector();
             var evidence = projector.Project(before);
 
             var generation = session.GenerateTextAsync(new SessionGenerateRequest
             {
-                Prompt = "Generate a preview without adding a conversation message",
+                Prompt = generationPrompt,
             }, cancellationToken: generationCancellation.Token);
             cleanup.Own("original generation request", generation,
                 _ => generationCancellation.IsCancellationRequested);
             var invocation = new OwnedDriveInvocation(server.Controller,
                 await server.Controller.WaitForRequestAsync(TimeSpan.FromSeconds(60)));
             cleanup.Own("generation invocation", invocation.DisconnectAsync);
+            var messages = invocation.Invocation.Body.GetProperty("messages").EnumerateArray()
+                .Where(message => message.GetProperty("role").GetString() is "user" or "assistant").ToList();
+            string?[] expectedRoles = ["user", "assistant", "user"];
+            string?[] expectedTexts = [prompt, contextReply, generationPrompt];
+            await Assert.That(messages.Select(message => message.GetProperty("role").GetString()))
+                .IsEquivalentTo(expectedRoles, CollectionOrdering.Matching);
+            await Assert.That(messages.Select(message => message.GetProperty("content").GetString()))
+                .IsEquivalentTo(expectedTexts, CollectionOrdering.Matching);
             await invocation.ChunkTextAsync(reply);
             await invocation.FinishAsync();
             // Observe history after the request is terminal, even if a wrong route broke its body.
@@ -163,9 +174,12 @@ public sealed class SessionContextLiveTests(SimulatedDriveServerFixture server)
         CancellationToken cancellationToken,
         out OwnedEventReader reader)
     {
-        var owned = new OwnedEventReader(TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(15), cancellationToken);
+        var readerStepTimeout = TimeSpan.FromSeconds(15);
+        var owned = new OwnedEventReader(TimeSpan.FromSeconds(120), readerStepTimeout, cancellationToken);
         reader = owned;
-        cleanup.Own("context event reader", _ => owned.CompleteAsync(null));
+        // Two inner steps can each spend a budget on the operation and another on cancellation.
+        // Leave one further step's margin so the reader reports its own named failure first.
+        cleanup.Own("context event reader", TimeSpan.FromTicks(readerStepTimeout.Ticks * 5), _ => owned.CompleteAsync(null));
         return new SessionEventProbe(owned);
     }
 
@@ -182,11 +196,13 @@ public sealed class SessionContextLiveTests(SimulatedDriveServerFixture server)
     private async Task<IReadOnlyList<ISessionMessageInfo>> CompleteConversationAsync(
         OpenCodeClient client,
         string sessionId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string prompt = "Context coverage prompt",
+        string reply = "Context coverage reply.")
     {
         var session = client.Sessions.GetSessionClient(sessionId);
         var turn = new SimulatedSessionTurn(server, client, session, sessionId);
-        _ = await turn.CompleteAsync("Context coverage prompt", "Context coverage reply.", cancellationToken);
+        _ = await turn.CompleteAsync(prompt, reply, cancellationToken);
         _ = await client.Experimental.WaitForSessionAsync(sessionId, cancellationToken: cancellationToken);
         return await ReadHistoryAsync(session, cancellationToken);
     }
