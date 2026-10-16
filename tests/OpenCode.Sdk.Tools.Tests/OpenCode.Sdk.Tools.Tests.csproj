@@ -18,6 +18,7 @@
 
   <!-- Cross-project test support compiles into each consuming test project as shared source. -->
   <ItemGroup>
+    <Compile Include="../Shared/BestEffortDelete.cs" LinkBase="Shared" />
     <Compile Include="../Shared/TestCategories.cs" LinkBase="Shared" />
   </ItemGroup>
 

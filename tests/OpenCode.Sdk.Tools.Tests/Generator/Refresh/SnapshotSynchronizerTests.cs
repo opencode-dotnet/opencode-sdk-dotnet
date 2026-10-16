@@ -3,8 +3,10 @@ using System.Text.Json;
 using OpenCode.Sdk.Tools.Generator.Refresh;
 using OpenCode.Sdk.Tools.Generator.Refresh.Models;
 using OpenCode.Sdk.Tools.Serialization;
+using OpenCode.Sdk.Tools.Tests.Generator.Refresh.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions.Testing;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Refresh;
 
@@ -33,14 +35,11 @@ public sealed class SnapshotSynchronizerTests
     public async Task Prepare_Should_Run_The_Pinned_Generator_Without_Patches()
     {
         var fileSystem = await CreateRepositoryAsync();
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "fetch origin")
-            .Expect("git", "rev-parse", ScriptedProcessRunner.Ok(RefreshScenarioData.Commit + "\n"))
-            .Expect("git", "show", ScriptedProcessRunner.Ok(CandidateDocument));
+        using var scenario = new RefreshScenario(fileSystem);
+        var runner = scenario.ExpectReference(CandidateDocument);
         ExpectGeneration(runner, fileSystem, CandidateDocument);
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
 
-        var outcome = await synchronizer.PrepareAsync("origin/v2", CancellationToken.None);
+        var outcome = await scenario.Synchronizer.PrepareAsync("origin/v2", CancellationToken.None);
 
         var receipt = outcome.Receipt;
         await Assert.That(receipt.UpstreamCommit).IsEqualTo(RefreshScenarioData.Commit);
@@ -56,28 +55,25 @@ public sealed class SnapshotSynchronizerTests
         await Assert
             .That(runner.Invocations.Count(static invocation => invocation.StartsWith("bun run generate", StringComparison.Ordinal)))
             .IsEqualTo(1);
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
     public async Task Prepare_Should_Install_The_Generator_Output_Over_A_Stale_Committed_Artifact()
     {
         var fileSystem = await CreateRepositoryAsync();
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "fetch origin")
-            .Expect("git", "rev-parse", ScriptedProcessRunner.Ok(RefreshScenarioData.Commit + "\n"))
-            .Expect("git", "show", ScriptedProcessRunner.Ok(AcceptedDocument));
+        using var scenario = new RefreshScenario(fileSystem);
+        var runner = scenario.ExpectReference(AcceptedDocument);
         ExpectGeneration(runner, fileSystem, CandidateDocument);
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
 
-        var outcome = await synchronizer.PrepareAsync("origin/v2", CancellationToken.None);
+        var outcome = await scenario.Synchronizer.PrepareAsync("origin/v2", CancellationToken.None);
 
         var receipt = outcome.Receipt;
         await Assert.That(receipt.RawDocumentSha256).IsEqualTo(DocumentInspector.Sha256Hex(AcceptedDocument));
         await Assert.That(receipt.GeneratedBaselineSha256).IsEqualTo(DocumentInspector.Sha256Hex(CandidateDocument));
         await Assert.That(receipt.NormalizedDocumentSha256).IsEqualTo(DocumentInspector.Sha256Hex(CandidateDocument));
         await Assert.That(receipt.AddedOperations).IsEquivalentTo(["v2.gamma.get"]);
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
@@ -85,21 +81,16 @@ public sealed class SnapshotSynchronizerTests
     {
         var fileSystem = await CreateRepositoryAsync();
         await WritePatchSetAsync(fileSystem);
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "fetch origin")
-            .Expect("git", "rev-parse", ScriptedProcessRunner.Ok(RefreshScenarioData.Commit + "\n"))
-            .Expect("git", "show", ScriptedProcessRunner.Ok(LacksStreamLink));
+        using var scenario = new RefreshScenario(fileSystem);
+        var runner = scenario.ExpectReference(LacksStreamLink);
         ExpectGeneration(runner, fileSystem, CarriesStreamLink);
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
 
-        var exception = await Assert
-            .That(async () => _ = await synchronizer.PrepareAsync("origin/v2", CancellationToken.None))
-            .Throws<SnapshotRefreshException>();
+        var exception = await scenario.PrepareRefusalAsync();
 
-        await Assert.That(exception!.Message).Contains("retire the patch");
-        await Assert.That(runner.Invocations.Any(static invocation => invocation.StartsWith("git apply", StringComparison.Ordinal)))
+        await Assert.That(exception.Message).Contains("retire the patch");
+        await Assert.That(runner.Invocations.Any(static invocation => invocation.StartsWith("git -c core.longpaths=true apply", StringComparison.Ordinal)))
             .IsFalse();
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
@@ -107,19 +98,15 @@ public sealed class SnapshotSynchronizerTests
     {
         var fileSystem = await CreateRepositoryAsync();
         await WritePatchSetAsync(fileSystem);
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "fetch origin")
-            .Expect("git", "rev-parse", ScriptedProcessRunner.Ok(RefreshScenarioData.Commit + "\n"))
-            .Expect("git", "show", ScriptedProcessRunner.Ok(CarriesStreamLink));
+        using var scenario = new RefreshScenario(fileSystem);
+        var runner = scenario.ExpectReference(CarriesStreamLink);
         ExpectGeneration(runner, fileSystem, LacksStreamLink, patched: CarriesStreamLink);
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
-
-        var outcome = await synchronizer.PrepareAsync("origin/v2", CancellationToken.None);
+        var outcome = await scenario.Synchronizer.PrepareAsync("origin/v2", CancellationToken.None);
 
         await Assert.That(outcome.Receipt.Patches.Count).IsEqualTo(1);
         await Assert.That(outcome.Receipt.GeneratedBaselineSha256).IsEqualTo(DocumentInspector.Sha256Hex(LacksStreamLink));
         await Assert.That(outcome.Receipt.NormalizedDocumentSha256).IsEqualTo(DocumentInspector.Sha256Hex(CarriesStreamLink));
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
@@ -129,14 +116,10 @@ public sealed class SnapshotSynchronizerTests
         var normalized = CarriesStreamLink;
         var fileSystem = await CreateRepositoryAsync();
         await WritePatchSetAsync(fileSystem);
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "fetch origin")
-            .Expect("git", "rev-parse", ScriptedProcessRunner.Ok(RefreshScenarioData.Commit + "\n"))
-            .Expect("git", "show", ScriptedProcessRunner.Ok(baseline));
+        using var scenario = new RefreshScenario(fileSystem);
+        var runner = scenario.ExpectReference(baseline);
         ExpectGeneration(runner, fileSystem, baseline, patched: normalized);
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
-
-        var outcome = await synchronizer.PrepareAsync("origin/v2", CancellationToken.None);
+        var outcome = await scenario.Synchronizer.PrepareAsync("origin/v2", CancellationToken.None);
 
         var receipt = outcome.Receipt;
         await Assert.That(receipt.GeneratedBaselineSha256).IsEqualTo(DocumentInspector.Sha256Hex(baseline));
@@ -147,27 +130,24 @@ public sealed class SnapshotSynchronizerTests
         await Assert
             .That(await fileSystem.File.ReadAllBytesAsync(outcome.NormalizedDocumentPath, CancellationToken.None))
             .IsEquivalentTo(normalized);
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
-    public async Task Prepare_Should_Refuse_A_Patch_That_Does_Not_Repair_Its_Component()
+    [Arguments(false, "did not repair component 'V2EventEncoded'")]
+    [Arguments(true, "patch '001-test.json' touches 'packages/protocol/script/generate-openapi.ts', which does not exist at the target commit")]
+    public async Task Prepare_Should_Refuse_A_Patch_That_Does_Not_Repair_Its_Component(bool missingPreimage, string diagnostic)
     {
         var fileSystem = await CreateRepositoryAsync();
         await WritePatchSetAsync(fileSystem);
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "fetch origin")
-            .Expect("git", "rev-parse", ScriptedProcessRunner.Ok(RefreshScenarioData.Commit + "\n"))
-            .Expect("git", "show", ScriptedProcessRunner.Ok(LacksStreamLink));
-        ExpectGeneration(runner, fileSystem, LacksStreamLink, patched: LacksStreamLink);
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
+        using var scenario = new RefreshScenario(fileSystem);
+        var runner = scenario.ExpectReference(LacksStreamLink);
+        ExpectGeneration(runner, fileSystem, LacksStreamLink, patched: LacksStreamLink, missingPreimage: missingPreimage);
 
-        var exception = await Assert
-            .That(async () => _ = await synchronizer.PrepareAsync("origin/v2", CancellationToken.None))
-            .Throws<SnapshotRefreshException>();
+        var exception = await scenario.PrepareRefusalAsync();
 
-        await Assert.That(exception!.Message).Contains("did not repair component 'V2EventEncoded'");
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(exception.Message).Contains(diagnostic);
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
@@ -175,55 +155,40 @@ public sealed class SnapshotSynchronizerTests
     {
         var fileSystem = await CreateRepositoryAsync();
         await WritePatchSetAsync(fileSystem);
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "fetch origin")
-            .Expect("git", "rev-parse", ScriptedProcessRunner.Ok(RefreshScenarioData.Commit + "\n"))
-            .Expect("git", "show", ScriptedProcessRunner.Ok(LacksStreamLink));
+        using var scenario = new RefreshScenario(fileSystem);
+        var runner = scenario.ExpectReference(LacksStreamLink);
         ExpectGeneration(runner, fileSystem, CandidateDocument);
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
 
-        var exception = await Assert
-            .That(async () => _ = await synchronizer.PrepareAsync("origin/v2", CancellationToken.None))
-            .Throws<SnapshotRefreshException>();
+        var exception = await scenario.PrepareRefusalAsync();
 
-        await Assert.That(exception!.Message).Contains("is absent from the generated baseline");
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(exception.Message).Contains("is absent from the generated baseline");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
     public async Task Prepare_Should_Refuse_A_Generator_Run_That_Writes_No_Document()
     {
         var fileSystem = await CreateRepositoryAsync();
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "fetch origin")
-            .Expect("git", "rev-parse", ScriptedProcessRunner.Ok(RefreshScenarioData.Commit + "\n"))
-            .Expect("git", "show", ScriptedProcessRunner.Ok(CandidateDocument));
-        ExpectGeneration(runner, fileSystem, baseline: null);
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
+        using var scenario = new RefreshScenario(fileSystem);
+        var runner = scenario.ExpectReference(CandidateDocument);
+        ExpectGeneration(runner, fileSystem, baseline: null, staleArtifact: CandidateDocument);
 
-        var exception = await Assert
-            .That(async () => _ = await synchronizer.PrepareAsync("origin/v2", CancellationToken.None))
-            .Throws<SnapshotRefreshException>();
+        var exception = await scenario.PrepareRefusalAsync();
 
-        await Assert.That(exception!.Message).Contains("exited cleanly but wrote no");
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(exception.Message).Contains("exited cleanly but wrote no");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
     public async Task Apply_Should_Refuse_A_Receipt_Without_A_Generator_Baseline()
     {
         var fileSystem = await CreateRepositoryAsync();
+        using var scenario = new RefreshScenario(fileSystem, CreateMutationRunner(fileSystem));
         var receipt = CreateReceipt(CandidateDocument, "scratch/openapi.json") with { GeneratedBaselineSha256 = null! };
-        _ = fileSystem.Directory.CreateDirectory("scratch");
-        await fileSystem.File.WriteAllBytesAsync("scratch/openapi.json", CandidateDocument);
-        await fileSystem.File.WriteAllTextAsync("scratch/receipt.json", RefreshScenarioData.Serialize(receipt));
-        var synchronizer = CreateSynchronizer(fileSystem, new ScriptedProcessRunner());
+        await scenario.StageCandidateAsync(receipt, CandidateDocument);
+        var exception = await scenario.ApplyRefusalAsync();
 
-        var exception = await Assert
-            .That(async () => _ = await synchronizer.ApplyAsync("scratch/receipt.json", CancellationToken.None))
-            .Throws<SnapshotRefreshException>();
-
-        await Assert.That(exception!.Message).Contains("records no generator baseline");
+        await Assert.That(exception.Message).Contains("records no generator baseline");
         await Assert.That(await fileSystem.File.ReadAllBytesAsync(SnapshotPaths.AcceptedDocument, CancellationToken.None)).IsEquivalentTo(AcceptedDocument);
     }
 
@@ -231,34 +196,23 @@ public sealed class SnapshotSynchronizerTests
     public async Task Apply_Should_Refuse_Time_Of_Check_Drift()
     {
         var fileSystem = await CreateRepositoryAsync();
+        using var scenario = new RefreshScenario(fileSystem, CreateMutationRunner(fileSystem));
         var receipt = CreateReceipt(CandidateDocument, "scratch/openapi.json");
-        _ = fileSystem.Directory.CreateDirectory("scratch");
-        await fileSystem.File.WriteAllBytesAsync("scratch/openapi.json", AcceptedDocument);
-        await fileSystem.File.WriteAllTextAsync("scratch/receipt.json", RefreshScenarioData.Serialize(receipt));
-        var synchronizer = CreateSynchronizer(fileSystem, new ScriptedProcessRunner());
+        await scenario.StageCandidateAsync(receipt, AcceptedDocument);
+        var exception = await scenario.ApplyRefusalAsync();
 
-        var exception = await Assert
-            .That(async () => _ = await synchronizer.ApplyAsync("scratch/receipt.json", CancellationToken.None))
-            .Throws<SnapshotRefreshException>();
-
-        await Assert.That(exception!.Message).Contains("re-run prepare");
+        await Assert.That(exception.Message).Contains("re-run prepare");
     }
 
     [Test]
     public async Task Apply_Should_Install_The_Accepted_Snapshot_Paths()
     {
         var fileSystem = await CreateRepositoryAsync();
+        using var scenario = new RefreshScenario(fileSystem);
         var receipt = CreateReceipt(CandidateDocument, "scratch/openapi.json");
-        _ = fileSystem.Directory.CreateDirectory("scratch");
-        await fileSystem.File.WriteAllBytesAsync("scratch/openapi.json", CandidateDocument);
-        await fileSystem.File.WriteAllTextAsync("scratch/receipt.json", RefreshScenarioData.Serialize(receipt));
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "fetch origin")
-            .Expect("git", "rev-parse --verify")
-            .Expect("git", "checkout --detach");
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
-
-        var applied = await synchronizer.ApplyAsync("scratch/receipt.json", CancellationToken.None);
+        await scenario.StageCandidateAsync(receipt, CandidateDocument);
+        var runner = scenario.ExpectApply();
+        var applied = await scenario.Synchronizer.ApplyAsync("scratch/receipt.json", CancellationToken.None);
 
         await Assert.That(applied.NormalizedDocumentPath).IsNull();
         await Assert
@@ -274,16 +228,21 @@ public sealed class SnapshotSynchronizerTests
         await Assert.That(snapshotMarkdown).DoesNotContain("Date: 2026-08-13");
         await Assert
             .That(runner.Invocations.Any(invocation =>
-                invocation.StartsWith($"git checkout --detach {RefreshScenarioData.Commit}", StringComparison.Ordinal)))
+                invocation.StartsWith($"git -c core.longpaths=true checkout --detach {RefreshScenarioData.Commit}", StringComparison.Ordinal)))
             .IsTrue();
     }
 
     [Test]
-    public async Task Verify_Should_Report_A_Missing_Receipt()
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Verify_Should_Report_A_Missing_Receipt(bool unreadableHead)
     {
-        var synchronizer = CreateSynchronizer(await CreateRepositoryAsync(), new ScriptedProcessRunner());
+        var fileSystem = await CreateRepositoryAsync();
+        using var scenario = new RefreshScenario(fileSystem, new ScriptedProcessRunner()
+            .Expect("git", ["rev-parse", "HEAD"], Submodule(fileSystem), unreadableHead
+                ? ScriptedProcessRunner.Fail("uninitialized submodule") : ScriptedProcessRunner.Ok(RefreshScenarioData.Commit)));
 
-        var outcome = await synchronizer.VerifyAsync(CancellationToken.None);
+        var outcome = await scenario.Synchronizer.VerifyAsync(CancellationToken.None);
 
         await Assert.That(outcome.IsReproduced).IsFalse();
         await Assert.That(outcome.Problems.Single()).Contains("no committed receipt");
@@ -293,15 +252,12 @@ public sealed class SnapshotSynchronizerTests
     public async Task Verify_Should_Reproduce_A_Matching_State()
     {
         var fileSystem = await CreateRepositoryAsync();
-        await fileSystem.File.WriteAllBytesAsync(SnapshotPaths.AcceptedDocument, CandidateDocument);
-        await fileSystem.File.WriteAllTextAsync(
-            SnapshotPaths.CommittedReceipt,
-            RefreshScenarioData.Serialize(CreateReceipt(CandidateDocument, normalizedDocumentPath: null)));
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "rev-parse HEAD", ScriptedProcessRunner.Ok(RefreshScenarioData.Commit + "\n"));
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
+        using var scenario = new RefreshScenario(fileSystem);
+        await scenario.SeedAcceptedReceiptAsync(CreateReceipt(CandidateDocument, normalizedDocumentPath: null), CandidateDocument);
+        _ = scenario.Runner
+            .Expect("git", ["rev-parse", "HEAD"], Submodule(fileSystem), ScriptedProcessRunner.Ok(RefreshScenarioData.Commit + "\n"));
 
-        var outcome = await synchronizer.VerifyAsync(CancellationToken.None);
+        var outcome = await scenario.Synchronizer.VerifyAsync(CancellationToken.None);
 
         await Assert.That(outcome.Problems).IsEmpty();
         await Assert.That(outcome.IsReproduced).IsTrue();
@@ -311,14 +267,12 @@ public sealed class SnapshotSynchronizerTests
     public async Task Verify_Should_Report_Document_And_Checkout_Mismatches()
     {
         var fileSystem = await CreateRepositoryAsync();
-        await fileSystem.File.WriteAllTextAsync(
-            SnapshotPaths.CommittedReceipt,
-            RefreshScenarioData.Serialize(CreateReceipt(CandidateDocument, normalizedDocumentPath: null)));
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "rev-parse HEAD", ScriptedProcessRunner.Ok(new string('b', 40) + "\n"));
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
+        using var scenario = new RefreshScenario(fileSystem);
+        await scenario.SeedAcceptedReceiptAsync(CreateReceipt(CandidateDocument, normalizedDocumentPath: null));
+        _ = scenario.Runner
+            .Expect("git", ["rev-parse", "HEAD"], Submodule(fileSystem), ScriptedProcessRunner.Ok(new string('b', 40) + "\n"));
 
-        var outcome = await synchronizer.VerifyAsync(CancellationToken.None);
+        var outcome = await scenario.Synchronizer.VerifyAsync(CancellationToken.None);
 
         await Assert.That(outcome.Problems.Any(static problem => problem.Contains("hash", StringComparison.Ordinal))).IsTrue();
         await Assert.That(outcome.Problems.Any(static problem => problem.Contains("checkout", StringComparison.Ordinal))).IsTrue();
@@ -331,16 +285,11 @@ public sealed class SnapshotSynchronizerTests
         var fileSystem = await CreateRepositoryAsync();
         var pinned = RefreshScenarioData.Watched("packages/server/src/handlers/pty.ts", handler, "4404");
         await WriteSourceWatchAsync(fileSystem, pinned);
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "fetch origin")
-            .Expect("git", "rev-parse", ScriptedProcessRunner.Ok(RefreshScenarioData.Commit + "\n"))
-            .Expect("git", $"show {RefreshScenarioData.Commit}:{SnapshotPaths.UpstreamArtifact}",
-                ScriptedProcessRunner.Ok(CandidateDocument))
-            .Expect("git", $"show {RefreshScenarioData.Commit}:{pinned.Path}", ScriptedProcessRunner.Ok(handler));
+        using var scenario = new RefreshScenario(fileSystem);
+        var runner = scenario.ExpectReference(CandidateDocument)
+            .Expect("git", ["show", $"{RefreshScenarioData.Commit}:{pinned.Path}"], Submodule(fileSystem), ScriptedProcessRunner.Ok(handler));
         ExpectGeneration(runner, fileSystem, CandidateDocument);
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
-
-        var outcome = await synchronizer.PrepareAsync("origin/v2", CancellationToken.None);
+        var outcome = await scenario.Synchronizer.PrepareAsync("origin/v2", CancellationToken.None);
 
         var watched = outcome.Receipt.WatchedSources.Single();
         await Assert.That(watched.Path).IsEqualTo(pinned.Path);
@@ -354,17 +303,13 @@ public sealed class SnapshotSynchronizerTests
         var fileSystem = await CreateRepositoryAsync();
         var pinned = RefreshScenarioData.Watched("packages/core/src/pty/ticket.ts", "Duration.seconds(60)", "seconds(60)");
         await WriteSourceWatchAsync(fileSystem, pinned);
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "fetch origin")
-            .Expect("git", "rev-parse", ScriptedProcessRunner.Ok(RefreshScenarioData.Commit + "\n"))
-            .Expect("git", $"show {RefreshScenarioData.Commit}:{SnapshotPaths.UpstreamArtifact}",
-                ScriptedProcessRunner.Ok(CandidateDocument))
-            .Expect("git", $"show {RefreshScenarioData.Commit}:{pinned.Path}",
+        using var scenario = new RefreshScenario(fileSystem);
+        _ = scenario.ExpectReference(CandidateDocument)
+            .Expect("git", ["show", $"{RefreshScenarioData.Commit}:{pinned.Path}"], Submodule(fileSystem),
                 ScriptedProcessRunner.Fail("fatal: path does not exist"));
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
 
         var exception = await Assert
-            .That(async () => _ = await synchronizer.PrepareAsync("origin/v2", CancellationToken.None))
+            .That(async () => _ = await scenario.Synchronizer.PrepareAsync("origin/v2", CancellationToken.None))
             .Throws<SnapshotRefreshException>();
 
         await Assert.That(exception!.Message).Contains("watched source 'packages/core/src/pty/ticket.ts' cannot be read");
@@ -374,21 +319,12 @@ public sealed class SnapshotSynchronizerTests
     public async Task Verify_Should_Report_A_Watched_Source_That_Moved()
     {
         var fileSystem = await CreateRepositoryAsync();
-        await fileSystem.File.WriteAllBytesAsync(SnapshotPaths.AcceptedDocument, CandidateDocument);
-        var pinned = RefreshScenarioData.Watched("packages/core/src/pty.ts", "const BUFFER_LIMIT = 1024 * 1024 * 2", "BUFFER_LIMIT");
-        await fileSystem.File.WriteAllTextAsync(
-            SnapshotPaths.CommittedReceipt,
-            RefreshScenarioData.Serialize(CreateReceipt(CandidateDocument, normalizedDocumentPath: null) with
-            {
-                WatchedSources = [Observation(pinned.Path, pinned.Sha256, anchorMatched: true)],
-            }));
-        await WriteSourceWatchAsync(fileSystem, pinned);
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "rev-parse HEAD", ScriptedProcessRunner.Ok(RefreshScenarioData.Commit + "\n"))
-            .Expect("git", $"show HEAD:{pinned.Path}", ScriptedProcessRunner.Ok("const BUFFER_LIMIT = 4 * 1024 * 1024"));
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
+        using var scenario = new RefreshScenario(fileSystem);
+        var pinned = RefreshScenarioData.PtyBufferSource;
+        await scenario.SeedWatchedReceiptAsync(CreateReceipt(CandidateDocument, null), pinned, anchorMatched: true, CandidateDocument);
+        _ = scenario.ExpectObservedSource(pinned, "const BUFFER_LIMIT = 4 * 1024 * 1024");
 
-        var outcome = await synchronizer.VerifyAsync(CancellationToken.None);
+        var outcome = await scenario.Synchronizer.VerifyAsync(CancellationToken.None);
 
         // A checkout that moved under the door disagrees with both readings: the committed pin
         // and the accepted receipt's own record of the same file.
@@ -411,21 +347,12 @@ public sealed class SnapshotSynchronizerTests
     public async Task Verify_Should_Report_A_Receipt_Whose_Watched_Sources_It_Cannot_Reproduce()
     {
         var fileSystem = await CreateRepositoryAsync();
-        await fileSystem.File.WriteAllBytesAsync(SnapshotPaths.AcceptedDocument, CandidateDocument);
-        var pinned = RefreshScenarioData.Watched("packages/core/src/pty.ts", "const BUFFER_LIMIT = 1024 * 1024 * 2", "BUFFER_LIMIT");
-        await fileSystem.File.WriteAllTextAsync(
-            SnapshotPaths.CommittedReceipt,
-            RefreshScenarioData.Serialize(CreateReceipt(CandidateDocument, normalizedDocumentPath: null) with
-            {
-                WatchedSources = [Observation(pinned.Path, pinned.Sha256, anchorMatched: false)],
-            }));
-        await WriteSourceWatchAsync(fileSystem, pinned);
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "rev-parse HEAD", ScriptedProcessRunner.Ok(RefreshScenarioData.Commit + "\n"))
-            .Expect("git", $"show HEAD:{pinned.Path}", ScriptedProcessRunner.Ok("const BUFFER_LIMIT = 1024 * 1024 * 2"));
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
+        using var scenario = new RefreshScenario(fileSystem);
+        var pinned = RefreshScenarioData.PtyBufferSource;
+        await scenario.SeedWatchedReceiptAsync(CreateReceipt(CandidateDocument, null), pinned, anchorMatched: false, CandidateDocument);
+        _ = scenario.ExpectObservedSource(pinned, "const BUFFER_LIMIT = 1024 * 1024 * 2");
 
-        var outcome = await synchronizer.VerifyAsync(CancellationToken.None);
+        var outcome = await scenario.Synchronizer.VerifyAsync(CancellationToken.None);
 
         await Assert.That(outcome.Problems.Single()).Contains("anchorMatched=false, but this checkout observes true");
     }
@@ -434,23 +361,18 @@ public sealed class SnapshotSynchronizerTests
     public async Task Apply_Should_Repin_The_Watch_Over_The_Reviewed_Receipt()
     {
         var fileSystem = await CreateRepositoryAsync();
-        var pinned = RefreshScenarioData.Watched("packages/core/src/pty.ts", "const BUFFER_LIMIT = 1024 * 1024 * 2", "BUFFER_LIMIT");
+        using var scenario = new RefreshScenario(fileSystem);
+        var pinned = RefreshScenarioData.PtyBufferSource;
         await WriteSourceWatchAsync(fileSystem, pinned);
         var moved = RefreshScenarioData.Watched(pinned.Path, "const BUFFER_LIMIT = 1024 * 1024 * 4", "BUFFER_LIMIT");
         var receipt = CreateReceipt(CandidateDocument, "scratch/openapi.json") with
         {
             WatchedSources = [Observation(moved.Path, moved.Sha256, anchorMatched: true)],
         };
-        _ = fileSystem.Directory.CreateDirectory("scratch");
-        await fileSystem.File.WriteAllBytesAsync("scratch/openapi.json", CandidateDocument);
-        await fileSystem.File.WriteAllTextAsync("scratch/receipt.json", RefreshScenarioData.Serialize(receipt));
-        var runner = new ScriptedProcessRunner()
-            .Expect("git", "fetch origin")
-            .Expect("git", "rev-parse --verify")
-            .Expect("git", "checkout --detach");
-        var synchronizer = CreateSynchronizer(fileSystem, runner);
+        await scenario.StageCandidateAsync(receipt, CandidateDocument);
+        _ = scenario.ExpectApply();
 
-        _ = await synchronizer.ApplyAsync("scratch/receipt.json", CancellationToken.None);
+        _ = await scenario.Synchronizer.ApplyAsync("scratch/receipt.json", CancellationToken.None);
 
         var repinned = await new SourceWatchLoader(fileSystem).LoadAsync(CancellationToken.None);
         await Assert.That(repinned.Sources.Single().Sha256).IsEqualTo(moved.Sha256);
@@ -461,22 +383,141 @@ public sealed class SnapshotSynchronizerTests
     public async Task Apply_Should_Refuse_A_Receipt_Whose_Anchor_Was_Lost()
     {
         var fileSystem = await CreateRepositoryAsync();
-        var pinned = RefreshScenarioData.Watched("packages/core/src/pty.ts", "const BUFFER_LIMIT = 1024 * 1024 * 2", "BUFFER_LIMIT");
+        using var scenario = new RefreshScenario(fileSystem, CreateMutationRunner(fileSystem));
+        var pinned = RefreshScenarioData.PtyBufferSource;
         await WriteSourceWatchAsync(fileSystem, pinned);
         var receipt = CreateReceipt(CandidateDocument, "scratch/openapi.json") with
         {
             WatchedSources = [Observation(pinned.Path, new string('d', 64), anchorMatched: false)],
         };
-        _ = fileSystem.Directory.CreateDirectory("scratch");
-        await fileSystem.File.WriteAllBytesAsync("scratch/openapi.json", CandidateDocument);
-        await fileSystem.File.WriteAllTextAsync("scratch/receipt.json", RefreshScenarioData.Serialize(receipt));
-        var synchronizer = CreateSynchronizer(fileSystem, new ScriptedProcessRunner());
+        await scenario.StageCandidateAsync(receipt, CandidateDocument);
+        var exception = await scenario.ApplyRefusalAsync();
 
-        var exception = await Assert
-            .That(async () => _ = await synchronizer.ApplyAsync("scratch/receipt.json", CancellationToken.None))
+        await Assert.That(exception.Message).Contains("lost anchors in packages/core/src/pty.ts");
+    }
+
+    [Test]
+    public async Task Apply_Should_Leave_All_Accepted_Artifacts_Unchanged_When_The_Last_Check_Fails()
+    {
+        var fileSystem = await CreateRepositoryAsync();
+        using var scenario = new RefreshScenario(fileSystem, CreateMutationRunner(fileSystem));
+        var pinned = RefreshScenarioData.Watched("tracked.ts", "old checkout", "checkout");
+        await WriteSourceWatchAsync(fileSystem, pinned);
+        var receipt = CreateReceipt(CandidateDocument, "scratch/openapi.json") with
+        {
+            WatchedSources = [Observation(pinned.Path, pinned.Sha256, anchorMatched: true)],
+        };
+        await scenario.StageCandidateAsync(receipt, CandidateDocument);
+        await fileSystem.File.WriteAllTextAsync(SnapshotPaths.CommittedReceipt, RefreshScenarioData.Serialize(CreateReceipt(AcceptedDocument, null)));
+        await fileSystem.File.WriteAllTextAsync(SnapshotPaths.SnapshotMarkdown, "invalid managed identity");
+        var head = new string('a', 40);
+        var tracked = fileSystem.Path.Combine(SnapshotPaths.Submodule, pinned.Path);
+        await fileSystem.File.WriteAllTextAsync(tracked, "old checkout");
+        var paths = new[] { SnapshotPaths.AcceptedDocument, SnapshotPaths.CommittedReceipt, SnapshotPaths.SnapshotMarkdown, SnapshotPaths.SourceWatch, tracked };
+        var before = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        foreach (var path in paths)
+        {
+            before.Add(path, await fileSystem.File.ReadAllBytesAsync(path));
+        }
+        var runner = scenario.Runner
+            .Expect("git", ["rev-parse", "--verify", $"{RefreshScenarioData.Commit}^{{commit}}"], Submodule(fileSystem))
+            .Expect("git", ["-c", "core.longpaths=true", "checkout", "--detach", RefreshScenarioData.Commit], Submodule(fileSystem), sideEffect: async () =>
+            {
+                head = RefreshScenarioData.Commit;
+                await fileSystem.File.WriteAllTextAsync(tracked, "new checkout");
+            });
+
+        await Assert.That(async () => _ = await scenario.Synchronizer.ApplyAsync("scratch/receipt.json", CancellationToken.None))
             .Throws<SnapshotRefreshException>();
 
-        await Assert.That(exception!.Message).Contains("lost anchors in packages/core/src/pty.ts");
+        foreach (var path in paths)
+        {
+            await Assert.That(await fileSystem.File.ReadAllBytesAsync(path)).IsEquivalentTo(before[path], CollectionOrdering.Matching);
+        }
+
+        await Assert.That(head).IsEqualTo(new string('a', 40));
+        await Assert.That(runner.Invocations.Where(static invocation => invocation.StartsWith("git -c core.longpaths=true checkout", StringComparison.Ordinal))).IsEmpty();
+    }
+
+    [Test]
+    public async Task Prepare_Should_Record_The_Named_Release_Tag()
+    {
+        var fileSystem = await CreateRepositoryAsync();
+        var runner = CreateMutationRunner(fileSystem)
+            .Expect("git", ["rev-parse", "--symbolic-full-name", "v2.0.30"], Submodule(fileSystem), ScriptedProcessRunner.Ok("refs/tags/v2.0.30"))
+            .Expect("git", ["rev-parse", "v2.0.30^{commit}"], Submodule(fileSystem), ScriptedProcessRunner.Ok(RefreshScenarioData.Commit))
+            .Expect("git", ["show", $"{RefreshScenarioData.Commit}:{SnapshotPaths.UpstreamArtifact}"], Submodule(fileSystem), ScriptedProcessRunner.Ok(CandidateDocument));
+        ExpectGeneration(runner, fileSystem, CandidateDocument);
+        using var scenario = new RefreshScenario(fileSystem, runner);
+
+        var outcome = await scenario.Synchronizer.PrepareAsync("v2.0.30", CancellationToken.None);
+
+        using var document = JsonDocument.Parse(await fileSystem.File.ReadAllBytesAsync(outcome.ReceiptPath));
+        await Assert.That(document.RootElement.TryGetProperty("releaseTag", out var tag)).IsTrue();
+        await Assert.That(tag.GetString()).IsEqualTo("v2.0.30");
+    }
+
+    [Test]
+    [Arguments("refs/tags/v2.0.30", "refs/tags/v2.0.30", "v2.0.30")]
+    [Arguments("annotated", "refs/tags/annotated", "annotated")]
+    [Arguments("main", "refs/heads/main", null)]
+    [Arguments(RefreshScenarioData.Commit, "", null)]
+    public async Task Prepare_Should_Record_Tag_Provenance_Only_For_Tag_References(string reference, string symbolic, string? tag)
+    {
+        using var scenario = await RefreshScenario.CreateAsync();
+        _ = scenario.ExpectReference(RefreshScenario.Document, reference, symbolic);
+        scenario.ExpectUnpatchedGeneration();
+
+        var outcome = await scenario.Synchronizer.PrepareAsync(reference, CancellationToken.None);
+
+        await Assert.That(outcome.Receipt.UpstreamCommit).IsEqualTo(RefreshScenarioData.Commit);
+        await Assert.That(outcome.Receipt.ReleaseTag).IsEqualTo(tag);
+        using var document = JsonDocument.Parse(await scenario.FileSystem.File.ReadAllBytesAsync(outcome.ReceiptPath));
+        await Assert.That(document.RootElement.GetProperty("releaseTag").GetString()).IsEqualTo(tag);
+    }
+
+    [Test]
+    [Arguments("missing", "does not exist")]
+    [Arguments("null", "cannot be JSON null")]
+    [Arguments("malformed", "is invalid:")]
+    [Arguments("fetch", "fetching upstream failed (git fetch origin, exit 1): offline")]
+    [Arguments("checkout", "moving the submodule checkout failed (git -c core.longpaths=true checkout --detach 0123456789abcdef0123456789abcdef01234567, exit 1): offline")]
+    [Arguments("head", "reading the submodule checkout failed (git rev-parse HEAD, exit 1): offline")]
+    public async Task Apply_Should_Refuse_Unreadable_Receipts_Or_A_Failed_Fetch(string variation, string diagnostic)
+    {
+        using var scenario = await RefreshScenario.CreateAsync();
+        var fs = scenario.FileSystem;
+        var before = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        foreach (var path in new[] { SnapshotPaths.AcceptedDocument, SnapshotPaths.CommittedReceipt, SnapshotPaths.SnapshotMarkdown })
+        {
+            before.Add(path, await fs.File.ReadAllBytesAsync(path));
+        }
+        fs.File.Delete(RefreshScenario.ReceiptPath);
+        if (variation != "missing")
+        {
+            await fs.File.WriteAllTextAsync(RefreshScenario.ReceiptPath, variation switch
+            {
+                "null" => "null",
+                "malformed" => "{",
+                _ => RefreshScenarioData.Serialize(scenario.Receipt),
+            });
+        }
+        scenario.Runner.Expect("git", ["fetch", "origin"], Submodule(fs),
+            variation == "fetch" ? ScriptedProcessRunner.Fail("offline") : ScriptedProcessRunner.Ok());
+        scenario.Runner.Expect("git", ["rev-parse", "HEAD"], Submodule(fs),
+            variation == "head" ? ScriptedProcessRunner.Fail("offline") : ScriptedProcessRunner.Ok(RefreshScenarioData.Commit));
+        scenario.ExpectCommit();
+        scenario.Runner.Expect("git", ["-c", "core.longpaths=true", "checkout", "--detach", RefreshScenarioData.Commit], Submodule(fs), ScriptedProcessRunner.Fail("offline"));
+
+        var exception = await Assert.That(async () => _ = await scenario.Synchronizer.ApplyAsync(RefreshScenario.ReceiptPath, CancellationToken.None))
+            .Throws<SnapshotRefreshException>();
+
+        await Assert.That(exception!.Message).Contains(diagnostic);
+        foreach (var (path, bytes) in before)
+        {
+            await Assert.That(await fs.File.ReadAllBytesAsync(path)).IsEquivalentTo(bytes, CollectionOrdering.Matching);
+        }
+        await Assert.That(fs.Directory.EnumerateFiles("spec", "source-watch.json")).IsEmpty();
     }
 
     private static ReceiptWatchedSource Observation(string path, string sha256, bool anchorMatched) =>
@@ -514,61 +555,53 @@ public sealed class SnapshotSynchronizerTests
     /// patched generator run.
     /// </summary>
     private static void ExpectGeneration(ScriptedProcessRunner runner, MockFileSystem fileSystem, byte[]? baseline,
-        byte[]? patched = null)
+        byte[]? patched = null, byte[]? staleArtifact = null, bool missingPreimage = false)
     {
         var worktree = fileSystem.Path.GetFullPath(
             fileSystem.Path.Combine(SnapshotPaths.ScratchRoot, RefreshScenarioData.Commit, "worktree"));
         var touched = fileSystem.Path.Combine(worktree, "packages/protocol/script/generate-openapi.ts");
         var artifact = fileSystem.Path.Combine(worktree, SnapshotPaths.UpstreamArtifact);
         _ = runner
-            .Expect("git", "worktree add", sideEffect: async () =>
+            .Expect("git", ["-c", "core.longpaths=true", "worktree", "add", "--detach", worktree, RefreshScenarioData.Commit], Submodule(fileSystem), sideEffect: async () =>
             {
                 _ = fileSystem.Directory.CreateDirectory(fileSystem.Path.GetDirectoryName(touched)!);
                 await fileSystem.File.WriteAllTextAsync(touched, "before");
+                if (staleArtifact is not null)
+                {
+                    await fileSystem.File.WriteAllBytesAsync(artifact, staleArtifact);
+                }
             })
-            .Expect("bun", "install", sideEffect: () =>
+            .Expect("bun", ["install", "--frozen-lockfile", "--ignore-scripts"], worktree, sideEffect: () =>
             {
                 _ = fileSystem.Directory.CreateDirectory(fileSystem.Path.GetDirectoryName(artifact)!);
                 return Task.CompletedTask;
             })
-            .Expect("bun", "run generate", sideEffect: () =>
+            .Expect("bun", ["run", "generate"], fileSystem.Path.Combine(worktree, SnapshotPaths.UpstreamProtocolPackage), sideEffect: () =>
                 baseline is null ? Task.CompletedTask : fileSystem.File.WriteAllBytesAsync(artifact, baseline));
         if (patched is not null)
         {
-            _ = runner
-                .Expect("git", "apply")
-                .Expect("bun", "run generate", sideEffect: () => fileSystem.File.WriteAllBytesAsync(artifact, patched));
+            _ = runner.Expect("git", ["show", $"{RefreshScenarioData.Commit}:packages/protocol/script/generate-openapi.ts"], Submodule(fileSystem),
+                missingPreimage ? ScriptedProcessRunner.Fail("missing blob") : ScriptedProcessRunner.Ok("before"));
+            if (!missingPreimage)
+            {
+                _ = runner.Expect("git", ["-c", "core.longpaths=true", "apply", fileSystem.Path.GetFullPath(fileSystem.Path.Combine(SnapshotPaths.PatchesRoot, "001-test.patch"))], worktree)
+                    .Expect("bun", ["run", "generate"], fileSystem.Path.Combine(worktree, SnapshotPaths.UpstreamProtocolPackage), sideEffect: () => fileSystem.File.WriteAllBytesAsync(artifact, patched));
+            }
         }
 
-        _ = runner.Expect("git", "worktree remove");
+        _ = runner.Expect("git", ["-c", "core.longpaths=true", "worktree", "remove", "--force", worktree], Submodule(fileSystem));
     }
 
-    private static SnapshotSynchronizer CreateSynchronizer(MockFileSystem fileSystem, ScriptedProcessRunner runner) =>
-        new(fileSystem, runner, new PatchSetLoader(fileSystem), new SourceWatchLoader(fileSystem),
-            new WatchedSourceReader(fileSystem, runner));
+    private static string Submodule(MockFileSystem fileSystem) => fileSystem.Path.GetFullPath(SnapshotPaths.Submodule);
+
+    private static ScriptedProcessRunner CreateMutationRunner(MockFileSystem fileSystem) => new ScriptedProcessRunner()
+        .Expect("git", ["fetch", "origin"], Submodule(fileSystem))
+        .Expect("git", ["rev-parse", "HEAD"], Submodule(fileSystem), ScriptedProcessRunner.Ok(RefreshScenarioData.Commit));
 
     private static async Task WriteSourceWatchAsync(MockFileSystem fileSystem, params WatchedSource[] sources) =>
         await fileSystem.File.WriteAllTextAsync(
             SnapshotPaths.SourceWatch, RefreshScenarioData.Serialize(RefreshScenarioData.Watch(1, sources)));
 
     private static SnapshotReceipt CreateReceipt(byte[] normalizedBytes, string? normalizedDocumentPath)
-    {
-        var stats = DocumentInspector.Inspect(normalizedBytes);
-        return new SnapshotReceipt
-        {
-            SchemaVersion = 1,
-            UpstreamCommit = RefreshScenarioData.Commit,
-            RawDocumentSha256 = DocumentInspector.Sha256Hex(normalizedBytes),
-            GeneratedBaselineSha256 = DocumentInspector.Sha256Hex(normalizedBytes),
-            Patches = [],
-            NormalizedDocumentSha256 = DocumentInspector.Sha256Hex(normalizedBytes),
-            NormalizedDocumentPath = normalizedDocumentPath,
-            OperationSetDigest = stats.OperationSetDigest,
-            OperationCount = stats.OperationIds.Count,
-            AddedOperations = [],
-            RemovedOperations = [],
-            ComponentCount = stats.ComponentCount,
-            ContentSchemaCount = stats.ContentSchemaCount,
-        };
-    }
+        => RefreshScenarioData.Receipt(normalizedBytes, normalizedDocumentPath);
 }

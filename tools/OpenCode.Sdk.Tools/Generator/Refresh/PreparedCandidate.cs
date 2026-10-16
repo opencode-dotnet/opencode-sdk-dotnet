@@ -11,6 +11,8 @@ internal sealed record PreparedCandidate
 {
     public required string Commit { get; init; }
 
+    public string? ReleaseTag { get; init; }
+
     public required string ScratchDirectory { get; init; }
 
     /// <summary>Gets upstream's committed artifact at the candidate commit.</summary>

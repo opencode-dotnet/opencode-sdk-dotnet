@@ -17,7 +17,7 @@ internal sealed record GenerationRequest
     public static GenerationRequest RepositoryDefault(bool verify) =>
         new()
         {
-            SpecPath = "spec/openapi.json",
+            SpecPath = Refresh.SnapshotPaths.AcceptedDocument,
             ProfilePath = "tools/generation-profile.txt",
             CurationPath = "tools/curation.json",
             OutputRoot = "src/OpenCode.Sdk",

@@ -99,12 +99,14 @@ internal sealed class PackageValidationScenario
 
         if (_baseline.Length > 0)
         {
-            _ = Runner.Expect("git", $"show v{_baseline}:{PackageCompatibilityRepositoryReader.ManifestPath}",
+            _ = Runner.Expect("git", ["show", $"v{_baseline}:{PackageCompatibilityRepositoryReader.ManifestPath}"],
+                _fileSystem.Path.GetFullPath("repository"),
                 _missingBaseline ? ScriptedProcessRunner.Fail("fatal: invalid object name")
                     : ScriptedProcessRunner.Ok(Manifest(_currentSources.Keys.Concat(_removedSources.Keys))));
             foreach (var source in _removedSources)
             {
-                _ = Runner.Expect("git", $"show v{_baseline}:{PackageCompatibilityRepositoryReader.SdkPath}{source.Key}",
+                _ = Runner.Expect("git", ["show", $"v{_baseline}:{PackageCompatibilityRepositoryReader.SdkPath}{source.Key}"],
+                    _fileSystem.Path.GetFullPath("repository"),
                     ScriptedProcessRunner.Ok(source.Value));
             }
         }

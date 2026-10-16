@@ -47,10 +47,13 @@ evidence and may contain superseded positions.
 
 - The accepted snapshot is produced by the `refresh-spec` synchronizer (ADR-0020): prepare
   resolves a moving reference once to a full SHA and writes only scratch artifacts with a
-  reviewed receipt; verify reproduces the committed identity observationally; apply is a human
-  act over one reviewed receipt that refuses time-of-check/time-of-use drift, updates only
-  `spec/openapi.json`, `spec/SNAPSHOT.md`, `spec/receipt.json`, `spec/source-watch.json`
-  (re-pinned hashes only), and the submodule checkout, and never stages, commits, or pushes.
+  receipt; verify compares the accepted document, statistics, checkout, ordered patch set, and
+  watched sources with the committed receipt observationally. Apply is a human act over one
+  reviewed receipt: it completes validation and prepares every payload before changing any
+  accepted artifact, then installs `spec/openapi.json`, renders the identity in `spec/SNAPSHOT.md`,
+  re-pins `spec/source-watch.json` hashes, moves the submodule checkout, and writes
+  `spec/receipt.json`. It never stages, commits, or pushes. A validation refusal leaves the
+  accepted artifacts unchanged; the writes are not an atomic filesystem/Git transaction.
 - Production always runs the exact pinned upstream generator in a scratch worktree of the
   candidate commit (`bun install --frozen-lockfile --ignore-scripts`, then the protocol package's
   `generate`); with an empty patch list its output is the normalized document. Upstream's
@@ -61,8 +64,11 @@ evidence and may contain superseded positions.
   touched files, repair predicate, and retirement condition — run through the exact pinned
   upstream generator after the unpatched baseline run, and prepare refuses a patch whose repair
   predicate that baseline already satisfies, forcing an empty-patch retirement refresh.
-- The committed receipt records the exact inputs, hashes, patch preimages, operation-set digest,
-  and operation delta of the accepted snapshot; `refresh-spec --verify` is its standing check.
+- The committed receipt records the exact inputs, hashes, blob-based patch preimages,
+  operation-set digest, and operation delta of the accepted snapshot, together with the named
+  release tag used to render its identity. Apply renders the date from the injected
+  `TimeProvider`'s UTC date at apply time; the receipt carries no date.
+  `refresh-spec --verify` is the standing observational check.
 - The source watch (`spec/source-watch.json`) pins, by path, SHA-256 and one content anchor, the
   upstream files the hand-written doors read as inputs, the two upstream lists the generator's
   secret masking follows (ADR-0028), and the upstream rules the generator mirrors — Effect's union

@@ -12,7 +12,6 @@ namespace OpenCode.Sdk.Tools.Tests.Commands;
 public sealed class VerifyClonesCommandTests
 {
     private const string Command = "verify-clones";
-    private const string NewCloneError = "Using config from work/src.json\nERROR: jscpd found 1 new clones not in the baseline (allowed: 0)";
 
     [Test]
     public async Task Execute_Should_Pass_And_Print_Every_Scope_When_No_Gated_Scope_Fails()
@@ -36,12 +35,7 @@ public sealed class VerifyClonesCommandTests
     [Test]
     public async Task Execute_Should_Fail_Naming_A_Gated_Scope_With_A_New_Clone_After_Every_Scope_Ran()
     {
-        var scenario = await new CloneScenario()
-            .WithRun("src", exitCode: 1, clones: 5, newClones: 1, standardError: NewCloneError)
-            .WithRun("tools")
-            .WithRun("tests")
-            .WithRun("generated")
-            .BuildAsync();
+        var scenario = await new CloneScenario().WithNewCloneFailure().BuildAsync();
 
         var result = await RunAsync(scenario, Command);
 
@@ -92,12 +86,7 @@ public sealed class VerifyClonesCommandTests
     [Test]
     public async Task Execute_Should_Keep_Every_Scope_s_Report_In_The_Requested_Directory()
     {
-        var scenario = await new CloneScenario()
-            .WithRun("src", exitCode: 1, clones: 5, newClones: 1, standardError: NewCloneError)
-            .WithRun("tools")
-            .WithRun("tests")
-            .WithRun("generated")
-            .BuildAsync();
+        var scenario = await new CloneScenario().WithNewCloneFailure().BuildAsync();
         var reports = scenario.FileSystem.Path.Combine(scenario.Root, "clone-reports");
 
         var result = await RunAsync(scenario, Command, "--report-directory", reports);

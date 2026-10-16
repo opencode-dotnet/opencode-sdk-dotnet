@@ -26,7 +26,7 @@ public sealed class TestSourceCorpusTests
     public async Task RepositoryFileSet_Should_Report_Git_Failure()
     {
         var scenario = new RepositoryGateScenario();
-        scenario.Runner.Expect("git", "ls-files", ScriptedProcessRunner.Fail("index unavailable"));
+        scenario.Runner.Expect("git", ["ls-files", "-z", "--cached"], scenario.Root, ScriptedProcessRunner.Fail("index unavailable"));
 
         var exception = await Assert.That(async () => await new RepositoryFileSet(scenario.FileSystem)
             .EnumerateAsync(scenario.Root, scenario.Runner, CancellationToken.None)).Throws<InvalidOperationException>();
