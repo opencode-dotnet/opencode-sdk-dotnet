@@ -64,13 +64,18 @@ jobs:
           else
             base="$(git rev-parse HEAD^1)"
           fi
-          changed="$(git diff --name-only "$base" HEAD)"
-          printf '%s\n' "$changed"
-          if printf '%s\n' "$changed" | grep -Eqv '(\.md|^LICENSE)$|^$'; then
-            echo "code=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "code=false" >> "$GITHUB_OUTPUT"
-          fi
+          # Raw NUL-separated paths, not Git's quoted display form, and no rename detection: a
+          # source file renamed to Markdown is a deleted source file, and its old path must count.
+          git diff --name-only --no-renames -z "$base" HEAD > "$RUNNER_TEMP/changed-paths"
+          code=false
+          while IFS= read -r -d '' path; do
+            printf '%s\n' "$path"
+            case "$path" in
+              *.md | LICENSE) ;;
+              *) code=true ;;
+            esac
+          done < "$RUNNER_TEMP/changed-paths"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
 
   # The OS-independent gates run once, beside the matrix instead of inside its Linux leg, where
   # they delayed that leg's tests by about 5 minutes (2026-09-26, run 36231256172). None of them

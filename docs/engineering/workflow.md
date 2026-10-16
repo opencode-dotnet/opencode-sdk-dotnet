@@ -89,7 +89,8 @@ single-owner rules.
   tests it again on top of current `master` and the entries ahead of it, and merges only on that
   green: the repository guards count exactly over every test file, so a green result from an older
   base is not enough. After the merge, the work is done when the CI the merge commit triggers on
-  `master` is green.
+  `master` is green; a merge of only Markdown or `LICENSE` triggers none, and its queue result
+  stands.
 - CI runs on every pull request and queue entry. A change that touches only Markdown or `LICENSE`
   passes without the build and test jobs. Never put `[skip ci]` in a pull request's commits: the
   required check would not report, and the pull request could not join the queue.
