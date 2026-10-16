@@ -20,6 +20,34 @@ public sealed class PipelineStreamTests
     [Test]
     [Arguments(false)]
     [Arguments(true)]
+    public async Task ExecuteStreamAsync_Should_Report_Interruption_After_The_Final_Unterminated_Frame(bool disposeClient)
+    {
+        using var caller = new CancellationTokenSource();
+        using var handler = new RecordingHttpHandler(static _ => EventStream(FirstFrame[..^1]));
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient);
+        await using var enumerator = pipeline.ExecuteStreamAsync(
+            OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), caller.Token).GetAsyncEnumerator();
+        var first = enumerator.MoveNextAsync().AsTask();
+        await Assert.That(await first.WaitAsync(HangGuard.Bound)).IsTrue();
+
+        if (disposeClient)
+        {
+            pipeline.Dispose();
+        }
+        else
+        {
+            await caller.CancelOnWorkerAsync();
+        }
+
+        var failure = await CaptureFailureAsync(async () => _ = await enumerator.MoveNextAsync()).WaitAsync(HangGuard.Bound);
+
+        await AssertInterruptionAsync(failure, !disposeClient, caller.Token);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
     public async Task ExecuteStreamAsync_Should_Report_Client_Disposal_During_A_Read(bool cancelCaller)
     {
         using var caller = new CancellationTokenSource();

@@ -213,9 +213,7 @@ internal sealed class Pipeline : IDisposable
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
-        ObjectDisposedException.ThrowIf(_disposed, typeof(OpenCodeClient));
-        ArgumentNullException.ThrowIfNull(method);
-        ArgumentException.ThrowIfNullOrWhiteSpace(route);
+        ValidateRequest(method, route);
         ArgumentNullException.ThrowIfNull(adapter);
 
         if (route[0] is not '/')
@@ -244,9 +242,21 @@ internal sealed class Pipeline : IDisposable
         }
 
         _disposed = true;
-        _lifetime.Cancel();
-        _transport.Dispose();
-        _lifetime.Dispose();
+        try
+        {
+            _lifetime.Cancel();
+        }
+        finally
+        {
+            try
+            {
+                _transport.Dispose();
+            }
+            finally
+            {
+                _lifetime.Dispose();
+            }
+        }
     }
 
     private async Task<TResponse> ExecuteCoreAsync<TBody, TResponse>(string operationId, HttpMethod method, string route, TBody? body,
@@ -255,9 +265,7 @@ internal sealed class Pipeline : IDisposable
         where TBody : class
         where TResponse : OpenCodeResponse
     {
-        ObjectDisposedException.ThrowIf(_disposed, typeof(OpenCodeClient));
-        ArgumentNullException.ThrowIfNull(method);
-        ArgumentException.ThrowIfNullOrWhiteSpace(route);
+        ValidateRequest(method, route);
         ArgumentNullException.ThrowIfNull(adapter);
 
         if (route[0] is not '/')
@@ -283,6 +291,13 @@ internal sealed class Pipeline : IDisposable
         return adapted.IsError && errorBehavior is ErrorBehavior.Default
             ? throw CreateApiException(adapted)
             : adapted;
+    }
+
+    private void ValidateRequest(HttpMethod method, string route)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, typeof(OpenCodeClient));
+        ArgumentNullException.ThrowIfNull(method);
+        ArgumentException.ThrowIfNullOrWhiteSpace(route);
     }
 
     /// <summary>
@@ -501,14 +516,17 @@ internal sealed class Pipeline : IDisposable
         await using var enumeration = frames.ConfigureAwait(false);
         while (true)
         {
-            bool moved;
-
             // A yield cannot sit inside a try with a catch, so the read is guarded on its
             // own: a connection dying mid-stream is a transport failure here exactly as it
             // is on the one-shot path.
             try
             {
-                moved = await frames.MoveNextAsync().ConfigureAwait(false);
+                var moved = await frames.MoveNextAsync().ConfigureAwait(false);
+                if (!moved)
+                {
+                    lifetime.Token.ThrowIfCancellationRequested();
+                    break;
+                }
             }
             catch (Exception exception) when (FailureClassification.Handles(exception, FailurePhase.EventStreamRead))
             {
@@ -517,11 +535,6 @@ internal sealed class Pipeline : IDisposable
             catch (Exception exception) when (lifetime.IsCancellationRequested)
             {
                 throw FailureClassification.MapFault(exception, FailurePhase.EventStreamRead, cancellationToken, _lifetimeToken);
-            }
-
-            if (!moved)
-            {
-                break;
             }
 
             attempt?.OnFrame(frames.Current);

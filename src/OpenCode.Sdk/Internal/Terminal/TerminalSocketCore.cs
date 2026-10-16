@@ -15,6 +15,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
 {
     private readonly Lock _lifecycle = new();
     private readonly TerminalReceivePump<TFrame> _receiver;
+    private readonly Func<TerminalConnectionOutcome?> _getOutcome;
     private readonly Type _owner;
     private readonly TerminalCancellationSource _sendEnded = new();
     private readonly CancellationToken _sendEndedToken;
@@ -43,6 +44,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         _owner = owner;
         _sendEndedToken = _sendEnded.Token;
         _receiver = new TerminalReceivePump<TFrame>(socket, decoder, closePolicy, _sendEnded.CancelAsync);
+        _getOutcome = () => _receiver.Outcome;
     }
 
     /// <summary>Gets whether the core has been disposed.</summary>
@@ -124,7 +126,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         CancellationToken cancellationToken)
     {
 
-        using var deadline = new TerminalSendDeadline(_owner, SendTimeout, DeadlineFactory, () => _receiver.Outcome, cancellationToken);
+        using var deadline = new TerminalSendDeadline(_owner, SendTimeout, DeadlineFactory, _getOutcome, cancellationToken);
         var payload = createPayload();
         using var admission = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token, _sendEndedToken);
         try

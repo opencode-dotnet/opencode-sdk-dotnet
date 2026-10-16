@@ -48,7 +48,7 @@ public sealed class ResponseBufferingPolicyTests
                 await caller.CancelOnWorkerAsync();
                 try
                 {
-                    _ = await execution;
+                    _ = await execution.WaitAsync(HangGuard.Bound);
                 }
                 catch (OperationCanceledException exception)
                 {
