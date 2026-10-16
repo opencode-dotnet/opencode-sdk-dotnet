@@ -608,6 +608,41 @@ public sealed class SpecBinderTests
     }
 
     [Test]
+    [Arguments(false, "ListWidgetsAsync", true)]
+    [Arguments(true, "ListAsync", true)]
+    [Arguments(false, "ListEntriesAsync", false)]
+    [Arguments(true, "ListEntriesAsync", false)]
+    public async Task Bind_Should_Refuse_Only_Redundant_List_Method_Rows(bool handle, string methodName, bool redundant)
+    {
+        var document = await IngestAsync(SpecScenario.Define(spec => spec
+            .WithOperation("widget.list", path: handle ? "/api/widget/{id}" : "/api/widget", configure: operation =>
+            {
+                operation.WithoutResponse(200).Response(204);
+                if (handle)
+                {
+                    operation.Parameter("id", "path", schema => schema.Type("string"), required: true);
+                }
+            })));
+        var curation = Curation(
+            Groups("widget", ClientGroup("Widgets", handle ? "WidgetClient" : null, handle ? "id" : null)),
+            operationNames: [OperationName("widget.list", methodName)]);
+
+        if (redundant)
+        {
+            var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection("widget.list"), curation));
+            var error = exception.Errors.Single();
+            await Assert.That(error.Category).IsEqualTo(BindingErrorCategory.Curation);
+            await Assert.That(error.Subject).IsEqualTo("widget.list");
+            await Assert.That(error.Problem).IsEqualTo($"operationNames row for 'widget.list' repeats the list naming rule's derived value '{methodName}'");
+        }
+        else
+        {
+            var plan = new BindingTestHost().Bind(document, Selection("widget.list"), curation);
+            await Assert.That(plan.Clients.SelectMany(static client => client.Operations).Single().MethodName).IsEqualTo(methodName);
+        }
+    }
+
+    [Test]
     public async Task Bind_Should_Refuse_Curated_Operation_Name_Collisions()
     {
         var document = await IngestAsync(SpecScenario.Define(spec => spec

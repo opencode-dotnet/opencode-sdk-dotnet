@@ -29,7 +29,7 @@ internal sealed partial class SessionLogWorker(
 
             LogFollowingSession(logger, created.Session.Id);
             await foreach (var item in session
-                               .GetLogAsync(new SessionLogRequest
+                               .ReadLogAsync(new SessionLogRequest
                                {
                                    Follow = QueryBoolean.True,
                                }, stoppingToken)

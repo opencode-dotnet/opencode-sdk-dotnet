@@ -1,6 +1,6 @@
 # 🧪 Experimental APIs
 
-Date: 2026-10-14
+Date: 2026-10-16
 
 Upstream serves some of its API under `/api/experimental/`. The SDK exposes all of it, and marks
 every member that reaches it with .NET's `[Experimental]` attribute, so the compiler tells you
@@ -52,6 +52,6 @@ WebSocket connect door with its session, options and frames, and the types only 
 
 ## OPENCODE003
 
-The Session family's experimental operations, today `SessionClient.GetLogAsync`, the per-session
+The Session family's experimental operations, today `SessionClient.ReadLogAsync`, the per-session
 log stream, and the types only it uses. The [streaming guide](streaming.md#-a-single-sessions-log)
 covers how it works.

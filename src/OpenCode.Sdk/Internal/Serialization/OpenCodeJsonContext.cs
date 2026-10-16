@@ -112,7 +112,7 @@ namespace OpenCode.Sdk.Internal;
 [JsonSerializable(typeof(ExperimentalSessionImportRequest))]
 [JsonSerializable(typeof(ExperimentalSessionImportResponseEnvelope))]
 [JsonSerializable(typeof(ExperimentalSessionInstructionsEntryListResponseEnvelope))]
-[JsonSerializable(typeof(ExperimentalSessionInstructionsEntryRequest))]
+[JsonSerializable(typeof(ExperimentalSessionInstructionsEntryPutRequest))]
 [JsonSerializable(typeof(ExperimentalSessionSkillRequest))]
 [JsonSerializable(typeof(ExperimentalSessionStatsRequestTools))]
 [JsonSerializable(typeof(ExperimentalSessionStatsResponseEnvelope))]

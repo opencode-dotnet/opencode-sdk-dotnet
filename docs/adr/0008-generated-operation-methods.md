@@ -1,6 +1,6 @@
 # All operation methods are generated; excluded operations are fingerprint-pinned
 
-Date: 2026-08-26
+Date: 2026-10-16
 
 Every operation method on the generated surface is generator-emitted
 as a one-line delegation into the hand-written behavior core; behavior (retry, error
@@ -55,17 +55,24 @@ envelope; `text/*` → `string`); an unknown content type breaks generation.
   segment is the verb when it is one of `create`, `get`, `list`, `remove`, `rename`, `timeout`,
   `update`; a `GET` without one is a read and names `Get<Subject>Async`; every other operation
   without one has no mechanical name and refuses generation until a reason-bearing, fail-closed
-  `operationNames` row names it (`session.prompt` → `PromptAsync`, never `PostPromptAsync`). On
-  a handle client the handle is the subject, so an empty subject stays empty
-  (`session.GetAsync()`, not `session.GetSessionAsync()`); on a collection client it falls back
-  to the family. Request, response, and payload type names carry the same verb and nothing
-  else (`SessionPromptResponse`, `PtyUpdateResponse`, `SessionListResponse`). A name the
-  grammar derives gracelessly — a plural the naive rule cannot form, a subject the domain calls
-  something else — rides the same row kind (`event.subscribe` → `Events.SubscribeAsync`, not
-  `GetSubscribeAsync`). The binder validates every final identifier and all collisions; emitters
-  consume the bound name mechanically and never branch on an operation ID. Enum members follow
-  the same shape: a value whose mechanical casing is graceless (`2026-07-28` → `Value20260728`)
-  takes its member name from a reason-bearing `enumMemberNames` row (`Revision20260728`).
+  `operationNames` row names it (`session.prompt` → `PromptAsync`, never `PostPromptAsync`). The
+  HTTP method never removes an identifier segment. On a handle client the handle is the subject,
+  so an empty subject stays empty (`session.GetAsync()`, not `session.GetSessionAsync()`); on a
+  collection client it falls back to the family. A `list` operation pluralizes the last word of
+  its nested subject or group fallback for its method and envelope payload member: append `es`
+  after `s`, `x`, `z`, `ch`, or `sh`, replace consonant-plus-`y` with `ies`, and otherwise append
+  `s`. A closed irregular table gives `Pty` → `Ptys` and keeps `Inbox` and `Saved` invariant.
+  Request, response, and operation-derived payload type names are mechanical projections of the
+  operation identity, never of an `operationNames` row; their stems retain the identity's subject
+  and grammar verb (`SessionPromptResponse`, `PtyUpdateResponse`, `SessionListResponse`). A plural
+  the rule cannot form or a subject the domain names differently rides the same row kind; so does
+  an action outside the grammar (`event.subscribe` → `Events.SubscribeAsync`, not
+  `GetSubscribeAsync`). An `operationNames` or `envelopePayloadNames` list row that restates the
+  plural rule's output refuses generation with its operation identity and derived value. The binder
+  validates every final identifier and all collisions; emitters consume the bound name mechanically
+  and never branch on an operation ID. Enum members follow the same shape: a value whose mechanical
+  casing is graceless (`2026-07-28` → `Value20260728`) takes its member name from a reason-bearing
+  `enumMemberNames` row (`Revision20260728`).
 - This curation changes only .NET naming. It cannot repair a type, constraint, format, or
   validation missing from the pinned OpenAPI document (ADR-0013).
 

@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-10-15
+Date: 2026-10-16
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **global event bus** for everything happening in the server
@@ -224,14 +224,14 @@ guarantees below has the whole story.
 
 ## 📜 A single session's log
 
-`SessionClient.GetLogAsync(SessionLogRequest?, CancellationToken)` yields `ISessionLogItem` for one
+`SessionClient.ReadLogAsync(SessionLogRequest?, CancellationToken)` yields `ISessionLogItem` for one
 session. Upstream serves it as an experimental route, so it needs an
 [opt-in](experimental.md#opencode003) (`OPENCODE003`).
 
 ```csharp
 var session = client.Sessions.GetSessionClient(sessionId);
 
-await foreach (var item in session.GetLogAsync(new SessionLogRequest { Follow = QueryBoolean.True }, cancellationToken))
+await foreach (var item in session.ReadLogAsync(new SessionLogRequest { Follow = QueryBoolean.True }, cancellationToken))
 {
     switch (item)
     {
@@ -296,7 +296,7 @@ them. The marker is a transition boundary, not a durable event to save as the ne
 >
 > **The distributed `opencode` CLI starts its server without event persistence and exposes no
 > switch for it** — no serve flag, no environment variable, no configuration key. Observed on
-> `@opencode/cli@2.0.15`. So `GetLogAsync` against a CLI-started server is not an error and not
+> `@opencode/cli@2.0.15`. So `ReadLogAsync` against a CLI-started server is not an error and not
 > empty: with `Follow` unset or `False` it is one `EventLogSynced` and the end of the stream, and
 > with `Follow = True` it is the same single marker and then nothing, however many durable changes
 > the session goes through while you listen. The marker's `Seq` is the session's current aggregate
@@ -341,7 +341,7 @@ cannot be read is a protocol failure and throws — the carrier is for *unknown*
 
 ## ⏹️ Cancellation and lifetime
 
-- **Streams open lazily.** Calling `SubscribeAsync` or `GetLogAsync` does not touch the network;
+- **Streams open lazily.** Calling `SubscribeAsync` or `ReadLogAsync` does not touch the network;
   the request goes out on the first `MoveNextAsync`, which is to say on the first `await foreach`.
 - **The enumeration token is the off switch.** Cancelling it closes the stream and surfaces as
   `OperationCanceledException` in the usual place. A `CancellationTokenSource` with a timeout, as

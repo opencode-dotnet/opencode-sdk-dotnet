@@ -47,7 +47,7 @@ internal sealed class SessionLogTranscript
         var observed = new EventDiagnosticSummary();
         try
         {
-            await foreach (var item in Session.GetLogAsync(request, cancellationToken))
+            await foreach (var item in Session.ReadLogAsync(request, cancellationToken))
             {
                 items.Add(item);
                 observed.Add(item.Type);
@@ -72,7 +72,7 @@ internal sealed class SessionLogTranscript
         _callerToken = cancellationToken;
         _window = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _window.CancelAfter(FollowWindow);
-        _enumerator = Session.GetLogAsync(
+        _enumerator = Session.ReadLogAsync(
                 new SessionLogRequest { After = after, Follow = QueryBoolean.True },
                 _window.Token)
             .GetAsyncEnumerator(_window.Token);

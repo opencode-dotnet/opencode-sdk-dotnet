@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-10-15
+Date: 2026-10-16
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -90,13 +90,13 @@ evidence and may contain superseded positions.
 - Generated and hand-written files share the slice folders (ADR-0033). One placement rule maps
   each generated file's kind and owning slice to its folder: models under the family's `Models/`
   (Sessions models in their curated area subfolders), body requests, operation records and
-  clients at the family root, adapters, envelope DTOs, converters and internal-raw clients under
-  the family's `Internal/`, the shared error spine under `Common/Errors/` and `Common/Internal/`,
-  and the serializer registry under the root `Internal/Serialization/`. The writer reserves the
-  folder names `Common`, `Internal`, `Hosting` and `Properties` for the shared homes, and `Models`
-  and `Pagination` because the slice layout has no such root folder and a family may never
-  recreate one; it marks every manifest entry `linguist-generated` in a writer-owned
-  `.gitattributes` beside the manifest.
+  clients at the family root, route tables, adapters, envelope DTOs, converters and internal-raw
+  clients under the family's `Internal/`, the shared error spine under `Common/Errors/` and
+  `Common/Internal/`, and the serializer registry under the root `Internal/Serialization/`. The
+  writer reserves the folder names `Common`, `Internal`, `Hosting` and `Properties` for the shared
+  homes, and `Models` and `Pagination` because the slice layout has no such root folder and a
+  family may never recreate one; it marks every manifest entry `linguist-generated` in a
+  writer-owned `.gitattributes` beside the manifest.
 - A writer-owned `.generated-reach.txt` beside the manifest lists each generated type's owning
   slice and the families whose operations reach it, so a refresh shows reach changes in its
   diff; reach never moves a file. Neither file ships in a package.
@@ -118,10 +118,14 @@ Curation may:
   mechanical one says less than the rest of the surface (a `parameterNames` row; a handle
   family's parameter takes one name across the family). Brand spellings (`OAuth`) are fixed in
   the name policy, so a word that spells one, in any case, is written the brand's way;
-- name an operation the closed verb grammar cannot name: the closing identifier segment is the
-  verb only when the grammar lists it, a `GET` without one reads as `Get<Subject>Async`, and any
-  other operation without one refuses until a reason-bearing `operationNames` row names it — the
-  HTTP method is never a name source, in method, request, response, or payload names (ADR-0008);
+- name an operation the closed verb grammar cannot name, or names gracelessly, through a
+  reason-bearing `operationNames` row. The closing segment is a verb only when the grammar lists
+  it; a `GET` without one reads as `Get<Subject>Async`, and any other operation without one
+  requires a row. The HTTP method supplies no name segment and removes none. Lists pluralize the
+  last subject word, including the group fallback, for methods and envelope payload members by
+  the regular rule and closed irregular table; a list naming row that restates that output
+  refuses. Request, response, and operation-derived payload type names follow the operation
+  identity, never an `operationNames` row (ADR-0008);
 - declare that a family emits an internal raw layer rather than a public surface, where
   hand-written code owns that family's public doors (ADR-0021);
 - document a generated type or one of its members where the wire says too little, through a

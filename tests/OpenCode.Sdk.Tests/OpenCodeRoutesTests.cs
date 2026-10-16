@@ -1,3 +1,4 @@
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk.Tests;

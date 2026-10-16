@@ -479,16 +479,6 @@
       "reason": "The upstream domain calls these entries MCP servers; the mechanical group singular 'Mcp' is not part of the reviewed .NET domain name."
     },
     {
-      "operationId": "permission.request.list",
-      "methodName": "ListRequestsAsync",
-      "reason": "List methods name their subject in the plural across the reviewed surface; the mechanical singular reads as a different operation."
-    },
-    {
-      "operationId": "pty.list",
-      "methodName": "ListPtysAsync",
-      "reason": "The group singular 'pty' does not pluralize naively; the reviewed .NET domain name for a set of pseudo-terminals is 'Ptys'."
-    },
-    {
       "operationId": "websearch.query",
       "methodName": "QueryAsync",
       "reason": "The operation's own verb is query, and the websearch container already names the subject."
@@ -509,29 +499,14 @@
       "reason": "The operation's own verb is add; the reviewed name keeps it with its subject."
     },
     {
-      "operationId": "session.form.list",
-      "methodName": "ListFormsAsync",
-      "reason": "List methods name their subject in the plural across the reviewed surface (mcp.list, pty.list, permission.request.list); the mechanical singular 'Form' would misleadingly read as returning one form instead of the session's pending forms. session.form.create in the same client family binds its single-object payload as SessionFormCreateResponse.Form under CreateFormAsync, so the two read distinctly (one form created vs. the session's pending forms listed) with no name or payload collision."
-    },
-    {
       "operationId": "session.permission.list",
       "methodName": "ListRequestsAsync",
       "reason": "List methods name their subject in the plural across the reviewed surface, exactly like permission.request.list; the mechanical singular 'Permission' also already names SessionPermissionCreateResponse's single-object payload in this same client family, so it would misleadingly read as returning one permission instead of the session's pending permission requests."
     },
     {
-      "operationId": "debug.location.list",
-      "methodName": "ListLocationsAsync",
-      "reason": "The mechanical payload name 'Location' collides with ReservedNamePolicy.PayloadNames (the response-spine name every DataLocation envelope's sibling reserves), forcing a payload rename regardless; the operation returns a list, so 'Locations' is both the collision fix and the accurate shape. The method name is renamed in lockstep to the same plural, following the reviewed surface's uniform list-verb-pluralizes-its-subject convention (mcp.list, pty.list, permission.request.list, session.form.list, session.permission.list) so it does not read as returning a single location."
-    },
-    {
       "operationId": "credential.activate",
       "methodName": "ActivateCredentialAsync",
       "reason": "The operation's own verb is activate; the reviewed name keeps it with its credential subject."
-    },
-    {
-      "operationId": "persistentPty.list",
-      "methodName": "ListPersistentPtysAsync",
-      "reason": "The group singular 'persistentPty' does not pluralize naively; the reviewed .NET domain name for a set of persistent pseudo-terminals is 'PersistentPtys', exactly like pty.list's 'Ptys'."
     },
     {
       "operationId": "fs.list",
@@ -589,16 +564,6 @@
       "reason": "The operation's own verb is reload and it rebuilds every loaded location, so the plural subject names it beside GetLocationAsync on the root client."
     },
     {
-      "operationId": "vcs.branch.list",
-      "methodName": "ListBranchesAsync",
-      "reason": "List subjects are plural; name the branch collection directly."
-    },
-    {
-      "operationId": "session.message.list",
-      "methodName": "ListMessagesAsync",
-      "reason": "List methods name their subject in the plural across the reviewed surface; the mechanical singular 'Message' would read as returning one message."
-    },
-    {
       "operationId": "experimental.mcp.add",
       "methodName": "AddMcpServerAsync",
       "reason": "The operation's own verb is add; the upstream domain calls these entries MCP servers, exactly like mcp.list."
@@ -617,6 +582,11 @@
       "operationId": "session.prompt",
       "methodName": "PromptAsync",
       "reason": "Upstream summary 'Send message': the operation admits one session input and schedules the agent loop. The handle already names the session, and 'prompt' is the domain word for that input, so the verb stands alone."
+    },
+    {
+      "operationId": "session.log",
+      "methodName": "ReadLogAsync",
+      "reason": "The operation reads the durable session log as a stream; ReadLogAsync follows the SDK's ReadAsync stream naming rather than the mechanical GetLogAsync."
     },
     {
       "operationId": "session.background",
@@ -761,7 +731,7 @@
     {
       "operationId": "experimental.session.instructions.entry.put",
       "methodName": "SetSessionInstructionsEntryAsync",
-      "reason": "Upstream summary 'Put instruction entry': the operation attaches or replaces one durable instruction entry; the subject matches ListSessionInstructionsEntryAsync and RemoveSessionInstructionsEntryAsync in the same client."
+      "reason": "Upstream summary 'Put instruction entry': the operation attaches or replaces one durable instruction entry; the subject matches ListSessionInstructionsEntriesAsync and RemoveSessionInstructionsEntryAsync in the same client."
     },
     {
       "operationId": "experimental.session.skill",
@@ -1509,17 +1479,9 @@
   ],
   "declined": [],
   "envelopePayloadNames": {
-    "vcs.branch.list": "Branches",
-    "session.message.list": "Messages",
-    "debug.location.list": "Locations",
-    "form.list": "Forms",
     "mcp.list": "McpServers",
-    "permission.request.list": "Requests",
-    "persistentPty.list": "PersistentPtys",
-    "pty.list": "Ptys",
     "vcs.status": "Changes",
     "location.get": "ResolvedLocation",
-    "session.form.list": "Forms",
     "session.permission.list": "Requests",
     "fs.list": "Entries",
     "fs.find": "Entries",

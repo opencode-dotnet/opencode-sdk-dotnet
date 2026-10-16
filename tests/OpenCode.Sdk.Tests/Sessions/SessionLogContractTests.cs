@@ -236,7 +236,7 @@ public sealed class SessionLogContractTests
         SessionLogRequest? request = null)
     {
         var items = new List<ISessionLogItem>();
-        await foreach (var item in scenario.Client.Sessions.GetSessionClient("ses_9").GetLogAsync(request))
+        await foreach (var item in scenario.Client.Sessions.GetSessionClient("ses_9").ReadLogAsync(request))
         {
             items.Add(item);
         }

@@ -27,7 +27,7 @@ public sealed class GeneratedPlacementTests
     [Arguments("Client", SessionsSlice, null, "SessionsClient", "Sessions/SessionsClient.cs")]
     [Arguments("RawClient", "Ptys", null, "PtysRawClient", "Ptys/Internal/PtysRawClient.cs")]
     [Arguments("RootClient", null, null, "OpenCodeClient", "OpenCodeClient.cs")]
-    [Arguments("Routes", SessionsSlice, null, "OpenCodeRoutes", "Sessions/OpenCodeRoutes.Sessions.cs")]
+    [Arguments("Routes", SessionsSlice, null, "OpenCodeRoutes", "Sessions/Internal/OpenCodeRoutes.Sessions.cs")]
     [Arguments("ModelConverter", SessionsSlice, MessagesArea, "PartJsonConverter", "Sessions/Internal/PartJsonConverter.cs")]
     [Arguments("ResponseAdapter", "Agents", null, "AgentListResponseAdapter", "Agents/Internal/AgentListResponseAdapter.cs")]
     [Arguments("EnvelopeDto", SessionsSlice, null, "SessionGetEnvelopeDto", "Sessions/Internal/SessionGetEnvelopeDto.cs")]

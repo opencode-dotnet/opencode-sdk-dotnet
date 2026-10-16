@@ -74,9 +74,9 @@ public sealed class OperationNamePolicyTests
     }
 
     [Test]
-    public async Task MethodName_Should_Return_Null_When_The_Group_Cannot_Be_Pluralized()
+    public async Task MethodName_Should_Pluralize_An_Es_Group()
     {
-        await Assert.That(OperationNamePolicy.MethodName(Operation("boss.list"))).IsNull();
+        await Assert.That(OperationNamePolicy.MethodName(Operation("boss.list"))).IsEqualTo("ListBossesAsync");
     }
 
     [Test]
@@ -110,7 +110,7 @@ public sealed class OperationNamePolicyTests
     [Arguments("session.prompt", "post", "SessionPromptResponse")]
     [Arguments("pty.update", "put", "PtyUpdateResponse")]
     [Arguments("integration.oauth.complete", "post", "IntegrationOAuthCompleteResponse")]
-    [Arguments("experimental.session.instructions.entry.put", "put", "ExperimentalSessionInstructionsEntryResponse")]
+    [Arguments("experimental.session.instructions.entry.put", "put", "ExperimentalSessionInstructionsEntryPutResponse")]
     [Arguments("location.reload", "post", "LocationReloadResponse")]
     public async Task ResponseTypeName_Should_Carry_Only_A_Grammar_Verb(string operationId, string method, string expected)
     {
@@ -122,6 +122,7 @@ public sealed class OperationNamePolicyTests
     [Arguments("session.message", "get", "SessionMessageData")]
     [Arguments("session.create", "post", "SessionCreateData")]
     [Arguments("shell.timeout", "patch", "ShellTimeoutData")]
+    [Arguments("experimental.session.instructions.entry.put", "put", "ExperimentalSessionInstructionsEntryPutData")]
     public async Task PayloadTypeName_Should_Replace_The_Response_Spine_Suffix(string operationId, string method,
         string expected)
     {
@@ -157,9 +158,56 @@ public sealed class OperationNamePolicyTests
     }
 
     [Test]
-    public async Task PayloadName_Should_Return_Null_When_The_Group_Cannot_Be_Pluralized()
+    public async Task PayloadName_Should_Pluralize_An_Es_Group()
     {
-        await Assert.That(OperationNamePolicy.PayloadName(Operation("boss.list"))).IsNull();
+        await Assert.That(OperationNamePolicy.PayloadName(Operation("boss.list"))).IsEqualTo("Bosses");
+    }
+
+    [Test]
+    [Arguments("box.list", "Boxes")]
+    [Arguments("buzz.list", "Buzzes")]
+    [Arguments("branch.list", "Branches")]
+    [Arguments("dish.list", "Dishes")]
+    [Arguments("category.list", "Categories")]
+    [Arguments("key.list", "Keys")]
+    [Arguments("form.list", "Forms")]
+    [Arguments("pty.list", "Ptys")]
+    [Arguments("persistentPty.list", "PersistentPtys")]
+    [Arguments("debug.location.list", "Locations")]
+    [Arguments("permission.request.list", "Requests")]
+    [Arguments("session.form.list", "Forms")]
+    [Arguments("session.message.list", "Messages")]
+    [Arguments("vcs.branch.list", "Branches")]
+    [Arguments("session.inbox.list", "Inbox")]
+    [Arguments("permission.saved.list", "Saved")]
+    [Arguments("experimental.session.instructions.entry.list", "SessionInstructionsEntries")]
+    [Arguments("session._instruction-entry_.list", "InstructionEntries")]
+    [Arguments("session.-persistent_pty-.list", "PersistentPtys")]
+    public async Task MethodName_Should_Pluralize_The_Last_Subject_Word(string operationId, string plural)
+    {
+        var operation = Operation(operationId);
+
+        await Assert.That(OperationNamePolicy.MethodName(operation)).IsEqualTo($"List{plural}Async");
+        await Assert.That(OperationNamePolicy.PayloadName(operation)).IsEqualTo(plural);
+        await Assert.That(OperationNamePolicy.RouteMemberName(operation, GroupPlacement.Client)).IsEqualTo($"List{plural}");
+        if (operation.Segments.Count > 2)
+        {
+            await Assert.That(OperationNamePolicy.MethodName(operation, handle: true)).IsEqualTo($"List{plural}Async");
+            await Assert.That(OperationNamePolicy.RouteMemberName(operation, GroupPlacement.Root)).IsEqualTo($"List{plural}");
+        }
+    }
+
+    [Test]
+    public async Task MethodName_Should_Keep_An_Empty_List_Subject_On_A_Handle()
+    {
+        var operation = Operation("session.list");
+
+        await Assert.That(OperationNamePolicy.MethodName(operation, handle: true)).IsEqualTo("ListAsync");
+        await Assert.That(OperationNamePolicy.RouteMemberName(operation, GroupPlacement.Client, handle: true)).IsEqualTo("List");
+        await Assert.That(OperationNamePolicy.RouteMemberName(operation, GroupPlacement.Root)).IsEqualTo("List");
+        await Assert.That(OperationNamePolicy.ResponseTypeName(Operation("session.message.list"))).IsEqualTo("SessionMessageListResponse");
+        await Assert.That(OperationNamePolicy.RequestTypeName(Operation("session.message.list"))).IsEqualTo("SessionMessageListRequest");
+        await Assert.That(OperationNamePolicy.PayloadTypeName(Operation("session.message.list"))).IsEqualTo("SessionMessageListData");
     }
 
     [Test]
@@ -172,6 +220,7 @@ public sealed class OperationNamePolicyTests
     [Arguments("shell.get", "get", "ShellRequest")]
     [Arguments("session.prompt", "post", "SessionPromptRequest")]
     [Arguments("session.environment", "put", "SessionEnvironmentRequest")]
+    [Arguments("experimental.session.instructions.entry.put", "put", "ExperimentalSessionInstructionsEntryPutRequest")]
     public async Task RequestTypeName_Should_Compose_Group_Subject_And_Grammar_Verb(string operationId, string method,
         string expected)
     {

@@ -158,14 +158,17 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
         JsonNullRepresentation = JsonNullRepresentation.ClrNull,
     };
 
-    private string? DerivePayloadName(string responseTypeName, string? mechanicalName)
+    private string? DerivePayloadName(string responseTypeName, string mechanicalName)
     {
         var payloadName = _context.Curation.EnvelopePayloadNames.TryGetValue(_context.Operation.OperationId, out var curated)
             ? curated
             : mechanicalName;
-        if (payloadName is null)
+        if (curated is not null
+            && string.Equals(_context.Operation.Segments[^1], "list", StringComparison.Ordinal)
+            && string.Equals(curated, mechanicalName, StringComparison.Ordinal))
         {
-            _context.Refuse("the payload name cannot be derived mechanically: the group does not pluralize naively; curate an envelope payload name");
+            _context.Errors.Add(BindingErrorCategory.Curation, _context.Operation.OperationId,
+                $"envelopePayloadNames row for '{_context.Operation.OperationId}' repeats the list naming rule's derived value '{curated}'");
             return null;
         }
 

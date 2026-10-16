@@ -79,7 +79,7 @@ public class SessionLogStreamBenchmarks : IDisposable
         _frames = await CollectFramesAsync(_body).ConfigureAwait(false);
 
         var count = 0;
-        await foreach (var item in _session.GetLogAsync().ConfigureAwait(false))
+        await foreach (var item in _session.ReadLogAsync().ConfigureAwait(false))
         {
             if (item is UnknownSessionLogItem)
             {
@@ -95,7 +95,7 @@ public class SessionLogStreamBenchmarks : IDisposable
         }
 
         var suspended = 0;
-        await foreach (var item in _suspendingSession.GetLogAsync().ConfigureAwait(false))
+        await foreach (var item in _suspendingSession.ReadLogAsync().ConfigureAwait(false))
         {
             if (item is UnknownSessionLogItem)
             {
@@ -117,7 +117,7 @@ public class SessionLogStreamBenchmarks : IDisposable
     {
         var session = _session!;
         var count = 0;
-        await foreach (var item in session.GetLogAsync().ConfigureAwait(false))
+        await foreach (var item in session.ReadLogAsync().ConfigureAwait(false))
         {
             _ = item;
             count++;
@@ -132,7 +132,7 @@ public class SessionLogStreamBenchmarks : IDisposable
     {
         var session = _suspendingSession!;
         var count = 0;
-        await foreach (var item in session.GetLogAsync().ConfigureAwait(false))
+        await foreach (var item in session.ReadLogAsync().ConfigureAwait(false))
         {
             _ = item;
             count++;

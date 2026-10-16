@@ -8,12 +8,12 @@ namespace OpenCode.Sdk;
 /// The response of &apos;experimental.session.instructions.entry.put&apos; (PUT /api/experimental/session/{sessionID}/instructions/entries/{key}).
 /// </summary>
 [Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
-public sealed record ExperimentalSessionInstructionsEntryResponse : OpenCodeResponse
+public sealed record ExperimentalSessionInstructionsEntryPutResponse : OpenCodeResponse
 {
     /// <summary>
-    /// Initializes a success instance of the &apos;ExperimentalSessionInstructionsEntryResponse&apos; envelope.
+    /// Initializes a success instance of the &apos;ExperimentalSessionInstructionsEntryPutResponse&apos; envelope.
     /// </summary>
-    public ExperimentalSessionInstructionsEntryResponse()
+    public ExperimentalSessionInstructionsEntryPutResponse()
     {
     }
 
@@ -21,7 +21,7 @@ public sealed record ExperimentalSessionInstructionsEntryResponse : OpenCodeResp
     /// Initializes an error-path instance; the payload stays unset behind its guard.
     /// </summary>
     [SetsRequiredMembers]
-    internal ExperimentalSessionInstructionsEntryResponse(int status, IOpenCodeError? error, string? rawBody)
+    internal ExperimentalSessionInstructionsEntryPutResponse(int status, IOpenCodeError? error, string? rawBody)
     {
         Status = status;
         IsError = true;

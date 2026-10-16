@@ -28,7 +28,7 @@ internal static class MechanismActionsWalkthrough
         using var value = JsonDocument.Parse("\"answer tersely\"");
         var entryPut = await client.Experimental.SetSessionInstructionsEntryAsync(sessionId,
                 "style",
-                new ExperimentalSessionInstructionsEntryRequest { Value = value.RootElement })
+                new ExperimentalSessionInstructionsEntryPutRequest { Value = value.RootElement })
             .ConfigureAwait(false);
 
         Console.WriteLine($"instructions-put: status={entryPut.Status}");

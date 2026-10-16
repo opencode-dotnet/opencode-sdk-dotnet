@@ -17,7 +17,7 @@ internal sealed class EventDiagnosticScenario : SessionClient
 
     public TaskCompletionSource<bool> Stalled { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public override async IAsyncEnumerable<ISessionLogItem> GetLogAsync(
+    public override async IAsyncEnumerable<ISessionLogItem> ReadLogAsync(
         SessionLogRequest? request = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask;

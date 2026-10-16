@@ -36,7 +36,7 @@ internal sealed class ExperimentalSessionInstructionsEntryListResponseAdapter : 
     public override ExperimentalSessionInstructionsEntryListResponse AdaptSuccess(int status, ReadOnlySpan<byte> utf8Body) => new()
     {
         Status = status,
-        SessionInstructionsEntry = ReadBarePayload(utf8Body, OpenCodeJsonContext.Default.ExperimentalSessionInstructionsEntryListResponseEnvelope).Data
+        SessionInstructionsEntries = ReadBarePayload(utf8Body, OpenCodeJsonContext.Default.ExperimentalSessionInstructionsEntryListResponseEnvelope).Data
     };
     /// <summary>
     /// Maps one buffered response onto the typed envelope.
@@ -49,7 +49,7 @@ internal sealed class ExperimentalSessionInstructionsEntryListResponseAdapter : 
             200 => new ExperimentalSessionInstructionsEntryListResponse
             {
                 Status = status,
-                SessionInstructionsEntry = ReadBarePayload(rawBody, OpenCodeJsonContext.Default.ExperimentalSessionInstructionsEntryListResponseEnvelope).Data
+                SessionInstructionsEntries = ReadBarePayload(rawBody, OpenCodeJsonContext.Default.ExperimentalSessionInstructionsEntryListResponseEnvelope).Data
             },
             >= 200 and < 300 => throw StatusVerdictFailures.UndeclaredSuccess(status),
             400 => new ExperimentalSessionInstructionsEntryListResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
