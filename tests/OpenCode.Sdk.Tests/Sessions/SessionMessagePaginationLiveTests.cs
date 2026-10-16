@@ -3,6 +3,7 @@ using System.Text.Json;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Sessions;
 
@@ -29,10 +30,14 @@ public sealed class SessionMessagePaginationLiveTests(SimulatedDriveServerFixtur
         {
             var turn = new SimulatedSessionTurn(server, client, session, sessionId);
             _ = await turn.CompleteAsync(Prompt, Reply, cancellationToken);
+            const string laterReply = "Later message lookup reply.";
+            _ = await turn.CompleteAsync("Later message lookup prompt", laterReply, cancellationToken);
             cleanup.MarkTurnCompleted();
             var messages = await EnumerateMessagesAsync(session, cancellationToken);
-            var assistants = OwnedReplies(messages);
-            await Assert.That(assistants).Count().IsEqualTo(1);
+            var assistants = messages.OfType<SessionMessageAssistant>().ToList();
+            await Assert.That(assistants).Count().IsEqualTo(2);
+            await Assert.That(assistants.SelectMany(message => message.Content.OfType<SessionMessageAssistantText>()).Select(text => text.Text))
+                .IsEquivalentTo([Reply, laterReply], CollectionOrdering.Matching);
             await Assert.That(messages.OfType<SessionMessageUser>().Select(message => message.Text)).Contains(Prompt);
 
             var response = await session.GetMessageAsync(assistants[0].Id, cancellationToken: cancellationToken);

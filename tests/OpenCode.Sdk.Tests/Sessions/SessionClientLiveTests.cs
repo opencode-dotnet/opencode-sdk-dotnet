@@ -1,8 +1,8 @@
 using System.Globalization;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
-using OpenCode.Sdk.Tests.Harness.Ownership;
 using OpenCode.Sdk.Tests.Support;
+using Testably.Abstractions;
 
 namespace OpenCode.Sdk.Tests.Sessions;
 
@@ -99,8 +99,9 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
 
         try
         {
-            var shells = await RunShellCommandAsync(session, messageId, command, cancellationToken);
-            OwnShellRemoval(client, cleanup, shells, "shell removal");
+            var shellMessages = await RunShellCommandAsync(session, messageId, command, cancellationToken);
+            OwnShellRemoval(client, cleanup, shellMessages, "shell removal");
+            var shells = shellMessages.Where(message => message.Id == messageId).ToList();
 
             await Assert.That(shells).Count().IsEqualTo(1);
             await Assert.That(shells[0].Command).IsEqualTo(command);
@@ -221,14 +222,16 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
             var before = await session.GetAsync(cancellationToken: cancellationToken);
             await Assert.That(before.Session.Time.Idle).IsNotNull();
             await Assert.That(before.Session.Time.Viewed).IsNull();
+            // core/src/session/session.ts:61-70 accepts an earlier watermark while viewed is unset.
+            var watermark = before.Session.Time.Idle!.Value - 1;
 
             _ = await session.MarkViewedAsync(new SessionViewRequest
             {
-                Idle = before.Session.Time.Idle!.Value,
+                Idle = watermark,
             }, cancellationToken: cancellationToken);
 
             var after = await session.GetAsync(cancellationToken: cancellationToken);
-            await Assert.That(after.Session.Time.Viewed).IsEqualTo(before.Session.Time.Idle);
+            await Assert.That(after.Session.Time.Viewed).IsEqualTo(watermark);
         }
         catch (Exception exception)
         {
@@ -245,9 +248,9 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
     {
         using var workspace = server.CreateWorkspace();
         using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
-        using var configClient = server.CreateClient();
-        var cleanup = new OwnedCleanup(CleanupTimeout);
-        OwnedSessionCleanup? sessionCleanup = null;
+        var session = await CreateOwnedSessionAsync(client, workspace.Path, "session-environment-live", cancellationToken);
+        var cleanup = new OwnedSessionCleanup(session, CleanupTimeout);
+        cleanup.MarkTurnCompleted();
         var messageId = "msg_environment_" + Guid.NewGuid().ToString("N");
         var variable = "SDK_SESSION_ENV_" + Guid.NewGuid().ToString("N");
         var marker = "sdk-environment-" + Guid.NewGuid().ToString("N");
@@ -255,20 +258,13 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
 
         try
         {
-            var previousShell = (await configClient.Config.GetConfigAsync(cancellationToken: cancellationToken)).Config.OfType<ConfigDocument>()
-                .Select(document => document.Info.Shell).LastOrDefault(shell => shell is not null);
-            cleanup.Own("restore isolated shell config", async token =>
-                _ = await configClient.Experimental.UpdateConfigAsync(
-                    new ExperimentalConfigUpdateRequest { Shell = previousShell }, cancellationToken: token));
-            var catalog = await configClient.Config.GetShellsAsync(cancellationToken: cancellationToken);
-            var selected = catalog.Shells.First(shell => shell.Acceptable);
-            // Persist before this test's location is first resolved: config updates do not join reloads.
-            _ = await configClient.Experimental.UpdateConfigAsync(
-                new ExperimentalConfigUpdateRequest { Shell = selected.Path }, cancellationToken: cancellationToken);
-            var session = await CreateOwnedSessionAsync(client, workspace.Path, "session-environment-live", cancellationToken);
-            sessionCleanup = new OwnedSessionCleanup(session, CleanupTimeout);
-            sessionCleanup.MarkTurnCompleted();
-            var shellName = new Testably.Abstractions.RealFileSystem().Path.GetFileNameWithoutExtension(selected.Path).ToLowerInvariant();
+            var discovery = await RunShellCommandAsync(session, "msg_discovery_" + Guid.NewGuid().ToString("N"), "echo sdk-shell-discovery", cancellationToken);
+            OwnShellRemoval(client, cleanup, discovery, "discovery shell removal");
+            await Assert.That(discovery).Count().IsEqualTo(1);
+            var resolved = await client.Shells.GetShellClient(discovery[0].ShellId).GetAsync(cancellationToken: cancellationToken);
+            // core/src/shell.ts:267,286 exposes the resolved executable, not merely an available shell.
+            // shell/select.ts:179-188 reuses that default; setting session variables does not select a shell.
+            var shellName = new RealFileSystem().Path.GetFileNameWithoutExtension(resolved.Shell.Shell).ToLowerInvariant();
             var command = shellName switch
             {
                 "cmd" => "echo %" + variable + "%",
@@ -280,8 +276,9 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
             {
                 Variables = new Dictionary<string, string>(StringComparer.Ordinal) { [variable] = marker },
             }, cancellationToken: cancellationToken);
-            var shells = await RunShellCommandAsync(session, messageId, command, cancellationToken);
-            OwnShellRemoval(client, sessionCleanup, shells, "environment shell removal");
+            var shellMessages = await RunShellCommandAsync(session, messageId, command, cancellationToken);
+            OwnShellRemoval(client, cleanup, shellMessages.Where(message => !discovery.Exists(owned => owned.ShellId == message.ShellId)), "environment shell removal");
+            var shells = shellMessages.Where(message => message.Id == messageId).ToList();
 
             await Assert.That(shells).Count().IsEqualTo(1);
             await Assert.That(shells[0].Status).IsEqualTo(SessionMessageShellStatus.Exited);
@@ -292,18 +289,6 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
         catch (Exception exception)
         {
             primaryFailure = exception;
-        }
-
-        if (sessionCleanup is not null)
-        {
-            try
-            {
-                await sessionCleanup.CompleteAsync(primaryFailure);
-            }
-            catch (Exception exception)
-            {
-                primaryFailure = exception;
-            }
         }
 
         await cleanup.CompleteAsync(primaryFailure);
@@ -425,7 +410,7 @@ public sealed class SessionClientLiveTests(SimulatedDriveServerFixture server)
             Command = command,
         }, cancellationToken: cancellationToken);
         var messages = await session.ListMessagesAsync(cancellationToken: cancellationToken);
-        return [.. messages.Messages.OfType<SessionMessageShell>().Where(message => message.Id == messageId)];
+        return [.. messages.Messages.OfType<SessionMessageShell>()];
     }
 
     private static void OwnShellRemoval(
