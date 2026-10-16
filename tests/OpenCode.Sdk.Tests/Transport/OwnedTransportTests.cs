@@ -195,9 +195,9 @@ public sealed class OwnedTransportTests
         });
         using var pipeline = Pipeline.Create(new OpenCodeClientOptions { Endpoint = server.Endpoint });
         await using var first = pipeline.ExecuteStreamAsync(OperationId,
-            HttpMethod.Get, "/api/event", new TestStreamAdapter(), CancellationToken.None).GetAsyncEnumerator();
+            HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, CancellationToken.None).GetAsyncEnumerator();
         await using var second = pipeline.ExecuteStreamAsync(OperationId,
-            HttpMethod.Get, "/api/event", new TestStreamAdapter(), CancellationToken.None).GetAsyncEnumerator();
+            HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, CancellationToken.None).GetAsyncEnumerator();
         var firstOpened = await first.MoveNextAsync();
         var secondOpened = await second.MoveNextAsync();
 
@@ -229,7 +229,7 @@ public sealed class OwnedTransportTests
         using var pipeline = Pipeline.Create(new OpenCodeClientOptions { Endpoint = server.Endpoint });
         using var cancellation = new CancellationTokenSource();
         var enumerator = pipeline.ExecuteStreamAsync(OperationId,
-                HttpMethod.Get, "/api/event", new TestStreamAdapter(), cancellation.Token)
+                HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, cancellation.Token)
             .GetAsyncEnumerator(cancellation.Token);
         Task<bool>? pendingRead = null;
         try

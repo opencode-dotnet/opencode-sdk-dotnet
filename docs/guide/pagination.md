@@ -1,6 +1,6 @@
 # 📑 Pagination
 
-Date: 2026-10-15
+Date: 2026-10-16
 
 Two operations in the API return more than fits in one response, and both use the same opaque
 cursor envelope: **listing a session's messages** and **listing sessions**. Both can be paged by
@@ -160,8 +160,11 @@ Four things to know:
 - **It is a pull sequence over ordinary HTTP calls**, not a stream. Nothing is held open between
   pages, and stopping early (a `break`, a `return`, a cancelled token) simply means the next page is
   never requested.
-- **It always throws.** No envelope reaches the item loop, so an API error on page seven throws
-  `OpenCodeApiException` out of the `await foreach` — `NoThrow` is not available here.
+- **Per-call options reach every page.** Both traversal methods take `OpenCodeRequestOptions`
+  before the cancellation token. `Location` applies to the first request and every continuation,
+  and `NetworkTimeout` bounds progress separately for each page. `NoThrow` is refused at the call,
+  before enumeration: an API error on page seven still throws `OpenCodeApiException` out of the
+  `await foreach`.
 - **Cancellation reaches every request** and is also checked between buffered items, so a token you
   cancel mid-page takes effect immediately rather than after the current page drains. The token you
   hand to `Enumerate*Async` and the one you hand to `WithCancellation` are both observed.
@@ -189,8 +192,9 @@ are doing — reporting progress per request, checkpointing `Cursor.Next`, or re
 There is no page-size contract here: a page is exactly what the server returned for one request.
 
 The two doors are independent walks of the same recipe, so enumerating the items and then the pages
-performs both walks — two full sets of requests. And `NoThrow` remains unavailable: an error page
-throws when the walk reaches it, exactly as it does for items.
+performs both walks — two full sets of requests. The same per-call options apply to the `Pages`
+walk. `NoThrow` is refused at the traversal call; an error page throws when the walk reaches it,
+exactly as it does for items.
 
 ## ⚖️ Which one to use
 
@@ -198,7 +202,7 @@ throws when the walk reaches it, exactly as it does for items.
 |---|---|---|---|
 | You get | one page envelope | the items, across all pages | every page envelope |
 | Page metadata (`Status`, `Cursor`) | ✅ yes | ❌ no | ✅ yes |
-| Per-call `NoThrow` | ✅ yes | ❌ no — always throws | ❌ no — always throws |
+| Per-call `NoThrow` | ✅ yes | ❌ refused at the call | ❌ refused at the call |
 | Backwards paging via `Previous` | ✅ yes | ❌ no | ❌ no |
 | Cursor bookkeeping | yours | handled | handled |
 

@@ -175,7 +175,7 @@ public sealed class CancellationIdentityTests
         using var server = new ScriptedEventServer(_ => phase == "open"
             ? ScriptedEventServer.Silence
             : ScriptedEventServer.StreamOf(WireBodyData.Frames(ScriptedEventServer.Connected), ends: true));
-        await using var events = server.Events.SubscribeAsync(MethodToken(entry, caller.Token))
+        await using var events = server.Events.SubscribeAsync(cancellationToken: MethodToken(entry, caller.Token))
             .GetAsyncEnumerator(EnumerationToken(entry, caller.Token));
         if (phase == "delay")
         {
@@ -215,7 +215,7 @@ public sealed class CancellationIdentityTests
         // These are the actual public clients; only their network and clock seams are substituted.
         if (events)
         {
-            return await AtSecondReadAsync(new EventsClient(pipeline).SubscribeAsync(MethodToken(entry, caller.Token)), entry, body, caller);
+            return await AtSecondReadAsync(new EventsClient(pipeline).SubscribeAsync(cancellationToken: MethodToken(entry, caller.Token)), entry, body, caller);
         }
 
         return await AtSecondReadAsync(new SessionClient(pipeline, SessionId).ReadLogAsync(
@@ -696,7 +696,8 @@ public sealed class CancellationIdentityTests
                 typeof(int), typeof(int), typeof(CancellationToken)) => "persistent-resize",
             _ when IsCursorEnumerator(member) => "cursor-items",
             _ when ClientFamilies.Contains(member.DeclaringType) && IsGeneric(member.ReturnType, typeof(CursorSequence<,>)) => "cursor-items",
-            _ when member.Is(typeof(EventsClient), nameof(EventsClient.SubscribeAsync), typeof(IAsyncEnumerable<IEvent>), typeof(CancellationToken)) => "events",
+            _ when member.Is(typeof(EventsClient), nameof(EventsClient.SubscribeAsync), typeof(IAsyncEnumerable<IEvent>),
+                typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "events",
             _ when ClientFamilies.Contains(member.DeclaringType) && IsGeneric(member.ReturnType, typeof(IAsyncEnumerable<>)) => "other-sse",
             _ when member.Is(typeof(PtyClient), nameof(PtyClient.UpdateAsync), typeof(Task<PtyUpdateResponse>),
                 typeof(PtyUpdateRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "pty-resize-http",

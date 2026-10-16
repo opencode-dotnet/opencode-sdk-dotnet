@@ -208,9 +208,11 @@ so one per-call argument selects both it and the header override.
 
 A call fails with `OpenCodeTransportException` when the network makes no progress for a while:
 no response headers, or no new bytes of the body. That window is 100 seconds by default. Change it
-for the whole client, or for one call. A stream takes no per-call options. On the session log the
-client value bounds only opening it; once open, it stays open until you stop reading, the server
-ends it, or it fails. The event bus has windows of its own, set apart from this one, and
+for the whole client, or for one call. On the session log a per-call `NetworkTimeout` overrides the
+client value only while opening it; once open, it stays open until you stop reading, the server
+ends it, or it fails. Automatic cursor traversals apply the window separately to every page request,
+not to the whole walk. The event bus refuses a per-call `NetworkTimeout`, including
+`Timeout.InfiniteTimeSpan`: it has windows of its own, set apart from this one, and
 [reconnects](streaming.md) instead:
 
 ```csharp

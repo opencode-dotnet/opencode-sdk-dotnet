@@ -79,7 +79,7 @@ internal static class SandboxRunner
             Limit = 1,
             Order = ListOrder.Ascending,
         };
-        var messageStream = sessionClient.EnumerateMessagesAsync(listRequest, CancellationToken.None);
+        var messageStream = sessionClient.EnumerateMessagesAsync(listRequest, cancellationToken: CancellationToken.None);
 
         await foreach (var message in messageStream.WithCancellation(CancellationToken.None))
         {

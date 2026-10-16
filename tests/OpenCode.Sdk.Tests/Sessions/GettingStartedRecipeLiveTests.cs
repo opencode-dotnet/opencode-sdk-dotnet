@@ -67,7 +67,7 @@ public sealed class GettingStartedRecipeLiveTests(SimulatedDriveServerFixture se
 
             var texts = new List<string>();
             await foreach (var message in session.EnumerateMessagesAsync(
-                               new SessionMessageListRequest { Order = ListOrder.Ascending }, cancellationToken))
+                               new SessionMessageListRequest { Order = ListOrder.Ascending }, cancellationToken: cancellationToken))
             {
                 if (message is SessionMessageAssistant assistant)
                 {

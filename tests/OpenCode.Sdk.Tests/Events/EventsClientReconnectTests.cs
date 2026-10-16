@@ -28,15 +28,16 @@ public sealed class EventsClientReconnectTests
     private static readonly string ConnectedFrame = WireBodyData.Frames(ScriptedEventServer.Connected);
 
     [Test]
-    public async Task ExecuteStreamAsync_Should_Carry_Per_Call_Location_On_Every_Reconnect_Attempt()
+    [Arguments("door")]
+    [Arguments("spine")]
+    public async Task Per_Call_Location_Should_Be_Sent_On_Every_Reconnect_Attempt(string entry)
     {
         var time = new ManualTimeProvider();
         using var handler = new RecordingHttpHandler(static _ => ScriptedEventServer.StreamOf(ConnectedFrame, ends: true));
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient, location: new LocationSelector { Directory = "/ambient" }, time: time);
-        var options = new OpenCodeRequestOptions { Location = new LocationSelector { Directory = "/per-call" } };
-        var stream = pipeline.ExecuteStreamAsync("event.subscribe", HttpMethod.Get, "/api/event",
-            EventSubscribeResponseStreamAdapter.Instance, options, CancellationToken.None);
+        var stream = Subscribe(entry, pipeline, new OpenCodeRequestOptions { Location = new LocationSelector { Directory = "/override/ç" } });
+        await Assert.That(handler.Requests).IsEmpty().Because(entry);
         await using var events = stream.GetAsyncEnumerator();
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
 
@@ -51,7 +52,34 @@ public sealed class EventsClientReconnectTests
         }
 
         await Assert.That(handler.Requests.Select(static request => request.Headers["x-opencode-directory"]))
-            .IsEquivalentTo(["%2Fper-call", "%2Fper-call", "%2Fper-call"], CollectionOrdering.Matching);
+            .IsEquivalentTo(["%2Foverride%2F%C3%A7", "%2Foverride%2F%C3%A7", "%2Foverride%2F%C3%A7"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments(0)]
+    [Arguments(1)]
+    [Arguments(2)]
+    [Arguments(3)]
+    public async Task SubscribeAsync_Should_Refuse_Per_Call_Options_Before_Enumeration(int kind)
+    {
+        using var scenario = ContractScenario.Responding();
+        var options = kind switch
+        {
+            0 => OpenCodeRequestOptions.NoThrow,
+            1 => new OpenCodeRequestOptions { ErrorBehavior = (ErrorBehavior)42 },
+            _ => new OpenCodeRequestOptions { NetworkTimeout = kind == 2 ? Delay : Timeout.InfiniteTimeSpan },
+        };
+
+        var exception = await Assert.That(() => scenario.Client.Events.SubscribeAsync(requestOptions: options)).Throws<ArgumentException>();
+
+        await Assert.That(exception!.GetType()).IsEqualTo(kind == 1 ? typeof(ArgumentOutOfRangeException) : typeof(ArgumentException));
+        await Assert.That(exception.ParamName).IsEqualTo("requestOptions");
+        if (exception is ArgumentOutOfRangeException range)
+        {
+            await Assert.That(range.ActualValue).IsEqualTo(options.ErrorBehavior);
+        }
+
+        await Assert.That(scenario.Requests).IsEmpty();
     }
 
     [Test]
@@ -98,7 +126,7 @@ public sealed class EventsClientReconnectTests
     {
         using var server = new ScriptedEventServer(_ => ScriptedEventServer.StreamOf(ConnectedFrame), networkTimeout: TimeSpan.FromSeconds(1));
         using var caller = new CancellationTokenSource();
-        await using var events = server.Events.SubscribeAsync(caller.Token).GetAsyncEnumerator();
+        await using var events = server.Events.SubscribeAsync(cancellationToken: caller.Token).GetAsyncEnumerator();
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
 
         var next = PendingNext(events);
@@ -498,7 +526,7 @@ public sealed class EventsClientReconnectTests
     {
         using var server = new ScriptedEventServer(_ => ScriptedEventServer.Status(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError));
         using var caller = new CancellationTokenSource();
-        await using var events = server.Events.SubscribeAsync(caller.Token).GetAsyncEnumerator();
+        await using var events = server.Events.SubscribeAsync(cancellationToken: caller.Token).GetAsyncEnumerator();
 
         var first = PendingCancellationAsync(events);
         await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
@@ -516,7 +544,7 @@ public sealed class EventsClientReconnectTests
     {
         using var server = new ScriptedEventServer(_ => ScriptedEventServer.StreamOf(ConnectedFrame));
         using var caller = new CancellationTokenSource();
-        await using var events = server.Events.SubscribeAsync(caller.Token).GetAsyncEnumerator();
+        await using var events = server.Events.SubscribeAsync(cancellationToken: caller.Token).GetAsyncEnumerator();
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
 
         var next = PendingCancellationAsync(events);
@@ -584,7 +612,7 @@ public sealed class EventsClientReconnectTests
         using var body = new LiveEventBody(ConnectedFrame);
         using var server = new ScriptedEventServer(_ => ScriptedEventServer.Stream(body));
         using var caller = new CancellationTokenSource();
-        await using var events = server.Events.SubscribeAsync(caller.Token).GetAsyncEnumerator();
+        await using var events = server.Events.SubscribeAsync(cancellationToken: caller.Token).GetAsyncEnumerator();
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
         server.Time.Advance(TimeSpan.FromMinutes(10));
         await Assert.That(body.IsDisposed).IsFalse();
@@ -689,6 +717,11 @@ public sealed class EventsClientReconnectTests
             return exception;
         }
     }
+
+    /// <summary>Opens the event bus through the generated door or straight through the stream spine it forwards to.</summary>
+    private static IAsyncEnumerable<IEvent> Subscribe(string entry, Pipeline pipeline, OpenCodeRequestOptions options) => entry == "door"
+        ? new EventsClient(pipeline).SubscribeAsync(requestOptions: options)
+        : pipeline.ExecuteStreamAsync("event.subscribe", HttpMethod.Get, "/api/event", EventSubscribeResponseStreamAdapter.Instance, options, CancellationToken.None);
 
     /// <summary>Asks for the next event without waiting for it, so the test can move time while the read is pending.</summary>
     private static Task<bool> PendingNext(IAsyncEnumerator<IEvent> events) => events.MoveNextAsync().AsTask();

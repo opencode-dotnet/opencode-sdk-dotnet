@@ -45,7 +45,7 @@ public sealed class SimulatedSessionWorkflowTests(SimulatedDriveServerFixture se
             {
                 try
                 {
-                    await foreach (var @event in client.Events.SubscribeAsync(eventWindow.Token))
+                    await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: eventWindow.Token))
                     {
                         // The first received event - the server's connected event - proves the SSE
                         // subscription is attached before the prompt fires, so the scripted deltas
@@ -145,7 +145,7 @@ public sealed class SimulatedSessionWorkflowTests(SimulatedDriveServerFixture se
             {
                 try
                 {
-                    await foreach (var @event in client.Events.SubscribeAsync(eventWindow.Token))
+                    await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: eventWindow.Token))
                     {
                         _ = subscribed.TrySetResult(true);
                         observed.Add(@event.Type);
@@ -214,7 +214,7 @@ public sealed class SimulatedSessionWorkflowTests(SimulatedDriveServerFixture se
 
         _ = await Assert.That(async () =>
         {
-            await foreach (var _ in client.Events.SubscribeAsync(cancellation.Token))
+            await foreach (var _ in client.Events.SubscribeAsync(cancellationToken: cancellation.Token))
             {
                 // The stream is drained only so the enumerator observes the cancellation; the
                 // events themselves are this test's noise, not its subject.

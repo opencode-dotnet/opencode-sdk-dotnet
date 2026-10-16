@@ -30,7 +30,7 @@ internal sealed class SimulatedSessionTurn(
 
         try
         {
-            probe.Start(client.Events.SubscribeAsync(reader.Token));
+            probe.Start(client.Events.SubscribeAsync(cancellationToken: reader.Token));
             await probe.WaitForConnectedAsync(cancellationToken);
 
             _ = await session.PromptAsync(

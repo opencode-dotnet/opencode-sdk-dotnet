@@ -28,6 +28,7 @@ public class EventsClient
     /// <summary>
     /// Subscribe to events. Subscribe to native events and plugin RPC events across all server locations. Volatile by contract: a slow consumer overflows and fails the stream, and events during disconnection are missed.
     /// </summary>
+    /// <param name = "requestOptions">The per-call options; NoThrow is refused. NetworkTimeout bounds only the opening and is refused for reconnecting streams, including Timeout.InfiniteTimeSpan.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;IEvent&apos; stream.</returns>
     /// <exception cref = "OpenCodeApiException">The API returned a declared error status (declared: 400, 401); streaming API errors always throw.</exception>
@@ -36,8 +37,8 @@ public class EventsClient
     /// <remarks>
     /// Operation <c>event.subscribe</c>: <c>GET /api/event</c>.
     /// </remarks>
-    public virtual IAsyncEnumerable<IEvent> SubscribeAsync(CancellationToken cancellationToken = default)
+    public virtual IAsyncEnumerable<IEvent> SubscribeAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteStreamAsync("event.subscribe", HttpMethod.Get, OpenCodeRoutes.Events.Subscribe, EventSubscribeResponseStreamAdapter.Instance, cancellationToken);
+        return Pipeline.ExecuteStreamAsync("event.subscribe", HttpMethod.Get, OpenCodeRoutes.Events.Subscribe, EventSubscribeResponseStreamAdapter.Instance, requestOptions, cancellationToken);
     }
 }

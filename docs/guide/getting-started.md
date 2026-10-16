@@ -132,7 +132,7 @@ event published before you listen is gone.
 
 ```csharp
 using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-await using var events = client.Events.SubscribeAsync(deadline.Token).GetAsyncEnumerator();
+await using var events = client.Events.SubscribeAsync(cancellationToken: deadline.Token).GetAsyncEnumerator();
 
 // The first event is server.connected: from here on, nothing the session publishes is missed.
 await events.MoveNextAsync();
@@ -148,7 +148,7 @@ while (await events.MoveNextAsync())
     }
 }
 
-await foreach (var message in session.EnumerateMessagesAsync(new SessionMessageListRequest { Order = ListOrder.Ascending }, deadline.Token))
+await foreach (var message in session.EnumerateMessagesAsync(new SessionMessageListRequest { Order = ListOrder.Ascending }, cancellationToken: deadline.Token))
 {
     if (message is SessionMessageAssistant assistant)
     {
@@ -287,13 +287,14 @@ Two shapes repeat everywhere, and once you have seen them the rest of the surfac
   `client.Sessions.GetSessionClient(id)`, `client.Ptys.GetPtyClient(id)`,
   `client.PersistentPtys.GetPersistentPtyClient(id)`. The handle is a cheap value — take one per
   id, keep it as long as you like.
-- **Three optional tails.** Almost every operation is
-  `…Async(request, requestOptions, cancellationToken)`, where `request` carries the body and query
-  and is optional when every member is, `requestOptions` selects per-call behaviour such as
-  [`NoThrow`](errors-and-responses.md#-ask-for-the-failure-as-data-instead), and the token is the
-  usual one. Streaming operations are the exception — they take no `requestOptions`.
-  [Requests](requests.md) covers what goes in that first argument, including the members that tell
-  "leave this alone" apart from "clear this".
+- **A shared optional tail.** Generated operations and automatic cursor traversals take
+  `requestOptions` before `cancellationToken`. Where present, `request` carries the body and query
+  and is optional when every member is. `requestOptions` selects per-call behaviour such as
+  location and network timeout; [`NoThrow`](errors-and-responses.md#-ask-for-the-failure-as-data-instead)
+  is available on one-shot calls but refused by streams and automatic traversals. The token is the
+  usual one; name it as `cancellationToken: token` when omitting the options. [Requests](requests.md)
+  covers what goes in the request argument, including the members that tell "leave this alone"
+  apart from "clear this".
 
 ## ➡️ Where to go next
 

@@ -200,16 +200,11 @@ internal sealed class Pipeline : IDisposable
     /// one-shot buffer is never involved, and a stream always throws on an error status —
     /// it has no envelope for one to ride. An operation that reconnects
     /// (<see cref="StreamReconnect"/>) runs one connection after another instead of ending
-    /// with the first.
+    /// with the first. Per-call location applies to every connection attempt; a per-call timeout
+    /// bounds only the opening, and a reconnecting stream refuses it.
     /// </summary>
     public IAsyncEnumerable<TPayload> ExecuteStreamAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
-        IStreamAdapter<TPayload, TCause> adapter, CancellationToken cancellationToken)
-        where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause> =>
-        ExecuteStreamAsync(operationId, method, route, adapter, options: null, cancellationToken);
-
-    /// <summary>Opens a stream with per-call location and opening timeout; stream failures always throw.</summary>
-    public IAsyncEnumerable<TPayload> ExecuteStreamAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
-        IStreamAdapter<TPayload, TCause> adapter, OpenCodeRequestOptions? options, CancellationToken cancellationToken)
+        IStreamAdapter<TPayload, TCause> adapter, OpenCodeRequestOptions? requestOptions, CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
@@ -221,17 +216,17 @@ internal sealed class Pipeline : IDisposable
             throw new ArgumentException("Routes must start with '/'.", nameof(route));
         }
 
-        ErrorBehaviorPolicy.RefuseNoThrow(options, "Streams");
+        ErrorBehaviorPolicy.RefuseNoThrow(requestOptions, "Streams");
 
         var reconnecting = StreamReconnect.Reconnecting.Contains(operationId);
-        if (reconnecting && options?.NetworkTimeout is not null)
+        if (reconnecting && requestOptions?.NetworkTimeout is not null)
         {
-            throw new ArgumentException("Reconnecting streams use their own connection and idle windows; NetworkTimeout is not supported.", nameof(options));
+            throw new ArgumentException("Reconnecting streams use their own connection and idle windows; NetworkTimeout is not supported.", nameof(requestOptions));
         }
 
         return reconnecting
-            ? ExecuteReconnectingStreamAsync(operationId, method, route, adapter, options?.Location, cancellationToken)
-            : ExecuteStreamCoreAsync(operationId, method, route, adapter, options?.Location, options?.NetworkTimeout, attempt: null, cancellationToken);
+            ? ExecuteReconnectingStreamAsync(operationId, method, route, adapter, requestOptions?.Location, cancellationToken)
+            : ExecuteStreamCoreAsync(operationId, method, route, adapter, requestOptions?.Location, requestOptions?.NetworkTimeout, attempt: null, cancellationToken);
     }
 
     public void Dispose()

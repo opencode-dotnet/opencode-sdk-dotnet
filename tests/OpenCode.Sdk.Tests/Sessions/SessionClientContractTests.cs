@@ -4,12 +4,108 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Sessions;
 
 public sealed class SessionClientContractTests
 {
+    [Test]
+    public async Task EnumerateMessagesAsync_Should_Apply_Location_To_Every_Page()
+    {
+        using var scenario = ContractScenario.RespondingWithPages(
+            WireBodyData.Page("", next: "next_1"),
+            WireBodyData.Page("", next: "next_2"),
+            WireBodyData.Page(""));
+        var messages = scenario.Client.Sessions.GetSessionClient("ses_100").EnumerateMessagesAsync(
+            new SessionMessageListRequest { Order = ListOrder.Ascending },
+            new OpenCodeRequestOptions { Location = new LocationSelector { Directory = "/override/ç" } });
+        await Assert.That(scenario.Requests).IsEmpty();
+        var count = 0;
+        await foreach (var page in messages.Pages.WithCancellation(CancellationToken.None))
+        {
+            await Assert.That(page.Messages).IsEmpty();
+            count++;
+        }
+
+        await Assert.That(count).IsEqualTo(3);
+        await Assert.That(scenario.Requests.Select(static request => request.RequestUri!.Query))
+            .IsEquivalentTo(["?order=asc", "?cursor=next_1", "?cursor=next_2"], CollectionOrdering.Matching);
+        foreach (var request in scenario.Requests)
+        {
+            await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo("%2Foverride%2F%C3%A7");
+        }
+    }
+
+    [Test]
+    public async Task EnumerateMessagesAsync_Should_Refuse_NoThrow_At_The_Call()
+    {
+        using var scenario = ContractScenario.Responding();
+
+        var exception = await Assert.That(() => scenario.Client.Sessions.GetSessionClient("ses_100")
+            .EnumerateMessagesAsync(requestOptions: OpenCodeRequestOptions.NoThrow)).Throws<ArgumentException>();
+
+        await Assert.That(exception!.GetType()).IsEqualTo(typeof(ArgumentException));
+        await Assert.That(exception.ParamName).IsEqualTo("requestOptions");
+        await Assert.That(scenario.Requests).IsEmpty();
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task ReadLogAsync_Should_Apply_NetworkTimeout_Only_While_Opening(bool live)
+    {
+        var time = new ManualTimeProvider();
+        var window = TimeSpan.FromSeconds(3);
+        using var blocked = new BlockingContent();
+        using var body = new LiveEventBody(WireBodyData.Frames(WireBodyData.LogSyncedEvent));
+        using var handler = new RecordingHttpHandler(_ => live
+            ? ScriptedEventServer.Stream(body)
+            : new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = blocked });
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient, networkTimeout: TimeSpan.FromMinutes(1), time: time);
+        using var caller = new CancellationTokenSource();
+        await using var log = new SessionClient(pipeline, "ses_9").ReadLogAsync(
+            new SessionLogRequest(), new OpenCodeRequestOptions { NetworkTimeout = window }, caller.Token).GetAsyncEnumerator();
+        if (live)
+        {
+            await Assert.That(await ReadNextLogAsync(log).WaitAsync(HangGuard.Bound)).IsTrue();
+            await Assert.That(log.Current).IsTypeOf<EventLogSynced>();
+            var next = ReadNextLogAsync(log);
+            time.Advance(window + TimeSpan.FromMinutes(2));
+            await Assert.That(next.IsCompleted).IsFalse();
+            await Assert.That(body.IsDisposed).IsFalse();
+            body.Append(WireBodyData.Frames(WireBodyData.UnknownLogEvent));
+            await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
+            await Assert.That(log.Current).IsTypeOf<UnknownSessionLogItem>();
+            body.End();
+            await Assert.That(await ReadNextLogAsync(log).WaitAsync(HangGuard.Bound)).IsFalse();
+        }
+        else
+        {
+            var opening = ReadNextLogAsync(log);
+            await blocked.ReadStarted.WaitAsync(HangGuard.Bound);
+            // Drain the pending read even when the wrong timeout was forwarded.
+            if (time.ArmedIn(window) == 0)
+            {
+                await caller.CancelOnWorkerAsync();
+                _ = await Assert.That(opening.WaitAsync(HangGuard.Bound)).Throws<OperationCanceledException>();
+            }
+
+            await Assert.That(time.ArmedIn(window)).IsEqualTo(1);
+            await time.WaitForArmedAsync(window, HangGuard.Bound);
+            time.Advance(window - TimeSpan.FromTicks(1));
+            await Assert.That(opening.IsCompleted).IsFalse();
+            time.Advance(TimeSpan.FromTicks(1));
+            _ = await Assert.That(opening.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
+            await blocked.ReadCompleted.WaitAsync(HangGuard.Bound);
+            await Assert.That(blocked.IsDisposed).IsTrue();
+        }
+    }
+
     private static readonly SessionUpdateRequest EmptyRuleset = new() { Permissions = new Optional<IReadOnlyList<PermissionRule>?>([]), };
+
+    private static Task<bool> ReadNextLogAsync(IAsyncEnumerator<ISessionLogItem> log) => log.MoveNextAsync().AsTask();
 
     [Test]
     [Arguments(WireBodyData.StreamFailureCause, "Die")]
@@ -26,6 +122,34 @@ public sealed class SessionClientContractTests
 
         var cause = exception!.Causes.Single();
         await Assert.That(cause.Tag).IsEqualTo(tag);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task RequestOptions_Should_Name_The_Public_Parameter_On_Stream_And_OneShot_Doors(bool stream)
+    {
+        using var scenario = ContractScenario.Responding(HttpStatusCode.OK, string.Empty);
+        var session = scenario.Client.Sessions.GetSessionClient("ses_100");
+        if (stream)
+        {
+            var refusal = await Assert.That(() => session.ReadLogAsync(requestOptions: OpenCodeRequestOptions.NoThrow))
+                .Throws<ArgumentException>();
+            await Assert.That(refusal!.GetType()).IsEqualTo(typeof(ArgumentException));
+            await Assert.That(refusal.ParamName).IsEqualTo("requestOptions");
+            await Assert.That(scenario.Requests).IsEmpty();
+            return;
+        }
+
+        var options = new OpenCodeRequestOptions { ErrorBehavior = (ErrorBehavior)42 };
+
+        var exception = await Assert.That(async () => _ = await session.GetAsync(requestOptions: options))
+            .Throws<ArgumentOutOfRangeException>();
+
+        await Assert.That(exception!.GetType()).IsEqualTo(typeof(ArgumentOutOfRangeException));
+        await Assert.That(exception.ParamName).IsEqualTo("requestOptions");
+        await Assert.That(exception.ActualValue).IsEqualTo(options.ErrorBehavior);
+        await Assert.That(scenario.Requests).IsEmpty();
     }
 
     [Test]
@@ -187,22 +311,16 @@ public sealed class SessionClientContractTests
         var fixtureLoader = new FixtureLoader();
         var user = fixtureLoader.LoadJson("Serialization.known-session-message.json");
         var shell = fixtureLoader.LoadJson("Serialization.known-session-message-shell.json");
-        var responses = new Queue<string>(
-        [
+        using var scenario = ContractScenario.RespondingWithPages(
             WireBodyData.Page("", next: firstNext),
             WireBodyData.Page(user, next: secondNext),
-            WireBodyData.Page(shell),
-        ]);
-        using var scenario = ContractScenario.Responding(_ => new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new StringContent(responses.Dequeue()),
-        });
+            WireBodyData.Page(shell));
         var messages = scenario.Client.Sessions.GetSessionClient("ses_100").EnumerateMessagesAsync(new SessionMessageListRequest
         {
             Limit = 2,
             Order = ListOrder.Ascending,
             Cursor = initialCursor,
-        }, CancellationToken.None);
+        }, cancellationToken: CancellationToken.None);
 
         await Assert.That(scenario.Requests).IsEmpty();
 

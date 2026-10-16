@@ -515,7 +515,7 @@ internal sealed class EventLogger(EventsClient events, ILogger<EventLogger> logg
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await foreach (var @event in events.SubscribeAsync(stoppingToken))
+        await foreach (var @event in events.SubscribeAsync(cancellationToken: stoppingToken))
         {
             logger.LogInformation("opencode event {EventType}", @event.Type);
         }

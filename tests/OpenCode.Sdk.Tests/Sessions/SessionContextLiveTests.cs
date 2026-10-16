@@ -189,7 +189,7 @@ public sealed class SessionContextLiveTests(SimulatedDriveServerFixture server)
         SessionEventProbe probe,
         CancellationToken cancellationToken)
     {
-        probe.Start(client.Events.SubscribeAsync(reader.Token));
+        probe.Start(client.Events.SubscribeAsync(cancellationToken: reader.Token));
         await probe.WaitForConnectedAsync(cancellationToken);
     }
 

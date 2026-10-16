@@ -63,7 +63,7 @@ public sealed class SessionsClientContractTests
                 Search = "a b",
                 ParentId = SessionParentFilter.RootOnly,
             },
-            CancellationToken.None);
+            cancellationToken: CancellationToken.None);
 
         await Assert.That(scenario.Requests).IsEmpty();
 

@@ -32,7 +32,7 @@ internal sealed partial class SessionLogWorker(
                                .ReadLogAsync(new SessionLogRequest
                                {
                                    Follow = true,
-                               }, stoppingToken)
+                               }, cancellationToken: stoppingToken)
                                .ConfigureAwait(false))
             {
                 LogFrame(logger, item.GetType().Name);

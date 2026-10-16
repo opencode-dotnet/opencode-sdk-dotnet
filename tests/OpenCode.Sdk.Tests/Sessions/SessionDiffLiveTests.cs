@@ -195,7 +195,7 @@ public sealed class SessionDiffLiveTests(SimulatedDriveServerFixture server)
         var messages = new List<ISessionMessageInfo>();
         await foreach (var message in session.EnumerateMessagesAsync(
                            new SessionMessageListRequest { Order = ListOrder.Ascending },
-                           cancellationToken))
+                           cancellationToken: cancellationToken))
         {
             messages.Add(message);
         }

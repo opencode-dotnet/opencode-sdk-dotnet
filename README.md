@@ -183,7 +183,7 @@ var info = await client.Server.GetInfoAsync();
 Console.WriteLine($"opencode {info.ServerInfo.Version} (pid {info.ServerInfo.Pid})");
 
 using var window = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-await foreach (var @event in client.Events.SubscribeAsync(window.Token))
+await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: window.Token))
 {
     Console.WriteLine($"{@event.GetType().Name} ({@event.Type})");
 }

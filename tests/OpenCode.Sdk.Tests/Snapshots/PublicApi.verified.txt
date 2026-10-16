@@ -138,7 +138,7 @@ namespace OpenCode.Sdk
     public class EventsClient
     {
         protected EventsClient() { }
-        public virtual System.Collections.Generic.IAsyncEnumerable<OpenCode.Sdk.Models.IEvent> SubscribeAsync(System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Collections.Generic.IAsyncEnumerable<OpenCode.Sdk.Models.IEvent> SubscribeAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
@@ -1338,7 +1338,7 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionCompactResponse> CompactAsync(OpenCode.Sdk.Models.SessionCompactRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionFormCreateResponse> CreateFormAsync(OpenCode.Sdk.Models.SessionFormCreateRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionPermissionCreateResponse> CreatePermissionAsync(OpenCode.Sdk.Models.SessionPermissionCreateRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
-        public virtual OpenCode.Sdk.CursorSequence<OpenCode.Sdk.SessionMessageListResponse, OpenCode.Sdk.Models.ISessionMessageInfo> EnumerateMessagesAsync(OpenCode.Sdk.SessionMessageListRequest? request = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual OpenCode.Sdk.CursorSequence<OpenCode.Sdk.SessionMessageListResponse, OpenCode.Sdk.Models.ISessionMessageInfo> EnumerateMessagesAsync(OpenCode.Sdk.SessionMessageListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionForkResponse> ForkAsync(OpenCode.Sdk.Models.SessionForkRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionGenerateResponse> GenerateTextAsync(OpenCode.Sdk.Models.SessionGenerateRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionResponse> GetAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
@@ -1358,7 +1358,7 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionPromptResponse> PromptAsync(OpenCode.Sdk.Models.SessionPromptRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
             "erimental.md#opencode003")]
-        public virtual System.Collections.Generic.IAsyncEnumerable<OpenCode.Sdk.Models.ISessionLogItem> ReadLogAsync(OpenCode.Sdk.SessionLogRequest? request = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Collections.Generic.IAsyncEnumerable<OpenCode.Sdk.Models.ISessionLogItem> ReadLogAsync(OpenCode.Sdk.SessionLogRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionRemoveResponse> RemoveAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionFormReplyResponse> ReplyToFormAsync(string formId, OpenCode.Sdk.Models.SessionFormReplyRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionPermissionReplyResponse> ReplyToPermissionAsync(string requestId, OpenCode.Sdk.Models.SessionPermissionReplyRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
@@ -1612,7 +1612,7 @@ namespace OpenCode.Sdk
     {
         protected SessionsClient() { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionCreateResponse> CreateSessionAsync(OpenCode.Sdk.Models.SessionCreateRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
-        public virtual OpenCode.Sdk.CursorSequence<OpenCode.Sdk.SessionListResponse, OpenCode.Sdk.Models.SessionInfo> EnumerateSessionsAsync(OpenCode.Sdk.SessionListRequest? request = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual OpenCode.Sdk.CursorSequence<OpenCode.Sdk.SessionListResponse, OpenCode.Sdk.Models.SessionInfo> EnumerateSessionsAsync(OpenCode.Sdk.SessionListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionActiveResponse> GetActiveAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual OpenCode.Sdk.SessionClient GetSessionClient(string sessionId) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionListResponse> ListSessionsAsync(OpenCode.Sdk.SessionListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }

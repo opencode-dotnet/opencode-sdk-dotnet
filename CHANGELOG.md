@@ -11,6 +11,23 @@ Nightly builds of `master` are on
 
 ### 💥 Breaking changes
 
+- **Streams and automatic cursor traversals take per-call options before cancellation.**
+  These four virtual method signatures change; recompile consumers and update overrides.
+  Name a token as `cancellationToken: token` when omitting the new options argument.
+  Calls that omit options keep their behavior. Streams and traversals refuse `NoThrow`;
+  the event bus also refuses a per-call `NetworkTimeout`, including `Timeout.InfiniteTimeSpan`.
+
+  | Door | Was | Now |
+  |---|---|---|
+  | `EventsClient.SubscribeAsync` | `(CancellationToken cancellationToken = default)` | `(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)` |
+  | `SessionClient.ReadLogAsync` | `(SessionLogRequest? request = null, CancellationToken cancellationToken = default)` | `(SessionLogRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)` |
+  | `SessionClient.EnumerateMessagesAsync` | `(SessionMessageListRequest? request = null, CancellationToken cancellationToken = default)` | `(SessionMessageListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)` |
+  | `SessionsClient.EnumerateSessionsAsync` | `(SessionListRequest? request = null, CancellationToken cancellationToken = default)` | `(SessionListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)` |
+
+- **Invalid per-call options name `requestOptions` in exceptions.** An undefined `ErrorBehavior`
+  on a one-shot call now reports `ArgumentOutOfRangeException.ParamName` as `"requestOptions"`
+  rather than `"options"`, and the new stream and traversal refusals name `"requestOptions"` too.
+
 - **`IOpenCodeStreamFailureCause` exposes `Tag`.** Every cause in
   `OpenCodeStreamFailureException.Causes` exposes its wire tag without a cast, including an
   unknown cause. Custom test implementations must supply the property. `IStreamFailureCause`
@@ -88,6 +105,13 @@ Nightly builds of `master` are on
   compare equal too. `ToString()` identifies `RootOnly` or `Of` and includes the parent id for `Of`.
 
 ### ✨ Added
+
+- **Per-call `Location` applies to streams and automatic cursor traversals.** Pass
+  `OpenCodeRequestOptions` to override the ambient directory on every stream connection attempt
+  or every page request. The server still ignores the header on routes that resolve a session's
+  location or need no location; it does not filter the global event bus. A per-call
+  `NetworkTimeout` bounds only opening the session log, and bounds each page request separately
+  on a traversal, not the whole walk.
 
 - **`OpenCodeClientOptions.EventStreamIdleTimeout` sets the event bus's idle window,** as
   upstream's own client allows. A connection that receives nothing for that long is replaced; the
