@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Text;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Contender;
 
@@ -76,6 +78,76 @@ public sealed class ServiceContenderTests
         await Assert.That(contender.Stderr).IsEqualTo(kept);
     }
 
-    private static ServiceContender Contender(string stderr, string? redact = Ticket) =>
-        new(Environment.ProcessId, new MemoryStream(Encoding.UTF8.GetBytes(stderr)), process: null, redact);
+    [Test]
+    [Arguments(null)]
+    [Arguments("")]
+    public async Task Stderr_Should_Keep_Text_Unredacted_When_The_Ticket_Is_Null_Or_Empty(string? redact)
+    {
+        const string text = "before ticket after";
+        using var contender = Contender(text, redact);
+
+        await Assert.That(contender.Stderr).IsEqualTo(text);
+    }
+
+    [Test]
+    public async Task TryGetFailure_Should_Report_A_Read_Fault_Until_Disposal()
+    {
+        var failure = new IOException("The stderr read failed.");
+        using var contender = Contender(stream: new FaultingStderr(failure));
+
+        var exception = contender.TryGetFailure();
+
+        await Assert.That(exception).IsTypeOf<OpenCodeServerException>();
+        await Assert.That(exception!.Message).IsEqualTo(
+            $"The background service contender (pid {Environment.ProcessId.ToString(CultureInfo.InvariantCulture)}) failed to start.");
+        await Assert.That(exception.InnerException).IsSameReferenceAs(failure);
+        await Assert.That(contender.Finished).IsTrue();
+
+        contender.Dispose();
+
+        await Assert.That(contender.TryGetFailure()).IsNull();
+    }
+
+    /// <summary>Our own pid cannot be our child: POSIX waitpid reports ECHILD, not an exit code.</summary>
+    [Test]
+    public async Task Finished_Should_Report_An_Unknown_Exit_At_Stderr_End_When_The_Pid_Is_Not_Our_Child()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            BranchReport.Print("Windows — no faithful fake handle for the POSIX ECHILD observation");
+            return;
+        }
+
+        using var contender = Contender();
+
+        await Assert.That(contender.Finished).IsTrue();
+        await Assert.That(contender.ExitedZero).IsFalse();
+        await Assert.That(contender.TryGetFailure()).IsNull();
+        BranchReport.Print("POSIX — ECHILD is an unknown exit, finished at EOF and not a failure");
+    }
+
+    [Test]
+    public async Task Release_Should_Drop_The_Retained_Stderr()
+    {
+        using var contender = Contender("retained stderr");
+
+        contender.Release();
+
+        await Assert.That(contender.Stderr).IsEqualTo(string.Empty);
+    }
+
+    private static ServiceContender Contender(string stderr = "", string? redact = Ticket, Stream? stream = null) =>
+        new(Environment.ProcessId, stream ?? new MemoryStream(Encoding.UTF8.GetBytes(stderr)), process: null, redact);
+
+    /// <summary>Both target-framework read paths throw the same fault before any read suspends.</summary>
+    private sealed class FaultingStderr(IOException failure) : MemoryStream
+    {
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) =>
+            throw failure;
+
+#if NET
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+            throw failure;
+#endif
+    }
 }
