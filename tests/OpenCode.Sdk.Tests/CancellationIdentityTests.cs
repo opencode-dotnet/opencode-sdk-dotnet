@@ -86,13 +86,6 @@ public sealed class CancellationIdentityTests
         _ = await enumerator.MoveNextAsync();
     }
 
-    /// <summary>Waits, under the hang guard, for a signal the scripted double completes.</summary>
-    private static Task WitnessAsync(Task signal)
-    {
-        Task[] signals = [signal];
-        return Task.WhenAll(signals).WaitAsync(HangGuard.Bound, CancellationToken.None);
-    }
-
     private static async Task<OperationCanceledException> CancellationAsync(Func<Task> operation)
     {
         var failure = await Assert.That(operation().WaitAsync(HangGuard.Bound)).Throws<OperationCanceledException>();
@@ -354,7 +347,8 @@ public sealed class CancellationIdentityTests
         });
         try
         {
-            await WitnessAsync(socket.Parked);
+            Task[] signals = [socket.Parked];
+            await Task.WhenAll(signals).WaitAsync(HangGuard.Bound, CancellationToken.None);
         }
         finally
         {
@@ -399,7 +393,8 @@ public sealed class CancellationIdentityTests
         var observed = CancellationAsync(() => enumerator.MoveNextAsync().AsTask());
         try
         {
-            await WitnessAsync(socket.Parked);
+            Task[] signals = [socket.Parked];
+            await Task.WhenAll(signals).WaitAsync(HangGuard.Bound, CancellationToken.None);
         }
         finally
         {
@@ -450,11 +445,13 @@ public sealed class CancellationIdentityTests
             if (occupy is not null)
             {
                 blocker = occupy();
-                await WitnessAsync(socket.SendEntered);
+                Task[] occupied = [socket.SendEntered];
+                await Task.WhenAll(occupied).WaitAsync(HangGuard.Bound, CancellationToken.None);
             }
 
             observed = CancellationAsync(() => send(caller.Token));
-            await WitnessAsync(socket.SendEntered);
+            Task[] signals = [socket.SendEntered];
+            await Task.WhenAll(signals).WaitAsync(HangGuard.Bound, CancellationToken.None);
             await Assert.That(socket.SentMessages.Count).IsEqualTo(1);
             await caller.CancelOnWorkerAsync();
             return await observed;
