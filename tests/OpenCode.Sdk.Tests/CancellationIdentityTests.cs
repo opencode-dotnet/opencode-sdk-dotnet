@@ -7,8 +7,8 @@ using System.Text;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
-using TUnit.Assertions.Enums;
 using OpenCode.Sdk.TestSupport;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests;
 
@@ -86,6 +86,11 @@ public sealed class CancellationIdentityTests
         _ = await enumerator.MoveNextAsync();
     }
 
+    /// <summary>
+    /// Observes the caller's cancellation. A read is awaited as the ValueTask a consumer's await foreach
+    /// awaits: on .NET Framework, AsTask() rethrows its cancellation as a new TaskCanceledException
+    /// without the caller's token.
+    /// </summary>
     private static async Task<OperationCanceledException> CancellationAsync(Func<Task> operation)
     {
         var failure = await Assert.That(operation().WaitAsync(HangGuard.Bound)).Throws<OperationCanceledException>();
@@ -180,7 +185,7 @@ public sealed class CancellationIdentityTests
             await Assert.That(await PullAsync().WaitAsync(HangGuard.Bound, CancellationToken.None)).IsTrue();
         }
 
-        var observed = CancellationAsync(() => events.MoveNextAsync().AsTask());
+        var observed = CancellationAsync(async () => _ = await events.MoveNextAsync());
         try
         {
             if (phase == "open")
@@ -244,7 +249,7 @@ public sealed class CancellationIdentityTests
         }
 
         await Assert.That(hasFirst).IsTrue();
-        var observed = CancellationAsync(() => enumerator.MoveNextAsync().AsTask());
+        var observed = CancellationAsync(async () => _ = await enumerator.MoveNextAsync());
         try
         {
             await body.WaitForReadAsync(HangGuard.Bound);
@@ -288,7 +293,7 @@ public sealed class CancellationIdentityTests
 
         // A yielded first item witnesses the real page traversal. The second buffered item must
         // not hide cancellation, and no continuation request is needed to observe it.
-        var failure = await CancellationAsync(() => items.MoveNextAsync().AsTask());
+        var failure = await CancellationAsync(async () => _ = await items.MoveNextAsync());
         await Assert.That(scenario.Requests.Count).IsEqualTo(1);
         return failure;
     }
@@ -390,7 +395,7 @@ public sealed class CancellationIdentityTests
         IAsyncEnumerable<T> stream, string entry, ScriptedTerminalWebSocket socket, CancellationTokenSource caller)
     {
         await using var enumerator = stream.GetAsyncEnumerator(EnumerationToken(entry, caller.Token));
-        var observed = CancellationAsync(() => enumerator.MoveNextAsync().AsTask());
+        var observed = CancellationAsync(async () => _ = await enumerator.MoveNextAsync());
         try
         {
             Task[] signals = [socket.Parked];

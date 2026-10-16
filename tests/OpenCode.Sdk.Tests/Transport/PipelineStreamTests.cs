@@ -58,7 +58,7 @@ public sealed class PipelineStreamTests
         var stream = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), caller.Token);
         await using var enumerator = stream.GetAsyncEnumerator();
 
-        var reading = CaptureFailureAsync(() => enumerator.MoveNextAsync().AsTask());
+        var reading = CaptureFailureAsync(async () => _ = await enumerator.MoveNextAsync());
         Exception? failure;
         try
         {
@@ -146,7 +146,7 @@ public sealed class PipelineStreamTests
         var frames = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), caller.Token);
         await using var enumerator = frames.GetAsyncEnumerator();
 
-        var opening = CaptureFailureAsync(() => enumerator.MoveNextAsync().AsTask());
+        var opening = CaptureFailureAsync(async () => _ = await enumerator.MoveNextAsync());
         Exception? failure;
         try
         {
