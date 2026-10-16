@@ -604,7 +604,7 @@ namespace OpenCode.Sdk
         public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.ModelInfo> Models { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
-    public class OpenCodeApiException : OpenCode.Sdk.OpenCodeException
+    public sealed class OpenCodeApiException : OpenCode.Sdk.OpenCodeException
     {
         public OpenCodeApiException() { }
         public OpenCodeApiException(string message) { }
@@ -728,7 +728,7 @@ namespace OpenCode.Sdk
         Missing = 0,
         VersionMismatch = 1,
     }
-    public class OpenCodeServerException : OpenCode.Sdk.OpenCodeException
+    public sealed class OpenCodeServerException : OpenCode.Sdk.OpenCodeException
     {
         public OpenCodeServerException() { }
         public OpenCodeServerException(string message) { }
@@ -1524,9 +1524,10 @@ namespace OpenCode.Sdk
     {
         public SessionMoveResponse() { }
     }
-    public sealed class SessionParentFilter
+    public sealed class SessionParentFilter : System.IEquatable<OpenCode.Sdk.SessionParentFilter>
     {
         public static OpenCode.Sdk.SessionParentFilter RootOnly { get; }
+        public override string ToString() { }
         public static OpenCode.Sdk.SessionParentFilter Of(string sessionId) { }
     }
     public sealed class SessionPermissionCreateResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.SessionPermissionCreateResponse>

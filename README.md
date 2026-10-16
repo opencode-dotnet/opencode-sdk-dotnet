@@ -224,9 +224,12 @@ has every option, `EnsureAsync`, `StopAsync`, launcher output capture, and pairi
 
 ### Dependency injection
 
-`OpenCode.Sdk.Extensions` registers one singleton client that owns its transport for the
-container's lifetime. The client is thread-safe. Every sub-client resolves from that same instance,
-so you can inject `SessionsClient`, `EventsClient`, or `PtysClient` directly.
+`OpenCode.Sdk.Extensions` registers one `OpenCodeClient` singleton and every sub-client, each only
+when that service type is not already registered. A consumer's earlier root-client or sub-client
+registration wins, and repeated `AddOpenCode` calls add no duplicate client registrations. The
+default root is thread-safe and owns its transport for the container's lifetime; default
+sub-clients resolve from the registered root, so you can inject `SessionsClient`, `EventsClient`,
+or `PtysClient` directly. See the [DI registration guide](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/connection-modes.md#-registering-with-dependency-injection).
 
 ```csharp
 builder.Services.AddOpenCode(options =>

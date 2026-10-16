@@ -76,6 +76,12 @@ Nightly builds of `master` are on
   | `VcsDiffRequest.Context` | `string?` | `int?` |
   | `ExperimentalSessionStatsRequest.From`, `.To` (milliseconds since the Unix epoch) | `string?` | `long?` |
 
+- **`OpenCodeApiException` and `OpenCodeServerException` are sealed.** They can no longer be used
+  as base classes; their constructors and error data are unchanged.
+- **`SessionParentFilter` is a record with value equality.** Filters for the same parent compare
+  equal and have the same hash code, so `SessionListRequest` records built with equal filters
+  compare equal too. `ToString()` identifies `RootOnly` or `Of` and includes the parent id for `Of`.
+
 ### ✨ Added
 
 - **`OpenCodeClientOptions.EventStreamIdleTimeout` sets the event bus's idle window,** as
@@ -96,6 +102,12 @@ Nightly builds of `master` are on
 
   Nothing else changes: the static properties, `==`, `IsKnown` and the wire format stay as they
   were.
+
+### 🐛 Fixes
+
+- **`AddOpenCode` keeps existing client registrations.** Calling it again does not add another
+  `OpenCodeClient` or sub-client registration. A consumer's earlier registration of the root client
+  or any sub-client wins; missing sub-clients are resolved from the registered root client.
 
 ## [0.9.0-preview.11] - 2026-10-15
 

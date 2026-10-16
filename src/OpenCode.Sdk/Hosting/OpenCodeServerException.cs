@@ -6,7 +6,7 @@ namespace OpenCode.Sdk;
 /// roots hang off, timed out, or refused a version mismatch. An absent or unusable registration
 /// is not a failure for discovery, which reports it as null; ensure starts a service instead.
 /// </summary>
-public class OpenCodeServerException : OpenCodeException
+public sealed class OpenCodeServerException : OpenCodeException
 {
     /// <summary>Initializes a new instance of the <see cref="OpenCodeServerException"/> class.</summary>
     public OpenCodeServerException()

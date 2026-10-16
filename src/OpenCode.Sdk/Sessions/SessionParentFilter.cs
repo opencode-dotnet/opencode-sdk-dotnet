@@ -5,7 +5,7 @@ namespace OpenCode.Sdk;
 /// The wire spells root-only as the literal string <c>"null"</c>; this type keeps that
 /// sentinel unrepresentable as ordinary data.
 /// </summary>
-public sealed class SessionParentFilter
+public sealed record SessionParentFilter
 {
     private const string RootOnlyWireValue = "null";
 
@@ -31,4 +31,11 @@ public sealed class SessionParentFilter
 
         return new SessionParentFilter(sessionId);
     }
+
+    /// <summary>Describes the root-only filter or the concrete parent identifier.</summary>
+    /// <returns>A description naming RootOnly, or Of with its session identifier.</returns>
+    public override string ToString() =>
+        string.Equals(WireValue, RootOnlyWireValue, StringComparison.Ordinal)
+            ? "SessionParentFilter { Kind = RootOnly }"
+            : $"SessionParentFilter {{ Kind = Of, SessionId = {WireValue} }}";
 }

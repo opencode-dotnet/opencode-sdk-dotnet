@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-10-15
+Date: 2026-10-16
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -28,9 +28,10 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   same endpoint-and-proxy pair (ADR-0010).
 - The `(HttpClient, options)` constructor is internal friend-assembly surface for this repository's
   tests and benchmarks. There is no public transport-injection constructor (ADR-0010).
-- `OpenCode.Sdk.Extensions` registers one singleton root client and resolves every sub-client from
-  that instance. It does not use `IHttpClientFactory` or depend on
-  `Microsoft.Extensions.Http` (ADR-0010).
+- `OpenCode.Sdk.Extensions` registers one singleton root client and every sub-client, each only when
+  the container does not already hold that service type, so a consumer's earlier registration wins.
+  Default sub-clients resolve from the registered root. It does not use `IHttpClientFactory` or
+  depend on `Microsoft.Extensions.Http` (ADR-0010).
 - No consumer transport-composition seam is public today. Adding one requires a concrete consumer
   need and a deliberate design; omission is reversible because a future public seam is additive
   (ADR-0010).

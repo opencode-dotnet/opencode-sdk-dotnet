@@ -3,7 +3,7 @@ using OpenCode.Sdk.Models;
 namespace OpenCode.Sdk;
 
 /// <summary>Represents a non-success response returned by the opencode API.</summary>
-public class OpenCodeApiException : OpenCodeException
+public sealed class OpenCodeApiException : OpenCodeException
 {
     /// <summary>Initializes a new instance of the <see cref="OpenCodeApiException"/> class.</summary>
     public OpenCodeApiException()

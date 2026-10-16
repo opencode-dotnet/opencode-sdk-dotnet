@@ -138,6 +138,63 @@ public sealed class OpenCodeServiceCollectionExtensionsTests
             .Throws<ArgumentNullException>();
     }
 
+    [Test]
+    public async Task AddOpenCode_Should_Register_One_Root_And_Each_Family_Once_When_Called_Twice()
+    {
+        var services = new ServiceCollection();
+        _ = services.AddOpenCode(static options => options.Endpoint = Endpoint);
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(OpenCodeConfigurationData.ProtectedServer)
+            .Build();
+        _ = services.AddOpenCode(configuration.GetSection("OpenCode"));
+        using var provider = services.BuildServiceProvider();
+
+        var roots = provider.GetServices<OpenCodeClient>().ToList();
+        await Assert.That(roots).HasSingleItem();
+        var root = provider.GetRequiredService<OpenCodeClient>();
+        await Assert.That(roots[0]).IsSameReferenceAs(root);
+
+        var families = typeof(OpenCodeClient).GetProperties()
+            .Where(property => property.PropertyType.Name.EndsWith("Client", StringComparison.Ordinal))
+            .ToList();
+        foreach (var family in families)
+        {
+            var resolved = provider.GetServices(family.PropertyType).ToList();
+            await Assert.That(resolved).HasSingleItem();
+            await Assert.That(resolved[0]).IsSameReferenceAs(family.GetValue(root));
+        }
+    }
+
+    [Test]
+    public async Task AddOpenCode_Should_Preserve_An_Earlier_Root_Client_Registration()
+    {
+        using var consumerClient = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = Endpoint });
+        var services = new ServiceCollection();
+        _ = services.AddSingleton(consumerClient);
+        _ = services.AddOpenCode(static options => options.Endpoint = Endpoint);
+        using var provider = services.BuildServiceProvider();
+
+        await Assert.That(provider.GetRequiredService<OpenCodeClient>()).IsSameReferenceAs(consumerClient);
+        await Assert.That(provider.GetServices<OpenCodeClient>().ToList()).HasSingleItem();
+        await Assert.That(provider.GetRequiredService<SessionsClient>()).IsSameReferenceAs(consumerClient.Sessions);
+    }
+
+    [Test]
+    public async Task AddOpenCode_Should_Preserve_An_Earlier_Sub_Client_Registration()
+    {
+        using var consumerClient = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = Endpoint });
+        var consumerSessions = consumerClient.Sessions;
+        var services = new ServiceCollection();
+        _ = services.AddSingleton(consumerSessions);
+        _ = services.AddOpenCode(static options => options.Endpoint = Endpoint);
+        using var provider = services.BuildServiceProvider();
+
+        var sessions = provider.GetRequiredService<SessionsClient>();
+        await Assert.That(sessions).IsSameReferenceAs(consumerSessions);
+        await Assert.That(provider.GetServices<SessionsClient>().ToList()).HasSingleItem();
+        await Assert.That(sessions).IsNotSameReferenceAs(provider.GetRequiredService<OpenCodeClient>().Sessions);
+    }
+
     private static ServiceProvider BuildProvider()
     {
         var services = new ServiceCollection();
