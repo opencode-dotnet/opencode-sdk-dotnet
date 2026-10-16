@@ -1,5 +1,4 @@
 using System.IO.Abstractions;
-using OpenCode.Sdk.Tools.Tests.Support;
 
 namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 
@@ -10,7 +9,7 @@ namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 /// it appears: a rule set, a Slopwatch file other than the baseline, and a global config with
 /// path sections.
 /// </summary>
-internal sealed class SuppressionScan(IFileSystem fileSystem)
+internal sealed class SuppressionScan(IFileSystem fileSystem, IReadOnlyList<string> files)
 {
     internal const string SlopwatchBaselinePath = ".slopwatch/baseline.json";
 
@@ -27,7 +26,6 @@ internal sealed class SuppressionScan(IFileSystem fileSystem)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
 
-        var files = new RepositoryFileSet(_fileSystem).Enumerate(root);
         var suppressions = new List<Suppression>();
         var configs = new List<AnalyzerConfigDocument>();
         var compileIncludes = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);

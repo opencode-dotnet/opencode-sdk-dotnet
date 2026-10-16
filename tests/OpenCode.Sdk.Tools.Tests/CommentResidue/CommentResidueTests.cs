@@ -1,3 +1,4 @@
+using OpenCode.Sdk.Tools.Generator.Refresh;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions;
 
@@ -15,8 +16,9 @@ public sealed class CommentResidueTests
     [Test]
     public async Task Repository_Should_Carry_No_Comment_Residue()
     {
-        var hits = await new CommentResidueScan(_fileSystem)
-            .ReadAsync(new RepositoryRoot(_fileSystem).Locate(), CancellationToken.None);
+        var root = new RepositoryRoot(_fileSystem).Locate();
+        var files = await new RepositoryFileSet(_fileSystem).EnumerateAsync(root, new CliWrapProcessRunner(), CancellationToken.None);
+        var hits = await new CommentResidueScan(_fileSystem, files).ReadAsync(root, CancellationToken.None);
 
         await Assert.That(hits.Select(static hit => hit.ToString())).IsEmpty();
     }

@@ -17,7 +17,7 @@ namespace OpenCode.Sdk.Tools.Tests.CommentResidue;
 /// or generated text.
 /// </para>
 /// </summary>
-internal sealed partial class CommentResidueScan(IFileSystem fileSystem)
+internal sealed partial class CommentResidueScan(IFileSystem fileSystem, IReadOnlyList<string> repositoryFiles)
 {
     internal const string TaskNumber = "a plan's task number";
     internal const string DesignSection = "a design document's section number";
@@ -37,7 +37,7 @@ internal sealed partial class CommentResidueScan(IFileSystem fileSystem)
 
         var generated = await GeneratedFilesAsync(root, cancellationToken);
         var hits = new List<CommentResidueHit>();
-        foreach (var file in new RepositoryFileSet(_fileSystem).Enumerate(root))
+        foreach (var file in repositoryFiles)
         {
             if (generated.Contains(file) || UnreadExtensions.Any(extension => file.EndsWith(extension, StringComparison.OrdinalIgnoreCase)))
             {
@@ -59,7 +59,7 @@ internal sealed partial class CommentResidueScan(IFileSystem fileSystem)
     private async Task<IReadOnlySet<string>> GeneratedFilesAsync(string root, CancellationToken cancellationToken)
     {
         var manifest = _fileSystem.Path.Combine(root, GeneratedManifest.ManifestPath);
-        if (!_fileSystem.File.Exists(manifest))
+        if (!repositoryFiles.Contains(GeneratedManifest.ManifestPath, StringComparer.Ordinal) || !_fileSystem.File.Exists(manifest))
         {
             return new HashSet<string>(StringComparer.Ordinal);
         }

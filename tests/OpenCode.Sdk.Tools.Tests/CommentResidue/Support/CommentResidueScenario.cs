@@ -7,12 +7,19 @@ internal sealed class CommentResidueScenario
 {
     private readonly MockFileSystem _fileSystem = new();
     private readonly Dictionary<string, string> _files = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _ignored = new(StringComparer.Ordinal);
 
     /// <summary>Adds one repository file from its lines, joined with line feeds as the repository stores them.</summary>
     public CommentResidueScenario WithFile(string path, params string[] lines)
     {
         _files[path] = string.Join('\n', lines) + "\n";
         return this;
+    }
+
+    public CommentResidueScenario WithUntrackedFile(string path, params string[] lines)
+    {
+        _ignored.Add(path);
+        return WithFile(path, lines);
     }
 
     /// <summary>Every hit of one scan, as the gate prints it.</summary>
@@ -27,7 +34,7 @@ internal sealed class CommentResidueScenario
             await _fileSystem.File.WriteAllTextAsync(fullPath, text);
         }
 
-        var hits = await new CommentResidueScan(_fileSystem).ReadAsync(root, CancellationToken.None);
+        var hits = await new CommentResidueScan(_fileSystem, [.. _files.Keys.Except(_ignored, StringComparer.Ordinal)]).ReadAsync(root, CancellationToken.None);
         return [.. hits.Select(static hit => hit.ToString())];
     }
 }

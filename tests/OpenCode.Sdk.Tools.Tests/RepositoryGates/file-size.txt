@@ -1,0 +1,10 @@
+tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Contender/ServiceContenderSpawnerTests.cs	1
+tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Ensure/ServiceEnsurerTests.cs	1
+tests/OpenCode.Sdk.Tests/Hosting/Launcher/OpenCodeServerLifecycleTests.cs	1
+tests/OpenCode.Sdk.Tests/Serialization/OpenCodeJsonContextTests.cs	1
+tests/OpenCode.Sdk.Tests/Sessions/SessionClientContractTests.cs	1
+tests/OpenCode.Sdk.Tests/Transport/PipelineTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/OperationPlanBinderTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/SpecBinderTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Emission/ModelMaterializationMatrixTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Support/EmitterPlanFixture.cs	1
