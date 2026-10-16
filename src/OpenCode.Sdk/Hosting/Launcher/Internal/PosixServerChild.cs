@@ -171,7 +171,11 @@ internal static class PosixServerChild
                     return null;
                 }
 
+#if NET
                 await Task.Delay(interval, seams.Time).ConfigureAwait(false);
+#else
+                await seams.Time.Delay(interval).ConfigureAwait(false);
+#endif
             }
         }
         catch (Exception) when (bound == TimeSpan.MaxValue)
