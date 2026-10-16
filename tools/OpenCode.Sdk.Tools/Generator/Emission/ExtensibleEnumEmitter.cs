@@ -273,16 +273,9 @@ internal static class ExtensibleEnumEmitter
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
         .WithLeadingTrivia(EmissionSyntax.Documentation("Hashes the wire spelling ordinally, as equality compares it."));
 
-    private static MethodDeclarationSyntax SpellingToString() => SyntaxFactory
-        .MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)), "ToString")
-        .WithModifiers(SyntaxFactory.TokenList(
-            SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-            SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-        .WithParameterList(SyntaxFactory.ParameterList())
-        .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(SyntaxFactory.IdentifierName(ExtensibleEnumMemberPolicy.Value)))
-        .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.Documentation(
-            "Returns the wire spelling, or an empty string for a default value, which has none."));
+    private static MethodDeclarationSyntax SpellingToString() => RecordPrinterSyntax.ToStringOverride(
+        SyntaxFactory.IdentifierName(ExtensibleEnumMemberPolicy.Value),
+        "Returns the wire spelling, or an empty string for a default value, which has none.");
 
     /// <summary>
     /// The converter: any string token reads as a value, pinned or not; any other token is a
