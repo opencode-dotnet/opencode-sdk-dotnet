@@ -197,7 +197,8 @@ The lint job runs `dotnet run --file tools/opencode-tool.cs -- verify-clones`: t
 scopes. Hand-written `src/` and `tools/` are gated against the committed baselines in `tools/jscpd/`:
 a clone a baseline does not hold fails the job, and `tools/` also fails above 3% duplicated lines.
 Tests and generated output are reported, not gated. The generator's manifest decides which `src/`
-files are generated, so the split needs no path convention. Locally the same command runs from the
+files are generated, so the split needs no path convention. A failure names each new clone with its
+two `file:line` ranges and its size in tokens, and the job keeps the jscpd reports as an artifact. Locally the same command runs from the
 repository root once `bun install --frozen-lockfile --ignore-scripts` has run in `tools/jscpd/`; it is
 not part of the completion gate above.
 

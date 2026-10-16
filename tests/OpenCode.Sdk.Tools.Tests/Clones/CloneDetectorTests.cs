@@ -84,6 +84,16 @@ public sealed class CloneDetectorTests
     }
 
     [Test]
+    public async Task RunAsync_Should_Place_Each_New_Clone_Under_The_Scanned_Path_And_Leave_Old_Ones_Out()
+    {
+        var scenario = await new CloneScenario().WithRun("src", exitCode: 1, clones: 5, newClones: 1).BuildAsync();
+
+        var result = await RunAsync(scenario, "src");
+
+        await Assert.That(result.NewCloneLocations).IsEquivalentTo([new CloneLocation("src/NestedFolderPastTheWrapColumn/A0.cs:3-33", "src/NestedFolderPastTheWrapColumn/B0.cs:5-35", 212)]);
+    }
+
+    [Test]
     public async Task RunAsync_Should_Refuse_When_The_Detector_Writes_No_Report()
     {
         var scenario = await new CloneScenario().WithRun("tests", exitCode: 2, standardError: "jscpd: no prebuilt binary", writesReport: false).BuildAsync();

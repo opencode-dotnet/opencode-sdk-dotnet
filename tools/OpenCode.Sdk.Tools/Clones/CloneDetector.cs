@@ -96,8 +96,39 @@ internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner proce
             total.GetProperty("lines").GetInt32(),
             total.GetProperty("percentage").GetDouble(),
             total.TryGetProperty("newClones", out var newClones) ? newClones.GetInt32() : 0,
+            NewCloneLocations(scope, document.RootElement),
             result.StandardError.Trim());
     }
+
+    /// <summary>The path of the report a run of <paramref name="scope"/> writes into <paramref name="workDirectory"/>.</summary>
+    public string ReportPath(string workDirectory, CloneScope scope)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+
+        return _fileSystem.Path.Combine(workDirectory, scope.Name, ReportFileName);
+    }
+
+    /// <summary>
+    /// Where each clone the baseline does not hold sits. jscpd marks those duplicates <c>isNew</c> and
+    /// names their files relative to the scanned path, so the scope's path is put in front.
+    /// </summary>
+    private static List<CloneLocation> NewCloneLocations(CloneScope scope, JsonElement report) =>
+        !report.TryGetProperty("duplicates", out var duplicates)
+            ? []
+            :
+            [
+                .. duplicates.EnumerateArray()
+                    .Where(static duplicate => duplicate.TryGetProperty("isNew", out var isNew) && isNew.ValueKind == JsonValueKind.True)
+                    .Select(duplicate => new CloneLocation(
+                        Fragment(scope, duplicate.GetProperty("firstFile")),
+                        Fragment(scope, duplicate.GetProperty("secondFile")),
+                        duplicate.GetProperty("tokens").GetInt32())),
+            ];
+
+    private static string Fragment(CloneScope scope, JsonElement file) =>
+        string.Create(
+            System.Globalization.CultureInfo.InvariantCulture,
+            $"{scope.Path}/{file.GetProperty("name").GetString()!.Replace('\\', '/')}:{file.GetProperty("start").GetInt32()}-{file.GetProperty("end").GetInt32()}");
 
     internal static IReadOnlyList<string> Arguments(CloneScope scope, string config, bool updateBaseline)
     {

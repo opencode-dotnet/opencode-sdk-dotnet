@@ -49,6 +49,11 @@ public sealed class VerifyClonesCommandTests
         await Assert.That(scenario.Runner.Invocations.Count).IsEqualTo(4);
         await Assert.That(result.Output).Contains("Clone gate failed for 'src'").And.Contains("1 new clones not in the baseline");
         await Assert.That(result.Output).DoesNotContain("Using config from");
+        await Assert.That(result.Output).Contains("new clone (212 tokens): src/NestedFolderPastTheWrapColumn/A0.cs:3-33 <-> src/NestedFolderPastTheWrapColumn/B0.cs:5-35");
+        await Assert.That(result.Output).DoesNotContain("Old.cs");
+        // The test console is 80 columns wide, as a redirected CI log is; both lines are longer and
+        // must still arrive whole.
+        await Assert.That(result.Output).Contains("Clone gate failed for 'src': ERROR: jscpd found 1 new clones not in the baseline (allowed: 0)");
     }
 
     [Test]
@@ -82,6 +87,26 @@ public sealed class VerifyClonesCommandTests
         await Assert.That(update.ExitCode).IsEqualTo(0);
         await Assert.That(update.Output).Contains("Clone baselines updated");
         await Assert.That(updated.Runner.Invocations.Count(static invocation => invocation.Contains("--update-baseline", StringComparison.Ordinal))).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task Execute_Should_Keep_Every_Scope_s_Report_In_The_Requested_Directory()
+    {
+        var scenario = await new CloneScenario()
+            .WithRun("src", exitCode: 1, clones: 5, newClones: 1, standardError: NewCloneError)
+            .WithRun("tools")
+            .WithRun("tests")
+            .WithRun("generated")
+            .BuildAsync();
+        var reports = scenario.FileSystem.Path.Combine(scenario.Root, "clone-reports");
+
+        var result = await RunAsync(scenario, Command, "--report-directory", reports);
+
+        await Assert.That(result.ExitCode).IsEqualTo(1);
+        await Assert.That(scenario.FileSystem.Directory.EnumerateFiles(reports).Select(path => scenario.FileSystem.Path.GetFileName(path)))
+            .IsEquivalentTo(["src.json", "tools.json", "tests.json", "generated.json"]);
+        await Assert.That(await scenario.FileSystem.File.ReadAllTextAsync(scenario.FileSystem.Path.Combine(reports, "src.json")))
+            .Contains("\"isNew\": true");
     }
 
     [Test]
@@ -121,7 +146,11 @@ public sealed class VerifyClonesCommandTests
             services.AddSingleton<IAnsiConsole, TestConsole>();
             services.AddSingleton<IProcessRunner>(scenario.Runner);
         });
-        var tester = new CommandAppTester(registrar);
+        // The command writes to the tester's console. It is pinned to the 80 columns of a redirected CI
+        // log, so a line the gate lets wrap is split in the output and fails the assertions.
+        using var console = new TestConsole();
+        _ = console.Width(80);
+        var tester = new CommandAppTester(registrar, new CommandAppTesterSettings(), console);
         tester.Configure(ToolApp.Configure);
         return await tester.RunAsync(arguments);
     }

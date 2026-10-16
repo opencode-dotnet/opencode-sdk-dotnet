@@ -18,6 +18,7 @@ namespace OpenCode.Sdk.Tools.Commands;
 internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCommand.Settings>
 {
     private const string SolutionFileName = "OpenCode.slnx";
+    private const int UnwrappedWidth = 4096;
 
     private readonly IFileSystem _fileSystem;
     private readonly IAnsiConsole _console;
@@ -54,7 +55,8 @@ internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCom
             foreach (var scope in CloneScopes.All)
             {
                 var result = await _detector.RunAsync(root, scope, split, work, settings.UpdateBaseline, cancellationToken).ConfigureAwait(false);
-                _console.MarkupLine(Markup.Escape(Summary(result)));
+                KeepReport(work, scope, settings.ReportDirectory);
+                WriteLine(Markup.Escape(Summary(result)));
                 if (result.ExitCode != 0)
                 {
                     failed.Add(result);
@@ -65,18 +67,22 @@ internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCom
             {
                 foreach (var result in failed)
                 {
-                    _console.MarkupLine($"[red]Clone gate failed for '{Markup.Escape(result.Scope.Name)}':[/] {Markup.Escape(Verdict(result.StandardError))}");
+                    WriteLine($"[red]Clone gate failed for '{Markup.Escape(result.Scope.Name)}':[/] {Markup.Escape(Verdict(result.StandardError))}");
+                    foreach (var location in result.NewCloneLocations)
+                    {
+                        WriteLine(Markup.Escape(Location(location)));
+                    }
                 }
 
                 return 1;
             }
 
-            _console.MarkupLine(settings.UpdateBaseline ? "[green]Clone baselines updated.[/]" : "[green]Clone gate passed.[/]");
+            WriteLine(settings.UpdateBaseline ? "[green]Clone baselines updated.[/]" : "[green]Clone gate passed.[/]");
             return 0;
         }
         catch (CloneDetectorException exception)
         {
-            _console.MarkupLine($"[red]Refused:[/] {Markup.Escape(exception.Message)}");
+            WriteLine($"[red]Refused:[/] {Markup.Escape(exception.Message)}");
             return 1;
         }
         finally
@@ -85,6 +91,25 @@ internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCom
             {
                 _fileSystem.Directory.Delete(work, recursive: true);
             }
+        }
+    }
+
+    /// <summary>
+    /// Writes one line of the gate's output unwrapped. With its output redirected, as in CI, the
+    /// console is 80 columns wide and would fold a clone's two locations over several lines, where a
+    /// search of the log for them misses; the line keeps its full width instead.
+    /// </summary>
+    private void WriteLine(string markup)
+    {
+        var width = _console.Profile.Width;
+        _console.Profile.Width = Math.Max(width, UnwrappedWidth);
+        try
+        {
+            _console.MarkupLine(markup);
+        }
+        finally
+        {
+            _console.Profile.Width = width;
         }
     }
 
@@ -99,6 +124,26 @@ internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCom
         return result.Scope.IsGated
             ? string.Create(CultureInfo.InvariantCulture, $"{line}, {result.NewClones} new")
             : line + ", reported only";
+    }
+
+    /// <summary>One new clone's line: its size and both fragments, so the author can find it without running jscpd.</summary>
+    internal static string Location(CloneLocation location)
+    {
+        ArgumentNullException.ThrowIfNull(location);
+
+        return string.Create(CultureInfo.InvariantCulture, $"  new clone ({location.Tokens} tokens): {location.First} <-> {location.Second}");
+    }
+
+    /// <summary>Copies a scope's report into the directory the caller asked for, named after the scope, so CI can keep it as an artifact.</summary>
+    private void KeepReport(string work, CloneScope scope, string? reportDirectory)
+    {
+        if (string.IsNullOrEmpty(reportDirectory))
+        {
+            return;
+        }
+
+        _fileSystem.Directory.CreateDirectory(reportDirectory);
+        _fileSystem.File.Copy(_detector.ReportPath(work, scope), _fileSystem.Path.Combine(reportDirectory, scope.Name + ".json"), overwrite: true);
     }
 
     /// <summary>jscpd's own verdict lines from its standard error (it also logs which config it read there), or all of it when it gave none.</summary>
@@ -141,5 +186,9 @@ internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCom
         [CommandOption("--update-baseline")]
         [Description("Rewrite the gated scopes' committed baselines from this run instead of failing on new clones.")]
         public bool UpdateBaseline { get; init; }
+
+        [CommandOption("--report-directory <DIRECTORY>")]
+        [Description("Also keep each scope's jscpd JSON report in this directory, as <scope>.json, for example to upload it from CI.")]
+        public string? ReportDirectory { get; init; }
     }
 }
