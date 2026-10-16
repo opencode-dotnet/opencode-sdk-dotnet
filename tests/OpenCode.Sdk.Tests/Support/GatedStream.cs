@@ -12,7 +12,7 @@ internal sealed class GatedStream : Stream
     private readonly byte[] _payload;
     private readonly int _chunkCount;
     private readonly int _chunkSize;
-    private readonly Channel<bool> _requested = Channel.CreateUnbounded<bool>();
+    private readonly Channel<int> _requested = Channel.CreateUnbounded<int>();
     private readonly Channel<bool> _released = Channel.CreateUnbounded<bool>();
     private int _position;
     private int _sent;
@@ -45,10 +45,10 @@ internal sealed class GatedStream : Stream
         set => throw new NotSupportedException();
     }
 
-    /// <summary>Completes once the reader asks for the next chunk.</summary>
+    /// <summary>Completes once the reader asks for the next chunk, with the room that read offers.</summary>
     /// <param name="hangGuard">Bounds a reader that never asks; it decides nothing else.</param>
-    /// <returns>A task that completes once a read is pending.</returns>
-    public Task WaitForReadAsync(TimeSpan hangGuard) => _requested.Reader.ReadAsync().AsTask().WaitAsync(hangGuard);
+    /// <returns>A task that completes with the pending read's buffer length.</returns>
+    public Task<int> WaitForReadAsync(TimeSpan hangGuard) => _requested.Reader.ReadAsync().AsTask().WaitAsync(hangGuard);
 
     /// <summary>Lets the pending read, or the next one, return its chunk.</summary>
     public void Release() => _ = _released.Writer.TryWrite(true);
@@ -100,7 +100,7 @@ internal sealed class GatedStream : Stream
             return 0;
         }
 
-        _ = _requested.Writer.TryWrite(true);
+        _ = _requested.Writer.TryWrite(buffer.Length);
         _ = await _released.Reader.ReadAsync(cancellationToken);
 
         // The last chunk carries the remainder, so the whole payload goes out in exactly the
