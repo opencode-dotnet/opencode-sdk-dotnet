@@ -70,7 +70,7 @@ tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/SpecBinderTests.cs	84
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/StabilizeDuplicatePolicyTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/TransportOwnedFingerprintTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/UnionMemberHoistBinderTests.cs	1
-tests/OpenCode.Sdk.Tools.Tests/Generator/Emission/ExperimentalSurfaceEmissionTests.cs	5
+tests/OpenCode.Sdk.Tools.Tests/Generator/Emission/ExperimentalSurfaceEmissionTests.cs	4
 tests/OpenCode.Sdk.Tools.Tests/Generator/Emission/SessionScopedEventEmissionTests.cs	2
 tests/OpenCode.Sdk.Tools.Tests/Generator/Emission/SourceEmitterTests.cs	6
 tests/OpenCode.Sdk.Tools.Tests/Generator/Emission/StreamOperationEmissionTests.cs	1
