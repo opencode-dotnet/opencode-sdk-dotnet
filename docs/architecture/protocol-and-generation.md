@@ -120,13 +120,15 @@ evidence and may contain superseded positions.
 Curation may:
 
 - choose .NET names and placement for represented OpenAPI constructs — handle placement
-  follows ADR-0019, and every curation row, group rows included, carries its reason — including
-  the name of the carrier interface a hoisted union member is declared with, where the mechanical
-  name is correct but graceless, the member name of one enum value where the mechanical
-  casing is (an `enumMemberNames` row), and the C# parameter name of one route value where the
-  mechanical one says less than the rest of the surface (a `parameterNames` row; a handle
-  family's parameter takes one name across the family). Brand spellings (`OAuth`) are fixed in
-  the name policy, so a word that spells one, in any case, is written the brand's way;
+  follows ADR-0019. Every curation row, group rows included, carries its reason and passes one
+  registered row contract that checks key presence, reason presence, and duplicate keys before
+  per-kind existence, selection, redundancy, and stale checks. This includes the name of the
+  carrier interface a hoisted union member is declared with, where the mechanical name is correct
+  but graceless, the member name of one enum value where the mechanical casing is (an
+  `enumMemberNames` row), and the C# parameter name of one route value where the mechanical one
+  says less than the rest of the surface (a `parameterNames` row; a handle family's parameter
+  takes one name across the family). Brand spellings (`OAuth`) are fixed in the name policy, so
+  a word that spells one, in any case, is written the brand's way;
 - name an operation the closed verb grammar cannot name, or names gracelessly, through a
   reason-bearing `operationNames` row. The closing segment is a verb only when the grammar lists
   it; a `GET` without one reads as `Get<Subject>Async`, and any other operation without one
@@ -148,9 +150,10 @@ Curation may:
 - place a model in a slice where its name carries no family prefix, through a reason-bearing
   `modelOwners` row; a family's prefixes are its name, its singular, its group key and the
   group's `prefixAliases`, and a model with no prefix and no row fails generation. A
-  reason-bearing `sessionAreas` row names a Sessions model area by name prefixes; a Sessions model
-  no row matches stays in the family's `Models/`. A row, pattern or alias that places nothing
-  refuses as stale (ADR-0033);
+  `modelOwners` row whose model a family prefix or alias already places in the same family
+  refuses as redundant. A reason-bearing `sessionAreas` row names a Sessions model area by name
+  prefixes; a Sessions model no row matches stays in the family's `Models/`. A row, pattern or
+  alias that places nothing refuses as stale (ADR-0033);
 - collapse OpenAPI shapes proven structurally equivalent, ignoring the order in which an object
   declares its properties and emitting the surviving schema's order;
 - fingerprint exclusions already evidenced by the pinned document; and
