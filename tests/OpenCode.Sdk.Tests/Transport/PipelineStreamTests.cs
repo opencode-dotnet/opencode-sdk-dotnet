@@ -18,6 +18,189 @@ public sealed class PipelineStreamTests
     private const string FirstAndSecondFrames = FirstFrame + "data: " + SecondPayload + "\n\n";
 
     [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task ExecuteStreamAsync_Should_Report_Interruption_After_The_Final_Unterminated_Frame(bool disposeClient)
+    {
+        using var caller = new CancellationTokenSource();
+        using var handler = new RecordingHttpHandler(static _ => EventStream(FirstFrame[..^1]));
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient);
+        await using var enumerator = pipeline.ExecuteStreamAsync(
+            OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), caller.Token).GetAsyncEnumerator();
+        var first = enumerator.MoveNextAsync().AsTask();
+        await Assert.That(await first.WaitAsync(HangGuard.Bound)).IsTrue();
+
+        if (disposeClient)
+        {
+            pipeline.Dispose();
+        }
+        else
+        {
+            await caller.CancelOnWorkerAsync();
+        }
+
+        var failure = await CaptureFailureAsync(async () => _ = await enumerator.MoveNextAsync()).WaitAsync(HangGuard.Bound);
+
+        await AssertInterruptionAsync(failure, !disposeClient, caller.Token);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task ExecuteStreamAsync_Should_Report_Client_Disposal_During_A_Read(bool cancelCaller)
+    {
+        using var caller = new CancellationTokenSource();
+        using var body = new GatedStream([0x41], chunkCount: 1);
+        using var handler = new RecordingHttpHandler(_ => EventStreamOf(body));
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient);
+        var stream = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), caller.Token);
+        await using var enumerator = stream.GetAsyncEnumerator();
+
+        var reading = CaptureFailureAsync(async () => _ = await enumerator.MoveNextAsync());
+        Exception? failure;
+        try
+        {
+            await body.WaitForReadAsync(HangGuard.Bound);
+            if (cancelCaller)
+            {
+                await caller.CancelOnWorkerAsync();
+            }
+
+            pipeline.Dispose();
+            failure = await reading.WaitAsync(HangGuard.Bound);
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+            _ = await reading.WaitAsync(HangGuard.Bound);
+        }
+
+        await AssertInterruptionAsync(failure, cancelCaller, caller.Token);
+    }
+
+    [Test]
+    [Arguments("method")]
+    [Arguments("enumeration")]
+    [Arguments("both")]
+    public Task ExecuteStreamAsync_Should_Release_The_Response_On_Cancellation_While_Holding_A_Frame(string tokenEntry) =>
+        AssertReleaseWhileHoldingFrameAsync(disposeClient: false, tokenEntry);
+
+    [Test]
+    public Task ExecuteStreamAsync_Should_Release_The_Response_On_Cancellation_While_Holding_A_Frame_On_Client_Disposal() =>
+        AssertReleaseWhileHoldingFrameAsync(disposeClient: true, tokenEntry: "method");
+
+    private static async Task AssertReleaseWhileHoldingFrameAsync(bool disposeClient, string tokenEntry)
+    {
+        using var caller = new CancellationTokenSource();
+        using var body = ChunkedStream.Of(FirstAndSecondFrames);
+        using var response = EventStreamOf(body);
+        using var handler = new RecordingHttpHandler(_ => response);
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient);
+        var methodToken = tokenEntry is "enumeration" ? CancellationToken.None : caller.Token;
+        var enumerationToken = tokenEntry is "method" ? CancellationToken.None : caller.Token;
+        var frames = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), methodToken);
+        await using var enumerator = frames.GetAsyncEnumerator(enumerationToken);
+        await Assert.That(await enumerator.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound)).IsTrue();
+        await Assert.That(enumerator.Current.Value).IsEqualTo("first");
+
+        if (disposeClient)
+        {
+            pipeline.Dispose();
+        }
+        else
+        {
+            await caller.CancelOnWorkerAsync();
+        }
+
+        // No next pull or enumerator disposal may be needed to release the live response.
+        await Assert.That(body.Disposed).IsTrue();
+        _ = await Assert.That(async () => _ = await response.Content.ReadAsStreamAsync()).Throws<ObjectDisposedException>();
+        if (disposeClient)
+        {
+            var exception = await Assert.That(async () => _ = await enumerator.MoveNextAsync()).Throws<ObjectDisposedException>();
+            await Assert.That(exception!.ObjectName).IsEqualTo(typeof(OpenCodeClient).FullName);
+        }
+        else
+        {
+            var exception = await Assert.That(async () => _ = await enumerator.MoveNextAsync()).Throws<OperationCanceledException>();
+            await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
+        }
+
+        await Assert.That(handler.Requests.Count).IsEqualTo(1);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task ExecuteStreamAsync_Should_Classify_Interruption_While_Opening_The_Body(bool disposeClient)
+    {
+        using var caller = new CancellationTokenSource();
+        using var content = new InterruptedBufferingContent();
+        content.Headers.ContentType = new MediaTypeHeaderValue(EventStreamMediaType);
+        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient);
+        var frames = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), caller.Token);
+        await using var enumerator = frames.GetAsyncEnumerator();
+
+        var opening = CaptureFailureAsync(async () => _ = await enumerator.MoveNextAsync());
+        Exception? failure;
+        try
+        {
+            await content.ReadStarted.WaitAsync(HangGuard.Bound);
+            if (disposeClient)
+            {
+                pipeline.Dispose();
+            }
+            else
+            {
+                await caller.CancelOnWorkerAsync();
+            }
+
+            failure = await opening.WaitAsync(HangGuard.Bound);
+        }
+        finally
+        {
+            content.Dispose();
+            _ = await opening.WaitAsync(HangGuard.Bound);
+        }
+
+        await content.ReadCompleted.WaitAsync(HangGuard.Bound);
+        await Assert.That(content.IsDisposed).IsTrue();
+        await AssertInterruptionAsync(failure, !disposeClient, caller.Token);
+    }
+
+    internal static async Task<Exception?> CaptureFailureAsync(Func<Task> operation)
+    {
+        try
+        {
+            await operation();
+            return null;
+        }
+        catch (Exception exception)
+        {
+            return exception;
+        }
+    }
+
+    internal static async Task AssertInterruptionAsync(Exception? failure, bool cancelCaller, CancellationToken callerToken)
+    {
+        if (cancelCaller)
+        {
+            await Assert.That(failure).IsAssignableTo<OperationCanceledException>();
+            await Assert.That(((OperationCanceledException)failure!).CancellationToken).IsEqualTo(callerToken);
+        }
+        else
+        {
+            await Assert.That(failure).IsTypeOf<ObjectDisposedException>();
+            await Assert.That(((ObjectDisposedException)failure!).ObjectName).IsEqualTo(typeof(OpenCodeClient).FullName);
+        }
+    }
+
+    [Test]
     public async Task ExecuteStreamAsync_Should_Override_The_Ambient_Directory_With_Per_Call_Location()
     {
         using var handler = new RecordingHttpHandler(static _ => EventStream(FirstFrame));

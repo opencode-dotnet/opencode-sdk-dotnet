@@ -33,10 +33,11 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
 
     public override async ValueTask ProcessAsync(PipelineMessage message, ReadOnlyMemory<PipelinePolicy> remaining)
     {
-        // The window is linked over the caller's token and armed before the send, so a
+        // The window is linked over caller and client lifetime and armed before the send, so a
         // server that never answers headers is bounded exactly like a stalled body. The
-        // transport sends under NetworkToken; classification keeps reading the caller token.
-        using var progress = new ProgressWindow(message.NetworkTimeout, _time, message.CancellationToken);
+        // transport sends under NetworkToken; classification keeps caller and lifetime apart.
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(message.CancellationToken, message.LifetimeToken);
+        using var progress = new ProgressWindow(message.NetworkTimeout, _time, lifetime.Token);
         message.NetworkToken = progress.Token;
         progress.Restart();
 
@@ -80,10 +81,9 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
         // A read a token cannot reach still has to settle: downlevel socket reads ignore a
         // token once in flight, and HttpContent's own buffering path drops the token before
         // it reaches SerializeToStreamAsync. Interrupting — progress expiry or caller
-        // cancellation alike — therefore disposes the content to fail the pending read; the
-        // classification below reads the resulting fault against the caller's token, so
-        // disposal-induced I/O failures stay caller cancellation when the caller asked and a
-        // transport failure when the window did.
+        // cancellation or client disposal alike — therefore disposes the content to fail the
+        // pending read. Classification keeps caller identity and client disposal apart from
+        // progress expiry, which remains a transport failure.
         // API-shape divergence, not algorithm: the registration has no DisposeAsync downlevel.
 #if NET
         await using var interruption = progress.Token.UnsafeRegister(
@@ -102,7 +102,7 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
         }
         catch (Exception exception) when (FailureClassification.Handles(exception, FailurePhase.ResponseBodyRead))
         {
-            throw FailureClassification.Map(exception, FailurePhase.ResponseBodyRead, message.CancellationToken);
+            throw FailureClassification.Map(exception, FailurePhase.ResponseBodyRead, message.CancellationToken, message.LifetimeToken);
         }
         catch (Exception exception) when (progress.IsCancellationRequested)
         {
@@ -111,9 +111,9 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
             // yields rather than ObjectDisposedException. Knowledge source: on .NET 10 the buffer
             // is a pooled stream that Dispose returns, and the read stream is then built over a
             // null array (ArgumentNullException) when disposal lands mid-materialization. The
-            // interruption is the cause, so the fault is classified as one — caller cancellation
-            // or the window expiring.
-            throw FailureClassification.MapFault(exception, FailurePhase.ResponseBodyRead, message.CancellationToken);
+            // interruption is the cause, so the fault is classified as one — caller cancellation,
+            // client disposal or the window expiring.
+            throw FailureClassification.MapFault(exception, FailurePhase.ResponseBodyRead, message.CancellationToken, message.LifetimeToken);
         }
     }
 

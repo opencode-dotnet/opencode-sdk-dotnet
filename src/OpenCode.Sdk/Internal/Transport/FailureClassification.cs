@@ -5,13 +5,21 @@ namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The one owner of the caller-cancel-versus-transport rule: an exception caught in a pipeline
-/// phase is classified against the caller's token first, so a fault racing a requested
-/// cancellation reports as cancellation and everything else becomes a transport failure named by
-/// its phase. Knowledge source: BCL-derived — the exception surfaces of <see cref="HttpClient"/>
+/// phase is classified against the caller's token first, then the root client's lifetime. Other
+/// faults become transport failures named by phase. Knowledge source: BCL-derived — the exception surfaces of <see cref="HttpClient"/>
 /// sends, content reads, and task timeout machinery.
 /// </summary>
 internal static class FailureClassification
 {
+    /// <summary>
+    /// The object a disposed root client names, <c>OpenCodeClient</c>'s full name. The transport spine
+    /// compiles without the client type, so it carries the name rather than the type.
+    /// </summary>
+    private const string DisposedClientName = "OpenCode.Sdk.OpenCodeClient";
+
+    /// <summary>Creates the failure that reports the disposed root client.</summary>
+    public static ObjectDisposedException DisposedClient() => new(DisposedClientName);
+
     /// <summary>Owns exactly the faults the phase can produce; everything else stays the caller's.</summary>
     public static bool Handles(Exception exception, FailurePhase phase)
     {
@@ -43,37 +51,47 @@ internal static class FailureClassification
     }
 
     /// <summary>Maps a handled exception onto the one the phase throws.</summary>
-    public static Exception Map(Exception exception, FailurePhase phase, CancellationToken cancellationToken)
+    public static Exception Map(Exception exception, FailurePhase phase, CancellationToken cancellationToken,
+        CancellationToken lifetimeToken = default)
     {
         Debug.Assert(Handles(exception, phase), "Only exceptions the phase handles are classified.");
 
-        if (exception is OperationCanceledException)
+        if (exception is OperationCanceledException && !cancellationToken.IsCancellationRequested && !lifetimeToken.IsCancellationRequested)
         {
-            // An untouched caller token means this cancellation is the transport timing out;
-            // a genuine caller cancellation passes through unchanged.
-            return cancellationToken.IsCancellationRequested
-                ? exception
-                : new OpenCodeTransportException(TimeoutMessage(phase), exception);
+            // Neither the caller nor the client asked for this cancellation: the transport timed out.
+            return new OpenCodeTransportException(TimeoutMessage(phase), exception);
         }
 
-        return MapFault(exception, phase, cancellationToken);
+        return MapFault(exception, phase, cancellationToken, lifetimeToken);
     }
 
     /// <summary>
-    /// Classifies a non-cancellation fault against the caller's token: the shared tail of
+    /// Classifies a fault against the caller and client lifetime: the shared tail of
     /// <see cref="Map"/>, and the whole mapping for a fault the phase's own interruption caused.
     /// Once the SDK has interrupted a phase itself — disposing the content under a cancelled
     /// progress window — whatever the BCL throws afterwards is a consequence of that
     /// interruption, not a new fault, and needs no place in <see cref="Handles"/>.
     /// </summary>
-    public static Exception MapFault(Exception exception, FailurePhase phase, CancellationToken cancellationToken)
+    public static Exception MapFault(Exception exception, FailurePhase phase, CancellationToken cancellationToken,
+        CancellationToken lifetimeToken = default)
     {
         ArgumentNullException.ThrowIfNull(exception);
 
-        return cancellationToken.IsCancellationRequested
-            ? new OperationCanceledException(CanceledMessage(phase), exception, cancellationToken)
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return CallerCancellation(exception, CanceledMessage(phase), cancellationToken);
+        }
+
+        return lifetimeToken.IsCancellationRequested
+            ? DisposedClient()
             : new OpenCodeTransportException(FaultMessage(phase), exception);
     }
+
+    /// <summary>Retains the cause while reporting the cancellation identity of the caller at this boundary.</summary>
+    public static OperationCanceledException CallerCancellation(Exception failure, string message, CancellationToken cancellationToken) =>
+        failure is OperationCanceledException canceled && canceled.CancellationToken == cancellationToken
+            ? canceled
+            : new OperationCanceledException(message, failure, cancellationToken);
 
     private static string FaultMessage(FailurePhase phase) => phase switch
     {

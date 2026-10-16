@@ -277,6 +277,15 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   materialization failures throw `OpenCodeTransportException`. `NoThrow` applies only to declared
   API errors and never suppresses transport failures. Undeclared 3xx responses are protocol
   failures on both one-shot and streaming paths (ADR-0007, ADR-0014).
+- Caller cancellation of a public asynchronous operation or enumeration throws
+  `OperationCanceledException` carrying the caller's token, not an SDK-owned linked token. The rule
+  applies to HTTP operations, SSE, cursor traversal, and both terminal families. This identity
+  guarantee applies when one caller token is supplied, including the same token supplied at both
+  enumeration entry points; two distinct cancellable entry tokens are both observed but have no
+  token-identity guarantee.
+- Disposing the root client interrupts its in-flight HTTP operations and SSE streams and reports
+  `ObjectDisposedException`; caller cancellation already observed for the same failure takes
+  precedence. A terminal session owns its connection separately: its session-disposal rules apply.
 - Streaming operations return a stream rather than a response envelope and therefore expose no
   per-call request-options parameter. Their failures always throw (ADR-0007).
 - Network progress is bounded by a per-read window: the send and every buffered body read must
@@ -300,8 +309,8 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   interrupted by disposing the content. An error body returned while opening a stream buffers
   under the same window; a successful SSE body remains live until caller cancellation, server
   completion, or failure, except `event.subscribe`, which runs under its reconnect windows
-  (Server-sent events, below). Caller cancellation still passes through; an exhausted progress window
-  maps to `OpenCodeTransportException`.
+  (Server-sent events, below). Caller cancellation uses the public cancellation contract above;
+  an exhausted progress window maps to `OpenCodeTransportException`.
   Successful JSON bodies materialize directly from validated UTF-8 bytes when possible. One decoding
   policy applies the modern `HttpContent` charset/BOM and malformed-UTF-8 replacement algorithm on
   every target framework and on both success and error planes. Error bodies stay decoded strings so
@@ -315,9 +324,10 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
 ## Server-sent events
 
 - Streams are exposed as `IAsyncEnumerable<T>` and open lazily on first enumeration.
-- Cancellation closes the stream through the enumeration token. On downlevel targets, the SDK also
-  disposes the live response so cancellation interrupts platform response-stream reads that do not
-  observe an async read token; disposal-induced I/O failures remain caller cancellation.
+- Cancellation closes the stream through the enumeration token. On every target, caller cancellation
+  or root-client disposal releases the live response even while the consumer holds a yielded event.
+  Response disposal also interrupts downlevel reads that do not observe an async read token;
+  disposal-induced failures use the cancellation and disposal rules in Error channels.
 - `event.subscribe` reconnects as upstream's first-party client does (`client/src/solid/connection.ts`
   at the pin), and no other stream reconnects:
   - Each attempt has 2 s to answer and deliver `server.connected` as its first event, or it fails.
@@ -340,9 +350,10 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
     minute runs from the drop, or from the first attempt for a first open, and it stops once an
     attempt delivers `server.connected`. When it passes, it cuts whatever is in flight. A window
     passing surfaces as `OpenCodeTransportException`, never as a cancellation.
-  - The caller's token ends the stream at once with an `OperationCanceledException` that carries
-    that token, and a disposed client ends it at once with `ObjectDisposedException`, whether the
-    stream is opening, reading, holding an event or waiting to reconnect. Nothing else ends it.
+  - Caller cancellation or root-client disposal releases the live connection at once, including while
+    the consumer holds an event. An opening, reading, or reconnecting wait ends with the cancellation
+    or disposal exception specified in Error channels; a suspended enumeration reports it on its next
+    pull. Nothing else ends it except the give-up window.
   - Recorded divergence, the only one: upstream retries forever and shows a connection status; the
     SDK has no status to show, so an endless silent retry would hang `await foreach`. The
     consequence for consumers is that a wrong address or a refused credential surfaces after one

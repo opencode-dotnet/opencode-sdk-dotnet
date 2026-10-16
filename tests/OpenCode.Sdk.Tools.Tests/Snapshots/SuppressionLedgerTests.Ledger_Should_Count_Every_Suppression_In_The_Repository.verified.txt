@@ -7,7 +7,7 @@ globalconfig: 1
 no-warn: 18
 pragma: 21
 slopwatch-ignore: 7
-slopwatch-suppress: 28
+slopwatch-suppress: 30
 
 build-switch .github/workflows/ci.yml [command line] RunAnalyzers = false
 build-switch Directory.Build.props AnalysisLevel = 10.0
@@ -237,6 +237,8 @@ slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Stop/Serv
 slopwatch-suppress src/OpenCode.Sdk/Hosting/Internal/Platform/Posix/PosixChildExitWatch.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/Internal/Platform/Windows/WindowsExitWatch.cs SW003 x3
 slopwatch-suppress src/OpenCode.Sdk/Hosting/Launcher/Internal/PipeLineReader.cs SW003
+slopwatch-suppress src/OpenCode.Sdk/Internal/Terminal/TerminalSendQueue.cs SW003
+slopwatch-suppress src/OpenCode.Sdk/Internal/Transport/ProgressWindow.cs SW003
 slopwatch-suppress tests/OpenCode.Sdk.Sandbox/ModelSelectionWalkthrough.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/ContenderProbe.cs SW003
 slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/ContenderProbe.cs SW004

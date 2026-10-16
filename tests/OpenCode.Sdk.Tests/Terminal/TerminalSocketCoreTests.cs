@@ -14,6 +14,143 @@ namespace OpenCode.Sdk.Tests.Terminal;
 public sealed class TerminalSocketCoreTests
 {
     [Test]
+    public async Task SendAsync_Should_Preserve_A_Reset_Completed_Before_Deadline_Interruption()
+    {
+        using var timer = new CancellationTokenSource();
+        var timers = TerminalSendDeadlineTests.CreateTimers(timer);
+        using var socket = Substitute.For<ITerminalWebSocket>();
+        var send = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var reset = new WebSocketException(WebSocketError.ConnectionClosedPrematurely);
+        _ = socket.ReceiveAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<CancellationToken>()).Returns(async call =>
+        {
+            var token = call.Arg<CancellationToken>();
+            var received = new TaskCompletionSource<PtyReceiveResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var cancellation = token.Register(() => received.TrySetCanceled(token));
+            return await received.Task;
+        });
+        _ = socket.SendAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<WebSocketMessageType>(), Arg.Any<CancellationToken>())
+            .Returns(send.Task);
+        await using var core = new TerminalSocketCore<PtyFrame>(
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession))
+        {
+            DeadlineFactory = timers,
+        };
+        var entered = 0;
+        var resumed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var release = new ManualResetEventSlim();
+        var released = false;
+        // ConfigureAwait(false) still flows ExecutionContext. Gate re-entry after the physical
+        // task is final, so expiry precedes the core's continuation mapping its reset.
+        var interruptOnResume = new AsyncLocal<bool>(change =>
+        {
+            if (change.ThreadContextChanged && change.CurrentValue && send.Task.IsCompleted &&
+                Interlocked.CompareExchange(ref entered, 1, 0) is 0)
+            {
+                _ = resumed.TrySetResult(true);
+                released = release.Wait(HangGuard.Bound);
+            }
+        });
+        Task pending;
+        interruptOnResume.Value = true;
+        try
+        {
+            pending = core.SendAsync(new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, CancellationToken.None);
+        }
+        finally
+        {
+            interruptOnResume.Value = false;
+        }
+
+        try
+        {
+            send.SetException(reset);
+            await resumed.Task.WaitAsync(HangGuard.Bound);
+            await timer.CancelOnWorkerAsync();
+            release.Set();
+            var failure = await Assert.That(async () =>
+            {
+                Task[] sends = [pending];
+                await Task.WhenAll(sends).WaitAsync(HangGuard.Bound);
+            })
+                .Throws<OpenCodeTransportException>();
+
+            await Assert.That(released).IsTrue();
+            await Assert.That(failure!.InnerException).IsSameReferenceAs(reset);
+        }
+        finally
+        {
+            release.Set();
+            _ = send.TrySetException(reset);
+            await core.DisposeAsync().AsTask().WaitAsync(HangGuard.Bound);
+        }
+    }
+
+    [Test]
+    public async Task SendAsync_Should_Report_A_Timeout_When_The_Deadline_Abort_Reaches_Receive_First()
+    {
+        using var timer = new CancellationTokenSource();
+        var timers = TerminalSendDeadlineTests.CreateTimers(timer);
+        using var socket = Substitute.For<ITerminalWebSocket>();
+        var receive = new TaskCompletionSource<PtyReceiveResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var send = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var readFault = new WebSocketException(WebSocketError.ConnectionClosedPrematurely);
+        var writeFault = new IOException("The deadline aborted the pending write.");
+        _ = socket.ReceiveAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<CancellationToken>()).Returns(receive.Task);
+        var operationToken = CancellationToken.None;
+        _ = socket.SendAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<WebSocketMessageType>(), Arg.Any<CancellationToken>())
+            .Returns(send.Task).AndDoes(call =>
+            {
+                operationToken = call.Arg<CancellationToken>();
+            });
+        await using var core = new TerminalSocketCore<PtyFrame>(
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession))
+        {
+            DeadlineFactory = timers,
+        };
+        var pending = core.SendAsync(new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, CancellationToken.None);
+        using var abort = operationToken.Register(() => receive.TrySetException(readFault));
+        OpenCodeTransportException? attachmentFailure = null;
+        OpenCodeTransportException? sendFailure = null;
+        await using var reader = core.ReadAsync(CancellationToken.None).GetAsyncEnumerator();
+        try
+        {
+            await timer.CancelOnWorkerAsync();
+            attachmentFailure = await Assert.That(async () => _ = await reader.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound))
+                .Throws<OpenCodeTransportException>();
+        }
+        finally
+        {
+            _ = receive.TrySetException(readFault);
+            _ = send.TrySetException(writeFault);
+            try
+            {
+                _ = await Assert.That(Task.WhenAll(receive.Task, send.Task).WaitAsync(HangGuard.Bound))
+                    .Throws<WebSocketException>();
+            }
+            finally
+            {
+                sendFailure = await Assert.That(async () =>
+            {
+                Task[] sends = [pending];
+                await Task.WhenAll(sends).WaitAsync(HangGuard.Bound);
+            })
+                    .Throws<OpenCodeTransportException>();
+            }
+        }
+
+        await Assert.That(sendFailure!.InnerException).IsTypeOf<TimeoutException>();
+        await Assert.That(sendFailure.InnerException!.InnerException).IsSameReferenceAs(writeFault);
+        await Assert.That(attachmentFailure!.InnerException).IsSameReferenceAs(readFault);
+        var laterFailure = await Assert.That(async () => await core.SendAsync(
+            new ArraySegment<byte>([0x62]), WebSocketMessageType.Text, CancellationToken.None))
+            .Throws<OpenCodeTransportException>();
+        await Assert.That(laterFailure).IsSameReferenceAs(attachmentFailure);
+        await socket.Received(1).SendAsync(
+            Arg.Any<ArraySegment<byte>>(), Arg.Any<WebSocketMessageType>(), Arg.Any<CancellationToken>());
+        socket.Received(1).Dispose();
+    }
+
+    [Test]
     [Arguments(WebSocketCloseStatus.NormalClosure, "connection has ended")]
     [Arguments(WebSocketCloseStatus.InternalServerError, "1011")]
     public async Task SendAsync_Should_Wake_A_Queued_Call_With_The_Connections_Terminal_Failure(
@@ -179,6 +316,24 @@ public sealed class TerminalSocketCoreTests
 
         await using var second = core.ReadAsync(CancellationToken.None).GetAsyncEnumerator();
         await Assert.That(await second.MoveNextAsync()).IsFalse();
+    }
+
+    [Test]
+    public async Task DisposeAsync_Should_Hard_Close_And_Join_Io_When_Graceful_Close_Fails()
+    {
+        using var socket = new ScriptedTerminalWebSocket().Parking()
+            .FailingCloseWith(new WebSocketException(WebSocketError.ConnectionClosedPrematurely));
+        await using var core = new TerminalSocketCore<PtyFrame>(
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession));
+        await socket.Parked;
+        await core.SendAsync(new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, CancellationToken.None);
+
+        await core.DisposeAsync();
+        await Assert.That(socket.CloseOutputCalls).IsEqualTo(1);
+        await Assert.That(socket.DisposeCalls).IsEqualTo(1);
+        await Assert.That(socket.MaxConcurrentSends).IsEqualTo(1);
+        await using var reader = core.ReadAsync(CancellationToken.None).GetAsyncEnumerator();
+        await Assert.That(await reader.MoveNextAsync()).IsFalse();
     }
 
     [Test]

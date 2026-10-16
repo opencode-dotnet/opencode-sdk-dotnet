@@ -1,0 +1,6 @@
+{
+  "before": { "cursor": -5, "items": [{ "cursor": -6 }] },
+  "cursor": 8675309,
+  "after": [{ "nested": { "cursor": -7 } }],
+  "cursor": "ignored duplicate"
+}

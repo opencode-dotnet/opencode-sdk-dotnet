@@ -1,6 +1,6 @@
 # 🧱 Errors and responses
 
-Date: 2026-10-12
+Date: 2026-10-16
 
 Every one-shot call answers with a **response envelope** that carries the same four members no
 matter which operation produced it, and every failure is either a typed API error you can branch on
@@ -282,7 +282,15 @@ Note the `NoThrow` in that snippet — it is not a contradiction. `NoThrow` turn
 errors* into data; a transport failure was never an API answer, so it still throws. If your code
 must not blow up, catch `OpenCodeTransportException` even when you are using `NoThrow` everywhere.
 
-`OperationCanceledException` is never repackaged: your cancellation stays your cancellation.
+Caller cancellation throws `OperationCanceledException` carrying your token, not an SDK-owned
+linked token. This identity guarantee covers one caller token, passed at either enumeration entry
+point or the same token at both; two distinct cancellable entry tokens are both observed without
+an identity guarantee. SDK timeouts remain transport failures.
+
+Disposing the root client interrupts in-flight HTTP calls and SSE streams with
+`ObjectDisposedException`; caller cancellation already observed for that failure takes precedence.
+Terminal sessions own their connections separately. See the canonical
+[error channels](../architecture/client-runtime.md#error-channels).
 
 ## 🚀 When a local-server door fails
 

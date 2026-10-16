@@ -195,8 +195,9 @@ The SDK **reconnects** the bus the way upstream's own client does, and it tells 
 - **Every connection starts with `EventServerConnected`.** A second one means you were
   disconnected and the events in between are gone: refresh the state you care about with ordinary
   calls and carry on reading.
-- The stream never ends on its own. Your cancellation token ends it, disposing the client ends it
-  at once with `ObjectDisposedException`, and so does one minute in which every attempt failed.
+- The stream never ends on its own. Your cancellation token or disposing the client releases its
+  live connection at once; a consumer holding an event sees the exception on its next pull.
+  One minute in which every attempt failed also ends it.
 - That minute applies to the first subscribe too. **A wrong address or a refused password surfaces
   after one minute, not at once**, as the error the server last answered
   (`OpenCodeApiException`, `OpenCodeTransportException` or `OpenCodeStreamFailureException`).
@@ -344,8 +345,14 @@ cannot be read is a protocol failure and throws — the carrier is for *unknown*
 - **Streams open lazily.** Calling `SubscribeAsync` or `ReadLogAsync` does not touch the network;
   the request goes out on the first `MoveNextAsync`, which is to say on the first `await foreach`.
 - **The enumeration token is the off switch.** Cancelling it closes the stream and surfaces as
-  `OperationCanceledException` in the usual place. A `CancellationTokenSource` with a timeout, as
-  in the first snippet, is a perfectly good session budget.
+  `OperationCanceledException` carrying your token. Pass one token at either entry point, or the
+  same token at both, for this identity guarantee; two distinct cancellable entry tokens are both
+  observed without an identity guarantee. A `CancellationTokenSource` with a timeout, as in the
+  first snippet, is a perfectly good session budget.
+- **Cancellation or root-client disposal releases the live response immediately on every target,**
+  even while your code holds a yielded event. An opening or reading wait reports cancellation or
+  `ObjectDisposedException`; a suspended enumeration reports it on the next `MoveNextAsync`.
+  See the canonical [lifetime rules](../architecture/client-runtime.md#server-sent-events).
 - **`WithCancellation` works** where you did not pass a token at the call — `await foreach (var x
   in stream.WithCancellation(token))`.
 - **Disposing the enumerator ends the connection**, which `await foreach` does for you on `break`,

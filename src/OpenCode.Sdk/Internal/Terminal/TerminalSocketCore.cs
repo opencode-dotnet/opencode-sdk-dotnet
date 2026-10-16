@@ -15,6 +15,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
 {
     private readonly Lock _lifecycle = new();
     private readonly TerminalReceivePump<TFrame> _receiver;
+    private readonly Func<TerminalConnectionOutcome?> _getOutcome;
     private readonly Type _owner;
     private readonly TerminalCancellationSource _sendEnded = new();
     private readonly CancellationToken _sendEndedToken;
@@ -43,6 +44,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         _owner = owner;
         _sendEndedToken = _sendEnded.Token;
         _receiver = new TerminalReceivePump<TFrame>(socket, decoder, closePolicy, _sendEnded.CancelAsync);
+        _getOutcome = () => _receiver.Outcome;
     }
 
     /// <summary>Gets whether the core has been disposed.</summary>
@@ -124,7 +126,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         CancellationToken cancellationToken)
     {
 
-        using var deadline = new TerminalSendDeadline(_owner, SendTimeout, DeadlineFactory, cancellationToken);
+        using var deadline = new TerminalSendDeadline(_owner, SendTimeout, DeadlineFactory, _getOutcome, cancellationToken);
         var payload = createPayload();
         using var admission = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token, _sendEndedToken);
         try
@@ -157,7 +159,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
 
             try
             {
-                await _socket.SendAsync(payload, messageType, deadline.Token).ConfigureAwait(false);
+                await deadline.SendAsync(_socket, payload, messageType).ConfigureAwait(false);
             }
             catch (Exception exception) when (FailureClassification.Handles(exception, FailurePhase.PtyWebSocketWrite))
             {
@@ -203,7 +205,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         {
             if (Volatile.Read(ref _socketDisposed) is 0)
             {
-                _ = await _sendGate.TryCloseAsync().ConfigureAwait(false);
+                await _sendGate.CloseAsync().ConfigureAwait(false);
             }
         }
         finally

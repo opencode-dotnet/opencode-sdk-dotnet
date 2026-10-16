@@ -19,6 +19,9 @@ internal sealed class PipelineMessage : IDisposable
     /// <summary>Gets the caller's token, inspected first by every failure classification.</summary>
     public CancellationToken CancellationToken { get; init; }
 
+    /// <summary>Gets the root client's lifetime token, classified after caller cancellation.</summary>
+    public CancellationToken LifetimeToken { get; init; }
+
     /// <summary>
     /// Gets the progress window the send and each buffered read must fit inside; read by
     /// <see cref="ResponseBufferingPolicy"/>, which re-arms it on every read that progresses.
@@ -27,7 +30,7 @@ internal sealed class PipelineMessage : IDisposable
 
     /// <summary>
     /// Gets the token network I/O runs under: the caller's token until
-    /// <see cref="ResponseBufferingPolicy"/> links the progress window over it; read by
+    /// <see cref="ResponseBufferingPolicy"/> links the client lifetime and progress window over it; read by
     /// <see cref="TransportPolicy"/>. Failure classification always inspects
     /// <see cref="CancellationToken"/>, never this.
     /// </summary>

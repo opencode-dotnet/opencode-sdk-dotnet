@@ -15,25 +15,26 @@ internal sealed class TerminalSendQueue(ITerminalWebSocket socket) : IDisposable
     public void Dispose() => _gate.Dispose();
 
     /// <summary>Attempts close with separate send-admission and close-output phase budgets.</summary>
-    public async Task<bool> TryCloseAsync()
+    [SlopwatchSuppress("SW003",
+        "Expected graceful-close failure is superseded by the owner's unconditional socket teardown " +
+        "and receiver/send joins in DisposeAsync; disposal completion is the observable cleanup outcome.")]
+    public async Task CloseAsync()
     {
         if (!await _gate.WaitAsync(TerminalSocketBounds.GracefulCloseTimeout, CancellationToken.None).ConfigureAwait(false))
         {
-            return false;
+            return;
         }
 
         using var timeout = new CancellationTokenSource(TerminalSocketBounds.GracefulCloseTimeout);
         try
         {
             await socket.CloseOutputAsync(timeout.Token).ConfigureAwait(false);
-            return true;
         }
         catch (Exception exception) when (
             FailureClassification.Handles(exception, FailurePhase.PtyWebSocketWrite) ||
             exception is InvalidOperationException)
         {
-            // Expected graceful-close failures leave unconditional hard teardown to the owner.
-            return false;
+            // The owner unconditionally tears down the socket and joins its I/O after this attempt.
         }
         finally
         {

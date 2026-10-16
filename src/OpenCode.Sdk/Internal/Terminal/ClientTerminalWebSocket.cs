@@ -52,6 +52,12 @@ internal sealed class ClientTerminalWebSocket : ITerminalWebSocket
         {
             await _socket.ConnectAsync(uri, cancellationToken).ConfigureAwait(false);
         }
+        catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested)
+        {
+            // ClientWebSocket links the caller's token with its own; the caller's token names the cancellation.
+            throw FailureClassification.CallerCancellation(
+                exception, "The opencode terminal WebSocket upgrade was canceled.", cancellationToken);
+        }
         catch (WebSocketException exception)
         {
             // A cancellation that surfaced as a socket fault is still the caller's cancellation.

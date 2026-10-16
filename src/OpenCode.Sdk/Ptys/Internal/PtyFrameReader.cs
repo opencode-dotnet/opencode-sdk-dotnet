@@ -52,6 +52,7 @@ internal static class PtyFrameReader
                 throw new OpenCodeTransportException(ControlFrameFailure);
             }
 
+            long? cursor = null;
             while (reader.Read() && reader.TokenType is JsonTokenType.PropertyName)
             {
                 var isCursor = reader.ValueTextEquals(CursorPropertyName);
@@ -60,18 +61,23 @@ internal static class PtyFrameReader
                     break;
                 }
 
-                if (!isCursor)
+                if (!isCursor || cursor.HasValue)
                 {
                     reader.Skip();
                     continue;
                 }
 
-                return reader.TokenType is JsonTokenType.Number && reader.TryGetInt64(out var cursor)
-                    ? cursor
-                    : throw new OpenCodeTransportException(ControlFrameFailure);
+                if (reader.TokenType is not JsonTokenType.Number || !reader.TryGetInt64(out var value))
+                {
+                    throw new OpenCodeTransportException(ControlFrameFailure);
+                }
+
+                cursor = value;
             }
 
-            throw new OpenCodeTransportException(ControlFrameFailure);
+            return reader.TokenType is JsonTokenType.EndObject && !reader.Read() && cursor.HasValue
+                ? cursor.Value
+                : throw new OpenCodeTransportException(ControlFrameFailure);
         }
         catch (JsonException exception)
         {
