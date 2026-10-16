@@ -146,7 +146,9 @@ public sealed class VerifyClonesCommandTests
             services.AddSingleton<IAnsiConsole, TestConsole>();
             services.AddSingleton<IProcessRunner>(scenario.Runner);
         });
-        var tester = new CommandAppTester(registrar);
+        // The command writes to the tester's console. It is pinned to the 80 columns of a redirected CI
+        // log, so a line the gate lets wrap is split in the output and fails the assertions.
+        var tester = new CommandAppTester(registrar, new CommandAppTesterSettings(), new TestConsole().Width(80));
         tester.Configure(ToolApp.Configure);
         return await tester.RunAsync(arguments);
     }
