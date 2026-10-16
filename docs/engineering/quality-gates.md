@@ -74,7 +74,7 @@ Before a pull request opens, run the local check from the repository root. It ca
 before they cost a CI run. A current handoff may add scope-specific checks but cannot weaken it.
 
 1. The static steps: slopwatch, the Release build and both format passes, exactly as the full gate
-   below runs them.
+   below runs them, and the clone gate (`verify-clones`, below).
 2. The whole `OpenCode.Sdk.Tools.Tests` project except its `NativeAot` category; its repository
    guards and registries read every file, so a narrow filter misses them.
 3. The test project of every product area the change touches, on every target framework the host
@@ -233,8 +233,8 @@ test clones lowers it to its new measurement, rounded up to the next 0.5%. Gener
 reported, not gated. The generator's manifest decides which `src/` files are generated, so the split
 needs no path convention. A failure names each new clone with its
 two `file:line` ranges and its size in tokens, and the job keeps the jscpd reports as an artifact. Locally the same command runs from the
-repository root once `bun install --frozen-lockfile --ignore-scripts` has run in `tools/jscpd/`; it is
-not part of the completion gate above.
+repository root once `bun install --frozen-lockfile --ignore-scripts` has run in `tools/jscpd/`, and the
+local check above runs it.
 
 `verify-clones --update-baseline` rewrites the baselines, mechanically. A pull request whose baseline
 gains a fingerprint or a higher count accounts for each gain in its body, the same way a new

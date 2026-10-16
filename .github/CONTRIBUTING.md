@@ -151,7 +151,7 @@ one you are asking for.
    - Add tests for new behavior
    - Update the affected documentation in the same change
 
-3. **Run the full gate** — see below. "Builds" and "works" are different claims.
+3. **Run the local check** — see below. "Builds" and "works" are different claims.
 
 4. **Commit with [Conventional Commits](https://www.conventionalcommits.org/)**
 
@@ -174,33 +174,10 @@ one you are asking for.
 
 ### The Completion Gate
 
-Run this from the repository root before you claim a change is finished. It is the same gate CI
-runs, and it is canonically owned by
-[`docs/engineering/quality-gates.md`](../docs/engineering/quality-gates.md), which explains why the
-tests run in three passes. A fresh clone or worktree is prepared once first, with the Bun named by
-`external/opencode/package.json`'s `packageManager` field first on `PATH`:
-
-```bash
-git submodule update --init --depth 1 external/opencode
-cd external/opencode && bun install --frozen-lockfile --ignore-scripts
-```
-
-```bash
-dotnet tool run slopwatch analyze --exclude ".scratchpad/**,external/**" --fail-on warning
-dotnet build --configuration Release
-dotnet format whitespace --verify-no-changes --no-restore
-dotnet format style --verify-no-changes --no-restore --severity warn
-dotnet test --configuration Release --no-build -- --treenode-filter "/*/*/*/*[(Category!=ServiceElection)&(Category!=NativeAot)]"
-dotnet test --project "$PWD/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --treenode-filter "/*/*/*/*[Category=ServiceElection]"
-dotnet test --project "$PWD/tests/OpenCode.Sdk.Tools.Tests/OpenCode.Sdk.Tools.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --treenode-filter "/*/*/*/*[Category=NativeAot]"
-```
-
-Changes to the protocol, generator, curation, or generated output also run:
-
-```bash
-dotnet run --file tools/opencode-tool.cs -- --help
-dotnet run --file tools/opencode-tool.cs -- generate --verify
-```
+Before you open a pull request, run the local check, and then let the pull request's CI run the
+full gate. [`docs/engineering/quality-gates.md`](../docs/engineering/quality-gates.md) owns both:
+"Completion gate" lists the local check's steps and the commands, and says how to prepare a fresh
+clone (the `external/opencode` submodule and the pinned Bun).
 
 ### Code Quality Standards
 
