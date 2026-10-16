@@ -9,5 +9,5 @@ public sealed record SessionInterruptRequest
     /// <summary>
     /// Gets the &apos;resume&apos; query value; the server default applies when unset.
     /// </summary>
-    public QueryBoolean? Resume { get; init; }
+    public bool? Resume { get; init; }
 }

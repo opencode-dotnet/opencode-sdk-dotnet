@@ -169,6 +169,8 @@ reported upstream rather than repaired from private implementation knowledge (AD
 ## Generated model shape
 
 - Models are sealed records with `init`-only properties (ADR-0004).
+- A numeric member keeps its schema type: `number` binds `double` and `integer` binds `long`, epoch
+  timestamps included; neither the name nor the meaning of a member changes its type.
 - OpenAPI presence and represented null are independent. A required schema member emits C#
   `required`; an optional property is nullable so omission and explicit JSON null share one absent
   state, except on a schema a selected request body reaches, where an optional-and-nullable
@@ -352,11 +354,12 @@ dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).
   string under a reason-bearing `stringQueryParameters` row; a plain string with neither row fails
   generation, and a row whose parameter the document now declares as a number, or no longer
   carries, fails it too (ADR-0037). The integer travels as its invariant decimal text and the
-  server enforces its range. The spine's own value sets (list order, the
-  exact true/false text, the parent-session filter) and the optional deep-object location
-  selector bind their spine types; any other string enum becomes a generated extensible enum
-  whose spelling the route builder writes as given, refusing a default value; every other query
-  shape refuses by name.
+  server enforces its range. The spine's own value sets (list order, the parent-session filter)
+  and the optional deep-object location selector bind their spine types. The exact true/false text
+  binds `bool?` for an optional parameter and `bool` for a required one, and the route builder
+  writes lowercase `true` or `false`; an unset optional is omitted. Any other string enum becomes
+  a generated extensible enum whose spelling the route builder writes as given, refusing a default
+  value; every other query shape refuses by name.
 - The SSE engine remains hand-written runtime behavior; generated stream methods bind their route,
   payload, frame, declared failure event, typed cause, and statuses from the pin. Cause models,
   converters, array metadata, and adapter metadata pass through the same emitted registry and

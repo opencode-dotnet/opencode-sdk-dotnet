@@ -10,5 +10,5 @@ public sealed record ExperimentalSessionExportRequest
     /// <summary>
     /// Gets the &apos;sanitize&apos; query value; the server default applies when unset.
     /// </summary>
-    public QueryBoolean? Sanitize { get; init; }
+    public bool? Sanitize { get; init; }
 }

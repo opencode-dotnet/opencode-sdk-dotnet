@@ -57,7 +57,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
 
             var transcript = new SessionLogTranscript(session);
             var replay = await transcript.ReadToEndAsync(
-                new SessionLogRequest { Follow = QueryBoolean.False },
+                new SessionLogRequest { Follow = false },
                 cancellationToken);
             var markers = replay.OfType<EventLogSynced>().ToList();
             await Assert.That(markers).Count().IsEqualTo(1);
@@ -91,7 +91,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
                 new SessionLogRequest
                 {
                     After = anchor.Durable.Seq,
-                    Follow = QueryBoolean.False,
+                    Follow = false,
                 },
                 cancellationToken);
             var resumedMarkers = resumed.OfType<EventLogSynced>().ToList();
@@ -138,7 +138,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             _ = await firstTurn.CompleteAsync(FollowFirstPrompt, FollowFirstReply, cancellationToken);
             cleanup.MarkTurnCompleted();
             var finite = await transcript.ReadToEndAsync(
-                new SessionLogRequest { Follow = QueryBoolean.False },
+                new SessionLogRequest { Follow = false },
                 cancellationToken);
             var finiteMarkers = finite.OfType<EventLogSynced>().ToList();
             await Assert.That(finiteMarkers).Count().IsEqualTo(1);
@@ -211,7 +211,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             cleanup.MarkTurnCompleted();
 
             var settled = await transcript.ReadToEndAsync(
-                new SessionLogRequest { Follow = QueryBoolean.False }, cancellationToken);
+                new SessionLogRequest { Follow = false }, cancellationToken);
             await Assert.That(settled.OfType<SessionExecutionSucceeded>()
                 .Any(succeeded => succeeded.Durable.Seq == terminal.Durable.Seq)).IsTrue();
             var watermark = settled.OfType<EventLogSynced>().Single().Seq;
@@ -222,7 +222,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
                 new SessionLogRequest
                 {
                     After = beyond,
-                    Follow = QueryBoolean.False,
+                    Follow = false,
                 },
                 cancellationToken);
 
@@ -276,7 +276,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             cleanup.MarkTurnCompleted();
 
             var settled = await transcript.ReadToEndAsync(
-                new SessionLogRequest { Follow = QueryBoolean.False }, cancellationToken);
+                new SessionLogRequest { Follow = false }, cancellationToken);
             await Assert.That(settled.OfType<SessionExecutionSucceeded>()
                 .Any(succeeded => succeeded.Durable.Seq == openingTerminal.Durable.Seq)).IsTrue();
             var watermark = settled.OfType<EventLogSynced>().Single().Seq;
@@ -306,7 +306,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
                 new SessionLogRequest
                 {
                     After = watermark.Value,
-                    Follow = QueryBoolean.False,
+                    Follow = false,
                 },
                 cancellationToken);
             var skipped = control.OfType<SessionExecutionStarted>()

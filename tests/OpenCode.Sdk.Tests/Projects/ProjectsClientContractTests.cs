@@ -46,7 +46,7 @@ public sealed class ProjectsClientContractTests
         const string body = "[{\"id\":\"prj_1\",\"canonical\":\"/gone\",\"time\":{\"created\":1,\"updated\":2,\"active\":3,\"archived\":4},\"sandboxes\":[]}]";
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, body);
 
-        var response = await scenario.Client.Projects.ListProjectsAsync(new ProjectListRequest { Archived = QueryBoolean.True });
+        var response = await scenario.Client.Projects.ListProjectsAsync(new ProjectListRequest { Archived = true });
 
         await Assert.That(response.Projects.Single().Time.Archived).IsEqualTo(4);
         await Assert.That(scenario.Requests.Single().RequestUri)

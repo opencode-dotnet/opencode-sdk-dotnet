@@ -39,7 +39,7 @@ public sealed class SessionsClientLiveTests(SimulatedDriveServerFixture server)
             _ = await turn.CompleteAsync(TransferPrompt, TransferReply, cancellationToken);
             cleanup.MarkTurnCompleted();
             var exported = await sourceClient.Experimental.GetSessionExportAsync(created.Id,
-                new ExperimentalSessionExportRequest { Sanitize = QueryBoolean.False },
+                new ExperimentalSessionExportRequest { Sanitize = false },
                 cancellationToken: cancellationToken);
             var exportedEvidence = await AssertRawExportAsync(exported, created.Id);
             var importRequest = CreateImportRequest(exported.SessionExport, destination.Path);

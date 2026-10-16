@@ -50,7 +50,7 @@ public sealed record WidgetListRequest
     /// <summary>
     /// Gets the &apos;enabled&apos; query value; the server default applies when unset.
     /// </summary>
-    public QueryBoolean? Enabled { get; init; }
+    public bool? Enabled { get; init; }
     /// <summary>
     /// Gets the &apos;parentID&apos; query value; the server default applies when unset.
     /// </summary>

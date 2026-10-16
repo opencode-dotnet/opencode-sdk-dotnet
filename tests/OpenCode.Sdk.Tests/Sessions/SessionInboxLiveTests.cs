@@ -209,7 +209,7 @@ public sealed class SessionInboxLiveTests(SimulatedDriveServerFixture server)
     {
         var transcript = new SessionLogTranscript(session);
         return await transcript.ReadToEndAsync(
-            new SessionLogRequest { Follow = QueryBoolean.False },
+            new SessionLogRequest { Follow = false },
             cancellationToken);
     }
 

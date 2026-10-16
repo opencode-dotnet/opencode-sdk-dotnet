@@ -730,7 +730,6 @@ public sealed class OperationPlanBinderTests
 
     [Test]
     [Arguments("ListCursor")]
-    [Arguments("QueryBoolean")]
     public async Task Bind_Should_Refuse_A_Model_Colliding_With_A_Spine_Type_Name(string schemaName)
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec

@@ -28,6 +28,16 @@ Nightly builds of `master` are on
 - **`OpenCodeRoutes` is no longer public.** Call the typed clients to build and send request
   paths instead of using route constants or builders directly. Request paths on the wire are
   unchanged.
+- **Boolean query parameters use `bool?`.** `QueryBoolean` is removed. Pass `true` or `false`,
+  not `QueryBoolean.True` or `QueryBoolean.False`; leave the member null to omit it.
+  The query text remains lowercase `true` or `false`.
+
+  | Property | Was | Now |
+  |---|---|---|
+  | `SessionLogRequest.Follow` | `QueryBoolean?` | `bool?` |
+  | `SessionInterruptRequest.Resume` | `QueryBoolean?` | `bool?` |
+  | `ProjectListRequest.Archived` | `QueryBoolean?` | `bool?` |
+  | `ExperimentalSessionExportRequest.Sanitize` | `QueryBoolean?` | `bool?` |
 
 - **Numeric query parameters are numbers.** The API description declares them as strings, but the
   server reads each one as a number and upstream's own client takes a number, so the request

@@ -91,7 +91,7 @@ internal static class QueryRequestEmitter
         {
             QueryValueKind.Text or QueryValueKind.RouteTail => SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
             QueryValueKind.ListOrder => TypeSyntaxEmitter.EmitNamed("ListOrder"),
-            QueryValueKind.BooleanText => TypeSyntaxEmitter.EmitNamed("QueryBoolean"),
+            QueryValueKind.BooleanText => SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)),
             QueryValueKind.SessionParentFilter => TypeSyntaxEmitter.EmitNamed("SessionParentFilter"),
             QueryValueKind.Location => TypeSyntaxEmitter.EmitNamed("LocationSelector"),
             QueryValueKind.Int32 => SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.IntKeyword)),

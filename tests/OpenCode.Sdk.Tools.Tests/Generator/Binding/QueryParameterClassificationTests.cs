@@ -5,6 +5,7 @@ using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Generator.Refresh.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
@@ -56,6 +57,30 @@ public sealed class QueryParameterClassificationTests
         var plan = Bind(document);
 
         await Assert.That(Kinds(plan)).IsEquivalentTo(["order:ListOrder", "archived:BooleanText"]);
+    }
+
+    [Test]
+    [Arguments(false, false)]
+    [Arguments(false, true)]
+    [Arguments(true, false)]
+    [Arguments(true, true)]
+    public async Task Emit_Should_Map_Boolean_Text_To_Bool_Without_Changing_The_Route(bool reversed, bool required)
+    {
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
+            .WithOperation(Operation, path: "/api/widget", configure: operation => operation
+                .Parameter("archived", "query", schema => schema.Type("string").Enum(reversed ? ["false", "true"] : ["true", "false"]),
+                    required: required)
+                .WithoutResponse(200).Response(204))));
+        var plan = Bind(document);
+
+        var sources = SourceEmitter.Emit(plan);
+
+        await Assert.That(Source(sources, "WidgetListRequest.cs")).Contains(required
+            ? "public required bool Archived { get; init; }"
+            : "public bool? Archived { get; init; }");
+        await Assert.That(Source(sources, "OpenCodeRoutes.Widgets.cs")).Contains("query.AddBoolean(\"archived\", request.Archived);");
+        await Assert.That(Kinds(plan)).IsEquivalentTo(["archived:BooleanText"], CollectionOrdering.Matching);
+        await Assert.That(plan.Models).IsEmpty();
     }
 
     [Test]

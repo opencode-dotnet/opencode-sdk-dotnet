@@ -258,7 +258,7 @@ namespace OpenCode.Sdk
     public sealed class ExperimentalSessionExportRequest : System.IEquatable<OpenCode.Sdk.ExperimentalSessionExportRequest>
     {
         public ExperimentalSessionExportRequest() { }
-        public OpenCode.Sdk.QueryBoolean? Sanitize { get; init; }
+        public bool? Sanitize { get; init; }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
@@ -1113,7 +1113,7 @@ namespace OpenCode.Sdk
     public sealed class ProjectListRequest : System.IEquatable<OpenCode.Sdk.ProjectListRequest>
     {
         public ProjectListRequest() { }
-        public OpenCode.Sdk.QueryBoolean? Archived { get; init; }
+        public bool? Archived { get; init; }
     }
     public sealed class ProjectListResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ProjectListResponse>
     {
@@ -1263,11 +1263,6 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PtyCreateResponse> CreatePtyAsync(OpenCode.Sdk.Models.PtyCreateRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual OpenCode.Sdk.PtyClient GetPtyClient(string ptyId) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PtyListResponse> ListPtysAsync(OpenCode.Sdk.PtyListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
-    }
-    public enum QueryBoolean
-    {
-        True = 0,
-        False = 1,
     }
     public sealed class ReferenceListRequest : System.IEquatable<OpenCode.Sdk.ReferenceListRequest>
     {
@@ -1475,7 +1470,7 @@ namespace OpenCode.Sdk
     public sealed class SessionInterruptRequest : System.IEquatable<OpenCode.Sdk.SessionInterruptRequest>
     {
         public SessionInterruptRequest() { }
-        public OpenCode.Sdk.QueryBoolean? Resume { get; init; }
+        public bool? Resume { get; init; }
     }
     public sealed class SessionInterruptResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.SessionInterruptResponse>
     {
@@ -1505,7 +1500,7 @@ namespace OpenCode.Sdk
     {
         public SessionLogRequest() { }
         public long? After { get; init; }
-        public OpenCode.Sdk.QueryBoolean? Follow { get; init; }
+        public bool? Follow { get; init; }
     }
     public sealed class SessionMessageListRequest : OpenCode.Sdk.ListRequest, System.IEquatable<OpenCode.Sdk.SessionMessageListRequest>
     {

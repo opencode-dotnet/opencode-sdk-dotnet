@@ -75,7 +75,7 @@ public sealed class SessionLogCliProfileLiveTests(PinnedOpenCodeServerFixture se
 
             var transcript = new SessionLogTranscript(session);
             var replay = await transcript.ReadToEndAsync(
-                new SessionLogRequest { Follow = QueryBoolean.False },
+                new SessionLogRequest { Follow = false },
                 cancellationToken);
 
             await Assert.That(replay).Count().IsEqualTo(1);
@@ -131,7 +131,7 @@ public sealed class SessionLogCliProfileLiveTests(PinnedOpenCodeServerFixture se
             await probe.WaitForConnectedAsync(cancellationToken);
 
             await using var log = session.ReadLogAsync(
-                    new SessionLogRequest { Follow = QueryBoolean.True },
+                    new SessionLogRequest { Follow = true },
                     follow.Token)
                 .GetAsyncEnumerator(follow.Token);
             var marker = await ReadMarkerAsync(log, followed, follow, cancellationToken);

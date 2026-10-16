@@ -73,7 +73,7 @@ internal sealed class SessionLogTranscript
         _window = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _window.CancelAfter(FollowWindow);
         _enumerator = Session.ReadLogAsync(
-                new SessionLogRequest { After = after, Follow = QueryBoolean.True },
+                new SessionLogRequest { After = after, Follow = true },
                 _window.Token)
             .GetAsyncEnumerator(_window.Token);
         while (await MoveNextAsync("the log.synced attachment marker"))
