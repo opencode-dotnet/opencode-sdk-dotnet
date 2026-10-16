@@ -129,6 +129,7 @@ internal static class ReservedNamePolicy
             "EncodedResponseBody",
             "EndpointPolicy",
             "EnsureRequest",
+            "ErrorBehaviorPolicy",
             "ExecutableResolver",
             "ExecutableSearchEnvironment",
             "ExitWaitKernel",

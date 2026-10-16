@@ -18,6 +18,83 @@ public sealed class PipelineStreamTests
     private const string FirstAndSecondFrames = FirstFrame + "data: " + SecondPayload + "\n\n";
 
     [Test]
+    public async Task ExecuteStreamAsync_Should_Override_The_Ambient_Directory_With_Per_Call_Location()
+    {
+        using var handler = new RecordingHttpHandler(static _ => EventStream(FirstFrame));
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient, location: new LocationSelector { Directory = "/ambient" });
+        var options = new OpenCodeRequestOptions { Location = new LocationSelector { Directory = "/per-call/ç" } };
+        var stream = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), options, CancellationToken.None);
+
+        await using var enumerator = stream.GetAsyncEnumerator();
+        await Assert.That(await enumerator.MoveNextAsync()).IsTrue();
+        await Assert.That(handler.Requests.Single().Headers["x-opencode-directory"]).IsEqualTo("%2Fper-call%2F%C3%A7");
+    }
+
+    [Test]
+    public async Task ExecuteStreamAsync_Should_Refuse_NoThrow_Before_Enumeration()
+    {
+        var exception = await RefuseStreamOptionsAsync<ArgumentException, TestBody, TestStreamFailureCause[]>(
+            OperationId, new TestStreamAdapter(), OpenCodeRequestOptions.NoThrow);
+
+        await Assert.That(exception.GetType()).IsEqualTo(typeof(ArgumentException));
+        await Assert.That(exception.ParamName).IsEqualTo("options");
+    }
+
+    [Test]
+    public async Task ExecuteStreamAsync_Should_Refuse_An_Undefined_ErrorBehavior_Before_Enumeration()
+    {
+        var options = new OpenCodeRequestOptions { ErrorBehavior = (ErrorBehavior)42 };
+
+        var exception = await RefuseStreamOptionsAsync<ArgumentOutOfRangeException, TestBody, TestStreamFailureCause[]>(
+            OperationId, new TestStreamAdapter(), options);
+
+        await Assert.That(exception.ParamName).IsEqualTo("options");
+        await Assert.That(exception.ActualValue).IsEqualTo(options.ErrorBehavior);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task ExecuteStreamAsync_Should_Refuse_A_Per_Call_NetworkTimeout_On_Event_Subscribe(bool infinite)
+    {
+        var options = new OpenCodeRequestOptions { NetworkTimeout = infinite ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(2) };
+
+        var exception = await RefuseStreamOptionsAsync<ArgumentException, IEvent, IStreamFailureCause[]>(
+            "event.subscribe", EventSubscribeResponseStreamAdapter.Instance, options);
+
+        await Assert.That(exception.GetType()).IsEqualTo(typeof(ArgumentException));
+        await Assert.That(exception.ParamName).IsEqualTo("options");
+    }
+
+    [Test]
+    public async Task ExecuteStreamAsync_Should_Bound_Opening_With_The_Per_Call_NetworkTimeout()
+    {
+        var time = new ManualTimeProvider();
+        var window = TimeSpan.FromSeconds(3);
+        var hangGuard = TimeSpan.FromSeconds(30);
+        using var content = new BlockingContent();
+        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError) { Content = content });
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient, networkTimeout: TimeSpan.FromMinutes(1), time: time);
+        var options = new OpenCodeRequestOptions { NetworkTimeout = window };
+        var stream = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), options, CancellationToken.None);
+        await using var enumerator = stream.GetAsyncEnumerator();
+
+        var opening = enumerator.MoveNextAsync().AsTask();
+        await content.ReadStarted.WaitAsync(hangGuard);
+        await time.WaitForArmedAsync(window, hangGuard);
+        time.Advance(window - TimeSpan.FromTicks(1));
+        await Assert.That(content.IsDisposed).IsFalse();
+        await Assert.That(opening.IsCompleted).IsFalse();
+        time.Advance(TimeSpan.FromTicks(1));
+
+        _ = await Assert.That(opening.WaitAsync(hangGuard)).Throws<OpenCodeTransportException>();
+        await content.ReadCompleted.WaitAsync(hangGuard);
+        await Assert.That(content.IsDisposed).IsTrue();
+    }
+
+    [Test]
     public async Task ExecuteStreamAsync_Should_Yield_Every_Frame_Payload()
     {
         using var handler = new RecordingHttpHandler(static _ => EventStream(FirstAndSecondFrames));
@@ -438,6 +515,22 @@ public sealed class PipelineStreamTests
             HttpMethod.Get, "api/event", new TestStreamAdapter(), CancellationToken.None));
 
         await Assert.That(exception.ParamName).IsEqualTo("route");
+    }
+
+    private static async Task<TException> RefuseStreamOptionsAsync<TException, TPayload, TCause>(string operationId,
+        IStreamAdapter<TPayload, TCause> adapter, OpenCodeRequestOptions options)
+        where TException : ArgumentException
+        where TCause : IReadOnlyList<IOpenCodeStreamFailureCause>
+    {
+        using var handler = new RecordingHttpHandler();
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient);
+
+        var exception = Assert.Throws<TException>(() => _ = pipeline.ExecuteStreamAsync(operationId,
+            HttpMethod.Get, "/api/event", adapter, options, CancellationToken.None));
+
+        await Assert.That(handler.Requests).IsEmpty();
+        return exception;
     }
 
     private static HttpResponseMessage EventStreamOf(Stream body)

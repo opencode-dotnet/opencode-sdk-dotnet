@@ -204,6 +204,12 @@ internal sealed class Pipeline : IDisposable
     /// </summary>
     public IAsyncEnumerable<TPayload> ExecuteStreamAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
         IStreamAdapter<TPayload, TCause> adapter, CancellationToken cancellationToken)
+        where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause> =>
+        ExecuteStreamAsync(operationId, method, route, adapter, options: null, cancellationToken);
+
+    /// <summary>Opens a stream with per-call location and opening timeout; stream failures always throw.</summary>
+    public IAsyncEnumerable<TPayload> ExecuteStreamAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
+        IStreamAdapter<TPayload, TCause> adapter, OpenCodeRequestOptions? options, CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
@@ -217,9 +223,17 @@ internal sealed class Pipeline : IDisposable
             throw new ArgumentException("Routes must start with '/'.", nameof(route));
         }
 
-        return StreamReconnect.Reconnecting.Contains(operationId)
-            ? ExecuteReconnectingStreamAsync(operationId, method, route, adapter, cancellationToken)
-            : ExecuteStreamCoreAsync(operationId, method, route, adapter, networkTimeout: null, attempt: null, cancellationToken);
+        ErrorBehaviorPolicy.RefuseNoThrow(options, "Streams");
+
+        var reconnecting = StreamReconnect.Reconnecting.Contains(operationId);
+        if (reconnecting && options?.NetworkTimeout is not null)
+        {
+            throw new ArgumentException("Reconnecting streams use their own connection and idle windows; NetworkTimeout is not supported.", nameof(options));
+        }
+
+        return reconnecting
+            ? ExecuteReconnectingStreamAsync(operationId, method, route, adapter, options?.Location, cancellationToken)
+            : ExecuteStreamCoreAsync(operationId, method, route, adapter, options?.Location, options?.NetworkTimeout, attempt: null, cancellationToken);
     }
 
     public void Dispose()
@@ -252,11 +266,7 @@ internal sealed class Pipeline : IDisposable
         }
 
         // Refused before sending: an undefined value must never silently pick an error channel.
-        var errorBehavior = options?.ErrorBehavior ?? ErrorBehavior.Default;
-        if (errorBehavior is not (ErrorBehavior.Default or ErrorBehavior.NoThrow))
-        {
-            throw new ArgumentOutOfRangeException(nameof(options), errorBehavior, "Unknown ErrorBehavior value.");
-        }
+        var errorBehavior = ErrorBehaviorPolicy.Resolve(options);
 
         TResponse adapted;
         using (var message = CreateMessage(operationId, method, route, body, bodyTypeInfo, options?.Location, options?.NetworkTimeout, declaredHeaders, cancellationToken))
@@ -285,7 +295,8 @@ internal sealed class Pipeline : IDisposable
     /// last failure. The caller's token and a disposed client end the stream at once.
     /// </summary>
     private async IAsyncEnumerable<TPayload> ExecuteReconnectingStreamAsync<TPayload, TCause>(string operationId, HttpMethod method,
-        string route, IStreamAdapter<TPayload, TCause> adapter, [EnumeratorCancellation] CancellationToken cancellationToken)
+        string route, IStreamAdapter<TPayload, TCause> adapter, LocationSelector? perCallLocation,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetimeToken);
@@ -297,7 +308,7 @@ internal sealed class Pipeline : IDisposable
             ObjectDisposedException.ThrowIf(_disposed, this);
             var established = false;
             Exception failure;
-            var frames = ExecuteAttemptAsync(operationId, method, route, adapter, giveUp, cancellationToken).GetAsyncEnumerator(cancellationToken);
+            var frames = ExecuteAttemptAsync(operationId, method, route, adapter, perCallLocation, giveUp, cancellationToken).GetAsyncEnumerator(cancellationToken);
             await using (frames.ConfigureAwait(false))
             {
                 while (true)
@@ -338,11 +349,12 @@ internal sealed class Pipeline : IDisposable
     /// failure; the give-up window and the caller's token pass through as cancellation.
     /// </summary>
     private async IAsyncEnumerable<TPayload> ExecuteAttemptAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
-        IStreamAdapter<TPayload, TCause> adapter, ProgressWindow giveUp, [EnumeratorCancellation] CancellationToken cancellationToken)
+        IStreamAdapter<TPayload, TCause> adapter, LocationSelector? perCallLocation, ProgressWindow giveUp,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
         using var attempt = new StreamAttempt(_time, _eventStreamIdleWindow, giveUp.Token);
-        var frames = ExecuteStreamCoreAsync(operationId, method, route, adapter, Timeout.InfiniteTimeSpan, attempt, attempt.Token)
+        var frames = ExecuteStreamCoreAsync(operationId, method, route, adapter, perCallLocation, Timeout.InfiniteTimeSpan, attempt, attempt.Token)
             .GetAsyncEnumerator(cancellationToken);
         await using var enumeration = frames.ConfigureAwait(false);
         while (true)
@@ -442,12 +454,12 @@ internal sealed class Pipeline : IDisposable
             : new OperationCanceledException("The opencode event stream read was canceled.", failure, cancellationToken);
 
     private async IAsyncEnumerable<TPayload> ExecuteStreamCoreAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
-        IStreamAdapter<TPayload, TCause> adapter, TimeSpan? networkTimeout, StreamAttempt? attempt,
+        IStreamAdapter<TPayload, TCause> adapter, LocationSelector? perCallLocation, TimeSpan? networkTimeout, StreamAttempt? attempt,
         [EnumeratorCancellation] CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
-        using var message = CreateStreamMessage(operationId, method, route, networkTimeout, cancellationToken);
+        using var message = CreateStreamMessage(operationId, method, route, perCallLocation, networkTimeout, cancellationToken);
         await SendThroughPoliciesAsync(message).ConfigureAwait(false);
         var response = message.Response!;
         var status = (int)response.StatusCode;
@@ -552,15 +564,16 @@ internal sealed class Pipeline : IDisposable
         }
     }
 
-    private PipelineMessage CreateStreamMessage(string operationId, HttpMethod method, string route, TimeSpan? networkTimeout,
-        CancellationToken cancellationToken) =>
+    private PipelineMessage CreateStreamMessage(string operationId, HttpMethod method, string route, LocationSelector? perCallLocation,
+        TimeSpan? perCallNetworkTimeout, CancellationToken cancellationToken) =>
         new()
         {
             OperationId = operationId,
             Request = new HttpRequestMessage(method, new Uri(_endpointBase + route, UriKind.Absolute)),
             CancellationToken = cancellationToken,
             NetworkToken = cancellationToken,
-            NetworkTimeout = networkTimeout ?? NetworkTimeouts.Resolve(operationId, perCall: null, _clientNetworkTimeout),
+            NetworkTimeout = NetworkTimeouts.Resolve(operationId, perCallNetworkTimeout, _clientNetworkTimeout),
+            PerCallLocation = perCallLocation,
             BufferBody = false,
         };
 

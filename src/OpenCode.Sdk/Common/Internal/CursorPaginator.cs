@@ -12,13 +12,26 @@ internal static class CursorPaginator
         ICursorPageAdapter<TRequest, TResponse, TItem> adapter,
         CancellationToken cancellationToken)
         where TRequest : ListRequest
+        where TResponse : OpenCodeResponse =>
+        EnumerateAsync(fetchPage, initialRequest, adapter, options: null, cancellationToken);
+
+    /// <summary>Creates a lazy traversal with options applied to every page; API errors always throw.</summary>
+    public static CursorSequence<TResponse, TItem> EnumerateAsync<TRequest, TResponse, TItem>(
+        Func<TRequest?, OpenCodeRequestOptions?, CancellationToken, Task<TResponse>> fetchPage,
+        TRequest? initialRequest,
+        ICursorPageAdapter<TRequest, TResponse, TItem> adapter,
+        OpenCodeRequestOptions? options,
+        CancellationToken cancellationToken)
+        where TRequest : ListRequest
         where TResponse : OpenCodeResponse
     {
         ArgumentNullException.ThrowIfNull(fetchPage);
         ArgumentNullException.ThrowIfNull(adapter);
 
+        ErrorBehaviorPolicy.RefuseNoThrow(options, "Cursor traversals");
+
         return new CursorSequence<TResponse, TItem>(
-            token => EnumeratePagesCoreAsync(fetchPage, initialRequest, adapter, token),
+            token => EnumeratePagesCoreAsync(fetchPage, initialRequest, adapter, options, token),
             adapter.GetItems,
             cancellationToken);
     }
@@ -31,6 +44,7 @@ internal static class CursorPaginator
         Func<TRequest?, OpenCodeRequestOptions?, CancellationToken, Task<TResponse>> fetchPage,
         TRequest? initialRequest,
         ICursorPageAdapter<TRequest, TResponse, TItem> adapter,
+        OpenCodeRequestOptions? options,
         [EnumeratorCancellation] CancellationToken cancellationToken)
         where TRequest : ListRequest
         where TResponse : OpenCodeResponse
@@ -38,7 +52,7 @@ internal static class CursorPaginator
         var request = initialRequest;
         while (true)
         {
-            var page = await fetchPage(request, null, cancellationToken).ConfigureAwait(false);
+            var page = await fetchPage(request, options, cancellationToken).ConfigureAwait(false);
             yield return page;
 
             if (adapter.GetNextCursor(page) is not { } cursor)
