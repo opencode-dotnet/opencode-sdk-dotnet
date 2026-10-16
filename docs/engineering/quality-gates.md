@@ -286,7 +286,12 @@ records that it belongs to this lane.
 
 It is `workflow_dispatch` (with an input that overrides the pinned version, for trying a candidate
 build) plus weekly, deliberately not a pull-request gate: it downloads a platform CLI build per run
-and depends on the npm registry being reachable.
+and depends on the npm registry being reachable. Two moments need a dispatched run with the version
+input left empty, so that it tests the pin. The run tests the commit it is dispatched from:
+- after a pin refresh merges, dispatch it from `master`; a red run is a finding, recorded before
+  other work lands on the new pin;
+- before a NuGet.org release, dispatch it from a ref at the commit the release packs, and check
+  that the run's commit is the release's `commit` input; the release waits for that run to be green.
 
 Claim discipline follows it. "Tested against the distributed build" is true only of a version this
 lane has actually run; for every other published build the honest claim remains "built from the

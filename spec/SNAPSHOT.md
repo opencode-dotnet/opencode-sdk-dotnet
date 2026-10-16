@@ -61,3 +61,5 @@ reviewed before the snapshot moves.
 4. Run `generate`; resolve what it reports (wall admits, curation rows) and review the
    regenerated diff. `refresh-spec --verify` reproduces the committed identity
    observationally.
+5. After the refresh merges, run the distributed-build consumer leg as
+   `docs/engineering/quality-gates.md` describes.
