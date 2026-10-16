@@ -1,6 +1,7 @@
 using System.Globalization;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Sessions.Support;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
 

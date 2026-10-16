@@ -4,6 +4,7 @@ using System.Text;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
+using OpenCode.Sdk.Tests.Transport.Support;
 
 namespace OpenCode.Sdk.Tests.Transport;
 

@@ -1,7 +1,7 @@
 // The parity oracle for the trailing-wildcard route rule (fs.read).
 //
 // It calls upstream's own generated Promise client (packages/client/src/promise/generated/client.ts)
-// with a recording fetch, once per path of tests/OpenCode.Sdk.Tests/Fixtures/Routes/
+// with a recording fetch, once per path of tests/OpenCode.Sdk.Tests/FileSystem/Fixtures/
 // wildcard-path-corpus.json, and writes the request path the client produced to
 // wildcard-path-expected.json beside it. The SDK's route test asserts the generated route builder
 // produces the same path. Re-run it when a refresh moves the watched codegen rule
@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url"
 
 const repository = join(dirname(fileURLToPath(import.meta.url)), "..", "..")
 const upstream = join(repository, "external", "opencode")
-const fixtures = join(repository, "tests", "OpenCode.Sdk.Tests", "Fixtures", "Routes")
+const fixtures = join(repository, "tests", "OpenCode.Sdk.Tests", "FileSystem", "Fixtures")
 const { make } = await import(join(upstream, "packages", "client", "src", "promise", "generated", "client.ts"))
 
 const corpus: string[] = JSON.parse(readFileSync(join(fixtures, "wildcard-path-corpus.json"), "utf8"))

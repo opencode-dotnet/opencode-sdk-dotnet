@@ -27,9 +27,9 @@ tests/OpenCode.Sdk.Tests/Sessions/GettingStartedRecipeLiveTests.cs	1
 tests/OpenCode.Sdk.Tests/Sessions/SessionInboxLiveTests.cs	2
 tests/OpenCode.Sdk.Tests/Sessions/SessionMetadataLiveTests.cs	2
 tests/OpenCode.Sdk.Tests/Sessions/SessionPermissionLiveTests.cs	2
+tests/OpenCode.Sdk.Tests/Sessions/Support/PendingPermissionCleanupTests.cs	1
 tests/OpenCode.Sdk.Tests/Support/OwnedEventReaderTests.cs	3
-tests/OpenCode.Sdk.Tests/Support/PendingPermissionCleanupTests.cs	1
-tests/OpenCode.Sdk.Tests/TestMirrorTests.cs	1
+tests/OpenCode.Sdk.Tests/Support/TestMirrorTests.cs	1
 tests/OpenCode.Sdk.Tests/Transport/CallerStreamContentTests.cs	3
 tests/OpenCode.Sdk.Tests/Transport/NetworkTimeoutTests.cs	1
 tests/OpenCode.Sdk.Tests/Transport/OwnedTransportTests.cs	1

@@ -151,10 +151,13 @@ editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/S
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/ServiceFileSystemTests.cs] dotnet_diagnostic.VSTHRD103.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Stop/OpenCodeServerStop{Live,Escalation}Tests.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Stop/ServiceStopperTests.cs] dotnet_diagnostic.MA0045.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/Launcher/Support/PathCommandShim.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Hosting/OpenCodeServerContractTests.cs] dotnet_diagnostic.CA2000.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/PersistentPtys/PersistentPtySessionTests.cs] dotnet_diagnostic.CA2000.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Ptys/PtySessionTests.cs] dotnet_diagnostic.CA2000.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Ptys/Support/PtyFailureDiagnosticsTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Sessions/SessionMessagePaginationLiveTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Sessions/Support/SessionLogTranscriptTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/BlockingStream.cs] dotnet_diagnostic.CA1844.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ChildExitObservation.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ControlledOperationDeadline.cs] dotnet_diagnostic.VSTHRD003.severity = none
@@ -162,13 +165,10 @@ editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OperationDeadlineSc
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OwnedCleanupDeadlineTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OwnedEventReader.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/OwnedEventReaderTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
-editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/PathCommandShim.cs] dotnet_diagnostic.MA0045.severity = none
-editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/PtyFailureDiagnosticsTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ScriptedTerminalWebSocket.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ServerDiagnosticScenario.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionEventProbe.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionEventProbeTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
-editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionLogTranscriptTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/Shared/ProcessMark.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/EnumSchemaProjector.cs] dotnet_diagnostic.CA1822.severity = none
 editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/EnumSchemaProjector.cs] dotnet_diagnostic.S2325.severity = none
@@ -210,12 +210,12 @@ pragma src/OpenCode.Sdk/Internal/Terminal/TerminalReceivePump.cs VSTHRD003
 pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Ensure/ServiceEnsurerTests.cs MA0045
 pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Handoff/ServicePtyHandoffScenario.cs MA0045
 pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Handoff/ServicePtyHandoffTests.cs MA0045
+pragma tests/OpenCode.Sdk.Tests/Hosting/Launcher/Support/LauncherHost.cs VSTHRD003
 pragma tests/OpenCode.Sdk.Tests/PersistentPtys/PersistentPtySessionTests.cs CA2025
+pragma tests/OpenCode.Sdk.Tests/Ptys/Support/PtyDiagnosticServer.cs VSTHRD003
 pragma tests/OpenCode.Sdk.Tests/Support/DiagnosticWriteBarrier.cs VSTHRD003
 pragma tests/OpenCode.Sdk.Tests/Support/Gate.cs VSTHRD003
-pragma tests/OpenCode.Sdk.Tests/Support/LauncherHost.cs VSTHRD003
 pragma tests/OpenCode.Sdk.Tests/Support/LoopbackHttpServer.cs VSTHRD003
-pragma tests/OpenCode.Sdk.Tests/Support/PtyDiagnosticServer.cs VSTHRD003
 pragma tests/OpenCode.Sdk.Tests/Transport/OwnedTransportTests.cs VSTHRD003
 pragma tools/OpenCode.Sdk.Tools/Generator/Emission/ExperimentalAttributeSyntax.cs S1075
 pragma tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/AllOfWrapperKeywords.cs CS0618
@@ -246,8 +246,8 @@ slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/WindowsLauncherProbe.cs SW0
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Harness/MachineLock.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Harness/PinnedManagedServiceFixture.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Hosting/Launcher/OpenCodeServerJobTests.cs SW004
+slopwatch-suppress tests/OpenCode.Sdk.Tests/Hosting/Launcher/Support/LadderTree.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Hosting/Platform/Windows/WindowsExitWatchTests.cs SW004
-slopwatch-suppress tests/OpenCode.Sdk.Tests/Support/LadderTree.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Support/LiveReadiness.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.Tests/Support/ProcessObservation.cs SW003
 slopwatch-suppress tests/OpenCode.Sdk.Tools.Tests/Packaging/PackedConsumerFeed.cs SW003

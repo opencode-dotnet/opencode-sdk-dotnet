@@ -953,7 +953,7 @@ dotnet_diagnostic.VSTHRD003.severity = none
 [tests/OpenCode.Sdk.Tests/Harness/Ownership/OwnedOperationDeadlineTests.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
-[tests/OpenCode.Sdk.Tests/Support/SessionLogTranscriptTests.cs]
+[tests/OpenCode.Sdk.Tests/Sessions/Support/SessionLogTranscriptTests.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
 # The session-removal fault proof controls interrupt entry and expiry, then drains cancellation
@@ -970,7 +970,7 @@ dotnet_diagnostic.VSTHRD003.severity = none
 # These diagnostic proofs control their own operation deadlines and retain supplied disposal
 # tasks until finally releases and drains them. Winner: causal fixture/status ownership proofs;
 # the rule remains enabled outside these exact files.
-[tests/OpenCode.Sdk.Tests/Support/PtyFailureDiagnosticsTests.cs]
+[tests/OpenCode.Sdk.Tests/Ptys/Support/PtyFailureDiagnosticsTests.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
 [tests/OpenCode.Sdk.Tests/Support/ServerDiagnosticScenario.cs]
@@ -1155,7 +1155,7 @@ dotnet_diagnostic.MA0045.severity = none
 # DriveManifestTests.cs documents above - and an async factory would make the arrangement
 # awaitable without making it asynchronous. Winner: the cross-TFM arrangement shape; MA0045
 # remains enabled for every other file.
-[tests/OpenCode.Sdk.Tests/Support/PathCommandShim.cs]
+[tests/OpenCode.Sdk.Tests/Hosting/Launcher/Support/PathCommandShim.cs]
 dotnet_diagnostic.MA0045.severity = none
 
 # Optional<T> is the tri-state carrier for a request property the document declares both optional

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Discovery;
