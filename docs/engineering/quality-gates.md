@@ -305,11 +305,11 @@ OPENCODE_SDK_BENCHMARKS_REWRITE_TREE=allow dotnet run --project tests/OpenCode.S
 
 `--net11` adds the .NET 11 leg: BenchmarkDotNet 0.15.8 does not know the `net11.0` moniker and
 refuses it in `--runtimes`, so the suite's own configuration defines that leg and labels it
-`.NET 11.0` like the others. `--runtimes` is load-bearing: it labels each case's leg with the runtime name (`.NET 10.0`,
-`.NET Framework 4.7.2`) in the exports, and `compare-benchmarks` joins the two runs on exactly
-(case, runtime). A run launched without it is labelled by its job name (`DefaultJob`) instead and
-joins nothing against the archived runs — the comparison then fails naming both label sets, but
-only after the run's hours are already spent. An increment-level check narrows `--filter` and adds
-`--job short`. `--artifacts` names the run's folder in the git-ignored `.benchmarks/` store;
-`compare-benchmarks` reads each folder's `results/*-report-full.json`, so those exports are the
-part of a run that must be preserved.
+`.NET 11.0` like the others. `--runtimes` is load-bearing: it labels each case's leg with the
+runtime name (`.NET 10.0`, `.NET Framework 4.7.2`) in the exports, and `compare-benchmarks` joins
+the two runs on exactly (case, runtime). A run launched without it is labelled by its job name
+(`DefaultJob`) instead and joins nothing against the archived runs — the comparison then fails
+naming both label sets, but only after the run's hours are already spent. An increment-level check
+narrows `--filter` and adds `--job short`. `--artifacts` names the run's folder in the git-ignored
+`.benchmarks/` store; `compare-benchmarks` reads each folder's `results/*-report-full.json`, so
+those exports are the part of a run that must be preserved.
