@@ -140,6 +140,9 @@ Nightly builds of `master` are on
 
 ### 🐛 Fixes
 
+- **A background-service start failure no longer carries part of the PTY handoff ticket.** The
+  contender's stderr tail redacts the ticket even where the 8 KiB cut or the end of the pipe splits
+  it, so no fragment of it reaches `OpenCodeServerException` messages.
 - **Caller cancellation preserves your token across public async doors:** HTTP, SSE, cursor
   traversal, both terminal families, and `OpenCodeServer.StartAsync`, `DiscoverAsync`, `EnsureAsync`,
   and `StopAsync`. `OperationCanceledException.CancellationToken` is the

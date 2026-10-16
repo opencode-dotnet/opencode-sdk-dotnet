@@ -29,6 +29,8 @@ internal sealed class ServiceContender : IServiceContender
     /// <summary>What a redacted handoff ticket reads as in diagnostics.</summary>
     private const string RedactedMarker = "[redacted]";
 
+    private static readonly byte[] RedactedMarkerBytes = Encoding.UTF8.GetBytes(RedactedMarker);
+
     /// <summary>Windows' still-running sentinel for <c>GetExitCodeProcess</c>.</summary>
     private const uint StillActive = 259;
 
@@ -47,7 +49,14 @@ internal sealed class ServiceContender : IServiceContender
     private readonly Lock _gate = new();
     private readonly Stream _stderr;
     private readonly SafeProcessHandle? _process;
-    private readonly string? _redact;
+    /// <summary>The handoff ticket's UTF-8 bytes, matched in the raw tail so a cut cannot split a match.</summary>
+    private readonly byte[]? _redact;
+
+    /// <summary>
+    /// The raw bytes retained: the rendered 8 KiB, plus one ticket length short of it when a ticket
+    /// is redacted, so a ticket the 8 KiB edge cuts through is still found whole.
+    /// </summary>
+    private readonly int _retainLimit;
     private byte[] _tail = [];
 
     private bool _released;
@@ -65,7 +74,8 @@ internal sealed class ServiceContender : IServiceContender
         ProcessId = processId;
         _stderr = stderr;
         _process = process;
-        _redact = string.IsNullOrEmpty(redact) ? null : redact;
+        _redact = string.IsNullOrEmpty(redact) ? null : Encoding.UTF8.GetBytes(redact);
+        _retainLimit = StderrLimit + (_redact is null ? 0 : _redact.Length - 1);
 
         // Hot until the first read suspends: the drain owns no caller, only the pipe, and every
         // fault it can see is folded into the error slot — nothing escapes unobserved.
@@ -199,31 +209,71 @@ internal sealed class ServiceContender : IServiceContender
             return string.Empty;
         }
 
-        var text = Encoding.UTF8.GetString(_tail);
-        if (_redact is { Length: > 0 } ticket)
-        {
-            text = RedactTicket(text, ticket);
-        }
-
+        var start = Math.Max(0, _tail.Length - StderrLimit);
+        var text = _redact is null
+            ? Encoding.UTF8.GetString(_tail, start, _tail.Length - start)
+            : RedactTicket(_tail, start, _redact);
         return text.Trim();
     }
 
     /// <summary>
-    /// Ordinal ticket redaction without the framework's comparison overload, which the downlevel
-    /// targets do not carry: split at every occurrence and rejoin over the marker.
+    /// Renders the bytes from <paramref name="start"/> with every byte a handoff ticket covers
+    /// replaced, each covered run by one marker, before any decoding. Every occurrence counts,
+    /// overlapping ones too; a ticket the 8 KiB edge cuts through is matched whole in the retained
+    /// bytes before the edge, and a ticket the pipe has not finished writing ends the tail as a
+    /// prefix and is covered as one.
     /// </summary>
-    private static string RedactTicket(string text, string ticket)
+    private static string RedactTicket(byte[] tail, int start, byte[] ticket)
     {
-        var redacted = new StringBuilder(text.Length);
-        var remainder = text;
-        while (remainder.IndexOf(ticket, StringComparison.Ordinal) is >= 0 and var index)
+        var covered = new bool[tail.Length - start];
+        var searchFrom = Math.Max(0, start - (ticket.Length - 1));
+        while (searchFrom < tail.Length && tail.AsSpan(searchFrom).IndexOf(ticket) is >= 0 and var offset)
         {
-            _ = redacted.Append(remainder, 0, index).Append(RedactedMarker);
-            remainder = remainder[(index + ticket.Length)..];
+            var index = searchFrom + offset;
+            Cover(covered, start, index, index + ticket.Length);
+            searchFrom = index + 1;
         }
 
-        _ = redacted.Append(remainder);
-        return redacted.ToString();
+        var unfinished = UnfinishedTicketLength(tail, ticket);
+        Cover(covered, start, tail.Length - unfinished, tail.Length);
+
+        using var rendered = new MemoryStream(covered.Length);
+        for (var position = 0; position < covered.Length; position++)
+        {
+            if (!covered[position])
+            {
+                rendered.WriteByte(tail[start + position]);
+            }
+            else if (position == 0 || !covered[position - 1])
+            {
+                rendered.Write(RedactedMarkerBytes, 0, RedactedMarkerBytes.Length);
+            }
+        }
+
+        return Encoding.UTF8.GetString(rendered.GetBuffer(), 0, (int)rendered.Length);
+    }
+
+    /// <summary>Marks the tail bytes [<paramref name="from"/>, <paramref name="to"/>) that fall inside the window at <paramref name="start"/>.</summary>
+    private static void Cover(bool[] covered, int start, int from, int to)
+    {
+        for (var index = Math.Max(from, start); index < to; index++)
+        {
+            covered[index - start] = true;
+        }
+    }
+
+    /// <summary>The length of the longest proper ticket prefix the retained tail ends with; zero when none.</summary>
+    private static int UnfinishedTicketLength(byte[] tail, byte[] ticket)
+    {
+        for (var length = Math.Min(ticket.Length - 1, tail.Length); length > 0; length--)
+        {
+            if (tail.AsSpan().EndsWith(ticket.AsSpan(0, length)))
+            {
+                return length;
+            }
+        }
+
+        return 0;
     }
 
     private string WithStderrLocked(string message)
@@ -233,9 +283,10 @@ internal sealed class ServiceContender : IServiceContender
     }
 
     /// <summary>
-    /// Keeps the final 8 KiB of the pipe the way upstream's <c>onStderr</c> does: the chunk's own
-    /// last 8 KiB, behind as much of the previous tail as still fits. A released contender still
-    /// drains, into nothing.
+    /// Keeps the end of the pipe the way upstream's <c>onStderr</c> does: the chunk's own last
+    /// bytes, behind as much of the previous tail as still fits. The limit is 8 KiB, plus the
+    /// ticket slack when a ticket is redacted; rendering still shows only the final 8 KiB. A
+    /// released contender still drains, into nothing.
     /// </summary>
     private void AppendTailLocked(byte[] buffer, int count)
     {
@@ -244,8 +295,8 @@ internal sealed class ServiceContender : IServiceContender
             return;
         }
 
-        var kept = Math.Min(count, StderrLimit);
-        var carried = Math.Min(_tail.Length, StderrLimit - kept);
+        var kept = Math.Min(count, _retainLimit);
+        var carried = Math.Min(_tail.Length, _retainLimit - kept);
         var next = new byte[carried + kept];
         Buffer.BlockCopy(_tail, _tail.Length - carried, next, 0, carried);
         Buffer.BlockCopy(buffer, count - kept, next, carried, kept);
