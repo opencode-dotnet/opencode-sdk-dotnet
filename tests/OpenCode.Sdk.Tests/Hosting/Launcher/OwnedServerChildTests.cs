@@ -48,6 +48,10 @@ public sealed class OwnedServerChildTests
     [Timeout(120_000)]
     public async Task EndAsync_Should_Collect_A_Line_Its_Reader_Delivers_After_The_Server_Ended(CancellationToken cancellationToken)
     {
+        // Both the exit observation and the held reader must outlast the ladder they wrap.
+        var ladderObservationBound = Grace + (OperatingSystem.IsWindows()
+            ? WindowsLadderBounds.Default.TreeKill + WindowsLadderBounds.Default.ForcedExit
+            : PosixServerLadder.ForcedExitTimeout) + ObservationBound;
         var output = new OpenCodeServerOutput();
         var readyLine = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         var bodyHeld = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -63,7 +67,7 @@ public sealed class OwnedServerChildTests
                 if (!readyLine.TrySetResult(line))
                 {
                     _ = bodyHeld.TrySetResult();
-                    _ = deliverBody.Wait(ObservationBound, cancellationToken);
+                    _ = deliverBody.Wait(ladderObservationBound, cancellationToken);
                 }
 
                 output.AppendStandardOutput(line);
@@ -77,7 +81,7 @@ public sealed class OwnedServerChildTests
             await bodyHeld.Task.WaitAsync(ObservationBound, cancellationToken);
             var beforeDisposal = output.GetSnapshot().StandardOutput;
             var ending = child.EndAsync();
-            var exit = await child.Exited.WaitAsync(ObservationBound, cancellationToken);
+            var exit = await child.Exited.WaitAsync(ladderObservationBound, cancellationToken);
             deliverBody.Set();
             await ending.WaitAsync(ObservationBound, cancellationToken);
 
