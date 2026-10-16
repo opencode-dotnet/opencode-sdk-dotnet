@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-10-15
+Date: 2026-10-16
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -90,13 +90,13 @@ evidence and may contain superseded positions.
 - Generated and hand-written files share the slice folders (ADR-0033). One placement rule maps
   each generated file's kind and owning slice to its folder: models under the family's `Models/`
   (Sessions models in their curated area subfolders), body requests, operation records and
-  clients at the family root, adapters, envelope DTOs, converters and internal-raw clients under
-  the family's `Internal/`, the shared error spine under `Common/Errors/` and `Common/Internal/`,
-  and the serializer registry under the root `Internal/Serialization/`. The writer reserves the
-  folder names `Common`, `Internal`, `Hosting` and `Properties` for the shared homes, and `Models`
-  and `Pagination` because the slice layout has no such root folder and a family may never
-  recreate one; it marks every manifest entry `linguist-generated` in a writer-owned
-  `.gitattributes` beside the manifest.
+  clients at the family root, route tables, adapters, envelope DTOs, converters and internal-raw
+  clients under the family's `Internal/`, the shared error spine under `Common/Errors/` and
+  `Common/Internal/`, and the serializer registry under the root `Internal/Serialization/`. The
+  writer reserves the folder names `Common`, `Internal`, `Hosting` and `Properties` for the shared
+  homes, and `Models` and `Pagination` because the slice layout has no such root folder and a
+  family may never recreate one; it marks every manifest entry `linguist-generated` in a
+  writer-owned `.gitattributes` beside the manifest.
 - A writer-owned `.generated-reach.txt` beside the manifest lists each generated type's owning
   slice and the families whose operations reach it, so a refresh shows reach changes in its
   diff; reach never moves a file. Neither file ships in a package.

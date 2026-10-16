@@ -2,7 +2,7 @@
 A change that adds, removes or alters a suppression updates this file in the same commit.
 
 build-switch: 10
-editorconfig: 163
+editorconfig: 161
 globalconfig: 1
 no-warn: 18
 pragma: 21
@@ -89,8 +89,6 @@ editorconfig .editorconfig [src/OpenCode.Sdk.Extensions/OpenCodeServiceCollectio
 editorconfig .editorconfig [src/OpenCode.Sdk/**.cs] dotnet_diagnostic.IDE0130.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/**/Models/**.cs] dotnet_diagnostic.CA1034.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/**/{ConfigInfoEnterprise,ConnectionStatus,ExperimentalIntegrationWellknownAddRequest,FormExternalField,IntegrationAttempt,McpOAuthConfig,McpRemoteConfig,McpResource,McpResourceTemplate,ProjectIcon,PromptFileSourceUri,PromptInputFileAttachment,ToolFileContent,WebSearchResult}.cs] dotnet_diagnostic.CA1056.severity = none
-editorconfig .editorconfig [src/OpenCode.Sdk/*/OpenCodeRoutes.*.cs] dotnet_diagnostic.CA1034.severity = none
-editorconfig .editorconfig [src/OpenCode.Sdk/*/OpenCodeRoutes.*.cs] dotnet_diagnostic.CA1724.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/Common/Optional.cs] dotnet_diagnostic.CA1000.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/Common/Optional.cs] dotnet_diagnostic.CA2225.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Contender/ServiceContender.cs] dotnet_diagnostic.MA0045.severity = none

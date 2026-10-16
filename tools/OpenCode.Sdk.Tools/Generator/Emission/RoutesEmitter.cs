@@ -9,8 +9,8 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 internal static class RoutesEmitter
 {
     /// <summary>
-    /// Emits the public route surface as one part of a partial class per family, each in its
-    /// family's folder. An enum query converter is emitted once, in the part of the first family
+    /// Emits the internal route surface as one part of a partial class per family, each in its
+    /// family's Internal folder. An enum query converter is emitted once, in the part of the first family
     /// (ordinal) whose operations use it, so an enum two families share is still converted in
     /// exactly one place.
     /// </summary>
@@ -44,7 +44,7 @@ internal static class RoutesEmitter
         members.AddRange(QueryEnumWireValueEmitter.Emit(ownedEnums, models));
         var declaration = SyntaxFactory.ClassDeclaration("OpenCodeRoutes")
             .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
+                SyntaxFactory.Token(SyntaxKind.InternalKeyword),
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword),
                 SyntaxFactory.Token(SyntaxKind.PartialKeyword)))
             .WithMembers(SyntaxFactory.List(members));
@@ -66,11 +66,6 @@ internal static class RoutesEmitter
             usings.Add("System");
         }
 
-        if (operations.Any(static operation => operation.QueryRequest is not null || operation.Parameters.Count > 0))
-        {
-            usings.Add(GeneratedNamespace.Internal);
-        }
-
         // A merged request types its route builder with the body model, and an enum query
         // member types its converter with the generated enum.
         if (hasQueryEnums || operations.Any(static operation => operation.QueryRequest is { RidesRequestBody: true }))
@@ -78,7 +73,7 @@ internal static class RoutesEmitter
             usings.Add(GeneratedNamespace.Models);
         }
 
-        var unit = EmissionSyntax.CompilationUnit(GeneratedNamespace.Public, usings, [declaration]);
+        var unit = EmissionSyntax.CompilationUnit(GeneratedNamespace.Internal, usings, [declaration]);
         return EmissionSyntax.CreateSource(
             GeneratedPlacement.PathOf(GeneratedKind.Routes, TypeHome.Family(container.Key), "OpenCodeRoutes"),
             unit);
@@ -99,17 +94,13 @@ internal static class RoutesEmitter
                 continue;
             }
 
-            members.Add(EmitConst(
-                $"{operation.RouteMemberName}Template",
-                operation.RouteTemplate,
-                $"The '{operation.HttpMethod.ToUpperInvariant()} {operation.RouteTemplate}' route template.", diagnostic));
             members.Add(EmitBuilder(operation, diagnostic));
         }
 
         return SyntaxFactory.ClassDeclaration(container.Key)
             .AddAttributeLists(ExperimentalAttributeSyntax.Emit(container.First().RouteContainerExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
+                SyntaxFactory.Token(SyntaxKind.InternalKeyword),
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
             .WithMembers(SyntaxFactory.List(members))
             .WithLeadingTrivia(EmissionSyntax.Documentation($"Defines the '{container.Key}' routes."));

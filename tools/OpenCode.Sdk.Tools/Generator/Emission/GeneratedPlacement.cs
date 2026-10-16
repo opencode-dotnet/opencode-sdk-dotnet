@@ -16,7 +16,7 @@ internal static class GeneratedPlacement
         {
             GeneratedKind.RootClient => $"{typeName}.cs",
             GeneratedKind.SharedSerialization => $"Internal/Serialization/{typeName}.cs",
-            GeneratedKind.Routes => $"{Slice(kind, owner)}/{typeName}.{Slice(kind, owner)}.cs",
+            GeneratedKind.Routes => $"{Slice(kind, owner)}/Internal/{typeName}.{Slice(kind, owner)}.cs",
             GeneratedKind.Model => $"{ModelFolder(kind, owner)}/{typeName}.cs",
             GeneratedKind.BodyRequest or GeneratedKind.OperationRecord or GeneratedKind.Client => $"{Slice(kind, owner)}/{typeName}.cs",
             GeneratedKind.RawClient or GeneratedKind.ModelConverter or GeneratedKind.EnvelopeDto or GeneratedKind.ResponseAdapter

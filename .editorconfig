@@ -853,16 +853,6 @@ dotnet_diagnostic.MA0045.severity = none
 [tests/Shared/ServerIsolation.cs]
 dotnet_diagnostic.MA0045.severity = none
 
-# The generated route surface deliberately nests one static container per operation
-# group; flattening would erase the grouping the public
-# API promises. Winner: the generated route shape; CA1034 remains enabled for every other
-# file. The Permissions container also part-matches the legacy CAS namespace
-# System.Security.Permissions; the protocol's own group name wins over a retired
-# .NET Framework namespace, so CA1724 yields here too.
-[src/OpenCode.Sdk/*/OpenCodeRoutes.*.cs]
-dotnet_diagnostic.CA1034.severity = none
-dotnet_diagnostic.CA1724.severity = none
-
 # The generated extensible enums nest one static Values class of wire-spelling constants, so that
 # Type.Values.Name works as a case label and in a pattern, which a static property cannot. Every
 # file under a Models folder, area folders included, is generated, and no generated model nests any

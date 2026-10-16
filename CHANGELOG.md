@@ -11,6 +11,10 @@ Nightly builds of `master` are on
 
 ### 💥 Breaking changes
 
+- **`OpenCodeRoutes` is no longer public.** Call the typed clients to build and send request
+  paths instead of using route constants or builders directly. Request paths on the wire are
+  unchanged.
+
 - **Numeric query parameters are numbers.** The API description declares them as strings, but the
   server reads each one as a number and upstream's own client takes a number, so the request
   records now do too. Pass `Limit = 50`, not `Limit = "50"`. The value still goes out as query text,
