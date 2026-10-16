@@ -7,6 +7,7 @@ using System.Text;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 using OpenCode.Sdk.TestSupport;
 
 namespace OpenCode.Sdk.Tests;
@@ -85,6 +86,13 @@ public sealed class CancellationIdentityTests
         _ = await enumerator.MoveNextAsync();
     }
 
+    /// <summary>Waits, under the hang guard, for a signal the scripted double completes.</summary>
+    private static Task WitnessAsync(Task signal)
+    {
+        Task[] signals = [signal];
+        return Task.WhenAll(signals).WaitAsync(HangGuard.Bound, CancellationToken.None);
+    }
+
     private static async Task<OperationCanceledException> CancellationAsync(Func<Task> operation)
     {
         var failure = await Assert.That(operation().WaitAsync(HangGuard.Bound)).Throws<OperationCanceledException>();
@@ -99,8 +107,12 @@ public sealed class CancellationIdentityTests
         try
         {
             var port = ((IPEndPoint)listener.LocalEndpoint).Port.ToString(CultureInfo.InvariantCulture);
-            using var client = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = new Uri($"http://127.0.0.1:{port}") });
-            var observed = CancellationAsync(() => invoke(client, caller.Token));
+            var endpoint = new Uri($"http://127.0.0.1:{port}");
+            var observed = CancellationAsync(async () =>
+            {
+                using var client = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = endpoint });
+                await invoke(client, caller.Token);
+            });
             try
             {
                 using var peer = await listener.AcceptTcpClientAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
@@ -172,8 +184,7 @@ public sealed class CancellationIdentityTests
             .GetAsyncEnumerator(EnumerationToken(entry, caller.Token));
         if (phase == "delay")
         {
-            var connected = events.MoveNextAsync().AsTask();
-            await Assert.That(await connected.WaitAsync(HangGuard.Bound, CancellationToken.None)).IsTrue();
+            await Assert.That(await PullAsync().WaitAsync(HangGuard.Bound, CancellationToken.None)).IsTrue();
         }
 
         var observed = CancellationAsync(() => events.MoveNextAsync().AsTask());
@@ -195,6 +206,8 @@ public sealed class CancellationIdentityTests
         }
 
         return await observed;
+
+        async Task<bool> PullAsync() => await events.MoveNextAsync();
     }
 
     private static async Task<OperationCanceledException> AtStreamReadAsync(bool events, string entry, CancellationTokenSource caller)
@@ -300,8 +313,11 @@ public sealed class CancellationIdentityTests
         var endpoint = new Uri($"http://127.0.0.1:{port}/");
         listener.Prefixes.Add(endpoint.AbsoluteUri);
         listener.Start();
-        using var client = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = endpoint });
-        var observed = CancellationAsync(() => ConnectAndDisposeAsync(client, persistent, caller.Token));
+        var observed = CancellationAsync(async () =>
+        {
+            using var client = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = endpoint });
+            await ConnectAndDisposeAsync(client, persistent, caller.Token);
+        });
         HttpListenerContext? context = null;
         try
         {
@@ -338,7 +354,7 @@ public sealed class CancellationIdentityTests
         });
         try
         {
-            await socket.Parked.WaitAsync(HangGuard.Bound, CancellationToken.None);
+            await WitnessAsync(socket.Parked);
         }
         finally
         {
@@ -383,7 +399,7 @@ public sealed class CancellationIdentityTests
         var observed = CancellationAsync(() => enumerator.MoveNextAsync().AsTask());
         try
         {
-            await socket.Parked.WaitAsync(HangGuard.Bound, CancellationToken.None);
+            await WitnessAsync(socket.Parked);
         }
         finally
         {
@@ -434,11 +450,11 @@ public sealed class CancellationIdentityTests
             if (occupy is not null)
             {
                 blocker = occupy();
-                await socket.SendEntered.WaitAsync(HangGuard.Bound, CancellationToken.None);
+                await WitnessAsync(socket.SendEntered);
             }
 
             observed = CancellationAsync(() => send(caller.Token));
-            await socket.SendEntered.WaitAsync(HangGuard.Bound, CancellationToken.None);
+            await WitnessAsync(socket.SendEntered);
             await Assert.That(socket.SentMessages.Count).IsEqualTo(1);
             await caller.CancelOnWorkerAsync();
             return await observed;

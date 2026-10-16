@@ -304,7 +304,7 @@ internal sealed class Pipeline : IDisposable
     {
         if (_disposed)
         {
-            throw new ObjectDisposedException(FailureClassification.DisposedClientName);
+            throw FailureClassification.DisposedClient();
         }
     }
 

@@ -67,7 +67,7 @@ public sealed class TerminalSocketCoreTests
             await resumed.Task.WaitAsync(HangGuard.Bound);
             await timer.CancelOnWorkerAsync();
             release.Set();
-            var failure = await Assert.That(async () => await pending.WaitAsync(HangGuard.Bound))
+            var failure = await Assert.That(async () => await Task.WhenAll(new[] { pending }).WaitAsync(HangGuard.Bound))
                 .Throws<OpenCodeTransportException>();
 
             await Assert.That(released).IsTrue();
@@ -125,7 +125,7 @@ public sealed class TerminalSocketCoreTests
             }
             finally
             {
-                sendFailure = await Assert.That(async () => await pending.WaitAsync(HangGuard.Bound))
+                sendFailure = await Assert.That(async () => await Task.WhenAll(new[] { pending }).WaitAsync(HangGuard.Bound))
                     .Throws<OpenCodeTransportException>();
             }
         }
