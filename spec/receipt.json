@@ -1,5 +1,6 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "releaseTag": "v2.0.29",
   "upstreamCommit": "042d0832f5f3a73eaa039a58a7d565776f6d4290",
   "rawDocumentSha256": "3fcd666b597b746bad26f56a92fe782cc86338a0b4498f43b435a2f97e4fa05a",
   "generatedBaselineSha256": "3fcd666b597b746bad26f56a92fe782cc86338a0b4498f43b435a2f97e4fa05a",
