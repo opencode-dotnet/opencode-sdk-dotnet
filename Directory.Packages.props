@@ -31,7 +31,7 @@
     <PackageVersion Include="System.Collections.Immutable" Version="10.0.13" />
     <PackageVersion Include="System.Memory" Version="4.6.3" />
     <!-- third-party packages -->
-    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
+    <PackageVersion Include="BenchmarkDotNet" Version="0.16.0-preview.2" />
     <PackageVersion Include="CliWrap" Version="3.10.5" />
     <PackageVersion Include="Microsoft.OpenApi" Version="3.10.2" />
     <PackageVersion Include="Spectre.Console" Version="0.57.2" />
