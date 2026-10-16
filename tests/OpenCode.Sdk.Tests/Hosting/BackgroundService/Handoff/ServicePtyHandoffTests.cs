@@ -468,7 +468,8 @@ public sealed class ServicePtyHandoffTests
             await arrived.Task.WaitAsync(RequestTimeout);
             await caller.CancelOnWorkerAsync();
 
-            var exception = await Assert.That(async () => await pending.WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
+            Task[] pendingTasks = [pending];
+            var exception = await Assert.That(async () => await Task.WhenAll(pendingTasks).WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
 
             await Assert.That(exception!.CancellationToken == caller.Token).IsTrue();
             await Assert.That(ReadSidecar()).IsNull();
@@ -480,7 +481,8 @@ public sealed class ServicePtyHandoffTests
         {
             await caller.CancelOnWorkerAsync();
             server.ReleaseResponses();
-            _ = await Assert.That(async () => await pending.WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
+            Task[] cleanupTasks = [pending];
+            _ = await Assert.That(async () => await Task.WhenAll(cleanupTasks).WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
         }
     }
 
@@ -497,7 +499,8 @@ public sealed class ServicePtyHandoffTests
         {
             var token = call.Arg<CancellationToken>();
             entered.SetResult(token);
-            _ = await held.Task.WaitAsync(token);
+            Task[] heldTasks = [held.Task];
+            await Task.WhenAll(heldTasks).WaitAsync(token);
         });
         var handoff = new ServicePtyHandoff(new TestablyServiceFileSystem(_fileSystem), _clock, shutdown);
         var pending = handoff.PrepareAsync(RegistrationPath(), Registration(server.Endpoint), RequestTimeout, caller.Token);
@@ -507,7 +510,8 @@ public sealed class ServicePtyHandoffTests
             await Assert.That(boundToken).IsNotEqualTo(caller.Token);
             await caller.CancelOnWorkerAsync();
 
-            var exception = await Assert.That(async () => await pending.WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
+            Task[] pendingTasks = [pending];
+            var exception = await Assert.That(async () => await Task.WhenAll(pendingTasks).WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
 
             await Assert.That(exception!.CancellationToken == caller.Token).IsTrue();
             await Assert.That(ReadSidecar()).IsNull();
@@ -518,7 +522,8 @@ public sealed class ServicePtyHandoffTests
         finally
         {
             await caller.CancelOnWorkerAsync();
-            _ = await Assert.That(async () => await pending.WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
+            Task[] cleanupTasks = [pending];
+            _ = await Assert.That(async () => await Task.WhenAll(cleanupTasks).WaitAsync(RequestTimeout)).Throws<OperationCanceledException>();
         }
     }
 

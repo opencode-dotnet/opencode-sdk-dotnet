@@ -87,7 +87,8 @@ public sealed class PosixServerChildTests
         await clock.WaitForArmedAsync(TimeSpan.FromMilliseconds(10), HangGuard);
         await Assert.That(spawning.IsCompleted).IsFalse();
         clock.Advance(PosixServerLadder.ForcedExitTimeout);
-        var exception = await Assert.That(async () => await spawning.WaitAsync(HangGuard))
+        Task[] spawningTasks = [spawning];
+        var exception = await Assert.That(async () => await Task.WhenAll(spawningTasks).WaitAsync(HangGuard))
             .Throws<InvalidOperationException>();
 
         await Assert.That(exception!.Message).Contains("spawn returned no read end");

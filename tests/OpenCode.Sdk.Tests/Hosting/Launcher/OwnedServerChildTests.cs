@@ -241,7 +241,10 @@ public sealed class OwnedServerChildTests
         var child = ReadinessChild(pump, exited, ladder, time);
         try
         {
-            var outcome = await child.ResolveRecordedReadinessAsync(new TaskCompletionSource<string>().Task).WaitAsync(HangGuard.Bound);
+            var resolving = child.ResolveRecordedReadinessAsync(new TaskCompletionSource<string>().Task);
+            Task[] resolvingTasks = [resolving];
+            await Task.WhenAll(resolvingTasks).WaitAsync(HangGuard.Bound);
+            var outcome = await resolving;
 
             await Assert.That(outcome).IsNull();
             await Assert.That(ladder.ReceivedCalls()).IsEmpty();

@@ -23,7 +23,7 @@ public sealed class OpenCodeServerReadinessTests
     public async Task StartAsync_Should_Not_Spawn_When_The_Caller_Is_Canceled_Before_Launch()
     {
         using var caller = new CancellationTokenSource();
-        await caller.CancelAsync();
+        await caller.CancelOnWorkerAsync();
         var windowsSpawn = Substitute.For<IWindowsSpawn>();
         var posixSpawn = Substitute.For<IPosixSpawn>();
         var output = new OpenCodeServerOutput();
@@ -57,8 +57,9 @@ public sealed class OpenCodeServerReadinessTests
         {
             await time.WaitForArmedAsync(ReadinessBound, HangGuard);
             await WaitForChildAsync(output, cancellationToken);
-            await caller.CancelAsync();
-            var exception = await Assert.That(async () => await starting.WaitAsync(CleanupObservationBound, cancellationToken))
+            await caller.CancelOnWorkerAsync();
+            Task[] startingTasks = [starting];
+            var exception = await Assert.That(async () => await Task.WhenAll(startingTasks).WaitAsync(CleanupObservationBound, cancellationToken))
                 .Throws<OperationCanceledException>();
 
             await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
@@ -66,9 +67,10 @@ public sealed class OpenCodeServerReadinessTests
         }
         finally
         {
-            await caller.CancelAsync();
+            await caller.CancelOnWorkerAsync();
             // Cleanup must join the start even when the test's token has fired.
-            _ = await Assert.That(async () => await starting.WaitAsync(CancellationToken.None)).Throws<OperationCanceledException>();
+            Task[] cleanupTasks = [starting];
+            _ = await Assert.That(async () => await Task.WhenAll(cleanupTasks).WaitAsync(CancellationToken.None)).Throws<OperationCanceledException>();
             await Assert.That(await LadderTree.EndEveryReportedProcessAsync(output)).IsEmpty();
         }
     }
@@ -92,11 +94,12 @@ public sealed class OpenCodeServerReadinessTests
             // The expiry must finish even after the caller cancels; the finally joins it.
             expiry = Task.Run(() => time.Advance(ReadinessBound), CancellationToken.None);
             await entered.Task.WaitAsync(HangGuard, cancellationToken);
-            await caller.CancelAsync();
+            await caller.CancelOnWorkerAsync();
             release.Set();
             await expiry.WaitAsync(HangGuard, cancellationToken);
 
-            var exception = await Assert.That(async () => await starting.WaitAsync(CleanupObservationBound, cancellationToken))
+            Task[] startingTasks = [starting];
+            var exception = await Assert.That(async () => await Task.WhenAll(startingTasks).WaitAsync(CleanupObservationBound, cancellationToken))
                 .Throws<OpenCodeServerException>();
             await Assert.That(exception!.Message).Contains("did not report readiness within 120s");
             await Assert.That(exception.Message).Contains(Waiting);
@@ -105,14 +108,15 @@ public sealed class OpenCodeServerReadinessTests
         finally
         {
             release.Set();
-            await caller.CancelAsync();
+            await caller.CancelOnWorkerAsync();
             if (expiry is not null)
             {
                 await expiry;
             }
 
             // Cleanup must join the start even when the test's token has fired.
-            _ = await Assert.That(async () => await starting.WaitAsync(CancellationToken.None)).Throws<Exception>();
+            Task[] cleanupTasks = [starting];
+            _ = await Assert.That(async () => await Task.WhenAll(cleanupTasks).WaitAsync(CancellationToken.None)).Throws<Exception>();
             await Assert.That(await LadderTree.EndEveryReportedProcessAsync(output)).IsEmpty();
         }
     }
@@ -138,7 +142,7 @@ public sealed class OpenCodeServerReadinessTests
         AssertRecordedAtTimeoutAsync("console.log(JSON.stringify({url:'" + ReadyEndpoint + "'}));", null, cancellationToken,
             static async (time, arbitrate, caller) =>
             {
-                await caller.CancelAsync();
+                await caller.CancelOnWorkerAsync();
                 _ = arbitrate.TrySetResult();
             });
 
@@ -149,7 +153,7 @@ public sealed class OpenCodeServerReadinessTests
         {
             _ = arbitrate.TrySetResult();
             await time.WaitForArmedAsync(OwnedServerChild.EarlyEndBound, Support.HangGuard.Bound, count: 2);
-            await caller.CancelAsync();
+            await caller.CancelOnWorkerAsync();
         });
 
     private static async Task AssertRecordedAtTimeoutAsync(
@@ -221,7 +225,7 @@ public sealed class OpenCodeServerReadinessTests
         finally
         {
             _ = arbitrate.TrySetResult();
-            await caller.CancelAsync();
+            await caller.CancelOnWorkerAsync();
             await ReleaseStartAsync(starting, originalOutput, processId);
         }
     }
@@ -253,13 +257,15 @@ public sealed class OpenCodeServerReadinessTests
         await input.WriteAsync(new byte[] { 1 }, cancellationToken).AsTask().WaitAsync(Support.HangGuard.Bound, cancellationToken);
         await input.FlushAsync(cancellationToken).WaitAsync(Support.HangGuard.Bound, cancellationToken);
         closingOutput?.Release();
-        await recorded.WaitAsync(Support.HangGuard.Bound, cancellationToken);
+        Task[] recordedTasks = [recorded];
+        await Task.WhenAll(recordedTasks).WaitAsync(Support.HangGuard.Bound, cancellationToken);
     }
 
     private static async Task AssertCallerCancellationAsync(
         Task<OpenCodeServer> starting, CancellationTokenSource caller, int processId, CancellationToken cancellationToken)
     {
-        var exception = await Assert.That(async () => await starting.WaitAsync(Support.HangGuard.Bound, cancellationToken))
+        Task[] startingTasks = [starting];
+        var exception = await Assert.That(async () => await Task.WhenAll(startingTasks).WaitAsync(Support.HangGuard.Bound, cancellationToken))
             .Throws<OperationCanceledException>();
         await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
         await Assert.That(ProcessObservation.IsRunning(processId)).IsFalse();
@@ -270,7 +276,8 @@ public sealed class OpenCodeServerReadinessTests
     {
         // A timeout can finish cleanup without a drain; a recorded early end drains first.
         var draining = time.WaitForArmedAsync(OwnedServerChild.EarlyEndBound, Support.HangGuard.Bound, count);
-        if (await Task.WhenAny(starting, draining).WaitAsync(Support.HangGuard.Bound, cancellationToken) == draining)
+        Task[] startingTasks = [starting];
+        if (await Task.WhenAny(Task.WhenAll(startingTasks), draining).WaitAsync(Support.HangGuard.Bound, cancellationToken) == draining)
         {
             await draining.WaitAsync(Support.HangGuard.Bound, cancellationToken);
             time.Advance(OwnedServerChild.EarlyEndBound);
@@ -318,12 +325,14 @@ public sealed class OpenCodeServerReadinessTests
         _ = entered.TrySetResult(pending);
         try
         {
-            await pending.WaitAsync(token).WaitAsync(Support.HangGuard.Bound, cancellationToken);
+            Task[] pendingTasks = [pending];
+            await Task.WhenAll(pendingTasks).WaitAsync(token).WaitAsync(Support.HangGuard.Bound, cancellationToken);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
             _ = canceled.TrySetResult();
-            await arbitrate.Task.WaitAsync(Support.HangGuard.Bound, cancellationToken);
+            Task[] arbitrationTasks = [arbitrate.Task];
+            await Task.WhenAll(arbitrationTasks).WaitAsync(Support.HangGuard.Bound, cancellationToken);
             throw;
         }
     };
@@ -331,17 +340,18 @@ public sealed class OpenCodeServerReadinessTests
     private static async Task AssertStartOutcomeAsync(
         Task<OpenCodeServer> starting, string? diagnostic, int processId, CancellationToken cancellationToken)
     {
+        Task<OpenCodeServer>[] startingTasks = [starting];
         if (diagnostic is not null)
         {
-            var exception = await Assert.That(async () => await starting.WaitAsync(Support.HangGuard.Bound, cancellationToken))
+            var exception = await Assert.That(async () => await Task.WhenAll(startingTasks).WaitAsync(Support.HangGuard.Bound, cancellationToken))
                 .Throws<OpenCodeServerException>();
             await Assert.That(exception!.Message).IsEqualTo("The server " + diagnostic + " before reporting readiness.");
             await Assert.That(ProcessObservation.IsRunning(processId)).IsFalse();
         }
         else
         {
-            await Assert.That(async () => await starting.WaitAsync(Support.HangGuard.Bound, cancellationToken)).ThrowsNothing();
-            var server = await starting.WaitAsync(Support.HangGuard.Bound, cancellationToken);
+            await Assert.That(async () => await Task.WhenAll(startingTasks).WaitAsync(Support.HangGuard.Bound, cancellationToken)).ThrowsNothing();
+            var server = await startingTasks[0];
             await Assert.That(server.Endpoint).IsEqualTo(new Uri(ReadyEndpoint));
             await Assert.That(server.ChildExited.IsCompleted).IsFalse();
         }
@@ -352,9 +362,11 @@ public sealed class OpenCodeServerReadinessTests
         // Join and observe a failed start even when an earlier assertion failed; cleanup must outlive caller cancellation.
         await starting.ContinueWith(static completed => _ = completed.Exception, CancellationToken.None,
             TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default).WaitAsync(Support.HangGuard.Bound);
-        if (starting.IsCompletedSuccessfully)
+        if (starting.Status == TaskStatus.RanToCompletion)
         {
-            var server = await starting.WaitAsync(Support.HangGuard.Bound);
+            Task<OpenCodeServer>[] startingTasks = [starting];
+            await Task.WhenAll(startingTasks).WaitAsync(Support.HangGuard.Bound);
+            var server = await startingTasks[0];
             await server.DisposeAsync().AsTask().WaitAsync(Support.HangGuard.Bound);
         }
 
