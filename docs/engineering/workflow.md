@@ -30,8 +30,9 @@ Upstream submodules under `external/` are read-only evidence. Never hand-edit th
 
 ## Verification and generated output
 
-Verification requirements live in `quality-gates.md`, including which changes need the full gate and
-which need only green CI. Run them before claiming completion and state honestly what was not run. Generated SDK output changes through the generator and is reviewed as a
+Verification requirements live in `quality-gates.md`, including the local check a change needs before
+its pull request and the full gate CI runs on it. Run the local check, confirm the CI result before
+claiming completion, and state honestly what was not run. Generated SDK output changes through the generator and is reviewed as a
 complete diff; it is never hand-edited.
 
 ## Findings
@@ -80,7 +81,7 @@ single-owner rules.
 - `perf` is distinct from `refactor` because performance work requires before/after benchmark
   evidence.
 - A pull request opens once its change is reviewed and, where `quality-gates.md` asks for the
-  local gate, has passed it, so the CI the pull request triggers runs on finished work.
+  local check, has passed it, so the CI the pull request triggers runs on finished work.
 - Merge only a head that is rebased onto current `master` and has passed the CI it triggers. If
   `master` moved after that run, rebase and run CI again: the repository guards count exactly over
   every test file, so a green result from an older base can turn `master` red. A documentation-only

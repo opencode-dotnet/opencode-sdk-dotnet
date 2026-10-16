@@ -66,21 +66,44 @@ this policy.
 
 ## Completion gate
 
-"Builds" and "works" are different claims. Before reporting a repository change complete, run the
-base gate from the repository root; a current handoff may add scope-specific checks but cannot
-weaken it. Run it on an otherwise idle machine: several real-process tests have wall-clock bounds,
-and a concurrent build, package install or second gate on the same machine can turn them red without
-any change to the code. A red result is recorded before any rerun.
+"Builds" and "works" are different claims. A change is complete when the CI its pull request
+triggers is green: the lint job and the three operating-system legs run every step of the full gate
+listed below. When CI is triggered and when it may be skipped, and what a merge requires, are in
+`workflow.md`.
+
+Before a pull request opens, run the local check from the repository root. It catches failures
+before they cost a CI run. A current handoff may add scope-specific checks but cannot weaken it.
+
+1. The static steps: slopwatch, the Release build and both format passes, exactly as the full gate
+   below runs them.
+2. The whole `OpenCode.Sdk.Tools.Tests` project except its `NativeAot` category; its repository
+   guards and registries read every file, so a narrow filter misses them.
+3. The test project of every product area the change touches, on every target framework the host
+   builds, except the `ServiceElection` and `NativeAot` categories: `OpenCode.Sdk.Tests` for
+   `src/OpenCode.Sdk/`, `tests/OpenCode.Sdk.Tests/` and `tests/Shared/`; `OpenCode.Sdk.Extensions.Tests`
+   for `src/OpenCode.Sdk.Extensions/`; both, and `OpenCode.Sdk.Tools.Tests` again, for a change to
+   `Directory.Build.*`, `Directory.Packages.props`, `global.json` or `dotnet-tools.json`.
+4. The `ServiceElection` pass when the change touches the background service or its election, and
+   the `NativeAot` pass when it touches packaging, trimming or publishing.
+5. The generator checks below, for a protocol, generator, curation or generated-output change.
+
+```bash
+dotnet test --project "$PWD/tests/OpenCode.Sdk.Tools.Tests/OpenCode.Sdk.Tools.Tests.csproj" --configuration Release --no-build -- --treenode-filter "/*/*/*/*[Category!=NativeAot]"
+dotnet test --project "$PWD/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj" --configuration Release --no-build -- --treenode-filter "/*/*/*/*[(Category!=ServiceElection)&(Category!=NativeAot)]"
+```
+
+The full gate runs locally only when a handoff asks for it or a CI failure needs reproducing. Any
+local test run, check or gate, runs on an otherwise idle machine: several real-process tests have
+wall-clock bounds, and a concurrent build, package install or second gate on the same machine can
+turn them red without any change to the code. A red result is recorded before any rerun.
 
 A change limited to Markdown, `LICENSE`, and the files under `.github/` other than build inputs
-(workflows, issue and pull request templates) needs green CI on every check it triggers instead of
-the local gate. Any change to source, tests, project or build files, tool manifests, baselines,
-`spec/` or generated output runs the full gate.
+(workflows, issue and pull request templates) needs no local check.
 
-A fresh clone or worktree is prepared once before its first gate, with the Bun the pin's
-`packageManager` names (`external/opencode/package.json`) first on `PATH`, for the install and for
-every gate after it. `dotnet tool restore` makes the repository's local tools, slopwatch among them,
-available to the gate:
+A fresh clone or worktree is prepared once before its first local check or gate, with the Bun the
+pin's `packageManager` names (`external/opencode/package.json`) first on `PATH`, for the install and
+for every run after it. `dotnet tool restore` makes the repository's local tools, slopwatch among
+them, available:
 
 ```bash
 dotnet tool restore
