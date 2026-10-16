@@ -84,7 +84,7 @@ internal sealed class Pipeline : IDisposable
         _policies =
         [
             new RequestDecorationPolicy(authorization, options.Location, UserAgentPolicy.Resolve()),
-            new ResponseBufferingPolicy(bufferPool ?? ArrayPool<byte>.Shared, _time),
+            new ResponseBufferingPolicy(bufferPool ?? ResponseBufferingPolicy.DefaultPool, _time),
             _transport,
         ];
 

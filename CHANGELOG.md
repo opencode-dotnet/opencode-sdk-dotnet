@@ -103,6 +103,12 @@ Nightly builds of `master` are on
   Nothing else changes: the static properties, `==`, `IsKnown` and the wire format stay as they
   were.
 
+### 🔧 Changes
+
+- **On .NET Framework and netstandard2.0, response bodies between 1 and 16 MiB are pooled** instead
+  of allocated on every call. The SDK then typically keeps one buffer per size class it has used,
+  at most about 60 MiB after large responses; bodies above 16 MiB still allocate.
+
 ### 🐛 Fixes
 
 - **Caller cancellation preserves your token across public async doors:** HTTP, SSE, cursor

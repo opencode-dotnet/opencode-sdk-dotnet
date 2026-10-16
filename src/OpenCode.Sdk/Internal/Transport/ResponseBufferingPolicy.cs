@@ -19,6 +19,24 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
     /// <summary>The largest array the runtime can allocate; growth clamps here and lets the pool refuse beyond it.</summary>
     private const int MaxArrayLength = 0x7FFFFFC7;
 
+#if !NET
+    /// <summary>The largest array retained by the downlevel shared pool.</summary>
+    private const int SharedMaxArrayLength = 1_048_576;
+
+    /// <summary>The largest array retained by the downlevel large-response pool.</summary>
+    private const int LargeMaxArrayLength = 16 * 1024 * 1024;
+
+    /// <summary>The retention limit for each large-response size class.</summary>
+    private const int LargeMaxArraysPerBucket = 2;
+#endif
+
+    internal static ArrayPool<byte> DefaultPool { get; } =
+#if NET
+        ArrayPool<byte>.Shared;
+#else
+        new DownlevelResponsePool(ArrayPool<byte>.Shared, ArrayPool<byte>.Create(LargeMaxArrayLength, LargeMaxArraysPerBucket));
+#endif
+
     private readonly ArrayPool<byte> _pool;
     private readonly TimeProvider _time;
 
@@ -173,4 +191,35 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
         _pool.Return(bytes);
         return grown;
     }
+
+#if !NET
+    /// <summary>
+    /// Keeps rents up to 1 MiB on the shared pool, whose downlevel form retains nothing larger,
+    /// and routes larger rents, and returns by array length, to a dedicated large pool. The large
+    /// pool retains returned arrays without trimming, bounded by two arrays in each
+    /// large size class (2, 4, 8 and 16 MiB): about 60 MiB worst case, and in practice one array
+    /// per size class the process has used. A body above 16 MiB still allocates, as every body
+    /// above 1 MiB did before.
+    /// </summary>
+    internal sealed class DownlevelResponsePool : ArrayPool<byte>
+    {
+        private readonly ArrayPool<byte> _shared;
+        private readonly ArrayPool<byte> _large;
+
+        internal DownlevelResponsePool(ArrayPool<byte> shared, ArrayPool<byte> large)
+        {
+            _shared = shared;
+            _large = large;
+        }
+
+        public override byte[] Rent(int minimumLength) =>
+            (minimumLength > SharedMaxArrayLength ? _large : _shared).Rent(minimumLength);
+
+        public override void Return(byte[] array, bool clearArray = false)
+        {
+            ArgumentNullException.ThrowIfNull(array);
+            (array.Length > SharedMaxArrayLength ? _large : _shared).Return(array, clearArray);
+        }
+    }
+#endif
 }
