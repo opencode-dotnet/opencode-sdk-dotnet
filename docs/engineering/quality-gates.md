@@ -130,6 +130,12 @@ Slopwatch excludes local scratch work and checked-out upstream submodules becaus
 repository-authored product surface. A failed, skipped, weakened, or unrun gate must be reported
 honestly.
 
+Agent sessions also get Slopwatch's verdict while they edit. A Claude Code `PostToolUse` hook in
+`.claude/settings.json` and an opencode plugin in `.opencode/plugins/slopwatch-gate.ts` both run
+the manifest's Slopwatch in `--hook` mode after every file edit, and hand its report to the model.
+That report covers every uncommitted change, so an earlier violation keeps reappearing until it is
+fixed. Neither one blocks the edit or replaces the gate above.
+
 The build is the semantic analyzer wall: compiler diagnostics, build-enforceable IDE rules, SDK CA
 rules, third-party analyzers, and source-generator diagnostics run there for every target
 compilation. The local gate builds with the wall on. CI runs it once, in the lint job's Linux

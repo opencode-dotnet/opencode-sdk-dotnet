@@ -1,6 +1,6 @@
 # Testing Style — authoring tests
 
-Date: 2026-10-15
+Date: 2026-10-16
 
 Binding authorship style for every test in this repository. `quality-gates.md` owns the
 current assurance posture and completion gates; operational build-out state belongs in
@@ -261,6 +261,9 @@ true; the fixture hands the boundary to the child process it starts.
   location, and an installed command an override names, which may not read the switch. For them
   `PinnedServerCommand.WorkingDirectory` refuses a checkout with configuration that would run
   inside the server - `.opencode` or `opencode.json[c]` - in its `external` directory or above it.
+  One `.opencode` is accepted: the checkout's own, at its root, holding exactly the edit-time
+  Slopwatch plugin with its pinned SHA-256 and no link. Any other entry, place or content is
+  refused, and the plugin registers nothing in a server whose location is not the repository root.
   Skills directories there are not refused: a checkout under a home that keeps its own skills is
   the usual Linux and macOS layout, and such a server would read them but run nothing from them.
 - **An owned process never outlives its fixture.** Teardown ends every process its test started and

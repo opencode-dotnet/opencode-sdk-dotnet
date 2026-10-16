@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.IO.Abstractions;
+using System.Security.Cryptography;
 
 namespace OpenCode.Sdk.TestSupport;
 
@@ -36,6 +38,12 @@ internal sealed class RunRootAncestry
     /// </summary>
     private static readonly string[][] SkillDirectories = [[".claude", "skills"], [".agents", "skills"]];
 
+    /// <summary>The repository's edit-time Slopwatch plugin, under <c>.opencode/plugins</c>.</summary>
+    private const string EditHookPlugin = "slopwatch-gate.ts";
+
+    /// <summary>The SHA-256 of that plugin as checked in (LF line endings, <c>.gitattributes</c>).</summary>
+    private const string EditHookPluginSha256 = "af9ac4478e0ee24b592eec4f6aecb4148e2c531c4a0cfe298cc8a1b1b4d39b73";
+
     private readonly IFileSystem _fileSystem;
 
     public RunRootAncestry(IFileSystem fileSystem)
@@ -54,7 +62,7 @@ internal sealed class RunRootAncestry
     /// <param name="directory">The directory run roots are created in.</param>
     /// <returns>The offending path, or null when the whole chain is clean.</returns>
     public string? FindDeveloperState(string directory) =>
-        Walk(directory, [[Repository], .. ConfigurationDirectories, .. SkillDirectories], [.. ConfigurationFiles, Repository]);
+        Walk(directory, [[Repository], .. ConfigurationDirectories, .. SkillDirectories], [.. ConfigurationFiles, Repository], static _ => false);
 
     /// <summary>
     /// Finds the nearest project configuration in <paramref name="directory"/> or above it that
@@ -66,11 +74,61 @@ internal sealed class RunRootAncestry
     /// Linux and macOS layout, and such a server would read them but run nothing from them.
     /// </summary>
     /// <param name="directory">The first directory, walking up, that the checkout does not own.</param>
+    /// <param name="repositoryRoot">The checkout's root, the only place the edit hook is accepted.</param>
     /// <returns>The offending path, or null when the whole chain is clean.</returns>
-    public string? FindProjectConfiguration(string directory) =>
-        Walk(directory, ConfigurationDirectories, ConfigurationFiles);
+    public string? FindProjectConfiguration(string directory, string repositoryRoot)
+    {
+        var editHook = _fileSystem.Path.Combine(_fileSystem.Path.GetFullPath(repositoryRoot), ".opencode");
+        return Walk(directory, ConfigurationDirectories, ConfigurationFiles, candidate => IsRepositoryEditHook(candidate, editHook));
+    }
 
-    private string? Walk(string directory, string[][] directories, string[] files)
+    /// <summary>
+    /// Whether <paramref name="candidate"/> is this checkout's own project directory, holding exactly
+    /// the edit-time Slopwatch plugin and nothing else, byte for byte, with no link anywhere in it. It
+    /// is the one project configuration a checkout carries on purpose, and it stays inert in any
+    /// server whose location is not the repository root, which every server this guard protects is.
+    /// Another file or directory, a link, a changed plugin, or the same layout anywhere but the
+    /// checkout's root is refused like any other project configuration, so a change to the plugin is
+    /// a change here.
+    /// </summary>
+    private bool IsRepositoryEditHook(string candidate, string editHook)
+    {
+        if (!string.Equals(candidate, editHook, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var plugins = _fileSystem.Path.Combine(candidate, "plugins");
+        var plugin = _fileSystem.Path.Combine(plugins, EditHookPlugin);
+        var entries = _fileSystem.Directory.GetFileSystemEntries(candidate, "*", SearchOption.AllDirectories);
+        if (entries.Length != 2
+            || !entries.Contains(plugins, StringComparer.Ordinal)
+            || !entries.Contains(plugin, StringComparer.Ordinal)
+            || !_fileSystem.File.Exists(plugin)
+            || IsLink(_fileSystem.DirectoryInfo.New(candidate))
+            || IsLink(_fileSystem.DirectoryInfo.New(plugins))
+            || IsLink(_fileSystem.FileInfo.New(plugin)))
+        {
+            return false;
+        }
+
+        var content = ReadAllBytes(_fileSystem, plugin);
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        hash.AppendData(content);
+        var digest = string.Concat(hash.GetHashAndReset().Select(static value => value.ToString("x2", CultureInfo.InvariantCulture)));
+        return string.Equals(digest, EditHookPluginSha256, StringComparison.Ordinal);
+    }
+
+    private static bool IsLink(IFileSystemInfo entry) => entry.Attributes.HasFlag(FileAttributes.ReparsePoint);
+
+    /// <summary>Reads a whole file on the synchronous path the guard runs on (a property getter).</summary>
+    internal static byte[] ReadAllBytes(IFileSystem fileSystem, string path)
+    {
+        using var reader = new BinaryReader(fileSystem.File.OpenRead(path));
+        return reader.ReadBytes(checked((int)reader.BaseStream.Length));
+    }
+
+    private string? Walk(string directory, string[][] directories, string[] files, Func<string, bool> accepted)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
 
@@ -78,7 +136,7 @@ internal sealed class RunRootAncestry
              current is { Length: > 0 };
              current = _fileSystem.Path.GetDirectoryName(current))
         {
-            if (StateIn(current, directories, files) is { } state)
+            if (StateIn(current, directories, files, accepted) is { } state)
             {
                 return state;
             }
@@ -87,12 +145,12 @@ internal sealed class RunRootAncestry
         return null;
     }
 
-    private string? StateIn(string directory, string[][] directories, string[] files)
+    private string? StateIn(string directory, string[][] directories, string[] files, Func<string, bool> accepted)
     {
         foreach (var segments in directories)
         {
             var candidate = _fileSystem.Path.Combine([directory, .. segments]);
-            if (_fileSystem.Directory.Exists(candidate))
+            if (_fileSystem.Directory.Exists(candidate) && !accepted(candidate))
             {
                 return candidate;
             }
