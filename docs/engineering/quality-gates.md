@@ -309,10 +309,13 @@ the repository's generated tree, so they refuse to start unless the tree is clea
 working checkout.
 
 ```bash
-OPENCODE_SDK_BENCHMARKS_REWRITE_TREE=allow dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Generator.*' --runtimes net10.0 --artifacts .benchmarks/<run-name>-generator
+OPENCODE_SDK_BENCHMARKS_REWRITE_TREE=allow dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Generator.*' --artifacts .benchmarks/<run-name>-generator
 ```
 
-`--net11` adds the .NET 11 leg: BenchmarkDotNet 0.15.8 does not know the `net11.0` moniker and
+The generator invocation passes no `--runtimes`, because each generator class declares its own job
+(the stage rows `.NET 10.0`, the run rows the Monitoring job), so every case runs once; `--runtimes`
+there would add a second, default-strategy job to every class. For the SDK suite, `--net11` adds
+the .NET 11 leg: BenchmarkDotNet 0.15.8 does not know the `net11.0` moniker and
 refuses it in `--runtimes`, so the suite's own configuration defines that leg and labels it
 `.NET 11.0` like the others. `--runtimes` is load-bearing: it labels each case's leg with the
 runtime name (`.NET 10.0`, `.NET Framework 4.7.2`) in the exports, and `compare-benchmarks` joins
