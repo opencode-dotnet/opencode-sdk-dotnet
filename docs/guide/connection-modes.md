@@ -1,6 +1,6 @@
 # 🔌 Connection modes
 
-Date: 2026-10-14
+Date: 2026-10-16
 
 There are three ways to get a client bound to a running opencode server: **let the SDK start one**,
 **point it at one you already have**, or **discover the background service the opencode CLI runs
@@ -455,12 +455,14 @@ and `OperationCanceledException` for your own token.
 
 ## 🧩 Registering with dependency injection
 
-`OpenCode.Sdk.Extensions` adds `AddOpenCode` to `IServiceCollection`. What lands in the container is
-deliberately small: **one `OpenCodeClient` singleton** holding the transport open for the
-container's lifetime, and **each of the 27 families registered as its own singleton resolved from
-that one client**. A service therefore asks for the family it actually uses — `EventsClient`,
-`PtysClient`, `WorktreesClient` — and all of them share a single pipeline and a single disposal at
-shutdown.
+`OpenCode.Sdk.Extensions` adds `AddOpenCode` to `IServiceCollection`. It registers **one
+`OpenCodeClient` singleton** and **each of the 27 families as its own singleton**, each only when
+the container does not already hold that service type. A consumer's earlier registration of the
+root client or any sub-client wins; repeated calls add no duplicate client registrations. Existing
+registrations keep their lifetimes and disposal ownership. The default root holds the transport
+open for the container's lifetime, and default family registrations resolve from the registered
+root, sharing its pipeline. A service can ask for the family it uses — `EventsClient`,
+`PtysClient`, or `WorktreesClient` — directly.
 
 There are two overloads, and the difference between them matters more than it looks:
 
@@ -471,6 +473,9 @@ There are two overloads, and the difference between them matters more than it lo
 
 Both go through the standard options pattern, so `IOptions<OpenCodeClientOptions>`, options
 validation, and anything else layered on options behaves exactly as it does for any other library.
+
+Each call still contributes its options configuration through the standard options pattern;
+preserving a client registration does not suppress configuration callbacks or binding.
 
 Binding from configuration keeps the endpoint out of your code entirely:
 
@@ -549,4 +554,6 @@ shuts down. Disposal ends a started child; a discovered service keeps running.
 Do not hand the handle to the container with `AddSingleton(server)` instead. A container disposes
 only the instances it created, never one you registered, so a started server would outlive the host
 until the launcher's own process-death protection ends it. Registering `server.CreateClient()` as a
-singleton would also register one bare client with no families behind it.
+singleton on its own registers only the root; calling `AddOpenCode` also registers any missing
+families from that root without replacing it. An instance you supply this way remains yours to
+dispose.
