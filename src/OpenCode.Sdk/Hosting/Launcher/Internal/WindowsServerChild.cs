@@ -183,7 +183,8 @@ internal static class WindowsServerChild
                     Resources = watch,
                 },
                 start,
-                seams.Time);
+                seams.Time,
+                seams.ReadinessWait);
         }
         catch (Exception exception)
         {

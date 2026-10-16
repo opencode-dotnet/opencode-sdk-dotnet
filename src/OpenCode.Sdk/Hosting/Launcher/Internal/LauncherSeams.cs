@@ -31,8 +31,11 @@ internal sealed record LauncherSeams
     /// <summary>Gets the POSIX exit status.</summary>
     public required IChildExitStatus Exits { get; init; }
 
-    /// <summary>Gets the clock the early-end drain of a server that ended runs on.</summary>
+    /// <summary>Gets the clock for the readiness bound and the server's early-end drain.</summary>
     public required TimeProvider Time { get; init; }
+
+    /// <summary>Gets an optional token-bound readiness wait substitution; null uses the ordinary task wait.</summary>
+    internal Func<Task, CancellationToken, Task>? ReadinessWait { get; init; }
 
     /// <summary>
     /// Gets the host's environment, which a child receives under the caller's entries. On Windows

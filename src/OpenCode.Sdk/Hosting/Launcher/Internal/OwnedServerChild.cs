@@ -21,6 +21,7 @@ internal sealed class OwnedServerChild : IAsyncDisposable
     private readonly OpenCodeServerOutput? _output;
     private readonly TimeSpan _grace;
     private readonly TimeProvider _time;
+    private readonly Func<Task, CancellationToken, Task>? _readinessWait;
     private Task? _ending;
     private bool _drained;
 
@@ -28,7 +29,10 @@ internal sealed class OwnedServerChild : IAsyncDisposable
     /// <param name="process">What the platform strategy started.</param>
     /// <param name="start">The start the server belongs to.</param>
     /// <param name="time">The clock <see cref="EarlyEndBound"/> runs on.</param>
-    public OwnedServerChild(OwnedServerProcess process, ServerChildStart start, TimeProvider time)
+    /// <param name="readinessWait">An optional token-bound wait substitution; null uses <c>Task.WaitAsync</c>.</param>
+    public OwnedServerChild(
+        OwnedServerProcess process, ServerChildStart start, TimeProvider time,
+        Func<Task, CancellationToken, Task>? readinessWait = null)
     {
         ArgumentNullException.ThrowIfNull(process);
         ArgumentNullException.ThrowIfNull(start);
@@ -38,6 +42,7 @@ internal sealed class OwnedServerChild : IAsyncDisposable
         _output = start.Output;
         _grace = start.GracefulShutdownTimeout;
         _time = time;
+        _readinessWait = readinessWait;
 
         // Started here, so its bound runs from the exit whenever anyone first asks for it.
         Closed = CloseAsync();
@@ -75,10 +80,30 @@ internal sealed class OwnedServerChild : IAsyncDisposable
 
         // Upstream fails a start when stdout ends, and when the server exits; a server that closes
         // its stdout and keeps running is a failed start as much as one that exits.
-        _ = await Task.WhenAny(readyLine, Exited, _process.Output.StandardOutputEnded).WaitAsync(readiness).ConfigureAwait(false);
+        var pending = Task.WhenAny(readyLine, Exited, _process.Output.StandardOutputEnded);
+        await (_readinessWait is null ? pending.WaitAsync(readiness) : _readinessWait(pending, readiness)).ConfigureAwait(false);
+        return await ResolveRecordedReadinessAsync(readyLine).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("The readiness wait completed without a recorded outcome.");
+    }
+
+    /// <summary>
+    /// Resolves a recorded first line, root exit, or stdout end, in that order. An early end drains
+    /// once inside its bound and rechecks the line before ending a failed child.
+    /// </summary>
+    /// <param name="readyLine">Completes with the first stdout line.</param>
+    /// <returns>The recorded outcome, or null when none has been recorded.</returns>
+    internal async Task<ReadinessOutcome?> ResolveRecordedReadinessAsync(Task<string> readyLine)
+    {
+        ArgumentNullException.ThrowIfNull(readyLine);
+
         if (readyLine.IsCompleted)
         {
             return ReadinessOutcome.Ready(await readyLine.ConfigureAwait(false));
+        }
+
+        if (!Exited.IsCompleted && !_process.Output.StandardOutputEnded.IsCompleted)
+        {
+            return null;
         }
 
         // The exit can win the race against a readiness line still in the pipe, so the output is

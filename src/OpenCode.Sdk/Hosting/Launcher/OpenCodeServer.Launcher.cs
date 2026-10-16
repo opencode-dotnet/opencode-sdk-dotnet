@@ -219,15 +219,22 @@ public partial class OpenCodeServer
         catch (OperationCanceledException exception)
         {
             var callerCanceled = cancellationToken.IsCancellationRequested;
-            await child.EndFailedStartAsync().ConfigureAwait(false);
             if (callerCanceled)
             {
+                await child.EndFailedStartAsync().ConfigureAwait(false);
                 throw FailureClassification.CallerCancellation(exception, "The server start was canceled.", cancellationToken);
             }
 
-            throw new OpenCodeServerException(
-                $"The server did not report readiness within {readinessTimeout.TotalSeconds.ToString("F0", CultureInfo.InvariantCulture)}s.{DescribeStderr(stderrGate, stderrTail)}",
-                exception);
+            var recorded = await child.ResolveRecordedReadinessAsync(readyLine.Task).ConfigureAwait(false);
+            if (recorded is null)
+            {
+                await child.EndFailedStartAsync().ConfigureAwait(false);
+                throw new OpenCodeServerException(
+                    $"The server did not report readiness within {readinessTimeout.TotalSeconds.ToString("F0", CultureInfo.InvariantCulture)}s.{DescribeStderr(stderrGate, stderrTail)}",
+                    exception);
+            }
+
+            outcome = recorded;
         }
 
         if (outcome.ReadyLine is { } line)

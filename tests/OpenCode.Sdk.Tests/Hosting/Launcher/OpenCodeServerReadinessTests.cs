@@ -9,6 +9,9 @@ namespace OpenCode.Sdk.Tests.Hosting.Launcher;
 public sealed class OpenCodeServerReadinessTests
 {
     private const string Waiting = "waiting for readiness";
+    private const string ReadyEndpoint = "http://127.0.0.1:4096";
+    private const string ExitCommand = "process.exit(23);";
+    private const string EarlyExitDiagnostic = "exited with code 23";
     private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan Grace = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan ReadinessBound = TimeSpan.FromMinutes(2);
@@ -113,6 +116,262 @@ public sealed class OpenCodeServerReadinessTests
             await Assert.That(await LadderTree.EndEveryReportedProcessAsync(output)).IsEmpty();
         }
     }
+
+    [Test]
+    [Timeout(120_000)]
+    public Task StartAsync_Should_Prefer_A_Recorded_Ready_Line_At_The_Readiness_Timeout(CancellationToken cancellationToken) =>
+        AssertRecordedAtTimeoutAsync("console.log(JSON.stringify({url:'" + ReadyEndpoint + "'}));", null, cancellationToken);
+
+    [Test]
+    [Timeout(120_000)]
+    public Task StartAsync_Should_Report_A_Recorded_Exit_At_The_Readiness_Timeout(CancellationToken cancellationToken) =>
+        AssertRecordedAtTimeoutAsync(ExitCommand, EarlyExitDiagnostic, cancellationToken);
+
+    [Test]
+    [Timeout(120_000)]
+    public Task StartAsync_Should_Report_Closed_Stdout_At_The_Readiness_Timeout(CancellationToken cancellationToken) =>
+        AssertRecordedAtTimeoutAsync(string.Empty, "closed its standard output", cancellationToken);
+
+    [Test]
+    [Timeout(120_000)]
+    public Task StartAsync_Should_Prefer_Caller_Cancellation_Over_A_Recorded_Ready_Line(CancellationToken cancellationToken) =>
+        AssertRecordedAtTimeoutAsync("console.log(JSON.stringify({url:'" + ReadyEndpoint + "'}));", null, cancellationToken,
+            static async (time, arbitrate, caller) =>
+            {
+                await caller.CancelAsync();
+                _ = arbitrate.TrySetResult();
+            });
+
+    [Test]
+    [Timeout(120_000)]
+    public Task StartAsync_Should_Keep_A_Recorded_Exit_When_The_Caller_Cancels_During_The_Drain(CancellationToken cancellationToken) =>
+        AssertRecordedAtTimeoutAsync(ExitCommand, EarlyExitDiagnostic, cancellationToken, static async (time, arbitrate, caller) =>
+        {
+            _ = arbitrate.TrySetResult();
+            await time.WaitForArmedAsync(OwnedServerChild.EarlyEndBound, Support.HangGuard.Bound, count: 2);
+            await caller.CancelAsync();
+        });
+
+    private static async Task AssertRecordedAtTimeoutAsync(
+        string publish, string? diagnostic, CancellationToken cancellationToken,
+        Func<ManualTimeProvider, TaskCompletionSource, CancellationTokenSource, Task>? cancelCaller = null)
+    {
+        var time = new ManualTimeProvider();
+        var entered = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var canceled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var arbitrate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var caller = new CancellationTokenSource();
+        Stream? input = null;
+        Stream? originalOutput = null;
+        GatedStream? closingOutput = null;
+        var processId = 0;
+        var seams = ObserveEnding(ObserveSpawn(LauncherSeams.ForCurrentProcess(), (pid, stdin) =>
+        {
+            processId = pid;
+            input = stdin;
+        }, stdout => RecordedOutput(stdout, diagnostic,
+            original => originalOutput = original, closing => closingOutput = closing))) with
+        {
+            Time = time,
+            ReadinessWait = HoldCanceledWait(entered, canceled, arbitrate, cancellationToken),
+        };
+        var starting = OpenCodeServer.StartWithSeamsAsync(RecordedOptions(publish), seams, caller.Token);
+        try
+        {
+            var recorded = await entered.Task.WaitAsync(Support.HangGuard.Bound, cancellationToken);
+            await time.WaitForArmedAsync(ReadinessBound, Support.HangGuard.Bound);
+            time.Advance(ReadinessBound);
+            await canceled.Task.WaitAsync(Support.HangGuard.Bound, cancellationToken);
+            // The spawn supplied stdin before the owner entered its wait.
+            await PublishRecordedOutcomeAsync(recorded, input!, closingOutput, cancellationToken);
+            if (closingOutput is not null)
+            {
+                await Assert.That(ProcessObservation.IsRunning(processId)).IsTrue();
+            }
+
+            if (cancelCaller is null)
+            {
+                _ = arbitrate.TrySetResult();
+            }
+            else
+            {
+                // The callback owns the arbitration release; its drain-event wait has HangGuard.Bound.
+                await cancelCaller(time, arbitrate, caller);
+            }
+
+            if (diagnostic is not null)
+            {
+                await AdvanceEarlyEndAsync(time, starting, diagnostic == EarlyExitDiagnostic ? 2 : 1, cancellationToken);
+            }
+
+            if (cancelCaller is not null && diagnostic is null)
+            {
+                await AssertCallerCancellationAsync(starting, caller, processId, cancellationToken);
+            }
+            else
+            {
+                await AssertStartOutcomeAsync(starting, diagnostic, processId, cancellationToken);
+                if (diagnostic is null)
+                {
+                    await Assert.That(seams.TreeKill.ReceivedCalls()).IsEmpty();
+                    await Assert.That(seams.Signals.ReceivedCalls()).IsEmpty();
+                }
+            }
+        }
+        finally
+        {
+            _ = arbitrate.TrySetResult();
+            await caller.CancelAsync();
+            await ReleaseStartAsync(starting, originalOutput, processId);
+        }
+    }
+
+    private static Stream? RecordedOutput(
+        Stream? stdout, string? diagnostic, Action<Stream?> retainOriginal, Action<GatedStream> captureClosing)
+    {
+        if (diagnostic is null)
+        {
+            return stdout;
+        }
+
+        retainOriginal(stdout);
+        // A BOM followed by EOF carries no line; the gate decides when stdout ends.
+        if (diagnostic == "closed its standard output")
+        {
+            var closing = new GatedStream([0xef, 0xbb, 0xbf], 1);
+            captureClosing(closing);
+            return closing;
+        }
+
+        // Keep stdout pending so only the root exit can complete the owner's wait.
+        return new BlockingStream([]);
+    }
+
+    private static async Task PublishRecordedOutcomeAsync(
+        Task recorded, Stream input, GatedStream? closingOutput, CancellationToken cancellationToken)
+    {
+        await input.WriteAsync(new byte[] { 1 }, cancellationToken).AsTask().WaitAsync(Support.HangGuard.Bound, cancellationToken);
+        await input.FlushAsync(cancellationToken).WaitAsync(Support.HangGuard.Bound, cancellationToken);
+        closingOutput?.Release();
+        await recorded.WaitAsync(Support.HangGuard.Bound, cancellationToken);
+    }
+
+    private static async Task AssertCallerCancellationAsync(
+        Task<OpenCodeServer> starting, CancellationTokenSource caller, int processId, CancellationToken cancellationToken)
+    {
+        var exception = await Assert.That(async () => await starting.WaitAsync(Support.HangGuard.Bound, cancellationToken))
+            .Throws<OperationCanceledException>();
+        await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
+        await Assert.That(ProcessObservation.IsRunning(processId)).IsFalse();
+    }
+
+    private static async Task AdvanceEarlyEndAsync(
+        ManualTimeProvider time, Task starting, int count, CancellationToken cancellationToken)
+    {
+        // A timeout can finish cleanup without a drain; a recorded early end drains first.
+        var draining = time.WaitForArmedAsync(OwnedServerChild.EarlyEndBound, Support.HangGuard.Bound, count);
+        if (await Task.WhenAny(starting, draining).WaitAsync(Support.HangGuard.Bound, cancellationToken) == draining)
+        {
+            await draining.WaitAsync(Support.HangGuard.Bound, cancellationToken);
+            time.Advance(OwnedServerChild.EarlyEndBound);
+        }
+    }
+
+    private static LauncherSeams ObserveSpawn(
+        LauncherSeams platform, Action<int, Stream?> capture, Func<Stream?, Stream?> standardOutput)
+    {
+        var windowsSpawn = Substitute.For<IWindowsSpawn>();
+        _ = windowsSpawn.Spawn(Arg.Any<WindowsSpawnRequest>()).Returns(call =>
+        {
+            var spawned = platform.WindowsSpawn.Spawn(call.Arg<WindowsSpawnRequest>());
+            capture(spawned.ProcessId, spawned.StandardInput);
+            return spawned with { StandardOutput = standardOutput(spawned.StandardOutput) };
+        });
+        var posixSpawn = Substitute.For<IPosixSpawn>();
+        _ = posixSpawn.Spawn(Arg.Any<PosixSpawnRequest>()).Returns(call =>
+        {
+            var spawned = platform.Spawn.Spawn(call.Arg<PosixSpawnRequest>());
+            capture(spawned.ProcessId, spawned.StandardInput);
+            return spawned with { StandardOutput = standardOutput(spawned.StandardOutput) };
+        });
+        return platform with { WindowsSpawn = windowsSpawn, Spawn = posixSpawn };
+    }
+
+    private static LauncherSeams ObserveEnding(LauncherSeams platform)
+    {
+        var treeKill = Substitute.For<IWindowsTreeKill>();
+        _ = treeKill.KillTreeAsync(Arg.Any<int>(), Arg.Any<TimeSpan>()).Returns(call =>
+            platform.TreeKill.KillTreeAsync(call.Arg<int>(), call.Arg<TimeSpan>()));
+        var signals = Substitute.For<IProcessGroupSignal>();
+        _ = signals.SignalGroup(Arg.Any<int>(), Arg.Any<ProcessSignal>()).Returns(call =>
+            platform.Signals.SignalGroup(call.Arg<int>(), call.Arg<ProcessSignal>()));
+        _ = signals.SignalProcess(Arg.Any<int>(), Arg.Any<ProcessSignal>()).Returns(call =>
+            platform.Signals.SignalProcess(call.Arg<int>(), call.Arg<ProcessSignal>()));
+        _ = signals.ProbeGroup(Arg.Any<int>()).Returns(call => platform.Signals.ProbeGroup(call.Arg<int>()));
+        return platform with { TreeKill = treeKill, Signals = signals };
+    }
+
+    private static Func<Task, CancellationToken, Task> HoldCanceledWait(
+        TaskCompletionSource<Task> entered, TaskCompletionSource canceled, TaskCompletionSource arbitrate,
+        CancellationToken cancellationToken) => async (pending, token) =>
+    {
+        _ = entered.TrySetResult(pending);
+        try
+        {
+            await pending.WaitAsync(token).WaitAsync(Support.HangGuard.Bound, cancellationToken);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            _ = canceled.TrySetResult();
+            await arbitrate.Task.WaitAsync(Support.HangGuard.Bound, cancellationToken);
+            throw;
+        }
+    };
+
+    private static async Task AssertStartOutcomeAsync(
+        Task<OpenCodeServer> starting, string? diagnostic, int processId, CancellationToken cancellationToken)
+    {
+        if (diagnostic is not null)
+        {
+            var exception = await Assert.That(async () => await starting.WaitAsync(Support.HangGuard.Bound, cancellationToken))
+                .Throws<OpenCodeServerException>();
+            await Assert.That(exception!.Message).IsEqualTo("The server " + diagnostic + " before reporting readiness.");
+            await Assert.That(ProcessObservation.IsRunning(processId)).IsFalse();
+        }
+        else
+        {
+            await Assert.That(async () => await starting.WaitAsync(Support.HangGuard.Bound, cancellationToken)).ThrowsNothing();
+            var server = await starting.WaitAsync(Support.HangGuard.Bound, cancellationToken);
+            await Assert.That(server.Endpoint).IsEqualTo(new Uri(ReadyEndpoint));
+            await Assert.That(server.ChildExited.IsCompleted).IsFalse();
+        }
+    }
+
+    private static async Task ReleaseStartAsync(Task<OpenCodeServer> starting, Stream? originalOutput, int processId)
+    {
+        // Join and observe a failed start even when an earlier assertion failed; cleanup must outlive caller cancellation.
+        await starting.ContinueWith(static completed => _ = completed.Exception, CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default).WaitAsync(Support.HangGuard.Bound);
+        if (starting.IsCompletedSuccessfully)
+        {
+            var server = await starting.WaitAsync(Support.HangGuard.Bound);
+            await server.DisposeAsync().AsTask().WaitAsync(Support.HangGuard.Bound);
+        }
+
+        if (originalOutput is not null)
+        {
+            await originalOutput.DisposeAsync().AsTask().WaitAsync(Support.HangGuard.Bound);
+        }
+
+        ProcessObservation.KillIfRunning(processId);
+    }
+
+    private static OpenCodeServerOptions RecordedOptions(string publish) => new()
+    {
+        Command = ["bun", "-e", "process.stdin.once('data', () => {" + publish + "}); setInterval(() => {}, 1000);"],
+        ReadinessTimeout = ReadinessBound,
+        GracefulShutdownTimeout = Grace,
+    };
 
     private static OpenCodeServerOptions SilentOptions(OpenCodeServerOutput output) => new()
     {
