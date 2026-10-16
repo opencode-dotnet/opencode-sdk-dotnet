@@ -426,8 +426,9 @@ jobs:
 
   # Runs once green (needs the lint job and the matrixed build-and-test job, which GitHub Actions
   # only satisfies once every OS leg completes) and only on a real push to master, never on a PR.
-  # Publishes a -nightly package to GitHub Packages so the exact code at HEAD is always
-  # installable; the stable, human-triggered lane lives in publish-nuget.yml.
+  # Publishes a -nightly package to GitHub Packages for every master push that runs this workflow,
+  # so the code of the last such push is installable; the stable, human-triggered lane lives in
+  # publish-nuget.yml.
   publish-nightly:
     name: "Publish nightly (GitHub Packages)"
     needs: [lint, build-and-test]

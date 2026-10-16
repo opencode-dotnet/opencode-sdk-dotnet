@@ -15,8 +15,8 @@ No package version aligns with upstream opencode versions. Alignment would force
 features onto patch releases; the 2.0 rename wave was absorbed by an explicit breaking major
 instead (internal research, 2026-08-08, "Align NuGet versioning with upstream opencode versions?").
 
-CD publishes every merge (nightly) to GitHub Packages; NuGet.org releases run through a manual
-pipeline.
+CD publishes nightly packages from `master` to GitHub Packages; NuGet.org releases run through a
+manual pipeline.
 
 ## Considered options
 
