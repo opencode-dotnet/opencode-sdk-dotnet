@@ -1,6 +1,6 @@
 using Testably.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// The isolation every child of the test host inherits unless its own launch sets something else.

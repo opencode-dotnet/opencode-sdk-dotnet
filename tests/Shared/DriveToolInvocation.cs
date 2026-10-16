@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// A <c>tool.invocation</c> notification: the pending simulated-tool id the controller settles

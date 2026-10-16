@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using NSubstitute;
-using OpenCode.Sdk.TestSupport.Ownership.Abstractions;
+using OpenCode.Sdk.Tests.Harness.Ownership.Abstractions;
 
 namespace OpenCode.Sdk.Tests.Support;
 

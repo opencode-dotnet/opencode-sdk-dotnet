@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// What <see cref="InheritedEnvironment"/> decided for one environment: the variable names to

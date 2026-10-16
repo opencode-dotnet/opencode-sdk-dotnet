@@ -3,7 +3,7 @@ using System.Text;
 using OpenCode.Sdk.Internal;
 using Testably.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// The hermetic arrangement one Ensure live test builds on, per test rather than per session: the

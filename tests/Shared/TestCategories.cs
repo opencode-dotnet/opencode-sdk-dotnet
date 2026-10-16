@@ -1,4 +1,4 @@
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>TUnit <c>[Category]</c> names the documented test passes select on.</summary>
 internal static class TestCategories

@@ -1,7 +1,7 @@
 using System.IO.Abstractions;
-using OpenCode.Sdk.TestSupport.Ownership.Abstractions;
+using OpenCode.Sdk.Tests.Harness.Ownership.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 internal sealed record ServerFixtureDiagnosticsOptions
 {

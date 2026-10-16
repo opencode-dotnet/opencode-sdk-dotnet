@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Runtime.Versioning;
 using System.Text;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>Writes bounded diagnostic files beneath the runner's uploaded results directory.</summary>
 internal sealed class ServerFailureArtifacts

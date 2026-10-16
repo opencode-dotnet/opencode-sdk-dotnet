@@ -1,10 +1,10 @@
 using System.Globalization;
 using System.IO.Abstractions;
 using System.Text;
-using OpenCode.Sdk.TestSupport.Ownership;
-using OpenCode.Sdk.TestSupport.Ownership.Abstractions;
+using OpenCode.Sdk.Tests.Harness.Ownership;
+using OpenCode.Sdk.Tests.Harness.Ownership.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>Captures output and then failure metadata under independent finite deadlines.</summary>
 internal sealed class ServerFailureCapture(

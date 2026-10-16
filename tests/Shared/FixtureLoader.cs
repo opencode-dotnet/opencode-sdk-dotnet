@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Text;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>Loads embedded fixtures from the compiling test assembly's Fixtures folder.</summary>
 internal sealed class FixtureLoader

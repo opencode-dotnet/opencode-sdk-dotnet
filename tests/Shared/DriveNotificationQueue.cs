@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// One FIFO of id-less JSON-RPC notifications of a single method, with a bounded dequeue. The

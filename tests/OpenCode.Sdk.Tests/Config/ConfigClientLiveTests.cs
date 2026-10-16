@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Text.Json;
 using OpenCode.Sdk.Models;
+using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Harness.Ownership;
 using OpenCode.Sdk.Tests.Support;
-using OpenCode.Sdk.TestSupport;
-using OpenCode.Sdk.TestSupport.Ownership;
 
 namespace OpenCode.Sdk.Tests.Config;
 

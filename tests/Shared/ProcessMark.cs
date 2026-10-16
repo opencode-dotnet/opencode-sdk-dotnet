@@ -3,7 +3,7 @@ using System.Globalization;
 using System.IO.Abstractions;
 using System.Runtime.InteropServices;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// One running process, marked by the start the operating system recorded for it in a form every

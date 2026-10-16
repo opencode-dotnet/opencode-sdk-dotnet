@@ -2,7 +2,7 @@ using System.IO.Abstractions;
 using System.Text;
 using OpenCode.Sdk.Internal;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// Writes an executable literally named <c>opencode</c> into a directory a test puts on PATH (or

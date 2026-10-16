@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.IO.Abstractions;
 using OpenCode.Sdk.Internal;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// Locates and runs the isolated discovery executable (<c>tests/OpenCode.Sdk.ServiceFixture</c>):

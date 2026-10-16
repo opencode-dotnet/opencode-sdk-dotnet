@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>Turns a typed <see cref="JsonNode"/> into a cloned <see cref="JsonElement"/> the drive protocol writers can embed.</summary>
 internal static class DriveJson

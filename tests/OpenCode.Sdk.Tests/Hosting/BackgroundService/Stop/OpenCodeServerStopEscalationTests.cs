@@ -1,6 +1,6 @@
 using System.Diagnostics;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
-using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Stop;

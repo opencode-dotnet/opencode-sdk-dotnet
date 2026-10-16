@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using OpenCode.Sdk.TestSupport;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tools.Generator.Refresh;
 using Testably.Abstractions;
 

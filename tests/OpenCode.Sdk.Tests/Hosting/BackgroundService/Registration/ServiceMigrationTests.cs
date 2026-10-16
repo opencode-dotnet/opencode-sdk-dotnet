@@ -2,7 +2,7 @@ using System.Text;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using OpenCode.Sdk.Internal;
-using OpenCode.Sdk.TestSupport;
+using OpenCode.Sdk.Tests.Harness;
 using Testably.Abstractions.Testing;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;

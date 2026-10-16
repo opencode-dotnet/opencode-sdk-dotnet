@@ -5,9 +5,9 @@ using System.Text.Json;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
 using OpenCode.Sdk.Tests.Support;
-using OpenCode.Sdk.TestSupport;
 using Testably.Abstractions.Testing;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Handoff;

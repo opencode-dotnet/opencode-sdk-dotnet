@@ -2,7 +2,7 @@ using System.Globalization;
 using System.IO.Abstractions;
 using System.Text.Json;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// Writes a named drive-instance manifest (manifest.ts:26-44,70-83 at the pin): the server

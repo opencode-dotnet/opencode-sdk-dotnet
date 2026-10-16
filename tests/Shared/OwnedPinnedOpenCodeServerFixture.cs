@@ -1,6 +1,6 @@
 using TUnit.Core.Interfaces;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>Owns isolated configuration for tests whose operations must never discover ambient package plugins.</summary>
 public sealed class OwnedPinnedOpenCodeServerFixture : IAsyncInitializer, IAsyncDisposable, ITestEndEventReceiver

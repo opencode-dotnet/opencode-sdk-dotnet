@@ -1,8 +1,8 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
-using OpenCode.Sdk.TestSupport;
-using OpenCode.Sdk.TestSupport.Ownership;
+using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Harness.Ownership;
 
 namespace OpenCode.Sdk.Tests.Support;
 

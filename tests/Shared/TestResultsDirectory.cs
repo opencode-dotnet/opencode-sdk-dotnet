@@ -1,6 +1,6 @@
 using System.IO.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>Resolves the results argument received by the test executable itself.</summary>
 internal sealed class TestResultsDirectory(IFileSystem fileSystem)

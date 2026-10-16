@@ -4,7 +4,7 @@ using System.Reflection.PortableExecutable;
 using PublicApiGenerator;
 using Testably.Abstractions;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// The public API of each asset a package ships, read from the build output without loading it: the asset, the framework it compiles against, and the packages it references are staged in

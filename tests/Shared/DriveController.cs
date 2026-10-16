@@ -4,7 +4,7 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using OpenCode.Sdk.Internal;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// The repository-owned drive controller: a WebSocket JSON-RPC client for the

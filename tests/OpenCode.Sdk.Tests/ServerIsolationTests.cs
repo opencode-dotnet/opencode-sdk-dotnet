@@ -1,4 +1,4 @@
-using OpenCode.Sdk.TestSupport;
+using OpenCode.Sdk.Tests.Harness;
 using Testably.Abstractions.Testing;
 using Testably.Abstractions.Testing.Initializer;
 

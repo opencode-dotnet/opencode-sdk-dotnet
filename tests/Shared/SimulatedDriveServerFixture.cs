@@ -1,10 +1,10 @@
 using System.Runtime.ExceptionServices;
-using OpenCode.Sdk.TestSupport.Abstractions;
-using OpenCode.Sdk.TestSupport.Ownership;
+using OpenCode.Sdk.Tests.Harness.Abstractions;
+using OpenCode.Sdk.Tests.Harness.Ownership;
 using Testably.Abstractions;
 using TUnit.Core.Interfaces;
 
-namespace OpenCode.Sdk.TestSupport;
+namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// The exact-pin server fixture in simulation mode: a named drive instance with a
