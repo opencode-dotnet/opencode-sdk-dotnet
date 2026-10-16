@@ -1,5 +1,7 @@
 using System.Reflection;
 using OpenCode.Sdk.Tools.Generator.Ingestion;
+using OpenCode.Sdk.Tools.Generator.Ingestion.Abstractions;
+using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions;
 
@@ -12,14 +14,19 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Ingestion;
 public sealed class IngestionBoundaryTests
 {
     [Test]
-    public async Task Ingestion_Public_Surface_Should_Not_Expose_Microsoft_OpenApi_Types()
+    public async Task Ingestion_Surface_Should_Not_Expose_Microsoft_OpenApi_Types()
     {
         var toolsAssembly = typeof(SpecIngestion).Assembly;
         var openApiAssembly = typeof(Microsoft.OpenApi.OpenApiDocument).Assembly;
         var ingestionTypes = toolsAssembly
             .GetTypes()
-            .Where(static type => type.IsPublic
-                                  && type.Namespace?.StartsWith("OpenCode.Sdk.Tools.Generator.Ingestion", StringComparison.Ordinal) is true);
+            .Where(static type => type == typeof(SpecIngestion)
+                || type.Namespace is "OpenCode.Sdk.Tools.Generator.Ingestion.Abstractions"
+                    or "OpenCode.Sdk.Tools.Generator.Ingestion.Models")
+            .ToArray();
+
+        await Assert.That(ingestionTypes).Contains(typeof(ISpecIngestion));
+        await Assert.That(ingestionTypes).Contains(typeof(SpecDocument));
 
         var leaks = new List<string>();
         foreach (var type in ingestionTypes)

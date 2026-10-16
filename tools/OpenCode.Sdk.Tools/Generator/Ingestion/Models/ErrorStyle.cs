@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Identifies an object schema's recognized error payload convention.</summary>
-public enum ErrorStyle
+internal enum ErrorStyle
 {
     /// <summary>The object is not a recognized error payload.</summary>
     None = 0,

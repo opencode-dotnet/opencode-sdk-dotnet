@@ -35,6 +35,7 @@
 
   <!-- .NET Framework ships HttpClient in this framework assembly; no NuGet HTTP stack is added. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Compile Include="../../tools/OpenCode.Sdk.Tools/Benchmarks/WireMetricIds.cs" Link="Support/WireMetricIds.cs" />
     <Reference Include="System.Net.Http" />
   </ItemGroup>
 

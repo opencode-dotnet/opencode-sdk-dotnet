@@ -3,7 +3,7 @@ using System.Text;
 namespace OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
 
 /// <summary>Captures one completed external process run.</summary>
-public sealed record ProcessResult
+internal sealed record ProcessResult
 {
     /// <summary>Gets the process exit code.</summary>
     public required int ExitCode { get; init; }

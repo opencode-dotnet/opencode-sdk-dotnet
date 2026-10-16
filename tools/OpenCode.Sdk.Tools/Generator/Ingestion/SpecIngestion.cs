@@ -6,7 +6,7 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 namespace OpenCode.Sdk.Tools.Generator.Ingestion;
 
 /// <summary>Composes the reader, projection, and raw-side validations into one ingestion pass.</summary>
-public sealed class SpecIngestion : ISpecIngestion
+internal sealed class SpecIngestion : ISpecIngestion
 {
     private readonly SpecReader _reader;
 

@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Describes one projected operation response.</summary>
-public sealed record SpecResponse
+internal sealed record SpecResponse
 {
     /// <summary>Gets the integer HTTP status code.</summary>
     public required int StatusCode { get; init; }

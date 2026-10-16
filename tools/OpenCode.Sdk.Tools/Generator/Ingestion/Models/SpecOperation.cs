@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Describes one projected OpenAPI operation.</summary>
-public sealed record SpecOperation
+internal sealed record SpecOperation
 {
     /// <summary>Gets the verbatim operation identifier.</summary>
     public required string OperationId

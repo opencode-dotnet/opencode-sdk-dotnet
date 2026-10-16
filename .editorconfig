@@ -745,18 +745,6 @@ dotnet_diagnostic.VSTHRD111.severity = none
 [tools/opencode-tool.cs]
 dotnet_diagnostic.MA0048.severity = none
 
-# Spectre.Console.Cli binds the command-specific settings type declared inside
-# its command. Winner: the nested CLI settings contract; CA1034 remains enabled
-# for every other file.
-[tools/OpenCode.Sdk.Tools/Commands/GenerateCommand.cs]
-dotnet_diagnostic.CA1034.severity = none
-
-# The wire-faithful SpecIR primitive-kind contract requires the exact String
-# and Integer member names. Winner: the wire-faithful public contract; CA1720
-# remains enabled for every other file.
-[tools/OpenCode.Sdk.Tools/Generator/Ingestion/Models/PrimitiveKind.cs]
-dotnet_diagnostic.CA1720.severity = none
-
 # GraphKeyBuilder centralizes pointer and branch-identity policy shared by projection
 # collaborators. Winner: one sealed policy owner instead of duplicated static mechanics;
 # static-member rules remain enabled for every other file.
@@ -781,12 +769,6 @@ dotnet_diagnostic.S2325.severity = none
 [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/LiteralClassifier.cs]
 dotnet_diagnostic.CA1822.severity = none
 dotnet_diagnostic.S2325.severity = none
-
-# The wire-faithful SpecIR literal-kind contract likewise requires the exact
-# String member name. Winner: the wire-faithful public contract; CA1720 remains
-# enabled for every other file.
-[tools/OpenCode.Sdk.Tools/Generator/Ingestion/Models/LiteralKind.cs]
-dotnet_diagnostic.CA1720.severity = none
 
 # The abstract adapter base carries shared, non-virtual mapping behavior for the
 # generated response adapters, and default interface members cannot carry shared

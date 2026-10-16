@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Describes one projected operation parameter.</summary>
-public sealed record SpecParameter
+internal sealed record SpecParameter
 {
     /// <summary>Gets the opaque wire parameter name.</summary>
     public required string Name

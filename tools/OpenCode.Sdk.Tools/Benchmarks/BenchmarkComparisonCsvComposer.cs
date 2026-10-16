@@ -5,7 +5,11 @@ using OpenCode.Sdk.Tools.Benchmarks.Models;
 namespace OpenCode.Sdk.Tools.Benchmarks;
 
 /// <summary>
-/// Renders a benchmark comparison as the repository's CSV extract shape. Every row carries a
+/// Renders matched and one-sided benchmark cases as the repository's CSV extract, preserving exact
+/// allocations, available timings, and optional wire figures with an explicit status per row.
+/// </summary>
+/// <remarks>
+/// Every row carries a
 /// <c>Status</c> of <c>Matched</c>, <c>BeforeOnly</c>, or <c>AfterOnly</c> — named after
 /// <see cref="BenchmarkComparison"/>'s own <c>Rows</c>/<c>BeforeOnly</c>/<c>AfterOnly</c> shape — so a
 /// reader can tell which columns apply without guessing from blank cells. Matched rows populate
@@ -22,7 +26,7 @@ namespace OpenCode.Sdk.Tools.Benchmarks;
 /// rows carry their own — and stay blank for a case without a wire fixture or a run recorded
 /// before the wire metrics existed. Rows appear in three sections, each already sorted by the
 /// composer: matched, then before-only, then after-only.
-/// </summary>
+/// </remarks>
 internal static class BenchmarkComparisonCsvComposer
 {
     private const string Header =

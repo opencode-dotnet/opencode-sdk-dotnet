@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Represents a projected string enum schema.</summary>
-public sealed record EnumNode : SchemaNode
+internal sealed record EnumNode : SchemaNode
 {
     /// <summary>Gets the admitted string values in wire order.</summary>
     public required IReadOnlyList<string> Values

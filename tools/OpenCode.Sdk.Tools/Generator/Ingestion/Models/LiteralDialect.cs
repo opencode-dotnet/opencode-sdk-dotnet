@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Identifies the wire spelling used to express a literal schema.</summary>
-public enum LiteralDialect
+internal enum LiteralDialect
 {
     /// <summary>The literal is expressed as an enum with exactly one value.</summary>
     SingleValueEnum = 0,

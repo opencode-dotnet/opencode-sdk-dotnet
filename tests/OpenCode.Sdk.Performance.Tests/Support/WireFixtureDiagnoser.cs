@@ -7,6 +7,7 @@ using BenchmarkDotNet.Loggers;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
 using BenchmarkDotNet.Validators;
+using OpenCode.Sdk.Tools.Benchmarks;
 
 namespace OpenCode.Sdk.Performance.Tests.Support;
 
@@ -72,7 +73,7 @@ internal sealed class WireFixtureDiagnoser : IDiagnoser
         private const int FirstWirePriority = 4;
 
         internal static readonly IMetricDescriptor WireBytes = new WireMetricDescriptor(
-            id: "WireBytes",
+            id: WireMetricIds.WireBytes,
             displayName: "Wire B",
             legend: "Exact wire body bytes one operation consumes (envelope/framing included)",
             unitType: UnitType.Size,
@@ -80,7 +81,7 @@ internal sealed class WireFixtureDiagnoser : IDiagnoser
             priorityInCategory: FirstWirePriority);
 
         internal static readonly IMetricDescriptor WireItems = new WireMetricDescriptor(
-            id: "WireItems",
+            id: WireMetricIds.WireItems,
             displayName: "Items",
             legend: "Payloads or frames consumed per operation",
             unitType: UnitType.Dimensionless,
@@ -88,7 +89,7 @@ internal sealed class WireFixtureDiagnoser : IDiagnoser
             priorityInCategory: FirstWirePriority + 1);
 
         internal static readonly IMetricDescriptor PayloadBytesPerItem = new WireMetricDescriptor(
-            id: "PayloadBytesPerItem",
+            id: WireMetricIds.PayloadBytesPerItem,
             displayName: "Payload B/item",
             legend: "JSON payload bytes per item, excluding envelope and SSE framing (average for a mixed body)",
             unitType: UnitType.Size,

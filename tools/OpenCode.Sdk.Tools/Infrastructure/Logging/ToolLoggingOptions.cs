@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 namespace OpenCode.Sdk.Tools.Infrastructure.Logging;
 
 /// <summary>Holds mutable logging options for one tool invocation.</summary>
-public sealed class ToolLoggingOptions
+internal sealed class ToolLoggingOptions
 {
     /// <summary>Gets the minimum enabled logging level.</summary>
     public LogLevel MinimumLevel { get; private set; } = LogLevel.Warning;

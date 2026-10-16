@@ -14,6 +14,27 @@ public sealed class VerifyClonesCommandTests
     private const string Command = "verify-clones";
 
     [Test]
+    public async Task Execute_Should_Keep_A_Refusal_Unwrapped_And_Restore_The_Console_Width()
+    {
+        var scenario = await new CloneScenario().WithoutSolution().BuildAsync();
+        var root = scenario.FileSystem.Path.Combine(scenario.Root, "[red]" + new string('x', 160));
+        scenario.FileSystem.Directory.CreateDirectory(root);
+        scenario.FileSystem.Directory.SetCurrentDirectory(root);
+        using var registrar = ToolApp.CreateRegistrar(services =>
+            services.AddSingleton<IFileSystem>(scenario.FileSystem));
+        using var console = new TestConsole();
+        console.Width(80);
+        var tester = new CommandAppTester(registrar, new CommandAppTesterSettings(), console);
+        tester.Configure(ToolApp.Configure);
+
+        var result = await tester.RunAsync([Command]);
+
+        await Assert.That(result.ExitCode).IsEqualTo(1);
+        await Assert.That(result.Output).IsEqualTo($"Refused: Run verify-clones from the repository root: no OpenCode.slnx in '{root}'.");
+        await Assert.That(console.Profile.Width).IsEqualTo(80);
+    }
+
+    [Test]
     public async Task Execute_Should_Pass_And_Print_Every_Scope_When_No_Gated_Scope_Fails()
     {
         var scenario = await new CloneScenario()

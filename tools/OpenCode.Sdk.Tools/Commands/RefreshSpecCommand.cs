@@ -31,25 +31,17 @@ internal sealed partial class RefreshSpecCommand : AsyncCommand<RefreshSpecComma
         ArgumentNullException.ThrowIfNull(settings);
 
         LogInvocation(_logger);
-        try
+        if (settings.Reference is { } reference)
         {
-            if (settings.Reference is { } reference)
-            {
-                return await PrepareAsync(reference, cancellationToken).ConfigureAwait(false);
-            }
-
-            if (settings.Apply is { } receiptPath)
-            {
-                return await ApplyAsync(receiptPath, cancellationToken).ConfigureAwait(false);
-            }
-
-            return await VerifyAsync(cancellationToken).ConfigureAwait(false);
+            return await PrepareAsync(reference, cancellationToken).ConfigureAwait(false);
         }
-        catch (SnapshotRefreshException exception)
+
+        if (settings.Apply is { } receiptPath)
         {
-            _console.MarkupLine($"[red]Refused:[/] {Markup.Escape(exception.Message)}");
-            return 1;
+            return await ApplyAsync(receiptPath, cancellationToken).ConfigureAwait(false);
         }
+
+        return await VerifyAsync(cancellationToken).ConfigureAwait(false);
     }
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Debug, Message = "Refresh-spec command invoked.")]

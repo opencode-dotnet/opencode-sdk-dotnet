@@ -11,33 +11,38 @@ namespace OpenCode.Sdk.Tools.Tests.Support;
 internal sealed class ScriptedProcessRunner : IProcessRunner
 {
     private readonly List<(string FileName, Func<IReadOnlyList<string>> Arguments, string Directory, ProcessResult Result,
-        Func<Task>? SideEffect)> _script = [];
+        Func<Task>? SideEffect, IReadOnlyDictionary<string, string?> Environment)> _script = [];
     private int _next;
 
     public List<string> Invocations { get; } = [];
+    public List<CancellationToken> CancellationTokens { get; } = [];
 
     public ScriptedProcessRunner Expect(string fileName, IReadOnlyList<string> arguments, string workingDirectory,
-        ProcessResult? result = null, Func<Task>? sideEffect = null) =>
-        Expect(fileName, () => arguments, workingDirectory, result, sideEffect);
+        ProcessResult? result = null, Func<Task>? sideEffect = null, IReadOnlyDictionary<string, string?>? environment = null) =>
+        Expect(fileName, () => arguments, workingDirectory, result, sideEffect, environment);
 
     public ScriptedProcessRunner Expect(string fileName, Func<IReadOnlyList<string>> arguments, string workingDirectory,
-        ProcessResult? result = null, Func<Task>? sideEffect = null)
+        ProcessResult? result = null, Func<Task>? sideEffect = null, IReadOnlyDictionary<string, string?>? environment = null)
     {
-        _script.Add((fileName, arguments, workingDirectory, result ?? Ok(), sideEffect));
+        _script.Add((fileName, arguments, workingDirectory, result ?? Ok(), sideEffect, environment ?? new Dictionary<string, string?>(StringComparer.Ordinal)));
         return this;
     }
 
+    public Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, string workingDirectory,
+        CancellationToken cancellationToken) => RunAsync(fileName, arguments, workingDirectory, new Dictionary<string, string?>(StringComparer.Ordinal), cancellationToken);
+
     public async Task<ProcessResult> RunAsync(string fileName, IReadOnlyList<string> arguments, string workingDirectory,
-        CancellationToken cancellationToken)
+        IReadOnlyDictionary<string, string?> environmentVariables, CancellationToken cancellationToken)
     {
         var invocation = $"{fileName} {string.Join(' ', arguments)}";
         Invocations.Add(invocation);
+        CancellationTokens.Add(cancellationToken);
         if (_next >= _script.Count)
         {
             throw new InvalidOperationException($"Unexpected process invocation: {invocation}");
         }
 
-        var (expectedFileName, expectedArguments, expectedDirectory, result, sideEffect) = _script[_next];
+        var (expectedFileName, expectedArguments, expectedDirectory, result, sideEffect, environment) = _script[_next];
         _next++;
         var tokens = expectedArguments();
         if (!string.Equals(fileName, expectedFileName, StringComparison.Ordinal)
@@ -47,6 +52,13 @@ internal sealed class ScriptedProcessRunner : IProcessRunner
             throw new InvalidOperationException(
                 $"Process invocation '{invocation}' in '{workingDirectory}' did not match "
                 + $"the scripted '{expectedFileName} {string.Join(' ', tokens)}' in '{expectedDirectory}'.");
+        }
+
+        if (environment.Count != environmentVariables.Count
+            || environment.Any(pair => !environmentVariables.TryGetValue(pair.Key, out var value)
+                                       || !string.Equals(pair.Value, value, StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException($"Environment overrides for '{invocation}' did not match the script.");
         }
 
         if (sideEffect is not null)

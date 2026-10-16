@@ -4,12 +4,11 @@ using Spectre.Console;
 namespace OpenCode.Sdk.Tools.Infrastructure.Logging;
 
 /// <summary>Provides MEL loggers that render through the configured Spectre console.</summary>
-public sealed class SpectreConsoleLoggerProvider : ILoggerProvider, ILogger
+internal sealed class SpectreConsoleLoggerProvider : ILoggerProvider, ILogger
 {
     private readonly IAnsiConsole _console;
     private readonly ToolLoggingOptions _options;
 
-    /// <summary>Initializes a new instance of the <see cref="SpectreConsoleLoggerProvider"/> class.</summary>
     public SpectreConsoleLoggerProvider(IAnsiConsole console, ToolLoggingOptions options)
     {
         ArgumentNullException.ThrowIfNull(console);

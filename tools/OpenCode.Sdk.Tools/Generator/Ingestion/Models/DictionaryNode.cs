@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Represents an object whose values share one schema.</summary>
-public sealed record DictionaryNode : SchemaNode
+internal sealed record DictionaryNode : SchemaNode
 {
     /// <summary>Gets the projected dictionary value schema.</summary>
     public required SchemaNode Value

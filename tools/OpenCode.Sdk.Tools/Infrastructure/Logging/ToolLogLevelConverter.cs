@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 namespace OpenCode.Sdk.Tools.Infrastructure.Logging;
 
 /// <summary>Converts the tool's log-level vocabulary to MEL levels.</summary>
-public sealed class ToolLogLevelConverter : TypeConverter
+internal sealed class ToolLogLevelConverter : TypeConverter
 {
     /// <inheritdoc/>
     public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType) =>

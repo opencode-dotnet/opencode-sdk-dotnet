@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.TestRoster;
 
 /// <summary>A refused roster step; the message states the exact file or entry that refused.</summary>
-public sealed class TestRosterException : Exception
+public sealed class TestRosterException : ToolRefusalException
 {
     /// <summary>Creates the refusal with its message.</summary>
     public TestRosterException(string message)

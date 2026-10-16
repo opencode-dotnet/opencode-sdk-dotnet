@@ -81,17 +81,17 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
             if (string.IsNullOrWhiteSpace(folder) || folder is "." or ".."
                 || folder.Contains('/', StringComparison.Ordinal) || folder.Contains('\\', StringComparison.Ordinal))
             {
-                throw new InvalidOperationException($"Family folder '{folder}' is unsafe.");
+                throw new OutputRefusalException($"Family folder '{folder}' is unsafe.");
             }
 
             if (ReservedFolders.Contains(folder, OwnedPathComparer))
             {
-                throw new InvalidOperationException($"Family folder '{folder}' shadows a reserved folder name.");
+                throw new OutputRefusalException($"Family folder '{folder}' shadows a reserved folder name.");
             }
 
             if (!result.Add(folder))
             {
-                throw new InvalidOperationException($"Family folder '{folder}' is duplicated.");
+                throw new OutputRefusalException($"Family folder '{folder}' is duplicated.");
             }
         }
 
@@ -110,12 +110,12 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
                 || string.IsNullOrWhiteSpace(area) || area is "." or ".." || area.Contains('\\', StringComparison.Ordinal)
                 || ReservedFolders.Contains(area, OwnedPathComparer))
             {
-                throw new InvalidOperationException($"Model area folder '{folder}' is not an area of an admitted family.");
+                throw new OutputRefusalException($"Model area folder '{folder}' is not an area of an admitted family.");
             }
 
             if (!result.Add(folder))
             {
-                throw new InvalidOperationException($"Model area folder '{folder}' is duplicated.");
+                throw new OutputRefusalException($"Model area folder '{folder}' is duplicated.");
             }
         }
 
@@ -163,11 +163,11 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
         {
             var json = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
             return JsonSerializer.Deserialize(json, ToolJsonContext.Default.GenerationManifest)
-                   ?? throw new InvalidOperationException("The generation manifest cannot be JSON null.");
+                   ?? throw new OutputRefusalException("The generation manifest cannot be JSON null.");
         }
         catch (JsonException exception)
         {
-            throw new InvalidOperationException("The generation manifest is invalid.", exception);
+            throw new OutputRefusalException("The generation manifest is invalid.", exception);
         }
     }
 
@@ -180,7 +180,7 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
             ValidateManifestSourcePath(relativePath);
             if (!result.Add(relativePath))
             {
-                throw new InvalidOperationException($"Generation manifest path '{relativePath}' is duplicated.");
+                throw new OutputRefusalException($"Generation manifest path '{relativePath}' is duplicated.");
             }
         }
 
@@ -294,7 +294,7 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
         var content = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
         if (!content.ReplaceLineEndings("\n").StartsWith(AttributesHeader, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException($"'{AttributesRelativePath}' does not carry the generated header; refusing to overwrite it.");
+            throw new OutputRefusalException($"'{AttributesRelativePath}' does not carry the generated header; refusing to overwrite it.");
         }
     }
 
@@ -328,7 +328,7 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
                  || IsSharedPath(relativePath)
                  || IsAdmittedFamilyPath(relativePath, familyFolders, areaFolders)))
         {
-            throw new InvalidOperationException($"Generated source path '{relativePath}' is outside the owned source directories.");
+            throw new OutputRefusalException($"Generated source path '{relativePath}' is outside the owned source directories.");
         }
     }
 
@@ -348,7 +348,7 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
         };
         if (!relativePath.EndsWith(".cs", StringComparison.Ordinal) || !shaped)
         {
-            throw new InvalidOperationException($"Generation manifest path '{relativePath}' is outside the owned source directories.");
+            throw new OutputRefusalException($"Generation manifest path '{relativePath}' is outside the owned source directories.");
         }
     }
 
@@ -388,7 +388,7 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
             .FirstOrDefault(path => _fileSystem.File.Exists(ResolveOwnedPath(outputRoot, path)));
         if (overwrite is not null)
         {
-            throw new InvalidOperationException($"Generated source path '{overwrite}' would overwrite an unmanifested file.");
+            throw new OutputRefusalException($"Generated source path '{overwrite}' would overwrite an unmanifested file.");
         }
     }
 
@@ -407,7 +407,7 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
             var content = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
             if (!GenerationProvenance.HasHeader(content))
             {
-                throw new InvalidOperationException(
+                throw new OutputRefusalException(
                     $"Manifest entry '{relativePath}' does not carry the provenance header; refusing to overwrite or delete it.");
             }
         }
@@ -419,13 +419,13 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
             || _fileSystem.Path.IsPathRooted(relativePath)
             || relativePath.Contains('\\', StringComparison.Ordinal))
         {
-            throw new InvalidOperationException($"Owned path '{relativePath}' is unsafe.");
+            throw new OutputRefusalException($"Owned path '{relativePath}' is unsafe.");
         }
 
         var segments = relativePath.Split('/');
         if (segments.Any(static segment => string.IsNullOrWhiteSpace(segment) || segment is "." or ".."))
         {
-            throw new InvalidOperationException($"Owned path '{relativePath}' is unsafe.");
+            throw new OutputRefusalException($"Owned path '{relativePath}' is unsafe.");
         }
 
         var root = _fileSystem.Path.GetFullPath(outputRoot);
@@ -436,7 +436,7 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
         var pathComparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
         if (!path.StartsWith(prefix, pathComparison))
         {
-            throw new InvalidOperationException($"Owned path '{relativePath}' escapes the output root.");
+            throw new OutputRefusalException($"Owned path '{relativePath}' escapes the output root.");
         }
 
         RefuseSymbolicLinks(root, segments, relativePath);
@@ -451,7 +451,7 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
             if (oldPaths.TryGetValue(newPath, out var oldPath)
                 && !string.Equals(oldPath, newPath, StringComparison.Ordinal))
             {
-                throw new InvalidOperationException(
+                throw new OutputRefusalException(
                     $"Generated source path '{newPath}' differs from owned path '{oldPath}' only by case.");
             }
         }
@@ -465,7 +465,7 @@ internal sealed class GenerationWriter(IFileSystem fileSystem, IProjectFormatter
             current = _fileSystem.Path.Combine(current, segment);
             if (_fileSystem.FileInfo.New(current).LinkTarget is not null)
             {
-                throw new InvalidOperationException($"Owned path '{relativePath}' contains a symbolic link.");
+                throw new OutputRefusalException($"Owned path '{relativePath}' contains a symbolic link.");
             }
         }
     }

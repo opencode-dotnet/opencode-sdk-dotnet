@@ -49,9 +49,8 @@ internal sealed class GenerationCoordinator(
             .Order(StringComparer.Ordinal)
             .ToArray();
 
-        // Marking runs the same selection-path binder over each pending operation in isolation
-        // (ADR-driven bridge telltale), so a wall-free operation shows up as a committed diff
-        // instead of accumulating silently.
+        // Probe pending operations with the selection-path binder so a newly bindable operation
+        // changes the committed marker and receives review rather than remaining silently unselected.
         var pendingMarks = pending.Length > 0 ? _pendingProbe.Probe(document, pending) : [];
         // Declined operations are not pending either, but they are probed all the same: the
         // decline claims a standing wall, and the probe is what proves that claim. A declined

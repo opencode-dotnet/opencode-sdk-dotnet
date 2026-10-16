@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Represents one projected schema in the generator's supported schema dialect.</summary>
-public abstract record SchemaNode
+internal abstract record SchemaNode
 {
     /// <summary>Gets the schema description, when supplied by the wire schema.</summary>
     public string? Description { get; init; }

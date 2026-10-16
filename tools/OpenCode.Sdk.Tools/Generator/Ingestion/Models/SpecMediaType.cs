@@ -3,7 +3,7 @@ using System.Net.Http.Headers;
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 /// <summary>Describes a normalized response or request media type.</summary>
-public sealed record SpecMediaType
+internal sealed record SpecMediaType
 {
     /// <summary>Gets the media type exactly as declared by the document.</summary>
     public required string Raw

@@ -39,29 +39,21 @@ internal sealed partial class VerifyTestRosterCommand : AsyncCommand<VerifyTestR
 
         LogInvocation(_logger, settings.RosterPath, settings.PassName, settings.OperatingSystem, settings.ResultsDirectory);
 
-        try
-        {
-            var roster = await _rosterLoader.LoadAsync(settings.RosterPath, cancellationToken).ConfigureAwait(false);
-            var expectedModules = roster.ResolveEntries(settings.PassName, settings.OperatingSystem);
-            var runs = await _trxRunReader.ReadAsync(settings.ResultsDirectory, cancellationToken).ConfigureAwait(false);
-            var comparison = TestRosterComparator.Compare(expectedModules, runs);
+        var roster = await _rosterLoader.LoadAsync(settings.RosterPath, cancellationToken).ConfigureAwait(false);
+        var expectedModules = roster.ResolveEntries(settings.PassName, settings.OperatingSystem);
+        var runs = await _trxRunReader.ReadAsync(settings.ResultsDirectory, cancellationToken).ConfigureAwait(false);
+        var comparison = TestRosterComparator.Compare(expectedModules, runs);
 
-            if (!comparison.Passed)
-            {
-                WriteFailures(comparison);
-                return 1;
-            }
-
-            WriteRows(comparison);
-            _console.MarkupLine(
-                $"[green]Test roster verified:[/] {Count(comparison.Rows.Count)} module(s) for pass '{settings.PassName}'");
-            return 0;
-        }
-        catch (TestRosterException exception)
+        if (!comparison.Passed)
         {
-            _console.MarkupLine($"[red]Refused:[/] {Markup.Escape(exception.Message)}");
+            WriteFailures(comparison);
             return 1;
         }
+
+        WriteRows(comparison);
+        _console.MarkupLine(
+            $"[green]Test roster verified:[/] {Count(comparison.Rows.Count)} module(s) for pass '{settings.PassName}'");
+        return 0;
     }
 
     [LoggerMessage(

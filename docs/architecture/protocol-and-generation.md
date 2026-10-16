@@ -93,6 +93,9 @@ evidence and may contain superseded positions.
   and their generated diffs (ADR-0003).
 - Generated files are changed through the generator, never by hand. The output manifest, not a
   folder or filename convention, identifies generator-owned files.
+- The repository tool forwards Ctrl+C cancellation to the running command and returns the configured
+  cancellation exit code. Its composition root maps tool refusals to an unwrapped `Refused: <message>`
+  diagnostic and exit code 1; other failures retain the CLI framework's error rendering and exit code.
 - Generated and hand-written files share the slice folders (ADR-0033). One placement rule maps
   each generated file's kind and owning slice to its folder: models under the family's `Models/`
   (Sessions models in their curated area subfolders), body requests, operation records and

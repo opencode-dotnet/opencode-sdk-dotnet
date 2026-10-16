@@ -4,12 +4,11 @@ using Microsoft.Extensions.Logging;
 namespace OpenCode.Sdk.Tools.Infrastructure.Logging;
 
 /// <summary>Provides optional MEL file logging through the configured filesystem seam.</summary>
-public sealed class FileLoggerProvider : ILoggerProvider, ILogger
+internal sealed class FileLoggerProvider : ILoggerProvider, ILogger
 {
     private readonly IFileSystem _fileSystem;
     private readonly ToolLoggingOptions _options;
 
-    /// <summary>Initializes a new instance of the <see cref="FileLoggerProvider"/> class.</summary>
     public FileLoggerProvider(IFileSystem fileSystem, ToolLoggingOptions options)
     {
         ArgumentNullException.ThrowIfNull(fileSystem);
