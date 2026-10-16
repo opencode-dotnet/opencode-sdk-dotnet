@@ -13,8 +13,6 @@ namespace OpenCode.Sdk.Tests.Events;
 /// </summary>
 public sealed class EventsClientContractTests
 {
-    private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
-
     [Test]
     public async Task SubscribeAsync_Should_Type_A_Shared_Durable_Leaf()
     {
@@ -79,7 +77,7 @@ public sealed class EventsClientContractTests
 
         await using var events = scenario.Events.SubscribeAsync().GetAsyncEnumerator();
 
-        await Assert.That(await events.MoveNextAsync().AsTask().WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(await events.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
     }
 
@@ -94,7 +92,7 @@ public sealed class EventsClientContractTests
         await using var events = scenario.Events.SubscribeAsync().GetAsyncEnumerator();
         while (items.Count < count)
         {
-            if (!await events.MoveNextAsync().AsTask().WaitAsync(HangGuard))
+            if (!await events.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound))
             {
                 throw new InvalidOperationException("The event stream ended.");
             }

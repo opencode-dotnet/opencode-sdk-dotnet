@@ -14,9 +14,6 @@ public sealed class PipelineTests
     private static readonly Uri Endpoint = new("http://localhost:4096");
     private const string OperationId = "test.operation";
 
-    /// <summary>Bounds a wait for an event that never comes; it decides no verdict.</summary>
-    private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
-
     /// <summary>
     /// The progress window the manual-clock tests run under: far beyond the hang guard, so only the
     /// test's clock can pass it, never the host's.
@@ -808,35 +805,37 @@ public sealed class PipelineTests
     }
 
     [Test]
-    [NotInParallel]
     public async Task ExecuteAsync_Should_Fail_A_Body_That_Stalls_Past_The_Progress_Window()
     {
-        using var callerCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var caller = new CancellationTokenSource();
+        var time = new ManualTimeProvider();
         using var content = new BlockingContent();
         using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = content,
         });
         using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, networkTimeout: TimeSpan.FromMilliseconds(200));
+        using var pipeline = CreatePipeline(httpClient, networkTimeout: Window, time: time);
 
-        var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+        var execution = pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get,
                 "/api/info",
                 new RecordingResponseAdapter(),
                 options: null,
-                callerCancellation.Token))
-            .Throws<OpenCodeTransportException>();
+                caller.Token);
+        await content.ReadStarted.WaitAsync(HangGuard.Bound);
+        await time.WaitForTimerAsync(HangGuard.Bound);
+        time.Advance(Window);
+
+        var exception = await Assert.That(execution.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
 
         // The window fires as a cancellation the caller never requested, so it maps to a
         // transport failure while the caller's token stays untouched. The inner exception is
         // whichever face the interrupt wore first — the classification table pins the exact
         // type mappings.
         await Assert.That(exception!.InnerException).IsNotNull();
-        await Assert.That(callerCancellation.IsCancellationRequested).IsFalse();
-        await content.ReadStarted.WaitAsync(TimeSpan.FromSeconds(5));
-        await content.ReadCompleted.WaitAsync(TimeSpan.FromSeconds(5));
+        await Assert.That(caller.IsCancellationRequested).IsFalse();
+        await content.ReadCompleted.WaitAsync(HangGuard.Bound);
         await Assert.That(content.IsDisposed).IsTrue();
     }
 
@@ -861,8 +860,8 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient, networkTimeout: Window, time: time);
         var adapter = new RecordingResponseAdapter();
 
-        var delivering = body.DeliverAsync(() => time.Advance(Window - TimeSpan.FromTicks(1)), HangGuard);
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None).WaitAsync(HangGuard);
+        var delivering = body.DeliverAsync(() => time.Advance(Window - TimeSpan.FromTicks(1)), HangGuard.Bound);
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None).WaitAsync(HangGuard.Bound);
         await delivering;
 
         await Assert.That(adapter.AdaptedRawBody).IsEqualTo("{\"healthy\":true}");
@@ -888,40 +887,42 @@ public sealed class PipelineTests
         using var pipeline = CreatePipeline(httpClient, networkTimeout: Window, time: time);
 
         var execution = pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
-        await body.WaitForReadAsync(HangGuard);
+        await body.WaitForReadAsync(HangGuard.Bound);
         body.Release();
-        await body.WaitForReadAsync(HangGuard);
+        await body.WaitForReadAsync(HangGuard.Bound);
         time.Advance(Window);
 
-        var exception = await Assert.That(execution.WaitAsync(HangGuard)).Throws<OpenCodeTransportException>();
+        var exception = await Assert.That(execution.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
         await Assert.That(exception!.Message).IsEqualTo("The opencode response body could not be read.");
     }
 
     [Test]
-    [NotInParallel]
     public async Task ExecuteAsync_Should_Fail_A_Stalled_Error_Body_At_The_Progress_Window_Under_NoThrow()
     {
-        using var callerCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var caller = new CancellationTokenSource();
+        var time = new ManualTimeProvider();
         using var content = new BlockingContent();
         using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
         {
             Content = content,
         });
         using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, networkTimeout: TimeSpan.FromMilliseconds(200));
+        using var pipeline = CreatePipeline(httpClient, networkTimeout: Window, time: time);
 
-        _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+        var execution = pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get,
                 "/api/info",
                 new RecordingResponseAdapter(),
                 OpenCodeRequestOptions.NoThrow,
-                callerCancellation.Token))
-            .Throws<OpenCodeTransportException>();
+                caller.Token);
+        await content.ReadStarted.WaitAsync(HangGuard.Bound);
+        await time.WaitForTimerAsync(HangGuard.Bound);
+        time.Advance(Window);
 
-        await Assert.That(callerCancellation.IsCancellationRequested).IsFalse();
-        await content.ReadStarted.WaitAsync(TimeSpan.FromSeconds(5));
-        await content.ReadCompleted.WaitAsync(TimeSpan.FromSeconds(5));
+        _ = await Assert.That(execution.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
+
+        await Assert.That(caller.IsCancellationRequested).IsFalse();
+        await content.ReadCompleted.WaitAsync(HangGuard.Bound);
         await Assert.That(content.IsDisposed).IsTrue();
     }
 
@@ -1006,34 +1007,36 @@ public sealed class PipelineTests
     }
 
     [Test]
-    [NotInParallel]
     public async Task ExecuteAsync_Should_Classify_A_Fault_The_Interruption_Caused_As_A_Transport_Failure_At_The_Progress_Window()
     {
-        using var callerCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var caller = new CancellationTokenSource();
+        var time = new ManualTimeProvider();
         using var content = new InterruptedBufferingContent();
         using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = content,
         });
         using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, networkTimeout: TimeSpan.FromMilliseconds(200));
+        using var pipeline = CreatePipeline(httpClient, networkTimeout: Window, time: time);
 
-        var failure = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+        var execution = pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get,
                 "/api/info",
                 new RecordingResponseAdapter(),
                 options: null,
-                callerCancellation.Token))
-            .Throws<OpenCodeTransportException>();
+                caller.Token);
+        await content.ReadStarted.WaitAsync(HangGuard.Bound);
+        await time.WaitForTimerAsync(HangGuard.Bound);
+        time.Advance(Window);
 
-        await Assert.That(callerCancellation.IsCancellationRequested).IsFalse();
+        var failure = await Assert.That(execution.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
+
+        await Assert.That(caller.IsCancellationRequested).IsFalse();
         await Assert.That(failure!.InnerException).IsNotNull();
 #if NET
         await Assert.That(failure.InnerException).IsTypeOf<ArgumentNullException>();
 #endif
-        await content.ReadStarted.WaitAsync(TimeSpan.FromSeconds(5));
-        await content.ReadCompleted.WaitAsync(TimeSpan.FromSeconds(5));
+        await content.ReadCompleted.WaitAsync(HangGuard.Bound);
         await Assert.That(content.IsDisposed).IsTrue();
     }
 

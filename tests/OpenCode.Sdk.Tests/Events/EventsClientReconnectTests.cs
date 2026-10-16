@@ -16,8 +16,6 @@ namespace OpenCode.Sdk.Tests.Events;
 /// </summary>
 public sealed class EventsClientReconnectTests
 {
-    private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
-
     private static readonly TimeSpan Delay = TimeSpan.FromSeconds(1);
 
     private static readonly TimeSpan ConnectBound = TimeSpan.FromSeconds(2);
@@ -39,11 +37,11 @@ public sealed class EventsClientReconnectTests
         await Assert.That(await NextAsync(events)).IsTypeOf<SessionCreated>();
 
         var reconnect = PendingNext(events);
-        await server.Time.WaitForArmedAsync(Delay, HangGuard);
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
         await Assert.That(server.RequestCount).IsEqualTo(1);
         server.Time.Advance(Delay);
 
-        await Assert.That(await reconnect.WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(await reconnect.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
         await Assert.That(await NextAsync(events)).IsTypeOf<UnknownEvent>();
         await Assert.That(server.RequestCount).IsEqualTo(2);
@@ -76,13 +74,13 @@ public sealed class EventsClientReconnectTests
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
 
         var next = PendingNext(events);
-        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard);
+        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard.Bound);
         server.Time.Advance(IdleWindow - OneTick);
 
         await Assert.That(next.IsCompleted).IsFalse();
         await Assert.That(server.RequestCount).IsEqualTo(1);
         await caller.CancelOnWorkerAsync();
-        _ = await Assert.That(next.WaitAsync(HangGuard)).Throws<OperationCanceledException>();
+        _ = await Assert.That(next.WaitAsync(HangGuard.Bound)).Throws<OperationCanceledException>();
     }
 
     [Test]
@@ -95,15 +93,15 @@ public sealed class EventsClientReconnectTests
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
 
         var next = PendingNext(events);
-        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard);
+        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard.Bound);
         server.Time.Advance(IdleWindow - OneTick);
         await Assert.That(next.IsCompleted).IsFalse();
         server.Time.Advance(OneTick);
-        await server.Time.WaitForArmedAsync(Delay, HangGuard);
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
         await Assert.That(server.RequestCount).IsEqualTo(1);
         server.Time.Advance(Delay);
 
-        await Assert.That(await next.WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
         await Assert.That(server.RequestCount).IsEqualTo(2);
         await Assert.That(first.IsDisposed).IsTrue();
@@ -122,14 +120,14 @@ public sealed class EventsClientReconnectTests
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
 
         var next = PendingNext(events);
-        await server.Time.WaitForArmedAsync(window, HangGuard);
+        await server.Time.WaitForArmedAsync(window, HangGuard.Bound);
         server.Time.Advance(window - OneTick);
         await Assert.That(next.IsCompleted).IsFalse();
         server.Time.Advance(OneTick);
-        await server.Time.WaitForArmedAsync(Delay, HangGuard);
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
         server.Time.Advance(Delay);
 
-        await Assert.That(await next.WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
         await Assert.That(server.RequestCount).IsEqualTo(2);
         await Assert.That(first.IsDisposed).IsTrue();
@@ -145,15 +143,15 @@ public sealed class EventsClientReconnectTests
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
 
         var next = PendingNext(events);
-        await server.Time.WaitForArmedAsync(window, HangGuard);
+        await server.Time.WaitForArmedAsync(window, HangGuard.Bound);
         server.Time.Advance(TimeSpan.FromSeconds(9));
         body.Append(ScriptedEventServer.Heartbeat);
-        await server.Time.WaitForArmedAsync(window, HangGuard);
+        await server.Time.WaitForArmedAsync(window, HangGuard.Bound);
         server.Time.Advance(window - OneTick);
         await Assert.That(next.IsCompleted).IsFalse();
         body.Append(WireBodyData.Frames(WireBodyData.SessionCreatedEvent));
 
-        await Assert.That(await next.WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<SessionCreated>();
         await Assert.That(server.RequestCount).IsEqualTo(1);
     }
@@ -172,17 +170,17 @@ public sealed class EventsClientReconnectTests
         await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
 
         var next = PendingNext(events);
-        await server.Time.WaitForArmedAsync(ConnectBound, HangGuard);
+        await server.Time.WaitForArmedAsync(ConnectBound, HangGuard.Bound);
         server.Time.Advance(TimeSpan.FromSeconds(1.5));
         first.Append(ScriptedEventServer.Heartbeat);
         server.Time.Advance(ConnectBound - TimeSpan.FromSeconds(1.5) - OneTick);
         await Assert.That(next.IsCompleted).IsFalse();
         await Assert.That(server.RequestCount).IsEqualTo(1);
         server.Time.Advance(OneTick);
-        await server.Time.WaitForArmedAsync(Delay, HangGuard);
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
         server.Time.Advance(Delay);
 
-        await Assert.That(await next.WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
         await Assert.That(server.RequestCount).IsEqualTo(2);
         await Assert.That(first.IsDisposed).IsTrue();
@@ -198,15 +196,15 @@ public sealed class EventsClientReconnectTests
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
 
         var next = PendingNext(events);
-        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard);
+        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard.Bound);
         server.Time.Advance(TimeSpan.FromSeconds(30));
         body.Append(":");
-        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard);
+        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard.Bound);
         server.Time.Advance(IdleWindow - OneTick);
         await Assert.That(next.IsCompleted).IsFalse();
         body.Append(" heartbeat\n\n" + WireBodyData.Frames(WireBodyData.SessionCreatedEvent));
 
-        await Assert.That(await next.WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<SessionCreated>();
         await Assert.That(server.RequestCount).IsEqualTo(1);
     }
@@ -220,15 +218,15 @@ public sealed class EventsClientReconnectTests
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
 
         var next = PendingNext(events);
-        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard);
+        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard.Bound);
         server.Time.Advance(TimeSpan.FromSeconds(30));
         body.Append(ScriptedEventServer.Heartbeat);
-        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard);
+        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard.Bound);
         server.Time.Advance(IdleWindow - OneTick);
         await Assert.That(next.IsCompleted).IsFalse();
         body.Append(WireBodyData.Frames(WireBodyData.SessionCreatedEvent));
 
-        await Assert.That(await next.WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<SessionCreated>();
         await Assert.That(server.RequestCount).IsEqualTo(1);
     }
@@ -263,14 +261,14 @@ public sealed class EventsClientReconnectTests
         await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
 
         var first = PendingNext(events);
-        await server.WaitForRequestAsync(1, HangGuard);
+        await server.WaitForRequestAsync(1, HangGuard.Bound);
         server.Time.Advance(ConnectBound - OneTick);
         await Assert.That(first.IsCompleted).IsFalse();
         server.Time.Advance(OneTick);
-        await server.Time.WaitForArmedAsync(Delay, HangGuard);
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
         server.Time.Advance(Delay);
 
-        await Assert.That(await first.WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(await first.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
         await Assert.That(server.RequestCount).IsEqualTo(2);
     }
@@ -295,11 +293,11 @@ public sealed class EventsClientReconnectTests
         await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
 
         var first = PendingNext(events);
-        await server.Time.WaitForArmedAsync(Delay, HangGuard);
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
         await Assert.That(server.RequestCount).IsEqualTo(1);
         server.Time.Advance(Delay);
 
-        await Assert.That(await first.WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(await first.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
         await Assert.That(server.RequestCount).IsEqualTo(2);
     }
@@ -319,10 +317,10 @@ public sealed class EventsClientReconnectTests
 
         var next = PendingNext(events);
         Drop(first, drop);
-        await server.Time.WaitForArmedAsync(Delay, HangGuard);
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
         server.Time.Advance(Delay);
 
-        await Assert.That(await next.WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
         await Assert.That(server.RequestCount).IsEqualTo(2);
     }
@@ -340,7 +338,7 @@ public sealed class EventsClientReconnectTests
 
         await FailEveryAttemptUntilTheMinuteAsync(server, first, cyclesBefore: 59);
 
-        var exception = await Assert.That(first.WaitAsync(HangGuard)).Throws<OpenCodeApiException>();
+        var exception = await Assert.That(first.WaitAsync(HangGuard.Bound)).Throws<OpenCodeApiException>();
         await Assert.That(exception!.Status).IsEqualTo(status);
         await Assert.That(exception.Error!.GetType()).IsEqualTo(expectedErrorType);
         await Assert.That(server.RequestCount).IsEqualTo(60);
@@ -358,7 +356,7 @@ public sealed class EventsClientReconnectTests
 
         await FailEveryAttemptUntilTheMinuteAsync(server, first, cyclesBefore: 59);
 
-        var exception = await Assert.That(first.WaitAsync(HangGuard)).Throws<OpenCodeApiException>();
+        var exception = await Assert.That(first.WaitAsync(HangGuard.Bound)).Throws<OpenCodeApiException>();
         await Assert.That(exception!.Status).IsEqualTo(500);
         await Assert.That(server.RequestCount).IsEqualTo(60);
     }
@@ -377,17 +375,17 @@ public sealed class EventsClientReconnectTests
         var first = PendingNext(events);
         for (var second = 0; second < 59; second++)
         {
-            await server.Time.WaitForArmedAsync(Delay, HangGuard);
+            await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
             server.Time.Advance(Delay);
         }
 
-        await server.WaitForRequestAsync(60, HangGuard);
-        await server.Time.WaitForArmedAsync(ConnectBound, HangGuard);
+        await server.WaitForRequestAsync(60, HangGuard.Bound);
+        await server.Time.WaitForArmedAsync(ConnectBound, HangGuard.Bound);
         server.Time.Advance(Delay - OneTick);
         await Assert.That(first.IsCompleted).IsFalse();
         server.Time.Advance(OneTick);
 
-        var exception = await Assert.That(first.WaitAsync(HangGuard)).Throws<OpenCodeApiException>();
+        var exception = await Assert.That(first.WaitAsync(HangGuard.Bound)).Throws<OpenCodeApiException>();
         await Assert.That(exception!.Status).IsEqualTo(500);
         await Assert.That(server.AllResponsesReleased).IsTrue();
     }
@@ -402,7 +400,7 @@ public sealed class EventsClientReconnectTests
 
         await FailEveryAttemptUntilTheMinuteAsync(server, first, cyclesBefore: 59);
 
-        var exception = await Assert.That(first.WaitAsync(HangGuard)).Throws<OpenCodeStreamFailureException>();
+        var exception = await Assert.That(first.WaitAsync(HangGuard.Bound)).Throws<OpenCodeStreamFailureException>();
         var cause = (StreamFailureCauseDie)exception!.Causes.Single();
         await Assert.That(cause.Defect.ValueKind).IsEqualTo(JsonValueKind.String);
         await Assert.That(cause.Defect.GetString()).IsEqualTo("boom");
@@ -418,10 +416,10 @@ public sealed class EventsClientReconnectTests
 
         for (var attempt = 1; attempt <= 20; attempt++)
         {
-            await server.WaitForRequestAsync(attempt, HangGuard);
-            await server.Time.WaitForArmedAsync(ConnectBound, HangGuard);
+            await server.WaitForRequestAsync(attempt, HangGuard.Bound);
+            await server.Time.WaitForArmedAsync(ConnectBound, HangGuard.Bound);
             server.Time.Advance(ConnectBound);
-            await server.Time.WaitForArmedAsync(Delay, HangGuard, count: attempt < 20 ? 1 : 2);
+            await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound, count: attempt < 20 ? 1 : 2);
             if (attempt < 20)
             {
                 server.Time.Advance(Delay);
@@ -432,7 +430,7 @@ public sealed class EventsClientReconnectTests
         await Assert.That(first.IsCompleted).IsFalse();
         server.Time.Advance(OneTick);
 
-        var exception = await Assert.That(first.WaitAsync(HangGuard)).Throws<OpenCodeTransportException>();
+        var exception = await Assert.That(first.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
         await Assert.That(exception!.Message).Contains("did not connect within 2 seconds");
         await Assert.That(server.RequestCount).IsEqualTo(20);
     }
@@ -449,11 +447,11 @@ public sealed class EventsClientReconnectTests
         var first = PendingNext(events);
         for (var second = 0; second < 59; second++)
         {
-            await server.Time.WaitForArmedAsync(Delay, HangGuard);
+            await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
             server.Time.Advance(Delay);
         }
 
-        await Assert.That(await first.WaitAsync(HangGuard)).IsTrue();
+        await Assert.That(await first.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
         server.Time.Advance(TimeSpan.FromSeconds(5));
         connection.Append(WireBodyData.Frames(WireBodyData.SessionCreatedEvent));
@@ -463,7 +461,7 @@ public sealed class EventsClientReconnectTests
         connection.End();
         await FailEveryAttemptUntilTheMinuteAsync(server, next, cyclesBefore: 59);
 
-        _ = await Assert.That(next.WaitAsync(HangGuard)).Throws<OpenCodeApiException>();
+        _ = await Assert.That(next.WaitAsync(HangGuard.Bound)).Throws<OpenCodeApiException>();
         await Assert.That(server.RequestCount).IsEqualTo(119);
     }
 
@@ -475,10 +473,10 @@ public sealed class EventsClientReconnectTests
         await using var events = server.Events.SubscribeAsync(caller.Token).GetAsyncEnumerator();
 
         var first = PendingCancellationAsync(events);
-        await server.Time.WaitForArmedAsync(Delay, HangGuard);
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
         await caller.CancelOnWorkerAsync();
 
-        var exception = await first.WaitAsync(HangGuard);
+        var exception = await first.WaitAsync(HangGuard.Bound);
         await Assert.That(exception).IsNotNull();
         await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
         server.Time.Advance(TimeSpan.FromMinutes(2));
@@ -496,7 +494,7 @@ public sealed class EventsClientReconnectTests
         var next = PendingCancellationAsync(events);
         await caller.CancelOnWorkerAsync();
 
-        var exception = await next.WaitAsync(HangGuard);
+        var exception = await next.WaitAsync(HangGuard.Bound);
         await Assert.That(exception).IsNotNull();
         await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
         server.Time.Advance(TimeSpan.FromMinutes(2));
@@ -523,13 +521,13 @@ public sealed class EventsClientReconnectTests
         {
             case "awaiting-headers":
                 next = PendingNext(events);
-                await server.WaitForRequestAsync(1, HangGuard);
+                await server.WaitForRequestAsync(1, HangGuard.Bound);
                 server.DisposeClient();
                 break;
             case "reading":
                 await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
                 next = PendingNext(events);
-                await server.Time.WaitForArmedAsync(IdleWindow, HangGuard);
+                await server.Time.WaitForArmedAsync(IdleWindow, HangGuard.Bound);
                 server.DisposeClient();
                 break;
             case "holding-an-event":
@@ -539,12 +537,12 @@ public sealed class EventsClientReconnectTests
                 break;
             default:
                 next = PendingNext(events);
-                await server.Time.WaitForArmedAsync(Delay, HangGuard);
+                await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
                 server.DisposeClient();
                 break;
         }
 
-        _ = await Assert.That(next.WaitAsync(HangGuard)).Throws<ObjectDisposedException>();
+        _ = await Assert.That(next.WaitAsync(HangGuard.Bound)).Throws<ObjectDisposedException>();
         server.Time.Advance(TimeSpan.FromMinutes(2));
         await Assert.That(server.RequestCount).IsEqualTo(1);
         await Assert.That(server.AllResponsesReleased).IsTrue();
@@ -560,12 +558,12 @@ public sealed class EventsClientReconnectTests
     {
         for (var second = 0; second < cyclesBefore; second++)
         {
-            await server.Time.WaitForArmedAsync(Delay, HangGuard);
+            await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
             server.Time.Advance(Delay);
         }
 
         // The give-up and the last delay fall due at the same instant; both are armed before time moves.
-        await server.Time.WaitForArmedAsync(Delay, HangGuard, count: 2);
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound, count: 2);
         server.Time.Advance(Delay - OneTick);
         await Assert.That(pending.IsCompleted).IsFalse();
         server.Time.Advance(OneTick);
@@ -628,7 +626,7 @@ public sealed class EventsClientReconnectTests
 
     private static async Task<IEvent> NextAsync(IAsyncEnumerator<IEvent> events)
     {
-        if (!await events.MoveNextAsync().AsTask().WaitAsync(HangGuard))
+        if (!await events.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound))
         {
             throw new InvalidOperationException("The event stream ended.");
         }

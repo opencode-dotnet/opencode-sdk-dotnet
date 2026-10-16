@@ -51,6 +51,18 @@ internal sealed class ManualTimeProvider : TimeProvider
     /// <returns>A task that completes once the timer exists.</returns>
     public Task WaitForTimerAsync(TimeSpan hangGuard) => _created.Reader.ReadAsync().AsTask().WaitAsync(hangGuard);
 
+    /// <summary>Counts timers armed to run exactly <paramref name="dueIn"/> from the clock's current time.</summary>
+    /// <param name="dueIn">How far from now the timers must be due.</param>
+    /// <returns>How many timers are armed for that instant.</returns>
+    public int ArmedIn(TimeSpan dueIn)
+    {
+        lock (_gate)
+        {
+            var due = _now + dueIn;
+            return _timers.Count(timer => timer.Due == due);
+        }
+    }
+
     /// <summary>
     /// Completes once <paramref name="count"/> timers are armed to run exactly
     /// <paramref name="dueIn"/> from the clock's current time, or at once when they already are.

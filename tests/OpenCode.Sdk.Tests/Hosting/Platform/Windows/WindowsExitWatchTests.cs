@@ -72,7 +72,8 @@ public sealed class WindowsExitWatchTests
 
             held.Kill();
             var exit = await watch.Exited.WaitAsync(Bound, cancellationToken);
-            var released = await ReleasedWithinAsync(process, cancellationToken);
+            await WaitForReleaseAsync(() => process.IsClosed, "the watched process handle to close", cancellationToken);
+            var released = process.IsClosed;
 
             await Assert.That(heldWhileRunning).IsTrue();
             await Assert.That(exit.ExitCode).IsEqualTo(-1);
@@ -133,7 +134,8 @@ public sealed class WindowsExitWatchTests
             _ = WindowsInterop.TerminateProcess(child.Process, 0);
             watch.Dispose();
             _ = await watch.Exited.WaitAsync(Bound, cancellationToken);
-            released += await ReleasedWithinAsync(child.Process, cancellationToken) ? 1 : 0;
+            await WaitForReleaseAsync(() => child.Process.IsClosed, "the watched process handle to close", cancellationToken);
+            released += child.Process.IsClosed ? 1 : 0;
         }
 
         await Assert.That(released).IsEqualTo(rounds);
@@ -200,14 +202,16 @@ public sealed class WindowsExitWatchTests
             watch.Dispose();
             _ = WindowsInterop.TerminateProcess(child.Process, 0);
             _ = await watch.Exited.WaitAsync(Bound, cancellationToken);
-            await Assert.That(await WatchReleasedWithinAsync(watch, cancellationToken)).IsTrue();
+            await WaitForReleaseAsync(() => watch.IsReleased, "the Windows exit watch to release", cancellationToken);
+            await Assert.That(watch.IsReleased).IsTrue();
             if (order == ReleaseOrder.DisposeExitDispose)
             {
                 watch.Dispose();
             }
         }
 
-        await Assert.That(await WatchReleasedWithinAsync(watch, cancellationToken)).IsTrue();
+        await WaitForReleaseAsync(() => watch.IsReleased, "the Windows exit watch to release", cancellationToken);
+        await Assert.That(watch.IsReleased).IsTrue();
         await Assert.That(kernel.Unregistrations).IsEqualTo(1);
         await Assert.That(kernel.HandlesOpenAtEveryUnregistration).IsTrue();
         await Assert.That(child.Process.IsClosed).IsTrue();
@@ -294,7 +298,8 @@ public sealed class WindowsExitWatchTests
         watch.Dispose();
 
         await Assert.That(exit).IsEqualTo(ChildExitStatus.Unknown);
-        await Assert.That(await WatchReleasedWithinAsync(watch, cancellationToken)).IsTrue();
+        await WaitForReleaseAsync(() => watch.IsReleased, "the Windows exit watch to release", cancellationToken);
+        await Assert.That(watch.IsReleased).IsTrue();
         await Assert.That(kernel.Unregistrations).IsEqualTo(1);
         await Assert.That(child.Process.IsClosed).IsTrue();
     }
@@ -334,7 +339,8 @@ public sealed class WindowsExitWatchTests
         var exit = await watch.Exited.WaitAsync(Bound, cancellationToken);
 
         await Assert.That(exit.ExitCode).IsEqualTo(1);
-        await Assert.That(await WatchReleasedWithinAsync(watch, cancellationToken)).IsTrue();
+        await WaitForReleaseAsync(() => watch.IsReleased, "the Windows exit watch to release", cancellationToken);
+        await Assert.That(watch.IsReleased).IsTrue();
         await Assert.That(exits.Kernel.Unregistrations).IsEqualTo(1);
     }
 
@@ -348,16 +354,19 @@ public sealed class WindowsExitWatchTests
     /// <summary>The release closes the handles on the pool, a moment after the exit completes the task.</summary>
     [SlopwatchSuppress(
         "SW004",
-        "The release has no signal of its own to await: it closes the handles on the pool a moment after the exit completes the task the test awaited, so the poll waits for the watch's released state, bounded by Bound and cancelled with the test.")]
-    private static async Task<bool> WatchReleasedWithinAsync(WindowsExitWatch watch, CancellationToken cancellationToken)
+        "The release has no signal of its own to await: it closes the handles on the pool after the exit completes the task the test awaited, so the poll waits for the watch's released state or the handle's closed state, bounded by Bound and cancelled with the test.")]
+    private static async Task WaitForReleaseAsync(Func<bool> released, string description, CancellationToken cancellationToken)
     {
         var waited = Stopwatch.StartNew();
-        while (!watch.IsReleased && waited.Elapsed < Bound)
+        while (!released())
         {
+            if (waited.Elapsed >= Bound)
+            {
+                throw new TimeoutException("Timed out waiting for " + description + ".");
+            }
+
             await Task.Delay(TimeSpan.FromMilliseconds(10), cancellationToken);
         }
-
-        return watch.IsReleased;
     }
 
     /// <summary>The orders in which a watch's exit and its disposals can arrive.</summary>
@@ -440,18 +449,4 @@ public sealed class WindowsExitWatchTests
         }
     }
 
-    /// <summary>The release closes the handles on the pool, a moment after the exit completes the task.</summary>
-    [SlopwatchSuppress(
-        "SW004",
-        "The release has no signal of its own to await: it closes the handle on the pool a moment after the exit completes the task the test awaited, so the poll waits for the handle's closed state, bounded by Bound and cancelled with the test.")]
-    private static async Task<bool> ReleasedWithinAsync(SafeProcessHandle process, CancellationToken cancellationToken)
-    {
-        var waited = Stopwatch.StartNew();
-        while (!process.IsClosed && waited.Elapsed < Bound)
-        {
-            await Task.Delay(TimeSpan.FromMilliseconds(10), cancellationToken);
-        }
-
-        return process.IsClosed;
-    }
 }

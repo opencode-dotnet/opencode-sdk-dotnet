@@ -140,29 +140,33 @@ public sealed class PipelineStreamTests
     }
 
     [Test]
-    [NotInParallel]
     public async Task ExecuteStreamAsync_Should_Fail_A_Stalled_Error_Body_At_The_Progress_Window()
     {
-        using var callerCancellation = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var caller = new CancellationTokenSource();
+        var window = TimeSpan.FromMinutes(2);
+        var time = new ManualTimeProvider();
         using var content = new BlockingContent();
         using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError)
         {
             Content = content,
         });
         using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient, networkTimeout: TimeSpan.FromMilliseconds(200));
+        using var pipeline = PipelineFactory.Create(httpClient, networkTimeout: window, time: time);
         var stream = pipeline.ExecuteStreamAsync(OperationId,
-            HttpMethod.Get, "/api/event", new TestStreamAdapter(), callerCancellation.Token);
-        await using var enumerator = stream.GetAsyncEnumerator(callerCancellation.Token);
+            HttpMethod.Get, "/api/event", new TestStreamAdapter(), caller.Token);
+        await using var enumerator = stream.GetAsyncEnumerator(caller.Token);
+        var moving = enumerator.MoveNextAsync().AsTask();
+        await content.ReadStarted.WaitAsync(HangGuard.Bound);
+        await time.WaitForTimerAsync(HangGuard.Bound);
+        time.Advance(window);
 
         var exception = await Assert
-            .That(async () => _ = await enumerator.MoveNextAsync())
+            .That(moving.WaitAsync(HangGuard.Bound))
             .Throws<OpenCodeTransportException>();
 
         await Assert.That(exception!.InnerException).IsNotNull();
-        await Assert.That(callerCancellation.IsCancellationRequested).IsFalse();
-        await content.ReadStarted.WaitAsync(TimeSpan.FromSeconds(5));
-        await content.ReadCompleted.WaitAsync(TimeSpan.FromSeconds(5));
+        await Assert.That(caller.IsCancellationRequested).IsFalse();
+        await content.ReadCompleted.WaitAsync(HangGuard.Bound);
         await Assert.That(content.IsDisposed).IsTrue();
     }
 

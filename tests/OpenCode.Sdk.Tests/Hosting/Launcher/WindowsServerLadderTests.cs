@@ -3,6 +3,7 @@ using Microsoft.Win32.SafeHandles;
 using NSubstitute;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Hosting.Launcher;
 
@@ -23,15 +24,6 @@ public sealed class WindowsServerLadderTests
 
     /// <summary>Short second-rung bounds, so a bound that holds is seen to hold quickly.</summary>
     private static readonly WindowsLadderBounds Bounds = new(TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(300));
-
-    /// <summary>
-    /// How long, on the system clock, a test gives a ladder that must still be waiting the chance to
-    /// show it moved on anyway. A bound passed on a manual clock can resume the ladder on the thread
-    /// pool, as the net472 bridge's timed wait does, so a step taken a tick early is seen only once
-    /// that work ran. It decides nothing for a ladder that keeps its bounds: that one cannot move on
-    /// before the test moves the clock.
-    /// </summary>
-    private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(100);
 
     [Test]
     public async Task RunAsync_Should_Not_Run_The_Tree_Kill_For_A_Root_That_Exited()
@@ -113,16 +105,10 @@ public sealed class WindowsServerLadderTests
         var time = new ManualTimeProvider();
         var exited = new TaskCompletionSource<ChildExitStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
         var kills = new ConcurrentQueue<DateTimeOffset>();
-        var secondKill = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var treeKill = Substitute.For<IWindowsTreeKill>();
         _ = treeKill.KillTreeAsync(ProcessId, Arg.Any<TimeSpan>()).Returns(call =>
         {
             kills.Enqueue(time.GetUtcNow());
-            if (kills.Count == 2)
-            {
-                _ = secondKill.TrySetResult(true);
-            }
-
             return Task.FromResult(TreeKillOutcome.Ended);
         });
         using var root = new SafeProcessHandle(IntPtr.Zero, ownsHandle: false);
@@ -130,15 +116,22 @@ public sealed class WindowsServerLadderTests
 
         var ladder = new WindowsServerLadder(ProcessId, root, exited.Task, treeKill, Bounds, time).RunAsync(Grace);
         await time.WaitForTimerAsync(hangGuard);
+        var graceArmed = time.ArmedIn(Grace);
         time.Advance(Grace - TimeSpan.FromTicks(1));
-        var secondKillBeforeTheGracePassed = await BoundedWait.CompletesWithinAsync(secondKill.Task, Settle);
+        var graceStillArmed = time.ArmedIn(TimeSpan.FromTicks(1));
         time.Advance(TimeSpan.FromTicks(1));
         await time.WaitForTimerAsync(hangGuard);
+        var forcedExitArmed = time.ArmedIn(Bounds.ForcedExit);
+        time.Advance(Bounds.ForcedExit - TimeSpan.FromTicks(1));
+        var forcedExitStillArmed = time.ArmedIn(TimeSpan.FromTicks(1));
         var endedBeforeTheForcedExitBound = ladder.IsCompleted;
-        time.Advance(Bounds.ForcedExit);
+        time.Advance(TimeSpan.FromTicks(1));
         await ladder.WaitAsync(hangGuard);
 
-        await Assert.That(secondKillBeforeTheGracePassed).IsFalse();
+        await Assert.That(graceArmed).IsGreaterThanOrEqualTo(1);
+        await Assert.That(graceStillArmed).IsEqualTo(graceArmed);
+        await Assert.That(forcedExitArmed).IsGreaterThanOrEqualTo(1);
+        await Assert.That(forcedExitStillArmed).IsEqualTo(forcedExitArmed);
         var killedAt = kills.ToArray();
         await Assert.That(killedAt).Count().IsEqualTo(2);
         await Assert.That(killedAt[0]).IsEqualTo(started);
@@ -194,18 +187,21 @@ public sealed class WindowsServerLadderTests
         var started = time.GetUtcNow();
 
         var ladder = new WindowsServerLadder(ProcessId, root, stillRunning.Task, treeKill, Bounds, time).RunAsync(Grace);
-        var waitingOneTickBefore = new List<bool>();
+        var armedBefore = new List<int>();
+        var armedOneTickBefore = new List<int>();
         foreach (var bound in new[] { Grace, Bounds.TreeKill, Bounds.ForcedExit })
         {
             await time.WaitForTimerAsync(hangGuard);
+            armedBefore.Add(time.ArmedIn(bound));
             time.Advance(bound - TimeSpan.FromTicks(1));
-            waitingOneTickBefore.Add(!await BoundedWait.CompletesWithinAsync(ladder, Settle));
+            armedOneTickBefore.Add(time.ArmedIn(TimeSpan.FromTicks(1)));
             time.Advance(TimeSpan.FromTicks(1));
         }
 
         await ladder.WaitAsync(hangGuard);
 
-        await Assert.That(waitingOneTickBefore).IsEquivalentTo([true, true, true]);
+        await Assert.That(armedBefore.Min()).IsGreaterThanOrEqualTo(1);
+        await Assert.That(armedOneTickBefore).IsEquivalentTo(armedBefore, CollectionOrdering.Matching);
         await Assert.That(kills.ToArray()).IsEquivalentTo([started, started + Grace]);
         _ = await treeKill.Received(1).KillTreeAsync(ProcessId, Grace);
         _ = await treeKill.Received(1).KillTreeAsync(ProcessId, Bounds.TreeKill);

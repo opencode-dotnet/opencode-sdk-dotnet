@@ -12,18 +12,20 @@ namespace OpenCode.Sdk.Tests.Support;
 /// </summary>
 internal sealed class InterruptedBufferingContent : HttpContent
 {
-    private readonly SemaphoreSlim _gate = new(initialCount: 0, maxCount: 1);
-    private readonly TaskCompletionSource _readCompleted = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly TaskCompletionSource _readStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly Gate _gate = new();
     private bool _disposed;
+
+    public InterruptedBufferingContent()
+    {
+        ReadCompleted = _gate.Completed;
+        ReadStarted = _gate.Started;
+    }
 
     public bool IsDisposed => _disposed;
 
-#pragma warning disable VSTHRD003 // Test signals complete on their own source and resume asynchronously; exposing the task is the signal's contract.
-    public Task ReadCompleted => _readCompleted.Task;
+    public Task ReadCompleted { get; }
 
-    public Task ReadStarted => _readStarted.Task;
-#pragma warning restore VSTHRD003
+    public Task ReadStarted { get; }
 
     protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
         throw new InvalidOperationException("The read-stream path owns this content; it is never serialized.");
@@ -46,7 +48,6 @@ internal sealed class InterruptedBufferingContent : HttpContent
         if (disposing && !_disposed)
         {
             _disposed = true;
-            _gate.Release();
             _gate.Dispose();
         }
 
@@ -55,15 +56,7 @@ internal sealed class InterruptedBufferingContent : HttpContent
 
     private async Task<Stream> MaterializeAsync()
     {
-        _ = _readStarted.TrySetResult();
-        try
-        {
-            await _gate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-        }
-        finally
-        {
-            _ = _readCompleted.TrySetResult();
-        }
+        await _gate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
 
         // Disposal returned the pooled buffer; the BCL builds the stream over a null array and
         // throws exactly what the runtime throws for it.
