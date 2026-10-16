@@ -14,6 +14,7 @@ internal sealed class SuppressionScenario
 
     private readonly MockFileSystem _fileSystem = new();
     private readonly Dictionary<string, string> _files = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _ignored = new(StringComparer.Ordinal);
     private readonly List<string> _baselineEntries = [];
 
     /// <summary>Adds one repository file from its lines, joined with line feeds as the repository stores them.</summary>
@@ -21,6 +22,12 @@ internal sealed class SuppressionScenario
     {
         _files[path] = string.Join('\n', lines) + "\n";
         return this;
+    }
+
+    public SuppressionScenario WithIgnoredFile(string path, params string[] lines)
+    {
+        _ignored.Add(path);
+        return WithFile(path, lines);
     }
 
     /// <summary>Adds an SDK-style project, optionally with a <c>NoWarn</c> property and one linked <c>Compile</c> item.</summary>
@@ -62,7 +69,7 @@ internal sealed class SuppressionScenario
             await _fileSystem.File.WriteAllTextAsync(fullPath, text);
         }
 
-        return await new SuppressionScan(_fileSystem).ReadAsync(root, CancellationToken.None);
+        return await new SuppressionScan(_fileSystem, [.. _files.Keys.Except(_ignored, StringComparer.Ordinal)]).ReadAsync(root, CancellationToken.None);
     }
 
     /// <summary>The ledger lines of one scan, without the header and the totals.</summary>

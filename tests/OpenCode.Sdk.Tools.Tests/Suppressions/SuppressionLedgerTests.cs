@@ -1,5 +1,4 @@
 using OpenCode.Sdk.Tools.Tests.Support;
-using Testably.Abstractions;
 
 namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 
@@ -12,12 +11,13 @@ namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 /// </summary>
 public sealed class SuppressionLedgerTests
 {
-    private readonly RealFileSystem _fileSystem = new();
+    [ClassDataSource<SuppressionInventorySession>(Shared = SharedType.PerTestSession)]
+    public required SuppressionInventorySession Session { get; init; }
 
     [Test]
     public async Task Ledger_Should_Count_Every_Suppression_In_The_Repository()
     {
-        var inventory = await ScanAsync();
+        var inventory = Session.Inventory;
 
         await Verify(SuppressionLedger.Render(inventory.Suppressions));
     }
@@ -25,7 +25,7 @@ public sealed class SuppressionLedgerTests
     [Test]
     public async Task EditorConfig_Should_Declare_Each_Section_Once()
     {
-        var inventory = await ScanAsync();
+        var inventory = Session.Inventory;
 
         await Assert.That(AnalyzerConfigAudit.FindDuplicateSections(inventory.AnalyzerConfigs)).IsEmpty();
     }
@@ -33,7 +33,7 @@ public sealed class SuppressionLedgerTests
     [Test]
     public async Task EditorConfig_Should_Name_Only_Existing_Files()
     {
-        var inventory = await ScanAsync();
+        var inventory = Session.Inventory;
 
         await Assert.That(AnalyzerConfigAudit.FindUnmatchedSections(inventory)).IsEmpty();
     }
@@ -41,11 +41,9 @@ public sealed class SuppressionLedgerTests
     [Test]
     public async Task Rule_Should_Be_Suppressed_Through_One_Channel_Per_File()
     {
-        var inventory = await ScanAsync();
+        var inventory = Session.Inventory;
 
         await Assert.That(SuppressionOverlap.Find(inventory)).IsEmpty();
     }
 
-    private Task<SuppressionInventory> ScanAsync() =>
-        new SuppressionScan(_fileSystem).ReadAsync(new RepositoryRoot(_fileSystem).Locate(), CancellationToken.None);
 }

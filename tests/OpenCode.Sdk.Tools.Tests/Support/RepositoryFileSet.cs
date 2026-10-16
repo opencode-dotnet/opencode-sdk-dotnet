@@ -1,41 +1,30 @@
 using System.IO.Abstractions;
+using System.Text;
+using OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
 
 namespace OpenCode.Sdk.Tools.Tests.Support;
 
 /// <summary>
-/// The repository's own files, by repository-relative path with forward slashes: everything under
-/// the root except version control, build output, package caches, upstream checkouts and scratch work.
+/// Files git does not ignore, read from the working tree rather than the index contents.
 /// </summary>
 internal sealed class RepositoryFileSet(IFileSystem fileSystem)
 {
-    private static readonly string[] SkippedAnywhere = ["bin", "obj", "node_modules", ".git", ".vs", ".idea"];
-    private static readonly string[] SkippedAtRoot = ["external", ".scratchpad", "artifacts", "packages", "test-results", "TestResults"];
-
     private readonly IFileSystem _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
 
-    public IReadOnlyList<string> Enumerate(string root)
+    public async Task<IReadOnlyList<string>> EnumerateAsync(string root, IProcessRunner runner, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(root);
 
-        var result = new List<string>();
-        var pending = new Stack<string>([root]);
-        while (pending.TryPop(out var directory))
+        var result = await runner.RunAsync("git", ["ls-files", "-z", "--cached", "--others", "--exclude-standard"], root, cancellationToken);
+        if (result.ExitCode != 0)
         {
-            result.AddRange(_fileSystem.Directory.EnumerateFiles(directory)
-                .Select(file => _fileSystem.Path.GetRelativePath(root, file).Replace('\\', '/')));
-            foreach (var child in _fileSystem.Directory.EnumerateDirectories(directory))
-            {
-                var name = _fileSystem.Path.GetFileName(child);
-                var skipped = SkippedAnywhere.Contains(name, StringComparer.Ordinal)
-                    || (string.Equals(directory, root, StringComparison.Ordinal) && SkippedAtRoot.Contains(name, StringComparer.Ordinal));
-                if (!skipped)
-                {
-                    pending.Push(child);
-                }
-            }
+            throw new InvalidOperationException("git ls-files failed: " + result.StandardError);
         }
 
-        result.Sort(StringComparer.Ordinal);
-        return result;
+        return [.. Encoding.UTF8.GetString(result.StandardOutput).Split('\0', StringSplitOptions.RemoveEmptyEntries)
+            .Select(static path => path.Replace('\\', '/'))
+            .Distinct(StringComparer.Ordinal)
+            .Where(path => _fileSystem.File.Exists(_fileSystem.Path.Combine(root, path)))
+            .Order(StringComparer.Ordinal)];
     }
 }

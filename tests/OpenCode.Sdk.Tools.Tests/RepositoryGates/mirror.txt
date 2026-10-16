@@ -1,0 +1,14 @@
+tests/OpenCode.Sdk.Tools.Tests/Benchmarks/CompareBenchmarksCommandTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/EnumMemberNameCurationTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/ParameterNameCurationTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Ingestion/EnvelopeClassifierTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Ingestion/ErrorStyleClassifierTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Ingestion/GraphKeyBuilderTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Ingestion/LiteralClassifierTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Ingestion/OperationProjectorTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Ingestion/PrefixItemsAdapterTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Ingestion/SchemaProjectorTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Ingestion/SpecMediaTypeTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Ingestion/TemplateLiteralPrefixPolicyTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/Generator/Ingestion/UnionNormalizerTests.cs	1
+tests/OpenCode.Sdk.Tools.Tests/TestRoster/VerifyTestRosterCommandTests.cs	1
