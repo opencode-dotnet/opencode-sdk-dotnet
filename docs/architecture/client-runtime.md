@@ -279,10 +279,10 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   failures on both one-shot and streaming paths (ADR-0007, ADR-0014).
 - Caller cancellation of a public asynchronous operation or enumeration throws
   `OperationCanceledException` carrying the caller's token, not an SDK-owned linked token. The rule
-  applies to HTTP operations, SSE, cursor traversal, both terminal families, and `StartAsync`,
-  `DiscoverAsync`, `EnsureAsync`, and `StopAsync`. This identity guarantee applies when one caller
-  token is supplied, including the same token supplied at both enumeration entry points; two
-  distinct cancellable entry tokens are both observed but have no token-identity guarantee.
+  applies to HTTP operations, SSE, cursor traversal, and both terminal families. This identity
+  guarantee applies when one caller token is supplied, including the same token supplied at both
+  enumeration entry points; two distinct cancellable entry tokens are both observed but have no
+  token-identity guarantee.
 - Disposing the root client interrupts its in-flight HTTP operations and SSE streams and reports
   `ObjectDisposedException`; caller cancellation already observed for the same failure takes
   precedence. A terminal session owns its connection separately: its session-disposal rules apply.
