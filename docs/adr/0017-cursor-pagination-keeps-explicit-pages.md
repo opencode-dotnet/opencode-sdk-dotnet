@@ -1,13 +1,14 @@
 # Cursor pagination keeps explicit pages and adds item enumeration
 
-Date: 2026-09-12
+Date: 2026-10-16
 
 An operation whose pinned request and response bind to the supported cursor-list dialect keeps its
 generated one-page `List*Async` method and additively emits `Enumerate*Async`, which returns a
 `CursorSequence<TPage, TItem>`: a lazy `IAsyncEnumerable<TItem>` whose `Pages` property replays the
-same traversal as page envelopes. The page method remains the `NoThrow` and `cursor.previous` path;
-automatic traversal takes no per-call options and always throws API errors when their page is
-reached. A local `AsyncPageable<T>`/`Page<T>` family was rejected and stays rejected: `TPage` is the
+same traversal as page envelopes. The page method remains the `NoThrow` and `cursor.previous` path.
+Automatic traversal takes `OpenCodeRequestOptions`, applies its location and network timeout to
+every page request, refuses `NoThrow` at the call before enumeration, and always throws API errors
+when their page is reached. A local `AsyncPageable<T>`/`Page<T>` family was rejected and stays rejected: `TPage` is the
 generated response envelope itself, including the bidirectional `ListCursor`, so the page door
 introduces no second public page vocabulary and no integer page-size contract absent from the pin.
 

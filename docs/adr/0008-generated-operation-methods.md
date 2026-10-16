@@ -25,9 +25,10 @@ production repairs such loss under
 ADR-0020 rather than weakening this rule. So the drift argument applies unchanged: the
 stream *engine* is behavior and stays in the core, while stream *endpoints* emit as
 one-line delegations into it, exactly like the one-shot surface. A stream yields
-`IAsyncEnumerable<T>` rather than a response envelope, which is why its signature carries
-no per-call options (ADR-0007). Upstream's own generator emits its SSE operations the same
-way, over the same contract.
+`IAsyncEnumerable<T>` rather than a response envelope and takes the same
+`OpenCodeRequestOptions? requestOptions` parameter before the cancellation token as a one-shot
+method. The core applies location and timeout rules and refuses `NoThrow` at the call (ADR-0007).
+Upstream's own generator emits its SSE operations as delegations over the same contract.
 
 The radar covers both sides of the boundary: generated output is CI regen-verified
 (ADR-0003); every **excluded** operation (`pty.connect`, future exclusions) is

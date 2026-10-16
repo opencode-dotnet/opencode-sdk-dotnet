@@ -286,8 +286,9 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
 - Disposing the root client interrupts its in-flight HTTP operations and SSE streams and reports
   `ObjectDisposedException`; caller cancellation already observed for the same failure takes
   precedence. A terminal session owns its connection separately: its session-disposal rules apply.
-- Streaming operations return a stream rather than a response envelope and therefore expose no
-  per-call request-options parameter. Their failures always throw (ADR-0007).
+- Streaming operations take `OpenCodeRequestOptions` and return a stream rather than a response
+  envelope. Per-call `Location` applies to every connection attempt; `NoThrow` and an undefined
+  `ErrorBehavior` are refused at the call, before enumeration. Their failures always throw (ADR-0007).
 - Network progress is bounded by a per-read window: the send and every buffered body read must
   progress inside it, and each read that progresses re-arms it, so a slow-but-flowing body
   survives while a stalled one fails. Its length is the call's `OpenCodeRequestOptions.NetworkTimeout`
@@ -311,6 +312,12 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   completion, or failure, except `event.subscribe`, which runs under its reconnect windows
   (Server-sent events, below). Caller cancellation uses the public cancellation contract above;
   an exhausted progress window maps to `OpenCodeTransportException`.
+  On streams other than `event.subscribe`, a per-call `NetworkTimeout` overrides the client value
+  only while opening, including buffering an opening error body; it does not bound reads of the
+  successful live body. `event.subscribe` refuses any non-null per-call `NetworkTimeout`, including
+  `Timeout.InfiniteTimeSpan`, because its connection and idle windows govern it instead. Automatic
+  cursor traversals apply the options to every page fetch, so each page's send and buffered reads
+  receive their own progress window, not one deadline for the whole walk.
   Successful JSON bodies materialize directly from validated UTF-8 bytes when possible. One decoding
   policy applies the modern `HttpContent` charset/BOM and malformed-UTF-8 replacement algorithm on
   every target framework and on both success and error planes. Error bodies stay decoded strings so
@@ -358,8 +365,9 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
     SDK has no status to show, so an endless silent retry would hang `await foreach`. The
     consequence for consumers is that a wrong address or a refused credential surfaces after one
     minute, not at once, as the error the server last answered.
-  - `OpenCodeClientOptions.NetworkTimeout` does not reach `event.subscribe`. The 2 s connect bound
-    and the 1 s delay are fixed, as in upstream, and a stream takes no per-call options.
+  - `OpenCodeClientOptions.NetworkTimeout` does not reach `event.subscribe`, and a non-null per-call
+    `NetworkTimeout` is refused, including `Timeout.InfiniteTimeSpan`. The 2 s connect bound and the
+    1 s delay are fixed, as in upstream; per-call `Location` is sent on every reconnect attempt.
 - Durable continuation is requested explicitly through `session.log`'s `after` parameter, an
   exclusive aggregate sequence read from a durable envelope or from the sync marker. One
   `log.synced` marker reports the watermark the replay was captured at; it is a boundary rather
@@ -395,8 +403,10 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
 - A supported cursor-list operation has two generated doors: `List*Async` returns one endpoint-
   specific page envelope, while `Enumerate*Async` returns a `CursorSequence<TPage, TItem>` that
   lazily yields the items across pages and, through its `Pages` property, the same traversal's page
-  envelopes. Explicit pages retain per-call `NoThrow`; automatic traversal never takes per-call
-  options and therefore always throws API errors when their page is reached (ADR-0007, ADR-0017).
+  envelopes. Explicit pages retain per-call `NoThrow`; automatic traversal takes
+  `OpenCodeRequestOptions`, applies location and network timeout to every page fetch, and refuses
+  `NoThrow` at the call before enumeration. API errors always throw when their page is reached
+  (ADR-0007, ADR-0017).
 - `CursorSequence<TPage, TItem>` is a recipe, not a buffer: the item door and the page door each
   drive the one traversal core independently, so enumerating either performs its own requests, and
   enumerating both performs both walks. Its `TPage` is the generated response type — no page
