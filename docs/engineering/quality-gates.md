@@ -262,6 +262,12 @@ version named by the identity table in [`spec/SNAPSHOT.md`](../../spec/SNAPSHOT.
 against the distributed build", and it is the only mechanism that notices an operation upstream
 removed from a published build without anyone looking.
 
+It runs weekly and on demand, not on pull requests. Run it by hand (`workflow_dispatch`) at two
+moments, and treat a red run as a finding before the work goes on:
+- after a pin refresh merges, so the published build of the new pin meets the suite before anything
+  else lands on it;
+- before every NuGet.org release, on the commit the release packs.
+
 The mechanism is one environment variable, not a second harness. `OPENCODE_SDK_TESTS_SERVER_COMMAND`
 (`|`-separated, for example `opencode|serve`) replaces the command the exact-pin fixture starts and
 changes nothing else: the same hermetic boundary (`testing-style.md`), the same seeded
