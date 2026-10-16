@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// it as the compiler would. The reason states which secrets the open members carry, or why they
 /// carry none.
 /// </summary>
-internal sealed record RedactedOpenMembersCuration
+internal sealed record RedactedOpenMembersCuration : IReasonedRow
 {
     /// <summary>Gets the generated model's C# type name.</summary>
     [JsonPropertyName("model")] public required string Model { get; init; }

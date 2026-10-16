@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// intended identity (ADR-0013). The reason carries the upstream report; the row retires when
 /// upstream's fix makes its subject vanish from the document.
 /// </summary>
-internal sealed record OperationIdentityCuration
+internal sealed record OperationIdentityCuration : IReasonedRow
 {
     [JsonPropertyName("operationId")] public required string OperationId { get; init; }
 

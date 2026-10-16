@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// .NET name of a construct the pinned document already represents; it adds no wire semantics
 /// (ADR-0013).
 /// </summary>
-internal sealed record HoistedMemberNameCuration
+internal sealed record HoistedMemberNameCuration : IReasonedRow
 {
     /// <summary>Gets the interface that declares the member: a union interface or a hoisted carrier.</summary>
     [JsonPropertyName("owner")] public required string Owner { get; init; }

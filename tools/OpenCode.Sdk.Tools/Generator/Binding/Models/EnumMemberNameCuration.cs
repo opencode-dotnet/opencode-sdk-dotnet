@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// <c>Value…</c>). Curation chooses the .NET name of a construct the pinned document already
 /// represents; it adds no wire semantics (ADR-0013).
 /// </summary>
-internal sealed record EnumMemberNameCuration
+internal sealed record EnumMemberNameCuration : IReasonedRow
 {
     /// <summary>Gets the schema key of the enum, as the document names it.</summary>
     [JsonPropertyName("schema")] public required string Schema { get; init; }

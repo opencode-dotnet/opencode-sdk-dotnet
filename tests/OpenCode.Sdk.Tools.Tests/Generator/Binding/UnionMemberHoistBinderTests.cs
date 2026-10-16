@@ -8,6 +8,31 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class UnionMemberHoistBinderTests
 {
     [Test]
+    [Arguments(null, "curation is null")]
+    [Arguments("Owner", "curation names no owner")]
+    [Arguments("Property", "curation names no property")]
+    public async Task Bind_Should_Refuse_Unsafe_Hoisted_Name_Rows(string? blankField, string problem)
+    {
+        var exception = await BindUnsafeContractRowAsync("HoistedMemberNames", blankField);
+
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation,
+            "hoistedMemberNames[0]", "hoistedMemberNames[0] " + problem));
+    }
+
+    [Test]
+    [Arguments(false, "hoisted member name curation must declare a reason")]
+    [Arguments(true, "hoisted member name curation is duplicated")]
+    public async Task Bind_Should_Refuse_Invalid_Hoisted_Name_Rows(bool duplicate, string problem)
+    {
+        var row = HoistedMemberName("IExampleEvent", "durable", "IDurableEnvelope", reason: duplicate ? "Name the carrier." : " ");
+        var curation = Curation(Groups(), hoistedMemberNames: duplicate ? [row, row] : [row]);
+
+        var exception = Assert.Throws<BindingException>(() => HoistDurableCarrier(curation));
+
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation, "IExampleEvent", problem));
+    }
+
+    [Test]
     public async Task Bind_Should_Hoist_A_Member_Every_Variant_Declares_Identically()
     {
         var plan = Hoist(

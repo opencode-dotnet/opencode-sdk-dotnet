@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// selected, so the reason is the only record of why the released surface omits it — it states
 /// the wall as present-tense fact and names the decision that let it stand.
 /// </summary>
-internal sealed record DeclinedCuration
+internal sealed record DeclinedCuration : IReasonedRow
 {
     [JsonPropertyName("operationId")] public required string OperationId { get; init; }
 

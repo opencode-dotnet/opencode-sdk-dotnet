@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// treats as a secret marker, but the value it carries is not a credential wherever it appears.
 /// The reason states what the value is.
 /// </summary>
-internal sealed record SecretLookingNameCuration
+internal sealed record SecretLookingNameCuration : IReasonedRow
 {
     /// <summary>Gets the wire name, as every model member that carries it is spelled.</summary>
     [JsonPropertyName("property")] public required string Property { get; init; }

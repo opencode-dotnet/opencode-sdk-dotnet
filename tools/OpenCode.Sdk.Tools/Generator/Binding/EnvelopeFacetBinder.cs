@@ -160,15 +160,15 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
 
     private string? DerivePayloadName(string responseTypeName, string mechanicalName)
     {
-        var payloadName = _context.Curation.EnvelopePayloadNames.TryGetValue(_context.Operation.OperationId, out var curated)
-            ? curated
-            : mechanicalName;
+        var curated = _context.Curation.EnvelopePayloadNames.FirstOrDefault(row =>
+            string.Equals(row.OperationId, _context.Operation.OperationId, StringComparison.Ordinal))?.Name;
+        var payloadName = curated ?? mechanicalName;
         if (curated is not null
-            && string.Equals(_context.Operation.Segments[^1], "list", StringComparison.Ordinal)
             && string.Equals(curated, mechanicalName, StringComparison.Ordinal))
         {
+            var rule = string.Equals(_context.Operation.Segments[^1], "list", StringComparison.Ordinal) ? "list" : "payload";
             _context.Errors.Add(BindingErrorCategory.Curation, _context.Operation.OperationId,
-                $"envelopePayloadNames row for '{_context.Operation.OperationId}' repeats the list naming rule's derived value '{curated}'");
+                $"envelopePayloadNames row for '{_context.Operation.OperationId}' repeats the {rule} naming rule's derived value '{curated}'");
             return null;
         }
 

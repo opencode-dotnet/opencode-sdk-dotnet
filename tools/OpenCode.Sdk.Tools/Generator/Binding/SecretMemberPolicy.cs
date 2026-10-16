@@ -41,6 +41,17 @@ internal static class SecretMemberPolicy
         ArgumentNullException.ThrowIfNull(curation);
         ArgumentNullException.ThrowIfNull(errors);
 
+        bool[] safe =
+        [
+            CurationRowContract.Validate(nameof(curation.RedactedMembers), curation.RedactedMembers, errors),
+            CurationRowContract.Validate(nameof(curation.RedactedOpenMembers), curation.RedactedOpenMembers, errors),
+            CurationRowContract.Validate(nameof(curation.SecretLookingNames), curation.SecretLookingNames, errors),
+        ];
+        if (safe.Contains(false))
+        {
+            return models;
+        }
+
         var objects = models.OfType<ObjectModelPlan>().ToArray();
         var rows = ValidateMemberRows(objects, curation.RedactedMembers, errors);
         var cleared = ValidateNameRows(objects, curation.SecretLookingNames, errors);
@@ -164,7 +175,7 @@ internal static class SecretMemberPolicy
 
         if (!floor && LooksSecret(property.WireName) && !cleared.Contains(property.WireName))
         {
-            errors.Add(BindingErrorCategory.Curation, $"{model.Name}.{property.WireName}", UndecidedSecretProblem);
+            errors.Add(BindingErrorCategory.Curation, $"{model.Name}.{property.WireName}", UndecidedSecretProblem, BindingErrorKind.MissingRow);
         }
 
         return floor ? property with { IsRedacted = true } : property;
@@ -178,15 +189,7 @@ internal static class SecretMemberPolicy
         foreach (var row in rows)
         {
             var subject = $"{row.Model}.{row.Property}";
-            if (!result.TryAdd((row.Model, row.Property), row))
-            {
-                errors.Add(BindingErrorCategory.Curation, subject, "redacted member curation is duplicated");
-            }
-
-            if (string.IsNullOrWhiteSpace(row.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, subject, "redacted member curation must declare a reason");
-            }
+            _ = result.TryAdd((row.Model, row.Property), row);
 
             if (!byName.TryGetValue(row.Model, out var model)
                 || !model.Properties.Any(property => string.Equals(property.WireName, row.Property, StringComparison.Ordinal)))
@@ -216,15 +219,7 @@ internal static class SecretMemberPolicy
         var result = new Dictionary<string, bool>(StringComparer.Ordinal);
         foreach (var row in rows)
         {
-            if (!result.TryAdd(row.Model, row.Redact))
-            {
-                errors.Add(BindingErrorCategory.Curation, row.Model, "redacted open members curation is duplicated");
-            }
-
-            if (string.IsNullOrWhiteSpace(row.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, row.Model, "redacted open members curation must declare a reason");
-            }
+            _ = result.TryAdd(row.Model, row.Redact);
 
             if (!byName.TryGetValue(row.Model, out var model))
             {
@@ -238,7 +233,7 @@ internal static class SecretMemberPolicy
 
         foreach (var model in models.Where(model => model.EmitsExtensionData && !result.ContainsKey(model.Name)))
         {
-            errors.Add(BindingErrorCategory.Curation, model.Name, UndecidedOpenMembersProblem);
+            errors.Add(BindingErrorCategory.Curation, model.Name, UndecidedOpenMembersProblem, BindingErrorKind.MissingRow);
         }
 
         return result;
@@ -252,29 +247,21 @@ internal static class SecretMemberPolicy
             .Select(static property => property.WireName)
             .ToHashSet(StringComparer.Ordinal);
         var result = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var row in rows)
+        foreach (var property in rows.Select(static row => row.Property))
         {
-            if (!result.Add(row.Property))
-            {
-                errors.Add(BindingErrorCategory.Curation, row.Property, "secret-looking name curation is duplicated");
-            }
+            _ = result.Add(property);
 
-            if (string.IsNullOrWhiteSpace(row.Reason))
+            if (!wireNames.Contains(property))
             {
-                errors.Add(BindingErrorCategory.Curation, row.Property, "secret-looking name curation must declare a reason");
+                errors.Add(BindingErrorCategory.Curation, property, "secret-looking name curation names no generated model member");
             }
-
-            if (!wireNames.Contains(row.Property))
+            else if (IsUpstreamRedacted(property))
             {
-                errors.Add(BindingErrorCategory.Curation, row.Property, "secret-looking name curation names no generated model member");
+                errors.Add(BindingErrorCategory.Curation, property, "secret-looking name curation clears a name the upstream redaction list masks");
             }
-            else if (IsUpstreamRedacted(row.Property))
+            else if (!LooksSecret(property))
             {
-                errors.Add(BindingErrorCategory.Curation, row.Property, "secret-looking name curation clears a name the upstream redaction list masks");
-            }
-            else if (!LooksSecret(row.Property))
-            {
-                errors.Add(BindingErrorCategory.Curation, row.Property, "secret-looking name curation names a member the secret-name wall never stops");
+                errors.Add(BindingErrorCategory.Curation, property, "secret-looking name curation names a member the secret-name wall never stops");
             }
         }
 

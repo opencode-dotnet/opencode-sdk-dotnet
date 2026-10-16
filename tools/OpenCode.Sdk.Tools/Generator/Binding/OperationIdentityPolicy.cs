@@ -16,22 +16,14 @@ internal static class OperationIdentityPolicy
         ArgumentNullException.ThrowIfNull(curation);
 
         var errors = new BindingErrorCollector();
+        if (!CurationRowContract.Validate(nameof(curation.OperationIdentities), curation.OperationIdentities, errors))
+        {
+            errors.ThrowIfAny();
+        }
         var map = new Dictionary<string, string>(StringComparer.Ordinal);
         var identities = new HashSet<string>(StringComparer.Ordinal);
         foreach (var row in curation.OperationIdentities)
         {
-            if (string.IsNullOrWhiteSpace(row.OperationId))
-            {
-                errors.Add(BindingErrorCategory.Curation, "operationIdentities", "operation identity curation must name its subject");
-                continue;
-            }
-
-            if (string.IsNullOrWhiteSpace(row.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, row.OperationId,
-                    "operation identity curation must declare a reason carrying the upstream report");
-            }
-
             // A well-formed subject needs no repair; such a row is a misuse of the mechanism,
             // not a defect map.
             if (OperationIdentityParser.IsWellFormed(row.OperationId))
@@ -53,10 +45,7 @@ internal static class OperationIdentityPolicy
                     $"intended identity '{row.Identity}' is claimed by more than one identity row");
             }
 
-            if (!map.TryAdd(row.OperationId, row.Identity))
-            {
-                errors.Add(BindingErrorCategory.Curation, row.OperationId, "operation identity curation is duplicated");
-            }
+            _ = map.TryAdd(row.OperationId, row.Identity);
         }
 
         errors.ThrowIfAny();

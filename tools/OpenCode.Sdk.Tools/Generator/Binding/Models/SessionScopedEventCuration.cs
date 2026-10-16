@@ -6,7 +6,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// The rule that marks session-scoped events: which event unions to look in, the payload member and
 /// the identifier member it must carry, and the identifier schema that member must be.
 /// </summary>
-internal sealed record SessionScopedEventCuration
+internal sealed record SessionScopedEventCuration : IReasonedRow
 {
     /// <summary>Gets the generated event unions whose records are judged.</summary>
     [JsonPropertyName("unions")]

@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// <see cref="Matches"/> prefixes at a word boundary lives in the <see cref="Area"/> subfolder.
 /// A Sessions model no row matches stays in the family's model folder.
 /// </summary>
-internal sealed record SessionAreaCuration
+internal sealed record SessionAreaCuration : IReasonedRow
 {
     [JsonPropertyName("area")] public required string Area { get; init; }
 

@@ -37,16 +37,22 @@ internal static class ModelOwnershipPolicy
         var unplaced = new List<string>();
         foreach (var subject in Subjects(candidates))
         {
-            var slice = bodyFamilies.TryGetValue(subject.Name, out var bodyFamily)
-                ? bodyFamily
-                : ownerRows.OwnerOf(subject, errors) ?? prefixes.FamilyOf(subject.Concept);
+            _ = bodyFamilies.TryGetValue(subject.Name, out var bodyFamily);
+            var row = bodyFamily is null ? ownerRows.Match(subject, errors) : null;
+            var prefixFamily = prefixes.FamilyOf(subject.Concept);
+            var slice = bodyFamily ?? row?.Owner ?? prefixFamily;
+            if (row is not null && string.Equals(row.Owner, prefixFamily, StringComparison.Ordinal))
+            {
+                errors.Add(BindingErrorCategory.Curation, row.Match,
+                    $"model owner row is redundant: family prefix already places model '{subject.Name}' in '{slice}'");
+            }
             if (slice is null)
             {
                 unplaced.Add(subject.Name);
                 continue;
             }
 
-            // An alias a row confirms still places the model; one a row overrides does not.
+            // Placement in another family leaves a prefix alias unused.
             prefixes.RecordPlacement(subject.Concept, slice);
 
             // A body request sits at its family root, so it takes no model area.

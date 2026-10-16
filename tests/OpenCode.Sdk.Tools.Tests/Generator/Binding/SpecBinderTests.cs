@@ -4,12 +4,54 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 public sealed class SpecBinderTests
 {
+    [Test]
+    public async Task Bind_Should_Check_The_Reason_Of_A_Redundant_Alias()
+    {
+        var document = await IngestAsync(DuplicateTagScenario(duplicateName: "GadgetError_1"));
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("gadget.get"),
+            GadgetCuration(Alias("GadgetError_1", "GadgetError", reason: " "))));
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Curation, "GadgetError_1", "schema alias curation must declare a reason"),
+            new BindingError(BindingErrorCategory.Curation, "GadgetError_1", "schema alias is redundant: the stabilize-duplicate collapse already folds it into 'GadgetError'"),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments("Original", false)]
+    [Arguments("Canonical", true)]
+    [Arguments("Canonical#/properties/nested", true)]
+    public async Task Bind_Should_Validate_Schema_Names_On_The_Collapsed_Graph(string key, bool survives)
+    {
+        var document = await IngestAsync(SpecScenario.Define(spec => spec
+            .WithSchema("Original", static schema => schema.Type("object").Property("nested", static nested =>
+                nested.Type("object").Property("id", static id => id.Type("string"), required: true), required: true))
+            .WithSchema("Canonical", static schema => schema.Type("object").Property("nested", static nested =>
+                nested.Type("object").Property("id", static id => id.Type("string"), required: true), required: true))
+            .WithOperation("widget.get", configure: static operation => operation.Response(200, "application/json", static schema => schema.Ref("Original")))));
+        var curation = Curation(Groups("widget", RootGroup()), schemaAliases: [Alias("Original", "Canonical")],
+            schemaNames: [SchemaName(key, "ReviewedName")]);
+
+        if (survives)
+        {
+            var plan = new BindingTestHost().Bind(document, Selection("widget.get"), curation);
+            await Assert.That(plan.Models.Select(static model => model.Name)).Contains("ReviewedName");
+        }
+        else
+        {
+            var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("widget.get"), curation));
+            var error = exception.Errors.Single(static error => error.Subject == "Original");
+            await Assert.That(error.Category).IsEqualTo(BindingErrorCategory.Curation);
+            await Assert.That(error.Problem).IsEqualTo("curated schema does not exist in the spec");
+        }
+    }
+
     /// <summary>Effect's projection of <c>TemplateLiteral(["rpc.", String])</c>.</summary>
     private const string RpcPrefixPattern = "^rpc\\.[\\s\\S]*?$";
 
@@ -395,15 +437,14 @@ public sealed class SpecBinderTests
             {
                 ["health"] = RootGroup(),
             },
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["orphan.get"] = "Orphan",
-            });
+            envelopePayloadNames: [EnvelopePayloadName("orphan.get", "Orphan")]);
 
         var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, selection, curation));
 
-        await Assert.That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Selection)).IsTrue();
-        await Assert.That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation)).IsTrue();
+        await Assert.That(exception.Errors).Contains(new BindingError(BindingErrorCategory.Selection,
+            "missing.get", "selected operation does not exist in the ingested spec"));
+        await Assert.That(exception.Errors).Contains(new BindingError(BindingErrorCategory.Curation,
+            "orphan.get", "curated operation does not exist in the spec"));
     }
 
     [Test]
@@ -801,22 +842,15 @@ public sealed class SpecBinderTests
                 .Response(200, "application/json", schema => schema
                     .Type("object")
                     .Property("data", property => property.Type("string"), required: true)))));
-        var envelopeNames = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["session.message"] = "Message",
-        };
+        EnvelopePayloadNameCuration[] envelopeNames = [EnvelopePayloadName("session.message", "Message")];
 
         var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
             document,
             Selection("health.get"),
-            Curation(new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
-            {
-                ["health"] = RootGroup(),
-            }, envelopeNames)));
+            Curation(Groups("health", RootGroup()), envelopePayloadNames: envelopeNames)));
 
-        await Assert
-            .That(exception.Errors.Single(static error => error.Category == BindingErrorCategory.Curation).Problem)
-            .Contains("not selected");
+        await Assert.That(exception.Errors.Single(static error => error.Category == BindingErrorCategory.Curation)).IsEqualTo(new BindingError(BindingErrorCategory.Curation,
+            "session.message", "curated operation is not selected by the current profile"));
     }
 
     [Test]

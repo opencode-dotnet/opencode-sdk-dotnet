@@ -61,12 +61,12 @@ tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/ExperimentalDiagnosticCurationT
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/InternalNameCollisionCheckTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/ModelOwnershipPolicyTests.cs	2
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/NamedStabilizeSchemaTests.cs	5
-tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/OperationPlanBinderTests.cs	91
+tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/OperationPlanBinderTests.cs	90
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/ParameterNameCurationTests.cs	6
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/PendingOperationBindabilityProbeTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/QueryParameterClassificationTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/SessionScopedEventBinderTests.cs	4
-tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/SpecBinderTests.cs	84
+tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/SpecBinderTests.cs	82
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/StabilizeDuplicatePolicyTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/TransportOwnedFingerprintTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/UnionMemberHoistBinderTests.cs	1

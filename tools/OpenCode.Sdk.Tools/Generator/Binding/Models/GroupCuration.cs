@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
-internal sealed record GroupCuration
+internal sealed record GroupCuration : IReasonedRow
 {
     [JsonPropertyName("placement")]
     public required GroupPlacement Placement { get; init; }

@@ -23,6 +23,21 @@ public sealed class SecretMemberPolicyTests
     private const string Reason = "The value is what the reason says it is.";
 
     [Test]
+    [Arguments("RedactedMembers", null, "redactedMembers", "curation is null")]
+    [Arguments("RedactedMembers", "Model", "redactedMembers", "curation names no model")]
+    [Arguments("RedactedMembers", "Property", "redactedMembers", "curation names no property")]
+    [Arguments("RedactedOpenMembers", null, "redactedOpenMembers", "curation is null")]
+    [Arguments("RedactedOpenMembers", "Model", "redactedOpenMembers", "curation names no model")]
+    [Arguments("SecretLookingNames", null, "secretLookingNames", "curation is null")]
+    [Arguments("SecretLookingNames", "Property", "secretLookingNames", "curation names no property")]
+    public async Task Bind_Should_Refuse_Unsafe_Secret_Rows(string property, string? blankField, string section, string problem)
+    {
+        var exception = await BindUnsafeContractRowAsync(property, blankField);
+
+        await Assert.That(exception.Errors.Single()).IsEqualTo(IndexedContractError(section, problem));
+    }
+
+    [Test]
     [Arguments("client_secret", true)]
     [Arguments("clientSecret", true)]
     [Arguments("CLIENT-SECRET", true)]
@@ -70,6 +85,7 @@ public sealed class SecretMemberPolicyTests
         var error = exception.Errors.Single();
         await Assert.That(error.Subject).IsEqualTo("VaultInfo.apiToken");
         await Assert.That(error.Problem).IsEqualTo(SecretMemberPolicy.UndecidedSecretProblem);
+        await Assert.That(error.Kind).IsEqualTo(BindingErrorKind.MissingRow);
     }
 
     [Test]
@@ -264,6 +280,7 @@ public sealed class SecretMemberPolicyTests
         await Assert.That(error.Subject).IsEqualTo("VaultSettings");
         await Assert.That(error.Problem).IsEqualTo(SecretMemberPolicy.UndecidedOpenMembersProblem);
         await Assert.That(error.Problem).Contains("add a redactedOpenMembers row");
+        await Assert.That(error.Kind).IsEqualTo(BindingErrorKind.MissingRow);
     }
 
     /// <summary>A missing row is curation, never a shape wall: an operation the open-bag wall alone refuses probes as bindable.</summary>

@@ -24,23 +24,16 @@ internal sealed class ModelOwnerRows
         ArgumentNullException.ThrowIfNull(families);
         ArgumentNullException.ThrowIfNull(errors);
 
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var valid = new List<ModelOwnerCuration>();
-        foreach (var row in rows)
+        if (!CurationRowContract.Validate(nameof(GenerationCuration.ModelOwners), rows, errors))
         {
-            var subject = string.IsNullOrWhiteSpace(row.Match) ? "modelOwners" : row.Match;
+            return new ModelOwnerRows([]);
+        }
+
+        var valid = new List<ModelOwnerCuration>();
+        foreach (var row in rows.DistinctBy(static row => row.Match, StringComparer.OrdinalIgnoreCase))
+        {
+            var subject = row.Match;
             var usable = true;
-            if (string.IsNullOrWhiteSpace(row.Match) || !seen.Add(row.Match))
-            {
-                errors.Add(BindingErrorCategory.Curation, subject, "model owner row match is empty or duplicated");
-                usable = false;
-            }
-
-            if (string.IsNullOrWhiteSpace(row.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, subject, "model owner row must declare a reason");
-            }
-
             if (!families.Contains(row.Owner) && !string.Equals(row.Owner, TypeHome.CommonSlice, StringComparison.Ordinal))
             {
                 errors.Add(BindingErrorCategory.Curation, subject,
@@ -57,8 +50,8 @@ internal sealed class ModelOwnerRows
         return new ModelOwnerRows(valid);
     }
 
-    /// <summary>Gets the owner the one matching row names, or <see langword="null"/> when no row matches.</summary>
-    public string? OwnerOf(OwnershipSubject subject, BindingErrorCollector errors)
+    /// <summary>Gets the matching row, retaining its identity for placement refusals.</summary>
+    public ModelOwnerCuration? Match(OwnershipSubject subject, BindingErrorCollector errors)
     {
         ArgumentNullException.ThrowIfNull(subject);
         ArgumentNullException.ThrowIfNull(errors);
@@ -71,7 +64,7 @@ internal sealed class ModelOwnerRows
         }
 
         _used.UnionWith(matches);
-        return matches.FirstOrDefault()?.Owner;
+        return matches.FirstOrDefault();
     }
 
     /// <summary>A row that places nothing is stale: the refresh that emptied it surfaces it instead of carrying it.</summary>

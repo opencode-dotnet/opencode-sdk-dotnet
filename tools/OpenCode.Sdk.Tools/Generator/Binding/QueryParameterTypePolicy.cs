@@ -51,7 +51,7 @@ internal static class QueryParameterTypePolicy
             return QueryValueKind.Text;
         }
 
-        context.Errors.Add(BindingErrorCategory.Curation, operationId + ":" + parameter, UnclassifiedProblem);
+        context.Errors.Add(BindingErrorCategory.Curation, operationId + ":" + parameter, UnclassifiedProblem, BindingErrorKind.MissingRow);
         return null;
     }
 

@@ -1,9 +1,83 @@
+using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Tests.Support;
 
 internal static class BindingScenarioData
 {
+    public static Task<SpecDocument> ContractDocumentAsync() => BindingTestHost.IngestAsync(SpecScenario.Define(static spec =>
+        spec.WithOperation("health.get", configure: static operation => operation.WithoutResponse(200).Response(204))));
+
+    public static IReasonedRow ContractRow(string property) => property switch
+    {
+        "Descriptions" => new DescriptionCuration { Type = "subject", Summary = "Scenario summary.", Reason = "Scenario documentation." },
+        "SessionScopedEvent" => new SessionScopedEventCuration { Unions = [], PayloadMember = "data", Member = "id", Identifier = "subject", Reason = "Scenario event rule." },
+        "Groups" => RootGroup(),
+        "OperationIdentities" => OperationIdentity("subject", "health.get"),
+        "OperationNames" => OperationName("subject", "ReviewedAsync"),
+        "ParameterNames" => ParameterName("subject", "parameter", "renamed"),
+        "SchemaNames" => SchemaName("subject", "Reviewed"),
+        "EnvelopePayloadNames" => EnvelopePayloadName("subject", "Reviewed"),
+        "SchemaAliases" => Alias("subject", "target"),
+        "TransportOwned" => TransportOwned("subject", new string('a', 64)),
+        "HoistedMemberNames" => HoistedMemberName("subject", "property", "IReviewed"),
+        "EnumMemberNames" => EnumMemberName("subject", "value", "Reviewed"),
+        "RedactedMembers" => new RedactedMemberCuration { Model = "subject", Property = "property", Redact = true, Reason = "Scenario masks the member." },
+        "RedactedOpenMembers" => OpenMembers("subject", redact: false),
+        "SecretLookingNames" => new SecretLookingNameCuration { Property = "subject", Reason = "Scenario clears the name." },
+        "Declined" => Declined("subject"),
+        "ModelOwners" => Owner("subject", "Common"),
+        "SessionAreas" => new SessionAreaCuration { Area = "subject", Matches = ["Subject"], Reason = "Scenario model area." },
+        "QueryParameterTypes" => QueryParameterType("subject", "parameter", "int"),
+        "StringQueryParameters" => StringQueryParameter("subject", "parameter"),
+        _ => throw new InvalidOperationException("Unknown scenario row: " + property),
+    };
+
+    public static async Task<BindingException> BindUnsafeContractRowAsync(string propertyName, string? blankField)
+    {
+        var property = typeof(GenerationCuration).GetProperty(propertyName)!;
+        var rows = Array.CreateInstance(property.PropertyType.GenericTypeArguments.Single(), 1);
+        if (blankField is not null)
+        {
+            var row = ContractRow(propertyName);
+            row.GetType().GetProperty(blankField)!.SetValue(row, " ");
+            rows.SetValue(row, 0);
+        }
+
+        // A null collection element is an in-memory authoring error, not a nullable JSON member.
+        return await BindContractRowsAsync(propertyName, rows);
+    }
+
+    public static BindingError IndexedContractError(string section, string problem) =>
+        new(BindingErrorCategory.Curation, section + "[0]", section + "[0] " + problem);
+
+    public static Task<BindingException> BindContractRowAsync(string propertyName, IReasonedRow row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        var rows = Array.CreateInstance(row.GetType(), 1);
+        rows.SetValue(row, 0);
+        var value = row switch
+        {
+            GroupCuration group => (object)Groups("subject", group),
+            SessionScopedEventCuration => row,
+            _ => rows,
+        };
+        return BindContractRowsAsync(propertyName, value);
+    }
+
+    private static async Task<BindingException> BindContractRowsAsync(string propertyName, object rows)
+    {
+        var curation = Curation(Groups("health", RootGroup()));
+        typeof(GenerationCuration).GetProperty(propertyName)!.SetValue(curation, rows);
+        var document = await ContractDocumentAsync();
+        return Assert.Throws<BindingException>(() =>
+        {
+            _ = propertyName == "OperationIdentities" ? (object)OperationIdentityPolicy.BuildMap(curation)
+                : new BindingTestHost().Bind(document, Selection("health.get"), curation);
+        });
+    }
+
     public static OperationSelection Selection(params string[] operationIds) =>
         new()
         {
@@ -11,7 +85,7 @@ internal static class BindingScenarioData
         };
 
     public static GenerationCuration Curation(IReadOnlyDictionary<string, GroupCuration> groups,
-        IReadOnlyDictionary<string, string>? envelopePayloadNames = null,
+        IReadOnlyList<EnvelopePayloadNameCuration>? envelopePayloadNames = null,
         IReadOnlyList<SchemaAlias>? schemaAliases = null,
         IReadOnlyList<OperationNameCuration>? operationNames = null,
         IReadOnlyList<SchemaNameCuration>? schemaNames = null,
@@ -35,7 +109,7 @@ internal static class BindingScenarioData
             OperationIdentities = operationIdentities ?? [],
             OperationNames = operationNames ?? [],
             SchemaNames = schemaNames ?? [],
-            EnvelopePayloadNames = envelopePayloadNames ?? new Dictionary<string, string>(StringComparer.Ordinal),
+            EnvelopePayloadNames = envelopePayloadNames ?? [],
             SchemaAliases = schemaAliases ?? [],
             TransportOwned = transportOwned ?? [],
             Declined = declined ?? [],
@@ -52,6 +126,10 @@ internal static class BindingScenarioData
             QueryParameterTypes = queryParameterTypes ?? [],
             StringQueryParameters = stringQueryParameters ?? [],
         };
+
+    public static EnvelopePayloadNameCuration EnvelopePayloadName(string operationId, string name,
+        string reason = "The scenario names the returned payload after its domain role.") =>
+        new() { OperationId = operationId, Name = name, Reason = reason };
 
     public static ParameterNameCuration ParameterName(string operationId, string parameter, string dotnetName,
         string reason = "Scenario names the route value after its resource.") =>

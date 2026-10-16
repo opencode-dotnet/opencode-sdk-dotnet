@@ -21,6 +21,31 @@ public sealed class QueryParameterClassificationTests
     private const string Operation = "widget.list";
 
     [Test]
+    [Arguments("null", "queryParameterTypes[0] curation is null")]
+    [Arguments("operationId", "queryParameterTypes[0] curation names no operationId")]
+    [Arguments("parameter", "queryParameterTypes[0] curation names no parameter")]
+    public async Task Check_Should_Defer_Unsafe_Rows_To_The_Binder(string fault, string problem)
+    {
+        var row = fault switch
+        {
+            "null" => null,
+            "operationId" => QueryParameterType(" ", "limit", "int"),
+            _ => QueryParameterType(Operation, " ", "int"),
+        };
+        // Null elements reach the row contract even though JSON member nullability is enforced.
+        var curation = Curation(Groups("health", RootGroup()), queryParameterTypes: [row!]);
+        var errors = new BindingErrorCollector();
+
+        QueryParameterEvidencePolicy.Check(curation, Watch("packages/unwatched.ts"), errors);
+
+        await Assert.That(errors.Count).IsEqualTo(0);
+        var document = await ContractDocumentAsync();
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("health.get"), curation));
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation,
+            "queryParameterTypes[0]", problem));
+    }
+
+    [Test]
     public async Task Bind_Should_Type_A_Plain_String_Parameter_As_The_Integer_Its_Row_Names()
     {
         var document = await BindingTestHost.IngestAsync(WidgetScenario());
@@ -41,7 +66,8 @@ public sealed class QueryParameterClassificationTests
             typed: [QueryParameterType(Operation, "limit", "int"), QueryParameterType(Operation, "after", "long")]));
 
         await Assert.That(exception.Errors.Select(static error => $"{error.Category}|{error.Subject}|{error.Problem}"))
-            .IsEquivalentTo([$"Curation|{Operation}:search|{QueryParameterTypePolicy.UnclassifiedProblem}"]);
+            .IsEquivalentTo([$"Curation|{Operation}:search|{QueryParameterTypePolicy.UnclassifiedProblem}"], CollectionOrdering.Matching);
+        await Assert.That(exception.Errors.Single().Kind).IsEqualTo(BindingErrorKind.MissingRow);
     }
 
     /// <summary>An enum, a boolean text or a location selector is no plain string; it needs no row.</summary>

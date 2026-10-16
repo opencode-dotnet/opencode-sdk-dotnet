@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// Curation chooses the .NET name of a construct the pinned document already represents; it adds
 /// no wire semantics.
 /// </summary>
-internal sealed record ParameterNameCuration
+internal sealed record ParameterNameCuration : IReasonedRow
 {
     /// <summary>Gets the operation the route value belongs to.</summary>
     [JsonPropertyName("operationId")] public required string OperationId { get; init; }

@@ -17,6 +17,11 @@ internal static class DescriptionCurationBinder
         }
 
         var priorErrors = errors.Count;
+        if (!CurationRowContract.Validate(nameof(GenerationCuration.Descriptions), rows, errors))
+        {
+            return plan;
+        }
+
         Validate(DescriptionTargetCatalog.Create(plan), rows, errors);
         if (errors.Count != priorErrors)
         {
@@ -58,16 +63,10 @@ internal static class DescriptionCurationBinder
     private static void Validate(IReadOnlyDictionary<string, IReadOnlySet<string>> targets,
         IReadOnlyList<DescriptionCuration> rows, BindingErrorCollector errors)
     {
-        var seen = new HashSet<(string Type, string? Member)>();
         foreach (var row in rows)
         {
             var subject = row.Type + (row.Member is null ? string.Empty : "." + row.Member);
-            if (!seen.Add((row.Type, row.Member)))
-            {
-                errors.Add(BindingErrorCategory.Curation, subject, "description curation is duplicated");
-            }
-
-            if (string.IsNullOrWhiteSpace(row.Type) || !targets.TryGetValue(row.Type, out var members))
+            if (!targets.TryGetValue(row.Type, out var members))
             {
                 errors.Add(BindingErrorCategory.Curation, subject, "description type does not exist in the generated plan");
             }
@@ -81,10 +80,6 @@ internal static class DescriptionCurationBinder
                 errors.Add(BindingErrorCategory.Curation, subject, "description curation must declare a non-empty summary");
             }
 
-            if (string.IsNullOrWhiteSpace(row.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, subject, "description curation must declare a reason");
-            }
         }
     }
 

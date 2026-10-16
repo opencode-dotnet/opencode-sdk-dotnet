@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
-internal sealed record OperationNameCuration
+internal sealed record OperationNameCuration : IReasonedRow
 {
     [JsonPropertyName("operationId")] public required string OperationId { get; init; }
 

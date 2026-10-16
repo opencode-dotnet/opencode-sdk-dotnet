@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// masks mechanically (ADR-0028): <c>redact: true</c> masks a member the list does not name,
 /// <c>redact: false</c> prints one the list names. The reason states what the value is.
 /// </summary>
-internal sealed record RedactedMemberCuration
+internal sealed record RedactedMemberCuration : IReasonedRow
 {
     /// <summary>Gets the generated model's C# type name.</summary>
     [JsonPropertyName("model")] public required string Model { get; init; }

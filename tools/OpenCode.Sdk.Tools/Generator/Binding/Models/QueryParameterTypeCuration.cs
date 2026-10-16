@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// names the C# integer the parameter binds to, why, and the upstream decode schema that proves
 /// it; the wire still carries the value as query text (ADR-0037).
 /// </summary>
-internal sealed record QueryParameterTypeCuration
+internal sealed record QueryParameterTypeCuration : IReasonedRow
 {
     /// <summary>Gets the operation the query parameter belongs to.</summary>
     [JsonPropertyName("operationId")] public required string OperationId { get; init; }

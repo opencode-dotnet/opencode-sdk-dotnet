@@ -38,11 +38,6 @@ internal sealed class PendingOperationBindabilityProbe(ISpecBinder binder)
 
     private const string SyntheticMethodName = "ProbeAsync";
 
-    /// <summary>Problems a missing curation row raises, never a shape wall: a bind only they refuse still probes as bindable.</summary>
-    private static readonly HashSet<string> MissingRowProblems = new(
-        [SecretMemberPolicy.UndecidedSecretProblem, SecretMemberPolicy.UndecidedOpenMembersProblem, QueryParameterTypePolicy.UnclassifiedProblem],
-        StringComparer.Ordinal);
-
     private readonly ISpecBinder _binder = binder ?? throw new ArgumentNullException(nameof(binder));
 
     public IReadOnlyList<PendingOperationMark> Probe(SpecDocument document, IReadOnlyList<string> pendingOperationIds)
@@ -73,7 +68,7 @@ internal sealed class PendingOperationBindabilityProbe(ISpecBinder binder)
         catch (BindingException exception)
         {
             var walls = exception.Errors
-                .Where(static error => !MissingRowProblems.Contains(error.Problem))
+                .Where(static error => error.Kind != BindingErrorKind.MissingRow)
                 .ToArray();
             return exception.Errors.Count > 0 && walls.Length is 0
                 ? new PendingOperationMark { OperationId = operation.OperationId, IsBindable = true }
@@ -137,7 +132,7 @@ internal sealed class PendingOperationBindabilityProbe(ISpecBinder binder)
                 },
             ],
             SchemaNames = [],
-            EnvelopePayloadNames = new Dictionary<string, string>(StringComparer.Ordinal),
+            EnvelopePayloadNames = [],
             SchemaAliases = [],
             TransportOwned = [],
             Declined = [],

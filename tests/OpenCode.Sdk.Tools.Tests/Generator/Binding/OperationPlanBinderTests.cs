@@ -8,6 +8,36 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 public sealed class OperationPlanBinderTests
 {
+    [Test]
+    [Arguments("reason", "envelope payload name curation must declare a reason")]
+    [Arguments("duplicate", "envelope payload name curation is duplicated")]
+    [Arguments("redundant", "envelopePayloadNames row for 'widget.entry.get' repeats the payload naming rule's derived value 'Entry'")]
+    [Arguments("singleKey", "envelopePayloadNames row for 'widget.entry.get' repeats the payload naming rule's derived value 'Result'")]
+    public async Task Bind_Should_Refuse_Invalid_Envelope_Payload_Rows(string variation, string problem)
+    {
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
+            .WithOperation("widget.entry.get", configure: operation => operation
+                .Response(200, "application/json", schema =>
+                {
+                    if (variation == "singleKey")
+                    {
+                        schema.Type("object").Property("result", static property => property.Type("string"), required: true);
+                    }
+                    else
+                    {
+                        schema.Type("string");
+                    }
+                }))));
+        var row = EnvelopePayloadName("widget.entry.get", variation switch { "redundant" => "Entry", "singleKey" => "Result", _ => "Value" },
+            reason: variation == "reason" ? " " : "Name the result.");
+        var curation = Curation(Groups("widget", ClientGroup("Widgets", handleName: null, handleParameter: null)),
+            envelopePayloadNames: variation == "duplicate" ? [row, row] : [row]);
+
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("widget.entry.get"), curation));
+
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation, "widget.entry.get", problem));
+    }
+
     private static readonly string[] ExpectedClientNames =
     [
         "OpenCodeClient",
@@ -3074,7 +3104,7 @@ public sealed class OperationPlanBinderTests
                     .Property(wireName, property => property.Type("array").Items(item => item.Type("string")), required: true)))));
         var curation = Curation(
             Groups("widget", ClientGroup("Widgets", handleName: null, handleParameter: null)),
-            new Dictionary<string, string>(StringComparer.Ordinal) { ["widget.entry.list"] = payloadName });
+            envelopePayloadNames: [EnvelopePayloadName("widget.entry.list", payloadName)]);
 
         var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection("widget.entry.list"), curation));
 
@@ -3093,7 +3123,7 @@ public sealed class OperationPlanBinderTests
                     .Property("items", property => property.Type("array").Items(item => item.Type("string")), required: true)))));
         var curation = Curation(
             Groups("widget", ClientGroup("Widgets", handleName: null, handleParameter: null)),
-            new Dictionary<string, string>(StringComparer.Ordinal) { ["widget.entry.list"] = "Entries" });
+            envelopePayloadNames: [EnvelopePayloadName("widget.entry.list", "Entries")]);
 
         var plan = new BindingTestHost().Bind(document, Selection("widget.entry.list"), curation);
 
@@ -3107,17 +3137,14 @@ public sealed class OperationPlanBinderTests
     public async Task Bind_Should_Apply_A_Curated_Payload_Name_Override()
     {
         var document = await BindingTestHost.IngestAsync(GadgetScenario());
-        var payloadNames = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["gadget.part"] = "Component",
-        };
+        EnvelopePayloadNameCuration[] payloadNames = [EnvelopePayloadName("gadget.part", "Component")];
 
         var plan = new BindingTestHost().Bind(
             document,
             Selection("gadget.part"),
             Curation(
                 Groups("gadget", ClientGroup(clientName: "Gadgets", handleName: "GadgetClient", handleParameter: "gadgetID")),
-                payloadNames));
+                envelopePayloadNames: payloadNames));
 
         var part = plan.Clients.Single(static client => client.Role == ClientRole.Handle).Operations.Single();
         await Assert.That(part.Envelope!.PayloadName).IsEqualTo("Component");
@@ -3146,35 +3173,24 @@ public sealed class OperationPlanBinderTests
     public async Task Bind_Should_Refuse_A_Payload_Name_Colliding_With_Record_Members(string payloadName)
     {
         var document = await BindingTestHost.IngestAsync(StatusScenario());
-        var payloadNames = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["widget.status"] = payloadName,
-        };
-
+        var curation = Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)),
+            envelopePayloadNames: [EnvelopePayloadName("widget.status", payloadName)]);
         var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("widget.status"),
-            Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)), payloadNames)));
+            document, Selection("widget.status"), curation));
 
-        await Assert
-            .That(exception.Errors.Any(error => error.Category == BindingErrorCategory.Naming
-                                                && error.Problem.Contains(payloadName, StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(exception.Errors).Contains(error => error.Category == BindingErrorCategory.Naming
+            && error.Problem.Contains(payloadName, StringComparison.Ordinal));
     }
 
     [Test]
     public async Task Bind_Should_Accept_An_Override_That_Resolves_A_Reserved_Payload_Collision()
     {
         var document = await BindingTestHost.IngestAsync(StatusScenario());
-        var payloadNames = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["widget.status"] = "WidgetStatus",
-        };
-
         var plan = new BindingTestHost().Bind(
             document,
             Selection("widget.status"),
-            Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)), payloadNames));
+            Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)),
+                envelopePayloadNames: [EnvelopePayloadName("widget.status", "WidgetStatus")]));
 
         var status = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
         await Assert.That(status.Envelope!.PayloadName).IsEqualTo("WidgetStatus");

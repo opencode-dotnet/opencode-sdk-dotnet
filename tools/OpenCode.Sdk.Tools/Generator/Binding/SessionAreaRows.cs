@@ -31,29 +31,27 @@ internal sealed class SessionAreaRows
         ArgumentNullException.ThrowIfNull(families);
         ArgumentNullException.ThrowIfNull(errors);
 
+        if (!CurationRowContract.Validate(nameof(GenerationCuration.SessionAreas), rows, errors))
+        {
+            return new SessionAreaRows([]);
+        }
+
         if (rows.Count > 0 && !families.Contains(AreaFamily))
         {
             errors.Add(BindingErrorCategory.Curation, "sessionAreas", $"session areas need the '{AreaFamily}' family");
             return new SessionAreaRows([]);
         }
 
-        var areas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var patterns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var valid = new List<SessionAreaCuration>();
-        foreach (var row in rows)
+        foreach (var row in rows.DistinctBy(static row => row.Area, StringComparer.OrdinalIgnoreCase))
         {
-            if (string.IsNullOrWhiteSpace(row.Area) || !CSharpNamePolicy.IsValidIdentifier(row.Area)
-                                                    || ReservedAreaNames.Contains(row.Area, StringComparer.OrdinalIgnoreCase)
-                                                    || !areas.Add(row.Area))
+            if (!CSharpNamePolicy.IsValidIdentifier(row.Area)
+                || ReservedAreaNames.Contains(row.Area, StringComparer.OrdinalIgnoreCase))
             {
-                errors.Add(BindingErrorCategory.Curation, string.IsNullOrWhiteSpace(row.Area) ? "sessionAreas" : row.Area,
+                errors.Add(BindingErrorCategory.Curation, row.Area,
                     "session area name is empty, reserved, not an identifier, or duplicated");
                 continue;
-            }
-
-            if (string.IsNullOrWhiteSpace(row.Reason))
-            {
-                errors.Add(BindingErrorCategory.Curation, row.Area, "session area row must declare a reason");
             }
 
             if (row.Matches.Count is 0 || row.Matches.Any(pattern => string.IsNullOrWhiteSpace(pattern) || !patterns.Add(pattern)))

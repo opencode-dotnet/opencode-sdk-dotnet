@@ -8,6 +8,30 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 public sealed class PendingOperationBindabilityProbeTests
 {
+    [Test]
+    [Arguments("missing", true, null)]
+    [Arguments("text", false, "the query parameter is a plain string that no curation row classifies: add a queryParameterTypes row when upstream decodes it as a number, or a stringQueryParameters row that says why it stays a string")]
+    [Arguments("mixed", false, "real shape wall")]
+    [Arguments("empty", false, "Binding failed with 0 error(s):")]
+    public async Task Probe_Should_Classify_By_Refusal_Kind(string variation, bool bindable, string? refusal)
+    {
+        var document = await BindingTestHost.IngestAsync(WidgetScenario);
+        var missing = new BindingError(BindingErrorCategory.Curation, "widget.list", "arbitrary missing-row wording") { Kind = BindingErrorKind.MissingRow };
+        BindingError[] errors = variation switch
+        {
+            "missing" => [missing],
+            "text" => [new(BindingErrorCategory.Curation, "widget.list", "the query parameter is a plain string that no curation row classifies: add a queryParameterTypes row when upstream decodes it as a number, or a stringQueryParameters row that says why it stays a string")],
+            "mixed" => [missing, new(BindingErrorCategory.Operation, "widget.list", "real shape wall")],
+            _ => [],
+        };
+
+        var mark = new PendingOperationBindabilityProbe(new RefusingSpecBinder(new BindingException(errors)))
+            .Probe(document, ["widget.list"]).Single();
+
+        await Assert.That(mark.IsBindable).IsEqualTo(bindable);
+        await Assert.That(mark.RefusalMessage).IsEqualTo(refusal);
+    }
+
     private static readonly SpecScenario WidgetScenario = SpecScenario.Define(spec => spec
         .WithSchema("WidgetInfo", schema => schema
             .Type("object")
@@ -128,6 +152,11 @@ public sealed class PendingOperationBindabilityProbeTests
         await Assert.That(marks.Count).IsEqualTo(1);
         await Assert.That(marks[0].IsBindable).IsTrue();
         await Assert.That(marks[0].RefusalMessage).IsNull();
+    }
+
+    private sealed class RefusingSpecBinder(BindingException exception) : ISpecBinder
+    {
+        public EmitPlan Bind(SpecDocument document, OperationSelection selection, GenerationCuration curation) => throw exception;
     }
 
     private sealed class ThrowingSpecBinder : ISpecBinder
