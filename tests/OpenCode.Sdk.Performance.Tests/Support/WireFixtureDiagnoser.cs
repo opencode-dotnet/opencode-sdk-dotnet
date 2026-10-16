@@ -30,9 +30,10 @@ internal sealed class WireFixtureDiagnoser : IDiagnoser
     public RunMode GetRunMode(BenchmarkCase benchmarkCase) =>
         WireFixtureParameter.Find(benchmarkCase) is null ? RunMode.None : RunMode.NoOverhead;
 
-    public void Handle(HostSignal signal, DiagnoserActionParameters parameters)
+    public ValueTask HandleAsync(HostSignal signal, DiagnoserActionParameters parameters, CancellationToken cancellationToken)
     {
         // Nothing to observe during the run: the metric values ride the fixture parameter.
+        return default;
     }
 
     public IEnumerable<Metric> ProcessResults(DiagnoserResults results)
@@ -56,7 +57,10 @@ internal sealed class WireFixtureDiagnoser : IDiagnoser
         // The metrics render through the summary's metric columns; there is no extra prose.
     }
 
-    public IEnumerable<ValidationError> Validate(ValidationParameters validationParameters) => [];
+    public async IAsyncEnumerable<ValidationError> ValidateAsync(ValidationParameters validationParameters)
+    {
+        yield break;
+    }
 
     /// <summary>
     /// Identity of one wire metric: the <c>Id</c> keys the JSON export (and the comparison tool's

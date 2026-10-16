@@ -325,7 +325,7 @@ net10 or source-equivalent probes.
 The canonical comparable run, and the comparison it feeds:
 
 ```bash
-dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --runtimes net10.0 net472 --net11 --artifacts .benchmarks/<run-name>
+dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --runtimes net10.0 net472 net11.0 --artifacts .benchmarks/<run-name>
 dotnet run --file tools/opencode-tool.cs -- compare-benchmarks .benchmarks/<before-run> .benchmarks/<after-run> --output .benchmarks/<comparison>.csv
 ```
 
@@ -342,11 +342,9 @@ OPENCODE_SDK_BENCHMARKS_REWRITE_TREE=allow dotnet run --project tests/OpenCode.S
 
 The generator invocation passes no `--runtimes`, because each generator class declares its own job
 (the stage rows `.NET 10.0`, the run rows the Monitoring job), so every case runs once; `--runtimes`
-there would add a second, default-strategy job to every class. For the SDK suite, `--net11` adds
-the .NET 11 leg: BenchmarkDotNet 0.15.8 does not know the `net11.0` moniker and
-refuses it in `--runtimes`, so the suite's own configuration defines that leg and labels it
-`.NET 11.0` like the others. `--runtimes` is load-bearing: it labels each case's leg with the
-runtime name (`.NET 10.0`, `.NET Framework 4.7.2`) in the exports, and `compare-benchmarks` joins
+there would add a second, default-strategy job to every class. For the SDK suite, `--runtimes` is
+load-bearing: it labels each case's leg with the runtime name (`.NET 10.0`, `.NET 11.0`,
+`.NET Framework 4.7.2`) in the exports, and `compare-benchmarks` joins
 the two runs on exactly (case, runtime). A run launched without it is labelled by its job name
 (`DefaultJob`) instead and joins nothing against the archived runs — the comparison then fails
 naming both label sets, but only after the run's hours are already spent. An increment-level check
