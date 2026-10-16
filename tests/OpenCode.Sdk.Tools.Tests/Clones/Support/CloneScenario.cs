@@ -74,7 +74,30 @@ internal sealed class CloneScenario
     public CloneScenario WithRun(string scope, int exitCode = 0, int clones = 0, int newClones = 0, string standardError = "", bool writesReport = true)
     {
         var result = new ProcessResult { ExitCode = exitCode, StandardOutput = [], StandardError = standardError };
-        Runner.Expect("bun", CloneDetector.RunnerPath, result, writesReport ? () => WriteReportAsync(scope, clones, newClones) : null);
+        Runner.Expect("bun", () =>
+            {
+                var config = FileSystem.Directory.EnumerateFiles(FileSystem.Path.GetTempPath(), scope + ".json", SearchOption.AllDirectories).Single();
+                List<string> tokens = ["tools/jscpd/node_modules/jscpd/run-jscpd.js",
+                    scope switch { "src" or "generated" => "src", "tools" => "tools", _ => "tests" }, "--config", config, "--fail-on-empty"];
+                if (scope != "generated")
+                {
+                    tokens.AddRange(["--baseline", scope switch
+                    {
+                        "src" => "tools/jscpd/src.baseline.json",
+                        "tools" => "tools/jscpd/tools.baseline.json",
+                        _ => "tools/jscpd/tests.baseline.json",
+                    }]);
+                    tokens.AddRange(!_baselines ? ["--update-baseline"] : scope switch
+                    {
+                        "tools" => ["--fail-on-new-clones", "--threshold", "3"],
+                        "tests" => ["--fail-on-new-clones", "--threshold", "8.5"],
+                        _ => ["--fail-on-new-clones"],
+                    });
+                }
+
+                return tokens;
+            }, Root, result,
+            writesReport ? () => WriteReportAsync(scope, clones, newClones) : null);
         return this;
     }
 
@@ -88,6 +111,10 @@ internal sealed class CloneScenario
 
         return this;
     }
+
+    public CloneScenario WithNewCloneFailure() => WithRun("src", exitCode: 1, clones: 5, newClones: 1,
+        standardError: "Using config from work/src.json\nERROR: jscpd found 1 new clones not in the baseline (allowed: 0)")
+        .WithRun("tools").WithRun("tests").WithRun("generated");
 
     public async Task<CloneScenario> BuildAsync()
     {

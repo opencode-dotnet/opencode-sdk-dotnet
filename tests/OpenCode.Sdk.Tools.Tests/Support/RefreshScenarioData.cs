@@ -12,7 +12,13 @@ internal static class RefreshScenarioData
     /// <summary>A full commit SHA usable wherever a scenario needs one.</summary>
     public const string Commit = "0123456789abcdef0123456789abcdef01234567";
 
-    /// <summary>The minimal SNAPSHOT.md shape apply rewrites: one commit row, one date line.</summary>
+    public static WatchedSource TicketSource { get; } =
+        Watched("packages/core/src/pty/ticket.ts", "const DEFAULT_TTL = Duration.seconds(60)\n", "seconds(60)");
+
+    public static WatchedSource PtyBufferSource { get; } =
+        Watched("packages/core/src/pty.ts", "const BUFFER_LIMIT = 1024 * 1024 * 2", "BUFFER_LIMIT");
+
+    /// <summary>The managed SNAPSHOT.md identity: table, date and release/install prose.</summary>
     public const string SnapshotMarkdown = """
                                            # OpenAPI Snapshot
 
@@ -20,7 +26,13 @@ internal static class RefreshScenarioData
 
                                            | Fact | Value |
                                            |---|---|
+                                           | Upstream file | `packages/protocol/openapi.json` |
+                                           | Upstream release tag | `v2.0.29` |
                                            | Commit | aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa |
+                                           | Upstream product channel | npm `@opencode/cli@latest` (channel `latest`); this tag published as `2.0.29`, installing the `opencode` command (plus the transitional `opencode2` alias) |
+
+                                           semver release tags (`v2.0.0`…). This pin is the release tag `v2.0.29`, so
+                                           `npm install -g @opencode/cli@2.0.29` installs a server built from exactly this commit; later
                                            """;
 
     /// <summary>Builds an OpenAPI document's bytes through the canonical spec builder.</summary>
@@ -68,6 +80,53 @@ internal static class RefreshScenarioData
     /// <summary>Builds a source watch over the given entries.</summary>
     public static SourceWatch Watch(int schemaVersion, params WatchedSource[] sources) =>
         new() { SchemaVersion = schemaVersion, Sources = sources };
+
+    public static ReceiptWatchedSource Observation(WatchedSource source, string sha256, bool anchorMatched) =>
+        new() { Path = source.Path, Sha256 = sha256, AnchorMatched = anchorMatched };
+
+    public static IReadOnlyList<ReceiptWatchedSource> OtherSources(WatchedSource source, string variation)
+    {
+        var matching = Observation(source, source.Sha256, anchorMatched: true);
+        var other = matching with { Path = "other.ts" };
+        return variation switch
+        {
+            "fewer" => [],
+            "more" => [matching, other],
+            _ => [other],
+        };
+    }
+
+    public static SnapshotReceipt Receipt(byte[] document, string? path = null)
+    {
+        var stats = DocumentInspector.Inspect(document);
+        return new SnapshotReceipt
+        {
+            SchemaVersion = 2,
+            ReleaseTag = "v2.0.30",
+            UpstreamCommit = Commit,
+            RawDocumentSha256 = DocumentInspector.Sha256Hex(document),
+            GeneratedBaselineSha256 = DocumentInspector.Sha256Hex(document),
+            Patches = [],
+            NormalizedDocumentSha256 = DocumentInspector.Sha256Hex(document),
+            NormalizedDocumentPath = path,
+            OperationSetDigest = stats.OperationSetDigest,
+            OperationCount = stats.OperationIds.Count,
+            ComponentCount = stats.ComponentCount,
+            ContentSchemaCount = stats.ContentSchemaCount,
+            AddedOperations = [],
+            RemovedOperations = [],
+        };
+    }
+
+    public static SnapshotReceipt WithStatistic(SnapshotReceipt receipt, string variation) => variation switch
+    {
+        "hash" => receipt with { NormalizedDocumentSha256 = "changed" },
+        "digest" => receipt with { OperationSetDigest = "changed" },
+        "operations" => receipt with { OperationCount = 2 },
+        "components" => receipt with { ComponentCount = 2 },
+        "content" => receipt with { ContentSchemaCount = 2 },
+        _ => receipt,
+    };
 
     public static string Serialize(PatchManifest manifest) => JsonSerializer.Serialize(manifest, ToolJsonContext.Default.PatchManifest);
 

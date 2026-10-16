@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using OpenCode.Sdk.Tools.Generator.Refresh.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Refresh;
 
@@ -13,6 +14,32 @@ namespace OpenCode.Sdk.Tools.Generator.Refresh;
 internal static class DocumentInspector
 {
     public static string Sha256Hex(ReadOnlySpan<byte> content) => Convert.ToHexStringLower(SHA256.HashData(content));
+
+    public static IReadOnlyList<string> CompareStats(DocumentStats stats, SnapshotReceipt receipt)
+    {
+        var problems = new List<string>();
+        if (!string.Equals(stats.OperationSetDigest, receipt.OperationSetDigest, StringComparison.Ordinal))
+        {
+            problems.Add("the operation-set digest does not match the receipt");
+        }
+
+        if (stats.OperationIds.Count != receipt.OperationCount)
+        {
+            problems.Add("the operation count does not match the receipt");
+        }
+
+        if (stats.ComponentCount != receipt.ComponentCount)
+        {
+            problems.Add("the component count does not match the receipt");
+        }
+
+        if (stats.ContentSchemaCount != receipt.ContentSchemaCount)
+        {
+            problems.Add("the contentSchema count does not match the receipt");
+        }
+
+        return problems;
+    }
 
     public static DocumentStats Inspect(byte[] documentBytes)
     {

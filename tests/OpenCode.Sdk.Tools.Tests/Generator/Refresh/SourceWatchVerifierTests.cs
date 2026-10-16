@@ -49,4 +49,32 @@ public sealed class SourceWatchVerifierTests
             Sha256 = sha256,
             AnchorMatched = anchorMatched,
         };
+
+    [Test]
+    [Arguments("matching", null)]
+    [Arguments("hash", "but this checkout carries")]
+    [Arguments("anchor", "anchorMatched=true, but this checkout observes false")]
+    [Arguments("recorded only", "which the source watch no longer names")]
+    [Arguments("observed only", "which the receipt does not record")]
+    public async Task CompareReceipt_Should_Report_The_Recorded_Observation_Difference(string variation, string? diagnostic)
+    {
+        var recorded = Observed(Pinned.Sha256, anchorMatched: true);
+        var observed = variation switch
+        {
+            "hash" => recorded with { Sha256 = new string('b', 64) },
+            "anchor" => recorded with { AnchorMatched = false },
+            _ => recorded,
+        };
+        var problems = SourceWatchVerifier.CompareReceipt(variation == "observed only" ? [] : [recorded],
+            variation == "recorded only" ? [] : [observed]);
+
+        if (diagnostic is null)
+        {
+            await Assert.That(problems).IsEmpty();
+        }
+        else
+        {
+            await Assert.That(problems.Single()).Contains(diagnostic).And.Contains(Pinned.Path);
+        }
+    }
 }

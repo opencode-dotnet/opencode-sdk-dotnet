@@ -60,6 +60,12 @@ public static class ToolApp
         services.AddSingleton<PatchSetLoader>();
         services.AddSingleton<SourceWatchLoader>();
         services.AddSingleton<WatchedSourceReader>();
+        services.AddSingleton<SnapshotGenerator>();
+        services.AddSingleton<SnapshotStateReader>();
+        services.AddSingleton<SnapshotVerifier>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<SnapshotApplyPlanner>();
+        services.AddSingleton<SnapshotApplyCommitter>();
         services.AddSingleton<SnapshotSynchronizer>();
         services.AddSingleton<BenchmarkRunReader>();
         services.AddSingleton<TestRosterLoader>();

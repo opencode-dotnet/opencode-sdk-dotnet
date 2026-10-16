@@ -8,7 +8,12 @@ namespace OpenCode.Sdk.Tools.Generator.Refresh.Models;
 /// </summary>
 internal sealed record SnapshotReceipt
 {
+    public const int CurrentSchemaVersion = 2;
+
     [JsonPropertyName("schemaVersion")] public required int SchemaVersion { get; init; }
+
+    /// <summary>Gets the named release tag; a non-tag reference is a dry-run candidate.</summary>
+    [JsonPropertyName("releaseTag")] public string? ReleaseTag { get; init; }
 
     /// <summary>Gets the full upstream commit SHA the candidate was produced from.</summary>
     [JsonPropertyName("upstreamCommit")] public required string UpstreamCommit { get; init; }

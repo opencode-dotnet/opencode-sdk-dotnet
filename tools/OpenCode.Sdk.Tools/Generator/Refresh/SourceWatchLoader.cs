@@ -20,7 +20,15 @@ internal sealed partial class SourceWatchLoader(IFileSystem fileSystem)
 
     public async Task<SourceWatch> LoadAsync(CancellationToken cancellationToken)
     {
-        if (!_fileSystem.File.Exists(SnapshotPaths.SourceWatch))
+        var bytes = _fileSystem.File.Exists(SnapshotPaths.SourceWatch)
+            ? await _fileSystem.File.ReadAllBytesAsync(SnapshotPaths.SourceWatch, cancellationToken).ConfigureAwait(false)
+            : null;
+        return Parse(bytes);
+    }
+
+    public static SourceWatch Parse(byte[]? bytes)
+    {
+        if (bytes is null)
         {
             return new SourceWatch { SchemaVersion = SourceWatchSchemaVersion, Sources = [] };
         }
@@ -28,12 +36,7 @@ internal sealed partial class SourceWatchLoader(IFileSystem fileSystem)
         SourceWatch? watch;
         try
         {
-            var stream = _fileSystem.File.OpenRead(SnapshotPaths.SourceWatch);
-            await using (stream.ConfigureAwait(false))
-            {
-                watch = await JsonSerializer.DeserializeAsync(stream, ToolJsonContext.Default.SourceWatch, cancellationToken)
-                    .ConfigureAwait(false);
-            }
+            watch = JsonSerializer.Deserialize(bytes, ToolJsonContext.Default.SourceWatch);
         }
         catch (JsonException exception)
         {

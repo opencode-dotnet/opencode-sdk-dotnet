@@ -1,6 +1,6 @@
 # OpenAPI Snapshot
 
-Date: 2026-10-15
+Date: 2026-10-16
 
 `openapi.json` is the accepted snapshot of the upstream opencode OpenAPI 3.1 document
 (ADR-0005). The SDK is built against this snapshot, never against a live branch; the pin is
@@ -45,10 +45,13 @@ The `refresh-spec` synchronizer owns refreshes (ADR-0020):
    predicate raw upstream already satisfies refuses, forcing an empty-patch retirement
    refresh.
 2. Review the receipt: identity, hashes, operation delta, patch preimages.
-3. `refresh-spec --apply <receipt.json>` installs `spec/openapi.json`, updates this file's
-   identity table and date, moves the `external/opencode` submodule checkout to the same
-   commit, re-pins `spec/source-watch.json` for any watched hash that moved, and writes
-   `spec/receipt.json`; it stages and commits nothing.
+3. `refresh-spec --apply <receipt.json>` requires a receipt prepared at a named release tag;
+   a commit-only candidate is a dry run, not an applicable pin. Apply validates the candidate
+   and this file's managed identity text before changing accepted artifacts, then installs
+   `spec/openapi.json`, renders this file's identity table and pin-bearing prose from the
+   receipt and its date from the injected `TimeProvider`'s UTC date at apply time, moves the
+   `external/opencode` submodule checkout to the same commit, re-pins `spec/source-watch.json`
+   for any watched hash that moved, and writes `spec/receipt.json`; it stages and commits nothing.
 
 Prepare also observes every entry of `spec/source-watch.json` at the candidate commit and records
 its hash and anchor verdict in the receipt's `watchedSources`; verify checks those pins against the
