@@ -28,7 +28,7 @@ public sealed class VerifyClonesCommandTests
 
         await Assert.That(result.ExitCode).IsEqualTo(0);
         await Assert.That(result.Output).Contains("src: 4 clones, 40 of 1000 lines (4.00%), 0 new");
-        await Assert.That(result.Output).Contains("tests: 8 clones, 80 of 1000 lines (8.00%), reported only");
+        await Assert.That(result.Output).Contains("tests: 8 clones, 80 of 1000 lines (8.00%), 0 new");
         await Assert.That(result.Output).Contains("generated: 9 clones");
         await Assert.That(result.Output).Contains("Clone gate passed");
     }
@@ -62,14 +62,14 @@ public sealed class VerifyClonesCommandTests
         var scenario = await new CloneScenario()
             .WithRun("src")
             .WithRun("tools")
-            .WithRun("tests", exitCode: 1, standardError: "ERROR: no files analysed")
-            .WithRun("generated")
+            .WithRun("tests")
+            .WithRun("generated", exitCode: 1, standardError: "ERROR: no files analysed")
             .BuildAsync();
 
         var result = await RunAsync(scenario, Command);
 
         await Assert.That(result.ExitCode).IsEqualTo(1);
-        await Assert.That(result.Output).Contains("Clone gate failed for 'tests'").And.Contains("no files analysed");
+        await Assert.That(result.Output).Contains("Clone gate failed for 'generated'").And.Contains("no files analysed");
     }
 
     [Test]
@@ -86,7 +86,7 @@ public sealed class VerifyClonesCommandTests
         await Assert.That(refused.Runner.Invocations).IsEmpty();
         await Assert.That(update.ExitCode).IsEqualTo(0);
         await Assert.That(update.Output).Contains("Clone baselines updated");
-        await Assert.That(updated.Runner.Invocations.Count(static invocation => invocation.Contains("--update-baseline", StringComparison.Ordinal))).IsEqualTo(2);
+        await Assert.That(updated.Runner.Invocations.Count(static invocation => invocation.Contains("--update-baseline", StringComparison.Ordinal))).IsEqualTo(3);
     }
 
     [Test]
