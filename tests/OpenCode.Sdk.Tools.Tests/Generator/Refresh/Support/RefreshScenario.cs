@@ -118,14 +118,14 @@ internal sealed class RefreshScenario : IDisposable
         Runner.Expect("git", ["fetch", "origin"], directory);
         ExpectHead();
         ExpectCommit();
-        return Runner.Expect("git", ["checkout", "--detach", RefreshScenarioData.Commit], directory);
+        return Runner.Expect("git", ["-c", "core.longpaths=true", "checkout", "--detach", RefreshScenarioData.Commit], directory);
     }
 
     public void ExpectUnpatchedGeneration()
     {
         var worktree = FileSystem.Path.GetFullPath(FileSystem.Path.Combine(SnapshotPaths.ScratchRoot, RefreshScenarioData.Commit, "worktree"));
         var artifact = FileSystem.Path.Combine(worktree, SnapshotPaths.UpstreamArtifact);
-        Runner.Expect("git", ["worktree", "add", "--detach", worktree, RefreshScenarioData.Commit], FileSystem.Path.GetFullPath(SnapshotPaths.Submodule));
+        Runner.Expect("git", ["-c", "core.longpaths=true", "worktree", "add", "--detach", worktree, RefreshScenarioData.Commit], FileSystem.Path.GetFullPath(SnapshotPaths.Submodule));
         Runner.Expect("bun", ["install", "--frozen-lockfile", "--ignore-scripts"], worktree, sideEffect: () =>
         {
             _ = FileSystem.Directory.CreateDirectory(FileSystem.Path.GetDirectoryName(artifact)!);
@@ -133,7 +133,7 @@ internal sealed class RefreshScenario : IDisposable
         });
         Runner.Expect("bun", ["run", "generate"], FileSystem.Path.Combine(worktree, SnapshotPaths.UpstreamProtocolPackage),
             sideEffect: () => FileSystem.File.WriteAllBytesAsync(artifact, Document));
-        Runner.Expect("git", ["worktree", "remove", "--force", worktree], FileSystem.Path.GetFullPath(SnapshotPaths.Submodule));
+        Runner.Expect("git", ["-c", "core.longpaths=true", "worktree", "remove", "--force", worktree], FileSystem.Path.GetFullPath(SnapshotPaths.Submodule));
     }
 
     public async Task<CommandAppResult> RunCommandAsync(params string[] arguments)

@@ -55,7 +55,7 @@ public sealed class SnapshotSynchronizerTests
         await Assert
             .That(runner.Invocations.Count(static invocation => invocation.StartsWith("bun run generate", StringComparison.Ordinal)))
             .IsEqualTo(1);
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
@@ -73,7 +73,7 @@ public sealed class SnapshotSynchronizerTests
         await Assert.That(receipt.GeneratedBaselineSha256).IsEqualTo(DocumentInspector.Sha256Hex(CandidateDocument));
         await Assert.That(receipt.NormalizedDocumentSha256).IsEqualTo(DocumentInspector.Sha256Hex(CandidateDocument));
         await Assert.That(receipt.AddedOperations).IsEquivalentTo(["v2.gamma.get"]);
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
@@ -88,9 +88,9 @@ public sealed class SnapshotSynchronizerTests
         var exception = await scenario.PrepareRefusalAsync();
 
         await Assert.That(exception.Message).Contains("retire the patch");
-        await Assert.That(runner.Invocations.Any(static invocation => invocation.StartsWith("git apply", StringComparison.Ordinal)))
+        await Assert.That(runner.Invocations.Any(static invocation => invocation.StartsWith("git -c core.longpaths=true apply", StringComparison.Ordinal)))
             .IsFalse();
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
@@ -106,7 +106,7 @@ public sealed class SnapshotSynchronizerTests
         await Assert.That(outcome.Receipt.Patches.Count).IsEqualTo(1);
         await Assert.That(outcome.Receipt.GeneratedBaselineSha256).IsEqualTo(DocumentInspector.Sha256Hex(LacksStreamLink));
         await Assert.That(outcome.Receipt.NormalizedDocumentSha256).IsEqualTo(DocumentInspector.Sha256Hex(CarriesStreamLink));
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
@@ -130,7 +130,7 @@ public sealed class SnapshotSynchronizerTests
         await Assert
             .That(await fileSystem.File.ReadAllBytesAsync(outcome.NormalizedDocumentPath, CancellationToken.None))
             .IsEquivalentTo(normalized);
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
@@ -147,7 +147,7 @@ public sealed class SnapshotSynchronizerTests
         var exception = await scenario.PrepareRefusalAsync();
 
         await Assert.That(exception.Message).Contains(diagnostic);
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
@@ -162,7 +162,7 @@ public sealed class SnapshotSynchronizerTests
         var exception = await scenario.PrepareRefusalAsync();
 
         await Assert.That(exception.Message).Contains("is absent from the generated baseline");
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
@@ -176,7 +176,7 @@ public sealed class SnapshotSynchronizerTests
         var exception = await scenario.PrepareRefusalAsync();
 
         await Assert.That(exception.Message).Contains("exited cleanly but wrote no");
-        await Assert.That(runner.Invocations[^1]).StartsWith("git worktree remove");
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
     [Test]
@@ -228,7 +228,7 @@ public sealed class SnapshotSynchronizerTests
         await Assert.That(snapshotMarkdown).DoesNotContain("Date: 2026-08-13");
         await Assert
             .That(runner.Invocations.Any(invocation =>
-                invocation.StartsWith($"git checkout --detach {RefreshScenarioData.Commit}", StringComparison.Ordinal)))
+                invocation.StartsWith($"git -c core.longpaths=true checkout --detach {RefreshScenarioData.Commit}", StringComparison.Ordinal)))
             .IsTrue();
     }
 
@@ -421,7 +421,7 @@ public sealed class SnapshotSynchronizerTests
         }
         var runner = scenario.Runner
             .Expect("git", ["rev-parse", "--verify", $"{RefreshScenarioData.Commit}^{{commit}}"], Submodule(fileSystem))
-            .Expect("git", ["checkout", "--detach", RefreshScenarioData.Commit], Submodule(fileSystem), sideEffect: async () =>
+            .Expect("git", ["-c", "core.longpaths=true", "checkout", "--detach", RefreshScenarioData.Commit], Submodule(fileSystem), sideEffect: async () =>
             {
                 head = RefreshScenarioData.Commit;
                 await fileSystem.File.WriteAllTextAsync(tracked, "new checkout");
@@ -436,7 +436,7 @@ public sealed class SnapshotSynchronizerTests
         }
 
         await Assert.That(head).IsEqualTo(new string('a', 40));
-        await Assert.That(runner.Invocations.Where(static invocation => invocation.StartsWith("git checkout", StringComparison.Ordinal))).IsEmpty();
+        await Assert.That(runner.Invocations.Where(static invocation => invocation.StartsWith("git -c core.longpaths=true checkout", StringComparison.Ordinal))).IsEmpty();
     }
 
     [Test]
@@ -481,7 +481,7 @@ public sealed class SnapshotSynchronizerTests
     [Arguments("null", "cannot be JSON null")]
     [Arguments("malformed", "is invalid:")]
     [Arguments("fetch", "fetching upstream failed (git fetch origin, exit 1): offline")]
-    [Arguments("checkout", "moving the submodule checkout failed (git checkout --detach 0123456789abcdef0123456789abcdef01234567, exit 1): offline")]
+    [Arguments("checkout", "moving the submodule checkout failed (git -c core.longpaths=true checkout --detach 0123456789abcdef0123456789abcdef01234567, exit 1): offline")]
     [Arguments("head", "reading the submodule checkout failed (git rev-parse HEAD, exit 1): offline")]
     public async Task Apply_Should_Refuse_Unreadable_Receipts_Or_A_Failed_Fetch(string variation, string diagnostic)
     {
@@ -507,7 +507,7 @@ public sealed class SnapshotSynchronizerTests
         scenario.Runner.Expect("git", ["rev-parse", "HEAD"], Submodule(fs),
             variation == "head" ? ScriptedProcessRunner.Fail("offline") : ScriptedProcessRunner.Ok(RefreshScenarioData.Commit));
         scenario.ExpectCommit();
-        scenario.Runner.Expect("git", ["checkout", "--detach", RefreshScenarioData.Commit], Submodule(fs), ScriptedProcessRunner.Fail("offline"));
+        scenario.Runner.Expect("git", ["-c", "core.longpaths=true", "checkout", "--detach", RefreshScenarioData.Commit], Submodule(fs), ScriptedProcessRunner.Fail("offline"));
 
         var exception = await Assert.That(async () => _ = await scenario.Synchronizer.ApplyAsync(RefreshScenario.ReceiptPath, CancellationToken.None))
             .Throws<SnapshotRefreshException>();
@@ -562,7 +562,7 @@ public sealed class SnapshotSynchronizerTests
         var touched = fileSystem.Path.Combine(worktree, "packages/protocol/script/generate-openapi.ts");
         var artifact = fileSystem.Path.Combine(worktree, SnapshotPaths.UpstreamArtifact);
         _ = runner
-            .Expect("git", ["worktree", "add", "--detach", worktree, RefreshScenarioData.Commit], Submodule(fileSystem), sideEffect: async () =>
+            .Expect("git", ["-c", "core.longpaths=true", "worktree", "add", "--detach", worktree, RefreshScenarioData.Commit], Submodule(fileSystem), sideEffect: async () =>
             {
                 _ = fileSystem.Directory.CreateDirectory(fileSystem.Path.GetDirectoryName(touched)!);
                 await fileSystem.File.WriteAllTextAsync(touched, "before");
@@ -584,12 +584,12 @@ public sealed class SnapshotSynchronizerTests
                 missingPreimage ? ScriptedProcessRunner.Fail("missing blob") : ScriptedProcessRunner.Ok("before"));
             if (!missingPreimage)
             {
-                _ = runner.Expect("git", ["apply", fileSystem.Path.GetFullPath(fileSystem.Path.Combine(SnapshotPaths.PatchesRoot, "001-test.patch"))], worktree)
+                _ = runner.Expect("git", ["-c", "core.longpaths=true", "apply", fileSystem.Path.GetFullPath(fileSystem.Path.Combine(SnapshotPaths.PatchesRoot, "001-test.patch"))], worktree)
                     .Expect("bun", ["run", "generate"], fileSystem.Path.Combine(worktree, SnapshotPaths.UpstreamProtocolPackage), sideEffect: () => fileSystem.File.WriteAllBytesAsync(artifact, patched));
             }
         }
 
-        _ = runner.Expect("git", ["worktree", "remove", "--force", worktree], Submodule(fileSystem));
+        _ = runner.Expect("git", ["-c", "core.longpaths=true", "worktree", "remove", "--force", worktree], Submodule(fileSystem));
     }
 
     private static string Submodule(MockFileSystem fileSystem) => fileSystem.Path.GetFullPath(SnapshotPaths.Submodule);

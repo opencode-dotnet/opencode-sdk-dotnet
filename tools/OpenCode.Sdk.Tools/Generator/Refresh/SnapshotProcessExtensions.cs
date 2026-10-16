@@ -6,6 +6,13 @@ namespace OpenCode.Sdk.Tools.Generator.Refresh;
 /// <summary>Converts a checked refresh process failure into the existing refusal diagnostic.</summary>
 internal static class SnapshotProcessExtensions
 {
+    /// <summary>
+    /// Leads every git call that writes or deletes working-tree files. Upstream's test fixtures pass
+    /// Windows' MAX_PATH under a deep checkout, and Git for Windows refuses such paths unless
+    /// <c>core.longpaths</c> is set; other platforms ignore the key.
+    /// </summary>
+    public static readonly IReadOnlyList<string> LongPaths = ["-c", "core.longpaths=true"];
+
     public static async Task<ProcessResult> RunCheckedAsync(this IProcessRunner runner, string fileName,
         IReadOnlyList<string> arguments, string workingDirectory, string description, CancellationToken cancellationToken)
     {

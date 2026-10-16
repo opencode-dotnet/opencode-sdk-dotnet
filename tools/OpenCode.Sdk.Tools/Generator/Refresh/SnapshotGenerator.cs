@@ -26,7 +26,7 @@ internal sealed partial class SnapshotGenerator(IFileSystem fileSystem, IProcess
         }
 
         _ = await _processRunner.RunCheckedAsync(
-                "git", ["worktree", "add", "--detach", worktree, commit], submodule, "adding the generation worktree", cancellationToken)
+                "git", [.. SnapshotProcessExtensions.LongPaths, "worktree", "add", "--detach", worktree, commit], submodule, "adding the generation worktree", cancellationToken)
             .ConfigureAwait(false);
         try
         {
@@ -53,7 +53,7 @@ internal sealed partial class SnapshotGenerator(IFileSystem fileSystem, IProcess
             {
                 var patchPath = _fileSystem.Path.GetFullPath(patch.PatchPath);
                 _ = await _processRunner.RunCheckedAsync(
-                        "git", ["apply", patchPath], worktree, $"applying patch '{patch.ManifestName}'", cancellationToken)
+                        "git", [.. SnapshotProcessExtensions.LongPaths, "apply", patchPath], worktree, $"applying patch '{patch.ManifestName}'", cancellationToken)
                     .ConfigureAwait(false);
             }
 
@@ -78,7 +78,7 @@ internal sealed partial class SnapshotGenerator(IFileSystem fileSystem, IProcess
 
     private async Task RemoveWorktreeAsync(string worktree, string submodule, CancellationToken cancellationToken)
     {
-        var result = await _processRunner.RunAsync("git", ["worktree", "remove", "--force", worktree], submodule, cancellationToken)
+        var result = await _processRunner.RunAsync("git", [.. SnapshotProcessExtensions.LongPaths, "worktree", "remove", "--force", worktree], submodule, cancellationToken)
             .ConfigureAwait(false);
         if (result.ExitCode is not 0)
         {

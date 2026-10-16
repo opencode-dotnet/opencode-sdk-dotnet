@@ -32,7 +32,7 @@ public sealed class SnapshotGeneratorTests
         }
         else
         {
-            scenario.Runner.Expect("git", ["worktree", "add", "--detach", worktree, RefreshScenarioData.Commit], submodule, sideEffect: () =>
+            scenario.Runner.Expect("git", ["-c", "core.longpaths=true", "worktree", "add", "--detach", worktree, RefreshScenarioData.Commit], submodule, sideEffect: () =>
             {
                 _ = fs.Directory.CreateDirectory(fs.Path.Combine(worktree, SnapshotPaths.UpstreamProtocolPackage));
                 return Task.CompletedTask;
@@ -56,7 +56,7 @@ public sealed class SnapshotGeneratorTests
             }
         }
 
-        scenario.Runner.Expect("git", ["worktree", "remove", "--force", worktree], submodule, ScriptedProcessRunner.Fail("cleanup [failed]"),
+        scenario.Runner.Expect("git", ["-c", "core.longpaths=true", "worktree", "remove", "--force", worktree], submodule, ScriptedProcessRunner.Fail("cleanup [failed]"),
             sideEffect: cleanupThrows ? () => throw new InvalidOperationException("cleanup [failed]") : null);
         var generator = scenario.Services.GetRequiredService<SnapshotGenerator>();
         if (outcome == "success")

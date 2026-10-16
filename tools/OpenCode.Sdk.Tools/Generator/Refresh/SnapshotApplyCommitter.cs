@@ -9,7 +9,7 @@ internal sealed class SnapshotApplyCommitter(IFileSystem fileSystem, IProcessRun
 {
     public async Task<SnapshotReceipt> CommitAsync(SnapshotApplyPlan plan, CancellationToken cancellationToken)
     {
-        _ = await processRunner.RunCheckedAsync("git", ["checkout", "--detach", plan.Receipt.UpstreamCommit],
+        _ = await processRunner.RunCheckedAsync("git", [.. SnapshotProcessExtensions.LongPaths, "checkout", "--detach", plan.Receipt.UpstreamCommit],
             fileSystem.Path.GetFullPath(SnapshotPaths.Submodule), "moving the submodule checkout", cancellationToken).ConfigureAwait(false);
 
         await fileSystem.File.WriteAllBytesAsync(SnapshotPaths.AcceptedDocument, plan.Document, cancellationToken).ConfigureAwait(false);
