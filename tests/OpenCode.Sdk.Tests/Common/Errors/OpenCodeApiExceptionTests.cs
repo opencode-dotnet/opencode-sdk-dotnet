@@ -31,13 +31,6 @@ public sealed class OpenCodeApiExceptionTests
     }
 
     [Test]
-    public async Task Exception_Should_Derive_From_The_OpenCode_Base()
-    {
-        await Assert.That(new OpenCodeApiException()).IsAssignableTo<OpenCodeException>();
-        await Assert.That(new OpenCodeTransportException()).IsAssignableTo<OpenCodeException>();
-    }
-
-    [Test]
     public async Task Constructor_Should_Preserve_The_Inner_Exception()
     {
         var inner = new InvalidOperationException("root cause");

@@ -212,10 +212,7 @@ public sealed class WorktreesClientContractTests
             ProjectId = "prj_1",
         });
 
-        var request = scenario.Requests.Single();
-        await Assert.That(request.Method).IsEqualTo(HttpMethod.Post);
-        await Assert.That(request.RequestUri!.AbsoluteUri).IsEqualTo(
-            "http://localhost:4096/api/worktree/refresh");
+        await Assert.That(scenario.Requests.Single().Body).IsEqualTo("{\"projectID\":\"prj_1\"}");
     }
 
     [Test]

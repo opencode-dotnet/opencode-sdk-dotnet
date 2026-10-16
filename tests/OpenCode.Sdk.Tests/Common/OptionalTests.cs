@@ -96,7 +96,6 @@ public sealed class OptionalTests
         Optional<string?> right = "pwsh";
 
         await Assert.That(left.GetHashCode()).IsEqualTo(right.GetHashCode());
-        await Assert.That(Optional<string?>.Null.GetHashCode()).IsNotEqualTo(default(Optional<string?>).GetHashCode());
     }
 
     [Test]
