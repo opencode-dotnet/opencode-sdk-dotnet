@@ -135,6 +135,14 @@ internal sealed class CloneScenario
         return FileSystem.File.WriteAllTextAsync(fullPath, text);
     }
 
+    /// <summary>
+    /// One duplicate as jscpd reports it: two fragments named relative to the scanned path (with the
+    /// platform's separator, as jscpd writes them on Windows), its token count, and whether the
+    /// baseline holds it.
+    /// </summary>
+    internal static string Duplicate(string first, string second, bool isNew) =>
+        $$"""{ "firstFile": { "name": "Deep\\{{first}}", "start": 3, "end": 33 }, "secondFile": { "name": "Deep\\{{second}}", "start": 5, "end": 35 }, "tokens": 212, "lines": 31, "isNew": {{(isNew ? "true" : "false")}} }""";
+
     /// <summary>Writes the report the detector would write, into the output folder named by the scope's config.</summary>
     private async Task WriteReportAsync(string scope, int clones, int newClones)
     {
@@ -144,9 +152,13 @@ internal sealed class CloneScenario
         using var document = JsonDocument.Parse(await FileSystem.File.ReadAllTextAsync(config));
         var output = document.RootElement.GetProperty("output").GetString()!;
         FileSystem.Directory.CreateDirectory(output);
+        var duplicates = Enumerable.Range(0, newClones)
+            .Select(static index => index.ToString(CultureInfo.InvariantCulture))
+            .Select(static index => Duplicate("A" + index + ".cs", "B" + index + ".cs", isNew: true))
+            .Append(Duplicate("Old.cs", "Older.cs", isNew: false));
         var report = string.Create(
             CultureInfo.InvariantCulture,
-            $$"""{ "statistics": { "total": { "clones": {{clones}}, "duplicatedLines": {{clones * 10}}, "lines": 1000, "percentage": {{clones}}, "newClones": {{newClones}} } } }""");
+            $$"""{ "duplicates": [ {{string.Join(", ", duplicates)}} ], "statistics": { "total": { "clones": {{clones}}, "duplicatedLines": {{clones * 10}}, "lines": 1000, "percentage": {{clones}}, "newClones": {{newClones}} } } }""");
         await FileSystem.File.WriteAllTextAsync(FileSystem.Path.Combine(output, CloneDetector.ReportFileName), report);
     }
 }

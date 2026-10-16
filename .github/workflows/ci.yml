@@ -128,7 +128,17 @@ jobs:
       # Hand-written src/ and tools/ may not gain a clone their committed baselines do not hold;
       # tests and generated output are reported.
       - name: Verify clones
-        run: dotnet run --file tools/opencode-tool.cs -- verify-clones
+        run: dotnet run --file tools/opencode-tool.cs -- verify-clones --report-directory "${{ runner.temp }}/clone-reports"
+
+      # A failed clone gate prints each new clone's place; the full reports go along for the rest.
+      - name: Upload clone reports
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: clone-reports-${{ github.event.pull_request.number || github.run_number }}
+          path: ${{ runner.temp }}/clone-reports
+          if-no-files-found: ignore
+          retention-days: 7
 
   build-and-test:
     name: "Build & Test (${{ matrix.name }})"
