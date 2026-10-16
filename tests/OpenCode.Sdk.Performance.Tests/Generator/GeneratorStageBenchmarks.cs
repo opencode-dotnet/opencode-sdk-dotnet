@@ -1,5 +1,6 @@
 #if NET
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 using Microsoft.Extensions.DependencyInjection;
 using OpenCode.Sdk.Performance.Tests.Support;
 using OpenCode.Sdk.Tools;
@@ -22,8 +23,11 @@ namespace OpenCode.Sdk.Performance.Tests.Generator;
 /// and no row measures it; the setup refuses an input that has some, because the baseline would
 /// then miss a stage the run performs. The rows return <see cref="object"/> or <see cref="Task"/>:
 /// the stage types are internal to the tool, and a benchmark method is public.
+/// The class carries its own .NET 10 job, so the invocation passes no <c>--runtimes</c> and its rows
+/// keep the <c>.NET 10.0</c> label that joins the archived before-set.
 /// </remarks>
 [MemoryDiagnoser]
+[SimpleJob(RuntimeMoniker.Net10_0)]
 public class GeneratorStageBenchmarks : IDisposable
 {
     private ServiceProvider? _services;
