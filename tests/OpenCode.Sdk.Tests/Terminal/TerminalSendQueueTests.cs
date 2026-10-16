@@ -1,5 +1,5 @@
-using System.Reflection;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Terminal;
 
@@ -9,9 +9,7 @@ public sealed class TerminalSendQueueTests
     public async Task CloseAsync_Should_Declare_A_Reasoned_Best_Effort_Close_Suppression()
     {
         var close = typeof(TerminalSendQueue).GetMethod(nameof(TerminalSendQueue.CloseAsync));
-        var suppressions = close!.GetCustomAttributes<SlopwatchSuppressAttribute>()
-            .Where(attribute => string.Equals(attribute.RuleId, "SW003", StringComparison.Ordinal))
-            .ToArray();
+        var suppressions = SuppressionDeclaration.BestEffortFailures(close!);
 
         await Assert.That(suppressions).Count().IsEqualTo(1);
         await Assert.That(suppressions.Single().Reason).IsEqualTo(

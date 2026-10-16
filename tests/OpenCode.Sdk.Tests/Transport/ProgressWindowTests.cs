@@ -1,5 +1,6 @@
 using System.Reflection;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Transport;
 
@@ -19,9 +20,7 @@ public sealed class ProgressWindowTests
         var cancellation = typeof(ProgressWindow).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
             .Single(method => method.GetParameters() is [{ ParameterType: var parameterType }]
                 && parameterType == typeof(CancellationTokenSource));
-        var suppressions = cancellation.GetCustomAttributes<SlopwatchSuppressAttribute>()
-            .Where(attribute => string.Equals(attribute.RuleId, "SW003", StringComparison.Ordinal))
-            .ToArray();
+        var suppressions = SuppressionDeclaration.BestEffortFailures(cancellation);
 
         await Assert.That(suppressions).Count().IsEqualTo(1);
         await Assert.That(suppressions.Single().Reason).IsEqualTo(

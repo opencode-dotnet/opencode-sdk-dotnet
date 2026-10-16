@@ -1,7 +1,5 @@
-using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using OpenCode.Sdk.Internal;
@@ -1101,52 +1099,39 @@ public sealed class PipelineTests
 
     private static async Task AssertDisposalWhileAwaitingHeadersAsync(bool ownsHttpClient, bool cancelCaller)
     {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
+        using var listener = new HeldHeadersListener();
+        using var caller = new CancellationTokenSource();
+        using var httpClient = new HttpClient();
+        using var pipeline = CreatePipeline(httpClient, ownsHttpClient, listener.Endpoint);
+
+        var execution = PipelineStreamTests.CaptureFailureAsync(() => pipeline.ExecuteAsync(
+            OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, caller.Token));
         try
         {
-            var port = ((IPEndPoint)listener.LocalEndpoint).Port.ToString(CultureInfo.InvariantCulture);
-            var endpoint = new Uri($"http://127.0.0.1:{port}");
-            using var caller = new CancellationTokenSource();
-            using var httpClient = new HttpClient();
-            using var pipeline = CreatePipeline(httpClient, ownsHttpClient, endpoint);
-
-            var execution = PipelineStreamTests.CaptureFailureAsync(() => pipeline.ExecuteAsync(
-                OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, caller.Token));
-            try
-            {
-                using var peer = await listener.AcceptTcpClientAsync().WaitAsync(HangGuard.Bound);
-                var request = new byte[4096];
-                var read = await peer.GetStream().ReadAsync(request.AsMemory()).AsTask().WaitAsync(HangGuard.Bound);
-                await Assert.That(read).IsGreaterThan(0);
-                if (cancelCaller)
-                {
-                    await caller.CancelOnWorkerAsync();
-                }
-
-                pipeline.Dispose();
-                var failure = await execution.WaitAsync(HangGuard.Bound);
-                await PipelineStreamTests.AssertInterruptionAsync(failure, cancelCaller, caller.Token);
-
-                if (!ownsHttpClient)
-                {
-                    await using var server = LoopbackHttpServer.Start(static _ => new LoopbackHttpResponse { StatusCode = HttpStatusCode.OK });
-                    using var response = await httpClient.GetAsync(server.Endpoint).WaitAsync(HangGuard.Bound);
-                    await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-                }
-            }
-            finally
+            using var peer = await listener.AcceptAsync().WaitAsync(HangGuard.Bound);
+            var request = new byte[4096];
+            var read = await peer.GetStream().ReadAsync(request.AsMemory()).AsTask().WaitAsync(HangGuard.Bound);
+            await Assert.That(read).IsGreaterThan(0);
+            if (cancelCaller)
             {
                 await caller.CancelOnWorkerAsync();
-                _ = await execution.WaitAsync(HangGuard.Bound);
+            }
+
+            pipeline.Dispose();
+            var failure = await execution.WaitAsync(HangGuard.Bound);
+            await PipelineStreamTests.AssertInterruptionAsync(failure, cancelCaller, caller.Token);
+
+            if (!ownsHttpClient)
+            {
+                await using var server = LoopbackHttpServer.Start(static _ => new LoopbackHttpResponse { StatusCode = HttpStatusCode.OK });
+                using var response = await httpClient.GetAsync(server.Endpoint).WaitAsync(HangGuard.Bound);
+                await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
             }
         }
         finally
         {
-            listener.Stop();
-#if NET
-            listener.Dispose();
-#endif
+            await caller.CancelOnWorkerAsync();
+            _ = await execution.WaitAsync(HangGuard.Bound);
         }
     }
 

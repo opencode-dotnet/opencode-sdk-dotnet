@@ -100,43 +100,30 @@ public sealed class CancellationIdentityTests
     private static async Task<OperationCanceledException> AtHeadersAsync(
         Func<OpenCodeClient, CancellationToken, Task> invoke, CancellationTokenSource caller)
     {
-        var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
+        using var listener = new HeldHeadersListener();
+        var observed = CancellationAsync(async () =>
+        {
+            using var client = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = listener.Endpoint });
+            await invoke(client, caller.Token);
+        });
         try
         {
-            var port = ((IPEndPoint)listener.LocalEndpoint).Port.ToString(CultureInfo.InvariantCulture);
-            var endpoint = new Uri($"http://127.0.0.1:{port}");
-            var observed = CancellationAsync(async () =>
+            using var peer = await listener.AcceptAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
+            using var reader = new StreamReader(peer.GetStream(), Encoding.ASCII, detectEncodingFromByteOrderMarks: false);
+            var firstLine = await reader.ReadLineAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
+            await Assert.That(firstLine).IsNotNull();
+            while (!string.IsNullOrEmpty(await reader.ReadLineAsync().WaitAsync(HangGuard.Bound, CancellationToken.None)))
             {
-                using var client = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = endpoint });
-                await invoke(client, caller.Token);
-            });
-            try
-            {
-                using var peer = await listener.AcceptTcpClientAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
-                using var reader = new StreamReader(peer.GetStream(), Encoding.ASCII, detectEncodingFromByteOrderMarks: false);
-                var firstLine = await reader.ReadLineAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
-                await Assert.That(firstLine).IsNotNull();
-                while (!string.IsNullOrEmpty(await reader.ReadLineAsync().WaitAsync(HangGuard.Bound, CancellationToken.None)))
-                {
-                    // Complete request headers witnessed; the peer deliberately sends no response.
-                }
+                // Complete request headers witnessed; the peer deliberately sends no response.
+            }
 
-                await caller.CancelOnWorkerAsync();
-                return await observed;
-            }
-            finally
-            {
-                await caller.CancelOnWorkerAsync();
-                _ = await observed;
-            }
+            await caller.CancelOnWorkerAsync();
+            return await observed;
         }
         finally
         {
-            listener.Stop();
-#if NET
-            listener.Dispose();
-#endif
+            await caller.CancelOnWorkerAsync();
+            _ = await observed;
         }
     }
 
@@ -346,22 +333,10 @@ public sealed class CancellationIdentityTests
     private static async Task<OperationCanceledException> AtAttachAsync(CancellationTokenSource caller)
     {
         using var socket = new ScriptedTerminalWebSocket().Parking();
-        var observed = CancellationAsync(async () =>
+        return await CancelAtParkedReadAsync(async () =>
         {
             await using var session = await PersistentPtySession.AttachAsync(socket, PtyId, caller.Token);
-        });
-        try
-        {
-            Task[] signals = [socket.Parked];
-            await Task.WhenAll(signals).WaitAsync(HangGuard.Bound, CancellationToken.None);
-        }
-        finally
-        {
-            await caller.CancelOnWorkerAsync();
-            _ = await observed;
-        }
-
-        return await observed;
+        }, socket, caller);
     }
 
     private static async Task ConnectAndDisposeAsync(OpenCodeClient client, bool persistent, CancellationToken token)
@@ -395,7 +370,13 @@ public sealed class CancellationIdentityTests
         IAsyncEnumerable<T> stream, string entry, ScriptedTerminalWebSocket socket, CancellationTokenSource caller)
     {
         await using var enumerator = stream.GetAsyncEnumerator(EnumerationToken(entry, caller.Token));
-        var observed = CancellationAsync(async () => _ = await enumerator.MoveNextAsync());
+        return await CancelAtParkedReadAsync(async () => _ = await enumerator.MoveNextAsync(), socket, caller);
+    }
+
+    private static async Task<OperationCanceledException> CancelAtParkedReadAsync(
+        Func<Task> operation, ScriptedTerminalWebSocket socket, CancellationTokenSource caller)
+    {
+        var observed = CancellationAsync(operation);
         try
         {
             Task[] signals = [socket.Parked];
