@@ -1,6 +1,6 @@
 # Repository Workflow
 
-Date: 2026-10-15
+Date: 2026-10-16
 
 Canonical working agreements for research, implementation, temporary work, verification, and Git
 history.
@@ -79,6 +79,12 @@ single-owner rules.
   (session links, co-author lines, "generated with" notes), even when a tool adds them by default.
 - `perf` is distinct from `refactor` because performance work requires before/after benchmark
   evidence.
+- A pull request opens once its change is reviewed and has passed the applicable gate in
+  `quality-gates.md`, so CI runs on finished work.
+- Merge only a head that is rebased onto current `master` and whose CI passed on that head. If
+  `master` moved after the CI run, rebase and run CI again: the repository guards count exactly over
+  every test file, so a green result from an older base can turn `master` red. After the merge, the
+  work is done when the merge commit's CI on `master` is green.
 - Everything lands through a pull request, except a release: its changelog cut and its
   post-publish note are Markdown-only commits pushed straight to `master` with `[skip ci]`, on the
   maintainer's go for that release.

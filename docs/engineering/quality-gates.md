@@ -68,7 +68,9 @@ this policy.
 
 "Builds" and "works" are different claims. Before reporting a repository change complete, run the
 base gate from the repository root; a current handoff may add scope-specific checks but cannot
-weaken it.
+weaken it. Run it on an otherwise idle machine: several real-process tests have wall-clock bounds,
+and a concurrent build, package install or second gate on the same machine can turn them red without
+any change to the code. A red result is recorded before any rerun.
 
 A change limited to Markdown, `LICENSE`, and the files under `.github/` other than build inputs
 (workflows, issue and pull request templates) needs green CI on every check it triggers instead of
