@@ -12,6 +12,23 @@ public sealed class SessionClientContractTests
     private static readonly SessionUpdateRequest EmptyRuleset = new() { Permissions = new Optional<IReadOnlyList<PermissionRule>?>([]), };
 
     [Test]
+    [Arguments(WireBodyData.StreamFailureCause, "Die")]
+    [Arguments(WireBodyData.StreamInterruptNullCause, "Interrupt")]
+    [Arguments(WireBodyData.StreamInterruptNumberCause, "Interrupt")]
+    [Arguments(WireBodyData.UnknownStreamFailureCause, "FutureCause")]
+    public async Task ReadLogAsync_Should_Expose_Each_Causes_Wire_Tag_Through_The_Marker(string body, string tag)
+    {
+        using var scenario = ContractScenario.Responding(_ => ScriptedEventServer.StreamOf(
+            WireBodyData.NamedFrame("effect/http-api/stream/failure", body), ends: true));
+        await using var log = scenario.Client.Sessions.GetSessionClient("ses_9").ReadLogAsync().GetAsyncEnumerator();
+
+        var exception = await Assert.That(async () => _ = await log.MoveNextAsync()).Throws<OpenCodeStreamFailureException>();
+
+        var cause = exception!.Causes.Single();
+        await Assert.That(cause.Tag).IsEqualTo(tag);
+    }
+
+    [Test]
     public async Task GetSessionAsync_Should_Return_The_Typed_Session()
     {
         var payload = new FixtureLoader().LoadJson("Serialization.known-session.json");

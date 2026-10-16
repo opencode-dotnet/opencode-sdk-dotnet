@@ -6,6 +6,18 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 public sealed class UnionEmitterTests
 {
     [Test]
+    public async Task Emit_Should_Inherit_The_Hand_Written_Stream_Cause_Marker()
+    {
+        var plan = await EmitterPlanFixture.CreateStreamPlanAsync();
+        var sources = UnionEmitter.Emit(plan.Unions, plan.Placement);
+        var source = EmitterSnapshot.Content(sources, "Example/Models/IStreamFailureCause.cs");
+
+        await Assert.That(source).Contains("public interface IStreamFailureCause : IOpenCodeStreamFailureCause");
+        await Assert.That(source).Contains("JsonConverter(typeof(StreamFailureCauseJsonConverter))");
+        await Assert.That(source).DoesNotContain("string Tag");
+    }
+
+    [Test]
     public async Task Emit_Should_Produce_Tolerant_Marked_Union_Converters()
     {
         var sources = EmitUnionSnapshot();

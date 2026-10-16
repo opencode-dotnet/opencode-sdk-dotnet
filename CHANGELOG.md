@@ -11,6 +11,11 @@ Nightly builds of `master` are on
 
 ### 💥 Breaking changes
 
+- **`IOpenCodeStreamFailureCause` exposes `Tag`.** Every cause in
+  `OpenCodeStreamFailureException.Causes` exposes its wire tag without a cast, including an
+  unknown cause. Custom test implementations must supply the property. `IStreamFailureCause`
+  inherits it rather than redeclaring it; concrete causes and their wire representation are unchanged.
+
 - **Instruction-entry DTO names retain `Put`.**
   `ExperimentalSessionInstructionsEntryRequest` is now
   `ExperimentalSessionInstructionsEntryPutRequest`, and

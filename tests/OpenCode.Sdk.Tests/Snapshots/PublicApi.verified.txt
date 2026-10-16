@@ -4205,7 +4205,11 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("_tag")]
         string Tag { get; }
     }
-    public interface IOpenCodeStreamFailureCause { }
+    public interface IOpenCodeStreamFailureCause
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("_tag")]
+        string Tag { get; }
+    }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.PluginSourceJsonConverter))]
     public interface IPluginSource
     {
@@ -4345,11 +4349,7 @@ namespace OpenCode.Sdk.Models
         string Type { get; }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.StreamFailureCauseJsonConverter))]
-    public interface IStreamFailureCause : OpenCode.Sdk.Models.IOpenCodeStreamFailureCause
-    {
-        [System.Text.Json.Serialization.JsonPropertyName("_tag")]
-        string Tag { get; }
-    }
+    public interface IStreamFailureCause : OpenCode.Sdk.Models.IOpenCodeStreamFailureCause { }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ToolContentJsonConverter))]
     public interface IToolContent
     {
