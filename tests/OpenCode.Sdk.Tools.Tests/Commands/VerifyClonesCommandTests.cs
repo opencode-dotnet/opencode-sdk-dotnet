@@ -148,7 +148,8 @@ public sealed class VerifyClonesCommandTests
         });
         // The command writes to the tester's console. It is pinned to the 80 columns of a redirected CI
         // log, so a line the gate lets wrap is split in the output and fails the assertions.
-        var tester = new CommandAppTester(registrar, new CommandAppTesterSettings(), new TestConsole().Width(80));
+        using var console = new TestConsole().Width(80);
+        var tester = new CommandAppTester(registrar, new CommandAppTesterSettings(), console);
         tester.Configure(ToolApp.Configure);
         return await tester.RunAsync(arguments);
     }
