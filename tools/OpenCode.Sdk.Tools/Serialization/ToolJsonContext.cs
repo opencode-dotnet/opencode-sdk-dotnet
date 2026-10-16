@@ -8,10 +8,12 @@ using OpenCode.Sdk.Tools.TestRoster.Models;
 namespace OpenCode.Sdk.Tools.Serialization;
 
 [JsonSourceGenerationOptions(
+    AllowDuplicateProperties = false,
     AllowTrailingCommas = true,
     GenerationMode = JsonSourceGenerationMode.Metadata,
     NewLine = "\n",
     ReadCommentHandling = JsonCommentHandling.Skip,
+    RespectNullableAnnotations = true,
     UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
     UseStringEnumConverter = true,
     WriteIndented = true)]

@@ -1,5 +1,8 @@
 using System.IO.Abstractions;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.Extensions.DependencyInjection;
+using OpenCode.Sdk.Tools.TestRoster;
 using OpenCode.Sdk.Tools.Tests.TestRoster.Support;
 using Spectre.Console;
 using Spectre.Console.Cli.Testing;
@@ -10,6 +13,22 @@ namespace OpenCode.Sdk.Tools.Tests.TestRoster;
 
 public sealed class VerifyTestRosterCommandTests
 {
+    [Test]
+    public async Task LoadAsync_Should_Refuse_A_Null_Passes_Member()
+    {
+        var fileSystem = new TestRosterScenario().WithEntry("main", "windows", "Alpha.Tests/net10.0").Build();
+        var json = JsonNode.Parse(await fileSystem.File.ReadAllTextAsync(TestRosterScenario.RosterPath))!;
+        json["passes"] = null;
+        await fileSystem.File.WriteAllTextAsync(TestRosterScenario.RosterPath, json.ToJsonString());
+
+        var exception = await Assert.That(async () => _ = await new TestRosterLoader(fileSystem)
+            .LoadAsync(TestRosterScenario.RosterPath, CancellationToken.None)).Throws<TestRosterException>();
+
+        await Assert.That(exception!.Message).StartsWith($"Roster file '{TestRosterScenario.RosterPath}' is not a valid test roster:");
+        await Assert.That(exception.InnerException).IsTypeOf<JsonException>();
+        await Assert.That(exception.InnerException!.Message).Contains("passes");
+    }
+
     [Test]
     public async Task Execute_Should_Pass_And_Print_Each_Entry_With_Its_Executed_Count_When_The_Roster_Matches_The_Results()
     {

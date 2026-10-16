@@ -8,6 +8,21 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Refresh;
 public sealed class SourceWatchLoaderTests
 {
     [Test]
+    public async Task LoadAsync_Should_Refuse_A_Null_Sources_Member()
+    {
+        var fileSystem = new MockFileSystem();
+        fileSystem.Directory.CreateDirectory("spec");
+        await fileSystem.File.WriteAllTextAsync(SnapshotPaths.SourceWatch,
+            RefreshScenarioData.WithNullMember(RefreshScenarioData.Serialize(RefreshScenarioData.Watch(1)), "sources"));
+
+        var exception = await Assert.That(async () => _ = await new SourceWatchLoader(fileSystem)
+            .LoadAsync(CancellationToken.None)).Throws<SnapshotRefreshException>();
+
+        await Assert.That(exception!.Message).StartsWith("the source watch 'spec/source-watch.json' is invalid:");
+        await Assert.That(exception.Message).Contains("sources");
+    }
+
+    [Test]
     public async Task LoadAsync_Should_Return_An_Empty_Watch_When_No_File_Exists()
     {
         var loader = new SourceWatchLoader(new MockFileSystem());
