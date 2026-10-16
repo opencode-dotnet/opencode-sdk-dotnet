@@ -211,7 +211,8 @@ pragma src/OpenCode.Sdk/Hosting/Launcher/Internal/PipeLineReader.cs VSTHRD003
 pragma src/OpenCode.Sdk/Hosting/Launcher/Internal/WindowsServerChild.cs MA0045
 pragma src/OpenCode.Sdk/Internal/Terminal/TerminalReceivePump.cs VSTHRD003
 pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Ensure/ServiceEnsurerTests.cs MA0045
-pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Handoff/ServicePtyHandoffTests.cs MA0045 x2
+pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Handoff/ServicePtyHandoffScenario.cs MA0045
+pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Handoff/ServicePtyHandoffTests.cs MA0045
 pragma tests/OpenCode.Sdk.Tests/PersistentPtys/PersistentPtySessionTests.cs CA2025
 pragma tests/OpenCode.Sdk.Tests/Support/DiagnosticWriteBarrier.cs VSTHRD003
 pragma tests/OpenCode.Sdk.Tests/Support/Gate.cs VSTHRD003
