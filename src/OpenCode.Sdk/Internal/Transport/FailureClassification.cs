@@ -11,6 +11,12 @@ namespace OpenCode.Sdk.Internal;
 /// </summary>
 internal static class FailureClassification
 {
+    /// <summary>
+    /// The object a disposed root client names, <c>OpenCodeClient</c>'s full name. The transport spine
+    /// compiles without the client type, so it carries the name rather than the type.
+    /// </summary>
+    public const string DisposedClientName = "OpenCode.Sdk.OpenCodeClient";
+
     /// <summary>Owns exactly the faults the phase can produce; everything else stays the caller's.</summary>
     public static bool Handles(Exception exception, FailurePhase phase)
     {
@@ -74,7 +80,7 @@ internal static class FailureClassification
         }
 
         return lifetimeToken.IsCancellationRequested
-            ? new ObjectDisposedException(typeof(OpenCodeClient).FullName)
+            ? new ObjectDisposedException(DisposedClientName)
             : new OpenCodeTransportException(FaultMessage(phase), exception);
     }
 

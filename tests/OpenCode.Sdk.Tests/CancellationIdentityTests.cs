@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
-using System.Net.WebSockets;
 using System.Reflection;
 using System.Text;
 using OpenCode.Sdk.Internal;
@@ -173,7 +172,8 @@ public sealed class CancellationIdentityTests
             .GetAsyncEnumerator(EnumerationToken(entry, caller.Token));
         if (phase == "delay")
         {
-            await Assert.That(await events.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound, CancellationToken.None)).IsTrue();
+            var connected = events.MoveNextAsync().AsTask();
+            await Assert.That(await connected.WaitAsync(HangGuard.Bound, CancellationToken.None)).IsTrue();
         }
 
         var observed = CancellationAsync(() => events.MoveNextAsync().AsTask());
@@ -325,8 +325,10 @@ public sealed class CancellationIdentityTests
         }
     }
 
-    // PersistentPtyClient.ConnectAsync hands the caller's token to this attachment once the upgrade
-    // completes; the parked receive witnesses that the attachment is waiting for its frame.
+    /// <summary>
+    /// Cancels the attachment PersistentPtyClient.ConnectAsync runs with the caller's token once the
+    /// upgrade completes; the parked receive witnesses that it is waiting for its frame.
+    /// </summary>
     private static async Task<OperationCanceledException> AtAttachAsync(CancellationTokenSource caller)
     {
         using var socket = new ScriptedTerminalWebSocket().Parking();
@@ -410,7 +412,7 @@ public sealed class CancellationIdentityTests
             {
                 await session.WriteAsync(PersistentPtyFrameData.Output(Input), CancellationToken.None);
                 await Assert.That(socket.SentMessages[^1]).IsEquivalentTo(
-                    PersistentPtyFrameData.Framed(1, 80, 24, PersistentPtyFrameData.Output(Input)));
+                    PersistentPtyFrameData.Framed(1, 80, 24, PersistentPtyFrameData.Output(Input)), CollectionOrdering.Matching);
             }
 
             return failure;
@@ -486,7 +488,7 @@ public sealed class CancellationIdentityTests
         await Assert.That(members).IsNotEmpty();
         await Assert.That(rows.Except(used, StringComparer.Ordinal).ToArray()).IsEmpty();
         await Assert.That(deferred.OrderBy(static row => row, StringComparer.Ordinal).ToArray())
-            .IsEquivalentTo(["discover", "ensure", "start", "stop"]);
+            .IsEquivalentTo(["discover", "ensure", "start", "stop"], CollectionOrdering.Matching);
         TestContext.Current!.Output.WriteLine($"G1 staged only: {members.Length} signatures inspected; " +
             "StartAsync, DiscoverAsync, EnsureAsync and StopAsync are deferred. G1 is not yet complete.");
     }

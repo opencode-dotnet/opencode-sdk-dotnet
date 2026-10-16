@@ -295,9 +295,17 @@ internal sealed class Pipeline : IDisposable
 
     private void ValidateRequest(HttpMethod method, string route)
     {
-        ObjectDisposedException.ThrowIf(_disposed, typeof(OpenCodeClient));
+        ThrowIfDisposed();
         ArgumentNullException.ThrowIfNull(method);
         ArgumentException.ThrowIfNullOrWhiteSpace(route);
+    }
+
+    private void ThrowIfDisposed()
+    {
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(FailureClassification.DisposedClientName);
+        }
     }
 
     /// <summary>
@@ -320,7 +328,7 @@ internal sealed class Pipeline : IDisposable
         ExceptionDispatchInfo? lastFailure = null;
         while (true)
         {
-            ObjectDisposedException.ThrowIf(_disposed, typeof(OpenCodeClient));
+            ThrowIfDisposed();
             var established = false;
             Exception failure;
             var frames = ExecuteAttemptAsync(operationId, method, route, adapter, perCallLocation, giveUp, cancellationToken).GetAsyncEnumerator(cancellationToken);
@@ -416,7 +424,7 @@ internal sealed class Pipeline : IDisposable
             throw FailureClassification.CallerCancellation(failure, "The opencode event stream read was canceled.", cancellationToken);
         }
 
-        ObjectDisposedException.ThrowIf(_disposed, typeof(OpenCodeClient));
+        ThrowIfDisposed();
         if (giveUp.IsCancellationRequested)
         {
             if (failure is not OperationCanceledException)
@@ -453,7 +461,7 @@ internal sealed class Pipeline : IDisposable
                 throw FailureClassification.CallerCancellation(canceled, "The opencode event stream read was canceled.", cancellationToken);
             }
 
-            ObjectDisposedException.ThrowIf(_disposed, typeof(OpenCodeClient));
+            ThrowIfDisposed();
             lastFailure.Throw();
         }
     }
@@ -463,7 +471,7 @@ internal sealed class Pipeline : IDisposable
         [EnumeratorCancellation] CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
-        ObjectDisposedException.ThrowIf(_disposed, typeof(OpenCodeClient));
+        ThrowIfDisposed();
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetimeToken);
         using var message = CreateStreamMessage(operationId, method, route, perCallLocation, networkTimeout, cancellationToken);
         await SendThroughPoliciesAsync(message).ConfigureAwait(false);
@@ -619,9 +627,8 @@ internal sealed class Pipeline : IDisposable
 
     private static CancellationTokenRegistration RegisterStreamCancellation(
         HttpResponseMessage response, CancellationToken cancellationToken) =>
-        cancellationToken.Register(
+        cancellationToken.UnsafeRegister(
             // The registration always supplies its non-null response as state.
             static state => ((HttpResponseMessage)state!).Dispose(),
-            response,
-            useSynchronizationContext: false);
+            response);
 }
