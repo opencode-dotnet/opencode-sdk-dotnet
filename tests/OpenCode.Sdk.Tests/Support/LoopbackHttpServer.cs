@@ -80,7 +80,9 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
             {
                 client = await accept();
             }
-            catch (Exception exception) when (shutdown.IsCancellationRequested && exception is ObjectDisposedException or SocketException)
+            // A listener stopped after the shutdown check refuses the accept as not listening.
+            catch (Exception exception) when (shutdown.IsCancellationRequested
+                && exception is ObjectDisposedException or SocketException or InvalidOperationException)
             {
                 break;
             }
