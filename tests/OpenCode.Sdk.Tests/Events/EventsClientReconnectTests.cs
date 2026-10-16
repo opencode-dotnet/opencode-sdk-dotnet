@@ -2,8 +2,8 @@ using System.Net;
 using System.Text.Json;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
-using OpenCode.Sdk.TestSupport;
 using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Events;
