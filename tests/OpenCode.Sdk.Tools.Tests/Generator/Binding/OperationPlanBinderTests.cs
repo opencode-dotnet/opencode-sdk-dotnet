@@ -412,7 +412,6 @@ public sealed class OperationPlanBinderTests
         "GetContextAsync",
         "GetDiffAsync",
         "GetFormAsync",
-        "GetLogAsync",
         "GetMessageAsync",
         "GetPermissionAsync",
         "InterruptAsync",
@@ -424,6 +423,7 @@ public sealed class OperationPlanBinderTests
         "MoveAsync",
         "MoveToolsToBackgroundAsync",
         "PromptAsync",
+        "ReadLogAsync",
         "RemoveAsync",
         "ReplyToFormAsync",
         "ReplyToPermissionAsync",
@@ -615,7 +615,7 @@ public sealed class OperationPlanBinderTests
             .That(messageList.QueryRequest.Properties.Single(static property => property.WireName == "cursor").Kind)
             .IsEqualTo(QueryValueKind.Text);
 
-        var sessionLog = session.Operations.Single(static operation => operation.MethodName == "GetLogAsync");
+        var sessionLog = session.Operations.Single(static operation => operation.MethodName == "ReadLogAsync");
         await Assert
             .That(sessionLog.QueryRequest!.Properties.Single(static property => property.WireName == "after").Kind)
             .IsEqualTo(QueryValueKind.Int64);
@@ -3062,6 +3062,46 @@ public sealed class OperationPlanBinderTests
             .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
                                                        && error.Problem.Contains("GadgetClient", StringComparison.Ordinal)))
             .IsTrue();
+    }
+
+    [Test]
+    [Arguments("data", "Entries")]
+    [Arguments("items", "Items")]
+    public async Task Bind_Should_Refuse_A_Redundant_List_Payload_Row(string wireName, string payloadName)
+    {
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
+            .WithOperation("widget.entry.list", configure: operation => operation
+                .Response(200, "application/json", schema => schema.Type("object")
+                    .Property(wireName, property => property.Type("array").Items(item => item.Type("string")), required: true)))));
+        var curation = Curation(
+            Groups("widget", ClientGroup("Widgets", handleName: null, handleParameter: null)),
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["widget.entry.list"] = payloadName });
+
+        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection("widget.entry.list"), curation));
+
+        var error = exception.Errors.Single();
+        await Assert.That(error.Category).IsEqualTo(BindingErrorCategory.Curation);
+        await Assert.That(error.Subject).IsEqualTo("widget.entry.list");
+        await Assert.That(error.Problem).IsEqualTo($"envelopePayloadNames row for 'widget.entry.list' repeats the list naming rule's derived value '{payloadName}'");
+    }
+
+    [Test]
+    public async Task Bind_Should_Apply_A_List_Payload_Override_That_Differs_From_The_Single_Key_Name()
+    {
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
+            .WithOperation("widget.entry.list", configure: operation => operation
+                .Response(200, "application/json", schema => schema.Type("object")
+                    .Property("items", property => property.Type("array").Items(item => item.Type("string")), required: true)))));
+        var curation = Curation(
+            Groups("widget", ClientGroup("Widgets", handleName: null, handleParameter: null)),
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["widget.entry.list"] = "Entries" });
+
+        var plan = new BindingTestHost().Bind(document, Selection("widget.entry.list"), curation);
+
+        var operation = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
+        await Assert.That(operation.Envelope!.PayloadName).IsEqualTo("Entries");
+        await Assert.That(operation.Envelope.WireMemberName).IsEqualTo("items");
+        await Assert.That(operation.Envelope.PayloadType).IsTypeOf<ListTypeReferencePlan>();
     }
 
     [Test]

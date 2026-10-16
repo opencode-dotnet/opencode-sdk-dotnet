@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
@@ -10,8 +11,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// <c>GET</c> without a grammar verb is a read and names <c>Get…</c>; every other operation
 /// without one has no mechanical name, because the HTTP method is never a name source
 /// (ADR-0008): the binder refuses it until a reason-bearing <c>operationNames</c> row names it.
-/// Derivations that need the pluralized group return <see langword="null"/> when the naive rule
-/// is unsafe; the binder refuses such operations too.
+/// Lists pluralize the last subject word, with a closed table for irregular forms.
 /// </summary>
 internal static class OperationNamePolicy
 {
@@ -23,6 +23,10 @@ internal static class OperationNamePolicy
     /// identifier. A change here is an ADR-0008 revision, not curation.
     /// </summary>
     private static readonly string[] KnownVerbSegments = ["create", "get", "list", "remove", "rename", "timeout", "update"];
+
+    private static readonly FrozenDictionary<string, string> IrregularPlurals =
+        new Dictionary<string, string>(StringComparer.Ordinal) { ["Pty"] = "Ptys", ["Inbox"] = "Inbox", ["Saved"] = "Saved" }
+            .ToFrozenDictionary(StringComparer.Ordinal);
 
     /// <summary>
     /// Gets the operation verb: the closing grammar segment, <c>Get</c> for a read without one,
@@ -60,8 +64,8 @@ internal static class OperationNamePolicy
             return null;
         }
 
-        var subject = handle ? Subject(operation) : SubjectOrGroupFallback(operation, verb);
-        return subject is null ? null : $"{verb}{subject}Async";
+        var subject = handle ? Subject(operation, pluralize: true) : SubjectOrGroupFallback(operation, verb);
+        return $"{verb}{subject}Async";
     }
 
     /// <summary>
@@ -141,18 +145,18 @@ internal static class OperationNamePolicy
 
         if (placement is GroupPlacement.Root || handle)
         {
-            return $"{verb}{Subject(operation)}";
+            return $"{verb}{Subject(operation, pluralize: true)}";
         }
 
         var subject = SubjectOrGroupFallback(operation, verb);
-        return subject is null ? null : $"{verb}{subject}";
+        return $"{verb}{subject}";
     }
 
-    public static string? PayloadName(SpecOperation operation)
+    public static string PayloadName(SpecOperation operation)
     {
         ArgumentNullException.ThrowIfNull(operation);
 
-        var subject = Subject(operation);
+        var subject = Subject(operation, pluralize: true);
         return subject.Length is 0 ? GroupFallback(operation, Verb(operation)) : subject;
     }
 
@@ -172,52 +176,57 @@ internal static class OperationNamePolicy
 
     /// <summary>
     /// The operation's subject: the segments between the group and the closing verb.
-    /// The final segment also drops when it restates the HTTP method without being a
-    /// recognized verb; nothing mid-position is ever dropped.
+    /// Only a recognized grammar verb drops; the HTTP method never removes a segment.
     /// </summary>
-    private static string Subject(SpecOperation operation)
+    private static string Subject(SpecOperation operation, bool pluralize = false)
     {
         var end = operation.Segments.Count;
-        if (HasVerbSegment(operation)
-            || (end > 1 && string.Equals(operation.Segments[^1], operation.Method, StringComparison.Ordinal)))
+        if (HasVerbSegment(operation))
         {
             end--;
         }
 
-        return string.Concat(operation.Segments.Skip(1).Take(end - 1).Select(CSharpNamePolicy.ToPascalCase));
+        var subject = string.Concat(operation.Segments.Skip(1).Take(end - 1).Select(CSharpNamePolicy.ToPascalCase));
+        return pluralize && subject.Length > 0 && string.Equals(Verb(operation), "List", StringComparison.Ordinal)
+            ? Pluralize(subject)
+            : subject;
     }
 
-    private static string? SubjectOrGroupFallback(SpecOperation operation, string verb)
+    private static string SubjectOrGroupFallback(SpecOperation operation, string verb)
     {
-        var subject = Subject(operation);
+        var subject = Subject(operation, pluralize: true);
         return subject.Length is 0 ? GroupFallback(operation, verb) : subject;
     }
 
     /// <summary>An empty subject falls back to the group — pluralized for list operations.</summary>
-    private static string? GroupFallback(SpecOperation operation, string? verb)
+    private static string GroupFallback(SpecOperation operation, string? verb)
     {
         var group = CSharpNamePolicy.ToPascalCase(operation.Segments[0]);
         return string.Equals(verb, "List", StringComparison.Ordinal) ? Pluralize(group) : group;
     }
 
-    /// <summary>
-    /// Naive pluralization only: words needing -es or -ies return <see langword="null"/>
-    /// and the operation refuses.
-    /// </summary>
-    private static string? Pluralize(string word)
+    /// <summary>Pluralizes only the last word, preserving the preceding subject words.</summary>
+    private static string Pluralize(string subject)
     {
+        var word = CSharpNamePolicy.SplitWords(subject)[^1];
+        var prefix = subject[..^word.Length];
+        if (IrregularPlurals.TryGetValue(word, out var irregular))
+        {
+            return $"{prefix}{irregular}";
+        }
+
         if (word[^1] is 's' or 'x' or 'z'
             || word.EndsWith("ch", StringComparison.Ordinal) || word.EndsWith("sh", StringComparison.Ordinal))
         {
-            return null;
+            return $"{subject}es";
         }
 
         if (word.Length > 1 && word[^1] is 'y' && !IsVowel(word[^2]))
         {
-            return null;
+            return $"{subject[..^1]}ies";
         }
 
-        return $"{word}s";
+        return $"{subject}s";
     }
 
     private static bool IsVowel(char letter) => letter is 'a' or 'e' or 'i' or 'o' or 'u' or 'A' or 'E' or 'I' or 'O' or 'U';

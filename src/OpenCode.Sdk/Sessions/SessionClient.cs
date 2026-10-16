@@ -280,24 +280,6 @@ public class SessionClient
     }
 
     /// <summary>
-    /// Read the session log. Experimental durable session event log. Reads events after an exclusive aggregate sequence and continues with live events when follow=true.
-    /// </summary>
-    /// <param name = "request">The request shaping the query.</param>
-    /// <param name = "cancellationToken">The cancellation token.</param>
-    /// <returns>The &apos;ISessionLogItem&apos; stream.</returns>
-    /// <exception cref = "OpenCodeApiException">The API returned a declared error status (declared: 400, 401, 404); streaming API errors always throw.</exception>
-    /// <exception cref = "OpenCodeStreamFailureException">The opened stream reported a schema-valid failure with a typed cause.</exception>
-    /// <exception cref = "OpenCodeTransportException">The server could not be reached, the stream could not be read, or a frame or failure cause was malformed.</exception>
-    /// <remarks>
-    /// Operation <c>session.log</c>: <c>GET /api/experimental/session/{sessionID}/log</c>.
-    /// </remarks>
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
-    public virtual IAsyncEnumerable<ISessionLogItem> GetLogAsync(SessionLogRequest? request = null, CancellationToken cancellationToken = default)
-    {
-        return Pipeline.ExecuteStreamAsync("session.log", HttpMethod.Get, OpenCodeRoutes.Sessions.GetLog(SessionId, request), SessionLogResponseStreamAdapter.Instance, cancellationToken);
-    }
-
-    /// <summary>
     /// Get session message. Retrieve one projected message owned by the Session.
     /// </summary>
     /// <param name = "messageId">The &apos;messageID&apos; route value.</param>
@@ -499,6 +481,24 @@ public class SessionClient
     {
         ArgumentNullException.ThrowIfNull(request);
         return Pipeline.ExecuteAsync("session.prompt", HttpMethod.Post, OpenCodeRoutes.Sessions.Prompt(SessionId), request, OpenCodeJsonContext.Default.SessionPromptRequest, SessionPromptResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Read the session log. Experimental durable session event log. Reads events after an exclusive aggregate sequence and continues with live events when follow=true.
+    /// </summary>
+    /// <param name = "request">The request shaping the query.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ISessionLogItem&apos; stream.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned a declared error status (declared: 400, 401, 404); streaming API errors always throw.</exception>
+    /// <exception cref = "OpenCodeStreamFailureException">The opened stream reported a schema-valid failure with a typed cause.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached, the stream could not be read, or a frame or failure cause was malformed.</exception>
+    /// <remarks>
+    /// Operation <c>session.log</c>: <c>GET /api/experimental/session/{sessionID}/log</c>.
+    /// </remarks>
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
+    public virtual IAsyncEnumerable<ISessionLogItem> ReadLogAsync(SessionLogRequest? request = null, CancellationToken cancellationToken = default)
+    {
+        return Pipeline.ExecuteStreamAsync("session.log", HttpMethod.Get, OpenCodeRoutes.Sessions.ReadLog(SessionId, request), SessionLogResponseStreamAdapter.Instance, cancellationToken);
     }
 
     /// <summary>

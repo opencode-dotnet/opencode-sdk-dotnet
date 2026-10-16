@@ -21,7 +21,7 @@ internal sealed class CurationValidator
         var documentIds = document.Operations.Select(static operation => operation.OperationId).ToHashSet(_comparer);
         var documentGroups = document.Operations.Select(GetGroup).ToHashSet(_comparer);
         ValidateGroups(selected, selectedGroups, documentGroups, curation, errors);
-        ValidateOperationNames(selectedIds, documentIds, curation, errors);
+        ValidateOperationNames(selected, documentIds, curation, errors);
         ValidateParameterNames(selected, curation, errors);
         QueryParameterCurationValidator.Validate(document, selected, curation, errors);
         ValidateSchemaNames(document, reachable, curation, errors);
@@ -136,9 +136,10 @@ internal sealed class CurationValidator
         }
     }
 
-    private static void ValidateOperationNames(HashSet<string> selectedIds, HashSet<string> documentIds,
+    private static void ValidateOperationNames(IReadOnlyList<SpecOperation> selected, HashSet<string> documentIds,
         GenerationCuration curation, BindingErrorCollector errors)
     {
+        var operations = selected.ToDictionary(static operation => operation.OperationId, StringComparer.Ordinal);
         var curated = new HashSet<string>(StringComparer.Ordinal);
         foreach (var operationName in curation.OperationNames)
         {
@@ -153,10 +154,25 @@ internal sealed class CurationValidator
                 errors.Add(BindingErrorCategory.Curation, operationName.OperationId,
                     "curated operation does not exist in the spec");
             }
-            else if (!selectedIds.Contains(operationName.OperationId))
+            else if (!operations.ContainsKey(operationName.OperationId))
             {
                 errors.Add(BindingErrorCategory.Curation, operationName.OperationId,
                     "curated operation is not selected by the current profile");
+            }
+
+            if (operations.TryGetValue(operationName.OperationId, out var operation)
+                && string.Equals(operation.Segments[^1], "list", StringComparison.Ordinal))
+            {
+                var handle = curation.Groups.TryGetValue(GetGroup(operation), out var group)
+                             && group.Placement is GroupPlacement.Client
+                             && operation.Parameters.Any(parameter => parameter.Location is SpecParameterLocation.Path
+                                 && string.Equals(parameter.Name, group.HandleParameter, StringComparison.Ordinal));
+                var derived = OperationNamePolicy.MethodName(operation, handle: handle);
+                if (string.Equals(operationName.MethodName, derived, StringComparison.Ordinal))
+                {
+                    errors.Add(BindingErrorCategory.Curation, operationName.OperationId,
+                        $"operationNames row for '{operationName.OperationId}' repeats the list naming rule's derived value '{derived}'");
+                }
             }
 
             if (string.IsNullOrWhiteSpace(operationName.Reason))
@@ -467,9 +483,9 @@ internal sealed class CurationValidator
     }
 
     /// <summary>
-    /// Payload names derive mechanically from the operation subject; curated entries are
-    /// overrides only, so validation covers orphans and identifier
-    /// legality, never presence.
+    /// Curated payload names are overrides only, so validation covers orphans and identifier
+    /// legality, never presence. The envelope binder refuses redundant list rows against the
+    /// mechanical name for the response shape.
     /// </summary>
     private static void ValidateEnvelopeNames(HashSet<string> selectedIds, HashSet<string> documentIds,
         GenerationCuration curation, BindingErrorCollector errors)

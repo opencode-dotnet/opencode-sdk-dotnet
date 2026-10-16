@@ -130,7 +130,7 @@ public sealed class SessionLogCliProfileLiveTests(PinnedOpenCodeServerFixture se
             probe.Start(client.Events.SubscribeAsync(reader.Token));
             await probe.WaitForConnectedAsync(cancellationToken);
 
-            await using var log = session.GetLogAsync(
+            await using var log = session.ReadLogAsync(
                     new SessionLogRequest { Follow = QueryBoolean.True },
                     follow.Token)
                 .GetAsyncEnumerator(follow.Token);

@@ -11,7 +11,7 @@ namespace OpenCode.Sdk;
 [Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record ExperimentalSessionInstructionsEntryListResponse : OpenCodeResponse
 {
-    private readonly IReadOnlyList<InstructionEntryInfo>? _sessionInstructionsEntry;
+    private readonly IReadOnlyList<InstructionEntryInfo>? _sessionInstructionsEntries;
     /// <summary>
     /// Initializes a success instance of the &apos;ExperimentalSessionInstructionsEntryListResponse&apos; envelope.
     /// </summary>
@@ -29,13 +29,13 @@ public sealed record ExperimentalSessionInstructionsEntryListResponse : OpenCode
         IsError = true;
         Error = error;
         RawBody = rawBody;
-        SessionInstructionsEntry = null!;
+        SessionInstructionsEntries = null!;
     }
 
     /// <summary>
-    /// Gets the SessionInstructionsEntry payload; guarded on the error path.
+    /// Gets the SessionInstructionsEntries payload; guarded on the error path.
     /// </summary>
-    public required IReadOnlyList<InstructionEntryInfo> SessionInstructionsEntry { get => _sessionInstructionsEntry ?? throw new InvalidOperationException("The response is an error; check IsError before accessing SessionInstructionsEntry."); init => _sessionInstructionsEntry = value; }
+    public required IReadOnlyList<InstructionEntryInfo> SessionInstructionsEntries { get => _sessionInstructionsEntries ?? throw new InvalidOperationException("The response is an error; check IsError before accessing SessionInstructionsEntries."); init => _sessionInstructionsEntries = value; }
 
     /// <summary>
     /// Prints the shared metadata and appends the payload only when it is present.
@@ -44,7 +44,7 @@ public sealed record ExperimentalSessionInstructionsEntryListResponse : OpenCode
     {
         ArgumentNullException.ThrowIfNull(builder);
         var printed = base.PrintMembers(builder);
-        if (_sessionInstructionsEntry is null)
+        if (_sessionInstructionsEntries is null)
         {
             return printed;
         }
@@ -54,7 +54,7 @@ public sealed record ExperimentalSessionInstructionsEntryListResponse : OpenCode
             _ = builder.Append(", ");
         }
 
-        _ = builder.Append("SessionInstructionsEntry = ").Append(_sessionInstructionsEntry);
+        _ = builder.Append("SessionInstructionsEntries = ").Append(_sessionInstructionsEntries);
         return true;
     }
 }

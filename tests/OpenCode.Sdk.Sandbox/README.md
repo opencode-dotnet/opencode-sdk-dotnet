@@ -41,7 +41,7 @@ proves the persistent PTY round trip; on a Windows workstation that needs a Linu
 The stream example composes through the Extensions package:
 `AddOpenCode` registers one singleton client family, and the Generic Host injects its
 `SessionsClient` into `SessionLogWorker`. The worker creates a session, obtains its bound
-`SessionClient`, and follows `GetLogAsync` through the host's normal `stoppingToken`.
+`SessionClient`, and follows `ReadLogAsync` through the host's normal `stoppingToken`.
 Each frame is logged with its generated runtime type. Ctrl+C stops the host, cancels the
 open response read, and disposes the singleton SDK transport with the container.
 

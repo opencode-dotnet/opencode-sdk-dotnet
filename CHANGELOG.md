@@ -11,6 +11,23 @@ Nightly builds of `master` are on
 
 ### 💥 Breaking changes
 
+- **Instruction-entry DTO names retain `Put`.**
+  `ExperimentalSessionInstructionsEntryRequest` is now
+  `ExperimentalSessionInstructionsEntryPutRequest`, and
+  `ExperimentalSessionInstructionsEntryResponse` is now
+  `ExperimentalSessionInstructionsEntryPutResponse`.
+  `ExperimentalClient.SetSessionInstructionsEntryAsync` keeps its method name.
+- **The instruction-entry list method names its subject in the plural.**
+  `ExperimentalClient.ListSessionInstructionsEntryAsync` is now
+  `ListSessionInstructionsEntriesAsync`, and
+  `ExperimentalSessionInstructionsEntryListResponse.SessionInstructionsEntry` is now
+  `SessionInstructionsEntries`. The plural rule replaces 7 `operationNames` rows and 8
+  `envelopePayloadNames` rows; `envelopePayloadNames` falls from 20 to 12.
+- **The session log uses stream-reading terminology.**
+  `SessionClient.GetLogAsync` is now `ReadLogAsync`; its request and stream item types and
+  its behavior are unchanged. The added naming row brings `operationNames` from 67 to 61
+  (7 removed by the plural rule, 1 added for `ReadLogAsync`).
+
 - **`OpenCodeRoutes` is no longer public.** Call the typed clients to build and send request
   paths instead of using route constants or builders directly. Request paths on the wire are
   unchanged.

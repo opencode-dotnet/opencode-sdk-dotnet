@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Models;
 /// The body of &apos;experimental.session.instructions.entry.put&apos; (PUT /api/experimental/session/{sessionID}/instructions/entries/{key}).
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
-public sealed record ExperimentalSessionInstructionsEntryRequest
+public sealed record ExperimentalSessionInstructionsEntryPutRequest
 {
     /// <summary>
     /// Gets the value value.

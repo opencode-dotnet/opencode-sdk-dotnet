@@ -155,10 +155,10 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionExportResponse> GetSessionExportAsync(string sessionId, OpenCode.Sdk.ExperimentalSessionExportRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionStatsResponse> GetSessionStatsAsync(OpenCode.Sdk.ExperimentalSessionStatsRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionImportResponse> ImportSessionAsync(OpenCode.Sdk.Models.ExperimentalSessionImportRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
-        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionInstructionsEntryListResponse> ListSessionInstructionsEntryAsync(string sessionId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionInstructionsEntryListResponse> ListSessionInstructionsEntriesAsync(string sessionId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalMcpRemoveResponse> RemoveMcpServerAsync(string server, OpenCode.Sdk.ExperimentalMcpRemoveRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionInstructionsEntryRemoveResponse> RemoveSessionInstructionsEntryAsync(string sessionId, string key, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
-        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionInstructionsEntryResponse> SetSessionInstructionsEntryAsync(string sessionId, string key, OpenCode.Sdk.Models.ExperimentalSessionInstructionsEntryRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionInstructionsEntryPutResponse> SetSessionInstructionsEntryAsync(string sessionId, string key, OpenCode.Sdk.Models.ExperimentalSessionInstructionsEntryPutRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalConfigUpdateResponse> UpdateConfigAsync(OpenCode.Sdk.Models.ExperimentalConfigUpdateRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalSessionWaitResponse> WaitForSessionAsync(string sessionId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalFsWriteResponse> WriteFileAsync(OpenCode.Sdk.ExperimentalFsWriteRequest request, System.IO.Stream content, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
@@ -281,20 +281,20 @@ namespace OpenCode.Sdk
     public sealed class ExperimentalSessionInstructionsEntryListResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalSessionInstructionsEntryListResponse>
     {
         public ExperimentalSessionInstructionsEntryListResponse() { }
-        public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.InstructionEntryInfo> SessionInstructionsEntry { get; init; }
+        public required System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.InstructionEntryInfo> SessionInstructionsEntries { get; init; }
         protected override bool PrintMembers(System.Text.StringBuilder builder) { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalSessionInstructionsEntryPutResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalSessionInstructionsEntryPutResponse>
+    {
+        public ExperimentalSessionInstructionsEntryPutResponse() { }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
     public sealed class ExperimentalSessionInstructionsEntryRemoveResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalSessionInstructionsEntryRemoveResponse>
     {
         public ExperimentalSessionInstructionsEntryRemoveResponse() { }
-    }
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-        "erimental.md#opencode001")]
-    public sealed class ExperimentalSessionInstructionsEntryResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalSessionInstructionsEntryResponse>
-    {
-        public ExperimentalSessionInstructionsEntryResponse() { }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
@@ -1350,9 +1350,6 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionContextResponse> GetContextAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionDiffResponse> GetDiffAsync(OpenCode.Sdk.SessionDiffRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionFormResponse> GetFormAsync(string formId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
-        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
-            "erimental.md#opencode003")]
-        public virtual System.Collections.Generic.IAsyncEnumerable<OpenCode.Sdk.Models.ISessionLogItem> GetLogAsync(OpenCode.Sdk.SessionLogRequest? request = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionMessageResponse> GetMessageAsync(string messageId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionPermissionResponse> GetPermissionAsync(string requestId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionInterruptResponse> InterruptAsync(OpenCode.Sdk.SessionInterruptRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
@@ -1364,6 +1361,9 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionMoveResponse> MoveAsync(OpenCode.Sdk.Models.SessionMoveRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionBackgroundResponse> MoveToolsToBackgroundAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionPromptResponse> PromptAsync(OpenCode.Sdk.Models.SessionPromptRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode003")]
+        public virtual System.Collections.Generic.IAsyncEnumerable<OpenCode.Sdk.Models.ISessionLogItem> ReadLogAsync(OpenCode.Sdk.SessionLogRequest? request = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionRemoveResponse> RemoveAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionFormReplyResponse> ReplyToFormAsync(string formId, OpenCode.Sdk.Models.SessionFormReplyRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.SessionPermissionReplyResponse> ReplyToPermissionAsync(string requestId, OpenCode.Sdk.Models.SessionPermissionReplyRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
@@ -3394,9 +3394,9 @@ namespace OpenCode.Sdk.Models
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
-    public sealed class ExperimentalSessionInstructionsEntryRequest : System.IEquatable<OpenCode.Sdk.Models.ExperimentalSessionInstructionsEntryRequest>
+    public sealed class ExperimentalSessionInstructionsEntryPutRequest : System.IEquatable<OpenCode.Sdk.Models.ExperimentalSessionInstructionsEntryPutRequest>
     {
-        public ExperimentalSessionInstructionsEntryRequest() { }
+        public ExperimentalSessionInstructionsEntryPutRequest() { }
         [System.Text.Json.Serialization.JsonPropertyName("value")]
         public required System.Text.Json.JsonElement Value { get; init; }
     }

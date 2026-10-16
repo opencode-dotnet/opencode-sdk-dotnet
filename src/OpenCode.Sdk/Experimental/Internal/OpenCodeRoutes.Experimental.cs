@@ -185,7 +185,7 @@ internal static partial class OpenCodeRoutes
         /// </summary>
         /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>
         /// <returns>The escaped route.</returns>
-        public static string ListSessionInstructionsEntry(string sessionId)
+        public static string ListSessionInstructionsEntries(string sessionId)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
             if (sessionId is "." or "..")

@@ -222,10 +222,10 @@ public class ExperimentalClient
     /// <remarks>
     /// Operation <c>experimental.session.instructions.entry.list</c>: <c>GET /api/experimental/session/{sessionID}/instructions/entries</c>.
     /// </remarks>
-    public virtual Task<ExperimentalSessionInstructionsEntryListResponse> ListSessionInstructionsEntryAsync(string sessionId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    public virtual Task<ExperimentalSessionInstructionsEntryListResponse> ListSessionInstructionsEntriesAsync(string sessionId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
-        return Pipeline.ExecuteAsync("experimental.session.instructions.entry.list", HttpMethod.Get, OpenCodeRoutes.Experimental.ListSessionInstructionsEntry(sessionId), ExperimentalSessionInstructionsEntryListResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.session.instructions.entry.list", HttpMethod.Get, OpenCodeRoutes.Experimental.ListSessionInstructionsEntries(sessionId), ExperimentalSessionInstructionsEntryListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -275,18 +275,18 @@ public class ExperimentalClient
     /// <param name = "request">The request body.</param>
     /// <param name = "requestOptions">The per-call options.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
-    /// <returns>The &apos;ExperimentalSessionInstructionsEntryResponse&apos; envelope.</returns>
+    /// <returns>The &apos;ExperimentalSessionInstructionsEntryPutResponse&apos; envelope.</returns>
     /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 413) and NoThrow was not selected.</exception>
     /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
     /// Operation <c>experimental.session.instructions.entry.put</c>: <c>PUT /api/experimental/session/{sessionID}/instructions/entries/{key}</c>.
     /// </remarks>
-    public virtual Task<ExperimentalSessionInstructionsEntryResponse> SetSessionInstructionsEntryAsync(string sessionId, string key, ExperimentalSessionInstructionsEntryRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    public virtual Task<ExperimentalSessionInstructionsEntryPutResponse> SetSessionInstructionsEntryAsync(string sessionId, string key, ExperimentalSessionInstructionsEntryPutRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync("experimental.session.instructions.entry.put", HttpMethod.Put, OpenCodeRoutes.Experimental.SetSessionInstructionsEntry(sessionId, key), request, OpenCodeJsonContext.Default.ExperimentalSessionInstructionsEntryRequest, ExperimentalSessionInstructionsEntryResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.session.instructions.entry.put", HttpMethod.Put, OpenCodeRoutes.Experimental.SetSessionInstructionsEntry(sessionId, key), request, OpenCodeJsonContext.Default.ExperimentalSessionInstructionsEntryPutRequest, ExperimentalSessionInstructionsEntryPutResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>

@@ -2,22 +2,22 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk.Internal;
 /// <summary>
-/// Adapts the &apos;PUT /api/experimental/session/{sessionID}/instructions/entries/{key}&apos; responses onto &apos;ExperimentalSessionInstructionsEntryResponse&apos;.
+/// Adapts the &apos;PUT /api/experimental/session/{sessionID}/instructions/entries/{key}&apos; responses onto &apos;ExperimentalSessionInstructionsEntryPutResponse&apos;.
 /// </summary>
-internal sealed class ExperimentalSessionInstructionsEntryResponseAdapter : ResponseAdapter<ExperimentalSessionInstructionsEntryResponse>
+internal sealed class ExperimentalSessionInstructionsEntryPutResponseAdapter : ResponseAdapter<ExperimentalSessionInstructionsEntryPutResponse>
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
     private static readonly string[] Status404Tags = ["LocationNotFoundError", "SessionNotFoundError"];
     private static readonly string[] Status413Tags = ["InstructionEntryValueTooLargeError"];
-    private ExperimentalSessionInstructionsEntryResponseAdapter()
+    private ExperimentalSessionInstructionsEntryPutResponseAdapter()
     {
     }
 
     /// <summary>
     /// Gets the shared adapter instance.
     /// </summary>
-    public static ExperimentalSessionInstructionsEntryResponseAdapter Instance { get; } = new ExperimentalSessionInstructionsEntryResponseAdapter();
+    public static ExperimentalSessionInstructionsEntryPutResponseAdapter Instance { get; } = new ExperimentalSessionInstructionsEntryPutResponseAdapter();
 
     /// <summary>
     /// Classifies a status under this operation&apos;s pinned contract.
@@ -35,28 +35,28 @@ internal sealed class ExperimentalSessionInstructionsEntryResponseAdapter : Resp
     /// <summary>
     /// Maps the declared UTF-8 success body onto the typed envelope.
     /// </summary>
-    public override ExperimentalSessionInstructionsEntryResponse AdaptSuccess(int status, ReadOnlySpan<byte> utf8Body) => new()
+    public override ExperimentalSessionInstructionsEntryPutResponse AdaptSuccess(int status, ReadOnlySpan<byte> utf8Body) => new()
     {
         Status = status
     };
     /// <summary>
     /// Maps one buffered response onto the typed envelope.
     /// </summary>
-    public override ExperimentalSessionInstructionsEntryResponse Adapt(int status, string rawBody)
+    public override ExperimentalSessionInstructionsEntryPutResponse Adapt(int status, string rawBody)
     {
         ArgumentNullException.ThrowIfNull(rawBody);
         return status switch
         {
-            204 => new ExperimentalSessionInstructionsEntryResponse
+            204 => new ExperimentalSessionInstructionsEntryPutResponse
             {
                 Status = status
             },
             >= 200 and < 300 => throw StatusVerdictFailures.UndeclaredSuccess(status),
-            400 => new ExperimentalSessionInstructionsEntryResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
-            401 => new ExperimentalSessionInstructionsEntryResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
-            404 => new ExperimentalSessionInstructionsEntryResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
-            413 => new ExperimentalSessionInstructionsEntryResponse(status, ReadTolerantError(rawBody, Status413Tags), rawBody),
-            _ => new ExperimentalSessionInstructionsEntryResponse(status, ReadTolerantError(rawBody, null), rawBody)
+            400 => new ExperimentalSessionInstructionsEntryPutResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
+            401 => new ExperimentalSessionInstructionsEntryPutResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
+            404 => new ExperimentalSessionInstructionsEntryPutResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
+            413 => new ExperimentalSessionInstructionsEntryPutResponse(status, ReadTolerantError(rawBody, Status413Tags), rawBody),
+            _ => new ExperimentalSessionInstructionsEntryPutResponse(status, ReadTolerantError(rawBody, null), rawBody)
         };
     }
 }

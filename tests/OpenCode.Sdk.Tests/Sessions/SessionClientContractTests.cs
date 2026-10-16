@@ -502,7 +502,7 @@ public sealed class SessionClientContractTests
 
         var response = await scenario.Client.Experimental.SetSessionInstructionsEntryAsync("ses_100",
             "style",
-            new ExperimentalSessionInstructionsEntryRequest { Value = value.RootElement });
+            new ExperimentalSessionInstructionsEntryPutRequest { Value = value.RootElement });
 
         await Assert.That(response.Status).IsEqualTo(204);
         var request = scenario.Requests.Single();
@@ -523,7 +523,7 @@ public sealed class SessionClientContractTests
         var exception = await Assert
             .That(async () => _ = await scenario.Client.Experimental.SetSessionInstructionsEntryAsync("ses_100",
                 "style",
-                new ExperimentalSessionInstructionsEntryRequest { Value = value.RootElement }))
+                new ExperimentalSessionInstructionsEntryPutRequest { Value = value.RootElement }))
             .Throws<OpenCodeApiException>();
 
         await Assert.That(exception!.Status).IsEqualTo(413);
@@ -801,12 +801,12 @@ public sealed class SessionClientContractTests
         const string entries = "[{\"key\":\"style\",\"value\":\"be terse\"},{\"key\":\"tone\",\"value\":\"friendly\"}]";
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.Envelope(entries));
 
-        var response = await scenario.Client.Experimental.ListSessionInstructionsEntryAsync("ses_100");
+        var response = await scenario.Client.Experimental.ListSessionInstructionsEntriesAsync("ses_100");
 
-        await Assert.That(response.SessionInstructionsEntry.Count).IsEqualTo(2);
-        await Assert.That(response.SessionInstructionsEntry[0].Key).IsEqualTo("style");
-        await Assert.That(response.SessionInstructionsEntry[0].Value.GetString()).IsEqualTo("be terse");
-        await Assert.That(response.SessionInstructionsEntry[1].Key).IsEqualTo("tone");
+        await Assert.That(response.SessionInstructionsEntries.Count).IsEqualTo(2);
+        await Assert.That(response.SessionInstructionsEntries[0].Key).IsEqualTo("style");
+        await Assert.That(response.SessionInstructionsEntries[0].Value.GetString()).IsEqualTo("be terse");
+        await Assert.That(response.SessionInstructionsEntries[1].Key).IsEqualTo("tone");
         await Assert.That(scenario.Requests.Single().RequestUri)
             .IsEqualTo(new Uri("http://localhost:4096/api/experimental/session/ses_100/instructions/entries"));
     }
@@ -816,9 +816,9 @@ public sealed class SessionClientContractTests
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.Envelope("[]"));
 
-        var response = await scenario.Client.Experimental.ListSessionInstructionsEntryAsync("ses_100");
+        var response = await scenario.Client.Experimental.ListSessionInstructionsEntriesAsync("ses_100");
 
-        await Assert.That(response.SessionInstructionsEntry).IsEmpty();
+        await Assert.That(response.SessionInstructionsEntries).IsEmpty();
     }
 
     [Test]
@@ -827,7 +827,7 @@ public sealed class SessionClientContractTests
         using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.SessionNotFoundError);
 
         var exception = await Assert
-            .That(async () => _ = await scenario.Client.Experimental.ListSessionInstructionsEntryAsync("ses_9"))
+            .That(async () => _ = await scenario.Client.Experimental.ListSessionInstructionsEntriesAsync("ses_9"))
             .Throws<OpenCodeApiException>();
 
         await Assert.That(exception!.Status).IsEqualTo(404);
@@ -839,7 +839,7 @@ public sealed class SessionClientContractTests
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
 
-        var response = await scenario.Client.Experimental.ListSessionInstructionsEntryAsync("ses_100", OpenCodeRequestOptions.NoThrow);
+        var response = await scenario.Client.Experimental.ListSessionInstructionsEntriesAsync("ses_100", OpenCodeRequestOptions.NoThrow);
 
         await Assert.That(response.IsError).IsTrue();
         await Assert.That(response.Status).IsEqualTo(401);

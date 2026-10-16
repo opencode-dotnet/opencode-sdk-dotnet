@@ -118,10 +118,14 @@ Curation may:
   mechanical one says less than the rest of the surface (a `parameterNames` row; a handle
   family's parameter takes one name across the family). Brand spellings (`OAuth`) are fixed in
   the name policy, so a word that spells one, in any case, is written the brand's way;
-- name an operation the closed verb grammar cannot name: the closing identifier segment is the
-  verb only when the grammar lists it, a `GET` without one reads as `Get<Subject>Async`, and any
-  other operation without one refuses until a reason-bearing `operationNames` row names it — the
-  HTTP method is never a name source, in method, request, response, or payload names (ADR-0008);
+- name an operation the closed verb grammar cannot name, or names gracelessly, through a
+  reason-bearing `operationNames` row. The closing segment is a verb only when the grammar lists
+  it; a `GET` without one reads as `Get<Subject>Async`, and any other operation without one
+  requires a row. The HTTP method supplies no name segment and removes none. Lists pluralize the
+  last subject word, including the group fallback, for methods and envelope payload members by
+  the regular rule and closed irregular table; a list naming row that restates that output
+  refuses. Request, response, and operation-derived payload type names follow the operation
+  identity, never an `operationNames` row (ADR-0008);
 - declare that a family emits an internal raw layer rather than a public surface, where
   hand-written code owns that family's public doors (ADR-0021);
 - document a generated type or one of its members where the wire says too little, through a

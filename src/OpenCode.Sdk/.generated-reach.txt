@@ -109,7 +109,7 @@ ExperimentalMigrationV1StatusKind owner=Experimental reached-by=Experimental
 ExperimentalMigrationV1StatusRunning owner=Experimental reached-by=Experimental
 ExperimentalMigrationV1StatusRunningProgress owner=Experimental reached-by=Experimental
 ExperimentalSessionImportRequest owner=Experimental reached-by=Experimental
-ExperimentalSessionInstructionsEntryRequest owner=Experimental reached-by=Experimental
+ExperimentalSessionInstructionsEntryPutRequest owner=Experimental reached-by=Experimental
 ExperimentalSessionSkillRequest owner=Experimental reached-by=Experimental
 ExperimentalSessionStatsRequestTools owner=Experimental reached-by=Experimental
 FileDiffInfo owner=Vcs reached-by=Events,Experimental,Sessions,Vcs
