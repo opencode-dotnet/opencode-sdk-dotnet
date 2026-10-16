@@ -66,21 +66,31 @@ this policy.
 
 ## Completion gate
 
-"Builds" and "works" are different claims. Before reporting a repository change complete, run the
-base gate from the repository root; a current handoff may add scope-specific checks but cannot
-weaken it. Run it on an otherwise idle machine: several real-process tests have wall-clock bounds,
-and a concurrent build, package install or second gate on the same machine can turn them red without
-any change to the code. A red result is recorded before any rerun.
+"Builds" and "works" are different claims. A repository change is complete when the full gate
+below has passed on it, and that gate is CI's: the lint job and the three operating-system legs run
+every step of it on every pull request, and a pull request merges only on that result.
+
+Before a pull request opens, run the local check from the repository root: slopwatch, the Release
+build, both format passes, the whole `OpenCode.Sdk.Tools.Tests` project (its repository guards and
+registries read every file, so a narrow filter misses them), and the tests of every project the
+change touches. A protocol, generator, curation or generated-output change also runs the generator's
+`--help` and `generate --verify`. The local check takes minutes; it finds what CI would find before
+the pull request costs a CI run. A current handoff may add scope-specific checks but cannot weaken
+it.
+
+The full gate also runs locally when a handoff asks for it or a CI failure needs reproducing. Run it
+on an otherwise idle machine: several real-process tests have wall-clock bounds, and a concurrent
+build, package install or second gate on the same machine can turn them red without any change to
+the code. A red result is recorded before any rerun.
 
 A change limited to Markdown, `LICENSE`, and the files under `.github/` other than build inputs
-(workflows, issue and pull request templates) needs green CI on every check it triggers instead of
-the local gate. Any change to source, tests, project or build files, tool manifests, baselines,
-`spec/` or generated output runs the full gate.
+(workflows, issue and pull request templates) needs green CI on every check it triggers and no
+local check.
 
-A fresh clone or worktree is prepared once before its first gate, with the Bun the pin's
-`packageManager` names (`external/opencode/package.json`) first on `PATH`, for the install and for
-every gate after it. `dotnet tool restore` makes the repository's local tools, slopwatch among them,
-available to the gate:
+A fresh clone or worktree is prepared once before its first local check or gate, with the Bun the
+pin's `packageManager` names (`external/opencode/package.json`) first on `PATH`, for the install and
+for every run after it. `dotnet tool restore` makes the repository's local tools, slopwatch among
+them, available:
 
 ```bash
 dotnet tool restore
