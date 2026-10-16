@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
@@ -32,8 +31,8 @@ public sealed class CancellationIdentityTests
         yield return new("pty-resize-http", "headers", caller => AtHeadersAsync(
             static (client, token) => client.Ptys.GetPtyClient(PtyId).UpdateAsync(
                 new PtyUpdateRequest { Size = new PtySize { Cols = 100, Rows = 30 } }, cancellationToken: token), caller));
-        yield return new("pty-connect", "upgrade", caller => AtConnectAsync(persistent: false, caller));
-        yield return new("persistent-connect", "upgrade", caller => AtConnectAsync(persistent: true, caller));
+        yield return new("pty-connect", "upgrade", caller => AtHeadersAsync((client, token) => ConnectAndDisposeAsync(client, persistent: false, token), caller));
+        yield return new("persistent-connect", "upgrade", caller => AtHeadersAsync((client, token) => ConnectAndDisposeAsync(client, persistent: true, token), caller));
         yield return new("persistent-connect", "awaiting-attached", AtAttachAsync);
 
         foreach (var entry in new[] { "method", "enumeration", "both" })
@@ -283,47 +282,6 @@ public sealed class CancellationIdentityTests
         var failure = await CancellationAsync(async () => _ = await items.MoveNextAsync());
         await Assert.That(scenario.Requests.Count).IsEqualTo(1);
         return failure;
-    }
-
-    private static async Task<OperationCanceledException> AtConnectAsync(bool persistent, CancellationTokenSource caller)
-    {
-        var reservation = new TcpListener(IPAddress.Loopback, 0);
-        reservation.Start();
-        var port = ((IPEndPoint)reservation.LocalEndpoint).Port.ToString(CultureInfo.InvariantCulture);
-        reservation.Stop();
-#if NET
-        reservation.Dispose();
-#endif
-        using var listener = new HttpListener();
-        var endpoint = new Uri($"http://127.0.0.1:{port}/");
-        listener.Prefixes.Add(endpoint.AbsoluteUri);
-        listener.Start();
-        var observed = CancellationAsync(async () =>
-        {
-            using var client = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = endpoint });
-            await ConnectAndDisposeAsync(client, persistent, caller.Token);
-        });
-        HttpListenerContext? context = null;
-        try
-        {
-            context = await listener.GetContextAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
-            await Assert.That(context.Request.IsWebSocketRequest).IsTrue();
-            await caller.CancelOnWorkerAsync();
-            return await observed;
-        }
-        finally
-        {
-            await caller.CancelOnWorkerAsync();
-            try
-            {
-                _ = await observed;
-            }
-            finally
-            {
-                context?.Response.Abort();
-                listener.Stop();
-            }
-        }
     }
 
     /// <summary>
