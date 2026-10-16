@@ -68,7 +68,9 @@ this policy.
 
 "Builds" and "works" are different claims. Before reporting a repository change complete, run the
 base gate from the repository root; a current handoff may add scope-specific checks but cannot
-weaken it.
+weaken it. Run it on an otherwise idle machine: several real-process tests have wall-clock bounds,
+and a concurrent build, package install or second gate on the same machine can turn them red without
+any change to the code. A red result is recorded before any rerun.
 
 A change limited to Markdown, `LICENSE`, and the files under `.github/` other than build inputs
 (workflows, issue and pull request templates) needs green CI on every check it triggers instead of
@@ -210,9 +212,12 @@ two `file:line` ranges and its size in tokens, and the job keeps the jscpd repor
 repository root once `bun install --frozen-lockfile --ignore-scripts` has run in `tools/jscpd/`; it is
 not part of the completion gate above.
 
-`verify-clones --update-baseline` rewrites the baselines. A pull request that grows a baseline names
-each new clone in its body with the reason it stays, or says that it is a deliberate rename, the
-same way a new suppression is called out. A shrinking baseline needs no reason.
+`verify-clones --update-baseline` rewrites the baselines, mechanically. A pull request whose baseline
+gains a fingerprint or a higher count accounts for each gain in its body, the same way a new
+suppression is called out. A duplicate that existed before and that the change only moved, renamed
+or re-tokened maps to the old fingerprint it replaces, with the fragments' locations before and
+after. Any other gain is a new clone: the body names the reason it stays and the change that will
+remove it. A shrinking baseline needs no reason.
 
 ## Package compatibility
 

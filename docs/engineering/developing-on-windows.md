@@ -1,11 +1,25 @@
 # Developing on Windows
 
-Date: 2026-10-15
+Date: 2026-10-16
 
 Operational guidance for a Windows workstation. Everything here is about the developer's machine;
 the test suite's own isolation rules live in `testing-style.md` and the gates in `quality-gates.md`.
 A fresh worktree is prepared as `quality-gates.md` describes before its first gate; a workstation's
 own Bun is often not the pinned one, so the pinned Bun goes first on `PATH`.
+
+## Native AOT publishing
+
+The gate's `NativeAot` pass publishes a consumer with ILCompiler, which links with the platform
+linker: a workstation needs the Visual Studio Build Tools workload "Desktop development with C++"
+(MSVC and a Windows SDK). Without it the publish fails with "Platform linker not found".
+
+With the Visual Studio 2026 Build Tools, ILCompiler finds the linker through `VsDevCmd.bat`, which
+calls `vswhere.exe` by its bare name from the Visual Studio Installer folder. The packed-consumer
+fixture puts that folder on its publish's `PATH` itself. A native AOT publish run by hand, from a
+shell that sets `NoDefaultCurrentDirectoryInExePath` and has no Installer folder on `PATH`, fails
+with "'vswhere.exe' is not recognized" inside the linker command and then MSB3073: put
+`C:\Program Files (x86)\Microsoft Visual Studio\Installer` on that process's `PATH` rather than
+clearing the variable.
 
 ## Live legs that need a Linux-hosted server
 
