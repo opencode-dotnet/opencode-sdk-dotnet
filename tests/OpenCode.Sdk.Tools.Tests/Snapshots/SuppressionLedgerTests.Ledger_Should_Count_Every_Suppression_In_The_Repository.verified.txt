@@ -1,7 +1,7 @@
 ﻿Suppression ledger: every channel that lowers, silences or switches off a diagnostic, counted.
 A change that adds, removes or alters a suppression updates this file in the same commit.
 
-build-switch: 10
+build-switch: 12
 editorconfig: 161
 globalconfig: 1
 no-warn: 18
@@ -19,6 +19,8 @@ build-switch Directory.Build.props Nullable = enable
 build-switch Directory.Build.props RunAnalyzersDuringBuild = true
 build-switch Directory.Build.props RunAnalyzersDuringLiveAnalysis = true
 build-switch Directory.Build.props TreatWarningsAsErrors = true
+build-switch src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj [$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))] IsAotCompatible = true
+build-switch src/OpenCode.Sdk/OpenCode.Sdk.csproj [$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))] IsAotCompatible = true
 editorconfig .editorconfig [*.cs] MA0004.report = Always
 editorconfig .editorconfig [*.cs] MA0011.exclude_tostring_methods = true
 editorconfig .editorconfig [*.cs] MA0051.maximum_lines_per_method = 80

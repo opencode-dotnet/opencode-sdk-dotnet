@@ -33,6 +33,15 @@ internal enum SuppressionChannel
     /// <summary>A diagnostic ID in a <c>WarningsNotAsErrors</c> property.</summary>
     WarningsNotAsErrors,
 
+    /// <summary>A diagnostic ID in an <c>MSBuildWarningsAsMessages</c> property.</summary>
+    MSBuildWarningsAsMessages,
+
+    /// <summary>A leading auto-generated comment outside the generated manifest.</summary>
+    GeneratedCodeHeader,
+
+    /// <summary>A <c>GeneratedCode</c> attribute outside the generated manifest.</summary>
+    GeneratedCodeAttribute,
+
     /// <summary>
     /// An assignment of a build property that switches the analyzer wall, its severity or nullable
     /// analysis as a whole, in an MSBuild file, a file-based app directive or a workflow's command line.

@@ -1,5 +1,6 @@
 using System.IO.Abstractions;
 using System.Text.RegularExpressions;
+using Microsoft.CodeAnalysis.Text;
 using OpenCode.Sdk.Tools.Tests.Support;
 
 namespace OpenCode.Sdk.Tools.Tests.CommentResidue;
@@ -45,12 +46,22 @@ internal sealed partial class CommentResidueScan(IFileSystem fileSystem, IReadOn
             }
 
             var text = await _fileSystem.File.ReadAllTextAsync(_fileSystem.Path.Combine(root, file), cancellationToken);
-            if (CommentReader.Reads(file))
+            IReadOnlyList<SourceLine> comments;
+            IReadOnlyList<SourceLine> identifiers = [];
+            if (file.EndsWith(".cs", StringComparison.Ordinal))
             {
-                hits.AddRange(CheckComments(file, CommentReader.Read(file, text)));
+                var sourceText = SourceText.From(text);
+                var source = new CSharpSourceFile(file, sourceText, CSharpSourceReader.Read(sourceText));
+                comments = CommentReader.Read(source);
+                identifiers = CommentReader.CSharpIdentifiers(source);
+            }
+            else
+            {
+                comments = CommentReader.Reads(file) ? CommentReader.Read(file, text) : [];
             }
 
-            hits.AddRange(CheckAutoAccept(file, text));
+            hits.AddRange(CheckComments(file, comments));
+            hits.AddRange(CheckAutoAccept(file, text, comments, identifiers));
         }
 
         return hits;
@@ -91,11 +102,11 @@ internal sealed partial class CommentResidueScan(IFileSystem fileSystem, IReadOn
     /// The auto-accept switches in one file: Verify's auto-accept identifier and its mentions in
     /// comments in C#, and any word spelling it in another text file.
     /// </summary>
-    private static IEnumerable<CommentResidueHit> CheckAutoAccept(string file, string text)
+    private static IEnumerable<CommentResidueHit> CheckAutoAccept(string file, string text, IReadOnlyList<SourceLine> comments, IReadOnlyList<SourceLine> identifiers)
     {
         var lines = file.EndsWith(".cs", StringComparison.Ordinal)
-            ? CommentReader.CSharpIdentifiers(text).Where(static identifier => identifier.Text == AutoAcceptIdentifier)
-                .Concat(CommentReader.Read(file, text).Where(static comment => AutoAcceptWord().IsMatch(comment.Text)))
+            ? identifiers.Where(static identifier => identifier.Text == AutoAcceptIdentifier)
+                .Concat(comments.Where(static comment => AutoAcceptWord().IsMatch(comment.Text)))
             : text.Split('\n').Select((line, index) => new SourceLine(index + 1, line)).Where(static line => AutoAcceptWord().IsMatch(line.Text));
         return lines.Select(line => new CommentResidueHit(file, line.Line, SnapshotAutoAccept, line.Text.Trim()));
     }
