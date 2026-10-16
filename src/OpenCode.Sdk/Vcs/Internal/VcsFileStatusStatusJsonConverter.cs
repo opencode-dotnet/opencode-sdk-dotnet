@@ -28,6 +28,6 @@ internal sealed class VcsFileStatusStatusJsonConverter : JsonConverter<VcsFileSt
             throw new JsonException("A default VcsFileStatusStatus has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

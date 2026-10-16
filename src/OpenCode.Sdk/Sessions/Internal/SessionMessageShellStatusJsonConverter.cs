@@ -28,6 +28,6 @@ internal sealed class SessionMessageShellStatusJsonConverter : JsonConverter<Ses
             throw new JsonException("A default SessionMessageShellStatus has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

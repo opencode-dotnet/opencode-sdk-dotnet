@@ -863,6 +863,14 @@ dotnet_diagnostic.MA0045.severity = none
 dotnet_diagnostic.CA1034.severity = none
 dotnet_diagnostic.CA1724.severity = none
 
+# The generated extensible enums nest one static Values class of wire-spelling constants, so that
+# Type.Values.Name works as a case label and in a pattern, which a static property cannot. Every
+# file under a Models folder, area folders included, is generated, and no generated model nests any
+# other public type.
+# Winner: the nested wire constants; CA1034 remains enabled for every other file.
+[src/OpenCode.Sdk/**/Models/**.cs]
+dotnet_diagnostic.CA1034.severity = none
+
 # The pinned OpenAPI schemas declare these wire members as plain strings without
 # format: uri. Winner: the sole protocol input's declared type; CA1056's name
 # inference remains enabled for every other property.

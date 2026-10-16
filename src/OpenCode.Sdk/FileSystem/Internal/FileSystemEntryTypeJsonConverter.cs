@@ -28,6 +28,6 @@ internal sealed class FileSystemEntryTypeJsonConverter : JsonConverter<FileSyste
             throw new JsonException("A default FileSystemEntryType has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

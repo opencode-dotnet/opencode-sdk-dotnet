@@ -28,6 +28,6 @@ internal sealed class SessionExecutionInterruptedDataReasonJsonConverter : JsonC
             throw new JsonException("A default SessionExecutionInterruptedDataReason has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

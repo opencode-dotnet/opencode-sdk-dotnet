@@ -28,6 +28,6 @@ internal sealed class ConfigInfoUpdateJsonConverter : JsonConverter<ConfigInfoUp
             throw new JsonException("A default ConfigInfoUpdate has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

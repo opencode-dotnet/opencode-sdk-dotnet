@@ -22,17 +22,36 @@ public readonly struct PersistentPtyInfoStatus : IEquatable<PersistentPtyInfoSta
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;running&apos; wire spelling.
+        /// </summary>
+        public const string Running = "running";
+        /// <summary>
+        /// The &apos;exited&apos; wire spelling.
+        /// </summary>
+        public const string Exited = "exited";
+    }
+
+    /// <summary>
     /// Gets the &apos;running&apos; wire value.
     /// </summary>
-    public static PersistentPtyInfoStatus Running { get; } = new("running");
+    public static PersistentPtyInfoStatus Running { get; } = new(Values.Running);
     /// <summary>
     /// Gets the &apos;exited&apos; wire value.
     /// </summary>
-    public static PersistentPtyInfoStatus Exited { get; } = new("exited");
+    public static PersistentPtyInfoStatus Exited { get; } = new(Values.Exited);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "running" or "exited";
+    public bool IsKnown => _value is Values.Running or Values.Exited;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -73,5 +92,5 @@ public readonly struct PersistentPtyInfoStatus : IEquatable<PersistentPtyInfoSta
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

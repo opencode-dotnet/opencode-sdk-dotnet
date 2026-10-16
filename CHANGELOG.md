@@ -37,6 +37,18 @@ Nightly builds of `master` are on
   and at most `int.MaxValue` milliseconds is accepted, but not `Timeout.InfiniteTimeSpan`: a bus
   that never times out would hang on a half-open connection. The 2-second connect bound and the
   1-second delay before a new attempt stay fixed.
+- **Enum values work in `switch` and in patterns.** Every generated enum carries its pinned wire
+  spellings as `const string` members of a nested `Values` class, and a `Value` property that
+  returns a value's spelling. Match one against the other in a `case` label or a property pattern;
+  a value a newer server sends matches none of them:
+
+  ```csharp
+  switch (mode.Value) { case VcsMode.Values.Committed: /* … */ break; }
+  if (rule is { Effect.Value: PermissionEffect.Values.Allow }) { /* … */ }
+  ```
+
+  Nothing else changes: the static properties, `==`, `IsKnown` and the wire format stay as they
+  were.
 
 ## [0.9.0-preview.11] - 2026-10-15
 

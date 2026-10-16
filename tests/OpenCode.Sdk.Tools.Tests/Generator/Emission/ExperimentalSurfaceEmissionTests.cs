@@ -137,6 +137,30 @@ public sealed class ExperimentalSurfaceEmissionTests
             .IsEqualTo("https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001");
     }
 
+    /// <summary>
+    /// An enum only experimental operations reach is marked, and so is the public <c>Values</c>
+    /// class it nests: a consumer can name the class on its own through a <c>using static</c>.
+    /// </summary>
+    [Test]
+    public async Task Emit_Should_Mark_An_Experimental_Only_Enum_And_Its_Values_Class()
+    {
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(static spec => spec
+            .WithSchema("ProbeMode", static schema => schema.Type("string").Enum("fast", "slow"))
+            .WithSchema("ProbeInfo", static schema => schema.Type("object")
+                .Property("mode", static property => property.Ref("ProbeMode"), required: true))
+            .WithOperation("probe.get", path: "/api/experimental/probe", configure: static operation => operation
+                .Response(200, "application/json", static schema => schema.Ref("ProbeInfo")))));
+        var plan = new BindingTestHost().Bind(document, Selection("probe.get"),
+            Curation(Groups("probe", ClientGroup("Probes", null, null, EmissionMode.Public, "OPENCODE001"))));
+
+        var sources = SourceEmitter.Emit(plan);
+
+        var mode = Type<StructDeclarationSyntax>(sources, "ProbeMode");
+        await Assert.That(Diagnostic(mode)).IsEqualTo("OPENCODE001");
+        await Assert.That(Diagnostic(mode.Members.OfType<ClassDeclarationSyntax>().Single(static nested => nested.Identifier.ValueText == "Values")))
+            .IsEqualTo("OPENCODE001");
+    }
+
     [Test]
     public async Task Emit_Should_Leave_Internal_Artifacts_Unmarked()
     {

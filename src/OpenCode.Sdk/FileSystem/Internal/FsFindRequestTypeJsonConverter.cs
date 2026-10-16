@@ -28,6 +28,6 @@ internal sealed class FsFindRequestTypeJsonConverter : JsonConverter<FsFindReque
             throw new JsonException("A default FsFindRequestType has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

@@ -28,6 +28,6 @@ internal sealed class PermissionEffectJsonConverter : JsonConverter<PermissionEf
             throw new JsonException("A default PermissionEffect has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

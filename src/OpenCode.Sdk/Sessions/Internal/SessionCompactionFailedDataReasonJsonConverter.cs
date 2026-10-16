@@ -28,6 +28,6 @@ internal sealed class SessionCompactionFailedDataReasonJsonConverter : JsonConve
             throw new JsonException("A default SessionCompactionFailedDataReason has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

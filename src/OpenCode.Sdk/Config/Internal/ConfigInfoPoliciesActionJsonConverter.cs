@@ -28,6 +28,6 @@ internal sealed class ConfigInfoPoliciesActionJsonConverter : JsonConverter<Conf
             throw new JsonException("A default ConfigInfoPoliciesAction has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

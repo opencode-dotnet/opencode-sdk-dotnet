@@ -28,6 +28,6 @@ internal sealed class PermissionReplyJsonConverter : JsonConverter<PermissionRep
             throw new JsonException("A default PermissionReply has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

@@ -28,6 +28,6 @@ internal sealed class PtyStatusJsonConverter : JsonConverter<PtyStatus>
             throw new JsonException("A default PtyStatus has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

@@ -22,21 +22,44 @@ public readonly struct FilesystemChangedDataEvent : IEquatable<FilesystemChanged
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;add&apos; wire spelling.
+        /// </summary>
+        public const string Add = "add";
+        /// <summary>
+        /// The &apos;change&apos; wire spelling.
+        /// </summary>
+        public const string Change = "change";
+        /// <summary>
+        /// The &apos;unlink&apos; wire spelling.
+        /// </summary>
+        public const string Unlink = "unlink";
+    }
+
+    /// <summary>
     /// Gets the &apos;add&apos; wire value.
     /// </summary>
-    public static FilesystemChangedDataEvent Add { get; } = new("add");
+    public static FilesystemChangedDataEvent Add { get; } = new(Values.Add);
     /// <summary>
     /// Gets the &apos;change&apos; wire value.
     /// </summary>
-    public static FilesystemChangedDataEvent Change { get; } = new("change");
+    public static FilesystemChangedDataEvent Change { get; } = new(Values.Change);
     /// <summary>
     /// Gets the &apos;unlink&apos; wire value.
     /// </summary>
-    public static FilesystemChangedDataEvent Unlink { get; } = new("unlink");
+    public static FilesystemChangedDataEvent Unlink { get; } = new(Values.Unlink);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "add" or "change" or "unlink";
+    public bool IsKnown => _value is Values.Add or Values.Change or Values.Unlink;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -77,5 +100,5 @@ public readonly struct FilesystemChangedDataEvent : IEquatable<FilesystemChanged
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

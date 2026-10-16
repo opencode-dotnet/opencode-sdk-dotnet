@@ -22,25 +22,52 @@ public readonly struct FormStringFieldFormat : IEquatable<FormStringFieldFormat>
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;email&apos; wire spelling.
+        /// </summary>
+        public const string Email = "email";
+        /// <summary>
+        /// The &apos;uri&apos; wire spelling.
+        /// </summary>
+        public const string Uri = "uri";
+        /// <summary>
+        /// The &apos;date&apos; wire spelling.
+        /// </summary>
+        public const string Date = "date";
+        /// <summary>
+        /// The &apos;date-time&apos; wire spelling.
+        /// </summary>
+        public const string DateTime = "date-time";
+    }
+
+    /// <summary>
     /// Gets the &apos;email&apos; wire value.
     /// </summary>
-    public static FormStringFieldFormat Email { get; } = new("email");
+    public static FormStringFieldFormat Email { get; } = new(Values.Email);
     /// <summary>
     /// Gets the &apos;uri&apos; wire value.
     /// </summary>
-    public static FormStringFieldFormat Uri { get; } = new("uri");
+    public static FormStringFieldFormat Uri { get; } = new(Values.Uri);
     /// <summary>
     /// Gets the &apos;date&apos; wire value.
     /// </summary>
-    public static FormStringFieldFormat Date { get; } = new("date");
+    public static FormStringFieldFormat Date { get; } = new(Values.Date);
     /// <summary>
     /// Gets the &apos;date-time&apos; wire value.
     /// </summary>
-    public static FormStringFieldFormat DateTime { get; } = new("date-time");
+    public static FormStringFieldFormat DateTime { get; } = new(Values.DateTime);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "email" or "uri" or "date" or "date-time";
+    public bool IsKnown => _value is Values.Email or Values.Uri or Values.Date or Values.DateTime;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -81,5 +108,5 @@ public readonly struct FormStringFieldFormat : IEquatable<FormStringFieldFormat>
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

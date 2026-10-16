@@ -2244,6 +2244,7 @@ namespace OpenCode.Sdk.Models
     {
         public AgentInfoMode(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.AgentInfoMode All { get; }
         public static OpenCode.Sdk.Models.AgentInfoMode Primary { get; }
         public static OpenCode.Sdk.Models.AgentInfoMode Subagent { get; }
@@ -2255,6 +2256,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.AgentInfoMode op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.AgentInfoMode left, OpenCode.Sdk.Models.AgentInfoMode right) { }
         public static bool operator ==(OpenCode.Sdk.Models.AgentInfoMode left, OpenCode.Sdk.Models.AgentInfoMode right) { }
+        public static class Values
+        {
+            public const string All = "all";
+            public const string Primary = "primary";
+            public const string Subagent = "subagent";
+        }
     }
     public sealed class AgentNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.AgentNotFoundError>
     {
@@ -2370,6 +2377,7 @@ namespace OpenCode.Sdk.Models
     {
         public ConfigAgentMode(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ConfigAgentMode All { get; }
         public static OpenCode.Sdk.Models.ConfigAgentMode Primary { get; }
         public static OpenCode.Sdk.Models.ConfigAgentMode Subagent { get; }
@@ -2381,6 +2389,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ConfigAgentMode op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ConfigAgentMode left, OpenCode.Sdk.Models.ConfigAgentMode right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ConfigAgentMode left, OpenCode.Sdk.Models.ConfigAgentMode right) { }
+        public static class Values
+        {
+            public const string All = "all";
+            public const string Primary = "primary";
+            public const string Subagent = "subagent";
+        }
     }
     public sealed class ConfigAgentRequest : System.IEquatable<OpenCode.Sdk.Models.ConfigAgentRequest>
     {
@@ -2596,6 +2610,7 @@ namespace OpenCode.Sdk.Models
     {
         public ConfigInfoExperimentalPoliciesAction(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction IntegrationUse { get; }
         public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction ProviderUse { get; }
         public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction ToolUse { get; }
@@ -2607,12 +2622,19 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction left, OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction left, OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesAction right) { }
+        public static class Values
+        {
+            public const string IntegrationUse = "integration.use";
+            public const string ProviderUse = "provider.use";
+            public const string ToolUse = "tool.use";
+        }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigInfoExperimentalPoliciesEffectJsonConverter))]
     public readonly struct ConfigInfoExperimentalPoliciesEffect : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect>
     {
         public ConfigInfoExperimentalPoliciesEffect(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect Allow { get; }
         public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect Deny { get; }
         public bool Equals(OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect other) { }
@@ -2623,6 +2645,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect left, OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect left, OpenCode.Sdk.Models.ConfigInfoExperimentalPoliciesEffect right) { }
+        public static class Values
+        {
+            public const string Allow = "allow";
+            public const string Deny = "deny";
+        }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigInfoFormatterJsonConverter))]
     public sealed class ConfigInfoFormatter : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoFormatter>
@@ -2739,6 +2766,7 @@ namespace OpenCode.Sdk.Models
     {
         public ConfigInfoPoliciesAction(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ConfigInfoPoliciesAction IntegrationUse { get; }
         public static OpenCode.Sdk.Models.ConfigInfoPoliciesAction ProviderUse { get; }
         public static OpenCode.Sdk.Models.ConfigInfoPoliciesAction ToolUse { get; }
@@ -2750,12 +2778,19 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ConfigInfoPoliciesAction op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ConfigInfoPoliciesAction left, OpenCode.Sdk.Models.ConfigInfoPoliciesAction right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ConfigInfoPoliciesAction left, OpenCode.Sdk.Models.ConfigInfoPoliciesAction right) { }
+        public static class Values
+        {
+            public const string IntegrationUse = "integration.use";
+            public const string ProviderUse = "provider.use";
+            public const string ToolUse = "tool.use";
+        }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigInfoPoliciesEffectJsonConverter))]
     public readonly struct ConfigInfoPoliciesEffect : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoPoliciesEffect>
     {
         public ConfigInfoPoliciesEffect(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ConfigInfoPoliciesEffect Allow { get; }
         public static OpenCode.Sdk.Models.ConfigInfoPoliciesEffect Deny { get; }
         public bool Equals(OpenCode.Sdk.Models.ConfigInfoPoliciesEffect other) { }
@@ -2766,12 +2801,18 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ConfigInfoPoliciesEffect op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ConfigInfoPoliciesEffect left, OpenCode.Sdk.Models.ConfigInfoPoliciesEffect right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ConfigInfoPoliciesEffect left, OpenCode.Sdk.Models.ConfigInfoPoliciesEffect right) { }
+        public static class Values
+        {
+            public const string Allow = "allow";
+            public const string Deny = "deny";
+        }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigInfoShareJsonConverter))]
     public readonly struct ConfigInfoShare : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoShare>
     {
         public ConfigInfoShare(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ConfigInfoShare Auto { get; }
         public static OpenCode.Sdk.Models.ConfigInfoShare Disabled { get; }
         public static OpenCode.Sdk.Models.ConfigInfoShare Manual { get; }
@@ -2783,6 +2824,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ConfigInfoShare op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ConfigInfoShare left, OpenCode.Sdk.Models.ConfigInfoShare right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ConfigInfoShare left, OpenCode.Sdk.Models.ConfigInfoShare right) { }
+        public static class Values
+        {
+            public const string Auto = "auto";
+            public const string Disabled = "disabled";
+            public const string Manual = "manual";
+        }
     }
     public sealed class ConfigInfoToolOutput : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoToolOutput>
     {
@@ -2799,6 +2846,7 @@ namespace OpenCode.Sdk.Models
     {
         public ConfigInfoUpdate(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ConfigInfoUpdate Auto { get; }
         public static OpenCode.Sdk.Models.ConfigInfoUpdate Disable { get; }
         public static OpenCode.Sdk.Models.ConfigInfoUpdate Notify { get; }
@@ -2810,6 +2858,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ConfigInfoUpdate op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ConfigInfoUpdate left, OpenCode.Sdk.Models.ConfigInfoUpdate right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ConfigInfoUpdate left, OpenCode.Sdk.Models.ConfigInfoUpdate right) { }
+        public static class Values
+        {
+            public const string Auto = "auto";
+            public const string Disable = "disable";
+            public const string Notify = "notify";
+        }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigInfoWarmingJsonConverter))]
     public sealed class ConfigInfoWarming : System.IEquatable<OpenCode.Sdk.Models.ConfigInfoWarming>
@@ -3327,6 +3381,7 @@ namespace OpenCode.Sdk.Models
     {
         public ConnectionCredentialInfoMethod(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ConnectionCredentialInfoMethod External { get; }
         public static OpenCode.Sdk.Models.ConnectionCredentialInfoMethod Key { get; }
         public static OpenCode.Sdk.Models.ConnectionCredentialInfoMethod OAuth { get; }
@@ -3338,6 +3393,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ConnectionCredentialInfoMethod op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ConnectionCredentialInfoMethod left, OpenCode.Sdk.Models.ConnectionCredentialInfoMethod right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ConnectionCredentialInfoMethod left, OpenCode.Sdk.Models.ConnectionCredentialInfoMethod right) { }
+        public static class Values
+        {
+            public const string External = "external";
+            public const string Key = "key";
+            public const string OAuth = "oauth";
+        }
     }
     public sealed class ConnectionEnvInfo : OpenCode.Sdk.Models.IConnectionInfo, System.IEquatable<OpenCode.Sdk.Models.ConnectionEnvInfo>
     {
@@ -3621,6 +3682,7 @@ namespace OpenCode.Sdk.Models
     {
         public ExperimentalMigrationV1StatusIdleStatus(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus Completed { get; }
         public static OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus Required { get; }
         public bool Equals(OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus other) { }
@@ -3631,6 +3693,13 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus left, OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus left, OpenCode.Sdk.Models.ExperimentalMigrationV1StatusIdleStatus right) { }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode001")]
+        public static class Values
+        {
+            public const string Completed = "completed";
+            public const string Required = "required";
+        }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
@@ -3706,6 +3775,7 @@ namespace OpenCode.Sdk.Models
     {
         public ExperimentalSessionStatsRequestTools(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools Detail { get; }
         public static OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools None { get; }
         public static OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools Summary { get; }
@@ -3717,6 +3787,14 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools left, OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools left, OpenCode.Sdk.Models.ExperimentalSessionStatsRequestTools right) { }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode001")]
+        public static class Values
+        {
+            public const string Detail = "detail";
+            public const string None = "none";
+            public const string Summary = "summary";
+        }
     }
     public sealed class FileDiffInfo : System.IEquatable<OpenCode.Sdk.Models.FileDiffInfo>
     {
@@ -3737,6 +3815,7 @@ namespace OpenCode.Sdk.Models
     {
         public FileDiffInfoStatus(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.FileDiffInfoStatus Added { get; }
         public static OpenCode.Sdk.Models.FileDiffInfoStatus Deleted { get; }
         public static OpenCode.Sdk.Models.FileDiffInfoStatus Modified { get; }
@@ -3748,6 +3827,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.FileDiffInfoStatus op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.FileDiffInfoStatus left, OpenCode.Sdk.Models.FileDiffInfoStatus right) { }
         public static bool operator ==(OpenCode.Sdk.Models.FileDiffInfoStatus left, OpenCode.Sdk.Models.FileDiffInfoStatus right) { }
+        public static class Values
+        {
+            public const string Added = "added";
+            public const string Deleted = "deleted";
+            public const string Modified = "modified";
+        }
     }
     public sealed class FileNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.FileNotFoundError>
     {
@@ -3772,6 +3857,7 @@ namespace OpenCode.Sdk.Models
     {
         public FileSystemEntryType(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.FileSystemEntryType Directory { get; }
         public static OpenCode.Sdk.Models.FileSystemEntryType File { get; }
         public bool Equals(OpenCode.Sdk.Models.FileSystemEntryType other) { }
@@ -3782,6 +3868,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.FileSystemEntryType op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.FileSystemEntryType left, OpenCode.Sdk.Models.FileSystemEntryType right) { }
         public static bool operator ==(OpenCode.Sdk.Models.FileSystemEntryType left, OpenCode.Sdk.Models.FileSystemEntryType right) { }
+        public static class Values
+        {
+            public const string Directory = "directory";
+            public const string File = "file";
+        }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
@@ -3822,6 +3913,7 @@ namespace OpenCode.Sdk.Models
     {
         public FilesystemChangedDataEvent(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.FilesystemChangedDataEvent Add { get; }
         public static OpenCode.Sdk.Models.FilesystemChangedDataEvent Change { get; }
         public static OpenCode.Sdk.Models.FilesystemChangedDataEvent Unlink { get; }
@@ -3833,6 +3925,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.FilesystemChangedDataEvent op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.FilesystemChangedDataEvent left, OpenCode.Sdk.Models.FilesystemChangedDataEvent right) { }
         public static bool operator ==(OpenCode.Sdk.Models.FilesystemChangedDataEvent left, OpenCode.Sdk.Models.FilesystemChangedDataEvent right) { }
+        public static class Values
+        {
+            public const string Add = "add";
+            public const string Change = "change";
+            public const string Unlink = "unlink";
+        }
     }
     public sealed class ForbiddenError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.ForbiddenError>
     {
@@ -4217,6 +4315,7 @@ namespace OpenCode.Sdk.Models
     {
         public FormStringFieldFormat(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.FormStringFieldFormat Date { get; }
         public static OpenCode.Sdk.Models.FormStringFieldFormat DateTime { get; }
         public static OpenCode.Sdk.Models.FormStringFieldFormat Email { get; }
@@ -4229,6 +4328,13 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.FormStringFieldFormat op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.FormStringFieldFormat left, OpenCode.Sdk.Models.FormStringFieldFormat right) { }
         public static bool operator ==(OpenCode.Sdk.Models.FormStringFieldFormat left, OpenCode.Sdk.Models.FormStringFieldFormat right) { }
+        public static class Values
+        {
+            public const string Date = "date";
+            public const string DateTime = "date-time";
+            public const string Email = "email";
+            public const string Uri = "uri";
+        }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.FormValueJsonConverter))]
     public sealed class FormValue : System.IEquatable<OpenCode.Sdk.Models.FormValue>
@@ -4269,6 +4375,7 @@ namespace OpenCode.Sdk.Models
     {
         public FormWhenOp(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.FormWhenOp Eq { get; }
         public static OpenCode.Sdk.Models.FormWhenOp Neq { get; }
         public bool Equals(OpenCode.Sdk.Models.FormWhenOp other) { }
@@ -4279,6 +4386,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.FormWhenOp op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.FormWhenOp left, OpenCode.Sdk.Models.FormWhenOp right) { }
         public static bool operator ==(OpenCode.Sdk.Models.FormWhenOp left, OpenCode.Sdk.Models.FormWhenOp right) { }
+        public static class Values
+        {
+            public const string Eq = "eq";
+            public const string Neq = "neq";
+        }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.FormWhenValueJsonConverter))]
     public sealed class FormWhenValue : System.IEquatable<OpenCode.Sdk.Models.FormWhenValue>
@@ -4306,6 +4418,7 @@ namespace OpenCode.Sdk.Models
     {
         public FsFindRequestType(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.FsFindRequestType Directory { get; }
         public static OpenCode.Sdk.Models.FsFindRequestType File { get; }
         public bool Equals(OpenCode.Sdk.Models.FsFindRequestType other) { }
@@ -4316,6 +4429,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.FsFindRequestType op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.FsFindRequestType left, OpenCode.Sdk.Models.FsFindRequestType right) { }
         public static bool operator ==(OpenCode.Sdk.Models.FsFindRequestType left, OpenCode.Sdk.Models.FsFindRequestType right) { }
+        public static class Values
+        {
+            public const string Directory = "directory";
+            public const string File = "file";
+        }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigEntryJsonConverter))]
     public interface IConfigEntry
@@ -4705,6 +4823,7 @@ namespace OpenCode.Sdk.Models
     {
         public IntegrationAttemptMode(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.IntegrationAttemptMode Auto { get; }
         public static OpenCode.Sdk.Models.IntegrationAttemptMode Code { get; }
         public bool Equals(OpenCode.Sdk.Models.IntegrationAttemptMode other) { }
@@ -4715,6 +4834,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.IntegrationAttemptMode op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.IntegrationAttemptMode left, OpenCode.Sdk.Models.IntegrationAttemptMode right) { }
         public static bool operator ==(OpenCode.Sdk.Models.IntegrationAttemptMode left, OpenCode.Sdk.Models.IntegrationAttemptMode right) { }
+        public static class Values
+        {
+            public const string Auto = "auto";
+            public const string Code = "code";
+        }
     }
     public sealed class IntegrationAttemptNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.IntegrationAttemptNotFoundError>
     {
@@ -5242,6 +5366,7 @@ namespace OpenCode.Sdk.Models
     {
         public McpProtocol(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.McpProtocol Auto { get; }
         public static OpenCode.Sdk.Models.McpProtocol Legacy { get; }
         public static OpenCode.Sdk.Models.McpProtocol Revision20260728 { get; }
@@ -5253,6 +5378,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.McpProtocol op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.McpProtocol left, OpenCode.Sdk.Models.McpProtocol right) { }
         public static bool operator ==(OpenCode.Sdk.Models.McpProtocol left, OpenCode.Sdk.Models.McpProtocol right) { }
+        public static class Values
+        {
+            public const string Auto = "auto";
+            public const string Legacy = "legacy";
+            public const string Revision20260728 = "2026-07-28";
+        }
     }
     public sealed class McpRemoteConfig : OpenCode.Sdk.Models.IMcp, System.IEquatable<OpenCode.Sdk.Models.McpRemoteConfig>
     {
@@ -5474,6 +5605,7 @@ namespace OpenCode.Sdk.Models
     {
         public ModelCacheFormat(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ModelCacheFormat Alibaba { get; }
         public static OpenCode.Sdk.Models.ModelCacheFormat Anthropic { get; }
         public bool Equals(OpenCode.Sdk.Models.ModelCacheFormat other) { }
@@ -5484,6 +5616,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ModelCacheFormat op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ModelCacheFormat left, OpenCode.Sdk.Models.ModelCacheFormat right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ModelCacheFormat left, OpenCode.Sdk.Models.ModelCacheFormat right) { }
+        public static class Values
+        {
+            public const string Alibaba = "alibaba";
+            public const string Anthropic = "anthropic";
+        }
     }
     public sealed class ModelCapabilities : System.IEquatable<OpenCode.Sdk.Models.ModelCapabilities>
     {
@@ -5619,6 +5756,7 @@ namespace OpenCode.Sdk.Models
     {
         public ModelInfoStatus(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ModelInfoStatus Active { get; }
         public static OpenCode.Sdk.Models.ModelInfoStatus Alpha { get; }
         public static OpenCode.Sdk.Models.ModelInfoStatus Beta { get; }
@@ -5631,6 +5769,13 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ModelInfoStatus op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ModelInfoStatus left, OpenCode.Sdk.Models.ModelInfoStatus right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ModelInfoStatus left, OpenCode.Sdk.Models.ModelInfoStatus right) { }
+        public static class Values
+        {
+            public const string Active = "active";
+            public const string Alpha = "alpha";
+            public const string Beta = "beta";
+            public const string Deprecated = "deprecated";
+        }
     }
     public sealed class ModelInfoTime : System.IEquatable<OpenCode.Sdk.Models.ModelInfoTime>
     {
@@ -5643,6 +5788,7 @@ namespace OpenCode.Sdk.Models
     {
         public ModelMaxTokensField(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ModelMaxTokensField MaxCompletionTokens { get; }
         public static OpenCode.Sdk.Models.ModelMaxTokensField MaxTokens { get; }
         public bool Equals(OpenCode.Sdk.Models.ModelMaxTokensField other) { }
@@ -5653,6 +5799,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ModelMaxTokensField op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ModelMaxTokensField left, OpenCode.Sdk.Models.ModelMaxTokensField right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ModelMaxTokensField left, OpenCode.Sdk.Models.ModelMaxTokensField right) { }
+        public static class Values
+        {
+            public const string MaxCompletionTokens = "max_completion_tokens";
+            public const string MaxTokens = "max_tokens";
+        }
     }
     public sealed class ModelRef : System.IEquatable<OpenCode.Sdk.Models.ModelRef>
     {
@@ -5793,6 +5944,7 @@ namespace OpenCode.Sdk.Models
     {
         public PermissionEffect(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.PermissionEffect Allow { get; }
         public static OpenCode.Sdk.Models.PermissionEffect Ask { get; }
         public static OpenCode.Sdk.Models.PermissionEffect Deny { get; }
@@ -5804,6 +5956,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.PermissionEffect op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.PermissionEffect left, OpenCode.Sdk.Models.PermissionEffect right) { }
         public static bool operator ==(OpenCode.Sdk.Models.PermissionEffect left, OpenCode.Sdk.Models.PermissionEffect right) { }
+        public static class Values
+        {
+            public const string Allow = "allow";
+            public const string Ask = "ask";
+            public const string Deny = "deny";
+        }
     }
     public sealed class PermissionNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.PermissionNotFoundError>
     {
@@ -5848,6 +6006,7 @@ namespace OpenCode.Sdk.Models
     {
         public PermissionReply(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.PermissionReply Always { get; }
         public static OpenCode.Sdk.Models.PermissionReply Once { get; }
         public static OpenCode.Sdk.Models.PermissionReply Reject { get; }
@@ -5859,6 +6018,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.PermissionReply op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.PermissionReply left, OpenCode.Sdk.Models.PermissionReply right) { }
         public static bool operator ==(OpenCode.Sdk.Models.PermissionReply left, OpenCode.Sdk.Models.PermissionReply right) { }
+        public static class Values
+        {
+            public const string Always = "always";
+            public const string Once = "once";
+            public const string Reject = "reject";
+        }
     }
     public sealed class PermissionRequest : System.IEquatable<OpenCode.Sdk.Models.PermissionRequest>
     {
@@ -6049,6 +6214,7 @@ namespace OpenCode.Sdk.Models
     {
         public PersistentPtyInfoStatus(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.PersistentPtyInfoStatus Exited { get; }
         public static OpenCode.Sdk.Models.PersistentPtyInfoStatus Running { get; }
         public bool Equals(OpenCode.Sdk.Models.PersistentPtyInfoStatus other) { }
@@ -6059,6 +6225,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.PersistentPtyInfoStatus op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.PersistentPtyInfoStatus left, OpenCode.Sdk.Models.PersistentPtyInfoStatus right) { }
         public static bool operator ==(OpenCode.Sdk.Models.PersistentPtyInfoStatus left, OpenCode.Sdk.Models.PersistentPtyInfoStatus right) { }
+        public static class Values
+        {
+            public const string Exited = "exited";
+            public const string Running = "running";
+        }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode002")]
@@ -6544,6 +6715,7 @@ namespace OpenCode.Sdk.Models
     {
         public ProviderEncoding(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ProviderEncoding Gzip { get; }
         public static OpenCode.Sdk.Models.ProviderEncoding None { get; }
         public static OpenCode.Sdk.Models.ProviderEncoding Zstd { get; }
@@ -6555,6 +6727,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ProviderEncoding op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ProviderEncoding left, OpenCode.Sdk.Models.ProviderEncoding right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ProviderEncoding left, OpenCode.Sdk.Models.ProviderEncoding right) { }
+        public static class Values
+        {
+            public const string Gzip = "gzip";
+            public const string None = "none";
+            public const string Zstd = "zstd";
+        }
     }
     public sealed class ProviderInfo : System.IEquatable<OpenCode.Sdk.Models.ProviderInfo>
     {
@@ -6592,6 +6770,7 @@ namespace OpenCode.Sdk.Models
     {
         public ProviderInfoActivation(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ProviderInfoActivation Auto { get; }
         public static OpenCode.Sdk.Models.ProviderInfoActivation Disabled { get; }
         public static OpenCode.Sdk.Models.ProviderInfoActivation Enabled { get; }
@@ -6603,6 +6782,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ProviderInfoActivation op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ProviderInfoActivation left, OpenCode.Sdk.Models.ProviderInfoActivation right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ProviderInfoActivation left, OpenCode.Sdk.Models.ProviderInfoActivation right) { }
+        public static class Values
+        {
+            public const string Auto = "auto";
+            public const string Disabled = "disabled";
+            public const string Enabled = "enabled";
+        }
     }
     public sealed class ProviderNotFoundError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.ProviderNotFoundError>
     {
@@ -6709,6 +6894,7 @@ namespace OpenCode.Sdk.Models
     {
         public ProviderTransport(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ProviderTransport Http { get; }
         public static OpenCode.Sdk.Models.ProviderTransport Websocket { get; }
         public bool Equals(OpenCode.Sdk.Models.ProviderTransport other) { }
@@ -6719,6 +6905,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ProviderTransport op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ProviderTransport left, OpenCode.Sdk.Models.ProviderTransport right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ProviderTransport left, OpenCode.Sdk.Models.ProviderTransport right) { }
+        public static class Values
+        {
+            public const string Http = "http";
+            public const string Websocket = "websocket";
+        }
     }
     public sealed class ProviderUpdated : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.ProviderUpdated>
     {
@@ -6870,6 +7061,7 @@ namespace OpenCode.Sdk.Models
     {
         public PtyStatus(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.PtyStatus Exited { get; }
         public static OpenCode.Sdk.Models.PtyStatus Running { get; }
         public bool Equals(OpenCode.Sdk.Models.PtyStatus other) { }
@@ -6880,6 +7072,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.PtyStatus op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.PtyStatus left, OpenCode.Sdk.Models.PtyStatus right) { }
         public static bool operator ==(OpenCode.Sdk.Models.PtyStatus left, OpenCode.Sdk.Models.PtyStatus right) { }
+        public static class Values
+        {
+            public const string Exited = "exited";
+            public const string Running = "running";
+        }
     }
     public sealed class PtyTicketConnectToken : System.IEquatable<OpenCode.Sdk.Models.PtyTicketConnectToken>
     {
@@ -7026,6 +7223,7 @@ namespace OpenCode.Sdk.Models
     {
         public RpcInternalErrorType(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.RpcInternalErrorType RpcInternal { get; }
         public static OpenCode.Sdk.Models.RpcInternalErrorType RpcInvalidOutput { get; }
         public bool Equals(OpenCode.Sdk.Models.RpcInternalErrorType other) { }
@@ -7036,6 +7234,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.RpcInternalErrorType op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.RpcInternalErrorType left, OpenCode.Sdk.Models.RpcInternalErrorType right) { }
         public static bool operator ==(OpenCode.Sdk.Models.RpcInternalErrorType left, OpenCode.Sdk.Models.RpcInternalErrorType right) { }
+        public static class Values
+        {
+            public const string RpcInternal = "rpc.internal";
+            public const string RpcInvalidOutput = "rpc.invalid_output";
+        }
     }
     public sealed class RpcOutput : System.IEquatable<OpenCode.Sdk.Models.RpcOutput>
     {
@@ -7251,6 +7454,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionCompactionEndedDataReason(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionCompactionEndedDataReason Auto { get; }
         public static OpenCode.Sdk.Models.SessionCompactionEndedDataReason Manual { get; }
         public bool Equals(OpenCode.Sdk.Models.SessionCompactionEndedDataReason other) { }
@@ -7261,6 +7465,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionCompactionEndedDataReason op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionCompactionEndedDataReason left, OpenCode.Sdk.Models.SessionCompactionEndedDataReason right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionCompactionEndedDataReason left, OpenCode.Sdk.Models.SessionCompactionEndedDataReason right) { }
+        public static class Values
+        {
+            public const string Auto = "auto";
+            public const string Manual = "manual";
+        }
     }
     public sealed class SessionCompactionEndedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionCompactionEndedDurable>
     {
@@ -7316,6 +7525,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionCompactionFailedDataReason(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionCompactionFailedDataReason Auto { get; }
         public static OpenCode.Sdk.Models.SessionCompactionFailedDataReason Manual { get; }
         public bool Equals(OpenCode.Sdk.Models.SessionCompactionFailedDataReason other) { }
@@ -7326,6 +7536,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionCompactionFailedDataReason op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionCompactionFailedDataReason left, OpenCode.Sdk.Models.SessionCompactionFailedDataReason right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionCompactionFailedDataReason left, OpenCode.Sdk.Models.SessionCompactionFailedDataReason right) { }
+        public static class Values
+        {
+            public const string Auto = "auto";
+            public const string Manual = "manual";
+        }
     }
     public sealed class SessionCompactionFailedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionCompactionFailedDurable>
     {
@@ -7375,6 +7590,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionCompactionStartedDataReason(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionCompactionStartedDataReason Auto { get; }
         public static OpenCode.Sdk.Models.SessionCompactionStartedDataReason Manual { get; }
         public bool Equals(OpenCode.Sdk.Models.SessionCompactionStartedDataReason other) { }
@@ -7385,6 +7601,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionCompactionStartedDataReason op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionCompactionStartedDataReason left, OpenCode.Sdk.Models.SessionCompactionStartedDataReason right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionCompactionStartedDataReason left, OpenCode.Sdk.Models.SessionCompactionStartedDataReason right) { }
+        public static class Values
+        {
+            public const string Auto = "auto";
+            public const string Manual = "manual";
+        }
     }
     public sealed class SessionCompactionStartedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionCompactionStartedDurable>
     {
@@ -7611,6 +7832,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionExecutionInterruptedDataReason(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason Inactivity { get; }
         public static OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason Shutdown { get; }
         public static OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason Superseded { get; }
@@ -7623,6 +7845,13 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason left, OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason left, OpenCode.Sdk.Models.SessionExecutionInterruptedDataReason right) { }
+        public static class Values
+        {
+            public const string Inactivity = "inactivity";
+            public const string Shutdown = "shutdown";
+            public const string Superseded = "superseded";
+            public const string User = "user";
+        }
     }
     public sealed class SessionExecutionInterruptedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionExecutionInterruptedDurable>
     {
@@ -7936,6 +8165,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionInboxDelivery(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionInboxDelivery Queue { get; }
         public static OpenCode.Sdk.Models.SessionInboxDelivery Steer { get; }
         public bool Equals(OpenCode.Sdk.Models.SessionInboxDelivery other) { }
@@ -7946,6 +8176,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionInboxDelivery op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionInboxDelivery left, OpenCode.Sdk.Models.SessionInboxDelivery right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionInboxDelivery left, OpenCode.Sdk.Models.SessionInboxDelivery right) { }
+        public static class Values
+        {
+            public const string Queue = "queue";
+            public const string Steer = "steer";
+        }
     }
     public sealed class SessionInboxDeliveryChanged : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionInboxDeliveryChanged>
     {
@@ -8250,6 +8485,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionInfoOutcome(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionInfoOutcome Failed { get; }
         public static OpenCode.Sdk.Models.SessionInfoOutcome Interrupted { get; }
         public static OpenCode.Sdk.Models.SessionInfoOutcome Succeeded { get; }
@@ -8261,6 +8497,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionInfoOutcome op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionInfoOutcome left, OpenCode.Sdk.Models.SessionInfoOutcome right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionInfoOutcome left, OpenCode.Sdk.Models.SessionInfoOutcome right) { }
+        public static class Values
+        {
+            public const string Failed = "failed";
+            public const string Interrupted = "interrupted";
+            public const string Succeeded = "succeeded";
+        }
     }
     public sealed class SessionInfoTime : System.IEquatable<OpenCode.Sdk.Models.SessionInfoTime>
     {
@@ -8398,6 +8640,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionMessageAssistantFinish(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionMessageAssistantFinish ContentFilter { get; }
         public static OpenCode.Sdk.Models.SessionMessageAssistantFinish Error { get; }
         public static OpenCode.Sdk.Models.SessionMessageAssistantFinish Length { get; }
@@ -8412,6 +8655,15 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionMessageAssistantFinish op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionMessageAssistantFinish left, OpenCode.Sdk.Models.SessionMessageAssistantFinish right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionMessageAssistantFinish left, OpenCode.Sdk.Models.SessionMessageAssistantFinish right) { }
+        public static class Values
+        {
+            public const string ContentFilter = "content-filter";
+            public const string Error = "error";
+            public const string Length = "length";
+            public const string Stop = "stop";
+            public const string ToolCalls = "tool-calls";
+            public const string Unknown = "unknown";
+        }
     }
     public sealed class SessionMessageAssistantReasoning : OpenCode.Sdk.Models.ISessionMessageAssistantContent, OpenCode.Sdk.Models.ISessionMessageAssistantContentEncoded, System.IEquatable<OpenCode.Sdk.Models.SessionMessageAssistantReasoning>
     {
@@ -8558,6 +8810,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionMessageCompactionCompletedReason(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason Auto { get; }
         public static OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason Manual { get; }
         public bool Equals(OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason other) { }
@@ -8568,6 +8821,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason left, OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason left, OpenCode.Sdk.Models.SessionMessageCompactionCompletedReason right) { }
+        public static class Values
+        {
+            public const string Auto = "auto";
+            public const string Manual = "manual";
+        }
     }
     public sealed class SessionMessageCompactionCompletedTime : OpenCode.Sdk.Models.ISessionMessageCompactionTime, System.IEquatable<OpenCode.Sdk.Models.SessionMessageCompactionCompletedTime>
     {
@@ -8605,6 +8863,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionMessageCompactionFailedReason(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionMessageCompactionFailedReason Auto { get; }
         public static OpenCode.Sdk.Models.SessionMessageCompactionFailedReason Manual { get; }
         public bool Equals(OpenCode.Sdk.Models.SessionMessageCompactionFailedReason other) { }
@@ -8615,6 +8874,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionMessageCompactionFailedReason op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionMessageCompactionFailedReason left, OpenCode.Sdk.Models.SessionMessageCompactionFailedReason right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionMessageCompactionFailedReason left, OpenCode.Sdk.Models.SessionMessageCompactionFailedReason right) { }
+        public static class Values
+        {
+            public const string Auto = "auto";
+            public const string Manual = "manual";
+        }
     }
     public sealed class SessionMessageCompactionFailedTime : OpenCode.Sdk.Models.ISessionMessageCompactionTime, System.IEquatable<OpenCode.Sdk.Models.SessionMessageCompactionFailedTime>
     {
@@ -8648,6 +8912,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionMessageCompactionRunningReason(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionMessageCompactionRunningReason Auto { get; }
         public static OpenCode.Sdk.Models.SessionMessageCompactionRunningReason Manual { get; }
         public bool Equals(OpenCode.Sdk.Models.SessionMessageCompactionRunningReason other) { }
@@ -8658,6 +8923,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionMessageCompactionRunningReason op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionMessageCompactionRunningReason left, OpenCode.Sdk.Models.SessionMessageCompactionRunningReason right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionMessageCompactionRunningReason left, OpenCode.Sdk.Models.SessionMessageCompactionRunningReason right) { }
+        public static class Values
+        {
+            public const string Auto = "auto";
+            public const string Manual = "manual";
+        }
     }
     public sealed class SessionMessageCompactionRunningTime : OpenCode.Sdk.Models.ISessionMessageCompactionTime, System.IEquatable<OpenCode.Sdk.Models.SessionMessageCompactionRunningTime>
     {
@@ -8734,6 +9004,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionMessageIdleOutcome(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionMessageIdleOutcome Failed { get; }
         public static OpenCode.Sdk.Models.SessionMessageIdleOutcome Interrupted { get; }
         public static OpenCode.Sdk.Models.SessionMessageIdleOutcome Succeeded { get; }
@@ -8745,6 +9016,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionMessageIdleOutcome op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionMessageIdleOutcome left, OpenCode.Sdk.Models.SessionMessageIdleOutcome right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionMessageIdleOutcome left, OpenCode.Sdk.Models.SessionMessageIdleOutcome right) { }
+        public static class Values
+        {
+            public const string Failed = "failed";
+            public const string Interrupted = "interrupted";
+            public const string Succeeded = "succeeded";
+        }
     }
     public sealed class SessionMessageIdleTime : System.IEquatable<OpenCode.Sdk.Models.SessionMessageIdleTime>
     {
@@ -8757,6 +9034,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionMessageListRequestType(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionMessageListRequestType AgentSwitched { get; }
         public static OpenCode.Sdk.Models.SessionMessageListRequestType Assistant { get; }
         public static OpenCode.Sdk.Models.SessionMessageListRequestType Compaction { get; }
@@ -8775,6 +9053,19 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionMessageListRequestType op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionMessageListRequestType left, OpenCode.Sdk.Models.SessionMessageListRequestType right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionMessageListRequestType left, OpenCode.Sdk.Models.SessionMessageListRequestType right) { }
+        public static class Values
+        {
+            public const string AgentSwitched = "agent-switched";
+            public const string Assistant = "assistant";
+            public const string Compaction = "compaction";
+            public const string LocationSwitched = "location-switched";
+            public const string ModelSwitched = "model-switched";
+            public const string Shell = "shell";
+            public const string Skill = "skill";
+            public const string Synthetic = "synthetic";
+            public const string System = "system";
+            public const string User = "user";
+        }
     }
     public sealed class SessionMessageLocationSwitched : OpenCode.Sdk.Models.ISessionMessageInfo, System.IEquatable<OpenCode.Sdk.Models.SessionMessageLocationSwitched>
     {
@@ -8886,6 +9177,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionMessageShellStatus(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionMessageShellStatus Exited { get; }
         public static OpenCode.Sdk.Models.SessionMessageShellStatus Killed { get; }
         public static OpenCode.Sdk.Models.SessionMessageShellStatus Running { get; }
@@ -8898,6 +9190,13 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionMessageShellStatus op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionMessageShellStatus left, OpenCode.Sdk.Models.SessionMessageShellStatus right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionMessageShellStatus left, OpenCode.Sdk.Models.SessionMessageShellStatus right) { }
+        public static class Values
+        {
+            public const string Exited = "exited";
+            public const string Killed = "killed";
+            public const string Running = "running";
+            public const string Timeout = "timeout";
+        }
     }
     public sealed class SessionMessageShellTime : System.IEquatable<OpenCode.Sdk.Models.SessionMessageShellTime>
     {
@@ -10064,6 +10363,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionStepEndedDataFinish(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionStepEndedDataFinish ContentFilter { get; }
         public static OpenCode.Sdk.Models.SessionStepEndedDataFinish Error { get; }
         public static OpenCode.Sdk.Models.SessionStepEndedDataFinish Length { get; }
@@ -10078,6 +10378,15 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionStepEndedDataFinish op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionStepEndedDataFinish left, OpenCode.Sdk.Models.SessionStepEndedDataFinish right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionStepEndedDataFinish left, OpenCode.Sdk.Models.SessionStepEndedDataFinish right) { }
+        public static class Values
+        {
+            public const string ContentFilter = "content-filter";
+            public const string Error = "error";
+            public const string Length = "length";
+            public const string Stop = "stop";
+            public const string ToolCalls = "tool-calls";
+            public const string Unknown = "unknown";
+        }
     }
     public sealed class SessionStepEndedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionStepEndedDurable>
     {
@@ -10814,6 +11123,7 @@ namespace OpenCode.Sdk.Models
     {
         public SessionUsageRecordedDataSource(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.SessionUsageRecordedDataSource Compaction { get; }
         public static OpenCode.Sdk.Models.SessionUsageRecordedDataSource Title { get; }
         public bool Equals(OpenCode.Sdk.Models.SessionUsageRecordedDataSource other) { }
@@ -10824,6 +11134,13 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.SessionUsageRecordedDataSource op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.SessionUsageRecordedDataSource left, OpenCode.Sdk.Models.SessionUsageRecordedDataSource right) { }
         public static bool operator ==(OpenCode.Sdk.Models.SessionUsageRecordedDataSource left, OpenCode.Sdk.Models.SessionUsageRecordedDataSource right) { }
+        [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+            "erimental.md#opencode003")]
+        public static class Values
+        {
+            public const string Compaction = "compaction";
+            public const string Title = "title";
+        }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode003")]
@@ -11008,6 +11325,7 @@ namespace OpenCode.Sdk.Models
     {
         public ShellExitedDataStatus(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ShellExitedDataStatus Exited { get; }
         public static OpenCode.Sdk.Models.ShellExitedDataStatus Killed { get; }
         public static OpenCode.Sdk.Models.ShellExitedDataStatus Running { get; }
@@ -11020,6 +11338,13 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ShellExitedDataStatus op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ShellExitedDataStatus left, OpenCode.Sdk.Models.ShellExitedDataStatus right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ShellExitedDataStatus left, OpenCode.Sdk.Models.ShellExitedDataStatus right) { }
+        public static class Values
+        {
+            public const string Exited = "exited";
+            public const string Killed = "killed";
+            public const string Running = "running";
+            public const string Timeout = "timeout";
+        }
     }
     public sealed class ShellInfo : System.IEquatable<OpenCode.Sdk.Models.ShellInfo>
     {
@@ -11055,6 +11380,7 @@ namespace OpenCode.Sdk.Models
     {
         public ShellInfoStatus(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.ShellInfoStatus Exited { get; }
         public static OpenCode.Sdk.Models.ShellInfoStatus Killed { get; }
         public static OpenCode.Sdk.Models.ShellInfoStatus Running { get; }
@@ -11067,6 +11393,13 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.ShellInfoStatus op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.ShellInfoStatus left, OpenCode.Sdk.Models.ShellInfoStatus right) { }
         public static bool operator ==(OpenCode.Sdk.Models.ShellInfoStatus left, OpenCode.Sdk.Models.ShellInfoStatus right) { }
+        public static class Values
+        {
+            public const string Exited = "exited";
+            public const string Killed = "killed";
+            public const string Running = "running";
+            public const string Timeout = "timeout";
+        }
     }
     public sealed class ShellInfoTime : System.IEquatable<OpenCode.Sdk.Models.ShellInfoTime>
     {
@@ -11314,6 +11647,7 @@ namespace OpenCode.Sdk.Models
     {
         public TuiToastShowDataVariant(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.TuiToastShowDataVariant Error { get; }
         public static OpenCode.Sdk.Models.TuiToastShowDataVariant Info { get; }
         public static OpenCode.Sdk.Models.TuiToastShowDataVariant Success { get; }
@@ -11326,6 +11660,13 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.TuiToastShowDataVariant op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.TuiToastShowDataVariant left, OpenCode.Sdk.Models.TuiToastShowDataVariant right) { }
         public static bool operator ==(OpenCode.Sdk.Models.TuiToastShowDataVariant left, OpenCode.Sdk.Models.TuiToastShowDataVariant right) { }
+        public static class Values
+        {
+            public const string Error = "error";
+            public const string Info = "info";
+            public const string Success = "success";
+            public const string Warning = "warning";
+        }
     }
     public sealed class UnauthorizedError : OpenCode.Sdk.Models.IOpenCodeError, System.IEquatable<OpenCode.Sdk.Models.UnauthorizedError>
     {
@@ -11647,6 +11988,7 @@ namespace OpenCode.Sdk.Models
     {
         public VcsBaseSource(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.VcsBaseSource Default { get; }
         public static OpenCode.Sdk.Models.VcsBaseSource Reflog { get; }
         public bool Equals(OpenCode.Sdk.Models.VcsBaseSource other) { }
@@ -11657,6 +11999,11 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.VcsBaseSource op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.VcsBaseSource left, OpenCode.Sdk.Models.VcsBaseSource right) { }
         public static bool operator ==(OpenCode.Sdk.Models.VcsBaseSource left, OpenCode.Sdk.Models.VcsBaseSource right) { }
+        public static class Values
+        {
+            public const string Default = "default";
+            public const string Reflog = "reflog";
+        }
     }
     public sealed class VcsBranch : System.IEquatable<OpenCode.Sdk.Models.VcsBranch>
     {
@@ -11710,6 +12057,7 @@ namespace OpenCode.Sdk.Models
     {
         public VcsFileStatusStatus(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.VcsFileStatusStatus Added { get; }
         public static OpenCode.Sdk.Models.VcsFileStatusStatus Deleted { get; }
         public static OpenCode.Sdk.Models.VcsFileStatusStatus Modified { get; }
@@ -11721,6 +12069,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.VcsFileStatusStatus op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.VcsFileStatusStatus left, OpenCode.Sdk.Models.VcsFileStatusStatus right) { }
         public static bool operator ==(OpenCode.Sdk.Models.VcsFileStatusStatus left, OpenCode.Sdk.Models.VcsFileStatusStatus right) { }
+        public static class Values
+        {
+            public const string Added = "added";
+            public const string Deleted = "deleted";
+            public const string Modified = "modified";
+        }
     }
     public sealed class VcsInfo : System.IEquatable<OpenCode.Sdk.Models.VcsInfo>
     {
@@ -11746,6 +12100,7 @@ namespace OpenCode.Sdk.Models
     {
         public VcsMode(string value) { }
         public bool IsKnown { get; }
+        public string Value { get; }
         public static OpenCode.Sdk.Models.VcsMode Branch { get; }
         public static OpenCode.Sdk.Models.VcsMode Committed { get; }
         public static OpenCode.Sdk.Models.VcsMode Working { get; }
@@ -11757,6 +12112,12 @@ namespace OpenCode.Sdk.Models
         public static OpenCode.Sdk.Models.VcsMode op_Implicit(string value) { }
         public static bool operator !=(OpenCode.Sdk.Models.VcsMode left, OpenCode.Sdk.Models.VcsMode right) { }
         public static bool operator ==(OpenCode.Sdk.Models.VcsMode left, OpenCode.Sdk.Models.VcsMode right) { }
+        public static class Values
+        {
+            public const string Branch = "branch";
+            public const string Committed = "committed";
+            public const string Working = "working";
+        }
     }
     public sealed class WebSearchProvider : System.IEquatable<OpenCode.Sdk.Models.WebSearchProvider>
     {

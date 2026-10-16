@@ -28,6 +28,6 @@ internal sealed class RpcInternalErrorTypeJsonConverter : JsonConverter<RpcInter
             throw new JsonException("A default RpcInternalErrorType has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

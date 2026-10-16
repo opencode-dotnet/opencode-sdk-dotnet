@@ -28,6 +28,6 @@ internal sealed class FilesystemChangedDataEventJsonConverter : JsonConverter<Fi
             throw new JsonException("A default FilesystemChangedDataEvent has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

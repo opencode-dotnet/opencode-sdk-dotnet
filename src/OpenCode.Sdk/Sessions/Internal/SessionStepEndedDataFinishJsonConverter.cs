@@ -28,6 +28,6 @@ internal sealed class SessionStepEndedDataFinishJsonConverter : JsonConverter<Se
             throw new JsonException("A default SessionStepEndedDataFinish has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

@@ -28,6 +28,6 @@ internal sealed class ExperimentalMigrationV1StatusIdleStatusJsonConverter : Jso
             throw new JsonException("A default ExperimentalMigrationV1StatusIdleStatus has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

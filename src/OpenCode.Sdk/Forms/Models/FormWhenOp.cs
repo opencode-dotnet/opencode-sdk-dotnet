@@ -22,17 +22,36 @@ public readonly struct FormWhenOp : IEquatable<FormWhenOp>
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;eq&apos; wire spelling.
+        /// </summary>
+        public const string Eq = "eq";
+        /// <summary>
+        /// The &apos;neq&apos; wire spelling.
+        /// </summary>
+        public const string Neq = "neq";
+    }
+
+    /// <summary>
     /// Gets the &apos;eq&apos; wire value.
     /// </summary>
-    public static FormWhenOp Eq { get; } = new("eq");
+    public static FormWhenOp Eq { get; } = new(Values.Eq);
     /// <summary>
     /// Gets the &apos;neq&apos; wire value.
     /// </summary>
-    public static FormWhenOp Neq { get; } = new("neq");
+    public static FormWhenOp Neq { get; } = new(Values.Neq);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "eq" or "neq";
+    public bool IsKnown => _value is Values.Eq or Values.Neq;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -73,5 +92,5 @@ public readonly struct FormWhenOp : IEquatable<FormWhenOp>
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

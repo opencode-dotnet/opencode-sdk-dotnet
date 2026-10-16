@@ -28,6 +28,6 @@ internal sealed class SessionMessageCompactionRunningReasonJsonConverter : JsonC
             throw new JsonException("A default SessionMessageCompactionRunningReason has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

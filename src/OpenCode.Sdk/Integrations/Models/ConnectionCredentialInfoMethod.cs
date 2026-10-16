@@ -22,21 +22,44 @@ public readonly struct ConnectionCredentialInfoMethod : IEquatable<ConnectionCre
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;key&apos; wire spelling.
+        /// </summary>
+        public const string Key = "key";
+        /// <summary>
+        /// The &apos;oauth&apos; wire spelling.
+        /// </summary>
+        public const string OAuth = "oauth";
+        /// <summary>
+        /// The &apos;external&apos; wire spelling.
+        /// </summary>
+        public const string External = "external";
+    }
+
+    /// <summary>
     /// Gets the &apos;key&apos; wire value.
     /// </summary>
-    public static ConnectionCredentialInfoMethod Key { get; } = new("key");
+    public static ConnectionCredentialInfoMethod Key { get; } = new(Values.Key);
     /// <summary>
     /// Gets the &apos;oauth&apos; wire value.
     /// </summary>
-    public static ConnectionCredentialInfoMethod OAuth { get; } = new("oauth");
+    public static ConnectionCredentialInfoMethod OAuth { get; } = new(Values.OAuth);
     /// <summary>
     /// Gets the &apos;external&apos; wire value.
     /// </summary>
-    public static ConnectionCredentialInfoMethod External { get; } = new("external");
+    public static ConnectionCredentialInfoMethod External { get; } = new(Values.External);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "key" or "oauth" or "external";
+    public bool IsKnown => _value is Values.Key or Values.OAuth or Values.External;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -77,5 +100,5 @@ public readonly struct ConnectionCredentialInfoMethod : IEquatable<ConnectionCre
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

@@ -22,21 +22,44 @@ public readonly struct ProviderInfoActivation : IEquatable<ProviderInfoActivatio
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;auto&apos; wire spelling.
+        /// </summary>
+        public const string Auto = "auto";
+        /// <summary>
+        /// The &apos;enabled&apos; wire spelling.
+        /// </summary>
+        public const string Enabled = "enabled";
+        /// <summary>
+        /// The &apos;disabled&apos; wire spelling.
+        /// </summary>
+        public const string Disabled = "disabled";
+    }
+
+    /// <summary>
     /// Gets the &apos;auto&apos; wire value.
     /// </summary>
-    public static ProviderInfoActivation Auto { get; } = new("auto");
+    public static ProviderInfoActivation Auto { get; } = new(Values.Auto);
     /// <summary>
     /// Gets the &apos;enabled&apos; wire value.
     /// </summary>
-    public static ProviderInfoActivation Enabled { get; } = new("enabled");
+    public static ProviderInfoActivation Enabled { get; } = new(Values.Enabled);
     /// <summary>
     /// Gets the &apos;disabled&apos; wire value.
     /// </summary>
-    public static ProviderInfoActivation Disabled { get; } = new("disabled");
+    public static ProviderInfoActivation Disabled { get; } = new(Values.Disabled);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "auto" or "enabled" or "disabled";
+    public bool IsKnown => _value is Values.Auto or Values.Enabled or Values.Disabled;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -77,5 +100,5 @@ public readonly struct ProviderInfoActivation : IEquatable<ProviderInfoActivatio
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

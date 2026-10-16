@@ -22,21 +22,44 @@ public readonly struct ConfigInfoUpdate : IEquatable<ConfigInfoUpdate>
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;disable&apos; wire spelling.
+        /// </summary>
+        public const string Disable = "disable";
+        /// <summary>
+        /// The &apos;notify&apos; wire spelling.
+        /// </summary>
+        public const string Notify = "notify";
+        /// <summary>
+        /// The &apos;auto&apos; wire spelling.
+        /// </summary>
+        public const string Auto = "auto";
+    }
+
+    /// <summary>
     /// Gets the &apos;disable&apos; wire value.
     /// </summary>
-    public static ConfigInfoUpdate Disable { get; } = new("disable");
+    public static ConfigInfoUpdate Disable { get; } = new(Values.Disable);
     /// <summary>
     /// Gets the &apos;notify&apos; wire value.
     /// </summary>
-    public static ConfigInfoUpdate Notify { get; } = new("notify");
+    public static ConfigInfoUpdate Notify { get; } = new(Values.Notify);
     /// <summary>
     /// Gets the &apos;auto&apos; wire value.
     /// </summary>
-    public static ConfigInfoUpdate Auto { get; } = new("auto");
+    public static ConfigInfoUpdate Auto { get; } = new(Values.Auto);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "disable" or "notify" or "auto";
+    public bool IsKnown => _value is Values.Disable or Values.Notify or Values.Auto;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -77,5 +100,5 @@ public readonly struct ConfigInfoUpdate : IEquatable<ConfigInfoUpdate>
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

@@ -28,6 +28,6 @@ internal sealed class SessionMessageIdleOutcomeJsonConverter : JsonConverter<Ses
             throw new JsonException("A default SessionMessageIdleOutcome has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

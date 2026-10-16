@@ -22,17 +22,36 @@ public readonly struct ModelMaxTokensField : IEquatable<ModelMaxTokensField>
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;max_completion_tokens&apos; wire spelling.
+        /// </summary>
+        public const string MaxCompletionTokens = "max_completion_tokens";
+        /// <summary>
+        /// The &apos;max_tokens&apos; wire spelling.
+        /// </summary>
+        public const string MaxTokens = "max_tokens";
+    }
+
+    /// <summary>
     /// Gets the &apos;max_completion_tokens&apos; wire value.
     /// </summary>
-    public static ModelMaxTokensField MaxCompletionTokens { get; } = new("max_completion_tokens");
+    public static ModelMaxTokensField MaxCompletionTokens { get; } = new(Values.MaxCompletionTokens);
     /// <summary>
     /// Gets the &apos;max_tokens&apos; wire value.
     /// </summary>
-    public static ModelMaxTokensField MaxTokens { get; } = new("max_tokens");
+    public static ModelMaxTokensField MaxTokens { get; } = new(Values.MaxTokens);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "max_completion_tokens" or "max_tokens";
+    public bool IsKnown => _value is Values.MaxCompletionTokens or Values.MaxTokens;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -73,5 +92,5 @@ public readonly struct ModelMaxTokensField : IEquatable<ModelMaxTokensField>
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

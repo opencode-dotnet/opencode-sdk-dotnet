@@ -28,6 +28,6 @@ internal sealed class SessionInfoOutcomeJsonConverter : JsonConverter<SessionInf
             throw new JsonException("A default SessionInfoOutcome has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

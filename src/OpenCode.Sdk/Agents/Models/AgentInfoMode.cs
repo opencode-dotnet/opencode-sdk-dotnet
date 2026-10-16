@@ -22,21 +22,44 @@ public readonly struct AgentInfoMode : IEquatable<AgentInfoMode>
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;subagent&apos; wire spelling.
+        /// </summary>
+        public const string Subagent = "subagent";
+        /// <summary>
+        /// The &apos;primary&apos; wire spelling.
+        /// </summary>
+        public const string Primary = "primary";
+        /// <summary>
+        /// The &apos;all&apos; wire spelling.
+        /// </summary>
+        public const string All = "all";
+    }
+
+    /// <summary>
     /// Gets the &apos;subagent&apos; wire value.
     /// </summary>
-    public static AgentInfoMode Subagent { get; } = new("subagent");
+    public static AgentInfoMode Subagent { get; } = new(Values.Subagent);
     /// <summary>
     /// Gets the &apos;primary&apos; wire value.
     /// </summary>
-    public static AgentInfoMode Primary { get; } = new("primary");
+    public static AgentInfoMode Primary { get; } = new(Values.Primary);
     /// <summary>
     /// Gets the &apos;all&apos; wire value.
     /// </summary>
-    public static AgentInfoMode All { get; } = new("all");
+    public static AgentInfoMode All { get; } = new(Values.All);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "subagent" or "primary" or "all";
+    public bool IsKnown => _value is Values.Subagent or Values.Primary or Values.All;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -77,5 +100,5 @@ public readonly struct AgentInfoMode : IEquatable<AgentInfoMode>
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

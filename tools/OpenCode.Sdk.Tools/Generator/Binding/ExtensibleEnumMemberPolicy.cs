@@ -13,8 +13,14 @@ internal static class ExtensibleEnumMemberPolicy
 
     public const string FromString = "FromString";
 
+    /// <summary>The property that returns the wire spelling.</summary>
+    public const string Value = "Value";
+
+    /// <summary>The nested class that holds one wire-spelling constant per pinned value.</summary>
+    public const string Values = "Values";
+
     /// <summary>Gets every member name the generated struct declares or inherits besides the values.</summary>
     public static FrozenSet<string> DeclaredNames { get; } = FrozenSet.ToFrozenSet(
-        [IsKnown, FromString, "Equals", "GetHashCode", "ToString", "GetType", "MemberwiseClone", "ReferenceEquals"],
+        [IsKnown, FromString, Value, Values, "Equals", "GetHashCode", "ToString", "GetType", "MemberwiseClone", "ReferenceEquals"],
         StringComparer.Ordinal);
 }

@@ -28,6 +28,6 @@ internal sealed class ModelCacheFormatJsonConverter : JsonConverter<ModelCacheFo
             throw new JsonException("A default ModelCacheFormat has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

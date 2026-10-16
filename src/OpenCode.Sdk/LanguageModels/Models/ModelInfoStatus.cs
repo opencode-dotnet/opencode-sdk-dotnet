@@ -22,25 +22,52 @@ public readonly struct ModelInfoStatus : IEquatable<ModelInfoStatus>
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;alpha&apos; wire spelling.
+        /// </summary>
+        public const string Alpha = "alpha";
+        /// <summary>
+        /// The &apos;beta&apos; wire spelling.
+        /// </summary>
+        public const string Beta = "beta";
+        /// <summary>
+        /// The &apos;deprecated&apos; wire spelling.
+        /// </summary>
+        public const string Deprecated = "deprecated";
+        /// <summary>
+        /// The &apos;active&apos; wire spelling.
+        /// </summary>
+        public const string Active = "active";
+    }
+
+    /// <summary>
     /// Gets the &apos;alpha&apos; wire value.
     /// </summary>
-    public static ModelInfoStatus Alpha { get; } = new("alpha");
+    public static ModelInfoStatus Alpha { get; } = new(Values.Alpha);
     /// <summary>
     /// Gets the &apos;beta&apos; wire value.
     /// </summary>
-    public static ModelInfoStatus Beta { get; } = new("beta");
+    public static ModelInfoStatus Beta { get; } = new(Values.Beta);
     /// <summary>
     /// Gets the &apos;deprecated&apos; wire value.
     /// </summary>
-    public static ModelInfoStatus Deprecated { get; } = new("deprecated");
+    public static ModelInfoStatus Deprecated { get; } = new(Values.Deprecated);
     /// <summary>
     /// Gets the &apos;active&apos; wire value.
     /// </summary>
-    public static ModelInfoStatus Active { get; } = new("active");
+    public static ModelInfoStatus Active { get; } = new(Values.Active);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "alpha" or "beta" or "deprecated" or "active";
+    public bool IsKnown => _value is Values.Alpha or Values.Beta or Values.Deprecated or Values.Active;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -81,5 +108,5 @@ public readonly struct ModelInfoStatus : IEquatable<ModelInfoStatus>
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

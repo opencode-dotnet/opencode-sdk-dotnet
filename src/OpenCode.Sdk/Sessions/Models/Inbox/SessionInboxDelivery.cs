@@ -22,17 +22,36 @@ public readonly struct SessionInboxDelivery : IEquatable<SessionInboxDelivery>
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;steer&apos; wire spelling.
+        /// </summary>
+        public const string Steer = "steer";
+        /// <summary>
+        /// The &apos;queue&apos; wire spelling.
+        /// </summary>
+        public const string Queue = "queue";
+    }
+
+    /// <summary>
     /// Gets the &apos;steer&apos; wire value.
     /// </summary>
-    public static SessionInboxDelivery Steer { get; } = new("steer");
+    public static SessionInboxDelivery Steer { get; } = new(Values.Steer);
     /// <summary>
     /// Gets the &apos;queue&apos; wire value.
     /// </summary>
-    public static SessionInboxDelivery Queue { get; } = new("queue");
+    public static SessionInboxDelivery Queue { get; } = new(Values.Queue);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "steer" or "queue";
+    public bool IsKnown => _value is Values.Steer or Values.Queue;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -73,5 +92,5 @@ public readonly struct SessionInboxDelivery : IEquatable<SessionInboxDelivery>
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

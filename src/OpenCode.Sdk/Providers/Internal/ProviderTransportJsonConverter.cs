@@ -28,6 +28,6 @@ internal sealed class ProviderTransportJsonConverter : JsonConverter<ProviderTra
             throw new JsonException("A default ProviderTransport has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

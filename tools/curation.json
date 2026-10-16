@@ -230,6 +230,20 @@
       "summary": "Arguments passed as they are to the program, with no shell parsing.",
       "remarks": "When the program is bash, dash, fish, ksh, sh or zsh, the server appends -l after these arguments, so bash -c \"cmd\" receives -l as $0; the returned info shows it.",
       "reason": "Upstream appends the login flag for login shells (core/src/pty.ts)."
+    },
+    {
+      "type": "ExperimentalSessionStatsRequest",
+      "member": "From",
+      "summary": "The start of the range, inclusive, in milliseconds since the Unix epoch. Unset, the range starts at the earliest message.",
+      "remarks": null,
+      "reason": "The wire says only 'from'; upstream compares it with message times in epoch milliseconds and treats it as inclusive (core/src/session/stats.ts)."
+    },
+    {
+      "type": "ExperimentalSessionStatsRequest",
+      "member": "To",
+      "summary": "The end of the range, exclusive, in milliseconds since the Unix epoch. Unset, the range ends now.",
+      "remarks": null,
+      "reason": "The wire says only 'to'; upstream compares it with message times in epoch milliseconds, defaults it to Date.now() and treats it as exclusive (core/src/session/stats.ts)."
     }
   ],
   "sessionScopedEvent": {

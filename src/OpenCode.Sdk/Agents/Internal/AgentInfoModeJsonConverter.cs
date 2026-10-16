@@ -28,6 +28,6 @@ internal sealed class AgentInfoModeJsonConverter : JsonConverter<AgentInfoMode>
             throw new JsonException("A default AgentInfoMode has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

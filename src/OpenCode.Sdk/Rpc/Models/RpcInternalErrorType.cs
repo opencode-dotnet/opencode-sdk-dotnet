@@ -22,17 +22,36 @@ public readonly struct RpcInternalErrorType : IEquatable<RpcInternalErrorType>
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;rpc.internal&apos; wire spelling.
+        /// </summary>
+        public const string RpcInternal = "rpc.internal";
+        /// <summary>
+        /// The &apos;rpc.invalid_output&apos; wire spelling.
+        /// </summary>
+        public const string RpcInvalidOutput = "rpc.invalid_output";
+    }
+
+    /// <summary>
     /// Gets the &apos;rpc.internal&apos; wire value.
     /// </summary>
-    public static RpcInternalErrorType RpcInternal { get; } = new("rpc.internal");
+    public static RpcInternalErrorType RpcInternal { get; } = new(Values.RpcInternal);
     /// <summary>
     /// Gets the &apos;rpc.invalid_output&apos; wire value.
     /// </summary>
-    public static RpcInternalErrorType RpcInvalidOutput { get; } = new("rpc.invalid_output");
+    public static RpcInternalErrorType RpcInvalidOutput { get; } = new(Values.RpcInvalidOutput);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "rpc.internal" or "rpc.invalid_output";
+    public bool IsKnown => _value is Values.RpcInternal or Values.RpcInvalidOutput;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -73,5 +92,5 @@ public readonly struct RpcInternalErrorType : IEquatable<RpcInternalErrorType>
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

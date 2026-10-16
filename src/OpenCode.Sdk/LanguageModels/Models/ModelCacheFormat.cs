@@ -22,17 +22,36 @@ public readonly struct ModelCacheFormat : IEquatable<ModelCacheFormat>
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;anthropic&apos; wire spelling.
+        /// </summary>
+        public const string Anthropic = "anthropic";
+        /// <summary>
+        /// The &apos;alibaba&apos; wire spelling.
+        /// </summary>
+        public const string Alibaba = "alibaba";
+    }
+
+    /// <summary>
     /// Gets the &apos;anthropic&apos; wire value.
     /// </summary>
-    public static ModelCacheFormat Anthropic { get; } = new("anthropic");
+    public static ModelCacheFormat Anthropic { get; } = new(Values.Anthropic);
     /// <summary>
     /// Gets the &apos;alibaba&apos; wire value.
     /// </summary>
-    public static ModelCacheFormat Alibaba { get; } = new("alibaba");
+    public static ModelCacheFormat Alibaba { get; } = new(Values.Alibaba);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "anthropic" or "alibaba";
+    public bool IsKnown => _value is Values.Anthropic or Values.Alibaba;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -73,5 +92,5 @@ public readonly struct ModelCacheFormat : IEquatable<ModelCacheFormat>
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

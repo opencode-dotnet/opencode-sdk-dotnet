@@ -28,6 +28,6 @@ internal sealed class SessionMessageListRequestTypeJsonConverter : JsonConverter
             throw new JsonException("A default SessionMessageListRequestType has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }

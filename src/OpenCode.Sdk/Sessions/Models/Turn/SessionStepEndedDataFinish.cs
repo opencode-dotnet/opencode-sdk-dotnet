@@ -22,33 +22,68 @@ public readonly struct SessionStepEndedDataFinish : IEquatable<SessionStepEndedD
     }
 
     /// <summary>
+    /// The pinned wire spellings, for a case label or a property pattern on Value.
+    /// </summary>
+    public static class Values
+    {
+        /// <summary>
+        /// The &apos;stop&apos; wire spelling.
+        /// </summary>
+        public const string Stop = "stop";
+        /// <summary>
+        /// The &apos;length&apos; wire spelling.
+        /// </summary>
+        public const string Length = "length";
+        /// <summary>
+        /// The &apos;tool-calls&apos; wire spelling.
+        /// </summary>
+        public const string ToolCalls = "tool-calls";
+        /// <summary>
+        /// The &apos;content-filter&apos; wire spelling.
+        /// </summary>
+        public const string ContentFilter = "content-filter";
+        /// <summary>
+        /// The &apos;error&apos; wire spelling.
+        /// </summary>
+        public const string Error = "error";
+        /// <summary>
+        /// The &apos;unknown&apos; wire spelling.
+        /// </summary>
+        public const string Unknown = "unknown";
+    }
+
+    /// <summary>
     /// Gets the &apos;stop&apos; wire value.
     /// </summary>
-    public static SessionStepEndedDataFinish Stop { get; } = new("stop");
+    public static SessionStepEndedDataFinish Stop { get; } = new(Values.Stop);
     /// <summary>
     /// Gets the &apos;length&apos; wire value.
     /// </summary>
-    public static SessionStepEndedDataFinish Length { get; } = new("length");
+    public static SessionStepEndedDataFinish Length { get; } = new(Values.Length);
     /// <summary>
     /// Gets the &apos;tool-calls&apos; wire value.
     /// </summary>
-    public static SessionStepEndedDataFinish ToolCalls { get; } = new("tool-calls");
+    public static SessionStepEndedDataFinish ToolCalls { get; } = new(Values.ToolCalls);
     /// <summary>
     /// Gets the &apos;content-filter&apos; wire value.
     /// </summary>
-    public static SessionStepEndedDataFinish ContentFilter { get; } = new("content-filter");
+    public static SessionStepEndedDataFinish ContentFilter { get; } = new(Values.ContentFilter);
     /// <summary>
     /// Gets the &apos;error&apos; wire value.
     /// </summary>
-    public static SessionStepEndedDataFinish Error { get; } = new("error");
+    public static SessionStepEndedDataFinish Error { get; } = new(Values.Error);
     /// <summary>
     /// Gets the &apos;unknown&apos; wire value.
     /// </summary>
-    public static SessionStepEndedDataFinish Unknown { get; } = new("unknown");
+    public static SessionStepEndedDataFinish Unknown { get; } = new(Values.Unknown);
+    /// <summary>
+    /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
+    /// </summary>
+    public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is "stop" or "length" or "tool-calls" or "content-filter" or "error" or "unknown";
+    public bool IsKnown => _value is Values.Stop or Values.Length or Values.ToolCalls or Values.ContentFilter or Values.Error or Values.Unknown;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.
@@ -89,5 +124,5 @@ public readonly struct SessionStepEndedDataFinish : IEquatable<SessionStepEndedD
     /// <summary>
     /// Returns the wire spelling, or an empty string for a default value, which has none.
     /// </summary>
-    public override string ToString() => _value ?? string.Empty;
+    public override string ToString() => Value;
 }

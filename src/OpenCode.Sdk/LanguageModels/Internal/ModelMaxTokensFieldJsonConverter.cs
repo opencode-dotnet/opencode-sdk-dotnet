@@ -28,6 +28,6 @@ internal sealed class ModelMaxTokensFieldJsonConverter : JsonConverter<ModelMaxT
             throw new JsonException("A default ModelMaxTokensField has no wire value.");
         }
 
-        writer.WriteStringValue(value.ToString());
+        writer.WriteStringValue(value.Value);
     }
 }
