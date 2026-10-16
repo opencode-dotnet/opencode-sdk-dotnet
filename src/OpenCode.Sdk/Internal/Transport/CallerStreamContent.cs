@@ -49,7 +49,7 @@ internal sealed class CallerStreamContent : HttpContent
     {
         if (_source.CanSeek)
         {
-            length = _source.Length - _source.Position;
+            length = Math.Max(0, _source.Length - _source.Position);
             return true;
         }
 

@@ -34,6 +34,30 @@ public sealed class CallerStreamContentTests
     }
 
     [Test]
+    [Arguments(3, 5)]
+    [Arguments(3, 3)]
+    [Arguments(0, 0)]
+    [Arguments(0, 5)]
+    public async Task ExecuteAsync_Should_Send_Zero_Bytes_When_The_Stream_Position_Is_Past_Its_End(int length, int position)
+    {
+        using var handler = new RecordingHttpHandler();
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient);
+        using var source = new MemoryStream(new byte[length]);
+        source.Position = position;
+
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Post, "/api/experimental/fs/write?path=a.bin",
+            source, new RecordingResponseAdapter(), options: null, CancellationToken.None);
+
+        var recorded = handler.Requests.Single();
+        await Assert.That(recorded.ContentLength).IsEqualTo(0);
+        await Assert.That(recorded.BodyBytes).IsNotNull();
+        await Assert.That(recorded.BodyBytes!).IsEmpty();
+        await Assert.That(source.Position).IsEqualTo(position);
+        await Assert.That(source.CanRead).IsTrue();
+    }
+
+    [Test]
     public async Task ExecuteAsync_Should_Send_A_Non_Seekable_Stream_Without_A_Declared_Length()
     {
         using var handler = new RecordingHttpHandler();

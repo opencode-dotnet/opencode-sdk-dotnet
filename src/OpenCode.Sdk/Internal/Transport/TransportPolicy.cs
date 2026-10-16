@@ -40,15 +40,15 @@ internal sealed class TransportPolicy : PipelinePolicy, IDisposable
         try
         {
             // The send runs under the network token — the caller's token with the progress
-            // window linked over it — while classification reads the caller token alone, so
-            // a window expiry during the send reports as the transport timing out.
+            // window and client lifetime linked over it — while classification keeps their
+            // identities apart, so only a window expiry reports as the transport timing out.
             message.Response = await _httpClient
                 .SendAsync(message.Request, HttpCompletionOption.ResponseHeadersRead, message.NetworkToken)
                 .ConfigureAwait(false);
         }
         catch (Exception exception) when (FailureClassification.Handles(exception, FailurePhase.Send))
         {
-            throw FailureClassification.Map(exception, FailurePhase.Send, message.CancellationToken);
+            throw FailureClassification.Map(exception, FailurePhase.Send, message.CancellationToken, message.LifetimeToken);
         }
 
         RefuseRedirectStatus((int)message.Response.StatusCode);

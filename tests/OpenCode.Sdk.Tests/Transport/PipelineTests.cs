@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
 using OpenCode.Sdk.Internal;
@@ -771,6 +773,50 @@ public sealed class PipelineTests
     }
 
     [Test]
+    public async Task ExecuteAsync_Should_Preserve_The_Caller_Token_During_Send_Cancellation()
+    {
+        using var caller = new CancellationTokenSource();
+        using var source = new GatedStream([0x41], chunkCount: 1);
+        using var handler = new RecordingHttpHandler();
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = CreatePipeline(httpClient);
+
+        async Task CancelAtReadAsync()
+        {
+            try
+            {
+                await source.WaitForReadAsync(HangGuard);
+            }
+            finally
+            {
+                await caller.CancelOnWorkerAsync();
+            }
+        }
+
+        var canceling = CancelAtReadAsync();
+        OperationCanceledException? canceled = null;
+        try
+        {
+            _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Post, "/api/experimental/fs/write?path=a.bin",
+                source, new RecordingResponseAdapter(), options: null, caller.Token);
+        }
+        catch (OperationCanceledException exception)
+        {
+            canceled = exception;
+        }
+        finally
+        {
+            await canceling;
+        }
+
+        await Assert.That(canceled).IsNotNull();
+        await Assert.That(canceled!.CancellationToken == caller.Token).IsTrue();
+        await Assert.That(canceled.InnerException).IsNotNull();
+        await Assert.That(source.CanRead).IsTrue();
+        await Assert.That(handler.Requests).IsEmpty();
+    }
+
+    [Test]
     public async Task ExecuteAsync_Should_Wrap_A_Timeout_Cancellation_As_A_Transport_Failure()
     {
         using var handler = new RecordingHttpHandler(static _ => throw new TaskCanceledException());
@@ -1037,6 +1083,93 @@ public sealed class PipelineTests
 #endif
         await content.ReadCompleted.WaitAsync(HangGuard.Bound);
         await Assert.That(content.IsDisposed).IsTrue();
+    }
+
+    [Test]
+    public Task ExecuteAsync_Should_Report_Client_Disposal_While_Awaiting_Headers() =>
+        AssertDisposalWhileAwaitingHeadersAsync(ownsHttpClient: true, cancelCaller: false);
+
+    [Test]
+    public Task ExecuteAsync_Should_Report_Client_Disposal_While_Awaiting_Headers_With_An_Unowned_HttpClient() =>
+        AssertDisposalWhileAwaitingHeadersAsync(ownsHttpClient: false, cancelCaller: false);
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public Task ExecuteAsync_Should_Prefer_Caller_Cancellation_Over_Client_Disposal_While_Awaiting_Headers(bool ownsHttpClient) =>
+        AssertDisposalWhileAwaitingHeadersAsync(ownsHttpClient, cancelCaller: true);
+
+    private static async Task AssertDisposalWhileAwaitingHeadersAsync(bool ownsHttpClient, bool cancelCaller)
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        try
+        {
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port.ToString(CultureInfo.InvariantCulture);
+            var endpoint = new Uri($"http://127.0.0.1:{port}");
+            using var caller = new CancellationTokenSource();
+            using var httpClient = new HttpClient();
+            using var pipeline = CreatePipeline(httpClient, ownsHttpClient, endpoint);
+
+            async Task<Exception?> ExecuteAsync()
+            {
+                try
+                {
+                    _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info",
+                        new RecordingResponseAdapter(), options: null, caller.Token);
+                    return null;
+                }
+                catch (Exception exception)
+                {
+                    return exception;
+                }
+            }
+
+            var execution = ExecuteAsync();
+            try
+            {
+                using var peer = await listener.AcceptTcpClientAsync().WaitAsync(HangGuard);
+                var request = new byte[4096];
+                var read = await peer.GetStream().ReadAsync(request.AsMemory()).AsTask().WaitAsync(HangGuard);
+                await Assert.That(read).IsGreaterThan(0);
+                if (cancelCaller)
+                {
+                    await caller.CancelOnWorkerAsync();
+                }
+
+                pipeline.Dispose();
+                var failure = await execution.WaitAsync(HangGuard);
+                if (cancelCaller)
+                {
+                    await Assert.That(failure).IsAssignableTo<OperationCanceledException>();
+                    await Assert.That(((OperationCanceledException)failure!).CancellationToken == caller.Token).IsTrue();
+                }
+                else
+                {
+                    await Assert.That(failure).IsTypeOf<ObjectDisposedException>();
+                    await Assert.That(((ObjectDisposedException)failure!).ObjectName).IsEqualTo(typeof(OpenCodeClient).FullName);
+                }
+
+                if (!ownsHttpClient)
+                {
+                    await using var server = LoopbackHttpServer.Start(static _ => new LoopbackHttpResponse { StatusCode = HttpStatusCode.OK });
+                    using var response = await httpClient.GetAsync(server.Endpoint).WaitAsync(HangGuard);
+                    await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+                }
+            }
+            finally
+            {
+                await caller.CancelOnWorkerAsync();
+                _ = await execution.WaitAsync(HangGuard);
+            }
+        }
+        finally
+        {
+            listener.Stop();
+#if NET
+            listener.Dispose();
+#endif
+        }
     }
 
     [Test]

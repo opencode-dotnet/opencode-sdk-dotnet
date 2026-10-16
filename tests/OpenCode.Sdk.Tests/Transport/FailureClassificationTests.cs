@@ -265,6 +265,33 @@ public sealed class FailureClassificationTests
     }
 
     [Test]
+    public async Task Map_Should_Restamp_A_Linked_Cancellation_In_Every_Phase()
+    {
+        using var caller = new CancellationTokenSource();
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(caller.Token);
+        await caller.CancelOnWorkerAsync();
+        (FailurePhase Phase, string Message)[] cases =
+        [
+            (FailurePhase.Send, SendCanceledMessage),
+            (FailurePhase.ResponseBodyRead, ResponseBodyCanceledMessage),
+            (FailurePhase.EventStreamRead, EventStreamCanceledMessage),
+            (FailurePhase.PtyWebSocketRead, PtyWebSocketReadCanceledMessage),
+            (FailurePhase.PtyWebSocketWrite, "The opencode PTY WebSocket write was canceled."),
+        ];
+        foreach (var (phase, message) in cases)
+        {
+            var original = new OperationCanceledException(linked.Token);
+            var mapped = FailureClassification.Map(original, phase, caller.Token);
+
+            await Assert.That(mapped).IsTypeOf<OperationCanceledException>();
+            var canceled = (OperationCanceledException)mapped;
+            await Assert.That(canceled.CancellationToken == caller.Token).IsTrue();
+            await Assert.That(canceled.InnerException).IsSameReferenceAs(original);
+            await Assert.That(canceled.Message).IsEqualTo(message);
+        }
+    }
+
+    [Test]
     public async Task Map_Should_Pass_A_Caller_Cancellation_Through_In_Every_Phase()
     {
         using var cancellation = new CancellationTokenSource();

@@ -36,7 +36,7 @@ internal sealed class Pipeline : IDisposable
     private readonly TimeProvider _time;
 
     /// <summary>
-    /// Cancelled when the pipeline is disposed, so a reconnecting stream ends at once rather than at
+    /// Cancelled when the pipeline is disposed, so an HTTP exchange or stream ends at once rather than at
     /// its next read or attempt. The token is kept apart from its source: a stream may still link to
     /// it after the source is disposed, and a cancelled token links as cancelled.
     /// </summary>
@@ -213,7 +213,7 @@ internal sealed class Pipeline : IDisposable
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(_disposed, typeof(OpenCodeClient));
         ArgumentNullException.ThrowIfNull(method);
         ArgumentException.ThrowIfNullOrWhiteSpace(route);
         ArgumentNullException.ThrowIfNull(adapter);
@@ -255,7 +255,7 @@ internal sealed class Pipeline : IDisposable
         where TBody : class
         where TResponse : OpenCodeResponse
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(_disposed, typeof(OpenCodeClient));
         ArgumentNullException.ThrowIfNull(method);
         ArgumentException.ThrowIfNullOrWhiteSpace(route);
         ArgumentNullException.ThrowIfNull(adapter);
@@ -305,7 +305,7 @@ internal sealed class Pipeline : IDisposable
         ExceptionDispatchInfo? lastFailure = null;
         while (true)
         {
-            ObjectDisposedException.ThrowIf(_disposed, this);
+            ObjectDisposedException.ThrowIf(_disposed, typeof(OpenCodeClient));
             var established = false;
             Exception failure;
             var frames = ExecuteAttemptAsync(operationId, method, route, adapter, perCallLocation, giveUp, cancellationToken).GetAsyncEnumerator(cancellationToken);
@@ -398,10 +398,10 @@ internal sealed class Pipeline : IDisposable
     {
         if (cancellationToken.IsCancellationRequested)
         {
-            throw CallerCancellation(failure, cancellationToken);
+            throw FailureClassification.CallerCancellation(failure, "The opencode event stream read was canceled.", cancellationToken);
         }
 
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(_disposed, typeof(OpenCodeClient));
         if (giveUp.IsCancellationRequested)
         {
             if (failure is not OperationCanceledException)
@@ -435,30 +435,21 @@ internal sealed class Pipeline : IDisposable
         {
             if (cancellationToken.IsCancellationRequested)
             {
-                throw CallerCancellation(canceled, cancellationToken);
+                throw FailureClassification.CallerCancellation(canceled, "The opencode event stream read was canceled.", cancellationToken);
             }
 
-            ObjectDisposedException.ThrowIf(_disposed, this);
+            ObjectDisposedException.ThrowIf(_disposed, typeof(OpenCodeClient));
             lastFailure.Throw();
         }
     }
-
-    /// <summary>
-    /// The caller's cancellation as the caller sees it: an attempt's read or the delay was cancelled
-    /// through a token linked over the caller's, so the exception carries the caller's own token,
-    /// as a one-connection stream's does.
-    /// </summary>
-    private static OperationCanceledException CallerCancellation(Exception failure, CancellationToken cancellationToken) =>
-        failure is OperationCanceledException canceled && canceled.CancellationToken == cancellationToken
-            ? canceled
-            : new OperationCanceledException("The opencode event stream read was canceled.", failure, cancellationToken);
 
     private async IAsyncEnumerable<TPayload> ExecuteStreamCoreAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
         IStreamAdapter<TPayload, TCause> adapter, LocationSelector? perCallLocation, TimeSpan? networkTimeout, StreamAttempt? attempt,
         [EnumeratorCancellation] CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(_disposed, typeof(OpenCodeClient));
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetimeToken);
         using var message = CreateStreamMessage(operationId, method, route, perCallLocation, networkTimeout, cancellationToken);
         await SendThroughPoliciesAsync(message).ConfigureAwait(false);
         var response = message.Response!;
@@ -488,21 +479,25 @@ internal sealed class Pipeline : IDisposable
             throw new OpenCodeTransportException("The opencode API answered a streaming operation without an event-stream body.");
         }
 
-#if !NET
-        using var cancellationRegistration = RegisterStreamCancellation(response, cancellationToken);
+        // A yield suspends the ownership chain; cancellation must release the response even
+        // while no read is running and the consumer has not asked for another frame.
+        // API-shape divergence: a registration has no DisposeAsync downlevel.
+#if NET
+        await using var cancellation = RegisterStreamCancellation(response, lifetime.Token).ConfigureAwait(false);
+#else
+        using var cancellation = RegisterStreamCancellation(response, lifetime.Token);
 #endif
 
         // The body is read through a view that reports each read bringing bytes to the reconnect
         // loop's idle window; disposing the view disposes the body a moment before the message would.
         // API-shape divergence, not algorithm: a stream has no DisposeAsync downlevel.
-        var body = new ActivityStream(await ReadBodyStreamAsync(response, cancellationToken).ConfigureAwait(false),
-            attempt is null ? null : attempt.OnActivity);
+        var body = new ActivityStream(await ReadBodyStreamAsync(message, lifetime.Token).ConfigureAwait(false), attempt is null ? null : attempt.OnActivity);
 #if NET
         await using var observation = body.ConfigureAwait(false);
 #else
         using var observation = body;
 #endif
-        var frames = _framer.ReadAsync(body, cancellationToken).GetAsyncEnumerator(cancellationToken);
+        var frames = _framer.ReadAsync(body, lifetime.Token).GetAsyncEnumerator(lifetime.Token);
         await using var enumeration = frames.ConfigureAwait(false);
         while (true)
         {
@@ -517,7 +512,11 @@ internal sealed class Pipeline : IDisposable
             }
             catch (Exception exception) when (FailureClassification.Handles(exception, FailurePhase.EventStreamRead))
             {
-                throw FailureClassification.Map(exception, FailurePhase.EventStreamRead, cancellationToken);
+                throw FailureClassification.Map(exception, FailurePhase.EventStreamRead, cancellationToken, _lifetimeToken);
+            }
+            catch (Exception exception) when (lifetime.IsCancellationRequested)
+            {
+                throw FailureClassification.MapFault(exception, FailurePhase.EventStreamRead, cancellationToken, _lifetimeToken);
             }
 
             if (!moved)
@@ -551,6 +550,7 @@ internal sealed class Pipeline : IDisposable
                 OperationId = operationId,
                 Request = request,
                 CancellationToken = cancellationToken,
+                LifetimeToken = _lifetimeToken,
                 NetworkToken = cancellationToken,
                 NetworkTimeout = NetworkTimeouts.Resolve(operationId, perCallNetworkTimeout, _clientNetworkTimeout),
                 PerCallLocation = perCallLocation,
@@ -571,6 +571,7 @@ internal sealed class Pipeline : IDisposable
             OperationId = operationId,
             Request = new HttpRequestMessage(method, new Uri(_endpointBase + route, UriKind.Absolute)),
             CancellationToken = cancellationToken,
+            LifetimeToken = _lifetimeToken,
             NetworkToken = cancellationToken,
             NetworkTimeout = NetworkTimeouts.Resolve(operationId, perCallNetworkTimeout, _clientNetworkTimeout),
             PerCallLocation = perCallLocation,
@@ -587,24 +588,27 @@ internal sealed class Pipeline : IDisposable
     private OpenCodeApiException CreateApiException(OpenCodeResponse response) =>
         OpenCodeErrorReader.CreateApiException(response.Status, response.Error, response.RawBody, CredentialSent);
 
-    private static async Task<Stream> ReadBodyStreamAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    private static async Task<Stream> ReadBodyStreamAsync(PipelineMessage message, CancellationToken streamToken)
     {
         try
         {
-            return await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            return await message.Response!.Content.ReadAsStreamAsync(streamToken).ConfigureAwait(false);
         }
         catch (Exception exception) when (FailureClassification.Handles(exception, FailurePhase.EventStreamRead))
         {
-            throw FailureClassification.Map(exception, FailurePhase.EventStreamRead, cancellationToken);
+            throw FailureClassification.Map(exception, FailurePhase.EventStreamRead, message.CancellationToken, message.LifetimeToken);
+        }
+        catch (Exception exception) when (streamToken.IsCancellationRequested)
+        {
+            throw FailureClassification.MapFault(exception, FailurePhase.EventStreamRead, message.CancellationToken, message.LifetimeToken);
         }
     }
 
-#if !NET
     private static CancellationTokenRegistration RegisterStreamCancellation(
         HttpResponseMessage response, CancellationToken cancellationToken) =>
         cancellationToken.Register(
-            static state => ((HttpResponseMessage)state).Dispose(),
+            // The registration always supplies its non-null response as state.
+            static state => ((HttpResponseMessage)state!).Dispose(),
             response,
             useSynchronizationContext: false);
-#endif
 }
