@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-10-16
+Date: 2026-10-17
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -92,7 +92,16 @@ evidence and may contain superseded positions.
 - Generated output passes the analyzer wall on merit. The same tool owns deliberate spec refreshes
   and their generated diffs (ADR-0003).
 - Generated files are changed through the generator, never by hand. The output manifest, not a
-  folder or filename convention, identifies generator-owned files.
+  folder or filename convention, identifies generator-owned files. After validation, the writer
+  atomically publishes ownership of the old and new paths together before installing sources
+  individually by temporary file and rename, then deleting stale sources. It formats in place in
+  the real project, atomically installs the marker, attributes and reach files (or deletes optional
+  files with no content), and atomically writes the new-only manifest last as the final commit point.
+  An interrupted generation can be rerun because every touched source path is already manifested;
+  an absent manifested path passes provenance validation. The writer does not adopt arbitrary
+  unmanifested files. A formatter-interrupted file with a damaged provenance header still refuses;
+  this sequence promises restartability, not filesystem-wide atomicity, concurrent writers or
+  power-loss durability.
 - The repository tool forwards Ctrl+C cancellation to the running command and returns the configured
   cancellation exit code. Its composition root maps tool refusals to an unwrapped `Refused: <message>`
   diagnostic and exit code 1; other failures retain the CLI framework's error rendering and exit code.

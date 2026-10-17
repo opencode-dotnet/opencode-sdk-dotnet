@@ -1,6 +1,7 @@
 using System.Text.Json;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Output;
+using OpenCode.Sdk.Tools.Output.Abstractions;
 using OpenCode.Sdk.Tools.Serialization;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions.Testing;
@@ -33,7 +34,7 @@ public sealed class GenerationWriterTests
         const string stalePath = "Common/Errors/Stale.cs";
         var fs = GenerationTestData.CreateFileSystem();
         var formatter = new RecordingProjectFormatter(fs);
-        var writer = new GenerationWriter(fs, formatter);
+        var writer = CreateWriter(fs, formatter);
         _ = await writer.WriteAsync(Request([GenerationTestData.Source(stalePath, "stale")],
             partialMarkerContent: "pending", reachReportContent: GenerationTestData.ReachReport), CancellationToken.None);
         var manifest = kind switch
@@ -74,7 +75,7 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Refuse_Unsafe_Source_Paths()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var exception = await Assert.That(async () => await writer.WriteAsync(
                 Request([GenerationTestData.Source("../escape.cs", "unsafe")]),
@@ -91,7 +92,7 @@ public sealed class GenerationWriterTests
         fileSystem.Initialize().With(new FileDescription(
             GenerationTestData.ManifestPath,
             "{\"files\":[\"../outside.cs\"]}"));
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var exception = await Assert.That(async () => await writer.WriteAsync(
                 Request([]),
@@ -110,7 +111,7 @@ public sealed class GenerationWriterTests
         _ = fileSystem.Directory.CreateSymbolicLink(
             fileSystem.Path.Combine(GenerationTestData.OutputRoot, "Models"),
             outsideRoot);
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var exception = await Assert.That(async () => await writer.WriteAsync(
                 Request([GenerationTestData.Source("Models/Escape.cs", "unsafe")]),
@@ -129,7 +130,7 @@ public sealed class GenerationWriterTests
         fileSystem.Initialize().With(
             new FileDescription(GenerationTestData.ManifestPath, manifest),
             new FileDescription(fileSystem.Path.Combine(GenerationTestData.OutputRoot, oldPath), "old"));
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var exception = await Assert.That(async () => await writer.WriteAsync(
                 Request([GenerationTestData.Source("Common/Errors/widget.cs", "new")]),
@@ -150,14 +151,16 @@ public sealed class GenerationWriterTests
             new FileDescription(GenerationTestData.ManifestPath, manifest),
             new FileDescription(stalePath, GenerationTestData.OwnedContent("stale")),
             new FileDescription(unrelatedPath, "manual"));
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var result = await writer.WriteAsync(
             Request([GenerationTestData.Source("Common/Errors/Fresh.cs", "fresh")]),
             CancellationToken.None);
 
-        await Assert.That(fileSystem.File.Exists(stalePath)).IsFalse();
-        await Assert.That(fileSystem.File.Exists(unrelatedPath)).IsTrue();
+        await Assert.That(OwnedSourcePaths(fileSystem))
+            .DoesNotContain(fileSystem.Path.GetFullPath(stalePath));
+        await Assert.That(OwnedSourcePaths(fileSystem))
+            .Contains(fileSystem.Path.GetFullPath(unrelatedPath));
         await Assert.That(result.DeletedPaths).Contains("Common/Errors/Stale.cs");
         await Assert.That(result.CreatedPaths).Contains("Common/Errors/Fresh.cs");
     }
@@ -176,7 +179,7 @@ public sealed class GenerationWriterTests
                 source.Replace("public record", "public sealed record", StringComparison.Ordinal),
                 cancellationToken);
         });
-        var writer = new GenerationWriter(fileSystem, formatter);
+        var writer = CreateWriter(fileSystem, formatter);
         var sources = new[] { GenerationTestData.Source(relativePath, "public record Example;\n"), };
 
         _ = await writer.WriteAsync(Request(sources), CancellationToken.None);
@@ -192,7 +195,7 @@ public sealed class GenerationWriterTests
     {
         const string relativePath = "Common/Errors/Example.cs";
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
         var sources = new[] { GenerationTestData.Source(relativePath, "expected\n"), };
         _ = await writer.WriteAsync(Request(sources), CancellationToken.None);
         var outputPath = fileSystem.Path.Combine(GenerationTestData.OutputRoot, relativePath);
@@ -210,7 +213,7 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Admit_Root_And_Adapter_Sources()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var result = await writer.WriteAsync(
             Request(
@@ -228,7 +231,7 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Refuse_A_Family_Folder_Taking_A_Reserved_Name_In_Another_Case()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var exception = await Assert
             .That(async () => await writer.WriteAsync(Request([], familyFolders: ["models"]), CancellationToken.None))
@@ -241,7 +244,7 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Refuse_A_Family_Folder_Named_Pagination()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var exception = await Assert
             .That(async () => await writer.WriteAsync(Request([], familyFolders: ["Pagination"]), CancellationToken.None))
@@ -254,7 +257,7 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Refuse_Family_Folders_Duplicated_By_Case()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var exception = await Assert
             .That(async () => await writer.WriteAsync(
@@ -269,7 +272,7 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Admit_Family_Folder_Sources()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var result = await writer.WriteAsync(
             Request(
@@ -284,7 +287,7 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Refuse_A_Source_Outside_The_Admitted_Family_Folders()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var exception = await Assert.That(async () => await writer.WriteAsync(
                 Request(
@@ -300,7 +303,7 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Refuse_A_Nested_Family_Folder_Source()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var exception = await Assert.That(async () => await writer.WriteAsync(
                 Request(
@@ -321,13 +324,16 @@ public sealed class GenerationWriterTests
         fileSystem.Initialize().With(
             new FileDescription(GenerationTestData.ManifestPath, manifest),
             new FileDescription(stalePath, GenerationTestData.OwnedContent("stale")));
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
+
+        await Assert.That(OwnedSourcePaths(fileSystem)).Contains(fileSystem.Path.GetFullPath(stalePath));
 
         var result = await writer.WriteAsync(
             Request([], familyFolders: ["Sessions"]),
             CancellationToken.None);
 
-        await Assert.That(fileSystem.File.Exists(stalePath)).IsFalse();
+        await Assert.That(OwnedSourcePaths(fileSystem))
+            .DoesNotContain(fileSystem.Path.GetFullPath(stalePath));
         await Assert.That(result.DeletedPaths).Contains("Widgets/Old.cs");
     }
 
@@ -335,7 +341,7 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Refuse_A_Family_Folder_Named_Models()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var exception = await Assert.That(async () => await writer.WriteAsync(
                 Request([], familyFolders: ["Models"]),
@@ -351,7 +357,7 @@ public sealed class GenerationWriterTests
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
         fileSystem.Initialize().With(new FileDescription("src/OpenCode.Sdk/ExampleClient.cs", "hand-written"));
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var exception = await Assert
             .That(async () => _ = await writer.WriteAsync(
@@ -372,7 +378,7 @@ public sealed class GenerationWriterTests
         fileSystem.Initialize().With(
             new FileDescription(GenerationTestData.ManifestPath, manifest),
             new FileDescription("src/OpenCode.Sdk/Common/Errors/Example.cs", "hand-edited without a header"));
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var exception = await Assert
             .That(async () => _ = await writer.WriteAsync(
@@ -391,7 +397,7 @@ public sealed class GenerationWriterTests
         fileSystem.Initialize().With(
             new FileDescription(GenerationTestData.ManifestPath, manifest),
             new FileDescription("src/OpenCode.Sdk/Common/Errors/Stale.cs", "hand-edited without a header"));
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         var exception = await Assert
             .That(async () => _ = await writer.WriteAsync(
@@ -408,7 +414,7 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Refuse_Headerless_Generated_Sources()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
         var headerless = new GeneratedSource
         {
             RelativePath = "Common/Errors/Example.cs",
@@ -428,14 +434,18 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Create_And_Remove_The_Partial_Marker()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         _ = await writer.WriteAsync(
             Request([], partialMarkerContent: "Pending operations: 3.\n"),
             CancellationToken.None);
+        await Assert.That(fileSystem.Directory.EnumerateFiles(fileSystem.Path.GetFullPath(GenerationTestData.OutputRoot)))
+            .Contains(fileSystem.Path.GetFullPath(GenerationTestData.MarkerPath));
+
         var removal = await writer.WriteAsync(Request([]), CancellationToken.None);
 
-        await Assert.That(fileSystem.File.Exists(GenerationTestData.MarkerPath)).IsFalse();
+        await Assert.That(fileSystem.Directory.EnumerateFiles(fileSystem.Path.GetFullPath(GenerationTestData.OutputRoot)))
+            .DoesNotContain(fileSystem.Path.GetFullPath(GenerationTestData.MarkerPath));
         await Assert.That(removal.DeletedPaths).Contains(".generation-incomplete");
     }
 
@@ -443,7 +453,7 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Record_The_Implicit_Aliases_In_The_Manifest()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         _ = await writer.WriteAsync(
             Request(
@@ -472,7 +482,7 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Write_An_Empty_Implicit_Aliases_Section()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = new GenerationWriter(fileSystem, new RecordingProjectFormatter(fileSystem));
+        var writer = CreateWriter(fileSystem);
 
         _ = await writer.WriteAsync(
             Request([GenerationTestData.Source("Common/Errors/Widget.cs", "widget")]),
@@ -744,11 +754,18 @@ public sealed class GenerationWriterTests
             Verify = verify,
         };
 
-    private static GenerationWriter CreateWriter(MockFileSystem fileSystem) =>
-        new(fileSystem, new RecordingProjectFormatter(fileSystem));
+    private static GenerationWriter CreateWriter(MockFileSystem fileSystem, IProjectFormatter? formatter = null)
+    {
+        var placement = new PlacementValidator(fileSystem);
+        return new GenerationWriter(fileSystem, placement, new ManifestStore(fileSystem, placement),
+            new StagedWrite(fileSystem, placement, formatter ?? new RecordingProjectFormatter(fileSystem)));
+    }
 
     private static string OwnedPath(MockFileSystem fileSystem, string relativePath) =>
         fileSystem.Path.Combine(GenerationTestData.OutputRoot, relativePath);
+
+    private static IEnumerable<string> OwnedSourcePaths(MockFileSystem fileSystem) =>
+        fileSystem.Directory.EnumerateFiles(fileSystem.Path.GetFullPath(GenerationTestData.OutputRoot), "*.cs", SearchOption.AllDirectories);
 
     /// <summary>The attributes file the writer owns: its header, then one line per path in the order given.</summary>
     private static string ExpectedAttributes(IReadOnlyList<string> orderedPaths) =>
