@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;WebsearchClient&apos; collection client.
+/// Location-scoped web search routes.
 /// </summary>
 public class WebsearchClient
 {

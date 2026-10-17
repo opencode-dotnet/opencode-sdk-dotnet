@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The execution finished the work it took on and the session went idle. Prompts it did not take, such as queued ones, can still be pending.
+/// The &apos;session.execution.succeeded&apos; event.
 /// </summary>
 public sealed record SessionExecutionSucceeded : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

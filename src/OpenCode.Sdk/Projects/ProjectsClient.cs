@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;ProjectsClient&apos; collection client.
+/// Project routes.
 /// </summary>
 public class ProjectsClient
 {

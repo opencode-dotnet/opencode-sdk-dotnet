@@ -1,8 +1,14 @@
+using System.Globalization;
 using System.Text;
+using System.Text.Json;
+using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
+using OpenCode.Sdk.Tools.Serialization;
 using OpenCode.Sdk.Tools.Tests.Generator.Binding.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
+using Testably.Abstractions.Testing;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
@@ -10,6 +16,76 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 [ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
 public sealed class DescriptionCurationBinderTests(PinnedBinding pinned)
 {
+    [Test]
+    [Arguments("location", false, "location must be a packages/-relative path with a positive line")]
+    [Arguments("excerpt", false, "excerpt must be non-empty")]
+    [Arguments("location", true, "location must be a packages/-relative path with a positive line")]
+    [Arguments("excerpt", true, "excerpt must be non-empty")]
+    public async Task Apply_Should_Name_Missing_And_Null_Source_Fields(string field, bool explicitNull, string problem)
+    {
+        var document = await BindingTestHost.IngestAsync(new EventDocumentationScenario());
+        // The typed base serializes a non-null document with one row and one source.
+        var json = JsonSerializer.SerializeToNode(EventCuration(Description("Notice", "Data")), ToolJsonContext.Default.GenerationCuration)!;
+        var source = json["descriptions"]![0]!["sources"]![0]!.AsObject();
+        if (explicitNull)
+        {
+            source[field] = null;
+        }
+        else
+        {
+            _ = source.Remove(field);
+        }
+
+        var fileSystem = new MockFileSystem();
+        await fileSystem.File.WriteAllTextAsync("curation.json", json.ToJsonString(), CancellationToken.None);
+        var exception = await Assert.That(async () =>
+        {
+            var curation = await new CurationLoader(fileSystem).LoadAsync("curation.json", CancellationToken.None);
+            _ = new BindingTestHost().Bind(document, Selection("event.get"), curation);
+        }).Throws<BindingException>();
+
+        await Assert.That(exception!.Errors).IsEquivalentTo(
+            [new BindingError(BindingErrorCategory.Curation, "Notice.Data", "description sources[0] " + problem)], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments("missing", "sources[0] must declare a sources list")]
+    [Arguments("empty-list", "sources[0] must declare 1 to 4 entries")]
+    [Arguments("null-entry", "sources[0] must declare a source entry")]
+    [Arguments("five", "sources[4] exceeds the maximum of 4 entries")]
+    [Arguments("duplicate", "sources[1] repeats location 'packages/example.ts:1'")]
+    [Arguments("location", "sources[0] location must be a packages/-relative path with a positive line")]
+    [Arguments("empty", "sources[0] excerpt must be non-empty")]
+    [Arguments("multiline", "sources[0] excerpt must be one line")]
+    [Arguments("short", "sources[0] excerpt must contain 12 to 200 characters")]
+    [Arguments("long", "sources[0] excerpt must contain 12 to 200 characters")]
+    public async Task Apply_Should_Refuse_Invalid_Sources(string fault, string problem)
+    {
+        var document = await BindingTestHost.IngestAsync(new EventDocumentationScenario());
+        var plan = new BindingTestHost().Bind(document, Selection("event.get"), EventCuration());
+        var source = new DescriptionSource { Location = "packages/example.ts:1", Excerpt = "An explicit declaration." };
+        DescriptionSource? missingSource = null;
+        IReadOnlyList<DescriptionSource?>? sources = fault switch
+        {
+            "missing" => null,
+            "empty-list" => [],
+            "null-entry" => [missingSource],
+            "five" => [.. Enumerable.Range(1, 5).Select(index => source with { Location = "packages/example.ts:" + index.ToString(CultureInfo.InvariantCulture) })],
+            "duplicate" => [source, source],
+            "location" => [source with { Location = "packages/example.ts:0" }],
+            "empty" => [source with { Excerpt = "" }],
+            "multiline" => [source with { Excerpt = "A declaration\ncontinued." }],
+            "short" => [source with { Excerpt = new string('x', 11) }],
+            _ => [source with { Excerpt = new string('x', 201) }],
+        };
+        var errors = new BindingErrorCollector();
+
+        await Assert.That(() => DescriptionCurationBinder.Apply(plan, [Description("Notice", "Data") with { Sources = sources }], errors)).ThrowsNothing();
+
+        await Assert.That(errors.Snapshot()).IsEquivalentTo(
+            [new BindingError(BindingErrorCategory.Curation, "Notice.Data", "description " + problem)], CollectionOrdering.Matching);
+    }
+
     [Test]
     [Arguments(null, "curation is null")]
     [Arguments("Type", "curation names no type")]
@@ -159,7 +235,15 @@ public sealed class DescriptionCurationBinderTests(PinnedBinding pinned)
         Curation(Groups("event", RootGroup())) with { Descriptions = rows };
 
     private static DescriptionCuration Description(string type, string? member = null, string summary = "The curated summary.", string? remarks = null) =>
-        new() { Type = type, Member = member, Summary = summary, Remarks = remarks, Reason = "Describe the scenario's generated C# surface." };
+        new()
+        {
+            Type = type,
+            Member = member,
+            Summary = summary,
+            Remarks = remarks,
+            Reason = "Describe the scenario's generated C# surface.",
+            Sources = [new() { Location = "packages/example.ts:1", Excerpt = "An explicit declaration." }],
+        };
 
     /// <summary>A curated summary on a hoisted interface replaces the placeholder and keeps the consume-only remark.</summary>
     [Test]

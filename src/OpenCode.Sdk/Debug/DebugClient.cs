@@ -4,7 +4,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;DebugClient&apos; collection client.
+/// Lists loaded locations and evicts their cached services.
 /// </summary>
 public class DebugClient
 {

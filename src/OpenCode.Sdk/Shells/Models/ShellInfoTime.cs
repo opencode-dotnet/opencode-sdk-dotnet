@@ -15,7 +15,7 @@ public sealed record ShellInfoTime
     public required double Started { get; init; }
 
     /// <summary>
-    /// Gets the completed value.
+    /// Completion time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("completed")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

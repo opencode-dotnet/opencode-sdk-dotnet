@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;EventsClient&apos; collection client.
+/// Experimental event stream routes.
 /// </summary>
 public class EventsClient
 {

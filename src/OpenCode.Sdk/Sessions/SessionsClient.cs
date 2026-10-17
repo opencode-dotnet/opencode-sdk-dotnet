@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;SessionsClient&apos; collection client.
+/// Creates and lists sessions and opens session handles for prompts, messages, forms and execution control.
 /// </summary>
 public class SessionsClient
 {

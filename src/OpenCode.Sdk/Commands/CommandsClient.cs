@@ -4,7 +4,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;CommandsClient&apos; collection client.
+/// Experimental command routes.
 /// </summary>
 public class CommandsClient
 {

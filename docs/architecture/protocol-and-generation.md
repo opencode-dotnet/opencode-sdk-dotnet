@@ -157,7 +157,12 @@ Curation may:
   unambiguous wire role (an event, its exclusive payload, an operation's exclusive body, response
   or query record, an error of the error spine); a record with two roles keeps the plain
   placeholder. A row whose type or member is gone, a duplicate, or an empty summary or reason fails
-  generation;
+  generation. A documentation-only `descriptions` row may state a unit, sentinel, default or format
+  only when upstream declares it explicitly; every row cites those declarations in a required
+  `sources` list (each a `packages/path:line` location and a verbatim excerpt) that the curation
+  validator requires and a Tools test proves against the pinned upstream tree, and facts inferred
+  only from implementation are reported upstream instead and never change protocol semantics
+  (ADR-0013);
 - place a model in a slice where its name carries no family prefix, through a reason-bearing
   `modelOwners` row; a family's prefixes are its name, its singular, its group key and the
   group's `prefixAliases`, and a model with no prefix and no row fails generation. A

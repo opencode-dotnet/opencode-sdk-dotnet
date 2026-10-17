@@ -5,11 +5,8 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The session stopped on an error and went idle; its Data.Error says why.
+/// The &apos;session.execution.failed&apos; event.
 /// </summary>
-/// <remarks>
-/// It is also published when a turn interrupted by repeated restarts can no longer be resumed.
-/// </remarks>
 public sealed record SessionExecutionFailed : ISessionEventDurable, IEvent, ISessionScopedEvent
 {
     /// <summary>

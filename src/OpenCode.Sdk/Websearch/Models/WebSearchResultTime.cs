@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Models;
 public sealed record WebSearchResultTime
 {
     /// <summary>
-    /// Gets the published value.
+    /// Publication time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("published")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a provider settings timeout structural union.
+/// Represents the timeout setting&apos;s alternatives. HTTP timeout in milliseconds, or false to disable it.
 /// </summary>
 [JsonConverter(typeof(ProviderSettingsTimeoutJsonConverter))]
 public sealed record ProviderSettingsTimeout

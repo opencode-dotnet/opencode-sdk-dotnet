@@ -21,16 +21,13 @@ public sealed record SessionTextDeltaData
     public required string AssistantMessageId { get; init; }
 
     /// <summary>
-    /// The zero-based index of this text part among the text parts of its assistant message; the started, delta and ended events of one part share it.
+    /// Gets the ordinal value.
     /// </summary>
-    /// <remarks>
-    /// Reasoning parts are numbered separately.
-    /// </remarks>
     [JsonPropertyName("ordinal")]
     public required long Ordinal { get; init; }
 
     /// <summary>
-    /// The new text to append; it may batch several provider chunks.
+    /// Gets the delta value.
     /// </summary>
     [JsonPropertyName("delta")]
     public required string Delta { get; init; }

@@ -4,7 +4,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;ReferencesClient&apos; collection client.
+/// Location-scoped project references.
 /// </summary>
 public class ReferencesClient
 {

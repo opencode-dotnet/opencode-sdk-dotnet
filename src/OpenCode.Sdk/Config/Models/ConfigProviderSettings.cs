@@ -11,21 +11,21 @@ namespace OpenCode.Sdk.Models;
 public sealed record ConfigProviderSettings
 {
     /// <summary>
-    /// Gets the timeout value.
+    /// HTTP timeout in milliseconds, or false to disable it.
     /// </summary>
     [JsonPropertyName("timeout")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ConfigProviderSettingsTimeout? Timeout { get; init; }
 
     /// <summary>
-    /// Gets the header timeout value.
+    /// Time for response headers, in milliseconds; false disables it. The server default is 300,000 ms.
     /// </summary>
     [JsonPropertyName("headerTimeout")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ConfigProviderSettingsHeaderTimeout? HeaderTimeout { get; init; }
 
     /// <summary>
-    /// Gets the chunk timeout value.
+    /// Time between streamed response chunks in milliseconds; false disables it. The server default is 900,000 ms.
     /// </summary>
     [JsonPropertyName("chunkTimeout")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;WorktreesClient&apos; collection client.
+/// Project-based worktree management routes.
 /// </summary>
 public class WorktreesClient
 {

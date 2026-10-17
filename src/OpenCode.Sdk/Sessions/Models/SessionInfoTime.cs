@@ -9,33 +9,33 @@ namespace OpenCode.Sdk.Models;
 public sealed record SessionInfoTime
 {
     /// <summary>
-    /// Gets the created value.
+    /// Creation time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("created")]
     public required double Created { get; init; }
 
     /// <summary>
-    /// Gets the updated value.
+    /// Update time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("updated")]
     public required double Updated { get; init; }
 
     /// <summary>
-    /// Gets the idle value.
+    /// Idle time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("idle")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Idle { get; init; }
 
     /// <summary>
-    /// Gets the viewed value.
+    /// Viewed time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("viewed")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Viewed { get; init; }
 
     /// <summary>
-    /// Gets the archived value.
+    /// Archive time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("archived")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

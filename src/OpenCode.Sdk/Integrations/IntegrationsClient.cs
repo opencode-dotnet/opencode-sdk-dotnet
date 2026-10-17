@@ -4,7 +4,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;IntegrationsClient&apos; collection client.
+/// Discovers integrations and runs key, external, OAuth or command authentication flows.
 /// </summary>
 public class IntegrationsClient
 {

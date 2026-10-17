@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;PluginsClient&apos; collection client.
+/// Experimental plugin routes.
 /// </summary>
 public class PluginsClient
 {

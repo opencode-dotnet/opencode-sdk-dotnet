@@ -4,7 +4,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;ConfigClient&apos; collection client.
+/// Reads the location&apos;s configuration documents and lists shells available for terminal and agent execution.
 /// </summary>
 public class ConfigClient
 {

@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;CredentialsClient&apos; collection client.
+/// Lists, stores, labels, activates and removes integration credentials.
 /// </summary>
 public class CredentialsClient
 {

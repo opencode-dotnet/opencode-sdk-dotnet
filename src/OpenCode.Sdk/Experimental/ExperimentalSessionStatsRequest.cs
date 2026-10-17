@@ -10,11 +10,11 @@ namespace OpenCode.Sdk;
 public sealed record ExperimentalSessionStatsRequest
 {
     /// <summary>
-    /// The start of the range, inclusive, in milliseconds since the Unix epoch. Unset, the range starts at the earliest message.
+    /// Gets the &apos;from&apos; query value; the server default applies when unset.
     /// </summary>
     public long? From { get; init; }
     /// <summary>
-    /// The end of the range, exclusive, in milliseconds since the Unix epoch. Unset, the range ends now.
+    /// Gets the &apos;to&apos; query value; the server default applies when unset.
     /// </summary>
     public long? To { get; init; }
     /// <summary>

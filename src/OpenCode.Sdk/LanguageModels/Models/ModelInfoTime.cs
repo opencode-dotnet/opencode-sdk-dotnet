@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Models;
 public sealed record ModelInfoTime
 {
     /// <summary>
-    /// Gets the released value.
+    /// Release date as a Unix timestamp in milliseconds, or 0 when unknown.
     /// </summary>
     [JsonPropertyName("released")]
     public required double Released { get; init; }

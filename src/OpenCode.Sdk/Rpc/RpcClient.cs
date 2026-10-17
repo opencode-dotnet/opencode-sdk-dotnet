@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;RpcClient&apos; collection client.
+/// Plugin RPC routes.
 /// </summary>
 public class RpcClient
 {

@@ -16,14 +16,14 @@ public sealed record ConfigWarming
     public string? Prompt { get; init; }
 
     /// <summary>
-    /// Gets the interval value.
+    /// Idle time between keep-alive requests, as a duration string; default “4 minutes”.
     /// </summary>
     [JsonPropertyName("interval")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Interval { get; init; }
 
     /// <summary>
-    /// Gets the duration value.
+    /// Time after the last active request to keep a session warm, as a duration string; default “30 minutes”.
     /// </summary>
     [JsonPropertyName("duration")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

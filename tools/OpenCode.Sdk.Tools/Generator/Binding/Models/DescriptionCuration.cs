@@ -19,4 +19,7 @@ internal sealed record DescriptionCuration : IReasonedRow
 
     [JsonPropertyName("reason")]
     public required string Reason { get; init; }
+
+    [JsonPropertyName("sources")]
+    public IReadOnlyList<DescriptionSource?>? Sources { get; init; }
 }
