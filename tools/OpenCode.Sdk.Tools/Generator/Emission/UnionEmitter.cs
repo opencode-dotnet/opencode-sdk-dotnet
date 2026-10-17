@@ -74,13 +74,19 @@ internal static class UnionEmitter
         var documentation = union.Documentation with
         {
             Members = union.Documentation.Members.ToDictionary(static pair => pair.Key, pair =>
-                union.HoistedMembers.Any(member => string.Equals(member.Name, pair.Key, StringComparison.Ordinal))
-                    ? pair.Value with
-                    {
-                        Remarks = pair.Value.Remarks + " Every declared variant carries it; an unrecognized variant preserved as "
-                        + union.UnknownTypeName + " returns null through this interface. An ordinary optional property may also be absent."
-                    }
-                    : pair.Value, StringComparer.Ordinal),
+            {
+                if (union.HoistedMembers.FirstOrDefault(member => string.Equals(member.Name, pair.Key, StringComparison.Ordinal)) is not { } member)
+                {
+                    return pair.Value;
+                }
+
+                return pair.Value with
+                {
+                    Remarks = pair.Value.Remarks + " Every declared variant carries it; an unrecognized variant preserved as "
+                    + union.UnknownTypeName + " returns null through this interface."
+                    + (member.IsRequired ? "" : " An ordinary optional property may also be absent.")
+                };
+            }, StringComparer.Ordinal),
         };
         declaration = EmissionSyntax.DocumentedType(declaration, documentation, PinBoundInterfaceRemarks.Runs);
         var unit = EmissionSyntax.CompilationUnit(

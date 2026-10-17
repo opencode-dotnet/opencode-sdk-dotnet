@@ -160,6 +160,7 @@ internal static class UnionMemberHoistBinder
         {
             WireName = candidate.WireName,
             Name = candidate.Name,
+            IsRequired = candidate.IsRequired,
             Type = type,
             Description = candidate.Description,
         };

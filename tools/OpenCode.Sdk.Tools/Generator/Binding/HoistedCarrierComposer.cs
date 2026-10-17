@@ -141,6 +141,7 @@ internal sealed class HoistedCarrierComposer(
             {
                 WireName = property.WireName,
                 Name = property.Name,
+                IsRequired = property.IsRequired,
                 Type = type,
                 Description = property.Description,
             });

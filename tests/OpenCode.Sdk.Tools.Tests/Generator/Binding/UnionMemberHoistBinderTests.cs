@@ -10,6 +10,31 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class UnionMemberHoistBinderTests
 {
     [Test]
+    public async Task Bind_Should_Preserve_Requiredness_On_Carrier_Members()
+    {
+        var carrier = HoistDurableCarrier(Curation(Groups())).Interfaces.Single();
+
+        await Assert.That(carrier.Members.Select(static member => member.Name))
+            .IsEquivalentTo(["Seq", "Version"], CollectionOrdering.Matching);
+        await Assert.That(carrier.Members).All().Satisfy(static member => member.IsRequired, static required => required.IsTrue());
+    }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task Bind_Should_Preserve_A_Hoisted_Members_Source_Requiredness(bool isRequired)
+    {
+        var plan = Hoist(
+            [Union("IExampleEvent", Arm("CreatedEvent"), Arm("DeletedEvent"))],
+            [Variant("CreatedEvent", "created", Property("id", Named("string", isNullable: !isRequired), isRequired)),
+                Variant("DeletedEvent", "deleted", Property("id", Named("string", isNullable: !isRequired), isRequired))]);
+
+        await Assert.That(plan.Unions.Single().HoistedMembers.Select(static member => member.Name))
+            .IsEquivalentTo(["Id"], CollectionOrdering.Matching);
+        await Assert.That(plan.Unions.Single().HoistedMembers.Single().IsRequired).IsEqualTo(isRequired);
+    }
+
+    [Test]
     public async Task Bind_Should_Refuse_Only_The_Second_Hoisted_Claim_To_One_Name()
     {
         var exception = await BindRefusalsAsync(UnionScenario(static spec =>
