@@ -144,7 +144,7 @@ public class PtyClient
             await socket
                 .ConnectAsync(address, ptyId, PtyUpgradeFailurePolicy.Instance, cancellationToken)
                 .ConfigureAwait(false);
-            return new PtySession(socket, options?.SendTimeout);
+            return new PtySession(socket, connection.Time, options?.SendTimeout);
         }
         catch
         {

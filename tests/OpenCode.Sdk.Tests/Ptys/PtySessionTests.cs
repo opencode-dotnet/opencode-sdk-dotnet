@@ -14,7 +14,7 @@ public sealed class PtySessionTests
     public async Task WriteAsync_Should_Use_The_Connections_Configured_Send_Timer()
     {
         var socket = new ScriptedTerminalWebSocket().GatingSends();
-        await using var session = new PtySession(socket, TimeSpan.FromMilliseconds(50));
+        await using var session = new PtySession(socket, TimeProvider.System, TimeSpan.FromMilliseconds(50));
         using var watchdog = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
         var failure = await Assert.That(async () => await session.WriteAsync("input", watchdog.Token))
@@ -43,7 +43,7 @@ public sealed class PtySessionTests
             .Text("chunk-two")
             .Text("chunk-three")
             .Closing(WebSocketCloseStatus.NormalClosure);
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var frames = await ReadAllAsync(session);
 
@@ -58,7 +58,7 @@ public sealed class PtySessionTests
             .Text("replayed")
             .Binary(PtyFrameData.ControlFrame(PtyFrameData.CursorControlJson))
             .Closing(WebSocketCloseStatus.NormalClosure);
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var frames = await ReadAllAsync(session);
 
@@ -72,7 +72,7 @@ public sealed class PtySessionTests
     public async Task ReadAsync_Should_Refuse_A_Malformed_Control_Frame(string body)
     {
         var socket = new ScriptedTerminalWebSocket().Binary(PtyFrameData.ControlFrame(body));
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var failure = await Assert.That(async () => _ = await ReadAllAsync(session))
             .Throws<OpenCodeTransportException>();
@@ -86,7 +86,7 @@ public sealed class PtySessionTests
         var socket = new ScriptedTerminalWebSocket()
             .TextFragments("frag-", "men", "ted")
             .Closing(WebSocketCloseStatus.NormalClosure);
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var frames = await ReadAllAsync(session);
 
@@ -101,7 +101,7 @@ public sealed class PtySessionTests
         var socket = new ScriptedTerminalWebSocket()
             .BinaryFragments(frame, splitAt: 4)
             .Closing(WebSocketCloseStatus.NormalClosure);
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var frames = await ReadAllAsync(session);
 
@@ -115,7 +115,7 @@ public sealed class PtySessionTests
         var socket = new ScriptedTerminalWebSocket()
             .Binary(PtyFrameData.UnpairedSurrogate)
             .Closing(WebSocketCloseStatus.NormalClosure);
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var frames = await ReadAllAsync(session);
 
@@ -130,7 +130,7 @@ public sealed class PtySessionTests
         var socket = new ScriptedTerminalWebSocket()
             .Binary(Encoding.UTF8.GetBytes("raw-output"))
             .Closing(WebSocketCloseStatus.NormalClosure);
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var frames = await ReadAllAsync(session);
 
@@ -143,7 +143,7 @@ public sealed class PtySessionTests
         var socket = new ScriptedTerminalWebSocket()
             .Text("last")
             .Closing(WebSocketCloseStatus.NormalClosure);
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var frames = await ReadAllAsync(session);
 
@@ -154,7 +154,7 @@ public sealed class PtySessionTests
     public async Task ReadAsync_Should_Refuse_A_Session_Not_Found_Close()
     {
         var socket = new ScriptedTerminalWebSocket().Closing(SessionNotFound, SessionNotFoundReason);
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var failure = await AssertSessionNotFoundAsync(session);
         await Assert.That(failure.Message).Contains(SessionNotFoundReason);
@@ -166,7 +166,7 @@ public sealed class PtySessionTests
         // A real ClientWebSocket reports an empty description, not null, when the peer sent no
         // reason text; the policy must treat both the same rather than rendering a hollow "4404 ()".
         var socket = new ScriptedTerminalWebSocket().Closing(SessionNotFound, string.Empty);
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var failure = await AssertSessionNotFoundAsync(session);
         await Assert.That(failure.Message).DoesNotContain("()", StringComparison.Ordinal);
@@ -184,7 +184,7 @@ public sealed class PtySessionTests
     public async Task ReadAsync_Should_Refuse_An_Abnormal_Close()
     {
         var socket = new ScriptedTerminalWebSocket().Closing(WebSocketCloseStatus.ProtocolError);
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var failure = await Assert.That(async () => _ = await ReadAllAsync(session))
             .Throws<OpenCodeTransportException>();
@@ -196,7 +196,7 @@ public sealed class PtySessionTests
     public async Task ReadAsync_Should_Refuse_A_Second_Concurrent_Enumeration()
     {
         var socket = new ScriptedTerminalWebSocket().Text("first").Parking();
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
         var first = session.ReadAsync().GetAsyncEnumerator(CancellationToken.None);
         await using var enumeration = first.ConfigureAwait(false);
         await Assert.That(await first.MoveNextAsync()).IsTrue();
@@ -213,7 +213,7 @@ public sealed class PtySessionTests
             .Text("first")
             .Text("second")
             .Closing(WebSocketCloseStatus.NormalClosure);
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         await using (var first = session.ReadAsync().GetAsyncEnumerator())
         {
@@ -230,7 +230,7 @@ public sealed class PtySessionTests
     public async Task ReadAsync_Should_Report_A_Caller_Cancellation_As_Cancellation()
     {
         var socket = new ScriptedTerminalWebSocket().Parking();
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
         using var cancellation = new CancellationTokenSource();
         var enumerator = session.ReadAsync(cancellation.Token).GetAsyncEnumerator(cancellation.Token);
         var pending = enumerator.MoveNextAsync();
@@ -245,7 +245,7 @@ public sealed class PtySessionTests
     public async Task ReadAsync_Should_Report_A_Socket_Fault_As_A_Transport_Failure()
     {
         var socket = new ScriptedTerminalWebSocket().Faulting(new WebSocketException("connection reset"));
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var failure = await Assert.That(async () => _ = await ReadAllAsync(session))
             .Throws<OpenCodeTransportException>();
@@ -257,7 +257,7 @@ public sealed class PtySessionTests
     public async Task DisposeAsync_Should_End_A_Pending_Read_As_A_Normal_End()
     {
         var socket = new ScriptedTerminalWebSocket().Text("live").Parking();
-        var session = new PtySession(socket);
+        var session = new PtySession(socket, new ManualTimeProvider());
         var enumerator = session.ReadAsync().GetAsyncEnumerator(CancellationToken.None);
         await using var enumeration = enumerator.ConfigureAwait(false);
         await Assert.That(await enumerator.MoveNextAsync()).IsTrue();
@@ -273,7 +273,7 @@ public sealed class PtySessionTests
     public async Task WriteAsync_Should_Encode_The_Input_As_Utf8()
     {
         var socket = new ScriptedTerminalWebSocket();
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         await session.WriteAsync("héllo→\n");
 
@@ -285,7 +285,7 @@ public sealed class PtySessionTests
     public async Task WriteAsync_Should_Send_A_Text_Message()
     {
         var socket = new ScriptedTerminalWebSocket();
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         await session.WriteAsync("ls\r");
 
@@ -297,7 +297,7 @@ public sealed class PtySessionTests
     public async Task WriteAsync_Should_Serialize_Concurrent_Sends()
     {
         var socket = new ScriptedTerminalWebSocket().GatingSends();
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var first = session.WriteAsync("first");
         await socket.SendEntered;
@@ -315,7 +315,7 @@ public sealed class PtySessionTests
     public async Task WriteAsync_Should_Refuse_A_Null_Input()
     {
         var socket = new ScriptedTerminalWebSocket();
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         _ = await Assert.That(async () => await session.WriteAsync(null!)).Throws<ArgumentNullException>();
     }
@@ -324,8 +324,7 @@ public sealed class PtySessionTests
     public async Task WriteAsync_Should_Refuse_A_Write_After_Disposal()
     {
         var socket = new ScriptedTerminalWebSocket();
-        var session = new PtySession(socket);
-        await session.DisposeAsync();
+        var session = await CreateDisposedSessionAsync(socket);
 
         _ = await Assert.That(async () => await session.WriteAsync("late")).Throws<ObjectDisposedException>();
     }
@@ -348,7 +347,7 @@ public sealed class PtySessionTests
     public async Task SubmitAsync_Should_Send_The_Line_Terminated_By_Enter()
     {
         var socket = new ScriptedTerminalWebSocket();
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         await session.SubmitAsync(SubmittedLine);
 
@@ -360,7 +359,7 @@ public sealed class PtySessionTests
     public async Task SubmitAsync_Should_Send_A_Bare_Enter_For_An_Empty_Line()
     {
         var socket = new ScriptedTerminalWebSocket();
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         await session.SubmitAsync(string.Empty);
 
@@ -371,7 +370,7 @@ public sealed class PtySessionTests
     public async Task SubmitAsync_Should_Refuse_A_Null_Line()
     {
         var socket = new ScriptedTerminalWebSocket();
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         _ = await Assert.That(async () => await session.SubmitAsync(null!)).Throws<ArgumentNullException>();
     }
@@ -381,7 +380,7 @@ public sealed class PtySessionTests
     public async Task SubmitAsync_Should_Refuse_A_Line_Carrying_A_Break(string line)
     {
         var socket = new ScriptedTerminalWebSocket();
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var failure = await Assert.That(async () => await session.SubmitAsync(line)).Throws<ArgumentException>();
 
@@ -394,8 +393,7 @@ public sealed class PtySessionTests
     public async Task SubmitAsync_Should_Refuse_A_Submit_After_Disposal()
     {
         var socket = new ScriptedTerminalWebSocket();
-        var session = new PtySession(socket);
-        await session.DisposeAsync();
+        var session = await CreateDisposedSessionAsync(socket);
 
         _ = await Assert.That(async () => await session.SubmitAsync(SubmittedLine)).Throws<ObjectDisposedException>();
     }
@@ -404,7 +402,7 @@ public sealed class PtySessionTests
     public async Task SubmitAsync_Should_Report_A_Failed_Send_As_A_Transport_Failure()
     {
         var socket = new ScriptedTerminalWebSocket().FailingNextSendWith(new WebSocketException("connection reset"));
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var failure = await Assert.That(async () => await session.SubmitAsync(SubmittedLine))
             .Throws<OpenCodeTransportException>();
@@ -417,7 +415,7 @@ public sealed class PtySessionTests
     public async Task SubmitAsync_Should_Serialize_Behind_An_Outstanding_Write()
     {
         var socket = new ScriptedTerminalWebSocket().GatingSends();
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, new ManualTimeProvider());
 
         var write = session.WriteAsync("partial");
         await socket.SendEntered;
@@ -435,7 +433,7 @@ public sealed class PtySessionTests
     public async Task DisposeAsync_Should_Let_An_In_Flight_Write_Finish_Cleanly()
     {
         var socket = new ScriptedTerminalWebSocket().GatingSends();
-        var session = new PtySession(socket);
+        var session = CreateSession(socket);
         var write = session.WriteAsync("in-flight");
         await socket.SendEntered;
 
@@ -455,7 +453,7 @@ public sealed class PtySessionTests
     public async Task DisposeAsync_Should_Refuse_A_Queued_Write_Rather_Than_Strand_It()
     {
         var socket = new ScriptedTerminalWebSocket().GatingSends();
-        var session = new PtySession(socket);
+        var session = new PtySession(socket, new ManualTimeProvider());
         var first = session.WriteAsync("first");
         await socket.SendEntered;
         var queued = session.WriteAsync("queued");
@@ -487,7 +485,7 @@ public sealed class PtySessionTests
     public async Task DisposeAsync_Should_Not_Close_While_A_Send_Is_Outstanding()
     {
         var socket = new ScriptedTerminalWebSocket().GatingSends();
-        var session = new PtySession(socket);
+        var session = CreateSession(socket);
         var write = session.WriteAsync("in-flight");
         await socket.SendEntered;
 
@@ -506,7 +504,7 @@ public sealed class PtySessionTests
     public async Task DisposeAsync_Should_Tear_The_Socket_Down_When_The_Graceful_Close_Fails()
     {
         var socket = new ScriptedTerminalWebSocket().FailingCloseWith(new InvalidOperationException("wrong state"));
-        var session = new PtySession(socket);
+        var session = new PtySession(socket, new ManualTimeProvider());
 
         await session.DisposeAsync();
 
@@ -520,7 +518,7 @@ public sealed class PtySessionTests
     public async Task DisposeAsync_Should_Close_Gracefully_And_Stay_Idempotent()
     {
         var socket = new ScriptedTerminalWebSocket();
-        var session = new PtySession(socket);
+        var session = new PtySession(socket, new ManualTimeProvider());
 
         await session.DisposeAsync();
         await session.DisposeAsync();
@@ -573,6 +571,15 @@ public sealed class PtySessionTests
         var failure = await Assert.That(async () => _ = await ReadAllAsync(session)).Throws<InvalidOperationException>();
 
         await Assert.That(failure!.Message).Contains("mocking constructor");
+    }
+
+    private static PtySession CreateSession(ITerminalWebSocket socket) => new(socket, new ManualTimeProvider());
+
+    private static async Task<PtySession> CreateDisposedSessionAsync(ITerminalWebSocket socket)
+    {
+        var session = CreateSession(socket);
+        await session.DisposeAsync();
+        return session;
     }
 
     private static async Task<IReadOnlyList<PtyFrame>> ReadAllAsync(PtySession session)

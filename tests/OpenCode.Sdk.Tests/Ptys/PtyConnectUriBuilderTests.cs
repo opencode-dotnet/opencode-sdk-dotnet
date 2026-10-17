@@ -1,4 +1,5 @@
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Ptys;
 
@@ -104,5 +105,5 @@ public sealed class PtyConnectUriBuilderTests
     }
 
     private static ConnectionSnapshot Snapshot(string endpoint, LocationSelector? location = null) =>
-        new(EndpointPolicy.Normalize(new Uri(endpoint)), authorization: null, location);
+        new(EndpointPolicy.Normalize(new Uri(endpoint)), authorization: null, location, new ManualTimeProvider());
 }

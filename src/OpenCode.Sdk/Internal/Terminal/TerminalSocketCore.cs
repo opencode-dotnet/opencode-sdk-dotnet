@@ -17,10 +17,11 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
     private readonly TerminalReceivePump<TFrame> _receiver;
     private readonly Func<TerminalConnectionOutcome?> _getOutcome;
     private readonly Type _owner;
-    private readonly TerminalCancellationSource _sendEnded = new();
+    private readonly CancellationTokenSource _sendEnded = new();
     private readonly CancellationToken _sendEndedToken;
     private readonly TerminalSendQueue _sendGate;
     private readonly ITerminalWebSocket _socket;
+    private readonly TimeProvider _time;
     private int _disposed;
     private int _reading;
     private int _socketDisposed;
@@ -32,7 +33,8 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         ITerminalWebSocket socket,
         ITerminalFrameDecoder<TFrame> decoder,
         ITerminalClosePolicy closePolicy,
-        Type owner)
+        Type owner,
+        TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(socket);
         ArgumentNullException.ThrowIfNull(decoder);
@@ -40,10 +42,11 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         ArgumentNullException.ThrowIfNull(owner);
 
         _socket = socket;
-        _sendGate = new TerminalSendQueue(socket);
+        _time = time;
+        _sendGate = new TerminalSendQueue(socket, time);
         _owner = owner;
         _sendEndedToken = _sendEnded.Token;
-        _receiver = new TerminalReceivePump<TFrame>(socket, decoder, closePolicy, _sendEnded.CancelAsync);
+        _receiver = new TerminalReceivePump<TFrame>(socket, decoder, closePolicy, _sendEnded.CancelOnWorkerAsync);
         _getOutcome = () => _receiver.Outcome;
     }
 
@@ -52,9 +55,6 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
 
     /// <summary>Gets the fixed per-send budget captured by the connection.</summary>
     public TimeSpan SendTimeout { get; init; } = TerminalSocketBounds.DefaultSendTimeout;
-
-    /// <summary>Gets the timer boundary used for per-send deadlines.</summary>
-    public ITerminalDeadlineFactory DeadlineFactory { get; init; } = TerminalDeadlineFactory.Instance;
 
     /// <summary>
     /// Reads the frames the server sends until it closes the connection normally. One core
@@ -126,7 +126,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         CancellationToken cancellationToken)
     {
 
-        using var deadline = new TerminalSendDeadline(_owner, SendTimeout, DeadlineFactory, _getOutcome, cancellationToken);
+        using var deadline = new TerminalSendDeadline(_owner, SendTimeout, _time, _getOutcome, cancellationToken);
         var payload = createPayload();
         using var admission = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token, _sendEndedToken);
         try
@@ -199,7 +199,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
 
     private async Task DisposeCoreAsync()
     {
-        await _sendEnded.CancelAsync().ConfigureAwait(false);
+        await _sendEnded.CancelOnWorkerAsync().ConfigureAwait(false);
 
         try
         {
@@ -254,7 +254,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         var terminalFailure = failure as OpenCodeTransportException ?? new OpenCodeTransportException(
             "The opencode PTY WebSocket was interrupted during a send; delivery is uncertain.", failure);
         _receiver.Complete(terminalFailure);
-        await _sendEnded.CancelAsync().ConfigureAwait(false);
+        await _sendEnded.CancelOnWorkerAsync().ConfigureAwait(false);
         DisposeSocket();
     }
 

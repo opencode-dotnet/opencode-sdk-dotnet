@@ -261,7 +261,10 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   three named seams: `ITerminalFrameDecoder<TFrame>` for what a message carries and
   `ITerminalClosePolicy` for what a close status means, both consumed by the core, and
   `ITerminalUpgradeFailurePolicy` for what a refused upgrade means, consumed by the shipped
-  adapter at connect — before a core exists at all.
+  adapter at connect — before a core exists at all. The pipeline publishes the client's
+  `TimeProvider` in `ConnectionSnapshot`; both connect paths pass it through their sessions to
+  the core's send deadlines and send queue. Send admission and close-output each arm their own
+  independent graceful-close budget on that same clock.
 
 ## Error channels
 

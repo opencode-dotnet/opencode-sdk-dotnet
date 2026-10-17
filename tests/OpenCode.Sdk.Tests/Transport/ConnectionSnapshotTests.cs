@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Transport;
 
@@ -15,7 +16,7 @@ public sealed class ConnectionSnapshotTests
     [Test]
     public async Task ToString_Should_Not_Carry_The_Credential()
     {
-        var snapshot = new ConnectionSnapshot(EndpointBase, BasicCredential(), Location);
+        var snapshot = new ConnectionSnapshot(EndpointBase, BasicCredential(), Location, new ManualTimeProvider());
 
         var rendered = Render(snapshot);
 
@@ -45,7 +46,7 @@ public sealed class ConnectionSnapshotTests
     {
         var credential = BasicCredential();
 
-        var snapshot = new ConnectionSnapshot(EndpointBase, credential, Location);
+        var snapshot = new ConnectionSnapshot(EndpointBase, credential, Location, new ManualTimeProvider());
 
         // Redacting the rendering must not quietly redact the value itself.
         await Assert.That(snapshot.EndpointBase).IsEqualTo(EndpointBase);
@@ -56,7 +57,7 @@ public sealed class ConnectionSnapshotTests
     [Test]
     public async Task The_Snapshot_Should_Accept_An_Anonymous_Unlocated_Connection()
     {
-        var snapshot = new ConnectionSnapshot(EndpointBase, authorization: null, location: null);
+        var snapshot = new ConnectionSnapshot(EndpointBase, authorization: null, location: null, new ManualTimeProvider());
 
         await Assert.That(snapshot.Authorization).IsNull();
         await Assert.That(snapshot.Location).IsNull();
@@ -65,7 +66,7 @@ public sealed class ConnectionSnapshotTests
     [Test]
     public async Task The_Snapshot_Should_Refuse_A_Blank_Endpoint_Base()
     {
-        _ = Assert.Throws<ArgumentException>(() => _ = new ConnectionSnapshot(" ", authorization: null, location: null));
+        _ = Assert.Throws<ArgumentException>(() => _ = new ConnectionSnapshot(" ", authorization: null, location: null, new ManualTimeProvider()));
 
         await Task.CompletedTask;
     }
