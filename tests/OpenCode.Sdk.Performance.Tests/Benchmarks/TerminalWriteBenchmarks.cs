@@ -70,13 +70,13 @@ public class TerminalWriteBenchmarks : IAsyncDisposable
         }
 
         _ptySocket = new SendSinkTerminalWebSocket();
-        _pty = new PtySession(_ptySocket);
+        _pty = new PtySession(_ptySocket, TimeProvider.System);
         _persistentSocket = new SendSinkTerminalWebSocket();
         TerminalSocketCore<PersistentPtyFrame>? core = null;
         try
         {
             core = new TerminalSocketCore<PersistentPtyFrame>(
-                _persistentSocket, PersistentPtyFrameDecoder.Instance, PersistentPtyClosePolicy.Instance, typeof(PersistentPtySession));
+                _persistentSocket, PersistentPtyFrameDecoder.Instance, PersistentPtyClosePolicy.Instance, typeof(PersistentPtySession), TimeProvider.System);
             _persistent = new PersistentPtySession(core, Seed.Attachment());
             core = null;
         }

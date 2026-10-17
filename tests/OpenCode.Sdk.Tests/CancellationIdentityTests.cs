@@ -304,7 +304,7 @@ public sealed class CancellationIdentityTests
         using var socket = new ScriptedTerminalWebSocket().Parking();
         return await CancelAtParkedReadAsync(async () =>
         {
-            await using var session = await PersistentPtySession.AttachAsync(socket, PtyId, caller.Token);
+            await using var session = await PersistentPtySession.AttachAsync(socket, PtyId, new ManualTimeProvider(), caller.Token);
         }, socket, caller);
     }
 
@@ -326,12 +326,12 @@ public sealed class CancellationIdentityTests
         if (persistent)
         {
             _ = socket.Text(PersistentPtyFrameData.AttachedJson).Parking();
-            await using var session = await PersistentPtySession.AttachAsync(socket, PtyId, CancellationToken.None);
+            await using var session = await PersistentPtySession.AttachAsync(socket, PtyId, new ManualTimeProvider(), CancellationToken.None);
             return await AtParkedReadAsync(session.ReadAsync(MethodToken(entry, caller.Token)), entry, socket, caller);
         }
 
         _ = socket.Parking();
-        await using var normal = new PtySession(socket);
+        await using var normal = new PtySession(socket, new ManualTimeProvider());
         return await AtParkedReadAsync(normal.ReadAsync(MethodToken(entry, caller.Token)), entry, socket, caller);
     }
 
@@ -366,7 +366,7 @@ public sealed class CancellationIdentityTests
         if (row.StartsWith("persistent-", StringComparison.Ordinal))
         {
             _ = socket.Text(PersistentPtyFrameData.AttachedJson);
-            await using var session = await PersistentPtySession.AttachAsync(socket, PtyId, CancellationToken.None);
+            await using var session = await PersistentPtySession.AttachAsync(socket, PtyId, new ManualTimeProvider(), CancellationToken.None);
             var failure = await AtSendGateAsync(token => row switch
             {
                 "persistent-write" => session.WriteAsync(PersistentPtyFrameData.Output(Input), token),
@@ -384,7 +384,7 @@ public sealed class CancellationIdentityTests
             return failure;
         }
 
-        await using var normal = new PtySession(socket);
+        await using var normal = new PtySession(socket, new ManualTimeProvider());
         return await AtSendGateAsync(token => row == "pty-write"
             ? normal.WriteAsync(Input, token) : normal.SubmitAsync(Input, token),
             queued ? () => normal.WriteAsync(Input, CancellationToken.None) : null, socket, caller);

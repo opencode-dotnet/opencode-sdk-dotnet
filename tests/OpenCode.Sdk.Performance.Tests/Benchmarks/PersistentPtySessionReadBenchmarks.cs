@@ -205,7 +205,7 @@ public class PersistentPtySessionReadBenchmarks : IAsyncDisposable
     private async Task<int> CountCoreFramesAsync(ITerminalFrameDecoder<PersistentPtyFrame> decoder)
     {
         using var socket = new CannedTerminalWebSocket(_messages);
-        await using var core = new TerminalSocketCore<PersistentPtyFrame>(socket, decoder, PersistentPtyClosePolicy.Instance, typeof(PersistentPtySession));
+        await using var core = NewCore(socket, decoder);
         var frames = 0;
         await foreach (var frame in core.ReadAsync(CancellationToken.None).ConfigureAwait(false))
         {
@@ -231,7 +231,11 @@ public class PersistentPtySessionReadBenchmarks : IAsyncDisposable
         Cases.First(entry => string.Equals(entry.Fixture.Name, fixture.Name, StringComparison.Ordinal)).Messages;
 
     private static TerminalSocketCore<PersistentPtyFrame> NewCore(ITerminalWebSocket socket) =>
-        new(socket, PersistentPtyFrameDecoder.Instance, PersistentPtyClosePolicy.Instance, typeof(PersistentPtySession));
+        NewCore(socket, PersistentPtyFrameDecoder.Instance);
+
+    private static TerminalSocketCore<PersistentPtyFrame> NewCore(
+        ITerminalWebSocket socket, ITerminalFrameDecoder<PersistentPtyFrame> decoder) =>
+        new(socket, decoder, PersistentPtyClosePolicy.Instance, typeof(PersistentPtySession), TimeProvider.System);
 
     /// <summary>The single <c>attached</c> control frame, the size class the normal family's cursor case measures.</summary>
     private static (WireFixture Fixture, (WebSocketMessageType Type, byte[] Payload)[] Messages) AttachedCase()

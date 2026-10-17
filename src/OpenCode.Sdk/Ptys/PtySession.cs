@@ -14,7 +14,7 @@ public class PtySession : IAsyncDisposable
 {
     private readonly TerminalSocketCore<PtyFrame>? _core;
 
-    internal PtySession(ITerminalWebSocket socket, TimeSpan? sendTimeout = null)
+    internal PtySession(ITerminalWebSocket socket, TimeProvider time, TimeSpan? sendTimeout = null)
     {
         ArgumentNullException.ThrowIfNull(socket);
 
@@ -22,7 +22,8 @@ public class PtySession : IAsyncDisposable
             socket,
             PtyFrameDecoder.Instance,
             PtyClosePolicy.Instance,
-            typeof(PtySession))
+            typeof(PtySession),
+            time)
         {
             SendTimeout = sendTimeout ?? TerminalSocketBounds.DefaultSendTimeout,
         };

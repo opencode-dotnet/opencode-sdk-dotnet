@@ -16,8 +16,7 @@ public sealed class TerminalSocketCoreTests
     [Test]
     public async Task SendAsync_Should_Preserve_A_Reset_Completed_Before_Deadline_Interruption()
     {
-        using var timer = new CancellationTokenSource();
-        var timers = TerminalSendDeadlineTests.CreateTimers(timer);
+        var time = new ManualTimeProvider();
         using var socket = Substitute.For<ITerminalWebSocket>();
         var send = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var reset = new WebSocketException(WebSocketError.ConnectionClosedPrematurely);
@@ -31,10 +30,7 @@ public sealed class TerminalSocketCoreTests
         _ = socket.SendAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<WebSocketMessageType>(), Arg.Any<CancellationToken>())
             .Returns(send.Task);
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession))
-        {
-            DeadlineFactory = timers,
-        };
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), time);
         var entered = 0;
         var resumed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var release = new ManualResetEventSlim();
@@ -65,7 +61,8 @@ public sealed class TerminalSocketCoreTests
         {
             send.SetException(reset);
             await resumed.Task.WaitAsync(HangGuard.Bound);
-            await timer.CancelOnWorkerAsync();
+            await time.WaitForArmedAsync(core.SendTimeout, HangGuard.Bound);
+            time.Advance(core.SendTimeout);
             release.Set();
             var failure = await Assert.That(async () =>
             {
@@ -88,8 +85,7 @@ public sealed class TerminalSocketCoreTests
     [Test]
     public async Task SendAsync_Should_Report_A_Timeout_When_The_Deadline_Abort_Reaches_Receive_First()
     {
-        using var timer = new CancellationTokenSource();
-        var timers = TerminalSendDeadlineTests.CreateTimers(timer);
+        var time = new ManualTimeProvider();
         using var socket = Substitute.For<ITerminalWebSocket>();
         var receive = new TaskCompletionSource<PtyReceiveResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         var send = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -103,10 +99,7 @@ public sealed class TerminalSocketCoreTests
                 operationToken = call.Arg<CancellationToken>();
             });
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession))
-        {
-            DeadlineFactory = timers,
-        };
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), time);
         var pending = core.SendAsync(new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, CancellationToken.None);
         using var abort = operationToken.Register(() => receive.TrySetException(readFault));
         OpenCodeTransportException? attachmentFailure = null;
@@ -114,7 +107,8 @@ public sealed class TerminalSocketCoreTests
         await using var reader = core.ReadAsync(CancellationToken.None).GetAsyncEnumerator();
         try
         {
-            await timer.CancelOnWorkerAsync();
+            await time.WaitForArmedAsync(core.SendTimeout, HangGuard.Bound);
+            time.Advance(core.SendTimeout);
             attachmentFailure = await Assert.That(async () => _ = await reader.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound))
                 .Throws<OpenCodeTransportException>();
         }
@@ -159,7 +153,7 @@ public sealed class TerminalSocketCoreTests
         using var socket = new ScriptedTerminalWebSocket().Pausing()
             .Closing(status).GatingSends();
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession));
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider());
         var first = core.SendAsync(new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, CancellationToken.None);
         await socket.SendEntered;
         var queued = core.SendAsync(new ArraySegment<byte>([0x62]), WebSocketMessageType.Text, CancellationToken.None);
@@ -190,7 +184,7 @@ public sealed class TerminalSocketCoreTests
         using var socket = new ScriptedTerminalWebSocket().Pausing()
             .Closing(WebSocketCloseStatus.InternalServerError).GatingSends();
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession));
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider());
         using var cancellation = new CancellationTokenSource();
         var pending = core.SendAsync(new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, cancellation.Token);
         await socket.SendEntered;
@@ -219,7 +213,7 @@ public sealed class TerminalSocketCoreTests
     {
         using var socket = new ScriptedTerminalWebSocket().GatingSends();
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession));
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider());
         using var cancellation = new CancellationTokenSource();
         var pending = core.SendAsync(new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, cancellation.Token);
         await socket.SendEntered;
@@ -247,7 +241,7 @@ public sealed class TerminalSocketCoreTests
         using var socket = new ScriptedTerminalWebSocket()
             .TextFragment("first ").Pausing().Text("second").Closing(WebSocketCloseStatus.NormalClosure);
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession));
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider());
         using var cancellation = new CancellationTokenSource();
         await using (var reader = core.ReadAsync(cancellation.Token).GetAsyncEnumerator())
         {
@@ -270,7 +264,7 @@ public sealed class TerminalSocketCoreTests
     {
         using var socket = new ScriptedTerminalWebSocket().Text("prefix").Closing(WebSocketCloseStatus.InternalServerError);
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession));
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider());
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelOnWorkerAsync();
         await using (var reader = core.ReadAsync(cancellation.Token).GetAsyncEnumerator())
@@ -289,7 +283,7 @@ public sealed class TerminalSocketCoreTests
     {
         using var socket = new ScriptedTerminalWebSocket().Text("prefix").Closing(WebSocketCloseStatus.InternalServerError);
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession));
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider());
         await using (var first = core.ReadAsync(CancellationToken.None).GetAsyncEnumerator())
         {
             await Assert.That(await first.MoveNextAsync()).IsTrue();
@@ -307,7 +301,7 @@ public sealed class TerminalSocketCoreTests
     {
         using var socket = new ScriptedTerminalWebSocket().Text("prefix").Closing(WebSocketCloseStatus.NormalClosure);
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession));
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider());
         await using (var first = core.ReadAsync(CancellationToken.None).GetAsyncEnumerator())
         {
             await Assert.That(await first.MoveNextAsync()).IsTrue();
@@ -324,7 +318,7 @@ public sealed class TerminalSocketCoreTests
         using var socket = new ScriptedTerminalWebSocket().Parking()
             .FailingCloseWith(new WebSocketException(WebSocketError.ConnectionClosedPrematurely));
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession));
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider());
         await socket.Parked;
         await core.SendAsync(new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, CancellationToken.None);
 
@@ -341,7 +335,7 @@ public sealed class TerminalSocketCoreTests
     {
         using var socket = new ScriptedTerminalWebSocket().Text("prefix").Text("unread").Parking();
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession));
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider());
         await using var first = core.ReadAsync(CancellationToken.None).GetAsyncEnumerator();
         await Assert.That(await first.MoveNextAsync()).IsTrue();
 
@@ -357,7 +351,7 @@ public sealed class TerminalSocketCoreTests
     {
         using var socket = new ScriptedTerminalWebSocket().GatingSends();
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession));
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider());
         var send = core.SendAsync(new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, CancellationToken.None);
         await socket.SendEntered;
         var firstDisposal = core.DisposeAsync();
@@ -380,34 +374,63 @@ public sealed class TerminalSocketCoreTests
     [Test]
     public async Task SendAsync_Should_Expire_A_Queued_Call_Without_Closing_The_Socket()
     {
-        using var firstDeadline = new CancellationTokenSource();
-        using var queuedDeadline = new CancellationTokenSource();
-        using var nextDeadline = new CancellationTokenSource();
-        var timers = Substitute.For<ITerminalDeadlineFactory>();
-        _ = timers.Create(Arg.Any<TimeSpan>()).Returns(firstDeadline, queuedDeadline, nextDeadline);
+        var time = new ManualTimeProvider();
         using var socket = new ScriptedTerminalWebSocket().GatingSends();
+        using var transport = Substitute.For<ITerminalWebSocket>();
+        var physicalSend = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var recordedSend = Task.CompletedTask;
+        _ = transport.ReceiveAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<CancellationToken>())
+            .Returns(call => socket.ReceiveAsync(call.Arg<ArraySegment<byte>>(), call.Arg<CancellationToken>()));
+        _ = transport.SendAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<WebSocketMessageType>(), Arg.Any<CancellationToken>())
+            .Returns(physicalSend.Task).AndDoes(call =>
+            {
+                recordedSend = socket.SendAsync(
+                    call.Arg<ArraySegment<byte>>(), call.Arg<WebSocketMessageType>(), call.Arg<CancellationToken>());
+            });
+        _ = transport.CloseOutputAsync(Arg.Any<CancellationToken>())
+            .Returns(call => socket.CloseOutputAsync(call.Arg<CancellationToken>()));
+        transport.When(value => value.Dispose()).Do(_ => socket.Dispose());
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession))
+            transport, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), time);
+        var resumed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var release = new ManualResetEventSlim();
+        var released = false;
+        // Hold the first call in its own post-send step, before it releases the send gate, so only
+        // the queued call can expire; the hold never throws, and the test thread asserts its result.
+        var holdAfterSend = new TerminalSendActions(OnSent: () =>
         {
-            DeadlineFactory = timers,
-        };
-        var first = core.SendAsync(new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, CancellationToken.None);
+            _ = resumed.TrySetResult(true);
+            released = release.Wait(HangGuard.Bound);
+        });
+        var first = core.SendAsync(() => new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, holdAfterSend, CancellationToken.None);
+
         await socket.SendEntered;
         var queued = core.SendAsync(new ArraySegment<byte>([0x62]), WebSocketMessageType.Text, CancellationToken.None);
-        await queuedDeadline.CancelOnWorkerAsync();
-        socket.ReleaseSends();
-        await first;
-
         OpenCodeTransportException? failure = null;
         try
         {
+            socket.ReleaseSends();
+            await recordedSend.WaitAsync(HangGuard.Bound);
+            physicalSend.SetResult(true);
+            await resumed.Task.WaitAsync(HangGuard.Bound);
+            await time.WaitForArmedAsync(core.SendTimeout, HangGuard.Bound, count: 2);
+            time.Advance(core.SendTimeout);
             await queued;
         }
         catch (OpenCodeTransportException exception)
         {
             failure = exception;
         }
+        finally
+        {
+            release.Set();
+            socket.ReleaseSends();
+            await recordedSend.WaitAsync(HangGuard.Bound);
+            _ = physicalSend.TrySetResult(true);
+            await first.WaitAsync(HangGuard.Bound);
+        }
 
+        await Assert.That(released).IsTrue();
         await Assert.That(failure).IsNotNull();
         await Assert.That(failure!.InnerException).IsTypeOf<TimeoutException>();
         await Assert.That(socket.SentMessages.Count).IsEqualTo(1);
@@ -419,18 +442,14 @@ public sealed class TerminalSocketCoreTests
     [Test]
     public async Task SendAsync_Should_End_The_Attachment_When_A_Physical_Send_Expires()
     {
-        using var deadline = new CancellationTokenSource();
-        var timers = Substitute.For<ITerminalDeadlineFactory>();
-        _ = timers.Create(Arg.Any<TimeSpan>()).Returns(deadline);
+        var time = new ManualTimeProvider();
         using var socket = new ScriptedTerminalWebSocket().GatingSends();
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession))
-        {
-            DeadlineFactory = timers,
-        };
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), time);
         var send = core.SendAsync(new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, CancellationToken.None);
         await socket.SendEntered;
-        await deadline.CancelOnWorkerAsync();
+        await time.WaitForArmedAsync(core.SendTimeout, HangGuard.Bound);
+        time.Advance(core.SendTimeout);
         socket.ReleaseSends();
 
         OpenCodeTransportException? failure = null;
@@ -456,7 +475,7 @@ public sealed class TerminalSocketCoreTests
     public async Task Constructor_Should_Refuse_A_Null_Socket()
     {
         var failure = Assert.Throws<ArgumentNullException>(() => _ = new TerminalSocketCore<PtyFrame>(
-            socket: null!, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession)));
+            socket: null!, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider()));
 
         await Assert.That(failure.ParamName).IsEqualTo("socket");
     }
@@ -467,7 +486,7 @@ public sealed class TerminalSocketCoreTests
         using var socket = new ScriptedTerminalWebSocket();
 
         var failure = Assert.Throws<ArgumentNullException>(() => _ = new TerminalSocketCore<PtyFrame>(
-            socket, decoder: null!, PtyClosePolicy.Instance, typeof(PtySession)));
+            socket, decoder: null!, PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider()));
 
         await Assert.That(failure.ParamName).IsEqualTo("decoder");
     }
@@ -478,7 +497,7 @@ public sealed class TerminalSocketCoreTests
         using var socket = new ScriptedTerminalWebSocket();
 
         var failure = Assert.Throws<ArgumentNullException>(() => _ = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, closePolicy: null!, typeof(PtySession)));
+            socket, PtyFrameDecoder.Instance, closePolicy: null!, typeof(PtySession), new ManualTimeProvider()));
 
         await Assert.That(failure.ParamName).IsEqualTo("closePolicy");
     }
@@ -489,7 +508,7 @@ public sealed class TerminalSocketCoreTests
         using var socket = new ScriptedTerminalWebSocket();
 
         var failure = Assert.Throws<ArgumentNullException>(() => _ = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, owner: null!));
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, owner: null!, new ManualTimeProvider()));
 
         await Assert.That(failure.ParamName).IsEqualTo("owner");
     }
@@ -499,7 +518,7 @@ public sealed class TerminalSocketCoreTests
     {
         using var socket = new ScriptedTerminalWebSocket();
         await using var core = new TerminalSocketCore<PtyFrame>(
-            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession));
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider());
         await core.DisposeAsync();
 
         var failure = await Assert

@@ -60,7 +60,7 @@ public class PtySessionReadBenchmarks : IAsyncDisposable
     {
         _messages = MessagesFor(Fixture);
         _socket = new CannedTerminalWebSocket(_messages);
-        _session = new PtySession(_socket);
+        _session = new PtySession(_socket, TimeProvider.System);
 
         var delivered = await CollectFramesAsync(_session).ConfigureAwait(false);
         if (delivered.Count != Fixture.Items)
@@ -77,7 +77,7 @@ public class PtySessionReadBenchmarks : IAsyncDisposable
 
         using (var pooled = new CannedTerminalWebSocket(_messages, pooled: true))
         {
-            await using var session = new PtySession(pooled);
+            await using var session = new PtySession(pooled, TimeProvider.System);
             var pooledFrames = await CollectFramesAsync(session).ConfigureAwait(false);
             if (pooledFrames.Count != Fixture.Items || pooled.PooledReceives < Fixture.Items
                 || !pooledFrames.Select(static frame => frame.GetType()).SequenceEqual(delivered.Select(static frame => frame.GetType())))
@@ -109,7 +109,7 @@ public class PtySessionReadBenchmarks : IAsyncDisposable
     public async Task<int> ReadFramesAsync()
     {
         using var socket = new CannedTerminalWebSocket(_messages);
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, TimeProvider.System);
         return await CountFramesAsync(session).ConfigureAwait(false);
     }
 
@@ -118,7 +118,7 @@ public class PtySessionReadBenchmarks : IAsyncDisposable
     public async Task<int> ReadFramesPooledAsync()
     {
         using var socket = new CannedTerminalWebSocket(_messages, pooled: true);
-        await using var session = new PtySession(socket);
+        await using var session = new PtySession(socket, TimeProvider.System);
         return await CountFramesAsync(session).ConfigureAwait(false);
     }
 
@@ -173,7 +173,7 @@ public class PtySessionReadBenchmarks : IAsyncDisposable
     private async Task<int> CountCoreFramesAsync(ITerminalFrameDecoder<PtyFrame> decoder)
     {
         using var socket = new CannedTerminalWebSocket(_messages);
-        await using var core = new TerminalSocketCore<PtyFrame>(socket, decoder, PtyClosePolicy.Instance, typeof(PtySession));
+        await using var core = new TerminalSocketCore<PtyFrame>(socket, decoder, PtyClosePolicy.Instance, typeof(PtySession), TimeProvider.System);
         var frames = 0;
         await foreach (var frame in core.ReadAsync(CancellationToken.None).ConfigureAwait(false))
         {

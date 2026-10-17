@@ -14,7 +14,7 @@ internal sealed class TerminalReceivePump<TFrame> : IAsyncDisposable
         SingleReader = false,
         AllowSynchronousContinuations = false,
     });
-    private readonly TerminalCancellationSource _lifetime = new();
+    private readonly CancellationTokenSource _lifetime = new();
     private readonly Lock _sync = new();
     private readonly Task _completion;
     private bool _abandoned;
@@ -103,7 +103,7 @@ internal sealed class TerminalReceivePump<TFrame> : IAsyncDisposable
     {
         try
         {
-            await _lifetime.CancelAsync().ConfigureAwait(false);
+            await _lifetime.CancelOnWorkerAsync().ConfigureAwait(false);
             // The receiver is owned here and every await in it declines context capture.
 #pragma warning disable VSTHRD003 // Joining this connection's receiver is the disposal contract.
             await _completion.ConfigureAwait(false);

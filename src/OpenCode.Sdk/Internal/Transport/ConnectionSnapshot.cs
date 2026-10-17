@@ -19,13 +19,14 @@ namespace OpenCode.Sdk.Internal;
 /// </remarks>
 internal sealed class ConnectionSnapshot
 {
-    public ConnectionSnapshot(string endpointBase, AuthenticationHeaderValue? authorization, LocationSelector? location)
+    public ConnectionSnapshot(string endpointBase, AuthenticationHeaderValue? authorization, LocationSelector? location, TimeProvider time)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(endpointBase);
 
         EndpointBase = endpointBase;
         Authorization = authorization;
         Location = location;
+        Time = time;
     }
 
     /// <summary>Gets the Basic credential every request carries, or null when no password was configured.</summary>
@@ -36,4 +37,7 @@ internal sealed class ConnectionSnapshot
 
     /// <summary>Gets the ambient location a per-call selector merges over member by member.</summary>
     public LocationSelector? Location { get; }
+
+    /// <summary>Gets the client's clock for non-HTTP send and close deadlines.</summary>
+    public TimeProvider Time { get; }
 }

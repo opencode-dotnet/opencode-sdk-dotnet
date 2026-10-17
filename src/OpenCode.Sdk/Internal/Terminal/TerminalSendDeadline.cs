@@ -19,14 +19,14 @@ internal sealed class TerminalSendDeadline : IDisposable
     public TerminalSendDeadline(
         Type owner,
         TimeSpan timeout,
-        ITerminalDeadlineFactory factory,
+        TimeProvider time,
         Func<TerminalConnectionOutcome?> getOutcome,
         CancellationToken caller)
     {
         _owner = owner;
         _caller = caller;
         _getOutcome = getOutcome;
-        _deadline = factory.Create(timeout);
+        _deadline = TimedCancellation.Create(timeout, time);
         _operation = CancellationTokenSource.CreateLinkedTokenSource(caller, _deadline.Token);
         // Cancellation callbacks run in LIFO order: latch before the link interrupts physical I/O.
         // A deadline already canceled during construction has no admitted operation to interrupt.

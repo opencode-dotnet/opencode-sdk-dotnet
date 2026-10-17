@@ -1,4 +1,5 @@
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.PersistentPtys;
 
@@ -53,5 +54,5 @@ public sealed class PersistentPtyConnectUriBuilderTests
     }
 
     private static ConnectionSnapshot Snapshot(string endpoint) =>
-        new(EndpointPolicy.Normalize(new Uri(endpoint)), authorization: null, location: null);
+        new(EndpointPolicy.Normalize(new Uri(endpoint)), authorization: null, location: null, new ManualTimeProvider());
 }

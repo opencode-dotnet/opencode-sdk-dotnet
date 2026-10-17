@@ -157,24 +157,28 @@ public class PersistentPtySession : IAsyncDisposable
     /// </summary>
     /// <param name="socket">The upgraded socket; the session takes ownership of it.</param>
     /// <param name="ptyId">The terminal the socket addresses; it names the failures.</param>
+    /// <param name="time">The client's clock for send and close deadlines.</param>
     /// <param name="cancellationToken">The cancellation token bounding the first read.</param>
     /// <returns>The attached session.</returns>
     /// <exception cref="OpenCodeTransportException">The server closed before attaching, sent another frame first, or negotiated a protocol this SDK does not speak.</exception>
     internal static Task<PersistentPtySession> AttachAsync(
         ITerminalWebSocket socket,
         string ptyId,
+        TimeProvider time,
         CancellationToken cancellationToken) =>
-        AttachAsync(socket, ptyId, TerminalSocketBounds.DefaultSendTimeout, cancellationToken);
+        AttachAsync(socket, ptyId, time, TerminalSocketBounds.DefaultSendTimeout, cancellationToken);
 
     /// <summary>Attaches with the fixed send budget captured from the connection options.</summary>
     /// <param name="socket">The upgraded socket whose ownership is transferred on success.</param>
     /// <param name="ptyId">The terminal identity used in failures.</param>
+    /// <param name="time">The client's clock for send and close deadlines.</param>
     /// <param name="sendTimeout">The fixed per-send budget.</param>
     /// <param name="cancellationToken">The token bounding attachment.</param>
     /// <returns>The attached session.</returns>
     internal static async Task<PersistentPtySession> AttachAsync(
         ITerminalWebSocket socket,
         string ptyId,
+        TimeProvider time,
         TimeSpan sendTimeout,
         CancellationToken cancellationToken)
     {
@@ -188,7 +192,8 @@ public class PersistentPtySession : IAsyncDisposable
                 socket,
                 PersistentPtyFrameDecoder.Instance,
                 PersistentPtyClosePolicy.Instance,
-                typeof(PersistentPtySession))
+                typeof(PersistentPtySession),
+                time)
             {
                 SendTimeout = sendTimeout,
             };

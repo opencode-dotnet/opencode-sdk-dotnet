@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>Serializes physical writes and graceful close behind one connection gate.</summary>
-internal sealed class TerminalSendQueue(ITerminalWebSocket socket) : IDisposable
+internal sealed class TerminalSendQueue(ITerminalWebSocket socket, TimeProvider time) : IDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
 
@@ -20,14 +20,21 @@ internal sealed class TerminalSendQueue(ITerminalWebSocket socket) : IDisposable
         "and receiver/send joins in DisposeAsync; disposal completion is the observable cleanup outcome.")]
     public async Task CloseAsync()
     {
-        if (!await _gate.WaitAsync(TerminalSocketBounds.GracefulCloseTimeout, CancellationToken.None).ConfigureAwait(false))
+        using (var admission = TimedCancellation.Create(TerminalSocketBounds.GracefulCloseTimeout, time))
         {
-            return;
+            try
+            {
+                await _gate.WaitAsync(admission.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (admission.IsCancellationRequested)
+            {
+                return;
+            }
         }
 
-        using var timeout = new CancellationTokenSource(TerminalSocketBounds.GracefulCloseTimeout);
         try
         {
+            using var timeout = TimedCancellation.Create(TerminalSocketBounds.GracefulCloseTimeout, time);
             await socket.CloseOutputAsync(timeout.Token).ConfigureAwait(false);
         }
         catch (Exception exception) when (
