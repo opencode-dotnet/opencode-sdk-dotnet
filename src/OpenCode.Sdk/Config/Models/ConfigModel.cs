@@ -32,6 +32,13 @@ public sealed record ConfigModel
     public string? Name { get; init; }
 
     /// <summary>
+    /// Release date as YYYY-MM-DD or YYYY-MM
+    /// </summary>
+    [JsonPropertyName("releaseDate")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ReleaseDate { get; init; }
+
+    /// <summary>
     /// Gets the compatibility value.
     /// </summary>
     [JsonPropertyName("compatibility")]
@@ -104,5 +111,5 @@ public sealed record ConfigModel
     /// <summary>
     /// Prints the record&apos;s members with its secret members masked.
     /// </summary>
-    public override string ToString() => RecordPrinter.Format(nameof(ConfigModel), ("ModelId", ModelId), ("Family", Family), ("Name", Name), ("Compatibility", Compatibility), ("Package", Package), ("Settings", Settings), ("Headers", RecordPrinter.Redact(Headers)), ("Body", Body), ("Capabilities", Capabilities), ("Variants", Variants), ("Cost", Cost), ("Disabled", Disabled), ("Limit", Limit));
+    public override string ToString() => RecordPrinter.Format(nameof(ConfigModel), ("ModelId", ModelId), ("Family", Family), ("Name", Name), ("ReleaseDate", ReleaseDate), ("Compatibility", Compatibility), ("Package", Package), ("Settings", Settings), ("Headers", RecordPrinter.Redact(Headers)), ("Body", Body), ("Capabilities", Capabilities), ("Variants", Variants), ("Cost", Cost), ("Disabled", Disabled), ("Limit", Limit));
 }

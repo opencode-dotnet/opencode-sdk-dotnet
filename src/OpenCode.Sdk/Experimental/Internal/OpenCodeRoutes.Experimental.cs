@@ -96,6 +96,10 @@ internal static partial class OpenCodeRoutes
         }
 
         /// <summary>
+        /// The &apos;POST /api/experimental/voice/session&apos; route.
+        /// </summary>
+        public const string CreateVoiceSession = "/api/experimental/voice/session";
+        /// <summary>
         /// Builds the &apos;/api/experimental/mcp/{server}/disconnect&apos; route.
         /// </summary>
         /// <param name = "server">The &apos;server&apos; route value.</param>

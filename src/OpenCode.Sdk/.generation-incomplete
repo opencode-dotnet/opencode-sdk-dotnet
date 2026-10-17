@@ -1,5 +1,5 @@
 Generation is complete at the declared coverage; packages may be published.
-Selected operations: 140
+Selected operations: 141
 Pending operations: 0
 Declined operations: 0
 Transport-owned operations: 2
@@ -34,6 +34,7 @@ Selected:
 - experimental.session.skill
 - experimental.session.stats
 - experimental.session.wait
+- experimental.voice.session
 - form.list
 - fs.find
 - fs.list

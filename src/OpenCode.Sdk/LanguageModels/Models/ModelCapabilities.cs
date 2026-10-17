@@ -25,4 +25,11 @@ public sealed record ModelCapabilities
     /// </summary>
     [JsonPropertyName("output")]
     public required IReadOnlyList<string> Output { get; init; }
+
+    /// <summary>
+    /// Gets the temperature value.
+    /// </summary>
+    [JsonPropertyName("temperature")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Temperature { get; init; }
 }

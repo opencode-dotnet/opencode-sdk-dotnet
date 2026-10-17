@@ -60,6 +60,7 @@
 /Config/Internal/ConfigInfoWebsearchJsonConverter.cs linguist-generated
 /Config/Internal/ConfigLspEntryJsonConverter.cs linguist-generated
 /Config/Internal/ConfigModelPricingJsonConverter.cs linguist-generated
+/Config/Internal/ConfigModelReasoningJsonConverter.cs linguist-generated
 /Config/Internal/ConfigModelSelectionJsonConverter.cs linguist-generated
 /Config/Internal/ConfigProviderSettingsChunkTimeoutJsonConverter.cs linguist-generated
 /Config/Internal/ConfigProviderSettingsHeaderTimeoutJsonConverter.cs linguist-generated
@@ -69,6 +70,7 @@
 /Config/Internal/ConfigShellsResponseAdapter.cs linguist-generated
 /Config/Internal/OpenCodeRoutes.Config.cs linguist-generated
 /Config/Internal/UnknownConfigEntryJsonConverter.cs linguist-generated
+/Config/Internal/UnknownConfigModelReasoningJsonConverter.cs linguist-generated
 /Config/Models/ConfigAgent.cs linguist-generated
 /Config/Models/ConfigAgentMode.cs linguist-generated
 /Config/Models/ConfigAgentRequest.cs linguist-generated
@@ -117,6 +119,9 @@
 /Config/Models/ConfigModelLimit.cs linguist-generated
 /Config/Models/ConfigModelPricing.cs linguist-generated
 /Config/Models/ConfigModelPricingKind.cs linguist-generated
+/Config/Models/ConfigModelReasoningBudget.cs linguist-generated
+/Config/Models/ConfigModelReasoningSupported.cs linguist-generated
+/Config/Models/ConfigModelReasoningUnsupported.cs linguist-generated
 /Config/Models/ConfigModelSelection.cs linguist-generated
 /Config/Models/ConfigModelSelectionExplicit.cs linguist-generated
 /Config/Models/ConfigModelSelectionKind.cs linguist-generated
@@ -141,7 +146,9 @@
 /Config/Models/ConfigWebSearchInfo.cs linguist-generated
 /Config/Models/ConfigWorktree.cs linguist-generated
 /Config/Models/IConfigEntry.cs linguist-generated
+/Config/Models/IConfigModelReasoning.cs linguist-generated
 /Config/Models/UnknownConfigEntry.cs linguist-generated
+/Config/Models/UnknownConfigModelReasoning.cs linguist-generated
 /Credentials/CredentialActivateResponse.cs linguist-generated
 /Credentials/CredentialCreateRequest.cs linguist-generated
 /Credentials/CredentialCreateResponse.cs linguist-generated
@@ -231,6 +238,8 @@
 /Experimental/ExperimentalSessionStatsRequest.cs linguist-generated
 /Experimental/ExperimentalSessionStatsResponse.cs linguist-generated
 /Experimental/ExperimentalSessionWaitResponse.cs linguist-generated
+/Experimental/ExperimentalVoiceSessionRequest.cs linguist-generated
+/Experimental/ExperimentalVoiceSessionResponse.cs linguist-generated
 /Experimental/Internal/ExperimentalConfigUpdateResponseAdapter.cs linguist-generated
 /Experimental/Internal/ExperimentalFsWriteResponseAdapter.cs linguist-generated
 /Experimental/Internal/ExperimentalFsWriteResponseEnvelope.cs linguist-generated
@@ -257,7 +266,13 @@
 /Experimental/Internal/ExperimentalSessionStatsResponseAdapter.cs linguist-generated
 /Experimental/Internal/ExperimentalSessionStatsResponseEnvelope.cs linguist-generated
 /Experimental/Internal/ExperimentalSessionWaitResponseAdapter.cs linguist-generated
+/Experimental/Internal/ExperimentalVoiceSessionResponseAdapter.cs linguist-generated
+/Experimental/Internal/ExperimentalVoiceSessionResponseEnvelope.cs linguist-generated
 /Experimental/Internal/OpenCodeRoutes.Experimental.cs linguist-generated
+/Experimental/Internal/UnknownVoiceTransportInputJsonConverter.cs linguist-generated
+/Experimental/Internal/UnknownVoiceTransportJsonConverter.cs linguist-generated
+/Experimental/Internal/VoiceTransportInputJsonConverter.cs linguist-generated
+/Experimental/Internal/VoiceTransportJsonConverter.cs linguist-generated
 /Experimental/Models/ExperimentalGenerateTextData.cs linguist-generated
 /Experimental/Models/ExperimentalMigrationV1Status.cs linguist-generated
 /Experimental/Models/ExperimentalMigrationV1StatusError.cs linguist-generated
@@ -267,9 +282,18 @@
 /Experimental/Models/ExperimentalMigrationV1StatusRunning.cs linguist-generated
 /Experimental/Models/ExperimentalMigrationV1StatusRunningProgress.cs linguist-generated
 /Experimental/Models/ExperimentalSessionStatsRequestTools.cs linguist-generated
+/Experimental/Models/ExperimentalVoiceSessionData.cs linguist-generated
+/Experimental/Models/IVoiceTransport.cs linguist-generated
+/Experimental/Models/IVoiceTransportInput.cs linguist-generated
 /Experimental/Models/InstructionEntryInfo.cs linguist-generated
 /Experimental/Models/InstructionEntrySnapshot.cs linguist-generated
 /Experimental/Models/InstructionEntryValueTooLargeError.cs linguist-generated
+/Experimental/Models/UnknownVoiceTransport.cs linguist-generated
+/Experimental/Models/UnknownVoiceTransportInput.cs linguist-generated
+/Experimental/Models/VoiceWebRtcTransport.cs linguist-generated
+/Experimental/Models/VoiceWebRtcTransportInput.cs linguist-generated
+/Experimental/Models/VoiceWebSocketTransport.cs linguist-generated
+/Experimental/Models/VoiceWebSocketTransportInput.cs linguist-generated
 /FileSystem/FileSystemClient.cs linguist-generated
 /FileSystem/FsFindRequest.cs linguist-generated
 /FileSystem/FsFindResponse.cs linguist-generated
@@ -446,6 +470,7 @@
 /Internal/Serialization/OptionalOfPermissionRuleListJsonConverter.cs linguist-generated
 /Internal/Serialization/OptionalOfSessionInboxDeliveryJsonConverter.cs linguist-generated
 /Internal/Serialization/OptionalOfSessionMessageLocationSwitchedPreviousJsonConverter.cs linguist-generated
+/Internal/Serialization/OptionalOfSpecialNumberJsonConverter.cs linguist-generated
 /Internal/Serialization/OptionalOfStringJsonConverter.cs linguist-generated
 /LanguageModels/Internal/ModelCacheFormatJsonConverter.cs linguist-generated
 /LanguageModels/Internal/ModelDefaultResponseAdapter.cs linguist-generated

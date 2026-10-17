@@ -9,6 +9,22 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### ✨ Added
+
+- **The SDK speaks opencode 2.0.32.** `ExperimentalClient.CreateVoiceSessionAsync` opens an
+  experimental voice session over WebRTC or WebSocket. `ConfigModelCapabilities.Reasoning` tells a
+  model that does not reason (`ConfigModelReasoningUnsupported`) from one that does
+  (`ConfigModelReasoningSupported`, with its toggle, efforts and `ConfigModelReasoningBudget`);
+  `ConfigModelCapabilities.Temperature` and `ModelCapabilities.Temperature` say whether a model
+  takes a temperature, and `ConfigModel.ReleaseDate` carries its release date.
+
+### 🔧 Changes
+
+- **A spawned background service's saved `env` wins after startup.**
+  `OpenCodeServerEnsureOptions.Environment` entries still win over the channel's service-config
+  `env` at spawn, but a 2.0.32 service re-applies its saved `env` when it starts, so a key set in
+  both takes the saved value for everything the service reads after startup.
+
 ### 🐛 Fixes
 
 - **IntelliSense reaches implementing members and restores declared halves.** Properties that

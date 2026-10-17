@@ -149,6 +149,7 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalIntegrationWellknownAddResponse> AddIntegrationWellknownAsync(OpenCode.Sdk.Models.ExperimentalIntegrationWellknownAddRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalMcpAddResponse> AddMcpServerAsync(string server, OpenCode.Sdk.Models.ExperimentalMcpAddRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalMcpConnectResponse> ConnectMcpServerAsync(string server, OpenCode.Sdk.ExperimentalMcpConnectRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalVoiceSessionResponse> CreateVoiceSessionAsync(OpenCode.Sdk.Models.ExperimentalVoiceSessionRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalMcpDisconnectResponse> DisconnectMcpServerAsync(string server, OpenCode.Sdk.ExperimentalMcpDisconnectRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalGenerateTextResponse> GenerateTextAsync(OpenCode.Sdk.Models.ExperimentalGenerateTextRequest request, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ExperimentalMigrationV1StatusResponse> GetMigrationV1StatusAsync(OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
@@ -326,6 +327,14 @@ namespace OpenCode.Sdk
     public sealed class ExperimentalSessionWaitResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalSessionWaitResponse>
     {
         public ExperimentalSessionWaitResponse() { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalVoiceSessionResponse : OpenCode.Sdk.OpenCodeResponse, System.IEquatable<OpenCode.Sdk.ExperimentalVoiceSessionResponse>
+    {
+        public ExperimentalVoiceSessionResponse() { }
+        public required OpenCode.Sdk.Models.ExperimentalVoiceSessionData VoiceSession { get; init; }
+        protected override bool PrintMembers(System.Text.StringBuilder builder) { }
     }
     public class FileSystemClient
     {
@@ -2628,6 +2637,9 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("package")]
         public string? Package { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("releaseDate")]
+        public string? ReleaseDate { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("settings")]
         public OpenCode.Sdk.Models.ConfigModelSettings? Settings { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -2644,6 +2656,12 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("output")]
         public System.Collections.Generic.IReadOnlyList<string>? Output { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("reasoning")]
+        public OpenCode.Sdk.Models.IConfigModelReasoning? Reasoning { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("temperature")]
+        public bool? Temperature { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("tools")]
         public bool? Tools { get; init; }
@@ -2710,6 +2728,37 @@ namespace OpenCode.Sdk.Models
         ConfigModelCost = 0,
         ConfigModelCostList = 1,
         Unknown = 2,
+    }
+    public sealed class ConfigModelReasoningBudget : System.IEquatable<OpenCode.Sdk.Models.ConfigModelReasoningBudget>
+    {
+        public ConfigModelReasoningBudget() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("max")]
+        public long? Max { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("min")]
+        public long? Min { get; init; }
+    }
+    public sealed class ConfigModelReasoningSupported : OpenCode.Sdk.Models.IConfigModelReasoning, System.IEquatable<OpenCode.Sdk.Models.ConfigModelReasoningSupported>
+    {
+        public ConfigModelReasoningSupported() { }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("budget")]
+        public OpenCode.Sdk.Models.ConfigModelReasoningBudget? Budget { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("effort")]
+        public System.Collections.Generic.IReadOnlyList<string>? Effort { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("supported")]
+        public bool Supported { get; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("toggle")]
+        public bool? Toggle { get; init; }
+    }
+    public sealed class ConfigModelReasoningUnsupported : OpenCode.Sdk.Models.IConfigModelReasoning, System.IEquatable<OpenCode.Sdk.Models.ConfigModelReasoningUnsupported>
+    {
+        public ConfigModelReasoningUnsupported() { }
+        [System.Text.Json.Serialization.JsonPropertyName("supported")]
+        public bool Supported { get; }
     }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigModelSelectionJsonConverter))]
     public sealed class ConfigModelSelection : System.IEquatable<OpenCode.Sdk.Models.ConfigModelSelection>
@@ -3436,6 +3485,28 @@ namespace OpenCode.Sdk.Models
             public const string Summary = "summary";
         }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalVoiceSessionData : System.IEquatable<OpenCode.Sdk.Models.ExperimentalVoiceSessionData>
+    {
+        public ExperimentalVoiceSessionData() { }
+        [System.Text.Json.Serialization.JsonPropertyName("transport")]
+        public required OpenCode.Sdk.Models.IVoiceTransport Transport { get; init; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class ExperimentalVoiceSessionRequest : System.IEquatable<OpenCode.Sdk.Models.ExperimentalVoiceSessionRequest>
+    {
+        public ExperimentalVoiceSessionRequest() { }
+        [System.Text.Json.Serialization.JsonPropertyName("model")]
+        public required string Model { get; init; }
+        [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.OptionalOfJsonElementDictionaryJsonConverter))]
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+        [System.Text.Json.Serialization.JsonPropertyName("session")]
+        public OpenCode.Sdk.Optional<System.Collections.Generic.IReadOnlyDictionary<string, System.Text.Json.JsonElement>?> Session { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("transport")]
+        public required OpenCode.Sdk.Models.IVoiceTransportInput Transport { get; init; }
+    }
     public sealed class FileDiffInfo : System.IEquatable<OpenCode.Sdk.Models.FileDiffInfo>
     {
         public FileDiffInfo() { }
@@ -4081,6 +4152,12 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         string Type { get; }
     }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigModelReasoningJsonConverter))]
+    public interface IConfigModelReasoning
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("supported")]
+        bool Supported { get; }
+    }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConnectionInfoJsonConverter))]
     public interface IConnectionInfo
     {
@@ -4352,6 +4429,22 @@ namespace OpenCode.Sdk.Models
     public interface IStreamFailureCause : OpenCode.Sdk.Models.IOpenCodeStreamFailureCause { }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ToolContentJsonConverter))]
     public interface IToolContent
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        string Type { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.VoiceTransportJsonConverter))]
+    public interface IVoiceTransport
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        string Type { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.VoiceTransportInputJsonConverter))]
+    public interface IVoiceTransportInput
     {
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         string Type { get; }
@@ -5263,6 +5356,9 @@ namespace OpenCode.Sdk.Models
         public required System.Collections.Generic.IReadOnlyList<string> Input { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("output")]
         public required System.Collections.Generic.IReadOnlyList<string> Output { get; init; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("temperature")]
+        public bool? Temperature { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("tools")]
         public required bool Tools { get; init; }
     }
@@ -11300,6 +11396,15 @@ namespace OpenCode.Sdk.Models
         public string Type { get; }
         public override string ToString() { }
     }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownConfigModelReasoningJsonConverter))]
+    public sealed class UnknownConfigModelReasoning : OpenCode.Sdk.Models.IConfigModelReasoning, System.IEquatable<OpenCode.Sdk.Models.UnknownConfigModelReasoning>
+    {
+        [System.Text.Json.Serialization.JsonConstructor]
+        public UnknownConfigModelReasoning(bool supported, System.Text.Json.JsonElement payload) { }
+        public System.Text.Json.JsonElement Payload { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("supported")]
+        public bool Supported { get; }
+    }
     [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownConnectionInfoJsonConverter))]
     public sealed class UnknownConnectionInfo : OpenCode.Sdk.Models.IConnectionInfo, System.IEquatable<OpenCode.Sdk.Models.UnknownConnectionInfo>
     {
@@ -11578,6 +11683,29 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownVoiceTransportJsonConverter))]
+    public sealed class UnknownVoiceTransport : OpenCode.Sdk.Models.IVoiceTransport, System.IEquatable<OpenCode.Sdk.Models.UnknownVoiceTransport>
+    {
+        [System.Text.Json.Serialization.JsonConstructor]
+        public UnknownVoiceTransport(string type, System.Text.Json.JsonElement payload) { }
+        public System.Text.Json.JsonElement Payload { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+        public override string ToString() { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownVoiceTransportInputJsonConverter))]
+    public sealed class UnknownVoiceTransportInput : OpenCode.Sdk.Models.IVoiceTransportInput, System.IEquatable<OpenCode.Sdk.Models.UnknownVoiceTransportInput>
+    {
+        [System.Text.Json.Serialization.JsonConstructor]
+        public UnknownVoiceTransportInput(string type, System.Text.Json.JsonElement payload) { }
+        public System.Text.Json.JsonElement Payload { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+    }
     public sealed class VcsBase : System.IEquatable<OpenCode.Sdk.Models.VcsBase>
     {
         public VcsBase() { }
@@ -11723,6 +11851,54 @@ namespace OpenCode.Sdk.Models
             public const string Committed = "committed";
             public const string Working = "working";
         }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class VoiceWebRtcTransport : OpenCode.Sdk.Models.IVoiceTransport, System.IEquatable<OpenCode.Sdk.Models.VoiceWebRtcTransport>
+    {
+        public VoiceWebRtcTransport() { }
+        [System.Text.Json.Serialization.JsonPropertyName("sdp")]
+        public required string Sdp { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class VoiceWebRtcTransportInput : OpenCode.Sdk.Models.IVoiceTransportInput, System.IEquatable<OpenCode.Sdk.Models.VoiceWebRtcTransportInput>
+    {
+        public VoiceWebRtcTransportInput() { }
+        [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.OptionalOfSpecialNumberJsonConverter))]
+        [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+        [System.Text.Json.Serialization.JsonPropertyName("dcid")]
+        public OpenCode.Sdk.Optional<double?> Dcid { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("sdp")]
+        public required string Sdp { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class VoiceWebSocketTransport : OpenCode.Sdk.Models.IVoiceTransport, System.IEquatable<OpenCode.Sdk.Models.VoiceWebSocketTransport>
+    {
+        public VoiceWebSocketTransport() { }
+        [System.Text.Json.Serialization.JsonNumberHandling(System.Text.Json.Serialization.JsonNumberHandling.AllowNamedFloatingPointLiterals)]
+        [System.Text.Json.Serialization.JsonPropertyName("expiresAt")]
+        public required double ExpiresAt { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("token")]
+        public required string Token { get; init; }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
+        [System.Text.Json.Serialization.JsonPropertyName("url")]
+        public required string Url { get; init; }
+        public override string ToString() { }
+    }
+    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
+        "erimental.md#opencode001")]
+    public sealed class VoiceWebSocketTransportInput : OpenCode.Sdk.Models.IVoiceTransportInput, System.IEquatable<OpenCode.Sdk.Models.VoiceWebSocketTransportInput>
+    {
+        public VoiceWebSocketTransportInput() { }
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; }
     }
     public sealed class WebSearchProvider : System.IEquatable<OpenCode.Sdk.Models.WebSearchProvider>
     {

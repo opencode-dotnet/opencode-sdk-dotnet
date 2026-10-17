@@ -104,6 +104,24 @@ public class ExperimentalClient
     }
 
     /// <summary>
+    /// Create voice session. Create a server-brokered voice session using the server&apos;s configured provider credentials and return the WebRTC SDP answer or WebSocket ephemeral token.
+    /// </summary>
+    /// <param name = "request">The request body.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalVoiceSessionResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.voice.session</c>: <c>POST /api/experimental/voice/session</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalVoiceSessionResponse> CreateVoiceSessionAsync(ExperimentalVoiceSessionRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Pipeline.ExecuteAsync("experimental.voice.session", HttpMethod.Post, OpenCodeRoutes.Experimental.CreateVoiceSession, request, OpenCodeJsonContext.Default.ExperimentalVoiceSessionRequest, ExperimentalVoiceSessionResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
     /// Disconnect MCP server. Disconnect an MCP server at runtime, removing its tools until reconnected.
     /// </summary>
     /// <param name = "server">The &apos;server&apos; route value.</param>

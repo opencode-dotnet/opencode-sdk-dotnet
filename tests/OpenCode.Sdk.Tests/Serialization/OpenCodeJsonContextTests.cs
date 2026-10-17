@@ -495,6 +495,34 @@ public sealed class OpenCodeJsonContextTests
     }
 
     [Test]
+    [Arguments(null, null)]
+    [Arguments("null", null)]
+    [Arguments("7.25", 7.25)]
+    [Arguments("\"NaN\"", double.NaN)]
+    [Arguments("\"Infinity\"", double.PositiveInfinity)]
+    [Arguments("\"-Infinity\"", double.NegativeInfinity)]
+    public async Task Deserialize_Should_Round_Trip_The_Voice_Dcid_States(string? wireValue, double? expected)
+    {
+        var json = wireValue is null
+            ? """{"type":"webrtc","sdp":"offer"}"""
+            : $$"""{"type":"webrtc","sdp":"offer","dcid":{{wireValue}}}""";
+
+        var result = _serializer.Deserialize<VoiceWebRtcTransportInput>(json);
+
+        await Assert.That(result.Dcid.IsSet).IsEqualTo(wireValue is not null);
+        await Assert.That(result.Dcid.Value).IsEqualTo(expected);
+        await Assert.That(_serializer.Serialize(result)).IsEqualTo(json);
+    }
+
+    [Test]
+    public async Task Deserialize_Should_Refuse_A_Lowercase_Named_Literal_For_The_Voice_Dcid()
+    {
+        const string json = """{"type":"webrtc","sdp":"offer","dcid":"nan"}""";
+
+        _ = await Assert.That(() => _serializer.Deserialize<VoiceWebRtcTransportInput>(json)).Throws<JsonException>();
+    }
+
+    [Test]
     public async Task Deserialize_Should_Preserve_An_Ordinary_Finite_Special_Number()
     {
         var json = _fixtures.LoadJson("Serialization.known-session-message-shell.json");

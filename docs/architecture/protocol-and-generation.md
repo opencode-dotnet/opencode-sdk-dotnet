@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-10-17
+Date: 2026-10-18
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -122,7 +122,9 @@ evidence and may contain superseded positions.
   `.generation-incomplete` marker, each carrying the bindability the same selection-path binder
   finds today — `[bindable]`, or `[refused: <verbatim wall messages>]` — so wall-free drift among
   pending operations surfaces as a reviewed diff instead of accumulating silently; the marker also
-  lists the fingerprint-pinned transport-owned operations beside them while it exists.
+  lists the fingerprint-pinned transport-owned operations beside them while it exists. Selected
+  operations are listed in `tools/generation-profile.txt`; admitting an upstream operation adds its
+  id there, along with its naming and owner curation rows.
 
 ## Curation boundary
 

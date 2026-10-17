@@ -28,6 +28,7 @@ experimental.session.instructions.entry.remove
 experimental.session.skill
 experimental.session.stats
 experimental.session.wait
+experimental.voice.session
 form.list
 fs.find
 fs.list
