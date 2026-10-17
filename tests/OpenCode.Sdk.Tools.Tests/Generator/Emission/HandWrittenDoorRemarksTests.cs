@@ -62,7 +62,11 @@ public sealed partial class HandWrittenDoorRemarksTests
         await Assert.That(unmarked).IsEmpty();
     }
 
-    [GeneratedRegex(@"Operation <c>(?<id>[^<]+)</c>: <c>(?<method>[A-Z]+) (?<route>[^<]+)</c>\.", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    // Reads the repository's own hand-written door remarks, never untrusted input; a wall-clock match
+    // timeout would only fail it on a stalled CI runner.
+    [GeneratedRegex(
+        @"Operation <c>(?<id>[^<]+)</c>: <c>(?<method>[A-Z]+) (?<route>[^<]+)</c>\.",
+        RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex RemarkPattern();
 
     private static async Task<List<HandWrittenMethod>> LoadHandWrittenMethodsAsync()

@@ -260,36 +260,42 @@ internal sealed partial class UpstreamClientContract
         }
     }
 
+    // These read the pinned upstream client and test constants, never untrusted input, in time linear in
+    // it. A wall-clock match timeout would only fail them on a stalled CI runner.
     [GeneratedRegex(
         @"\(input\??: (?<input>\w+)Input, requestOptions\?: RequestOptions\)(?:: [^=]*?)? =>\s*\w+<[^\n]*?>\(\s*\{\s*method: ""(?<method>\w+)"",\s*path: `(?<path>[^`]*)`,(?:\s*query: \{(?<query>[^}]*)\},)?",
-        RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+        RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex RouteCall();
 
-    [GeneratedRegex(@"(?<key>\w+|""[^""]+""): input\??\.?\[""(?<field>\w+)""\]", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(
+        @"(?<key>\w+|""[^""]+""): input\??\.?\[""(?<field>\w+)""\]",
+        RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex QueryEntry();
 
-    [GeneratedRegex(@"\$\{encodeURIComponent\(input(?:\.(?<name>\w+)|\[""(?<name>\w+)""\])\)\}", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(
+        @"\$\{encodeURIComponent\(input(?:\.(?<name>\w+)|\[""(?<name>\w+)""\])\)\}",
+        RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex PathValue();
 
-    [GeneratedRegex(@"\$\{encodePath\([^)]*\)\}", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"\$\{encodePath\([^)]*\)\}", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex WildcardTail();
 
-    [GeneratedRegex(@"(?:export )?type (?<name>\w+)Input = \{", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"(?:export )?type (?<name>\w+)Input = \{", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex InputType();
 
-    [GeneratedRegex(@"^readonly (?<name>\w+)\??:\s*(?<type>[\s\S]*)$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"^readonly (?<name>\w+)\??:\s*(?<type>[\s\S]*)$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex Field();
 
-    [GeneratedRegex(@"^\{(?<shape>[\s\S]*)\}\[""(?<field>\w+)""\]$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"^\{(?<shape>[\s\S]*)\}\[""(?<field>\w+)""\]$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex IndexedAccess();
 
-    [GeneratedRegex(@"^""(?:[^""\\]|\\.)*""$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"^""(?:[^""\\]|\\.)*""$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex StringLiteral();
 
-    [GeneratedRegex(@"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex NamedType();
 
-    [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex Whitespace();
 
     private sealed record UpstreamRoute(string Input, Dictionary<string, string> Query);
