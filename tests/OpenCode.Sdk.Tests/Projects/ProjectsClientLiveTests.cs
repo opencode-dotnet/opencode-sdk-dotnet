@@ -1,5 +1,7 @@
 using System.Globalization;
+using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Harness.Ownership;
 
 namespace OpenCode.Sdk.Tests.Projects;
 
@@ -8,6 +10,39 @@ namespace OpenCode.Sdk.Tests.Projects;
 public sealed class ProjectsClientLiveTests(SimulatedDriveServerFixture server)
 {
     private const string OwnerFile = "sdk-live-project-owner.txt";
+
+    [Test]
+    [Timeout(60_000)]
+    public async Task UpdateProjectAsync_Should_Persist_The_Display_Name_When_A_Project_Exists(
+        CancellationToken cancellationToken)
+    {
+        using var workspace = server.CreateWorkspace();
+        using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
+        var location = await client.GetLocationAsync(cancellationToken: cancellationToken);
+        var projectId = location.ResolvedLocation.Project.Id;
+        var before = await client.Projects.ListProjectsAsync(cancellationToken: cancellationToken);
+        var original = before.Projects.Single(project => project.Id == projectId);
+        var cleanup = new OwnedCleanup(TimeSpan.FromSeconds(15));
+        cleanup.Own("restore project display name", async token =>
+            _ = await client.Projects.UpdateProjectAsync(projectId, new ProjectUpdateRequest { Name = original.Name ?? string.Empty }, cancellationToken: token));
+        Exception? primaryFailure = null;
+        try
+        {
+            var name = "sdk-project-" + Guid.NewGuid().ToString("N");
+            await Assert.That(original.Name).IsNotEqualTo(name);
+
+            _ = await client.Projects.UpdateProjectAsync(projectId, new ProjectUpdateRequest { Name = name }, cancellationToken: cancellationToken);
+
+            var after = await client.Projects.ListProjectsAsync(cancellationToken: cancellationToken);
+            await Assert.That(after.Projects.Single(project => project.Id == projectId).Name).IsEqualTo(name);
+        }
+        catch (Exception exception)
+        {
+            primaryFailure = exception;
+        }
+
+        await cleanup.CompleteAsync(primaryFailure);
+    }
 
     [Test]
     [Timeout(60_000)]
