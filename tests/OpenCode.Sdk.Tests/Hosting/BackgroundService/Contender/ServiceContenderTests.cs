@@ -137,7 +137,7 @@ public sealed class ServiceContenderTests
     }
 
     private static ServiceContender Contender(string stderr = "", string? redact = Ticket, Stream? stream = null) =>
-        new(Environment.ProcessId, stream ?? new MemoryStream(Encoding.UTF8.GetBytes(stderr)), process: null, redact);
+        new(Environment.ProcessId, stream ?? new MemoryStream(Encoding.UTF8.GetBytes(stderr)), process: null, redact, TimeProvider.System);
 
     /// <summary>Both target-framework read paths throw the same fault before any read suspends.</summary>
     private sealed class FaultingStderr(IOException failure) : MemoryStream

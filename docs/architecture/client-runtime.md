@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-10-16
+Date: 2026-10-17
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -921,6 +921,15 @@ exit-0 loser on a port another daemon holds, the `chdir` into the user home, and
 write all run inside `opencode serve --service` (`server-process.ts`), and the election reads a
 loser's exit 0 the way upstream's does. The CLI's `reconnect` and `restart` have no door of their
 own; a caller composes them from `StopAsync` and `EnsureAsync`.
+
+Each background-service door chooses `TimeProvider.System` once at its composition root:
+Discover supplies its probe; Stop shares it across the probe, handoff and terminator; Ensure
+shares it across the election collaborators and spawned contenders. Internal collaborators require
+that provider, including the handoff ticket's request pipeline. Request deadlines, election and
+termination polls, and contender exit backoff run on it. Election deadline comparisons and spawn
+stamps read UTC, and handoff expiry reads UTC epoch milliseconds; neither is a monotonic
+elapsed-time policy. Each request deadline arms after probe headers, after ticket pipeline
+construction, or at entry to the separate shutdown fallback, respectively.
 
 Where the SDK deliberately differs from the pinned chain, it differs here, each for a recorded
 reason (ADR-0031):

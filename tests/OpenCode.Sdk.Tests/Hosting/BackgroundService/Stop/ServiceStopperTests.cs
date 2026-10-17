@@ -6,6 +6,7 @@ using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions.Testing;
+using TimeProvider = System.TimeProvider;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Stop;
 
@@ -42,7 +43,7 @@ public sealed class ServiceStopperTests
     private readonly IServiceInfoProbe _probe = Substitute.For<IServiceInfoProbe>();
     private readonly IServicePtyShutdown _ptyShutdown = Substitute.For<IServicePtyShutdown>();
     private readonly IServiceProcessControl _processControl = Substitute.For<IServiceProcessControl>();
-    private readonly IServiceClock _clock = Substitute.For<IServiceClock>();
+    private readonly TimeProvider _clock = TimeProvider.System;
 
     public ServiceStopperTests()
     {
@@ -53,6 +54,57 @@ public sealed class ServiceStopperTests
         // the terminate rung reaches it.
         Answer(NoService);
         ProcessLeavesOn(ProcessSignal.Terminate);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task TerminateAsync_Should_Poll_Each_Rung_On_The_Injected_Clock(bool killRung)
+    {
+        SeedModern();
+        ProcessNeverLeaves();
+        var time = new ManualTimeProvider();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _processControl.TrySignal(Live, Arg.Any<ProcessSignal>()).Returns(_ =>
+        {
+            entered.TrySetResult();
+            return true;
+        });
+        var fileSystem = new TestablyServiceFileSystem(_fileSystem);
+        var registration = await ServiceRegistrationReader.TryReadAsync(fileSystem, SharedRegistrationPath(), CancellationToken.None);
+        var timing = Timing with { StopPollAttempts = 1, StopPollInterval = TimeSpan.FromSeconds(1) };
+        using var caller = new CancellationTokenSource();
+        var pending = new ServiceTerminator(fileSystem, _processControl, timing, time)
+            .TerminateAsync(registration!, SharedRegistrationPath(), caller.Token);
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await time.WaitForArmedAsync(timing.StopPollInterval, TimeSpan.FromSeconds(10));
+            if (killRung)
+            {
+                time.Advance(timing.StopPollInterval);
+                await time.WaitForArmedAsync(timing.StopPollInterval, TimeSpan.FromSeconds(10));
+                _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Kill);
+            }
+
+            time.Advance(timing.StopPollInterval - TimeSpan.FromTicks(1));
+            await Assert.That(pending.IsCompleted).IsFalse();
+            if (!killRung)
+            {
+                _ = _processControl.DidNotReceive().TrySignal(Live, ProcessSignal.Kill);
+            }
+
+            // The next look sees the process gone; no real-time wait can decide this outcome.
+            ProcessIs(null);
+            time.Advance(TimeSpan.FromTicks(1));
+            await pending.WaitAsync(TimeSpan.FromSeconds(10));
+            await AssertSharedRegistrationAbsentAsync();
+            _ = _processControl.Received(killRung ? 1 : 0).TrySignal(Live, ProcessSignal.Kill);
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+        }
     }
 
     [Test]
@@ -423,7 +475,8 @@ public sealed class ServiceStopperTests
             _ptyShutdown,
             new ServicePtyHandoff(fileSystem, _clock, _ptyShutdown),
             _processControl,
-            Timing);
+            Timing,
+            _clock);
 
         await stopper.StopAsync(options: null, CancellationToken.None);
 
@@ -559,7 +612,8 @@ public sealed class ServiceStopperTests
             _ptyShutdown,
             new ServicePtyHandoff(new TestablyServiceFileSystem(_fileSystem), _clock, _ptyShutdown),
             _processControl,
-            Timing);
+            Timing,
+            _clock);
 
     private void Answer(ServiceProbeResult result) =>
         _probe.ProbeAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>()).Returns(result);

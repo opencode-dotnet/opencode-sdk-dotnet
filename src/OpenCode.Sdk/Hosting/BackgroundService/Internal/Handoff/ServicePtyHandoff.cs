@@ -14,7 +14,7 @@ namespace OpenCode.Sdk.Internal;
 /// but the caller's cancellation replaces the service without a handoff.
 /// Time comes from the injected clock so every expiry rule is testable without waiting.
 /// </summary>
-internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, IServiceClock clock, IServicePtyShutdown ptyShutdown)
+internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, TimeProvider time, IServicePtyShutdown ptyShutdown)
     : IServicePtyHandoff
 {
     /// <summary>The sidecar suffix the pinned client keeps beside the registration.</summary>
@@ -140,7 +140,7 @@ internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, IServiceC
     /// The handoff route through the SDK's own request pipeline — the transport, credential, and
     /// status mapping every generated door uses — with the answer kept raw, under the request bound.
     /// </summary>
-    private static async Task<ServiceHandoffTicketResponse> RequestTicketAsync(
+    private async Task<ServiceHandoffTicketResponse> RequestTicketAsync(
         ServiceRegistration registration,
         TimeSpan timeout,
         CancellationToken cancellationToken)
@@ -149,9 +149,9 @@ internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, IServiceC
         {
             Endpoint = registration.Endpoint,
             Password = registration.Password,
-        });
-        using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        bound.CancelAfter(timeout);
+        }, time);
+        using var deadline = TimedCancellation.Create(timeout, time);
+        using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
         return await pipeline
             .ExecuteAsync("persistentPty.handoff", HttpMethod.Post, OpenCodeRoutes.PersistentPtys.Handoff, ServiceHandoffTicketAdapter.Instance, options: null, bound.Token)
             .ConfigureAwait(false);
@@ -193,8 +193,8 @@ internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, IServiceC
         "The pinned client's shutdown .catch(() => {}) is best-effort (prepare in pty-handoff.ts): endpoint refusal or a failed shutdown leads to a null sidecar and replacement without these terminals.")]
     private async Task ShutdownAsync(ServiceRegistration registration, TimeSpan timeout, CancellationToken cancellationToken)
     {
-        using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        bound.CancelAfter(timeout);
+        using var deadline = TimedCancellation.Create(timeout, time);
+        using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
         try
         {
             await ptyShutdown.ShutdownAsync(registration, bound.Token).ConfigureAwait(false);
@@ -319,5 +319,5 @@ internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, IServiceC
         sidecar.SourcePid == registration.ProcessId &&
         string.Equals(sidecar.SourceUrl, registration.Url, StringComparison.Ordinal);
 
-    private double NowMilliseconds() => clock.UtcNow.ToUnixTimeMilliseconds();
+    private double NowMilliseconds() => time.GetUtcNow().ToUnixTimeMilliseconds();
 }

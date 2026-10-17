@@ -102,7 +102,7 @@ internal sealed class EnsureServiceContext : IAsyncDisposable
     /// <returns>The non-owning handle Ensure returns.</returns>
     public async Task<OpenCodeServer> EnsureAsync(OpenCodeServerEnsureOptions options, ServiceTiming timing, CancellationToken cancellationToken)
     {
-        var server = await OpenCodeServer.EnsureWithSeamsAsync(options, timing, Ledger, cancellationToken).ConfigureAwait(false);
+        var server = await OpenCodeServer.EnsureWithSeamsAsync(options, timing, Ledger, TimeProvider.System, cancellationToken).ConfigureAwait(false);
 
         // The handle does not own the elected service; a service that fails the check is ended by
         // this context's teardown like every other one it recorded.

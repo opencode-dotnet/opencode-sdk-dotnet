@@ -13,7 +13,7 @@ internal sealed class ServiceEnsurer(
     IServiceContenderSpawner spawner,
     IServicePtyHandoff handoff,
     IServiceProcessControl processControl,
-    IServiceClock clock,
+    TimeProvider time,
     ExecutableResolver executableResolver,
     ServiceTiming timing)
 {
@@ -59,9 +59,9 @@ internal sealed class ServiceEnsurer(
             probe,
             spawner,
             handoff,
-            new ServiceTerminator(fileSystem, processControl, timing),
+            new ServiceTerminator(fileSystem, processControl, timing, time),
             fileSystem,
-            clock,
+            time,
             executableResolver,
             timing);
         return await new ServiceElection(seams, request, paths).RunAsync(cancellationToken).ConfigureAwait(false);

@@ -30,6 +30,75 @@ public sealed class ServicePtyHandoffTests
     private static readonly JsonElement Ticket = LoadTicket();
 
     private readonly ServicePtyHandoffScenario _scenario = new();
+    private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(10);
+
+    [Test]
+    public async Task PrepareAsync_Should_Expire_The_Ticket_On_The_Injected_Clock()
+    {
+        _scenario.EnsureSidecarDirectory();
+        var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var server = LoopbackHttpServer.Start(_ => Pending(entered));
+        var shutdown = Substitute.For<IServicePtyShutdown>();
+        shutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+        using var caller = new CancellationTokenSource();
+        var registration = ServicePtyHandoffScenario.Registration(server.Endpoint);
+        var pending = new ServicePtyHandoff(new TestablyServiceFileSystem(_scenario.FileSystem), _scenario.Clock, shutdown)
+            .PrepareAsync(_scenario.RegistrationPath(), registration, RequestTimeout, caller.Token);
+        try
+        {
+            await entered.Task.WaitAsync(HangGuard);
+            await AdvanceToJustBeforeRequestTimeoutAsync();
+            await Assert.That(pending.IsCompleted).IsFalse();
+            _ = shutdown.DidNotReceiveWithAnyArgs().ShutdownAsync(default!, default);
+            _scenario.Clock.Advance(TimeSpan.FromTicks(1));
+            await pending.WaitAsync(HangGuard);
+
+            _ = shutdown.Received(1).ShutdownAsync(registration, Arg.Any<CancellationToken>());
+            await AssertNullSidecarAfterExpiryAsync();
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+            server.ReleaseResponses();
+        }
+    }
+
+    [Test]
+    public async Task PrepareAsync_Should_Expire_The_Fallback_On_The_Injected_Clock()
+    {
+        _scenario.EnsureSidecarDirectory();
+        await using var server = LoopbackHttpServer.Start(static _ => Json(HttpStatusCode.NotFound, "{}"));
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var shutdown = Substitute.For<IServicePtyShutdown>();
+        CancellationToken received = default;
+        shutdown.ShutdownAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>()).Returns(async call =>
+        {
+            received = call.Arg<CancellationToken>();
+            var held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var cancellation = received.Register(() => held.TrySetCanceled(received));
+            entered.TrySetResult();
+            await held.Task;
+        });
+        using var caller = new CancellationTokenSource();
+        var pending = new ServicePtyHandoff(new TestablyServiceFileSystem(_scenario.FileSystem), _scenario.Clock, shutdown)
+            .PrepareAsync(_scenario.RegistrationPath(), ServicePtyHandoffScenario.Registration(server.Endpoint), RequestTimeout, caller.Token);
+        try
+        {
+            await entered.Task.WaitAsync(HangGuard);
+            await AdvanceToJustBeforeRequestTimeoutAsync();
+            await Assert.That(received.IsCancellationRequested).IsFalse();
+            await Assert.That(pending.IsCompleted).IsFalse();
+            _scenario.Clock.Advance(TimeSpan.FromTicks(1));
+            await pending.WaitAsync(HangGuard);
+
+            await Assert.That(received.IsCancellationRequested).IsTrue();
+            await AssertNullSidecarAfterExpiryAsync();
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+        }
+    }
 
     [Test]
     public async Task PrepareAsync_Should_Publish_A_Sidecar_From_The_Handoff_Ticket()
@@ -446,7 +515,7 @@ public sealed class ServicePtyHandoffTests
         var shutdown = new BoundOutlivingShutdown();
         var registration = ServicePtyHandoffScenario.Registration(server.Endpoint);
 
-        await new ServicePtyHandoff(new TestablyServiceFileSystem(_scenario.FileSystem), _scenario.Clock, shutdown).PrepareAsync(
+        await new ServicePtyHandoff(new TestablyServiceFileSystem(_scenario.FileSystem), TimeProvider.System, shutdown).PrepareAsync(
             _scenario.RegistrationPath(), registration, TimeSpan.FromMilliseconds(200), CancellationToken.None);
 
         await Assert.That(_scenario.ReadSidecar()!.Handoff).IsNull();
@@ -569,6 +638,19 @@ public sealed class ServicePtyHandoffTests
         var overlay = await EnvironmentAsync(caller: null);
 
         await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsEqualTo(Ticket.GetRawText());
+    }
+
+    private async Task AdvanceToJustBeforeRequestTimeoutAsync()
+    {
+        await _scenario.Clock.WaitForArmedAsync(RequestTimeout, HangGuard);
+        _scenario.Clock.Advance(RequestTimeout - TimeSpan.FromTicks(1));
+    }
+
+    private async Task AssertNullSidecarAfterExpiryAsync()
+    {
+        await Assert.That(_scenario.ReadSidecar()!.Handoff).IsNull();
+        await Assert.That(_scenario.ReadSidecar()!.ExpiresAt)
+            .IsEqualTo(_scenario.Clock.GetUtcNow().ToUnixTimeMilliseconds() + 30_000d);
     }
 
     private static JsonElement LoadTicket()

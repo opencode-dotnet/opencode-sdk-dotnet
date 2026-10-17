@@ -15,7 +15,7 @@ namespace OpenCode.Sdk.Internal;
 /// reused reads as the registered process being gone. The one failure is a process still running
 /// after the kill rung; the registration then stays.
 /// </summary>
-internal sealed class ServiceTerminator(IServiceFileSystem fileSystem, IServiceProcessControl processControl, ServiceTiming timing)
+internal sealed class ServiceTerminator(IServiceFileSystem fileSystem, IServiceProcessControl processControl, ServiceTiming timing, TimeProvider time)
 {
     /// <summary>Ends the registered process and removes its registration.</summary>
     /// <param name="registration">The registration as it was read.</param>
@@ -87,7 +87,11 @@ internal sealed class ServiceTerminator(IServiceFileSystem fileSystem, IServiceP
 
             if (attempt < timing.StopPollAttempts)
             {
-                await Task.Delay(timing.StopPollInterval, cancellationToken).ConfigureAwait(false);
+#if NET
+                await Task.Delay(timing.StopPollInterval, time, cancellationToken).ConfigureAwait(false);
+#else
+                await time.Delay(timing.StopPollInterval, cancellationToken).ConfigureAwait(false);
+#endif
             }
         }
 

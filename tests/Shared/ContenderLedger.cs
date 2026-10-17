@@ -17,7 +17,7 @@ namespace OpenCode.Sdk.Tests.Harness;
 /// <param name="path">The ledger file.</param>
 internal sealed class ContenderLedger(IFileSystem fileSystem, string path) : IServiceContenderSpawner
 {
-    private readonly ServiceContenderSpawner _spawner = new(new PosixSpawn(), new WindowsSpawn());
+    private readonly ServiceContenderSpawner _spawner = new(new PosixSpawn(), new WindowsSpawn(), TimeProvider.System);
     private readonly Lock _gate = new();
 
     public IServiceContender Spawn(IServiceContenderSpawner.ContenderStartInfo startInfo)

@@ -19,8 +19,12 @@ public partial class OpenCodeServer
     /// <exception cref="OpenCodeServerException">No user home directory resolves for an XDG fallback.</exception>
     public static Task<OpenCodeServer?> DiscoverAsync(
         OpenCodeServerDiscoverOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        DiscoverWithSeamsAsync(options, PlatformProbe(ServiceTiming.Default), cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        // The discovery composition root chooses the clock for its info probe.
+        var time = TimeProvider.System;
+        return DiscoverWithSeamsAsync(options, PlatformProbe(ServiceTiming.Default, time), cancellationToken);
+    }
 
     /// <summary>
     /// <see cref="DiscoverAsync"/> over an injected probe, the seam the isolated test executable uses
@@ -44,8 +48,8 @@ public partial class OpenCodeServer
     }
 
     /// <summary>The info probe over the platform's loopback transport and socket connect.</summary>
-    private static ServiceInfoProbe PlatformProbe(ServiceTiming timing) =>
-        new(timing, new LoopbackTransport(new LoopbackSocketConnector()));
+    private static ServiceInfoProbe PlatformProbe(ServiceTiming timing, TimeProvider time) =>
+        new(timing, new LoopbackTransport(new LoopbackSocketConnector()), time);
 
     /// <summary>
     /// The non-owning handle over a registered service. Discover and the Ensure election return only
@@ -82,16 +86,19 @@ public partial class OpenCodeServer
         CancellationToken cancellationToken = default)
     {
         var timing = ServiceTiming.Default;
+        // The stop composition root shares one clock across its probe, handoff and terminator.
+        var time = TimeProvider.System;
         var fileSystem = new ServiceFileSystem();
         var ptyShutdown = new ServicePtyShutdown();
         var stopper = new ServiceStopper(
             new ServiceEnvironment(),
             fileSystem,
-            PlatformProbe(timing),
+            PlatformProbe(timing, time),
             ptyShutdown,
-            new ServicePtyHandoff(fileSystem, new ServiceClock(), ptyShutdown),
+            new ServicePtyHandoff(fileSystem, time, ptyShutdown),
             new ServiceProcessControl(),
-            timing);
+            timing,
+            time);
         return stopper.StopAsync(options, cancellationToken);
     }
 
@@ -111,8 +118,12 @@ public partial class OpenCodeServer
     /// <exception cref="OpenCodeServerException">No user home directory resolves, the election timed out, a contender or the registered service failed to start, the registered service speaks an incompatible health protocol at a version the call accepts, a version mismatch was refused, or a spawned command could not be resolved.</exception>
     public static Task<OpenCodeServer> EnsureAsync(
         OpenCodeServerEnsureOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        EnsureWithSeamsAsync(options, ServiceTiming.Default, new ServiceContenderSpawner(new PosixSpawn(), new WindowsSpawn()), cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        // The ensure composition root shares one clock across the election and its contenders.
+        var time = TimeProvider.System;
+        return EnsureWithSeamsAsync(options, ServiceTiming.Default, new ServiceContenderSpawner(new PosixSpawn(), new WindowsSpawn(), time), time, cancellationToken);
+    }
 
     /// <summary>
     /// The seam-injected Ensure the tests use, kept out of the public option types the way upstream's
@@ -125,27 +136,29 @@ public partial class OpenCodeServer
     /// <param name="options">The ensure options; null uses every default.</param>
     /// <param name="timing">The lifecycle timing; the public door passes <see cref="ServiceTiming.Default"/>.</param>
     /// <param name="spawner">The contender spawn; the public door passes the platform spawner.</param>
+    /// <param name="time">The clock shared by the election collaborators.</param>
     /// <param name="cancellationToken">The caller's token; its cancellation propagates.</param>
     /// <returns>A non-owning handle over the ready service.</returns>
     internal static async Task<OpenCodeServer> EnsureWithSeamsAsync(
         OpenCodeServerEnsureOptions? options,
         ServiceTiming timing,
         IServiceContenderSpawner spawner,
+        TimeProvider time,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(timing);
         ArgumentNullException.ThrowIfNull(spawner);
+        ArgumentNullException.ThrowIfNull(time);
 
         var fileSystem = new ServiceFileSystem();
-        var clock = new ServiceClock();
         var ensurer = new ServiceEnsurer(
             new ServiceEnvironment(),
             fileSystem,
-            PlatformProbe(timing),
+            PlatformProbe(timing, time),
             spawner,
-            new ServicePtyHandoff(fileSystem, clock, new ServicePtyShutdown()),
+            new ServicePtyHandoff(fileSystem, time, new ServicePtyShutdown()),
             new ServiceProcessControl(),
-            clock,
+            time,
             new ExecutableResolver(ExecutableSearchEnvironment.ForCurrentProcess()),
             timing);
         var registration = await ensurer.EnsureAsync(options, cancellationToken).ConfigureAwait(false);

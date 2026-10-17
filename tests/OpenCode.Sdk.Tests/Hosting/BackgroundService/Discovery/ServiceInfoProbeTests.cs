@@ -21,6 +21,39 @@ public sealed class ServiceInfoProbeTests
 {
     private const string Password = ServiceRegistrationData.Password;
     private static readonly ServiceTiming FastTiming = ServiceTiming.Default with { RequestTimeout = TimeSpan.FromMilliseconds(100) };
+    private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(10);
+
+    [Test]
+    public async Task ProbeAsync_Should_Expire_The_Request_On_The_Injected_Clock()
+    {
+        var time = new ManualTimeProvider();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using var server = LoopbackHttpServer.Start(_ =>
+        {
+            entered.TrySetResult();
+            return Json(HttpStatusCode.OK, ServiceInfoBodyData.Ready) with { KeepOpen = true };
+        });
+        using var caller = new CancellationTokenSource();
+        var pending = new ServiceInfoProbe(ServiceTimingData.Patient, PlatformTransport(), time)
+            .ProbeAsync(Registration(server.Endpoint), caller.Token);
+        try
+        {
+            await entered.Task.WaitAsync(HangGuard);
+            await time.WaitForArmedAsync(ServiceTimingData.Patient.RequestTimeout, HangGuard);
+            time.Advance(ServiceTimingData.Patient.RequestTimeout - TimeSpan.FromTicks(1));
+            await Assert.That(pending.IsCompleted).IsFalse();
+            time.Advance(TimeSpan.FromTicks(1));
+
+            var result = await pending.WaitAsync(HangGuard);
+            await Assert.That(result.TimedOut).IsTrue();
+            await Assert.That(result.IsService).IsFalse();
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+            server.ReleaseResponses();
+        }
+    }
 
     [Test]
     public async Task ProbeAsync_Should_Report_A_Ready_Service_And_Send_The_Basic_Credential()
@@ -223,7 +256,7 @@ public sealed class ServiceInfoProbeTests
     {
         await using var server = LoopbackHttpServer.Start(static _ => Json(HttpStatusCode.OK, ServiceInfoBodyData.Ready) with { KeepOpen = true });
 
-        var result = await new ServiceInfoProbe(FastTiming, PlatformTransport()).ProbeAsync(Registration(server.Endpoint), CancellationToken.None);
+        var result = await new ServiceInfoProbe(FastTiming, PlatformTransport(), TimeProvider.System).ProbeAsync(Registration(server.Endpoint), CancellationToken.None);
 
         await Assert.That(result.TimedOut).IsTrue();
         await Assert.That(result.IsService).IsFalse();
@@ -368,7 +401,7 @@ public sealed class ServiceInfoProbeTests
         var endpoint = await ClosedEndpointAsync();
         var transport = new BoundOutlastingTransport(PlatformTransport());
 
-        var result = await new ServiceInfoProbe(FastTiming, transport).ProbeAsync(Registration(endpoint), CancellationToken.None);
+        var result = await new ServiceInfoProbe(FastTiming, transport, TimeProvider.System).ProbeAsync(Registration(endpoint), CancellationToken.None);
 
         await Assert.That(transport.Handler).IsNotNull();
         await Assert.That(transport.Handler!.Refused).IsTrue();
@@ -388,7 +421,7 @@ public sealed class ServiceInfoProbeTests
         var transport = new LoopbackTransport(new ScriptedLoopbackConnector(caller, ConnectFailure(SocketError.ConnectionRefused)));
 
         var exception = await Assert
-            .That(async () => _ = await new ServiceInfoProbe(ServiceTimingData.Patient, transport).ProbeAsync(Registration(endpoint), caller.Token))
+            .That(async () => _ = await new ServiceInfoProbe(ServiceTimingData.Patient, transport, TimeProvider.System).ProbeAsync(Registration(endpoint), caller.Token))
             .Throws<OperationCanceledException>();
 
         await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
@@ -420,7 +453,7 @@ public sealed class ServiceInfoProbeTests
     /// bound; the bound itself is proven once, with <see cref="FastTiming"/>, against a kept-open
     /// response.
     /// </summary>
-    private static ServiceInfoProbe Probe() => new(ServiceTimingData.Patient, PlatformTransport());
+    private static ServiceInfoProbe Probe() => new(ServiceTimingData.Patient, PlatformTransport(), TimeProvider.System);
 
     private static LoopbackTransport PlatformTransport() => new(new LoopbackSocketConnector());
 

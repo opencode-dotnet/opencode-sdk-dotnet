@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Internal;
 /// <param name="Handoff">The persistent-terminal handoff sidecar.</param>
 /// <param name="Terminator">The stop ladder the recovery and the replacement end a daemon with.</param>
 /// <param name="FileSystem">The registration and service-config file access.</param>
-/// <param name="Clock">The wall clock the deadline and the spawn delay are measured on.</param>
+/// <param name="Time">The clock for polling and the UTC deadline and spawn stamps.</param>
 /// <param name="Executables">The launcher's executable resolution for the command's first entry.</param>
 /// <param name="Timing">The lifecycle timing.</param>
 internal sealed record ServiceElectionSeams(
@@ -18,6 +18,6 @@ internal sealed record ServiceElectionSeams(
     IServicePtyHandoff Handoff,
     ServiceTerminator Terminator,
     IServiceFileSystem FileSystem,
-    IServiceClock Clock,
+    TimeProvider Time,
     ExecutableResolver Executables,
     ServiceTiming Timing);

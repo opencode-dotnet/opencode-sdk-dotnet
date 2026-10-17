@@ -11,13 +11,15 @@ namespace OpenCode.Sdk.Internal;
 /// </summary>
 /// <param name="posixSpawn">The POSIX spawn the Unix arm starts contenders through.</param>
 /// <param name="windowsSpawn">The Windows spawn the Windows arm starts contenders through.</param>
-internal sealed partial class ServiceContenderSpawner(IPosixSpawn posixSpawn, IWindowsSpawn windowsSpawn) : IServiceContenderSpawner
+/// <param name="time">The clock the contenders' exit backoff runs on.</param>
+internal sealed partial class ServiceContenderSpawner(IPosixSpawn posixSpawn, IWindowsSpawn windowsSpawn, TimeProvider time) : IServiceContenderSpawner
 {
     /// <summary>The PTY-handoff variable whose value is secret-bearing: removed when empty, redacted from diagnostics when present.</summary>
     private const string HandoffVariable = "OPENCODE_PTY_HANDOFF";
 
     private readonly IPosixSpawn _posixSpawn = posixSpawn;
     private readonly IWindowsSpawn _windowsSpawn = windowsSpawn;
+    private readonly TimeProvider _time = time;
 
     /// <inheritdoc />
     public IServiceContender Spawn(IServiceContenderSpawner.ContenderStartInfo startInfo) => Start(startInfo);

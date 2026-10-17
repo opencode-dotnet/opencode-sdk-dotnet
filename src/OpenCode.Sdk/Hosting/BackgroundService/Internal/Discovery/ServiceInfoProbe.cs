@@ -11,7 +11,7 @@ namespace OpenCode.Sdk.Internal;
 /// generated info model has a different contract. Discovery keeps its own request bound and never
 /// forwards credentials on redirects.
 /// </summary>
-internal sealed class ServiceInfoProbe(ServiceTiming timing, IServiceProbeTransport transport) : IServiceInfoProbe
+internal sealed class ServiceInfoProbe(ServiceTiming timing, IServiceProbeTransport transport, TimeProvider time) : IServiceInfoProbe
 {
     /// <summary>The pin's info route, resolved against the authority only, as <c>new URL("/api/info", info.url)</c> does.</summary>
     private const string InfoPath = "/api/info";
@@ -35,8 +35,8 @@ internal sealed class ServiceInfoProbe(ServiceTiming timing, IServiceProbeTransp
         }
 
         // The internal bound and the caller's token are separate: only the caller's propagates.
-        using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        bound.CancelAfter(timing.RequestTimeout);
+        using var deadline = TimedCancellation.Create(timing.RequestTimeout, time);
+        using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
 
         HttpStatusCode status;
         byte[] body;

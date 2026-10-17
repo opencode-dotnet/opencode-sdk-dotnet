@@ -108,7 +108,7 @@ public sealed class OpenCodeServerDiscoveryLiveTests(PinnedManagedServiceFixture
             new OpenCodeServerDiscoverOptions { RegistrationFilePath = service.RegistrationFile, ExpectedVersion = service.Version },
             cancellationToken);
         await using var _ = matching;
-        var probe = new RecordingProbe(new ServiceInfoProbe(ServiceTimingData.Patient, new LoopbackTransport(new LoopbackSocketConnector())));
+        var probe = new RecordingProbe(new ServiceInfoProbe(ServiceTimingData.Patient, new LoopbackTransport(new LoopbackSocketConnector()), TimeProvider.System));
         var mismatching = await OpenCodeServer.DiscoverWithSeamsAsync(
             new OpenCodeServerDiscoverOptions { RegistrationFilePath = service.RegistrationFile, ExpectedVersion = "0.0.0-never-1" },
             probe,

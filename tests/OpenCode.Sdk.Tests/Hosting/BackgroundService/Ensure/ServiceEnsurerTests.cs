@@ -6,6 +6,7 @@ using OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions.Testing;
 using TUnit.Assertions.Enums;
+using TimeProvider = System.TimeProvider;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Ensure;
 
@@ -47,7 +48,8 @@ public sealed class ServiceEnsurerTests
     private readonly IServiceContenderSpawner _spawner = Substitute.For<IServiceContenderSpawner>();
     private readonly IServicePtyHandoff _handoff = Substitute.For<IServicePtyHandoff>();
     private readonly IServiceProcessControl _processControl = Substitute.For<IServiceProcessControl>();
-    private readonly IServiceClock _clock = Substitute.For<IServiceClock>();
+    private readonly TimeProvider _clock = Substitute.For<TimeProvider>();
+    private readonly ManualTimeProvider _time = new(Start);
     private readonly List<IServiceContender> _spawned = [];
     private readonly List<IServiceContenderSpawner.ContenderStartInfo> _starts = [];
     private readonly HashSet<int> _signalled = [];
@@ -62,6 +64,8 @@ public sealed class ServiceEnsurerTests
         _environment.GetEnvironmentVariable("XDG_CONFIG_HOME").Returns(Root("config"));
         // Bounded by default: an implementation that loops where it should refuse times out, never hangs.
         DeadlineAfter(clockReads: 5_000);
+        _clock.CreateTimer(Arg.Any<TimerCallback>(), Arg.Any<object?>(), Arg.Any<TimeSpan>(), Arg.Any<TimeSpan>())
+            .Returns(call => _time.CreateTimer(call.Arg<TimerCallback>(), call.Arg<object?>(), call.ArgAt<TimeSpan>(2), call.ArgAt<TimeSpan>(3)));
         _handoff.EnvironmentAsync(Arg.Any<string>(), Arg.Any<IReadOnlyDictionary<string, string>?>(), Arg.Any<CancellationToken>())
             .Returns(call => PassThrough(call.Arg<IReadOnlyDictionary<string, string>?>()));
         _handoff.CompleteAsync(Arg.Any<string>(), Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
@@ -85,6 +89,39 @@ public sealed class ServiceEnsurerTests
             _starts.Add(call.Arg<IServiceContenderSpawner.ContenderStartInfo>());
             return LiveContender();
         });
+    }
+
+    [Test]
+    public async Task EnsureAsync_Should_Poll_On_The_Injected_Clock()
+    {
+        var interval = TimeSpan.FromSeconds(1);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        SeedRegistered();
+        var probes = 0;
+        _probe.ProbeAsync(Arg.Any<ServiceRegistration>(), Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            entered.TrySetResult();
+            return ++probes == 1 ? Waiting : Ready;
+        });
+        using var caller = new CancellationTokenSource();
+        var pending = Ensurer(Timing with { PollInterval = interval }).EnsureAsync(options: null, caller.Token);
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await _time.WaitForArmedAsync(interval, TimeSpan.FromSeconds(10));
+            _time.Advance(interval - TimeSpan.FromTicks(1));
+            await Assert.That(probes).IsEqualTo(1);
+            await Assert.That(pending.IsCompleted).IsFalse();
+            _time.Advance(TimeSpan.FromTicks(1));
+
+            var registration = await pending.WaitAsync(TimeSpan.FromSeconds(10));
+            await Assert.That(registration.ProcessId).IsEqualTo(RegisteredPid);
+            await Assert.That(probes).IsEqualTo(2);
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+        }
     }
 
     [Test]
@@ -319,7 +356,7 @@ public sealed class ServiceEnsurerTests
         var reaped = false;
         var answered = false;
         SeedRegistered();
-        _clock.UtcNow.Returns(_ => _now);
+        _clock.GetUtcNow().Returns(_ => _now);
         _probe.ProbeAsync(WithPid(RegisteredPid), Arg.Any<CancellationToken>()).Returns(_ =>
         {
             _now += TimeSpan.FromSeconds(1);
@@ -580,7 +617,7 @@ public sealed class ServiceEnsurerTests
         DeadlineAfter(clockReads: 40);
 
         var exception = await Assert
-            .That(async () => _ = await Ensurer().EnsureAsync(
+            .That(async () => _ = await EnsureWithStopPollsAsync(
                 new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace },
                 CancellationToken.None))
             .Throws<OpenCodeServerException>();
@@ -917,6 +954,25 @@ public sealed class ServiceEnsurerTests
             }),
             timing ?? Timing);
 
+    /// <summary>Preserves the scripted UTC reads while explicitly progressing the stop polls.</summary>
+    private async Task<ServiceRegistration> EnsureWithStopPollsAsync(OpenCodeServerEnsureOptions options, CancellationToken cancellationToken)
+    {
+        var pending = Ensurer().EnsureAsync(options, cancellationToken);
+        while (!pending.IsCompleted)
+        {
+            var armed = _time.WaitForArmedAsync(Timing.StopPollInterval, TimeSpan.FromSeconds(10));
+            if (await Task.WhenAny(pending, armed) == pending)
+            {
+                break;
+            }
+
+            await armed;
+            _time.Advance(Timing.StopPollInterval);
+        }
+
+        return await pending;
+    }
+
     private OpenCodeServerEnsureOptions Announcing(OpenCodeServerEnsureOptions? options = null)
     {
         options ??= new OpenCodeServerEnsureOptions();
@@ -928,7 +984,7 @@ public sealed class ServiceEnsurerTests
     private void DeadlineAfter(int clockReads)
     {
         var reads = 0;
-        _clock.UtcNow.Returns(_ => ++reads > clockReads ? Start + Timing.PromiseTimeout : Start);
+        _clock.GetUtcNow().Returns(_ => ++reads > clockReads ? Start + Timing.PromiseTimeout : Start);
     }
 
     private static ServiceRegistration WithPid(int processId) =>
@@ -945,7 +1001,7 @@ public sealed class ServiceEnsurerTests
     /// </summary>
     private void RefuseRegistered(TimeSpan step)
     {
-        _clock.UtcNow.Returns(_ => _now);
+        _clock.GetUtcNow().Returns(_ => _now);
         _probe.ProbeAsync(WithPid(RegisteredPid), Arg.Any<CancellationToken>()).Returns(_ =>
         {
             _now += step;

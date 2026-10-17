@@ -29,6 +29,7 @@ internal static class EnsureMode
                 new OpenCodeServerEnsureOptions { Channel = channel },
                 ServiceTiming.Default,
                 new ContenderLedger(new RealFileSystem(), ledger),
+                TimeProvider.System,
                 CancellationToken.None).ConfigureAwait(false);
             await Console.Error
                 .WriteLineAsync($"ensure took {stopwatch.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture)} ms")
