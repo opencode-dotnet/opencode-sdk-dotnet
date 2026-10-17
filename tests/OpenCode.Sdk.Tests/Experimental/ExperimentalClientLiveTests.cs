@@ -24,7 +24,7 @@ public sealed class ExperimentalClientLiveTests(SimulatedDriveServerFixture serv
             var before = await client.McpServers.ListMcpServersAsync(cancellationToken: cancellationToken);
             await Assert.That(before.McpServers.Select(item => item.Name)).DoesNotContain(name);
 
-            await AddDisabledMcpAsync(client, name, cancellationToken);
+            await DisabledMcpServer.AddAsync(client, name, cancellationToken);
 
             // Check finite state before waiting for the event a no-op could never publish.
             var after = await client.McpServers.ListMcpServersAsync(cancellationToken: cancellationToken);
@@ -40,7 +40,7 @@ public sealed class ExperimentalClientLiveTests(SimulatedDriveServerFixture serv
     {
         await WithMcpEntryAsync(async (client, name, probe) =>
         {
-            await AddDisabledMcpAsync(client, name, cancellationToken);
+            await DisabledMcpServer.AddAsync(client, name, cancellationToken);
             var added = await WaitForMcpChangeAsync(probe, name, cancellationToken);
             await AssertDisabledMcpAsync(client, name, cancellationToken);
 
@@ -138,7 +138,7 @@ public sealed class ExperimentalClientLiveTests(SimulatedDriveServerFixture serv
         using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
         var name = "sdk-disabled-" + Guid.NewGuid().ToString("N");
         var cleanup = new OwnedCleanup(TimeSpan.FromSeconds(15));
-        cleanup.Own("runtime MCP removal", async cancellation => await RemoveOwnedMcpAsync(client, name, cancellation));
+        cleanup.Own("runtime MCP removal", async cancellation => await DisabledMcpServer.RemoveOwnedAsync(client, name, cancellation));
         var reader = new OwnedEventReader(TimeSpan.FromSeconds(120), TimeSpan.FromSeconds(15), token);
         cleanup.Own("MCP event reader", TimeSpan.FromSeconds(75), _ => reader.CompleteAsync(null));
         var probe = new SessionEventProbe(reader);
@@ -157,17 +157,6 @@ public sealed class ExperimentalClientLiveTests(SimulatedDriveServerFixture serv
         await cleanup.CompleteAsync(primaryFailure);
     }
 
-    private static async Task AddDisabledMcpAsync(OpenCodeClient client, string name, CancellationToken token) =>
-        _ = await client.Experimental.AddMcpServerAsync(name, new ExperimentalMcpAddRequest
-        {
-            Config = new McpRemoteConfig
-            {
-                Disabled = true,
-                OAuth = McpRemoteConfigOAuth.FromBoolean(false),
-                Url = "https://sdk-coverage.invalid/mcp",
-            },
-        }, cancellationToken: token);
-
     private static async Task<McpStatusChanged> WaitForMcpChangeAsync(SessionEventProbe probe, string name, CancellationToken token)
     {
         using var barrier = SessionEventProbe.Barrier(token);
@@ -180,16 +169,5 @@ public sealed class ExperimentalClientLiveTests(SimulatedDriveServerFixture serv
         var entries = response.McpServers.Where(item => item.Name == name).ToList();
         await Assert.That(entries).Count().IsEqualTo(1);
         await Assert.That(entries[0].Status).IsTypeOf<McpStatusDisabled>();
-    }
-
-    private static async Task RemoveOwnedMcpAsync(OpenCodeClient client, string name, CancellationToken token)
-    {
-        var response = await client.Experimental.RemoveMcpServerAsync(name, requestOptions: OpenCodeRequestOptions.NoThrow, cancellationToken: token);
-        if (response.Status == 204 || (response is { Status: 404, Error: McpServerNotFoundError missing } && missing.Server == name))
-        {
-            return;
-        }
-
-        throw new InvalidOperationException("Owned MCP removal failed: " + response.Error?.GetType().Name);
     }
 }
