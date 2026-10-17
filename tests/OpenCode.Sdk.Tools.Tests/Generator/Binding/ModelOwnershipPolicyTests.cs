@@ -16,6 +16,66 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 /// </summary>
 public sealed class ModelOwnershipPolicyTests
 {
+    public static IEnumerable<object[]> OwnerRefusals() =>
+    [
+        ["unknown", new BindingError(BindingErrorCategory.Curation, "ProviderAuth", "model owner 'Unknown' is neither an admitted family nor 'Common'")],
+        ["overlap", new BindingError(BindingErrorCategory.Curation, "ProviderAuthMethod", "model owner rows 'Provider', 'ProviderAuth' all match the model")],
+        ["stale", new BindingError(BindingErrorCategory.Curation, "Absent", "model owner row places no generated model")],
+        ["body", new BindingError(BindingErrorCategory.Curation, "SessionLoginRequest", "a body request sent by both 'Credentials' and 'Sessions' has no single family root")],
+    ];
+
+    [Test]
+    [MethodDataSource(nameof(OwnerRefusals))]
+    public async Task Place_Should_Refuse_Invalid_Owner_Rows(string fault, BindingError expected)
+    {
+        ArgumentNullException.ThrowIfNull(expected);
+        ModelOwnerCuration[] rows = fault switch
+        {
+            "unknown" => [Owner("ProviderAuth", "Unknown")],
+            "overlap" => [Owner("Provider", "Credentials"), Owner("ProviderAuth", "Common")],
+            "stale" => [Owner("Absent", "Common")],
+            _ => [],
+        };
+        var errors = new BindingErrorCollector();
+        _ = Place(errors, OwnershipPlanData.Models("ProviderAuthMethod", "SessionLoginRequest"), Ownership(owners: rows),
+            bodyOperations: fault == "body" ? [BodyOperation("Credentials", "SessionLoginRequest"), BodyOperation("Sessions", "SessionLoginRequest")] : []);
+        await Assert.That(Assert.Throws<BindingException>(errors.ThrowIfAny).Errors
+            .Single(error => error.Category == expected.Category && error.Subject == expected.Subject))
+            .IsEqualTo(expected);
+    }
+
+    [Test]
+    [Arguments("family", "sessionAreas", "session areas need the 'Sessions' family")]
+    [Arguments("reserved", "Common", "session area name is empty, reserved, not an identifier, or duplicated")]
+    [Arguments("identifier", "bad-name", "session area name is empty, reserved, not an identifier, or duplicated")]
+    [Arguments("empty", "Lifecycle", "session area patterns are empty or repeat another pattern")]
+    [Arguments("blank", "Lifecycle", "session area patterns are empty or repeat another pattern")]
+    [Arguments("repeat", "Lifecycle", "session area patterns are empty or repeat another pattern")]
+    [Arguments("cross-repeat", "Other", "session area patterns are empty or repeat another pattern")]
+    [Arguments("overlap", "SessionCreated", "session area patterns 'Session', 'SessionCreated' place the model in more than one area")]
+    [Arguments("stale", "Lifecycle/Absent", "session area pattern places no generated model")]
+    public async Task Place_Should_Refuse_Invalid_Area_Rows(string fault, string subject, string problem)
+    {
+        var areas = fault switch
+        {
+            "reserved" => new[] { Area("Common", "Session") },
+            "identifier" => [Area("bad-name", "Session")],
+            "empty" => [Area("Lifecycle")],
+            "blank" => [Area("Lifecycle", " ")],
+            "repeat" => [Area("Lifecycle", "Session", "Session")],
+            "cross-repeat" => [Area("Lifecycle", "Session"), Area("Other", "Session")],
+            "overlap" => [Area("Lifecycle", "Session"), Area("Other", "SessionCreated")],
+            "stale" => [Area("Lifecycle", "Absent")],
+            _ => [Area("Lifecycle", "Session")],
+        };
+        var errors = new BindingErrorCollector();
+        var groups = fault == "family" ? new Dictionary<string, GroupCuration>(StringComparer.Ordinal) { ["credential"] = FamilyGroup("Credentials") } : Families();
+        _ = Place(errors, OwnershipPlanData.Models("SessionCreated"), Ownership(groups, areas: areas));
+        await Assert.That(Assert.Throws<BindingException>(errors.ThrowIfAny).Errors
+            .Single(error => error.Category == BindingErrorCategory.Curation && error.Subject == subject))
+            .IsEqualTo(new BindingError(BindingErrorCategory.Curation, subject, problem));
+    }
+
     private const string Sessions = "Sessions";
     private const string Credentials = "Credentials";
     private const string McpServers = "McpServers";
@@ -82,9 +142,9 @@ public sealed class ModelOwnershipPolicyTests
 
     /// <summary>A row cannot restate the placement a family prefix already supplies.</summary>
     [Test]
-    [Arguments(ModelsDevRefreshed, "ModelsDev", LanguageModels, true)]
-    [Arguments(SessionInfo, "Session", Sessions, false)]
-    public async Task Place_Should_Refuse_An_Owner_Row_That_Confirms_A_Family_Prefix(string model, string match, string family, bool prefixAlias)
+    [Arguments(ModelsDevRefreshed, "ModelsDev", LanguageModels, true, "model owner row is redundant: family prefix already places model 'ModelsDevRefreshed' in 'LanguageModels'")]
+    [Arguments(SessionInfo, "Session", Sessions, false, "model owner row is redundant: family prefix already places model 'SessionInfo' in 'Sessions'")]
+    public async Task Place_Should_Refuse_An_Owner_Row_That_Confirms_A_Family_Prefix(string model, string match, string family, bool prefixAlias, string problem)
     {
         var errors = new BindingErrorCollector();
 
@@ -93,7 +153,7 @@ public sealed class ModelOwnershipPolicyTests
 
         var exception = Assert.Throws<BindingException>(errors.ThrowIfAny);
         await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation, match,
-            $"model owner row is redundant: family prefix already places model '{model}' in '{family}'"));
+            problem));
         await Assert.That(placement.HomeOf(model)).IsEqualTo(TypeHome.Family(family));
     }
 

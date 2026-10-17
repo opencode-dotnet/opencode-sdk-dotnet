@@ -67,10 +67,15 @@ public sealed class SessionScopedEventBinderTests
     }
 
     [Test]
-    [Arguments("missing", "identifier schema does not exist")]
-    [Arguments("missing-union", "not a generated marked union")]
-    [Arguments("empty", "no event qualifies")]
-    [Arguments("reason", "must declare a reason")]
+    [Arguments("missing", "identifier schema does not exist in the document: 'Missing.ID'")]
+    [Arguments("missing-union", "event union 'IMissingEvent' is not a generated marked union")]
+    [Arguments("empty", "no event qualifies for the session-scoped event curation")]
+    [Arguments("reason", "session-scoped event curation must declare a reason")]
+    [Arguments("blank-identifier", "identifier schema does not exist in the document: ' '")]
+    [Arguments("non-string", "identifier schema 'Qualified' must be a non-nullable string")]
+    [Arguments("no-unions", "session-scoped event curation must name at least one event union")]
+    [Arguments("blank-payload", "session-scoped event member names cannot be blank")]
+    [Arguments("blank-member", "session-scoped event member names cannot be blank")]
     public async Task Bind_Should_Refuse_An_Invalid_Curation_Row(string fault, string problem)
     {
         var document = await BindingTestHost.IngestAsync(new SessionScopedEventScenario());
@@ -81,14 +86,18 @@ public sealed class SessionScopedEventBinderTests
             "missing-union" => row with { Unions = ["IMissingEvent"] },
             "empty" => row with { Member = "missingID" },
             "reason" => row with { Reason = string.Empty },
+            "blank-identifier" => row with { Identifier = " " },
+            "non-string" => row with { Identifier = "Qualified" },
+            "no-unions" => row with { Unions = [] },
+            "blank-payload" => row with { PayloadMember = " " },
+            "blank-member" => row with { Member = " " },
             _ => throw new ArgumentException("Unknown scenario fault.", nameof(fault)),
         };
 
         var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(
             document, Selection("event.get"), SessionScopedEventScenario.EventCuration(row)));
 
-        await Assert.That(exception.Errors.Any(error => error.Problem.Contains(problem, StringComparison.Ordinal)))
-            .IsTrue().Because(string.Join(" | ", exception.Errors.Select(static error => error.Problem)));
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation, "sessionScopedEvent", problem));
     }
 
     [Test]

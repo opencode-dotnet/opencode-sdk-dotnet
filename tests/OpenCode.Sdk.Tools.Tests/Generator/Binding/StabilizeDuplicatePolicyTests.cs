@@ -3,6 +3,7 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
 using TUnit.Assertions.Enums;
+using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
@@ -15,6 +16,25 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 /// </summary>
 public sealed class StabilizeDuplicatePolicyTests
 {
+    [Test]
+    [Arguments(false, BindingErrorCategory.Schema, "stabilize duplicate 'Widget_1' is not structurally identical to its base 'Widget'")]
+    [Arguments(true, BindingErrorCategory.Curation, "stabilize duplicate 'Widget_1' folds into 'Widget' mechanically, so its schemaNames row is redundant; remove the row")]
+    public async Task Resolve_Should_Refuse_Invalid_Duplicate_Curation(bool identical, BindingErrorCategory category, string problem)
+    {
+        var document = await BindingTestHost.IngestAsync(TwoWidgetsScenario(schema =>
+        {
+            Widget(schema);
+            if (!identical)
+            {
+                schema.Property("extra", static property => property.Type("string"));
+            }
+        }));
+        var errors = new BindingErrorCollector();
+        var reachable = new ReachableSchemaCollector().Collect(document, document.Operations, errors);
+        _ = new StabilizeDuplicatePolicy().Resolve(document, reachable, identical ? [SchemaName("Widget_1", "ReviewedWidget")] : [], errors);
+        await Assert.That(Assert.Throws<BindingException>(errors.ThrowIfAny).Errors.Single()).IsEqualTo(new BindingError(category, "Widget_1", problem));
+    }
+
     [Test]
     public async Task Resolve_Should_Fold_A_Reachable_Duplicate_Into_Its_Base_When_The_Shapes_Are_Identical()
     {

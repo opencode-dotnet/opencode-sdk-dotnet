@@ -68,23 +68,25 @@ public sealed class EnumMemberNameCurationTests
     }
 
     [Test]
-    [Arguments("Mcp.Missing", "2026-07-28", "Revision20260728", "curated schema does not exist in the spec")]
-    [Arguments("Holder", "2026-07-28", "Revision20260728", "is not an enum")]
-    [Arguments("Mcp.Protocol", "2099-01-01", "Revision20990101", "does not carry the value")]
-    [Arguments("Mcp.Protocol", "2026-07-28", "2026", "is not a valid C# identifier")]
-    [Arguments("Mcp.Protocol", "2026-07-28", "Legacy", "collides")]
-    public async Task Bind_Should_Refuse_A_Row_That_Names_Nothing_The_Document_Has(
-        string schema, string value, string dotnetName, string problem)
+    [Arguments("Mcp.Missing", "2026-07-28", "Revision20260728", BindingErrorCategory.Curation, "Mcp.Missing/2026-07-28", "curated schema does not exist in the spec")]
+    [Arguments("Holder", "2026-07-28", "Revision20260728", BindingErrorCategory.Curation, "Holder/2026-07-28", "curated schema is not an enum")]
+    [Arguments("Mcp.Protocol", "2099-01-01", "Revision20990101", BindingErrorCategory.Curation, "Mcp.Protocol/2099-01-01", "curated enum does not carry the value '2099-01-01'")]
+    [Arguments("Mcp.Protocol", "2026-07-28", "2026", BindingErrorCategory.Naming, "Mcp.Protocol/2026-07-28", "enum member name '2026' is not a valid C# identifier")]
+    [Arguments("Mcp.Protocol", "2026-07-28", "Legacy", BindingErrorCategory.Naming, "Mcp.Protocol/2026-07-28", "enum member name 'Legacy' collides with the name of value 'legacy'")]
+    [Arguments("Unselected", "old", "Previous", BindingErrorCategory.Curation, "Unselected/old", "curated schema is not referenced by the selected profile")]
+    [Arguments("mechanical", "a-b", "AB", BindingErrorCategory.Naming, "Mode", "multiple enum values map to C# name 'AB'")]
+    public async Task Bind_Should_Refuse_Invalid_Enum_Member_Names(
+        string schema, string value, string dotnetName, BindingErrorCategory category, string subject, string problem)
     {
-        var document = await BindingTestHost.IngestAsync(Scenario());
-        var curation = Curation(Groups("mcp", RootGroup()),
-            enumMemberNames: [EnumMemberName(schema, value, dotnetName)]);
+        var scenario = schema == "mechanical" ? ModeScenario("a-b", "a_b") : Scenario(unselected: schema == "Unselected");
+        var curation = Curation(Groups(schema == "mechanical" ? "mode" : "mcp", RootGroup()),
+            enumMemberNames: schema == "mechanical" ? [] : [EnumMemberName(schema, value, dotnetName)]);
 
-        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("mcp.get"), curation));
+        var exception = await BindRefusalsAsync(scenario, curation, schema == "mechanical" ? "mode.get" : "mcp.get");
 
-        await Assert.That(exception.Errors.Any(error => error.Problem.Contains(problem, StringComparison.Ordinal)))
-            .IsTrue()
-            .Because(string.Join(" | ", exception.Errors.Select(static error => error.Subject + ": " + error.Problem)));
+        var expected = new BindingError(category, subject, problem);
+        await Assert.That(exception.Errors.Single(error => error.Category == expected.Category && error.Subject == expected.Subject))
+            .IsEqualTo(expected);
     }
 
     [Test]
@@ -120,19 +122,16 @@ public sealed class EnumMemberNameCurationTests
     /// the generated struct, so binding refuses it and points to the curation row that names it.
     /// </summary>
     [Test]
-    [Arguments("is-known", "IsKnown")]
-    [Arguments("value", "Value")]
-    [Arguments("values", "Values")]
-    public async Task Bind_Should_Refuse_A_Value_Named_Like_A_Member_The_Enum_Declares(string wireValue, string member)
+    [Arguments("is-known", "enum value 'is-known' maps to C# name 'IsKnown', which the generated enum declares itself; name the value through an enumMemberNames row")]
+    [Arguments("value", "enum value 'value' maps to C# name 'Value', which the generated enum declares itself; name the value through an enumMemberNames row")]
+    [Arguments("values", "enum value 'values' maps to C# name 'Values', which the generated enum declares itself; name the value through an enumMemberNames row")]
+    public async Task Bind_Should_Refuse_A_Value_Named_Like_A_Member_The_Enum_Declares(string wireValue, string problem)
     {
         var document = await BindingTestHost.IngestAsync(ModeScenario(wireValue, "auto"));
 
         var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("mode.get"), Curation(Groups("mode", RootGroup()))));
 
-        await Assert.That(exception.Errors.Any(error => error.Problem.Contains($"'{member}', which the generated enum declares itself", StringComparison.Ordinal)
-                                                        && error.Problem.Contains("enumMemberNames", StringComparison.Ordinal)))
-            .IsTrue()
-            .Because(string.Join(" | ", exception.Errors.Select(static error => error.Subject + ": " + error.Problem)));
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Naming, "Mode", problem));
     }
 
     [Test]
@@ -179,11 +178,17 @@ public sealed class EnumMemberNameCurationTests
                 .Response(200, "application/json", static schema => schema.Ref("Holder"))));
 
     /// <summary>The pinned shape in miniature: an enum whose first value leads with a digit, reached through one response.</summary>
-    private static SpecScenario Scenario() =>
-        SpecScenario.Define(static spec => spec
-            .WithSchema("Mcp.Protocol", static schema => schema.Type("string").Enum("2026-07-28", "legacy", "auto"))
+    private static SpecScenario Scenario(bool unselected = false) =>
+        SpecScenario.Define(spec =>
+        {
+            if (unselected)
+            {
+                spec.WithSchema("Unselected", static schema => schema.Type("string").Enum("old", "new"));
+            }
+            spec.WithSchema("Mcp.Protocol", static schema => schema.Type("string").Enum("2026-07-28", "legacy", "auto"))
             .WithSchema("Holder", static schema => schema.Type("object")
                 .Property("protocol", static property => property.Ref("Mcp.Protocol"), required: true))
             .WithOperation("mcp.get", path: "/api/mcp", configure: static operation => operation
-                .Response(200, "application/json", static schema => schema.Ref("Holder"))));
+                .Response(200, "application/json", static schema => schema.Ref("Holder")));
+        });
 }

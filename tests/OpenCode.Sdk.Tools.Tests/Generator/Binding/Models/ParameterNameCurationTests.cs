@@ -41,24 +41,31 @@ public sealed class ParameterNameCurationTests
     }
 
     [Test]
-    [Arguments("shell.missing", "id", "shellId", "is not selected")]
-    [Arguments("shell.get", "name", "shellId", "is not a route value")]
-    [Arguments("shell.get", "id", "ShellId", "camel-cased")]
-    [Arguments("shell.get", "id", "2shell", "camel-cased")]
-    [Arguments("shell.get", "id", "class", "camel-cased")]
-    [Arguments("shell.get", "id", "id", "changes no name")]
-    public async Task Bind_Should_Refuse_A_Row_That_Names_Nothing_The_Document_Has(
-        string operationId, string parameter, string dotnetName, string problem)
+    [Arguments("shell.missing", "id", "shellId", BindingErrorCategory.Curation, "shell.missing:id", "curated operation is not selected by the current profile")]
+    [Arguments("shell.get", "name", "shellId", BindingErrorCategory.Curation, "shell.get:name", "curated parameter is not a route value of the operation")]
+    [Arguments("shell.get", "id", "ShellId", BindingErrorCategory.Naming, "shell.get:id", "parameter name 'ShellId' must be a valid camel-cased C# identifier")]
+    [Arguments("shell.get", "id", "2shell", BindingErrorCategory.Naming, "shell.get:id", "parameter name '2shell' must be a valid camel-cased C# identifier")]
+    [Arguments("shell.get", "id", "class", BindingErrorCategory.Naming, "shell.get:id", "parameter name 'class' must be a valid camel-cased C# identifier")]
+    [Arguments("shell.get", "id", "id", BindingErrorCategory.Curation, "shell.get:id", "parameter name 'id' changes no name; the mechanical rule already gives it")]
+    [Arguments("shell.get", "id", "shellId", BindingErrorCategory.Curation, "Shells", "every operation of the handle family must name handle parameter 'id' the same way")]
+    [Arguments("flat", "first", "second", BindingErrorCategory.Naming, "shell.get", "multiple parameters map to C# name 'second'")]
+    [Arguments("flat", "first", "cancellationToken", BindingErrorCategory.Naming, "shell.get", "parameter name 'cancellationToken' is reserved by the emitted method signature")]
+    public async Task Bind_Should_Refuse_Invalid_Parameter_Name_Rows(
+        string operationId, string parameter, string dotnetName, BindingErrorCategory category, string subject, string problem)
     {
-        var document = await BindingTestHost.IngestAsync(Scenario());
-        var curation = Curation(Groups("shell", ShellFamily),
-            parameterNames: [ParameterName(operationId, parameter, dotnetName)]);
+        var scenario = operationId == "flat" ? SpecScenario.Define(static spec => spec.WithOperation("shell.get", path: "/api/shell/{first}/{second}",
+            configure: static operation => operation.Parameter("first", "path", static schema => schema.Type("string"), required: true)
+                .Parameter("second", "path", static schema => schema.Type("string"), required: true))) : Scenario();
+        var document = await BindingTestHost.IngestAsync(scenario);
+        var group = operationId == "flat" ? ClientGroup("Shells", handleName: null, handleParameter: null) : ShellFamily;
+        var curation = Curation(Groups("shell", group),
+            parameterNames: [ParameterName(operationId == "flat" ? "shell.get" : operationId, parameter, dotnetName)]);
 
-        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("shell.get", "shell.remove"), curation));
+        var selection = operationId == "flat" ? Selection("shell.get") : Selection("shell.get", "shell.remove");
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, selection, curation));
 
-        await Assert.That(exception.Errors.Any(error => error.Problem.Contains(problem, StringComparison.Ordinal)))
-            .IsTrue()
-            .Because(string.Join(" | ", exception.Errors.Select(static error => error.Subject + ": " + error.Problem)));
+        await Assert.That(exception.Errors.Single(error => error.Category == category && error.Subject == subject))
+            .IsEqualTo(new BindingError(category, subject, problem));
     }
 
     [Test]

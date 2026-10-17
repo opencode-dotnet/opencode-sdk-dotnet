@@ -1,10 +1,9 @@
-tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/DescriptionCurationBinderTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/ModelOwnershipPolicyTests.cs	2
-tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/Models/EnumMemberNameCurationTests.cs	4
-tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/Models/ParameterNameCurationTests.cs	6
+tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/Models/EnumMemberNameCurationTests.cs	2
+tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/Models/ParameterNameCurationTests.cs	5
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/OperationPlanBinderTests.cs	90
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/QueryParameterClassificationTests.cs	1
-tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/SessionScopedEventBinderTests.cs	4
+tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/SessionScopedEventBinderTests.cs	3
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/SpecBinderTests.cs	82
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/StabilizeDuplicatePolicyTests.cs	1
 tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/UnionMemberHoistBinderTests.cs	1

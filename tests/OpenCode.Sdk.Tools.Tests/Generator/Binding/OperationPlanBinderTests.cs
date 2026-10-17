@@ -1,3 +1,4 @@
+using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
@@ -9,11 +10,58 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class OperationPlanBinderTests
 {
     [Test]
+    [Arguments("member", "GadgetClient", "multiple members map to C# name 'GetPartAsync'")]
+    [Arguments("response", "gadget.part.get", "multiple operations map to response type 'GadgetPartResponse'", "multiple operations map to route member 'Gadgets.GetPart'")]
+    [Arguments("route", "gadget.part.get", "multiple operations map to response type 'GadgetPartResponse'", "multiple operations map to route member 'Gadgets.GetPart'")]
+    [Arguments("client", "GadgetClient", "client type name 'GadgetClient' collides with another generated type")]
+    [Arguments("model", "Widget", "model type name 'ListCursor' collides with the hand-written spine type 'ListCursor'")]
+    [Arguments("request", "widget.list", "request type name 'WidgetListRequest' collides with another generated type")]
+    [Arguments("stream", "example.events", "multiple operations map to stream adapter 'ExampleEventsResponseStreamAdapter'")]
+    public async Task Bind_Should_Refuse_Generated_Name_Collisions(string fault, string subject, string problem, string? secondProblem = null)
+    {
+        var curation = Curation(Groups("gadget", ClientGroup(fault == "client" ? "Gadget" : "Gadgets", "GadgetClient", "gadgetID")));
+        var scenario = GadgetScenario();
+        string[] selected = ["gadget.part"];
+        if (fault is "member" or "response" or "route")
+        {
+            scenario = GadgetScenario(static spec => spec.WithOperation("gadget.part.get", path: "/api/gadget/{gadgetID}/part-copy/{partID}",
+                configure: static operation => operation.Parameter("gadgetID", "path", static schema => schema.Type("string"), required: true)
+                    .Parameter("partID", "path", static schema => schema.Type("string"), required: true)
+                    .Response(200, "application/json", static schema => schema.Ref("GadgetPart"))));
+            selected = ["gadget.part", "gadget.part.get"];
+        }
+        else if (fault is "model" or "request")
+        {
+            scenario = SpecScenario.Define(static spec => spec.WithSchema("Widget", static schema => schema.Type("object")
+                    .Property("id", static property => property.Type("string"), required: true))
+                .WithOperation("widget.list", configure: static operation => operation.Parameter("count", "query", static schema => schema.Type("string").Enum("true", "false"))
+                    .Response(200, "application/json", static schema => schema.Ref("Widget"))));
+            selected = ["widget.list"];
+            curation = Curation(Groups("widget", RootGroup()), schemaNames: [SchemaName("Widget", fault == "model" ? "ListCursor" : "WidgetListRequest")]);
+        }
+        else if (fault == "stream")
+        {
+            scenario = new StreamOperationScenario();
+            selected = ["example.events"];
+            curation = Curation(Groups("example", RootGroup()), schemaNames: [SchemaName("ExampleEvent", "ExampleEventsResponseStreamAdapter")]);
+        }
+        var exception = await BindRefusalsAsync(scenario, curation, selected);
+        BindingError[] expected = secondProblem is null ? [new(BindingErrorCategory.Naming, subject, problem)]
+            : [new(BindingErrorCategory.Naming, subject, problem), new(BindingErrorCategory.Naming, subject, secondProblem)];
+        await Assert.That(exception.Errors.Where(error => error.Category == BindingErrorCategory.Naming && error.Subject == subject))
+            .IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching)
+            .Because(string.Join(" | ", exception.Errors.Select(static error => error.Subject + ": " + error.Problem)));
+    }
+
+    [Test]
     [Arguments("reason", "envelope payload name curation must declare a reason")]
     [Arguments("duplicate", "envelope payload name curation is duplicated")]
     [Arguments("redundant", "envelopePayloadNames row for 'widget.entry.get' repeats the payload naming rule's derived value 'Entry'")]
     [Arguments("singleKey", "envelopePayloadNames row for 'widget.entry.get' repeats the payload naming rule's derived value 'Result'")]
-    public async Task Bind_Should_Refuse_Invalid_Envelope_Payload_Rows(string variation, string problem)
+    [Arguments("invalid", "payload name 'bad-name' is not a valid C# identifier", BindingErrorCategory.Naming)]
+    [Arguments("invalid-binder", "payload name 'bad-name' is not a valid C# identifier", BindingErrorCategory.Naming)]
+    [Arguments("spine", "payload name 'WidgetEntryResponse' collides with the response spine of 'WidgetEntryResponse'", BindingErrorCategory.Naming)]
+    public async Task Bind_Should_Refuse_Invalid_Envelope_Payload_Rows(string variation, string problem, BindingErrorCategory category = BindingErrorCategory.Curation)
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
             .WithOperation("widget.entry.get", configure: operation => operation
@@ -28,14 +76,32 @@ public sealed class OperationPlanBinderTests
                         schema.Type("string");
                     }
                 }))));
-        var row = EnvelopePayloadName("widget.entry.get", variation switch { "redundant" => "Entry", "singleKey" => "Result", _ => "Value" },
+        var row = EnvelopePayloadName("widget.entry.get", variation switch { "redundant" => "Entry", "singleKey" => "Result", "invalid" or "invalid-binder" => "bad-name", "spine" => "WidgetEntryResponse", _ => "Value" },
             reason: variation == "reason" ? " " : "Name the result.");
         var curation = Curation(Groups("widget", ClientGroup("Widgets", handleName: null, handleParameter: null)),
             envelopePayloadNames: variation == "duplicate" ? [row, row] : [row]);
 
-        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("widget.entry.get"), curation));
+        var errors = new BindingErrorCollector();
+        var exception = Assert.Throws<BindingException>(() =>
+        {
+            if (variation == "invalid-binder")
+            {
+                _ = new OperationPlanBinder().Bind(document, document.Operations, curation, new Dictionary<string, string>(StringComparer.Ordinal), errors);
+                errors.ThrowIfAny();
+            }
+            else if (variation == "invalid")
+            {
+                new CurationValidator().Validate(document, document.Operations,
+                    new ReachableSchemaCollector().Collect(document, document.Operations, errors), curation, errors);
+                errors.ThrowIfAny();
+            }
+            else
+            {
+                _ = new BindingTestHost().Bind(document, Selection("widget.entry.get"), curation);
+            }
+        });
 
-        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation, "widget.entry.get", problem));
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(category, "widget.entry.get", problem));
     }
 
     private static readonly string[] ExpectedClientNames =
@@ -3094,9 +3160,9 @@ public sealed class OperationPlanBinderTests
     }
 
     [Test]
-    [Arguments("data", "Entries")]
-    [Arguments("items", "Items")]
-    public async Task Bind_Should_Refuse_A_Redundant_List_Payload_Row(string wireName, string payloadName)
+    [Arguments("data", "Entries", "envelopePayloadNames row for 'widget.entry.list' repeats the list naming rule's derived value 'Entries'")]
+    [Arguments("items", "Items", "envelopePayloadNames row for 'widget.entry.list' repeats the list naming rule's derived value 'Items'")]
+    public async Task Bind_Should_Refuse_A_Redundant_List_Payload_Row(string wireName, string payloadName, string problem)
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
             .WithOperation("widget.entry.list", configure: operation => operation
@@ -3111,7 +3177,7 @@ public sealed class OperationPlanBinderTests
         var error = exception.Errors.Single();
         await Assert.That(error.Category).IsEqualTo(BindingErrorCategory.Curation);
         await Assert.That(error.Subject).IsEqualTo("widget.entry.list");
-        await Assert.That(error.Problem).IsEqualTo($"envelopePayloadNames row for 'widget.entry.list' repeats the list naming rule's derived value '{payloadName}'");
+        await Assert.That(error.Problem).IsEqualTo(problem);
     }
 
     [Test]
@@ -3166,11 +3232,11 @@ public sealed class OperationPlanBinderTests
     }
 
     [Test]
-    [Arguments("EqualityContract")]
-    [Arguments("ToString")]
-    [Arguments("GetHashCode")]
-    [Arguments("PrintMembers")]
-    public async Task Bind_Should_Refuse_A_Payload_Name_Colliding_With_Record_Members(string payloadName)
+    [Arguments("EqualityContract", "payload name 'EqualityContract' collides with the response spine of 'WidgetStatusResponse'")]
+    [Arguments("ToString", "payload name 'ToString' collides with the response spine of 'WidgetStatusResponse'")]
+    [Arguments("GetHashCode", "payload name 'GetHashCode' collides with the response spine of 'WidgetStatusResponse'")]
+    [Arguments("PrintMembers", "payload name 'PrintMembers' collides with the response spine of 'WidgetStatusResponse'")]
+    public async Task Bind_Should_Refuse_A_Payload_Name_Colliding_With_Record_Members(string payloadName, string problem)
     {
         var document = await BindingTestHost.IngestAsync(StatusScenario());
         var curation = Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)),
@@ -3178,8 +3244,7 @@ public sealed class OperationPlanBinderTests
         var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
             document, Selection("widget.status"), curation));
 
-        await Assert.That(exception.Errors).Contains(error => error.Category == BindingErrorCategory.Naming
-            && error.Problem.Contains(payloadName, StringComparison.Ordinal));
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Naming, "widget.status", problem));
     }
 
     [Test]

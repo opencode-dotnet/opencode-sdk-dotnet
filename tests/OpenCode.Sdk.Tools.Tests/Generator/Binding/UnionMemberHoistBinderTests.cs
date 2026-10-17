@@ -22,14 +22,43 @@ public sealed class UnionMemberHoistBinderTests
     [Test]
     [Arguments(false, "hoisted member name curation must declare a reason")]
     [Arguments(true, "hoisted member name curation is duplicated")]
-    public async Task Bind_Should_Refuse_Invalid_Hoisted_Name_Rows(bool duplicate, string problem)
+    [Arguments(false, "hoisted member name curation for 'absent' is unused: the interface hoists no promoted object under that property", "unused", BindingErrorCategory.Curation, "IExampleEvent")]
+    [Arguments(false, "hoisted member 'durable' resolves to 'CreatedEventDurable', which already names another generated type", "collision", BindingErrorCategory.Naming, "IExampleEvent")]
+    [Arguments(false, "hoisted member 'durable' shares its records with 'IDurableEnvelope' and cannot also be named 'IOtherEnvelope'", "shared", BindingErrorCategory.Naming, "ISecondEvent")]
+    public async Task Bind_Should_Refuse_Invalid_Hoisted_Name_Rows(bool duplicate, string problem, string fault = "contract",
+        BindingErrorCategory category = BindingErrorCategory.Curation, string subject = "IExampleEvent")
     {
         var row = HoistedMemberName("IExampleEvent", "durable", "IDurableEnvelope", reason: duplicate ? "Name the carrier." : " ");
+        if (fault != "contract")
+        {
+            row = row with
+            {
+                Reason = "Name the carrier.",
+                Property = fault == "unused" ? "absent" : "durable",
+                DotNetName = fault == "collision" ? "CreatedEventDurable" : "IDurableEnvelope",
+            };
+        }
         var curation = Curation(Groups(), hoistedMemberNames: duplicate ? [row, row] : [row]);
+        if (fault == "shared")
+        {
+            curation = curation with { HoistedMemberNames = [row, HoistedMemberName("ISecondEvent", "durable", "IOtherEnvelope")] };
+        }
 
-        var exception = Assert.Throws<BindingException>(() => HoistDurableCarrier(curation));
+        var exception = Assert.Throws<BindingException>(() => _ = fault == "shared" ? Hoist(
+            [Union("IExampleEvent", Arm("CreatedEvent"), Arm("DeletedEvent")), Union("ISecondEvent", Arm("CreatedEvent"), Arm("DeletedEvent"))],
+            [Variant("CreatedEvent", "created", Property("durable", Named("CreatedEventDurable"), isRequired: true)),
+                Variant("DeletedEvent", "deleted", Property("durable", Named("DeletedEventDurable"), isRequired: true)),
+                Envelope("CreatedEventDurable", "1"), Envelope("DeletedEventDurable", "2")], curation) : HoistDurableCarrier(curation));
 
-        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation, "IExampleEvent", problem));
+        if (fault == "contract")
+        {
+            await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(category, subject, problem));
+        }
+        else
+        {
+            await Assert.That(exception.Errors.Single(error => error.Category == category && error.Subject == subject))
+                .IsEqualTo(new BindingError(category, subject, problem));
+        }
     }
 
     [Test]
