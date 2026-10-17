@@ -30,6 +30,36 @@ public sealed class VerifyTestRosterCommandTests
     }
 
     [Test]
+    public async Task LoadAsync_Should_Refuse_A_Null_Pass_Map()
+    {
+        var exception = await Assert.That(() => LoadWithNullRosterValueAsync(passes => passes["main"] = null))
+            .Throws<TestRosterException>();
+
+        await Assert.That(exception!.Message).IsEqualTo(
+            $"Roster pass map under pass 'main' in '{TestRosterScenario.RosterPath}' cannot be JSON null.");
+    }
+
+    [Test]
+    public async Task LoadAsync_Should_Refuse_A_Null_Module_List()
+    {
+        var exception = await Assert.That(() => LoadWithNullRosterValueAsync(passes => passes["main"]!["linux"] = null))
+            .Throws<TestRosterException>();
+
+        await Assert.That(exception!.Message).IsEqualTo(
+            $"Roster module list under pass 'main', OS 'linux' in '{TestRosterScenario.RosterPath}' cannot be JSON null.");
+    }
+
+    [Test]
+    public async Task LoadAsync_Should_Refuse_A_Null_Module_Entry()
+    {
+        var exception = await Assert.That(() => LoadWithNullRosterValueAsync(passes => passes["main"]!["linux"]![0] = null))
+            .Throws<TestRosterException>();
+
+        await Assert.That(exception!.Message).IsEqualTo(
+            $"Roster module entry under pass 'main', OS 'linux' in '{TestRosterScenario.RosterPath}' cannot be JSON null.");
+    }
+
+    [Test]
     public async Task Execute_Should_Pass_And_Print_Each_Entry_With_Its_Executed_Count_When_The_Roster_Matches_The_Results()
     {
         var fileSystem = new TestRosterScenario()
@@ -233,6 +263,15 @@ public sealed class VerifyTestRosterCommandTests
 
         await Assert.That(result.ExitCode).IsEqualTo(1);
         await Assert.That(result.Output).Contains("lists no modules");
+    }
+
+    private static async Task LoadWithNullRosterValueAsync(Action<JsonNode> setNull)
+    {
+        var fileSystem = new TestRosterScenario().WithEntry("main", "linux", "Alpha.Tests/net10.0").Build();
+        var json = JsonNode.Parse(await fileSystem.File.ReadAllTextAsync(TestRosterScenario.RosterPath))!;
+        setNull(json["passes"]!);
+        await fileSystem.File.WriteAllTextAsync(TestRosterScenario.RosterPath, json.ToJsonString());
+        _ = await new TestRosterLoader(fileSystem).LoadAsync(TestRosterScenario.RosterPath, CancellationToken.None);
     }
 
     private static async Task<CommandAppResult> RunAsync(IFileSystem fileSystem, string[] passArguments)
