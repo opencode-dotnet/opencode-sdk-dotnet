@@ -20,6 +20,45 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 /// </summary>
 public sealed class SecretMemberPolicyTests
 {
+    [Test]
+    [Arguments("missing", "VaultInfo.absent", "redacted member curation names no generated model member")]
+    [Arguments("repeat", "VaultInfo.client_secret", "redacted member curation repeats the upstream redaction list")]
+    [Arguments("lift", "VaultInfo.id", "redacted member curation lifts a mask the upstream redaction list never applies")]
+    [Arguments("undecided", "VaultInfo.apiToken", "member name looks like a secret and no curation row decides it: add a redactedMembers row, or a secretLookingNames row when the value is never a credential")]
+    public async Task Bind_Should_Refuse_Invalid_Redacted_Member_Rows(string fault, string subject, string problem)
+    {
+        var row = fault switch { "missing" => Row("absent", true), "repeat" => Row("client_secret", true), _ => Row("id", false) };
+        var exception = await BindRefusedAsync(fault == "undecided" ? "apiToken" : "client_secret", redactedMembers: fault == "undecided" ? [] : [row]);
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation, subject, problem)
+        {
+            Kind = fault == "undecided" ? BindingErrorKind.MissingRow : BindingErrorKind.Unspecified,
+        });
+    }
+
+    [Test]
+    [Arguments("Absent", "redacted open members curation names no generated model")]
+    [Arguments("VaultInfo", "redacted open members curation names a model that leaves no member open")]
+    [Arguments("undecided", "model leaves members open and no curation row decides them: add a redactedOpenMembers row, redact true when the open members can carry a credential, redact false when they never do")]
+    public async Task Bind_Should_Refuse_Invalid_Open_Member_Rows(string model, string problem)
+    {
+        var rows = model == "undecided" ? Array.Empty<RedactedOpenMembersCuration>() : [OpenMembers(model, true), OpenMembers("VaultSettings", false)];
+        var exception = await BindRefusalsAsync(OpenScenario(), Curation(Groups("vault", RootGroup()), redactedOpenMembers: rows), "vault.get");
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation, model == "undecided" ? "VaultSettings" : model, problem)
+        {
+            Kind = model == "undecided" ? BindingErrorKind.MissingRow : BindingErrorKind.Unspecified,
+        });
+    }
+
+    [Test]
+    [Arguments("absent", "secret-looking name curation names no generated model member")]
+    [Arguments("client_secret", "secret-looking name curation clears a name the upstream redaction list masks")]
+    [Arguments("id", "secret-looking name curation names a member the secret-name wall never stops")]
+    public async Task Bind_Should_Refuse_Invalid_Secret_Name_Rows(string property, string problem)
+    {
+        var exception = await BindRefusedAsync("client_secret", secretLookingNames: [new SecretLookingNameCuration { Property = property, Reason = Reason }]);
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation, property, problem));
+    }
+
     private const string Reason = "The value is what the reason says it is.";
 
     [Test]

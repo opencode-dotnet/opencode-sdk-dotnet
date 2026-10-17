@@ -11,6 +11,152 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 public sealed class SpecBinderTests
 {
+    public static IEnumerable<object?[]> GroupRefusals() => GroupRefusalRows().Select(static row => new[] { row.fault, row.row, row.expected });
+
+    private static IEnumerable<(string fault, object? row, BindingError[] expected)> GroupRefusalRows() =>
+    [
+        ("missing", null, [new(BindingErrorCategory.Curation, "widget", "selected operation group has no curation row")]),
+        ("orphan", RootGroup(), [new(BindingErrorCategory.Curation, "ghost", "curated group does not exist in the spec")]),
+        ("unselected", RootGroup(), [new(BindingErrorCategory.Curation, "idle", "curated group is not selected by the current profile")]),
+        ("merge-handle", ClientGroup("Widgets", "WidgetClient", "id"), [new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare identical handle and emission configuration and the same experimentalDiagnostic")]),
+        ("merge-emission", ClientGroup("Widgets", null, null, emission: EmissionMode.InternalRaw), [new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare identical handle and emission configuration and the same experimentalDiagnostic")]),
+        ("merge-diagnostic", ClientGroup("Widgets", null, null, experimentalDiagnostic: "OPENCODE001"), [new(BindingErrorCategory.Curation, "Widgets", "groups sharing client 'Widgets' must declare identical handle and emission configuration and the same experimentalDiagnostic")]),
+        ("shared-diagnostic", ClientGroup("Widgets", null, null, experimentalDiagnostic: "OPENCODE001"), [new(BindingErrorCategory.Curation, "OPENCODE001", "experimentalDiagnostic 'OPENCODE001' is shared by groups that are not one merged family")]),
+        ("experimental", RootGroup(), [new(BindingErrorCategory.Curation, "widget", "selected experimental route requires experimentalDiagnostic")]),
+        ("stable-diagnostic", RootGroup() with { ExperimentalDiagnostic = "OPENCODE001" }, [new(BindingErrorCategory.Curation, "widget", "experimentalDiagnostic requires a selected experimental route")]),
+        ("experimental-invalid", RootGroup() with { ExperimentalDiagnostic = "bad" }, [new(BindingErrorCategory.Curation, "widget", "experimentalDiagnostic 'bad' must match ^OPENCODE[0-9]{3}$")]),
+        ("root-client", RootGroup() with { ClientName = "Widgets" }, [new(BindingErrorCategory.Curation, "widget", "root group cannot declare clientName, handleName, or handleParameter")]),
+        ("root-handle", RootGroup() with { HandleName = "WidgetClient" }, [new(BindingErrorCategory.Curation, "widget", "root group cannot declare clientName, handleName, or handleParameter"),
+            new(BindingErrorCategory.Curation, "widget", "handleName and handleParameter must be declared together")]),
+        ("root-parameter", RootGroup() with { HandleParameter = "id" }, [new(BindingErrorCategory.Curation, "widget", "root group cannot declare clientName, handleName, or handleParameter"),
+            new(BindingErrorCategory.Curation, "widget", "handleName and handleParameter must be declared together")]),
+        ("client", ClientGroup(null!, null, null), [new(BindingErrorCategory.Curation, "widget", "client group must declare clientName")]),
+        ("placement", RootGroup() with { Placement = (GroupPlacement)99 }, [new(BindingErrorCategory.Curation, "widget", "placement value '99' is not a recognized group placement")]),
+        ("client-name", ClientGroup("bad-name", null, null), [new(BindingErrorCategory.Naming, "widget", "client name 'bad-name' is not a valid C# identifier")]),
+        ("handle-name", ClientGroup("Widgets", "bad-name", "id"), [new(BindingErrorCategory.Naming, "widget", "handle name 'bad-name' is not a valid C# identifier")]),
+        ("half-handle", ClientGroup("Widgets", "WidgetClient", null), [new(BindingErrorCategory.Curation, "widget", "handleName and handleParameter must be declared together")]),
+        ("half-parameter", ClientGroup("Widgets", null, "id"), [new(BindingErrorCategory.Curation, "widget", "handleName and handleParameter must be declared together")]),
+        ("blank-parameter", ClientGroup("Widgets", "WidgetClient", " "), [new(BindingErrorCategory.Curation, "widget", "handleParameter cannot be blank")]),
+        ("emission", RootGroup() with { Emission = (EmissionMode)99 }, [new(BindingErrorCategory.Curation, "widget", "emission value '99' is not a recognized group emission")]),
+        ("root-raw", RootGroup() with { Emission = EmissionMode.InternalRaw }, [new(BindingErrorCategory.Curation, "widget", "root group cannot declare internalRaw emission")]),
+        ("unselected-raw", ClientGroup("Widgets", null, null, emission: EmissionMode.InternalRaw), [new(BindingErrorCategory.Curation, "idle", "curated group is not selected by the current profile"),
+            new(BindingErrorCategory.Curation, "idle", "internalRaw emission requires at least one selected operation")]),
+        ("uncovered", ClientGroup("Widgets", "WidgetClient", "id"), [new(BindingErrorCategory.Curation, "widget", "handle parameter 'id' does not name a required path parameter on any selected operation in the group")]),
+    ];
+
+    [Test]
+    [MethodDataSource(nameof(GroupRefusals))]
+    public async Task Bind_Should_Refuse_Invalid_Group_Configuration(string fault, object? value, BindingError[] expected)
+    {
+        ArgumentNullException.ThrowIfNull(fault);
+        ArgumentNullException.ThrowIfNull(expected);
+        var row = (GroupCuration?)value;
+        var experimental = fault.StartsWith("experimental", StringComparison.Ordinal) || fault == "shared-diagnostic";
+        var document = await IngestAsync(SpecScenario.Define(spec => spec
+            .WithOperation("widget.get", path: experimental ? "/api/experimental/widget" : "/api/widget")
+            .WithOperation("other.get", path: "/api/experimental/other").WithOperation("idle.get")));
+        var groups = Groups("widget", RootGroup());
+        var key = fault switch { "orphan" => "ghost", "unselected" or "unselected-raw" => "idle", _ => "widget" };
+        if (row is null)
+        {
+            groups.Remove("widget");
+        }
+        else
+        {
+            groups[key] = row;
+        }
+        var selected = document.Operations.Where(operation => operation.OperationId == "widget.get"
+            || ((fault.StartsWith("merge-", StringComparison.Ordinal) || fault == "shared-diagnostic") && operation.OperationId == "other.get")).ToArray();
+        if (selected.Length == 2)
+        {
+            groups["other"] = ClientGroup(fault == "shared-diagnostic" ? "Others" : "Widgets", null, null,
+                experimentalDiagnostic: fault == "shared-diagnostic" ? "OPENCODE001" : null);
+        }
+        var errors = new BindingErrorCollector();
+        new CurationValidator().Validate(document, selected, new ReachableSchemaCollector().Collect(document, selected, errors), Curation(groups), errors);
+        var identity = expected[0];
+        await Assert.That(Assert.Throws<BindingException>(errors.ThrowIfAny).Errors
+            .Where(error => error.Category == identity.Category && error.Subject == identity.Subject))
+            .IsEquivalentTo(expected, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments("Unused", "Reviewed", BindingErrorCategory.Curation, "curated schema is not referenced by the selected profile")]
+    [Arguments("Used", "bad-name", BindingErrorCategory.Naming, "schema name 'bad-name' is not a valid C# identifier")]
+    public async Task Bind_Should_Refuse_Invalid_Schema_Name_Rows(string schema, string name, BindingErrorCategory category, string problem)
+    {
+        var exception = await BindRefusalsAsync(SpecScenario.Define(static spec => spec
+            .WithSchema("Used", static value => value.Type("object")).WithSchema("Unused", static value => value.Type("object"))
+            .WithOperation("widget.get", configure: static operation => operation.Response(200, "application/json", static value => value.Ref("Used")))),
+            Curation(Groups("widget", RootGroup()), schemaNames: [SchemaName(schema, name)]), "widget.get");
+        await Assert.That(exception.Errors.Single(error => error.Category == category && error.Subject == schema))
+            .IsEqualTo(new BindingError(category, schema, problem));
+    }
+
+    [Test]
+    [Arguments("malformed", "transport-owned curation must declare subtreeSha256 as 64 lowercase hex characters")]
+    [Arguments("missing", "curated operation does not exist in the spec")]
+    [Arguments("selected", "transport-owned operation cannot be selected")]
+    [Arguments("fingerprint", "transport-owned operation subtree no longer matches the committed subtreeSha256 (declared '0000000000000000000000000000000000000000000000000000000000000000', computed 'b60dc24f9c42b5480039c7c90df72de484c9e4118d18311b4791a64ea90fa71b'); review the reshaped operation and repin")]
+    public async Task Bind_Should_Refuse_Invalid_Transport_Owned_Rows(string fault, string problem)
+    {
+        var scenario = fault == "fingerprint" ? SpecScenario.Define(static spec => spec
+            .WithOperation("pty.connect", path: "/api/pty/connect", configure: static operation => operation.WithoutResponse(200).Response(204))
+            .WithOperation("health.get", configure: static operation => operation.WithoutResponse(200).Response(204))) : TransportOwnedScenario();
+        var document = await IngestAsync(scenario);
+        var hash = TransportOwnedFingerprint.ComputeSha256(document.Operations.Single(static operation => operation.OperationId == "pty.connect"));
+        var subject = fault == "missing" ? "missing.get" : "pty.connect";
+        var errors = new BindingErrorCollector();
+        var selected = document.Operations.Where(operation => operation.OperationId == "health.get" || fault == "selected").ToArray();
+        var declared = fault switch { "malformed" => "bad", "fingerprint" => new string('0', 64), _ => hash };
+        new CurationValidator().Validate(document, selected, new ReachableSchemaCollector().Collect(document, selected, errors),
+            Curation(Groups("health", RootGroup()), transportOwned: [TransportOwned(subject, declared)]), errors);
+        var expected = new BindingError(BindingErrorCategory.Curation, subject, problem);
+        var exception = Assert.Throws<BindingException>(errors.ThrowIfAny);
+        await Assert.That(exception.Errors.Single(error => error.Category == expected.Category && error.Subject == expected.Subject))
+            .IsEqualTo(expected);
+    }
+
+    [Test]
+    [Arguments("missing.get", false, "curated operation does not exist in the spec")]
+    [Arguments("health.get", false, "declined operation cannot be selected")]
+    [Arguments("pty.connect", true, "declined operation cannot also be transport-owned")]
+    public async Task Bind_Should_Refuse_Invalid_Declined_Rows(string operationId, bool transport, string problem)
+    {
+        var document = await IngestAsync(TransportOwnedScenario());
+        var hash = TransportOwnedFingerprint.ComputeSha256(document.Operations.Single(static operation => operation.OperationId == "pty.connect"));
+        var curation = Curation(Groups("health", RootGroup()), declined: [Declined(operationId)],
+            transportOwned: transport ? [TransportOwned("pty.connect", hash)] : []);
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("health.get"), curation));
+        await Assert.That(exception.Errors.Single(error => error.Category == BindingErrorCategory.Curation && error.Subject == operationId))
+            .IsEqualTo(new BindingError(BindingErrorCategory.Curation, operationId, problem));
+    }
+
+    [Test]
+    [Arguments("self", "GadgetError1", "GadgetError1", "schema alias cannot target itself")]
+    [Arguments("source", "GhostError", "GadgetError", "aliased schema does not exist in the spec")]
+    [Arguments("target", "GadgetError1", "GhostError", "alias target 'GhostError' does not exist in the spec")]
+    [Arguments("unused", "LonelyError1", "LonelyError", "aliased schema is not referenced by the selected profile")]
+    [Arguments("different", "GadgetError1", "GadgetError", "aliased schemas must be structurally identical")]
+    [Arguments("chain", "GadgetError2", "GadgetError1", "aliased schema is not referenced by the selected profile", "schema aliases cannot chain")]
+    [Arguments("fold-target", "GadgetErrorAlt", "GadgetError_1", "schema aliases cannot chain: the stabilize-duplicate collapse already folds the target 'GadgetError_1' into 'GadgetError'")]
+    [Arguments("fold-base", "GadgetError", "GadgetErrorAlt", "schema aliases cannot chain: the stabilize-duplicate collapse already folds 'GadgetError_1' into 'GadgetError'")]
+    public async Task Bind_Should_Refuse_Invalid_Alias_Rows(string fault, string source, string target, string problem, string? secondProblem = null)
+    {
+        ArgumentNullException.ThrowIfNull(fault);
+        var scenario = fault.StartsWith("fold-", StringComparison.Ordinal) ? StabilizeAndCuratedDuplicateScenario() : SpecScenario.Define(spec =>
+        {
+            DefineDuplicateTagSpec(spec, fault == "different" ? static schema => schema.Type("string") : DefaultDuplicate);
+            spec.WithSchema("LonelyError", DefaultDuplicate).WithSchema("LonelyError1", DefaultDuplicate).WithSchema("GadgetError2", DefaultDuplicate);
+        });
+        var aliases = fault == "chain" ? new[] { Alias(source, target), Alias("GadgetError1", "GadgetError") } : [Alias(source, target)];
+        var exception = await BindRefusalsAsync(scenario, GadgetCuration(aliases), "gadget.get");
+        BindingError[] expected = secondProblem is null ? [new(BindingErrorCategory.Curation, source, problem)]
+            : [new(BindingErrorCategory.Curation, source, problem), new(BindingErrorCategory.Curation, source, secondProblem)];
+        await Assert.That(exception.Errors.Where(error => error.Category == BindingErrorCategory.Curation && error.Subject == source))
+            .IsEquivalentTo(expected, CollectionOrdering.Matching);
+    }
+
     [Test]
     public async Task Bind_Should_Check_The_Reason_Of_A_Redundant_Alias()
     {
@@ -649,32 +795,57 @@ public sealed class SpecBinderTests
     }
 
     [Test]
-    [Arguments(false, "ListWidgetsAsync", true)]
-    [Arguments(true, "ListAsync", true)]
-    [Arguments(false, "ListEntriesAsync", false)]
-    [Arguments(true, "ListEntriesAsync", false)]
-    public async Task Bind_Should_Refuse_Only_Redundant_List_Method_Rows(bool handle, string methodName, bool redundant)
+    [Arguments(false, "ListWidgetsAsync", true, "widget.list", BindingErrorCategory.Curation, "operationNames row for 'widget.list' repeats the list naming rule's derived value 'ListWidgetsAsync'")]
+    [Arguments(true, "ListAsync", true, "widget.list", BindingErrorCategory.Curation, "operationNames row for 'widget.list' repeats the list naming rule's derived value 'ListAsync'")]
+    [Arguments(false, "ListEntriesAsync", false, "widget.list", BindingErrorCategory.Curation, null)]
+    [Arguments(true, "ListEntriesAsync", false, "widget.list", BindingErrorCategory.Curation, null)]
+    [Arguments(false, "ReviewedAsync", true, "missing.get", BindingErrorCategory.Curation, "curated operation does not exist in the spec")]
+    [Arguments(false, "ReviewedAsync", true, "widget.other", BindingErrorCategory.Curation, "curated operation is not selected by the current profile")]
+    [Arguments(false, "bad-nameAsync", true, "widget.list", BindingErrorCategory.Naming, "method name 'bad-nameAsync' must be a valid C# identifier ending in 'Async'")]
+    [Arguments(false, "Reviewed", true, "widget.list", BindingErrorCategory.Naming, "method name 'Reviewed' must be a valid C# identifier ending in 'Async'", "the operation's names cannot be derived mechanically: the group does not pluralize naively")]
+    [Arguments(false, "Async", true, "widget.list", BindingErrorCategory.Naming, "method name 'Async' must be a valid C# identifier ending in 'Async'", "the operation's names cannot be derived mechanically: the group does not pluralize naively")]
+    [Arguments(false, "", true, "widget.run", BindingErrorCategory.Operation, "operation 'widget.run' closes with 'run', which is not a naming verb, and no operationNames row names it; the HTTP method is never a name source (ADR-0008)")]
+    public async Task Bind_Should_Refuse_Invalid_Operation_Name_Rows(bool handle, string methodName, bool refused,
+        string operationId, BindingErrorCategory category, string? problem, string? operationProblem = null)
     {
-        var document = await IngestAsync(SpecScenario.Define(spec => spec
-            .WithOperation("widget.list", path: handle ? "/api/widget/{id}" : "/api/widget", configure: operation =>
+        ArgumentNullException.ThrowIfNull(methodName);
+        var document = await IngestAsync(SpecScenario.Define(spec =>
+        {
+            if (operationId is "widget.other" or "widget.run")
+            {
+                spec.WithOperation(operationId, method: operationId == "widget.run" ? "post" : "get",
+                    configure: static operation => operation.WithoutResponse(200).Response(204));
+            }
+            spec.WithOperation("widget.list", path: handle ? "/api/widget/{id}" : "/api/widget", configure: operation =>
             {
                 operation.WithoutResponse(200).Response(204);
                 if (handle)
                 {
                     operation.Parameter("id", "path", schema => schema.Type("string"), required: true);
                 }
-            })));
+            });
+        }));
         var curation = Curation(
             Groups("widget", ClientGroup("Widgets", handle ? "WidgetClient" : null, handle ? "id" : null)),
-            operationNames: [OperationName("widget.list", methodName)]);
+            operationNames: methodName.Length == 0 ? [] : [OperationName(operationId, methodName)]);
 
-        if (redundant)
+        if (refused)
         {
-            var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection("widget.list"), curation));
-            var error = exception.Errors.Single();
-            await Assert.That(error.Category).IsEqualTo(BindingErrorCategory.Curation);
-            await Assert.That(error.Subject).IsEqualTo("widget.list");
-            await Assert.That(error.Problem).IsEqualTo($"operationNames row for 'widget.list' repeats the list naming rule's derived value '{methodName}'");
+            var selected = operationId == "widget.run" ? operationId : "widget.list";
+            var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection(selected), curation));
+            if (operationProblem is not null)
+            {
+                await Assert.That(exception.Errors).IsEquivalentTo([
+                    new BindingError(category, operationId, problem!),
+                    new BindingError(BindingErrorCategory.Operation, operationId, operationProblem),
+                ], CollectionOrdering.Matching);
+            }
+            else
+            {
+                var error = operationId == "widget.list" && category == BindingErrorCategory.Curation ? exception.Errors.Single()
+                    : exception.Errors.Single(error => error.Category == category && error.Subject == operationId);
+                await Assert.That(error).IsEqualTo(new BindingError(category, operationId, problem!));
+            }
         }
         else
         {

@@ -8,6 +8,19 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class OperationIdentityPolicyTests
 {
     [Test]
+    [Arguments("valid", "experimental.session.export", "session.export", "operation identity subject already satisfies the protocol convention; identity rows exist only for upstream identity defects")]
+    [Arguments("invalid", "server.session.archive", "bad", "intended identity 'bad' must satisfy the protocol convention")]
+    [Arguments("blank", "server.session.archive", " ", "intended identity ' ' must satisfy the protocol convention")]
+    [Arguments("claimed", "server.session.archive", "session.get", "intended identity 'session.get' is claimed by more than one identity row")]
+    public async Task BuildMap_Should_Refuse_Invalid_Identity_Rows(string fault, string subject, string identity, string problem)
+    {
+        var row = OperationIdentity(subject, identity);
+        var rows = fault == "claimed" ? new[] { OperationIdentity("server.session.get", "session.get"), row } : [row];
+        var exception = Assert.Throws<BindingException>(() => OperationIdentityPolicy.BuildMap(IdentityCuration(rows)));
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation, subject, problem));
+    }
+
+    [Test]
     public async Task BuildMap_Should_Check_The_Reason_Even_When_The_Subject_Is_Blank()
     {
         var exception = Assert.Throws<BindingException>(() => OperationIdentityPolicy.BuildMap(

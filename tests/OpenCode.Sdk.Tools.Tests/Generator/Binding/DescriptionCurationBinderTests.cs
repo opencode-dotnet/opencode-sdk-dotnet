@@ -62,15 +62,15 @@ public sealed class DescriptionCurationBinderTests
     }
 
     [Test]
-    [Arguments("missing-type", "type does not exist")]
-    [Arguments("unselected-type", "type does not exist")]
-    [Arguments("missing-member", "member does not exist")]
-    [Arguments("wire-member", "member does not exist")]
-    [Arguments("blank-summary", "non-empty summary")]
-    [Arguments("blank-reason", "must declare a reason")]
-    [Arguments("duplicate-type", "is duplicated")]
-    [Arguments("duplicate-member", "is duplicated")]
-    public async Task Bind_Should_Refuse_Invalid_Description_Rows(string fault, string problem)
+    [Arguments("missing-type", "Missing", "description type does not exist in the generated plan")]
+    [Arguments("unselected-type", "Unselected", "description type does not exist in the generated plan")]
+    [Arguments("missing-member", "Notice.Absent", "description member does not exist as a declared property on the generated type")]
+    [Arguments("wire-member", "Notice.data", "description member does not exist as a declared property on the generated type")]
+    [Arguments("blank-summary", "Notice", "description curation must declare a non-empty summary")]
+    [Arguments("blank-reason", "Notice", "description curation must declare a reason")]
+    [Arguments("duplicate-type", "Notice", "description curation is duplicated")]
+    [Arguments("duplicate-member", "Notice.Data", "description curation is duplicated")]
+    public async Task Bind_Should_Refuse_Invalid_Description_Rows(string fault, string subject, string problem)
     {
         var document = await BindingTestHost.IngestAsync(new EventDocumentationScenario());
         var row = fault switch
@@ -90,8 +90,7 @@ public sealed class DescriptionCurationBinderTests
 
         var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("event.get"), curation));
 
-        await Assert.That(exception.Errors.Any(error => error.Category is BindingErrorCategory.Curation
-            && error.Problem.Contains(problem, StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors.Single()).IsEqualTo(new BindingError(BindingErrorCategory.Curation, subject, problem));
     }
 
     [Test]

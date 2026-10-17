@@ -110,11 +110,11 @@ public sealed class QueryParameterClassificationTests
     }
 
     [Test]
-    [Arguments("widget.list", "count", "now declares query parameter 'count' as a number; remove this row")]
-    [Arguments("widget.list", "missing", "has no query parameter 'missing'; remove this row")]
+    [Arguments("widget.list", "count", "the document now declares query parameter 'count' as a number; remove this row")]
+    [Arguments("widget.list", "missing", "the operation has no query parameter 'missing'; remove this row")]
     [Arguments("widget.list", "mode", "query parameter 'mode' is no longer a plain string; remove this row")]
-    [Arguments("widget.gone", "limit", "no longer exists in the document; remove this row")]
-    [Arguments("widget.other", "limit", "is not selected by the current profile")]
+    [Arguments("widget.gone", "limit", "the operation no longer exists in the document; remove this row")]
+    [Arguments("widget.other", "limit", "curated operation is not selected by the current profile")]
     public async Task Bind_Should_Refuse_A_Type_Row_With_Nothing_Left_To_Classify(string operationId, string parameter, string problem)
     {
         var document = await BindingTestHost.IngestAsync(RetirementScenario());
@@ -122,22 +122,24 @@ public sealed class QueryParameterClassificationTests
         var exception = Assert.Throws<BindingException>(() => Bind(document,
             typed: [QueryParameterType(Operation, "limit", "int"), QueryParameterType(operationId, parameter, "int")]));
 
-        await AssertRefusedAsync(exception, operationId + ":" + parameter, problem);
+        var expected = new BindingError(BindingErrorCategory.Curation, operationId + ":" + parameter, problem);
+        await Assert.That(exception.Errors.Single(error => error.Category == expected.Category && error.Subject == expected.Subject))
+            .IsEqualTo(expected);
     }
 
     [Test]
-    [Arguments("count", "now declares query parameter 'count' as a number; remove this row")]
-    [Arguments("missing", "has no query parameter 'missing'; remove this row")]
+    [Arguments("count", "the document now declares query parameter 'count' as a number; remove this row")]
+    [Arguments("missing", "the operation has no query parameter 'missing'; remove this row")]
     [Arguments("mode", "query parameter 'mode' is no longer a plain string; remove this row")]
     public async Task Bind_Should_Refuse_A_String_Row_With_Nothing_Left_To_Classify(string parameter, string problem)
     {
-        var document = await BindingTestHost.IngestAsync(RetirementScenario());
+        var curation = Curation(Groups("widget", ClientGroup("Widgets", null, null)),
+            queryParameterTypes: [QueryParameterType(Operation, "limit", "int")],
+            stringQueryParameters: [StringQueryParameter(Operation, parameter)]);
+        var exception = await BindRefusalsAsync(RetirementScenario(), curation, Operation);
 
-        var exception = Assert.Throws<BindingException>(() => Bind(document,
-            typed: [QueryParameterType(Operation, "limit", "int")],
-            strings: [StringQueryParameter(Operation, parameter)]));
-
-        await AssertRefusedAsync(exception, Operation + ":" + parameter, problem);
+        await Assert.That(exception.Errors.Single(error => error.Category == BindingErrorCategory.Curation && error.Subject == Operation + ":" + parameter))
+            .IsEqualTo(new BindingError(BindingErrorCategory.Curation, Operation + ":" + parameter, problem));
     }
 
     [Test]
@@ -190,19 +192,35 @@ public sealed class QueryParameterClassificationTests
     }
 
     [Test]
-    [Arguments("short", "reason", "packages/x.ts", "anchor", "is not 'int' or 'long'")]
-    [Arguments("int", " ", "packages/x.ts", "anchor", "must declare a reason")]
-    [Arguments("int", "reason", " ", "anchor", "must name its evidence")]
-    [Arguments("int", "reason", "packages/x.ts", " ", "must name its evidence")]
-    public async Task Bind_Should_Refuse_An_Incomplete_Type_Row(string dotnetType, string reason, string evidencePath, string evidenceAnchor,
-        string problem)
+    [Arguments("short", "reason", "packages/x.ts", "anchor", "query parameter type 'short' is not 'int' or 'long'")]
+    [Arguments("int", " ", "packages/x.ts", "anchor", "query parameter type curation must declare a reason")]
+    [Arguments("int", "reason", " ", "anchor", "query parameter type curation must name its evidence: the upstream file and the text that declares the decode")]
+    [Arguments("int", "reason", "packages/x.ts", " ", "query parameter type curation must name its evidence: the upstream file and the text that declares the decode")]
+    [Arguments("int", "reason", "packages/x.ts", "anchor", "the query parameter is classified twice: a queryParameterTypes row types it, so its stringQueryParameters row must go", "double")]
+    [Arguments("int", "reason", "packages/x.ts", "anchor", "the query parameter is a plain string that no curation row classifies: add a queryParameterTypes row when upstream decodes it as a number, or a stringQueryParameters row that says why it stays a string", "absent")]
+    [Arguments("int", "reason", "packages/x.ts", "anchor", "the evidence 'packages/x.ts' is not in the source watch: pin it there, so a refresh that changes the decode stops for review", "watch")]
+    [Arguments("int", "reason", "packages/x.ts", "anchor", "the operation no longer exists in the document; remove this row", "string", "widget.gone")]
+    [Arguments("int", "reason", "packages/x.ts", "anchor", "curated operation is not selected by the current profile", "string", "widget.other")]
+    public async Task Bind_Should_Refuse_Invalid_Query_Classification_Rows(string dotnetType, string reason, string evidencePath, string evidenceAnchor,
+        string problem, string fault = "row", string operationId = Operation)
     {
         var document = await BindingTestHost.IngestAsync(RetirementScenario());
 
-        var exception = Assert.Throws<BindingException>(() => Bind(document,
-            typed: [QueryParameterType(Operation, "limit", dotnetType, reason, evidencePath, evidenceAnchor)]));
+        var row = QueryParameterType(Operation, "limit", dotnetType, reason, evidencePath, evidenceAnchor);
+        var errors = new BindingErrorCollector();
+        var exception = fault == "watch" ? Assert.Throws<BindingException>(() =>
+        {
+            QueryParameterEvidencePolicy.Check(Curation(Groups(), queryParameterTypes: [row]), Watch("other.ts"), errors);
+            errors.ThrowIfAny();
+        }) : Assert.Throws<BindingException>(() => Bind(document,
+            typed: fault switch { "absent" => [], "string" => [QueryParameterType(Operation, "limit", "int")], _ => [row] },
+            strings: fault switch { "double" => [StringQueryParameter(Operation, "limit")], "string" => [StringQueryParameter(operationId, "limit")], _ => [] }));
 
-        await AssertRefusedAsync(exception, Operation + ":limit", problem);
+        await Assert.That(exception.Errors.Single(error => error.Category == BindingErrorCategory.Curation && error.Subject == operationId + ":limit"))
+            .IsEqualTo(new BindingError(BindingErrorCategory.Curation, operationId + ":limit", problem)
+            {
+                Kind = fault == "absent" ? BindingErrorKind.MissingRow : BindingErrorKind.Unspecified,
+            });
     }
 
     [Test]

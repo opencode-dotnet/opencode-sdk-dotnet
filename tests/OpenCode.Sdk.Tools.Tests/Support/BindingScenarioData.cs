@@ -6,6 +6,12 @@ namespace OpenCode.Sdk.Tools.Tests.Support;
 
 internal static class BindingScenarioData
 {
+    public static async Task<BindingException> BindRefusalsAsync(SpecScenario scenario, GenerationCuration curation, params string[] operations)
+    {
+        var document = await BindingTestHost.IngestAsync(scenario);
+        return Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection(operations), curation));
+    }
+
     public static Task<SpecDocument> ContractDocumentAsync() => BindingTestHost.IngestAsync(SpecScenario.Define(static spec =>
         spec.WithOperation("health.get", configure: static operation => operation.WithoutResponse(200).Response(204))));
 

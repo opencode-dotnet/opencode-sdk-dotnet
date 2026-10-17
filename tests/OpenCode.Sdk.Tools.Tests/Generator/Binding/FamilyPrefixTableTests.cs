@@ -1,5 +1,6 @@
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Generator.Binding.Support.OwnershipPlanData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
@@ -11,6 +12,28 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 /// </summary>
 public sealed class FamilyPrefixTableTests
 {
+    [Test]
+    [Arguments("collision", "Session", "the name prefix places models in both 'LanguageModels' and 'Sessions'", "the name prefix places models in both 'LanguageModels' and 'Sessions'")]
+    [Arguments("repeat", "Model", "the prefix alias repeats a prefix family 'LanguageModels' already has")]
+    [Arguments("stale", "Models", "the prefix alias of 'LanguageModels' places no generated model")]
+    [Arguments("blank", "model", "the prefix alias ' ' is blank or not an identifier")]
+    [Arguments("invalid", "model", "the prefix alias 'bad-name' is blank or not an identifier")]
+    public async Task Create_Should_Refuse_Invalid_Prefix_Aliases(string fault, string subject, string problem, string? secondProblem = null)
+    {
+        var alias = fault switch { "collision" => "Session", "repeat" => "Model", "blank" => " ", "invalid" => "bad-name", _ => "Models" };
+        var errors = new BindingErrorCollector();
+        var table = PrefixTable(errors, FamiliesWithModelAlias(alias));
+        if (fault == "stale")
+        {
+            table.ReportDeadAliases(errors);
+        }
+        BindingError[] expected = secondProblem is null ? [new(BindingErrorCategory.Curation, subject, problem)]
+            : [new(BindingErrorCategory.Curation, subject, problem), new(BindingErrorCategory.Curation, subject, secondProblem)];
+        await Assert.That(Assert.Throws<BindingException>(errors.ThrowIfAny).Errors
+            .Where(error => error.Category == BindingErrorCategory.Curation && error.Subject == subject))
+            .IsEquivalentTo(expected, CollectionOrdering.Matching);
+    }
+
     private const string Sessions = "Sessions";
     private const string McpServers = "McpServers";
     private const string LanguageModels = "LanguageModels";
