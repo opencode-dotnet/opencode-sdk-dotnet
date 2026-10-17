@@ -9,15 +9,19 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
-### 🐛 Fixes
+### ✨ Added
 
 - **The SDK speaks opencode 2.0.32.** `ExperimentalClient.CreateVoiceSessionAsync` opens an
-  experimental voice session. `ConfigModelCapabilities.Reasoning` exposes the supported and
-  unsupported reasoning arms, `ConfigModelCapabilities.Temperature` and
-  `ModelCapabilities.Temperature` expose temperature support, and `ConfigModel.ReleaseDate`
-  carries the model's release date. For a spawned service, caller environment entries win over
-  service-config `env` at spawn; a 2.0.32 service re-applies its saved `env` after startup, so saved
-  values win for everything read after startup.
+  experimental voice session over WebRTC or WebSocket. `ConfigModelCapabilities.Reasoning` tells a
+  model that does not reason (`ConfigModelReasoningUnsupported`) from one that does
+  (`ConfigModelReasoningSupported`, with its toggle, efforts and `ConfigModelReasoningBudget`);
+  `ConfigModelCapabilities.Temperature` and `ModelCapabilities.Temperature` say whether a model
+  takes a temperature, and `ConfigModel.ReleaseDate` carries its release date. For a spawned
+  service, caller environment entries still win over the service-config `env` at spawn; a 2.0.32
+  service then re-applies its saved `env`, so a key set in both takes the saved value for
+  everything the service reads after startup.
+
+### 🐛 Fixes
 
 - **IntelliSense reaches implementing members and restores declared halves.** Properties that
   implement a documented interface member (durable envelopes' `Seq` and `Version`, the MCP

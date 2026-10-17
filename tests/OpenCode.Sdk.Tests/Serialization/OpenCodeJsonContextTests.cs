@@ -495,36 +495,31 @@ public sealed class OpenCodeJsonContextTests
     }
 
     [Test]
-    [Arguments(false, null, null)]
-    [Arguments(true, null, null)]
-    [Arguments(true, "finite", 7.25)]
-    [Arguments(true, "NaN", double.NaN)]
-    [Arguments(true, "Infinity", double.PositiveInfinity)]
-    [Arguments(true, "-Infinity", double.NegativeInfinity)]
-    [Arguments(true, "nan", null)]
-    public async Task Deserialize_Should_Round_Trip_The_Voice_Dcid_States(bool present, string? wireValue, double? expected)
+    [Arguments(null, null)]
+    [Arguments("null", null)]
+    [Arguments("7.25", 7.25)]
+    [Arguments("\"NaN\"", double.NaN)]
+    [Arguments("\"Infinity\"", double.PositiveInfinity)]
+    [Arguments("\"-Infinity\"", double.NegativeInfinity)]
+    public async Task Deserialize_Should_Round_Trip_The_Voice_Dcid_States(string? wireValue, double? expected)
     {
-        var payload = new JsonObject { ["type"] = "webrtc", ["sdp"] = "offer" };
-        if (present)
-        {
-            payload["dcid"] = wireValue == "finite" ? JsonValue.Create(expected) : JsonValue.Create(wireValue);
-        }
-
-        var json = payload.ToJsonString();
-        if (wireValue == "nan")
-        {
-            _ = await Assert.That(() => _serializer.Deserialize<VoiceWebRtcTransportInput>(json)).Throws<JsonException>();
-            return;
-        }
+        var json = wireValue is null
+            ? """{"type":"webrtc","sdp":"offer"}"""
+            : $$"""{"type":"webrtc","sdp":"offer","dcid":{{wireValue}}}""";
 
         var result = _serializer.Deserialize<VoiceWebRtcTransportInput>(json);
-        await Assert.That(result.Dcid.IsSet).IsEqualTo(present);
-        if (present)
-        {
-            await Assert.That(result.Dcid.Value).IsEqualTo(expected);
-        }
 
+        await Assert.That(result.Dcid.IsSet).IsEqualTo(wireValue is not null);
+        await Assert.That(result.Dcid.Value).IsEqualTo(expected);
         await Assert.That(_serializer.Serialize(result)).IsEqualTo(json);
+    }
+
+    [Test]
+    public async Task Deserialize_Should_Refuse_A_Lowercase_Named_Literal_For_The_Voice_Dcid()
+    {
+        const string json = """{"type":"webrtc","sdp":"offer","dcid":"nan"}""";
+
+        _ = await Assert.That(() => _serializer.Deserialize<VoiceWebRtcTransportInput>(json)).Throws<JsonException>();
     }
 
     [Test]

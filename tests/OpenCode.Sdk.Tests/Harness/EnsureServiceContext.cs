@@ -295,7 +295,7 @@ internal sealed class EnsureServiceContext : IAsyncDisposable
     {
         _runRoot = new TestRunRoot(_fileSystem);
         _isolation = ServerIsolation.For(_fileSystem, _runRoot.Path);
-        _port = ReservePort(LoopbackPortReservation.Reserve());
+        _port = RefuseRealDaemonPort(LoopbackPortReservation.Reserve());
         _registrationFile = _fileSystem.Path.Combine(
             Environment["XDG_STATE_HOME"], "opencode", _channelFile!);
         await SeedConfigAsync(cancellationToken).ConfigureAwait(false);
@@ -305,7 +305,7 @@ internal sealed class EnsureServiceContext : IAsyncDisposable
         _shimPath = await OpenCodeCommandShim.WriteAsync(_fileSystem, _shimDirectory, cancellationToken).ConfigureAwait(false);
     }
 
-    internal static int ReservePort(int port)
+    internal static int RefuseRealDaemonPort(int port)
     {
         if (port is WindowsReleasePort or RealDaemonPort)
         {
