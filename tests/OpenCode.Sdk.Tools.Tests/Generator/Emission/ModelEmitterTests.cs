@@ -155,4 +155,22 @@ public sealed class ModelEmitterTests
         await Assert.That(model).DoesNotContain("public IDictionary");
         await Assert.That(model).DoesNotContain("[JsonPropertyName(\"additionalProperties\")]");
     }
+
+    [Test]
+    public async Task Emit_Should_Apply_Number_Handling_Only_To_Unwrapped_Special_Numbers()
+    {
+        var model = UnionHoistPlanData.Record("WidgetPatchRequest",
+            UnionHoistPlanData.Property("required", UnionHoistPlanData.SpecialNumber(), isRequired: true),
+            UnionHoistPlanData.Property("optional", UnionHoistPlanData.SpecialNumber(isNullable: true), isRequired: false),
+            UnionHoistPlanData.Property("wrapped", UnionHoistPlanData.SpecialNumber(isNullable: true), isRequired: false, emitsOptionalWrapper: true));
+        var plan = (EmitterPlanFixture.CreateModelSnapshot() with { Models = [model], Unions = [] }).WithSingleSlice();
+        var root = await CSharpSyntaxTree.ParseText(EmitterSnapshot.Create(ModelEmitter.Emit(plan))).GetRootAsync();
+        var properties = root.DescendantNodes().OfType<PropertyDeclarationSyntax>()
+            .ToDictionary(property => property.Identifier.ValueText, StringComparer.Ordinal);
+
+        await Assert.That(properties["Required"].ToString()).Contains("[JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]");
+        await Assert.That(properties["Optional"].ToString()).Contains("[JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]");
+        await Assert.That(properties["Wrapped"].ToString()).DoesNotContain("JsonNumberHandling");
+        await Assert.That(properties["Wrapped"].ToString()).Contains("[JsonConverter(typeof(OptionalOfSpecialNumberJsonConverter))]");
+    }
 }

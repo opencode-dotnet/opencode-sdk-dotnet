@@ -210,8 +210,8 @@ reported upstream rather than repaired from private implementation knowledge (AD
 - A tri-state request property emits `[JsonIgnore(Condition = WhenWritingDefault)]` beside a
   property-level `[JsonConverter]` naming the closed converter emitted for its instantiation: the
   wrapper is generic, so no type-level converter can name it; a special-number instantiation's
-  converter reads and writes the three named literals itself, because `[JsonNumberHandling]` is
-  invalid on the wrapper member. A member-level converter costs the
+  converter reads and writes the named literals `NaN`, `Infinity` and `-Infinity` itself, because
+  `[JsonNumberHandling]` is invalid on the wrapper member. A member-level converter costs the
   containing type its serialization fast path, which makes `JsonSourceGenerationMode.Metadata` on
   the emitted registry load-bearing rather than a performance preference (ADR-0004, ADR-0014).
 - An object schema that declares named properties beside an unrestricted additional-properties

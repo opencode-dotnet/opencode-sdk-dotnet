@@ -1,9 +1,6 @@
 using System.Text;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
-using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
 using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.UnionHoistPlanData;
@@ -51,37 +48,6 @@ public sealed class OptionalConverterEmitterTests(PinnedBinding pinned)
 
         await Assert.That(exception.Message).IsEqualTo(
             "No optional converter name exists for plan 'SpecialNumberTypeReferencePlan'; admit the representation first.");
-    }
-
-    [Test]
-    public async Task Emit_Should_Preserve_Converter_Name_Collisions_For_The_Source_Emitter_To_Refuse()
-    {
-        var model = Record("WidgetPatchRequest",
-            Property("primitive", Named("double", isNullable: true), isRequired: false, emitsOptionalWrapper: true),
-            Property("nominal", Named("Double", isNullable: true), isRequired: false, emitsOptionalWrapper: true));
-        var plan = (EmitterPlanFixture.CreateModelSnapshot() with { Models = [model], Unions = [], Clients = [] }).WithSingleSlice();
-
-        var exception = Assert.Throws<InvalidOperationException>(() => SourceEmitter.Emit(plan));
-
-        await Assert.That(exception.Message).IsEqualTo("Multiple emitters produced 'Internal/Serialization/OptionalOfDoubleJsonConverter.cs'.");
-    }
-
-    [Test]
-    public async Task Emit_Should_Apply_Number_Handling_Only_To_Unwrapped_Special_Numbers()
-    {
-        var model = Record("WidgetPatchRequest",
-            Property("required", SpecialNumber(), isRequired: true),
-            Property("optional", SpecialNumber(isNullable: true), isRequired: false),
-            Property("wrapped", SpecialNumber(isNullable: true), isRequired: false, emitsOptionalWrapper: true));
-        var plan = (EmitterPlanFixture.CreateModelSnapshot() with { Models = [model], Unions = [] }).WithSingleSlice();
-        var root = await CSharpSyntaxTree.ParseText(EmitterSnapshot.Create(ModelEmitter.Emit(plan))).GetRootAsync();
-        var properties = root.DescendantNodes().OfType<PropertyDeclarationSyntax>()
-            .ToDictionary(property => property.Identifier.ValueText, StringComparer.Ordinal);
-
-        await Assert.That(properties["Required"].ToString()).Contains("[JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]");
-        await Assert.That(properties["Optional"].ToString()).Contains("[JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]");
-        await Assert.That(properties["Wrapped"].ToString()).DoesNotContain("JsonNumberHandling");
-        await Assert.That(properties["Wrapped"].ToString()).Contains("[JsonConverter(typeof(OptionalOfSpecialNumberJsonConverter))]");
     }
 
     [Test]

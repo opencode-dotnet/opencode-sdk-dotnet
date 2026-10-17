@@ -18,6 +18,7 @@ internal static class OptionalConverterEmitter
     /// <summary>The named types the emitters render without reaching into the generated models namespace.</summary>
     private static readonly string[] NonModelNames = ["bool", "double", "long", "string", "int", "JsonElement", "Uri"];
 
+    /// <summary>The named floating-point literals AllowNamedFloatingPointLiterals admits, beside the <c>double</c> member each one names.</summary>
     private static readonly (string Literal, string Member)[] SpecialNumbers =
     [
         ("NaN", "NaN"),
@@ -93,7 +94,10 @@ internal static class OptionalConverterEmitter
                     EmissionSyntax.MemberAccess(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.DoubleKeyword)), number.Member)))
                 .Append(SyntaxFactory.SwitchExpressionArm(SyntaxFactory.DiscardPattern(), SyntaxFactory.ThrowExpression(
                     SyntaxFactory.ObjectCreationExpression(SyntaxFactory.IdentifierName("JsonException"))
-                        .WithArgumentList(SyntaxFactory.ArgumentList()))))));
+                        .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
+                            SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                                SyntaxKind.StringLiteralExpression,
+                                SyntaxFactory.Literal("The JSON string is not a named floating-point literal.")))))))))));
             body.Add(SyntaxFactory.IfStatement(SyntaxFactory.BinaryExpression(SyntaxKind.EqualsExpression,
                 EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("reader"), "TokenType"),
                 EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonTokenType"), "String")),
