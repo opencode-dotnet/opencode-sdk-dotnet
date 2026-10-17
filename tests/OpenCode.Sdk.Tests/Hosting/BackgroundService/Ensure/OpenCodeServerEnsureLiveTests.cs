@@ -1,5 +1,7 @@
 using System.Text;
+using System.Text.Json.Nodes;
 using OpenCode.Sdk.Internal;
+using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using OpenCode.Sdk.Tests.Support;
@@ -166,6 +168,43 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
         // The fixture process recorded the contenders; this process has to recognize the elected
         // service's host among them to end it — on Linux the two read one start time differently.
         await Assert.That(await context.ReadLiveContendersAsync(cancellationToken)).IsNotEmpty();
+    }
+
+    [Test]
+    [Timeout(180_000)]
+    public async Task EnsureAsync_Should_Start_On_The_Callers_Config_Dir_And_Serve_The_Saved_One_After_Startup(CancellationToken cancellationToken)
+    {
+        var context = Context;
+        var callerDirectory = context.Environment["OPENCODE_CONFIG_DIR"];
+        var savedDirectory = FileSystem.Path.Combine(context.RunRoot, "saved-config");
+        var channelFile = FileSystem.Path.GetFileName(context.RegistrationFile);
+        var ports = LoopbackPortReservation.ReservePair();
+        var savedPort = EnsureServiceContext.RefuseRealDaemonPort(ports.First != context.Port ? ports.First : ports.Second);
+
+        await SeedAsync(FileSystem.Path.Combine(callerDirectory, channelFile), new JsonObject
+        {
+            ["port"] = context.Port,
+            ["env"] = new JsonObject { ["OPENCODE_CONFIG_DIR"] = savedDirectory },
+        }.ToJsonString());
+        await SeedAsync(FileSystem.Path.Combine(savedDirectory, channelFile), new JsonObject
+        {
+            ["port"] = savedPort,
+        }.ToJsonString());
+
+        await using var server = await context.EnsureAsync(EnsureOptions(context), cancellationToken);
+
+        // The service config is selected before the saved environment is applied.
+        await Assert.That(server.Endpoint.Port).IsEqualTo(context.Port);
+
+        using var client = server.CreateClient(options =>
+            options.Location = new LocationSelector { Directory = context.RunRoot });
+        var response = await client.Config.GetConfigAsync(cancellationToken: cancellationToken);
+        var directories = response.Config.OfType<ConfigDirectory>()
+            .Select(directory => FileSystem.Path.GetFullPath(directory.Path)).ToList();
+
+        // Application config discovery reads the saved environment after startup.
+        await Assert.That(directories).Contains(FileSystem.Path.GetFullPath(savedDirectory));
+        await Assert.That(directories).DoesNotContain(FileSystem.Path.GetFullPath(callerDirectory));
     }
 
     [Test]
