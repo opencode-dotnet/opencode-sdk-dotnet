@@ -362,7 +362,8 @@ internal sealed class OperationPlanBinder
         {
             var curatedName = _context.Curation.OperationNames.FirstOrDefault(operationName =>
                 string.Equals(operationName.OperationId, _context.Operation.OperationId, StringComparison.Ordinal));
-            if (curatedName is null && OperationNamePolicy.RowRequiredProblem(_context.Operation) is { } rowRequired)
+            if (curatedName is null && (OperationNamePolicy.RowRequiredProblem(_context.Operation)
+                                       ?? OperationNamePolicy.AmbiguousPluralProblem(_context.Operation, handle: handle)) is { } rowRequired)
             {
                 return (null, null, rowRequired);
             }

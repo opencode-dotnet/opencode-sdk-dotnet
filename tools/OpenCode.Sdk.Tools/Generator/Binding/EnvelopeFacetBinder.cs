@@ -63,7 +63,8 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
             responseTypeName,
             success.EnvelopeShape is SpecEnvelopeShape.SingleKey
                 ? CSharpNamePolicy.ToPascalCase(wireMemberName)
-                : OperationNamePolicy.PayloadName(_context.Operation));
+                : OperationNamePolicy.PayloadName(_context.Operation),
+            success.EnvelopeShape is SpecEnvelopeShape.SingleKey);
         if (payloadName is null)
         {
             return null;
@@ -158,10 +159,15 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
         JsonNullRepresentation = JsonNullRepresentation.ClrNull,
     };
 
-    private string? DerivePayloadName(string responseTypeName, string mechanicalName)
+    private string? DerivePayloadName(string responseTypeName, string mechanicalName, bool singleKey)
     {
         var curated = _context.Curation.EnvelopePayloadNames.FirstOrDefault(row =>
             string.Equals(row.OperationId, _context.Operation.OperationId, StringComparison.Ordinal))?.Name;
+        if (curated is null && !singleKey && OperationNamePolicy.AmbiguousPluralProblem(_context.Operation, payload: true) is { } problem)
+        {
+            return _context.RefuseNull(problem);
+        }
+
         var payloadName = curated ?? mechanicalName;
         if (curated is not null
             && string.Equals(curated, mechanicalName, StringComparison.Ordinal))

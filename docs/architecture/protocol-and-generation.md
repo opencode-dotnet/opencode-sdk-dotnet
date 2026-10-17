@@ -144,8 +144,10 @@ Curation may:
   requires a row. The HTTP method supplies no name segment and removes none. Lists pluralize the
   last subject word, including the group fallback, for methods and envelope payload members by
   the regular rule and closed irregular table; a list naming row that restates that output
-  refuses. Request, response, and operation-derived payload type names follow the operation
-  identity, never an `operationNames` row (ADR-0008);
+  refuses. A list whose last subject word ends in a single `s` requires an `operationNames` row,
+  unless it is a handle method with no subject, and an `envelopePayloadNames` row for a derived
+  payload member. Request, response, and operation-derived payload type names follow the
+  operation identity, never an `operationNames` row (ADR-0008);
 - declare that a family emits an internal raw layer rather than a public surface, where
   hand-written code owns that family's public doors (ADR-0021);
 - document a generated type or one of its members where the wire says too little, through a

@@ -7,6 +7,21 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class OperationNamePolicyTests
 {
     [Test]
+    [Arguments("project.aliases.list", "operation 'project.aliases.list' is a list whose last subject word 'Aliases' ends in 's', which may already be plural; an operationNames row must name it (ADR-0008)")]
+    [Arguments("fs.list", "operation 'fs.list' is a list whose last subject word 'Fs' ends in 's', which may already be plural; an operationNames row must name it (ADR-0008)")]
+    [Arguments("boss.list", null)]
+    [Arguments("box.list", null)]
+    [Arguments("buzz.list", null)]
+    [Arguments("branch.list", null)]
+    [Arguments("dish.list", null)]
+    [Arguments("session.inbox.list", null)]
+    [Arguments("vcs.changes.get", null)]
+    public async Task AmbiguousPluralProblem_Should_Require_Only_Ambiguous_List_Rows(string operationId, string? expected)
+    {
+        await Assert.That(OperationNamePolicy.AmbiguousPluralProblem(Operation(operationId))).IsEqualTo(expected);
+    }
+
+    [Test]
     [Arguments("health.get", "get", "GetHealthAsync")]
     [Arguments("session.message", "get", "GetMessageAsync")]
     [Arguments("session.get", "get", "GetSessionAsync")]
