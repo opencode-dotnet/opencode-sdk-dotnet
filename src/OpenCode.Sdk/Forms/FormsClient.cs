@@ -4,7 +4,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;FormsClient&apos; collection client.
+/// Location form routes.
 /// </summary>
 public class FormsClient
 {

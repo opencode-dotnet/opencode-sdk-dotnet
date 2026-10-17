@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a provider settings header timeout structural union.
+/// Represents the timeout setting&apos;s alternatives. Time for response headers, in milliseconds; false disables it. The server default is 300,000 ms.
 /// </summary>
 [JsonConverter(typeof(ProviderSettingsHeaderTimeoutJsonConverter))]
 public sealed record ProviderSettingsHeaderTimeout

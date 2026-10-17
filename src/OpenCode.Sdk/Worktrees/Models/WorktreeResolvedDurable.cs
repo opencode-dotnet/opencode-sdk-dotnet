@@ -15,13 +15,13 @@ public sealed record WorktreeResolvedDurable
     public required string AggregateId { get; init; }
 
     /// <summary>
-    /// Gets the seq value.
+    /// Position in one aggregate&apos;s durable log. Use only values from durable envelopes or synced markers as after cursors.
     /// </summary>
     [JsonPropertyName("seq")]
     public required long Seq { get; init; }
 
     /// <summary>
-    /// Gets the version value.
+    /// Durable schema version of this event type, from the event definition that committed it.
     /// </summary>
     [JsonPropertyName("version")]
     public required double Version { get; init; }

@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Models;
 public sealed record SessionMessageSyntheticTime
 {
     /// <summary>
-    /// Gets the created value.
+    /// Creation time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("created")]
     public required double Created { get; init; }

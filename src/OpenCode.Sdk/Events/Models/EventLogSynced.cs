@@ -22,7 +22,7 @@ public sealed record EventLogSynced : ISessionLogItem
     public required string AggregateId { get; init; }
 
     /// <summary>
-    /// Gets the seq value.
+    /// Captured watermark of this aggregate&apos;s durable log; absent when that watermark is empty.
     /// </summary>
     [JsonPropertyName("seq")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

@@ -9,14 +9,14 @@ namespace OpenCode.Sdk.Models;
 public sealed record ConfigInfoExperimental
 {
     /// <summary>
-    /// Gets the portable shell scanner value.
+    /// Enable the experimental portable shell permission scanner. Defaults to false.
     /// </summary>
     [JsonPropertyName("portable_shell_scanner")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? PortableShellScanner { get; init; }
 
     /// <summary>
-    /// Gets the subagent depth value.
+    /// Maximum subagent nesting depth. Defaults to 1.
     /// </summary>
     [JsonPropertyName("subagent_depth")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

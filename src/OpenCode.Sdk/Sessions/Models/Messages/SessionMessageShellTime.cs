@@ -9,13 +9,13 @@ namespace OpenCode.Sdk.Models;
 public sealed record SessionMessageShellTime
 {
     /// <summary>
-    /// Gets the created value.
+    /// Creation time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("created")]
     public required double Created { get; init; }
 
     /// <summary>
-    /// Gets the completed value.
+    /// Completion time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("completed")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

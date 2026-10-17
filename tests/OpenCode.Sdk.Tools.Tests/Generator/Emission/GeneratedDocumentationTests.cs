@@ -54,8 +54,8 @@ public sealed class GeneratedDocumentationTests
         var helperFed = summaries.Where(pair => placeholders.Any(pattern => Matches(pair.Value, pattern)) ||
             Matches(pair.Value, @"^(?:Preserves an unknown [a-z0-9 ]+ payload\.$|The [a-z0-9 ]+\. The pinned server's values are the static properties;)")).ToArray();
         using var assertions = Assert.Multiple();
-        await Assert.That(100m * historical / summaries.Count).IsLessThanOrEqualTo(45.131708m);
-        await Assert.That(100m * broad / summaries.Count).IsLessThanOrEqualTo(62.614635m);
+        await Assert.That(100m * historical / summaries.Count).IsLessThanOrEqualTo(44.702440m);
+        await Assert.That(100m * broad / summaries.Count).IsLessThanOrEqualTo(61.073171m);
         foreach (var defect in defects)
         {
             var offenders = helperFed.Where(pair => Matches(pair.Value, defect)).ToArray();

@@ -138,115 +138,115 @@ public class OpenCodeClient : IDisposable
     }
 
     /// <summary>
-    /// Gets the &apos;Agents&apos; collection client.
+    /// Lists registered agents and retrieves an agent by identifier.
     /// </summary>
     public virtual AgentsClient Agents => _agents ?? throw MockSeam.CreateError("OpenCodeClient", "Agents");
     /// <summary>
-    /// Gets the &apos;Commands&apos; collection client.
+    /// Experimental command routes.
     /// </summary>
     public virtual CommandsClient Commands => _commands ?? throw MockSeam.CreateError("OpenCodeClient", "Commands");
     /// <summary>
-    /// Gets the &apos;Config&apos; collection client.
+    /// Reads the location&apos;s configuration documents and lists shells available for terminal and agent execution.
     /// </summary>
     public virtual ConfigClient Config => _config ?? throw MockSeam.CreateError("OpenCodeClient", "Config");
     /// <summary>
-    /// Gets the &apos;Credentials&apos; collection client.
+    /// Lists, stores, labels, activates and removes integration credentials.
     /// </summary>
     public virtual CredentialsClient Credentials => _credentials ?? throw MockSeam.CreateError("OpenCodeClient", "Credentials");
     /// <summary>
-    /// Gets the &apos;Debug&apos; collection client.
+    /// Lists loaded locations and evicts their cached services.
     /// </summary>
     public virtual DebugClient Debug => _debug ?? throw MockSeam.CreateError("OpenCodeClient", "Debug");
     /// <summary>
-    /// Gets the &apos;Events&apos; collection client.
+    /// Experimental event stream routes.
     /// </summary>
     public virtual EventsClient Events => _events ?? throw MockSeam.CreateError("OpenCodeClient", "Events");
 
     /// <summary>
-    /// Gets the &apos;Experimental&apos; collection client.
+    /// Provides experimental generation, session, integration, MCP, filesystem, configuration and migration operations.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
     public virtual ExperimentalClient Experimental => _experimental ?? throw MockSeam.CreateError("OpenCodeClient", "Experimental");
     /// <summary>
-    /// Gets the &apos;FileSystem&apos; collection client.
+    /// Reads file content and lists or finds entries at the requested location.
     /// </summary>
     public virtual FileSystemClient FileSystem => _fileSystem ?? throw MockSeam.CreateError("OpenCodeClient", "FileSystem");
     /// <summary>
-    /// Gets the &apos;Forms&apos; collection client.
+    /// Location form routes.
     /// </summary>
     public virtual FormsClient Forms => _forms ?? throw MockSeam.CreateError("OpenCodeClient", "Forms");
     /// <summary>
-    /// Gets the &apos;Integrations&apos; collection client.
+    /// Discovers integrations and runs key, external, OAuth or command authentication flows.
     /// </summary>
     public virtual IntegrationsClient Integrations => _integrations ?? throw MockSeam.CreateError("OpenCodeClient", "Integrations");
     /// <summary>
-    /// Gets the &apos;LanguageModels&apos; collection client.
+    /// Experimental model routes.
     /// </summary>
     public virtual LanguageModelsClient LanguageModels => _languageModels ?? throw MockSeam.CreateError("OpenCodeClient", "LanguageModels");
     /// <summary>
-    /// Gets the &apos;McpServers&apos; collection client.
+    /// Lists MCP servers and discovers their resources and resource templates.
     /// </summary>
     public virtual McpServersClient McpServers => _mcpServers ?? throw MockSeam.CreateError("OpenCodeClient", "McpServers");
     /// <summary>
-    /// Gets the &apos;Permissions&apos; collection client.
+    /// Lists location permission requests and saved permissions, and removes saved permissions.
     /// </summary>
     public virtual PermissionsClient Permissions => _permissions ?? throw MockSeam.CreateError("OpenCodeClient", "Permissions");
 
     /// <summary>
-    /// Gets the &apos;PersistentPtys&apos; collection client.
+    /// Prototype persistent PTY routes.
     /// </summary>
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
     public virtual PersistentPtysClient PersistentPtys => _persistentPtys ?? throw MockSeam.CreateError("OpenCodeClient", "PersistentPtys");
     /// <summary>
-    /// Gets the &apos;Plugins&apos; collection client.
+    /// Experimental plugin routes.
     /// </summary>
     public virtual PluginsClient Plugins => _plugins ?? throw MockSeam.CreateError("OpenCodeClient", "Plugins");
     /// <summary>
-    /// Gets the &apos;Projects&apos; collection client.
+    /// Project routes.
     /// </summary>
     public virtual ProjectsClient Projects => _projects ?? throw MockSeam.CreateError("OpenCodeClient", "Projects");
     /// <summary>
-    /// Gets the &apos;Providers&apos; collection client.
+    /// Experimental provider routes.
     /// </summary>
     public virtual ProvidersClient Providers => _providers ?? throw MockSeam.CreateError("OpenCodeClient", "Providers");
     /// <summary>
-    /// Gets the &apos;Ptys&apos; collection client.
+    /// Experimental location-scoped PTY routes.
     /// </summary>
     public virtual PtysClient Ptys => _ptys ?? throw MockSeam.CreateError("OpenCodeClient", "Ptys");
     /// <summary>
-    /// Gets the &apos;References&apos; collection client.
+    /// Location-scoped project references.
     /// </summary>
     public virtual ReferencesClient References => _references ?? throw MockSeam.CreateError("OpenCodeClient", "References");
     /// <summary>
-    /// Gets the &apos;Rpc&apos; collection client.
+    /// Plugin RPC routes.
     /// </summary>
     public virtual RpcClient Rpc => _rpc ?? throw MockSeam.CreateError("OpenCodeClient", "Rpc");
     /// <summary>
-    /// Gets the &apos;Server&apos; collection client.
+    /// Reads server identity and readiness and creates or consumes pairing links.
     /// </summary>
     public virtual ServerClient Server => _server ?? throw MockSeam.CreateError("OpenCodeClient", "Server");
     /// <summary>
-    /// Gets the &apos;Sessions&apos; collection client.
+    /// Creates and lists sessions and opens session handles for prompts, messages, forms and execution control.
     /// </summary>
     public virtual SessionsClient Sessions => _sessions ?? throw MockSeam.CreateError("OpenCodeClient", "Sessions");
     /// <summary>
-    /// Gets the &apos;Shells&apos; collection client.
+    /// Location-scoped shell command routes.
     /// </summary>
     public virtual ShellsClient Shells => _shells ?? throw MockSeam.CreateError("OpenCodeClient", "Shells");
     /// <summary>
-    /// Gets the &apos;Skills&apos; collection client.
+    /// Experimental skill routes.
     /// </summary>
     public virtual SkillsClient Skills => _skills ?? throw MockSeam.CreateError("OpenCodeClient", "Skills");
     /// <summary>
-    /// Gets the &apos;Vcs&apos; collection client.
+    /// Location-scoped version control routes.
     /// </summary>
     public virtual VcsClient Vcs => _vcs ?? throw MockSeam.CreateError("OpenCodeClient", "Vcs");
     /// <summary>
-    /// Gets the &apos;Websearch&apos; collection client.
+    /// Location-scoped web search routes.
     /// </summary>
     public virtual WebsearchClient Websearch => _websearch ?? throw MockSeam.CreateError("OpenCodeClient", "Websearch");
     /// <summary>
-    /// Gets the &apos;Worktrees&apos; collection client.
+    /// Project-based worktree management routes.
     /// </summary>
     public virtual WorktreesClient Worktrees => _worktrees ?? throw MockSeam.CreateError("OpenCodeClient", "Worktrees");
     private Pipeline Pipeline => _pipeline ?? throw MockSeam.CreateError("OpenCodeClient", "Pipeline");

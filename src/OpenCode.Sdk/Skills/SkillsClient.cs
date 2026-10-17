@@ -4,7 +4,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;SkillsClient&apos; collection client.
+/// Experimental skill routes.
 /// </summary>
 public class SkillsClient
 {

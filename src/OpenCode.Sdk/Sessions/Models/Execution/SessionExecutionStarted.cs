@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The server began working on the session after it was woken while idle. When that work settles, exactly one of SessionExecutionSucceeded, SessionExecutionFailed or SessionExecutionInterrupted follows, however many prompts arrive meanwhile; a server that crashes mid-work publishes none.
+/// The &apos;session.execution.started&apos; event.
 /// </summary>
 public sealed record SessionExecutionStarted : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

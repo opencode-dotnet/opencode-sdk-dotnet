@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a provider settings chunk timeout structural union.
+/// Represents the timeout setting&apos;s alternatives. Time between streamed response chunks in milliseconds; false disables it. The server default is 900,000 ms.
 /// </summary>
 [JsonConverter(typeof(ProviderSettingsChunkTimeoutJsonConverter))]
 public sealed record ProviderSettingsChunkTimeout

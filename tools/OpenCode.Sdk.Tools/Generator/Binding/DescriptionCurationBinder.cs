@@ -1,9 +1,10 @@
+using System.Globalization;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
 /// <summary>Validates reason-bearing documentation rows against final C# names and binds their plain text.</summary>
-internal static class DescriptionCurationBinder
+internal static partial class DescriptionCurationBinder
 {
     public static EmitPlan Apply(EmitPlan plan, IReadOnlyList<DescriptionCuration> rows, BindingErrorCollector errors)
     {
@@ -80,8 +81,65 @@ internal static class DescriptionCurationBinder
                 errors.Add(BindingErrorCategory.Curation, subject, "description curation must declare a non-empty summary");
             }
 
+            ValidateSources(row, subject, errors);
         }
     }
+
+    private static void ValidateSources(DescriptionCuration row, string subject, BindingErrorCollector errors)
+    {
+        if (row.Sources is null || row.Sources.Count is 0 or > 4)
+        {
+            var problem = row.Sources switch
+            {
+                null => "sources[0] must declare a sources list",
+                { Count: 0 } => "sources[0] must declare 1 to 4 entries",
+                _ => "sources[4] exceeds the maximum of 4 entries",
+            };
+            errors.Add(BindingErrorCategory.Curation, subject, "description " + problem);
+            return;
+        }
+
+        var locations = new HashSet<string>(StringComparer.Ordinal);
+        for (var index = 0; index < row.Sources.Count; index++)
+        {
+            var source = row.Sources[index];
+            string? problem = null;
+            if (source is null)
+            {
+                problem = "must declare a source entry";
+            }
+            else if (source.Location is null || !SourceLocation().IsMatch(source.Location))
+            {
+                problem = "location must be a packages/-relative path with a positive line";
+            }
+            else if (!locations.Add(source.Location))
+            {
+                problem = $"repeats location '{source.Location}'";
+            }
+            else if (string.IsNullOrWhiteSpace(source.Excerpt))
+            {
+                problem = "excerpt must be non-empty";
+            }
+            else if (source.Excerpt.Contains('\n', StringComparison.Ordinal) || source.Excerpt.Contains('\r', StringComparison.Ordinal))
+            {
+                problem = "excerpt must be one line";
+            }
+            else if (source.Excerpt.Length is < 12 or > 200)
+            {
+                problem = "excerpt must contain 12 to 200 characters";
+            }
+
+            if (problem is not null)
+            {
+                errors.Add(BindingErrorCategory.Curation, subject,
+                    string.Create(CultureInfo.InvariantCulture, $"description sources[{index}] {problem}"));
+            }
+        }
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"\Apackages/(?:(?!\.{1,2}(?:/|:))[^/\\:\s]+/)*(?!\.{1,2}:)[^/\\:\s]+:[1-9][0-9]*\z",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
+    private static partial System.Text.RegularExpressions.Regex SourceLocation();
 
     private static ModelPlan BindModel(ModelPlan model, IReadOnlyDictionary<string, DescriptionCuration[]> byType)
     {

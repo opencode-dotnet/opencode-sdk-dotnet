@@ -4,7 +4,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;ServerClient&apos; collection client.
+/// Reads server identity and readiness and creates or consumes pairing links.
 /// </summary>
 public class ServerClient
 {

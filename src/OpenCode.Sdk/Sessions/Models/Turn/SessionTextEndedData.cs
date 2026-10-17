@@ -28,13 +28,13 @@ public sealed record SessionTextEndedData
     public required long Ordinal { get; init; }
 
     /// <summary>
-    /// The complete text of the part; it replaces whatever was built up from deltas.
+    /// Gets the text value.
     /// </summary>
     [JsonPropertyName("text")]
     public required string Text { get; init; }
 
     /// <summary>
-    /// Opaque provider metadata for the part, kept so it can be sent back to the provider; do not interpret it.
+    /// Gets the state value.
     /// </summary>
     [JsonPropertyName("state")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

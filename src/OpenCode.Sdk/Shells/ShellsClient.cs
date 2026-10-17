@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;ShellsClient&apos; collection client.
+/// Location-scoped shell command routes.
 /// </summary>
 public class ShellsClient
 {

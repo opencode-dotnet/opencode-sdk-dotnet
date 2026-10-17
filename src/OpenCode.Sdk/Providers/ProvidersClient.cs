@@ -4,7 +4,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;ProvidersClient&apos; collection client.
+/// Experimental provider routes.
 /// </summary>
 public class ProvidersClient
 {

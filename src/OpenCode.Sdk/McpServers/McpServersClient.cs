@@ -4,7 +4,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;McpServersClient&apos; collection client.
+/// Lists MCP servers and discovers their resources and resource templates.
 /// </summary>
 public class McpServersClient
 {

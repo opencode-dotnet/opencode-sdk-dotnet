@@ -4,7 +4,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;VcsClient&apos; collection client.
+/// Location-scoped version control routes.
 /// </summary>
 public class VcsClient
 {

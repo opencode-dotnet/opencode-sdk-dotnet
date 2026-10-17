@@ -4,7 +4,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;PermissionsClient&apos; collection client.
+/// Lists location permission requests and saved permissions, and removes saved permissions.
 /// </summary>
 public class PermissionsClient
 {

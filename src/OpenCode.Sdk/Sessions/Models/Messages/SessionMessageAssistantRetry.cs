@@ -15,7 +15,7 @@ public sealed record SessionMessageAssistantRetry
     public required long Attempt { get; init; }
 
     /// <summary>
-    /// Gets the at value.
+    /// Scheduled retry time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("at")]
     public required double At { get; init; }

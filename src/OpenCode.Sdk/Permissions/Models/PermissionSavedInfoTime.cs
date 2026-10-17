@@ -9,13 +9,13 @@ namespace OpenCode.Sdk.Models;
 public sealed record PermissionSavedInfoTime
 {
     /// <summary>
-    /// Gets the created value.
+    /// Creation time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("created")]
     public required double Created { get; init; }
 
     /// <summary>
-    /// Gets the updated value.
+    /// Update time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("updated")]
     public required double Updated { get; init; }

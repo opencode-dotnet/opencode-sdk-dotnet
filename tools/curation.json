@@ -1,249 +1,1778 @@
 {
   "descriptions": [
     {
-      "type": "SessionMessageAssistant",
-      "member": null,
-      "summary": "One model step's response within a turn. A single prompt can produce several, for example one per round of tool calls; a step that failed keeps its message, with Error set and any partial content.",
-      "remarks": null,
-      "reason": "Builders read one assistant message as the whole answer; upstream starts a new assistant message per model step (core/src/session/runner/step.ts)."
-    },
-    {
-      "type": "SessionMessageAssistant",
-      "member": "Finish",
-      "summary": "Why the step ended: stop, length, tool-calls, content-filter, error or unknown; null while the step is still running.",
-      "remarks": "A step that failed reports error, or content-filter when the provider blocked the response.",
-      "reason": "Upstream normalises the provider's finish reason in session.step.ended and session.step.failed (core/src/session/message-updater.ts)."
-    },
-    {
-      "type": "SessionMessageAssistant",
-      "member": "RawFinish",
-      "summary": "The provider's own finish-reason string, kept verbatim for diagnostics; it may be null. Use Finish for logic.",
-      "remarks": null,
-      "reason": "Upstream copies the provider's stop reason unnormalised beside Finish."
-    },
-    {
-      "type": "SessionMessageAssistant",
-      "member": "Error",
-      "summary": "Set when this step failed, for example a provider error, a content filter or an interruption; the message and its partial content stay in the session.",
-      "remarks": "It is cleared when the step starts again on this same message. When a failure after partial output continues the turn, the continuation is a new message and this one keeps its error.",
-      "reason": "Builders could not tell a failed turn from a finished one; upstream sets it from session.step.failed and clears it on a retried step.started."
-    },
-    {
-      "type": "SessionMessageAssistant",
-      "member": "Retry",
-      "summary": "Set while a retry of this step is scheduled after a retryable provider error: the attempt number (the first retry is 2), when it runs, and the error that caused it.",
-      "remarks": "It is cleared when the retry starts or the session goes idle.",
-      "reason": "Upstream sets it from session.retry.scheduled (core/src/session/runner/retry.ts)."
-    },
-    {
-      "type": "SessionMessageAssistant",
-      "member": "Content",
-      "summary": "The step's output parts in the order they streamed: text, reasoning and tool calls.",
-      "remarks": null,
-      "reason": "The part order is the stream order upstream records."
-    },
-    {
-      "type": "SessionMessageAssistant",
-      "member": "Cost",
-      "summary": "The cost in US dollars of this step alone, computed by the server from the model's configured prices; null until the step finishes, and it may stay null when the step fails.",
-      "remarks": null,
-      "reason": "Builders summed it as a turn total; upstream computes it per step (core/src/session/runner/step.ts)."
-    },
-    {
-      "type": "SessionMessageAssistant",
-      "member": "Tokens",
-      "summary": "The token usage of this step alone; null until the step finishes, and it may stay null when the step fails.",
-      "remarks": null,
-      "reason": "Per-step usage, as Cost."
-    },
-    {
       "type": "SessionTextDelta",
       "member": null,
       "summary": "A live fragment of assistant text: append its Data.Delta to the text part its Data.AssistantMessageId and Data.Ordinal name.",
       "remarks": "Deltas are never stored or replayed; after reconnecting, rely on SessionTextEnded or the session's messages.",
-      "reason": "Builders kept only deltas and lost text across reconnects; upstream declares stream fragments live-only (schema/src/session-event.ts)."
-    },
-    {
-      "type": "SessionTextDeltaData",
-      "member": "Delta",
-      "summary": "The new text to append; it may batch several provider chunks.",
-      "remarks": null,
-      "reason": "Upstream batches deltas about every 100 ms."
-    },
-    {
-      "type": "SessionTextDeltaData",
-      "member": "Ordinal",
-      "summary": "The zero-based index of this text part among the text parts of its assistant message; the started, delta and ended events of one part share it.",
-      "remarks": "Reasoning parts are numbered separately.",
-      "reason": "Builders took it for a global sequence number."
+      "reason": "Builders kept only deltas and lost text across reconnects; upstream declares stream fragments live-only.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-event.ts:403",
+          "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary."
+        },
+        {
+          "location": "packages/schema/src/session-event.ts:408",
+          "excerpt": "      assistantMessageID: SessionMessage.ID,"
+        },
+        {
+          "location": "packages/schema/src/session-event.ts:409",
+          "excerpt": "      ordinal: NonNegativeInt,"
+        },
+        {
+          "location": "packages/schema/src/session-event.ts:410",
+          "excerpt": "      delta: Schema.String,"
+        }
+      ]
     },
     {
       "type": "SessionTextEnded",
       "member": null,
       "summary": "The end of one assistant text part. It is durable and replayed, and its Data.Text holds the part's complete final text.",
       "remarks": null,
-      "reason": "Upstream declares Text.Ended the replayable full-value boundary (schema/src/session-event.ts)."
+      "reason": "Upstream declares Text.Ended the replayable full-value boundary.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-event.ts:403",
+          "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary."
+        },
+        {
+          "location": "packages/schema/src/session-event.ts:415",
+          "excerpt": "  export const Ended = Event.durable({"
+        },
+        {
+          "location": "packages/schema/src/session-event.ts:422",
+          "excerpt": "      text: Schema.String,"
+        }
+      ]
     },
     {
-      "type": "SessionTextEndedData",
-      "member": "Text",
-      "summary": "The complete text of the part; it replaces whatever was built up from deltas.",
+      "type": "ProviderSettings",
+      "member": "Timeout",
+      "summary": "HTTP timeout in milliseconds, or false to disable it.",
       "remarks": null,
-      "reason": "Upstream replaces the part's text with it."
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/ai/src/schema/options.ts:51",
+          "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:72",
+          "excerpt": "  /** Time allowed for the whole request, from send until the response completes. Unbounded when unset. */"
+        }
+      ]
     },
     {
-      "type": "SessionTextEndedData",
-      "member": "State",
-      "summary": "Opaque provider metadata for the part, kept so it can be sent back to the provider; do not interpret it.",
-      "remarks": null,
-      "reason": "Upstream stores it for later provider requests only."
-    },
-    {
-      "type": "SessionPromptRequest",
+      "type": "ProviderSettingsTimeout",
       "member": null,
-      "summary": "A prompt for the session's inbox. The call returns as soon as the prompt is stored, before the model runs; follow the turn on the event bus or with the experimental wait.",
+      "summary": "Represents the timeout setting's alternatives. HTTP timeout in milliseconds, or false to disable it.",
       "remarks": null,
-      "reason": "Builders awaited PromptAsync as if it returned the answer; upstream admits the input and schedules the run (protocol/src/groups/session.ts)."
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/ai/src/schema/options.ts:51",
+          "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:72",
+          "excerpt": "  /** Time allowed for the whole request, from send until the response completes. Unbounded when unset. */"
+        }
+      ]
     },
     {
-      "type": "SessionPromptRequest",
-      "member": "Id",
-      "summary": "An optional message id of your own, starting with msg_, which makes the call idempotent: resending it returns the stored item and ignores the new content.",
-      "remarks": "An id that belongs to another session or another kind of record is a conflict (409).",
-      "reason": "Upstream's inbox admits an id once (core/src/session/inbox.ts)."
-    },
-    {
-      "type": "SessionPromptRequest",
-      "member": "Files",
-      "summary": "Attachments as data: URIs, or file: URIs on the server's own file system, read when the prompt is submitted; at most 20 MiB each.",
+      "type": "ProviderSettings",
+      "member": "HeaderTimeout",
+      "summary": "Time for response headers, in milliseconds; false disables it. The server default is 300,000 ms.",
       "remarks": null,
-      "reason": "Builders sent client-side paths; upstream reads file: URIs on the server (core/src/session/prompt.ts)."
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/ai/src/schema/options.ts:51",
+          "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:74",
+          "excerpt": "  /** Time allowed for response headers to arrive. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:55",
+          "excerpt": "/** Applied to `headerTimeout` when a request leaves it unset. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:56",
+          "excerpt": "export const DEFAULT_HTTP_TIMEOUT_MS = 300_000"
+        }
+      ]
     },
     {
-      "type": "SessionPromptRequest",
+      "type": "ProviderSettingsHeaderTimeout",
+      "member": null,
+      "summary": "Represents the timeout setting's alternatives. Time for response headers, in milliseconds; false disables it. The server default is 300,000 ms.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/ai/src/schema/options.ts:51",
+          "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:74",
+          "excerpt": "  /** Time allowed for response headers to arrive. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:55",
+          "excerpt": "/** Applied to `headerTimeout` when a request leaves it unset. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:56",
+          "excerpt": "export const DEFAULT_HTTP_TIMEOUT_MS = 300_000"
+        }
+      ]
+    },
+    {
+      "type": "ProviderSettings",
+      "member": "ChunkTimeout",
+      "summary": "Time between streamed response chunks in milliseconds; false disables it. The server default is 900,000 ms.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/ai/src/schema/options.ts:51",
+          "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:76",
+          "excerpt": "  /** Time allowed between streamed response chunks once headers have arrived. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:59",
+          "excerpt": " * Applied to `chunkTimeout` when a request leaves it unset. Some providers, such as DeepSeek, have specifically asked"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:62",
+          "excerpt": "export const DEFAULT_CHUNK_TIMEOUT_MS = 900_000"
+        }
+      ]
+    },
+    {
+      "type": "ProviderSettingsChunkTimeout",
+      "member": null,
+      "summary": "Represents the timeout setting's alternatives. Time between streamed response chunks in milliseconds; false disables it. The server default is 900,000 ms.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/ai/src/schema/options.ts:51",
+          "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:76",
+          "excerpt": "  /** Time allowed between streamed response chunks once headers have arrived. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:59",
+          "excerpt": " * Applied to `chunkTimeout` when a request leaves it unset. Some providers, such as DeepSeek, have specifically asked"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:62",
+          "excerpt": "export const DEFAULT_CHUNK_TIMEOUT_MS = 900_000"
+        }
+      ]
+    },
+    {
+      "type": "ConfigProviderSettings",
+      "member": "Timeout",
+      "summary": "HTTP timeout in milliseconds, or false to disable it.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/ai/src/schema/options.ts:51",
+          "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:72",
+          "excerpt": "  /** Time allowed for the whole request, from send until the response completes. Unbounded when unset. */"
+        }
+      ]
+    },
+    {
+      "type": "ConfigProviderSettingsTimeout",
+      "member": null,
+      "summary": "Represents the timeout setting's alternatives. HTTP timeout in milliseconds, or false to disable it.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/ai/src/schema/options.ts:51",
+          "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:72",
+          "excerpt": "  /** Time allowed for the whole request, from send until the response completes. Unbounded when unset. */"
+        }
+      ]
+    },
+    {
+      "type": "ConfigProviderSettings",
+      "member": "HeaderTimeout",
+      "summary": "Time for response headers, in milliseconds; false disables it. The server default is 300,000 ms.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/ai/src/schema/options.ts:51",
+          "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:74",
+          "excerpt": "  /** Time allowed for response headers to arrive. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:55",
+          "excerpt": "/** Applied to `headerTimeout` when a request leaves it unset. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:56",
+          "excerpt": "export const DEFAULT_HTTP_TIMEOUT_MS = 300_000"
+        }
+      ]
+    },
+    {
+      "type": "ConfigProviderSettingsHeaderTimeout",
+      "member": null,
+      "summary": "Represents the timeout setting's alternatives. Time for response headers, in milliseconds; false disables it. The server default is 300,000 ms.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/ai/src/schema/options.ts:51",
+          "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:74",
+          "excerpt": "  /** Time allowed for response headers to arrive. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:55",
+          "excerpt": "/** Applied to `headerTimeout` when a request leaves it unset. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:56",
+          "excerpt": "export const DEFAULT_HTTP_TIMEOUT_MS = 300_000"
+        }
+      ]
+    },
+    {
+      "type": "ConfigProviderSettings",
+      "member": "ChunkTimeout",
+      "summary": "Time between streamed response chunks in milliseconds; false disables it. The server default is 900,000 ms.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/ai/src/schema/options.ts:51",
+          "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:76",
+          "excerpt": "  /** Time allowed between streamed response chunks once headers have arrived. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:59",
+          "excerpt": " * Applied to `chunkTimeout` when a request leaves it unset. Some providers, such as DeepSeek, have specifically asked"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:62",
+          "excerpt": "export const DEFAULT_CHUNK_TIMEOUT_MS = 900_000"
+        }
+      ]
+    },
+    {
+      "type": "ConfigProviderSettingsChunkTimeout",
+      "member": null,
+      "summary": "Represents the timeout setting's alternatives. Time between streamed response chunks in milliseconds; false disables it. The server default is 900,000 ms.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/ai/src/schema/options.ts:51",
+          "excerpt": "/** Milliseconds for an HTTP timeout, or `false` to disable it. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:76",
+          "excerpt": "  /** Time allowed between streamed response chunks once headers have arrived. */"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:59",
+          "excerpt": " * Applied to `chunkTimeout` when a request leaves it unset. Some providers, such as DeepSeek, have specifically asked"
+        },
+        {
+          "location": "packages/ai/src/schema/options.ts:62",
+          "excerpt": "export const DEFAULT_CHUNK_TIMEOUT_MS = 900_000"
+        }
+      ]
+    },
+    {
+      "type": "ConfigInfoMcpTimeout",
+      "member": "Startup",
+      "summary": "Maximum time in milliseconds to establish and initialize the MCP server.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/schema/src/mcp.ts:9",
+          "excerpt": "    description: \"Maximum time in milliseconds to establish and initialize the MCP server.\","
+        }
+      ]
+    },
+    {
+      "type": "ConfigInfoMcpTimeout",
+      "member": "Catalog",
+      "summary": "Maximum time in milliseconds to wait for MCP discovery requests such as tools/list and prompts/list.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/schema/src/mcp.ts:12",
+          "excerpt": "    description: \"Maximum time in milliseconds to wait for MCP discovery requests such as tools/list and prompts/list.\","
+        }
+      ]
+    },
+    {
+      "type": "ConfigInfoMcpTimeout",
+      "member": "Execution",
+      "summary": "Maximum time in milliseconds to wait for MCP tool and prompt execution.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/schema/src/mcp.ts:15",
+          "excerpt": "    description: \"Maximum time in milliseconds to wait for MCP tool and prompt execution.\","
+        }
+      ]
+    },
+    {
+      "type": "ShellInfoTime",
+      "member": "Completed",
+      "summary": "Completion time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/schema/src/shell.ts:31",
+          "excerpt": "    description: \"Completion time in milliseconds since the Unix epoch\","
+        }
+      ]
+    },
+    {
+      "type": "WebSearchResultTime",
+      "member": "Published",
+      "summary": "Publication time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/schema/src/websearch.ts:30",
+          "excerpt": "      description: \"Publication time in milliseconds since the Unix epoch\","
+        }
+      ]
+    },
+    {
+      "type": "SessionInfoTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session.ts:46",
+          "excerpt": "    created: DateTimeUtcFromMillis,"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionInfoTime",
+      "member": "Updated",
+      "summary": "Update time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session.ts:47",
+          "excerpt": "    updated: DateTimeUtcFromMillis,"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionInfoTime",
+      "member": "Idle",
+      "summary": "Idle time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session.ts:48",
+          "excerpt": "    idle: DateTimeUtcFromMillis.pipe(optional),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionInfoTime",
+      "member": "Viewed",
+      "summary": "Viewed time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session.ts:49",
+          "excerpt": "    viewed: DateTimeUtcFromMillis.pipe(optional),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionInfoTime",
+      "member": "Archived",
+      "summary": "Archive time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session.ts:50",
+          "excerpt": "    archived: DateTimeUtcFromMillis.pipe(optional),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageAgentSelectedTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:36",
+          "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistantReasoningTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:190",
+          "excerpt": "    created: DateTimeUtcFromMillis,"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistantReasoningTime",
+      "member": "Completed",
+      "summary": "Completion time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:191",
+          "excerpt": "    completed: DateTimeUtcFromMillis.pipe(optional),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistantRetry",
+      "member": "At",
+      "summary": "Scheduled retry time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:208",
+          "excerpt": "  at: DateTimeUtcFromMillis,"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistantTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:232",
+          "excerpt": "    created: DateTimeUtcFromMillis,"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistantTime",
+      "member": "Completed",
+      "summary": "Completion time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:235",
+          "excerpt": "    completed: DateTimeUtcFromMillis.pipe(optional),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistantToolTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:171",
+          "excerpt": "    created: DateTimeUtcFromMillis,"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistantToolTime",
+      "member": "Ran",
+      "summary": "Run time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:172",
+          "excerpt": "    ran: DateTimeUtcFromMillis.pipe(optional),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistantToolTime",
+      "member": "Completed",
+      "summary": "Completion time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:173",
+          "excerpt": "    completed: DateTimeUtcFromMillis.pipe(optional),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageIdleTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:36",
+          "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageLocationSwitchedTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:36",
+          "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageModelSelectedTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:36",
+          "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageShellTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:121",
+          "excerpt": "    created: DateTimeUtcFromMillis,"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageShellTime",
+      "member": "Completed",
+      "summary": "Completion time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:122",
+          "excerpt": "    completed: DateTimeUtcFromMillis.pipe(optional),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageSkillTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:36",
+          "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageSyntheticTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:36",
+          "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageSystemTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:36",
+          "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageUserTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:36",
+          "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistantTime",
+      "member": "Streamed",
+      "summary": "Time the provider response body ended, before tool settlement, in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/schema/src/session-message.ts:233",
+          "excerpt": "    /** When the provider response body ended, before tool settlement. */"
+        },
+        {
+          "location": "packages/schema/src/session-message.ts:234",
+          "excerpt": "    streamed: DateTimeUtcFromMillis.pipe(optional),"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "PermissionSavedInfoTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/permission-saved.ts:21",
+          "excerpt": "    created: DateTimeUtcFromMillis,"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "PermissionSavedInfoTime",
+      "member": "Updated",
+      "summary": "Update time in milliseconds since the Unix epoch.",
+      "remarks": null,
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        {
+          "location": "packages/schema/src/permission-saved.ts:22",
+          "excerpt": "    updated: DateTimeUtcFromMillis,"
+        },
+        {
+          "location": "packages/schema/src/schema.ts:39",
+          "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
+        }
+      ]
+    },
+    {
+      "type": "WorktreeResolvedDurable",
+      "member": "Seq",
+      "summary": "Position in one aggregate's durable log. Use only values from durable envelopes or synced markers as after cursors.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/schema/src/event.ts:17",
+          "excerpt": " * Position in one aggregate's durable log. Values originate from the durable"
+        },
+        {
+          "location": "packages/schema/src/event.ts:18",
+          "excerpt": " * event envelope and synced markers;"
+        },
+        {
+          "location": "packages/schema/src/event.ts:19",
+          "excerpt": " * `after` cursors accept only values that came from those sources."
+        }
+      ]
+    },
+    {
+      "type": "WorktreeResolvedDurable",
+      "member": "Version",
+      "summary": "Durable schema version of this event type, from the event definition that committed it.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/schema/src/event.ts:27",
+          "excerpt": "/** Durable schema version of one event type, from the event definition that committed it. */"
+        }
+      ]
+    },
+    {
+      "type": "EventLogSynced",
+      "member": "Seq",
+      "summary": "Captured watermark of this aggregate's durable log; absent when that watermark is empty.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/schema/src/event-log.ts:9",
+          "excerpt": " * every event committed at or below this watermark; `seq` is absent when the"
+        },
+        {
+          "location": "packages/schema/src/event-log.ts:10",
+          "excerpt": " * captured watermark is empty. Emitted once for the captured watermark."
+        },
+        {
+          "location": "packages/schema/src/event-log.ts:15",
+          "excerpt": "  seq: optional(Event.Seq),"
+        },
+        {
+          "location": "packages/schema/src/event.ts:17",
+          "excerpt": " * Position in one aggregate's durable log. Values originate from the durable"
+        }
+      ]
+    },
+    {
+      "type": "ConfigInfoExperimental",
+      "member": "SubagentDepth",
+      "summary": "Maximum subagent nesting depth. Defaults to 1.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/schema/src/config/experimental.ts:12",
+          "excerpt": "    description: \"Maximum subagent nesting depth. Defaults to 1.\","
+        }
+      ]
+    },
+    {
+      "type": "ConfigInfoExperimental",
+      "member": "PortableShellScanner",
+      "summary": "Enable the experimental portable shell permission scanner. Defaults to false.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/schema/src/config/experimental.ts:9",
+          "excerpt": "    description: \"Enable the experimental portable shell permission scanner. Defaults to false.\","
+        }
+      ]
+    },
+    {
+      "type": "ConfigWarming",
+      "member": "Interval",
+      "summary": "Idle time between keep-alive requests, as a duration string; default “4 minutes”.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/schema/src/config/warming.ts:10",
+          "excerpt": "  interval: Schema.DurationFromString.pipe(optional).annotate({"
+        },
+        {
+          "location": "packages/schema/src/config/warming.ts:11",
+          "excerpt": "    description: 'Idle time between keep-alive requests (default: \"4 minutes\")',"
+        }
+      ]
+    },
+    {
+      "type": "ConfigWarming",
+      "member": "Duration",
+      "summary": "Time after the last active request to keep a session warm, as a duration string; default “30 minutes”.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/schema/src/config/warming.ts:13",
+          "excerpt": "  duration: Schema.DurationFromString.pipe(optional).annotate({"
+        },
+        {
+          "location": "packages/schema/src/config/warming.ts:14",
+          "excerpt": "    description: 'Time after the last active request to keep a session warm (default: \"30 minutes\")',"
+        }
+      ]
+    },
+    {
+      "type": "TuiToastShowData",
+      "member": "Duration",
+      "summary": "Duration in milliseconds.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/schema/src/tui-event.ts:48",
+          "excerpt": "      description: \"Duration in milliseconds\","
+        }
+      ]
+    },
+    {
+      "type": "ModelInfoTime",
+      "member": "Released",
+      "summary": "Release date as a Unix timestamp in milliseconds, or 0 when unknown.",
+      "remarks": null,
+      "reason": "The projection omits the declared documentation for this setting.",
+      "sources": [
+        {
+          "location": "packages/core/src/tool/plugin/opencode.ts:68",
+          "excerpt": "    description: \"Release date as a Unix timestamp in milliseconds, or 0 when unknown.\","
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Commands",
+      "summary": "Experimental command routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/command.ts:25",
+          "excerpt": "      description: \"Experimental command routes.\","
+        }
+      ]
+    },
+    {
+      "type": "CommandsClient",
+      "member": null,
+      "summary": "Experimental command routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/command.ts:25",
+          "excerpt": "      description: \"Experimental command routes.\","
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Events",
+      "summary": "Experimental event stream routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/event.ts:55",
+          "excerpt": "      .annotateMerge(OpenApi.annotations({ title: \"event\", description: \"Experimental event stream routes.\" })),"
+        }
+      ]
+    },
+    {
+      "type": "EventsClient",
+      "member": null,
+      "summary": "Experimental event stream routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/event.ts:55",
+          "excerpt": "      .annotateMerge(OpenApi.annotations({ title: \"event\", description: \"Experimental event stream routes.\" })),"
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Forms",
+      "summary": "Location form routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/form.ts:26",
+          "excerpt": "    .annotateMerge(OpenApi.annotations({ title: \"form\", description: \"Location form routes.\" }))"
+        }
+      ]
+    },
+    {
+      "type": "FormsClient",
+      "member": null,
+      "summary": "Location form routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/form.ts:26",
+          "excerpt": "    .annotateMerge(OpenApi.annotations({ title: \"form\", description: \"Location form routes.\" }))"
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "LanguageModels",
+      "summary": "Experimental model routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/model.ts:43",
+          "excerpt": "      description: \"Experimental model routes.\","
+        }
+      ]
+    },
+    {
+      "type": "LanguageModelsClient",
+      "member": null,
+      "summary": "Experimental model routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/model.ts:43",
+          "excerpt": "      description: \"Experimental model routes.\","
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "PersistentPtys",
+      "summary": "Prototype persistent PTY routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/persistent-pty.ts:127",
+          "excerpt": "  .annotateMerge(OpenApi.annotations({ title: \"persistentPty\", description: \"Prototype persistent PTY routes.\" }))"
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Plugins",
+      "summary": "Experimental plugin routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/plugin.ts:59",
+          "excerpt": "      description: \"Experimental plugin routes.\","
+        }
+      ]
+    },
+    {
+      "type": "PluginsClient",
+      "member": null,
+      "summary": "Experimental plugin routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/plugin.ts:59",
+          "excerpt": "      description: \"Experimental plugin routes.\","
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Projects",
+      "summary": "Project routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/project.ts:45",
+          "excerpt": "      description: \"Project routes.\","
+        }
+      ]
+    },
+    {
+      "type": "ProjectsClient",
+      "member": null,
+      "summary": "Project routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/project.ts:45",
+          "excerpt": "      description: \"Project routes.\","
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Providers",
+      "summary": "Experimental provider routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/provider.ts:43",
+          "excerpt": "      description: \"Experimental provider routes.\","
+        }
+      ]
+    },
+    {
+      "type": "ProvidersClient",
+      "member": null,
+      "summary": "Experimental provider routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/provider.ts:43",
+          "excerpt": "      description: \"Experimental provider routes.\","
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Ptys",
+      "summary": "Experimental location-scoped PTY routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/pty.ts:146",
+          "excerpt": "    .annotateMerge(OpenApi.annotations({ title: \"pty\", description: \"Experimental location-scoped PTY routes.\" }))"
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "References",
+      "summary": "Location-scoped project references.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/reference.ts:40",
+          "excerpt": "      description: \"Location-scoped project references.\","
+        }
+      ]
+    },
+    {
+      "type": "ReferencesClient",
+      "member": null,
+      "summary": "Location-scoped project references.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/reference.ts:40",
+          "excerpt": "      description: \"Location-scoped project references.\","
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Rpc",
+      "summary": "Plugin RPC routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/rpc.ts:30",
+          "excerpt": "  .annotateMerge(OpenApi.annotations({ title: \"rpc\", description: \"Plugin RPC routes.\" }))"
+        }
+      ]
+    },
+    {
+      "type": "RpcClient",
+      "member": null,
+      "summary": "Plugin RPC routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/rpc.ts:30",
+          "excerpt": "  .annotateMerge(OpenApi.annotations({ title: \"rpc\", description: \"Plugin RPC routes.\" }))"
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Shells",
+      "summary": "Location-scoped shell command routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/shell.ts:87",
+          "excerpt": "    OpenApi.annotations({ title: \"shell\", description: \"Location-scoped shell command routes.\" }),"
+        }
+      ]
+    },
+    {
+      "type": "ShellsClient",
+      "member": null,
+      "summary": "Location-scoped shell command routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/shell.ts:87",
+          "excerpt": "    OpenApi.annotations({ title: \"shell\", description: \"Location-scoped shell command routes.\" }),"
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
       "member": "Skills",
-      "summary": "Skills to attach by id; the server puts each skill's text before the prompt, and an unknown id is refused (400).",
+      "summary": "Experimental skill routes.",
       "remarks": null,
-      "reason": "Upstream resolves skills by id at submission."
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/skill.ts:25",
+          "excerpt": "      description: \"Experimental skill routes.\","
+        }
+      ]
     },
     {
-      "type": "SessionPromptRequest",
-      "member": "Delivery",
-      "summary": "Steer, the default, puts the prompt into the running turn at its next step; Queue waits for the current turn to end and starts a new turn with it.",
-      "remarks": null,
-      "reason": "Upstream's inbox delivery modes (core/src/session/inbox.ts)."
-    },
-    {
-      "type": "SessionPromptRequest",
-      "member": "Resume",
-      "summary": "False stores the prompt without waking the session for it: an idle session leaves it pending until something else wakes it, while a session already running can still take it at its next boundary. The default is true.",
-      "remarks": null,
-      "reason": "Upstream skips scheduling the run when resume is false."
-    },
-    {
-      "type": "SessionCreateRequest",
+      "type": "SkillsClient",
       "member": null,
-      "summary": "A new session, or, when Id names an existing one, that session returned unchanged.",
+      "summary": "Experimental skill routes.",
       "remarks": null,
-      "reason": "Upstream's create is idempotent on the id (core/src/session.ts)."
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/skill.ts:25",
+          "excerpt": "      description: \"Experimental skill routes.\","
+        }
+      ]
     },
     {
-      "type": "SessionCreateRequest",
-      "member": "Id",
-      "summary": "An optional session id of your own; when a session with it exists, that session is returned and the other members are ignored.",
+      "type": "OpenCodeClient",
+      "member": "Vcs",
+      "summary": "Location-scoped version control routes.",
       "remarks": null,
-      "reason": "As the type summary."
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/vcs.ts:128",
+          "excerpt": "      description: \"Location-scoped version control routes.\","
+        }
+      ]
     },
     {
-      "type": "SessionCreateRequest",
-      "member": "ParentId",
-      "summary": "Makes this a child session, such as a subagent's, of an existing parent. The child always works in the parent's location and inherits its metadata and permissions unless you set them.",
-      "remarks": "Agent and model are not inherited.",
-      "reason": "Upstream's create handler drops the location of a child and copies the parent's (server/src/handlers/session.ts)."
-    },
-    {
-      "type": "SessionCreateRequest",
-      "member": "Agent",
-      "summary": "The agent to use. When it is absent, the server chooses its default agent each time the session runs a step.",
+      "type": "VcsClient",
+      "member": null,
+      "summary": "Location-scoped version control routes.",
       "remarks": null,
-      "reason": "Upstream stores no agent when none is given (core/src/agent.ts)."
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/vcs.ts:128",
+          "excerpt": "      description: \"Location-scoped version control routes.\","
+        }
+      ]
     },
     {
-      "type": "SessionCreateRequest",
-      "member": "Model",
-      "summary": "The model to use. When it is absent, the server chooses its default model each time the session runs a step; an unavailable model is reported only when the session runs.",
+      "type": "OpenCodeClient",
+      "member": "Websearch",
+      "summary": "Location-scoped web search routes.",
       "remarks": null,
-      "reason": "Builders expected create to validate the model; upstream resolves it per turn (core/src/session/runner/model.ts)."
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/websearch.ts:44",
+          "excerpt": "      description: \"Location-scoped web search routes.\","
+        }
+      ]
     },
     {
-      "type": "SessionCreateRequest",
-      "member": "Location",
-      "summary": "The directory the session works in; the server's working directory when absent. It is ignored when ParentId is set.",
+      "type": "WebsearchClient",
+      "member": null,
+      "summary": "Location-scoped web search routes.",
       "remarks": null,
-      "reason": "Upstream defaults to the process directory and gives a child its parent's location."
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/websearch.ts:44",
+          "excerpt": "      description: \"Location-scoped web search routes.\","
+        }
+      ]
     },
     {
-      "type": "SessionCreateRequest",
+      "type": "OpenCodeClient",
+      "member": "Worktrees",
+      "summary": "Project-based worktree management routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/worktree.ts:78",
+          "excerpt": "  .annotateMerge(OpenApi.annotations({ title: \"worktree\", description: \"Project-based worktree management routes.\" }))"
+        }
+      ]
+    },
+    {
+      "type": "WorktreesClient",
+      "member": null,
+      "summary": "Project-based worktree management routes.",
+      "remarks": null,
+      "reason": "Describe the upstream route group exposed by this family.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/worktree.ts:78",
+          "excerpt": "  .annotateMerge(OpenApi.annotations({ title: \"worktree\", description: \"Project-based worktree management routes.\" }))"
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Agents",
+      "summary": "Lists registered agents and retrieves an agent by identifier.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/agent.ts:10",
+          "excerpt": "    HttpApiEndpoint.get(\"agent.list\", \"/api/agent\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/agent.ts:24",
+          "excerpt": "    HttpApiEndpoint.get(\"agent.get\", \"/api/agent/:agentID\", {"
+        }
+      ]
+    },
+    {
+      "type": "AgentsClient",
+      "member": null,
+      "summary": "Lists registered agents and retrieves an agent by identifier.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/agent.ts:10",
+          "excerpt": "    HttpApiEndpoint.get(\"agent.list\", \"/api/agent\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/agent.ts:24",
+          "excerpt": "    HttpApiEndpoint.get(\"agent.get\", \"/api/agent/:agentID\", {"
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Config",
+      "summary": "Reads the location's configuration documents and lists shells available for terminal and agent execution.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/config.ts:30",
+          "excerpt": "        description: \"Return shells available to terminal and agent execution.\","
+        },
+        {
+          "location": "packages/protocol/src/groups/config.ts:19",
+          "excerpt": "            \"Return configuration documents and discovery sources for the requested location, from lowest to highest priority.\","
+        }
+      ]
+    },
+    {
+      "type": "ConfigClient",
+      "member": null,
+      "summary": "Reads the location's configuration documents and lists shells available for terminal and agent execution.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/config.ts:30",
+          "excerpt": "        description: \"Return shells available to terminal and agent execution.\","
+        },
+        {
+          "location": "packages/protocol/src/groups/config.ts:19",
+          "excerpt": "            \"Return configuration documents and discovery sources for the requested location, from lowest to highest priority.\","
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Credentials",
+      "summary": "Lists, stores, labels, activates and removes integration credentials.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/credential.ts:6",
+          "excerpt": "export const CredentialGroup = HttpApiGroup.make(\"server.credential\")"
+        }
+      ]
+    },
+    {
+      "type": "CredentialsClient",
+      "member": null,
+      "summary": "Lists, stores, labels, activates and removes integration credentials.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/credential.ts:6",
+          "excerpt": "export const CredentialGroup = HttpApiGroup.make(\"server.credential\")"
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Debug",
+      "summary": "Lists loaded locations and evicts their cached services.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/debug.ts:14",
+          "excerpt": "        description: \"List locations currently loaded by the server.\","
+        },
+        {
+          "location": "packages/protocol/src/groups/debug.ts:28",
+          "excerpt": "          description: \"Dispose the requested location's cached services so its next use boots them fresh.\","
+        }
+      ]
+    },
+    {
+      "type": "DebugClient",
+      "member": null,
+      "summary": "Lists loaded locations and evicts their cached services.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/debug.ts:14",
+          "excerpt": "        description: \"List locations currently loaded by the server.\","
+        },
+        {
+          "location": "packages/protocol/src/groups/debug.ts:28",
+          "excerpt": "          description: \"Dispose the requested location's cached services so its next use boots them fresh.\","
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Experimental",
+      "summary": "Provides experimental generation, session, integration, MCP, filesystem, configuration and migration operations.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/generate.ts:8",
+          "excerpt": "    HttpApiEndpoint.post(\"generate.text\", \"/api/experimental/generate\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/session.ts:202",
+          "excerpt": "      HttpApiEndpoint.get(\"session.stats\", \"/api/experimental/session/stats\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/integration.ts:46",
+          "excerpt": "    HttpApiEndpoint.post(\"integration.wellknown.add\", \"/api/experimental/integration/wellknown\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/mcp.ts:24",
+          "excerpt": "    HttpApiEndpoint.put(\"mcp.add\", \"/api/experimental/mcp/:server\", {"
+        }
+      ]
+    },
+    {
+      "type": "ExperimentalClient",
+      "member": null,
+      "summary": "Provides experimental generation, session, integration, MCP, filesystem, configuration and migration operations.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/generate.ts:8",
+          "excerpt": "    HttpApiEndpoint.post(\"generate.text\", \"/api/experimental/generate\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/session.ts:202",
+          "excerpt": "      HttpApiEndpoint.get(\"session.stats\", \"/api/experimental/session/stats\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/integration.ts:46",
+          "excerpt": "    HttpApiEndpoint.post(\"integration.wellknown.add\", \"/api/experimental/integration/wellknown\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/mcp.ts:24",
+          "excerpt": "    HttpApiEndpoint.put(\"mcp.add\", \"/api/experimental/mcp/:server\", {"
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "FileSystem",
+      "summary": "Reads file content and lists or finds entries at the requested location.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/fs.ts:33",
+          "excerpt": "    HttpApiEndpoint.get(\"fs.read\", \"/api/fs/read/*\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/fs.ts:49",
+          "excerpt": "    HttpApiEndpoint.get(\"fs.list\", \"/api/fs/list\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/fs.ts:65",
+          "excerpt": "    HttpApiEndpoint.get(\"fs.find\", \"/api/fs/find\", {"
+        }
+      ]
+    },
+    {
+      "type": "FileSystemClient",
+      "member": null,
+      "summary": "Reads file content and lists or finds entries at the requested location.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/fs.ts:33",
+          "excerpt": "    HttpApiEndpoint.get(\"fs.read\", \"/api/fs/read/*\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/fs.ts:49",
+          "excerpt": "    HttpApiEndpoint.get(\"fs.list\", \"/api/fs/list\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/fs.ts:65",
+          "excerpt": "    HttpApiEndpoint.get(\"fs.find\", \"/api/fs/find\", {"
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "Integrations",
+      "summary": "Discovers integrations and runs key, external, OAuth or command authentication flows.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/integration.ts:14",
+          "excerpt": "export const IntegrationGroup = HttpApiGroup.make(\"server.integration\")"
+        }
+      ]
+    },
+    {
+      "type": "IntegrationsClient",
+      "member": null,
+      "summary": "Discovers integrations and runs key, external, OAuth or command authentication flows.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/integration.ts:14",
+          "excerpt": "export const IntegrationGroup = HttpApiGroup.make(\"server.integration\")"
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
+      "member": "McpServers",
+      "summary": "Lists MCP servers and discovers their resources and resource templates.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/mcp.ts:19",
+          "excerpt": "          description: \"Retrieve configured MCP servers and their connection status.\","
+        },
+        {
+          "location": "packages/protocol/src/groups/mcp.ts:99",
+          "excerpt": "          description: \"Retrieve resources and resource templates from connected MCP servers.\","
+        }
+      ]
+    },
+    {
+      "type": "McpServersClient",
+      "member": null,
+      "summary": "Lists MCP servers and discovers their resources and resource templates.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/mcp.ts:19",
+          "excerpt": "          description: \"Retrieve configured MCP servers and their connection status.\","
+        },
+        {
+          "location": "packages/protocol/src/groups/mcp.ts:99",
+          "excerpt": "          description: \"Retrieve resources and resource templates from connected MCP servers.\","
+        }
+      ]
+    },
+    {
+      "type": "OpenCodeClient",
       "member": "Permissions",
-      "summary": "Session permission rules, checked after the agent's own; the last rule that matches wins, so they override the agent. Anything no rule matches asks.",
+      "summary": "Lists location permission requests and saved permissions, and removes saved permissions.",
       "remarks": null,
-      "reason": "Upstream appends session rules after the agent's (core/src/permission.ts)."
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/permission.ts:32",
+          "excerpt": "            description: \"Retrieve pending permission requests for a location.\","
+        },
+        {
+          "location": "packages/protocol/src/groups/permission.ts:44",
+          "excerpt": "          description: \"Retrieve saved permissions, optionally filtered by project.\","
+        },
+        {
+          "location": "packages/protocol/src/groups/permission.ts:56",
+          "excerpt": "          description: \"Remove a saved permission by ID.\","
+        }
+      ]
     },
     {
-      "type": "SessionExecutionStarted",
+      "type": "PermissionsClient",
       "member": null,
-      "summary": "The server began working on the session after it was woken while idle. When that work settles, exactly one of SessionExecutionSucceeded, SessionExecutionFailed or SessionExecutionInterrupted follows, however many prompts arrive meanwhile; a server that crashes mid-work publishes none.",
+      "summary": "Lists location permission requests and saved permissions, and removes saved permissions.",
       "remarks": null,
-      "reason": "Upstream publishes one terminal observation per busy period (core/src/session/execution.ts)."
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/permission.ts:32",
+          "excerpt": "            description: \"Retrieve pending permission requests for a location.\","
+        },
+        {
+          "location": "packages/protocol/src/groups/permission.ts:44",
+          "excerpt": "          description: \"Retrieve saved permissions, optionally filtered by project.\","
+        },
+        {
+          "location": "packages/protocol/src/groups/permission.ts:56",
+          "excerpt": "          description: \"Remove a saved permission by ID.\","
+        }
+      ]
     },
     {
-      "type": "SessionExecutionSucceeded",
+      "type": "OpenCodeClient",
+      "member": "Server",
+      "summary": "Reads server identity and readiness and creates or consumes pairing links.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/server.ts:49",
+          "excerpt": "        description: \"Return the server identity, connection URLs, paths, and readiness status.\","
+        },
+        {
+          "location": "packages/protocol/src/groups/server.ts:54",
+          "excerpt": "    HttpApiEndpoint.post(\"server.pair\", \"/api/pair\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/server.ts:65",
+          "excerpt": "    HttpApiEndpoint.get(\"server.connect\", PAIRING_CONNECT_PATH, {"
+        }
+      ]
+    },
+    {
+      "type": "ServerClient",
       "member": null,
-      "summary": "The execution finished the work it took on and the session went idle. Prompts it did not take, such as queued ones, can still be pending.",
+      "summary": "Reads server identity and readiness and creates or consumes pairing links.",
       "remarks": null,
-      "reason": "The turn-ending event builders need to wait on."
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/server.ts:49",
+          "excerpt": "        description: \"Return the server identity, connection URLs, paths, and readiness status.\","
+        },
+        {
+          "location": "packages/protocol/src/groups/server.ts:54",
+          "excerpt": "    HttpApiEndpoint.post(\"server.pair\", \"/api/pair\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/server.ts:65",
+          "excerpt": "    HttpApiEndpoint.get(\"server.connect\", PAIRING_CONNECT_PATH, {"
+        }
+      ]
     },
     {
-      "type": "SessionExecutionFailed",
+      "type": "OpenCodeClient",
+      "member": "Sessions",
+      "summary": "Creates and lists sessions and opens session handles for prompts, messages, forms and execution control.",
+      "remarks": null,
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/session.ts:180",
+          "excerpt": "  HttpApiGroup.make(\"server.session\")"
+        },
+        {
+          "location": "packages/protocol/src/groups/session.ts:396",
+          "excerpt": "      HttpApiEndpoint.post(\"session.prompt\", \"/api/session/:sessionID/prompt\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/message.ts:68",
+          "excerpt": "    HttpApiEndpoint.get(\"session.messages\", \"/api/session/:sessionID/message\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/permission.ts:63",
+          "excerpt": "      HttpApiEndpoint.post(\"session.permission.create\", \"/api/session/:sessionID/permission\", {"
+        }
+      ]
+    },
+    {
+      "type": "SessionsClient",
       "member": null,
-      "summary": "The session stopped on an error and went idle; its Data.Error says why.",
-      "remarks": "It is also published when a turn interrupted by repeated restarts can no longer be resumed.",
-      "reason": "Upstream publishes it from the run coordinator and from restart recovery (core/src/session/execution/restart.ts)."
-    },
-    {
-      "type": "SessionExecutionInterrupted",
-      "member": null,
-      "summary": "The session's work stopped before it finished; its Data.Reason says why.",
-      "remarks": "With the shutdown reason the turn is not over: the server keeps it marked in progress, and a server that resumes work after it restarts picks it up again with a new SessionExecutionStarted. A turn that cannot be resumed, or has been resumed too often, ends with SessionExecutionFailed.",
-      "reason": "Builders treated every interrupt as the end of a turn; upstream resumes a shutdown interrupt (core/src/session/execution/restart.ts)."
-    },
-    {
-      "type": "PtyCreateRequest",
-      "member": "Command",
-      "summary": "The program to run, an executable rather than a command line. When it is absent the server picks a shell: the configured shell, then $SHELL, then a per-platform fallback.",
-      "remarks": "The fallback is, on Windows, the first of pwsh, powershell and Git Bash that is found, otherwise %COMSPEC%, or cmd.exe when COMSPEC is unset; /bin/zsh on macOS; and bash on PATH, or else /bin/sh, elsewhere. A configured shell that is not executable skips $SHELL and goes straight to the fallback. PowerShell starts with no added arguments, so its profile loads; pass -NoProfile in Args for a clean one.",
-      "reason": "Builders could not predict which shell a PTY gets; upstream's resolver order (core/src/pty.ts, core/src/shell/select.ts)."
-    },
-    {
-      "type": "PtyCreateRequest",
-      "member": "Args",
-      "summary": "Arguments passed as they are to the program, with no shell parsing.",
-      "remarks": "When the program is bash, dash, fish, ksh, sh or zsh, the server appends -l after these arguments, so bash -c \"cmd\" receives -l as $0; the returned info shows it.",
-      "reason": "Upstream appends the login flag for login shells (core/src/pty.ts)."
-    },
-    {
-      "type": "ExperimentalSessionStatsRequest",
-      "member": "From",
-      "summary": "The start of the range, inclusive, in milliseconds since the Unix epoch. Unset, the range starts at the earliest message.",
+      "summary": "Creates and lists sessions and opens session handles for prompts, messages, forms and execution control.",
       "remarks": null,
-      "reason": "The wire says only 'from'; upstream compares it with message times in epoch milliseconds and treats it as inclusive (core/src/session/stats.ts)."
-    },
-    {
-      "type": "ExperimentalSessionStatsRequest",
-      "member": "To",
-      "summary": "The end of the range, exclusive, in milliseconds since the Unix epoch. Unset, the range ends now.",
-      "remarks": null,
-      "reason": "The wire says only 'to'; upstream compares it with message times in epoch milliseconds, defaults it to Date.now() and treats it as exclusive (core/src/session/stats.ts)."
+      "reason": "Describe the purpose of the generated family rather than repeat its name.",
+      "sources": [
+        {
+          "location": "packages/protocol/src/groups/session.ts:180",
+          "excerpt": "  HttpApiGroup.make(\"server.session\")"
+        },
+        {
+          "location": "packages/protocol/src/groups/session.ts:396",
+          "excerpt": "      HttpApiEndpoint.post(\"session.prompt\", \"/api/session/:sessionID/prompt\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/message.ts:68",
+          "excerpt": "    HttpApiEndpoint.get(\"session.messages\", \"/api/session/:sessionID/message\", {"
+        },
+        {
+          "location": "packages/protocol/src/groups/permission.ts:63",
+          "excerpt": "      HttpApiEndpoint.post(\"session.permission.create\", \"/api/session/:sessionID/permission\", {"
+        }
+      ]
     }
   ],
   "sessionScopedEvent": {

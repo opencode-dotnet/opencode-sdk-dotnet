@@ -9,21 +9,21 @@ namespace OpenCode.Sdk.Models;
 public sealed record ConfigInfoMcpTimeout
 {
     /// <summary>
-    /// Gets the startup value.
+    /// Maximum time in milliseconds to establish and initialize the MCP server.
     /// </summary>
     [JsonPropertyName("startup")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? Startup { get; init; }
 
     /// <summary>
-    /// Gets the catalog value.
+    /// Maximum time in milliseconds to wait for MCP discovery requests such as tools/list and prompts/list.
     /// </summary>
     [JsonPropertyName("catalog")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? Catalog { get; init; }
 
     /// <summary>
-    /// Gets the execution value.
+    /// Maximum time in milliseconds to wait for MCP tool and prompt execution.
     /// </summary>
     [JsonPropertyName("execution")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

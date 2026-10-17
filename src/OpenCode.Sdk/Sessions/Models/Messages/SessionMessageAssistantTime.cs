@@ -9,20 +9,20 @@ namespace OpenCode.Sdk.Models;
 public sealed record SessionMessageAssistantTime
 {
     /// <summary>
-    /// Gets the created value.
+    /// Creation time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("created")]
     public required double Created { get; init; }
 
     /// <summary>
-    /// Gets the streamed value.
+    /// Time the provider response body ended, before tool settlement, in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("streamed")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Streamed { get; init; }
 
     /// <summary>
-    /// Gets the completed value.
+    /// Completion time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("completed")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

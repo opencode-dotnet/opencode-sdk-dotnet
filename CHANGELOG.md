@@ -140,6 +140,8 @@ Nightly builds of `master` are on
 
 ### 🐛 Fixes
 
+- **IntelliSense documents declared units, defaults and family roles.** Documentation inferred only
+  from server implementation is removed; SDK types and runtime behavior are unchanged.
 - **Generated XML summaries use grammatical prose.** Articles and brand spellings are corrected,
   digits stay attached to their words, and members named `Value` read "Gets the value."
 - **A background-service start failure no longer carries part of the PTY handoff ticket.** The

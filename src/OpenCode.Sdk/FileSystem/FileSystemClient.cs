@@ -4,7 +4,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;FileSystemClient&apos; collection client.
+/// Reads file content and lists or finds entries at the requested location.
 /// </summary>
 public class FileSystemClient
 {

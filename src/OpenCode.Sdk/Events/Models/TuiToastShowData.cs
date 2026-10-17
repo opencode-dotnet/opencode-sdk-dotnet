@@ -28,7 +28,7 @@ public sealed record TuiToastShowData
     public required TuiToastShowDataVariant Variant { get; init; }
 
     /// <summary>
-    /// Gets the duration value.
+    /// Duration in milliseconds.
     /// </summary>
     [JsonPropertyName("duration")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

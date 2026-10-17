@@ -4,7 +4,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The &apos;LanguageModelsClient&apos; collection client.
+/// Experimental model routes.
 /// </summary>
 public class LanguageModelsClient
 {
