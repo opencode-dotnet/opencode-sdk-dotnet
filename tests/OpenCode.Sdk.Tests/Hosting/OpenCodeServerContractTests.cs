@@ -206,6 +206,41 @@ public sealed class OpenCodeServerContractTests
     }
 
     [Test]
+    [Arguments(false, "OpenCodeServerOptions.Command needs the executable and its leading arguments.")]
+    [Arguments(true, "OpenCodeServerOptions.Command entries cannot be blank.")]
+    public Task StartAsync_Should_Name_The_Refused_Command_And_Its_Options(bool blankEntry, string text) =>
+        AssertOptionsRefusalAsync(
+            async () => await OpenCodeServer.StartAsync(new OpenCodeServerOptions { Command = RefusedCommand(blankEntry) }),
+            text);
+
+    [Test]
+    [Arguments(false, "OpenCodeServerEnsureOptions.Command needs the executable and its leading arguments.")]
+    [Arguments(true, "OpenCodeServerEnsureOptions.Command entries cannot be blank.")]
+    public Task EnsureAsync_Should_Name_The_Refused_Command_And_Its_Options(bool blankEntry, string text) =>
+        AssertOptionsRefusalAsync(
+            async () => await OpenCodeServer.EnsureAsync(new OpenCodeServerEnsureOptions { Command = RefusedCommand(blankEntry) }),
+            text);
+
+    private static string[] RefusedCommand(bool blankEntry) => blankEntry ? ["bun", " "] : [];
+
+    /// <summary>
+    /// The door refuses with exactly <paramref name="text"/> for its public <c>options</c> parameter, in the
+    /// message <see cref="ArgumentException"/> renders on each runtime.
+    /// </summary>
+    private static async Task AssertOptionsRefusalAsync(Func<Task> door, string text)
+    {
+        var failure = await Assert.That(door).Throws<ArgumentException>();
+
+        await Assert.That(failure!.Message).IsEqualTo(
+#if NET
+            text + " (Parameter 'options')");
+#else
+            text + Environment.NewLine + "Parameter name: options");
+#endif
+        await Assert.That(failure.ParamName).IsEqualTo("options");
+    }
+
+    [Test]
     public async Task Endpoint_Should_Throw_The_Mock_Seam_Failure_On_A_Bare_Mock()
     {
         var mock = new MockableServer();

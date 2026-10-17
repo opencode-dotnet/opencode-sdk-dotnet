@@ -639,6 +639,8 @@ public sealed class ServiceContenderSpawnerTests
             await Assert.That(failure).IsNotNull();
             await Assert.That(failure!.Message).Contains("exited with code 2");
             await Assert.That(failure.Message).Contains("Usage: contender-probe");
+            await Assert.That(failure.Message).StartsWith(
+                "The background service contender (pid " + contender.ProcessId.ToString(CultureInfo.InvariantCulture) + ") exited with code 2.\n");
         }
         finally
         {
