@@ -54,6 +54,9 @@ public static class ToolApp
         services.AddSingleton<ISpecBinder, SpecBinder>();
         services.AddSingleton<PendingOperationBindabilityProbe>();
         services.AddSingleton<IProjectFormatter, CliWrapProjectFormatter>();
+        services.AddSingleton<PlacementValidator>();
+        services.AddSingleton<ManifestStore>();
+        services.AddSingleton<StagedWrite>();
         services.AddSingleton<IGenerationWriter, GenerationWriter>();
         services.AddSingleton<GenerationCoordinator>();
         services.AddSingleton<IProcessRunner, CliWrapProcessRunner>();
