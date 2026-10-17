@@ -14,7 +14,7 @@ public sealed class UnionEmitterTests
         {
             ConceptName = "OAuthEvent",
             Description = null,
-            HoistedMembers = [new HoistedMemberPlan { Name = "Value", WireName = "value", Type = UnionHoistPlanData.Named("string") }],
+            HoistedMembers = [new HoistedMemberPlan { Name = "Value", WireName = "value", IsRequired = false, Type = UnionHoistPlanData.Named("string") }],
         };
         var source = EmitterSnapshot.Create(UnionEmitter.Emit([union], ModelPlacementFixture.SingleSlice([union])));
         await Assert.That(source).Contains("Represents an OAuth event union.");

@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
@@ -11,6 +12,33 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
 public sealed class HoistedMemberEmissionTests
 {
+    [Test]
+    [Arguments(true, "Owner remarks. Every declared variant carries it; an unrecognized variant preserved as UnknownExampleEvent returns null through this interface.")]
+    [Arguments(false, "Owner remarks. Every declared variant carries it; an unrecognized variant preserved as UnknownExampleEvent returns null through this interface. An ordinary optional property may also be absent.")]
+    public async Task Emit_Should_Describe_A_Curated_Hoisted_Members_Requiredness(bool isRequired, string expected)
+    {
+        var plan = HoistedEmitPlan(
+            [Union("IExampleEvent", Arm("CreatedEvent"), Arm("DeletedEvent"))],
+            [Variant("CreatedEvent", "created", Property("id", Named("string", isNullable: !isRequired), isRequired)),
+                Variant("DeletedEvent", "deleted", Property("id", Named("string", isNullable: !isRequired), isRequired))],
+            Curation(Groups()));
+        var union = plan.Unions.Single() with
+        {
+            Documentation = new()
+            {
+                Members = new Dictionary<string, DocumentationPlan>(StringComparer.Ordinal)
+                {
+                    ["Id"] = new("The shared identifier.", "Owner remarks."),
+                },
+            },
+        };
+        var source = EmitterSnapshot.Content(UnionEmitter.Emit([union], plan.Placement), "Example/Models/IExampleEvent.cs");
+        var root = await CSharpSyntaxTree.ParseText(source).GetRootAsync();
+        var property = root.DescendantNodes().OfType<PropertyDeclarationSyntax>().Single(static property => property.Identifier.ValueText == "Id");
+
+        await Assert.That(RemarksOf(property)).IsEqualTo(expected);
+    }
+
     [Test]
     [Arguments(false)]
     [Arguments(true)]
@@ -67,8 +95,10 @@ public sealed class HoistedMemberEmissionTests
 
         await Assert.That(inherited).IsEquivalentTo(expected, CollectionOrdering.Matching);
         await Assert.That(EmitterSnapshot.Content(sources, "Example/Models/IExampleEvent.cs")).Contains("A &lt;curated&gt; &amp; value.");
-        await Assert.That(EmitterSnapshot.Content(sources, "Example/Models/IExampleEvent.cs"))
-            .Contains("Owner remarks. Every declared variant carries it; an unrecognized variant preserved as UnknownExampleEvent returns null through this interface. An ordinary optional property may also be absent.");
+        var member = roots.SelectMany(static root => root.DescendantNodes().OfType<PropertyDeclarationSyntax>())
+            .Single(static property => property.Identifier.ValueText == "Created"
+                && property.Parent is InterfaceDeclarationSyntax { Identifier.ValueText: "IExampleEvent" });
+        await Assert.That(RemarksOf(member)).IsEqualTo("Owner remarks. Every declared variant carries it; an unrecognized variant preserved as UnknownExampleEvent returns null through this interface.");
         await Assert.That(EmitterSnapshot.Content(sources, "Example/Models/CreatedEventDurable.cs"))
             .Contains(direct ? "/// Direct summary." : "/// <inheritdoc cref=\"IDurableEnvelope.Seq\" />");
     }
@@ -80,7 +110,7 @@ public sealed class HoistedMemberEmissionTests
         var carrier = plan.HoistedInterfaces[0] with
         {
             Description = null,
-            Members = [new HoistedMemberPlan { Name = "Value", WireName = "value", Type = Named("string") }],
+            Members = [new HoistedMemberPlan { Name = "Value", WireName = "value", IsRequired = false, Type = Named("string") }],
         };
         var source = EmitterSnapshot.Create(HoistedInterfaceEmitter.Emit([carrier], plan.Placement));
         await Assert.That(source).Contains("Represents an i durable envelope value.");
@@ -186,6 +216,11 @@ public sealed class HoistedMemberEmissionTests
         await Assert.That(record).Contains("public Optional<string?> Note { get; init; }");
         await Assert.That(record).Contains("string? IExampleEventDurable.Note => Note.Value;");
     }
+
+    /// <summary>The member's <c>&lt;remarks&gt;</c> text, read from its emitted documentation comment.</summary>
+    private static string RemarksOf(PropertyDeclarationSyntax property) =>
+        XElement.Parse("<doc>" + property.GetLeadingTrivia().ToFullString().Replace("///", "", StringComparison.Ordinal) + "</doc>")
+            .Element("remarks")!.Value.Trim();
 
     private static string HoistedSource(string relativePath) =>
         EmitterSnapshot.Content(SourceEmitter.Emit(EmitterPlanFixture.CreateHoistPlan()), relativePath);

@@ -331,42 +331,4 @@ public sealed class DescriptionCurationBinderTests(PinnedBinding pinned)
 
     private static string Source(EmitPlan plan, string type) => Encoding.UTF8.GetString(ModelEmitter.Emit(plan)
         .Single(source => source.RelativePath.EndsWith("/" + type + ".cs", StringComparison.Ordinal)).Utf8Source.Span);
-    /// <summary>
-    /// The union emitter adds "an ordinary optional property may also be absent" to every curated
-    /// hoisted member, because HoistedMemberPlan carries no requiredness (#453). Until it does, no such
-    /// member may be required in any variant at the pin.
-    /// </summary>
-    [Test]
-    public async Task Pinned_Plan_Should_Keep_Every_Remarked_Hoisted_Member_Optional_In_Every_Variant()
-    {
-        await Assert.That(RequiredRemarkedHoistedMembers(pinned.Plan)).IsEmpty();
-    }
-
-    /// <summary>The guard above fails when a remarked member's source becomes required in one variant.</summary>
-    [Test]
-    public async Task RequiredRemarkedHoistedMembers_Should_Name_A_Member_Required_In_One_Variant()
-    {
-        var plan = pinned.Plan;
-        var union = plan.Unions.Single(static union => union.Name == "IMcp");
-        var variant = plan.Models.OfType<ObjectModelPlan>().Single(model => model.Name == union.Variants[0].TypeName);
-        var required = variant with
-        {
-            Properties = [.. variant.Properties.Select(static property => property.WireName == "codemode" ? property with { IsRequired = true } : property)],
-        };
-        plan = plan with { Models = [.. plan.Models.Select(model => ReferenceEquals(model, variant) ? required : model)] };
-
-        await Assert.That(RequiredRemarkedHoistedMembers(plan)).IsEquivalentTo(["IMcp.Codemode"], CollectionOrdering.Matching);
-    }
-
-    private static List<string> RequiredRemarkedHoistedMembers(EmitPlan plan)
-    {
-        var models = plan.Models.OfType<ObjectModelPlan>().ToDictionary(static model => model.Name, StringComparer.Ordinal);
-        return [.. plan.Unions
-            .SelectMany(static union => union.HoistedMembers
-                .Where(member => union.Documentation.Members.ContainsKey(member.Name))
-                .Select(member => (union, member)))
-            .Where(pair => pair.union.Variants.Any(variant => models.TryGetValue(variant.TypeName, out var model)
-                && model.Properties.Any(property => property.WireName == pair.member.WireName && property.IsRequired)))
-            .Select(static pair => pair.union.Name + "." + pair.member.Name)];
-    }
 }
