@@ -63,7 +63,8 @@ public sealed class CurationLoaderTests
 
         var sessionScoped = curation.SessionScopedEvent;
         await Assert.That(sessionScoped).IsNotNull();
-        await Assert.That(sessionScoped!.Unions).IsEquivalentTo(["IEvent", "ISessionEventDurable"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(sessionScoped!.Unions).IsEquivalentTo(["IEvent", "ISessionEventDurable"], CollectionOrdering.Any);
         await Assert.That(sessionScoped.PayloadMember).IsEqualTo("data");
         await Assert.That(sessionScoped.Member).IsEqualTo("sessionID");
         await Assert.That(sessionScoped.Identifier).IsEqualTo("Session.ID");

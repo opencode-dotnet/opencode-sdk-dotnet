@@ -1,4 +1,5 @@
 using OpenCode.Sdk.Tools.Tests.Suppressions.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 
@@ -27,7 +28,8 @@ public sealed class SuppressionOverlapTests
             .WithFile(Source, Pragma, Type)
             .ScanAsync();
 
-        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([PragmaAndEditorConfig]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([PragmaAndEditorConfig], CollectionOrdering.Any);
     }
 
     [Test]
@@ -38,7 +40,8 @@ public sealed class SuppressionOverlapTests
             .WithFile(Source, Pragma, Type)
             .ScanAsync();
 
-        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([PragmaAndEditorConfig]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([PragmaAndEditorConfig], CollectionOrdering.Any);
     }
 
     [Test]
@@ -74,7 +77,8 @@ public sealed class SuppressionOverlapTests
             .WithFile(OtherSource, Pragma, Type)
             .ScanAsync();
 
-        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([PragmaAndNoWarn]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([PragmaAndNoWarn], CollectionOrdering.Any);
     }
 
     [Test]
@@ -85,7 +89,8 @@ public sealed class SuppressionOverlapTests
             .WithFile(Source, "#pragma warning disable 618", Type)
             .ScanAsync();
 
-        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([$"{Source}: CS0618 is suppressed through Pragma, NoWarn"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([$"{Source}: CS0618 is suppressed through Pragma, NoWarn"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -97,7 +102,8 @@ public sealed class SuppressionOverlapTests
             .WithFile("src/P/Nested/A.cs", Pragma, Type)
             .ScanAsync();
 
-        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([$"src/P/Nested/A.cs: {Rule} is suppressed through Pragma, NoWarn"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([$"src/P/Nested/A.cs: {Rule} is suppressed through Pragma, NoWarn"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -110,7 +116,8 @@ public sealed class SuppressionOverlapTests
             .WithFile("tests/Shared/Harness/X.cs", Pragma, Type)
             .ScanAsync();
 
-        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([$"tests/Shared/Harness/X.cs: {Rule} is suppressed through Pragma, NoWarn"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([$"tests/Shared/Harness/X.cs: {Rule} is suppressed through Pragma, NoWarn"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -122,7 +129,8 @@ public sealed class SuppressionOverlapTests
             .WithFile(Source, Pragma, Type)
             .ScanAsync();
 
-        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([PragmaAndNoWarn]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([PragmaAndNoWarn], CollectionOrdering.Any);
     }
 
     [Test]
@@ -133,7 +141,8 @@ public sealed class SuppressionOverlapTests
             .WithFile(Source, Pragma, Type)
             .ScanAsync();
 
-        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([PragmaAndNoWarn]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([PragmaAndNoWarn], CollectionOrdering.Any);
     }
 
     [Test]
@@ -144,7 +153,8 @@ public sealed class SuppressionOverlapTests
             .WithFile(Source, Pragma, Type)
             .ScanAsync();
 
-        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([$"{Source}: {Rule} is suppressed through Pragma, GlobalConfig"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([$"{Source}: {Rule} is suppressed through Pragma, GlobalConfig"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -156,7 +166,8 @@ public sealed class SuppressionOverlapTests
             .WithFile(Source, Type)
             .ScanAsync();
 
-        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([$"{Source}: {Rule} is suppressed through EditorConfig, GlobalConfig"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo([$"{Source}: {Rule} is suppressed through EditorConfig, GlobalConfig"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -179,7 +190,8 @@ public sealed class SuppressionOverlapTests
             .WithBaselineEntry("SW003", Source, "9f2c")
             .ScanAsync();
 
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
         await Assert.That(SuppressionOverlap.Find(inventory)).IsEquivalentTo(
-            [$"{Source}: SW003 is suppressed through SlopwatchSuppress, SlopwatchBaseline"]);
+            [$"{Source}: SW003 is suppressed through SlopwatchSuppress, SlopwatchBaseline"], CollectionOrdering.Any);
     }
 }

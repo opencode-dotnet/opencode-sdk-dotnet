@@ -32,8 +32,8 @@ public sealed class ComponentKeyRuleTests
 
         await Assert.That(ComponentKeyRule.KeyRegex().ToString()).IsEqualTo(libraryPattern);
         await Assert.That(disagreements).IsEmpty();
-        await Assert.That(ComponentKeyData.EquivalenceKeys.Any(library.IsMatch)).IsTrue();
-        await Assert.That(ComponentKeyData.EquivalenceKeys.Any(key => !library.IsMatch(key))).IsTrue();
+        await Assert.That(ComponentKeyData.EquivalenceKeys).Contains(library.IsMatch);
+        await Assert.That(ComponentKeyData.EquivalenceKeys).Contains(key => !library.IsMatch(key));
     }
 
     [Test]
@@ -54,7 +54,7 @@ public sealed class ComponentKeyRuleTests
         var installed = SpecReader.CreateReaderSettings().RuleSet.FindRules(typeof(OpenApiComponents));
 
         await Assert.That(installed.Count).IsEqualTo(1);
-        await Assert.That(ReferenceEquals(installed[0], ComponentKeyRule.Rule)).IsTrue();
+        await Assert.That(installed[0]).IsSameReferenceAs(ComponentKeyRule.Rule);
     }
 
     /// <summary>
@@ -74,7 +74,7 @@ public sealed class ComponentKeyRuleTests
             .IsEquivalentTo(defaults.Select(static rule => rule.Name).Order(StringComparer.Ordinal), CollectionOrdering.Matching);
         var componentRules = replaced.FindRules(typeof(OpenApiComponents));
         await Assert.That(componentRules.Count).IsEqualTo(1);
-        await Assert.That(ReferenceEquals(componentRules[0], ComponentKeyRule.Rule)).IsTrue();
+        await Assert.That(componentRules[0]).IsSameReferenceAs(ComponentKeyRule.Rule);
     }
 
     [Test]
@@ -88,7 +88,8 @@ public sealed class ComponentKeyRuleTests
             .That(async () => _ = await reader.LoadAsync(context.SpecPath, new IngestionErrorCollector(), CancellationToken.None))
             .Throws<IngestionException>();
 
-        await Assert.That(libraryErrors.Select(static error => error.RuleName ?? "none")).IsEquivalentTo([LibraryRuleName, LibraryRuleName]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(libraryErrors.Select(static error => error.RuleName ?? "none")).IsEquivalentTo([LibraryRuleName, LibraryRuleName], CollectionOrdering.Any);
         await Assert
             .That(ex!.Errors.Select(static error => $"{error.Location}: {error.Problem}"))
             .IsEquivalentTo(libraryErrors.Select(static error => $"{error.Pointer}: {error.Message}"), CollectionOrdering.Matching);

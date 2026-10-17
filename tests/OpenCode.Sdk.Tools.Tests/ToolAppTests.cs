@@ -329,7 +329,7 @@ public sealed class ToolAppTests
         await Assert.That(error.Category).IsEqualTo(BindingErrorCategory.Curation);
         await Assert.That(error.Subject).IsEqualTo("health.history:limit");
         await Assert.That(error.Problem).Contains($"the evidence '{GenerationTestData.QueryEvidencePath}' is not in the source watch");
-        await Assert.That(fileSystem.File.Exists(GenerationTestData.ManifestPath)).IsFalse();
+        await Assert.That(GenerationTestData.ManifestPath).Satisfies(path => !fileSystem.File.Exists(path));
     }
 
     [Test]
@@ -342,7 +342,7 @@ public sealed class ToolAppTests
         var result = await tester.RunAsync(["generate"]);
 
         await Assert.That(result.ExitCode).IsEqualTo(0);
-        await Assert.That(fileSystem.File.Exists(GenerationTestData.ManifestPath)).IsTrue();
+        await Assert.That(GenerationTestData.ManifestPath).Satisfies(fileSystem.File.Exists);
     }
 
     [Test]

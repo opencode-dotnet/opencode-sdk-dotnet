@@ -2,6 +2,7 @@ using OpenCode.Sdk.Tools.Generator.Refresh;
 using OpenCode.Sdk.Tools.Generator.Refresh.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions.Testing;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Refresh;
 
@@ -42,8 +43,9 @@ public sealed class SourceWatchLoaderTests
 
         var watch = await loader.LoadAsync(CancellationToken.None);
 
+        // This checks the complete inventory, not its enumeration order.
         await Assert.That(watch.Sources.Select(static source => source.Path))
-            .IsEquivalentTo(["packages/server/src/handlers/pty.ts", "packages/core/src/pty/ticket.ts"]);
+            .IsEquivalentTo(["packages/server/src/handlers/pty.ts", "packages/core/src/pty/ticket.ts"], CollectionOrdering.Any);
         await Assert.That(watch.Sources[0].Anchor.Text).IsEqualTo("4404");
     }
 

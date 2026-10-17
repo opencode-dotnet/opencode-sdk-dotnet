@@ -1,6 +1,7 @@
 using System.Text;
 using OpenCode.Sdk.Tools.Generator.Refresh;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Refresh;
 
@@ -15,7 +16,7 @@ public sealed class DocumentInspectorTests
 
         var stats = DocumentInspector.Inspect(document);
 
-        await Assert.That(stats.OperationIds).IsEquivalentTo(["v2.alpha.get", "v2.beta.get"]);
+        await Assert.That(stats.OperationIds).IsEquivalentTo(["v2.alpha.get", "v2.beta.get"], CollectionOrdering.Matching);
         await Assert
             .That(stats.OperationSetDigest)
             .IsEqualTo(DocumentInspector.Sha256Hex(Encoding.UTF8.GetBytes("v2.alpha.get\nv2.beta.get")));

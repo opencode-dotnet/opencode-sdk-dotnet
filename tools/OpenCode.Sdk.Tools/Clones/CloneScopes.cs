@@ -2,7 +2,7 @@ namespace OpenCode.Sdk.Tools.Clones;
 
 /// <summary>
 /// The clone gate's fixed scopes. Hand-written SDK code, the tool and the tests are gated against
-/// committed baselines, the tool also against a 3% ceiling and the tests against a 7% ceiling that
+/// committed baselines, the tool also against a 3% ceiling and the tests against a 6.5% ceiling that
 /// only falls; generated output is reported only, because an emitter's template repeats on purpose.
 /// </summary>
 internal static class CloneScopes
@@ -15,7 +15,7 @@ internal static class CloneScopes
     [
         new("src", "src", CloneScopeFilter.Generated, [], DetectorFolder + "/src.baseline.json", Threshold: null),
         new("tools", "tools", CloneScopeFilter.None, [DetectorFolder + "/**"], DetectorFolder + "/tools.baseline.json", Threshold: 3m),
-        new("tests", "tests", CloneScopeFilter.None, [], DetectorFolder + "/tests.baseline.json", Threshold: 7m),
+        new("tests", "tests", CloneScopeFilter.None, [], DetectorFolder + "/tests.baseline.json", Threshold: 6.5m),
         new("generated", "src", CloneScopeFilter.HandWritten, [], Baseline: null, Threshold: null),
     ];
 }

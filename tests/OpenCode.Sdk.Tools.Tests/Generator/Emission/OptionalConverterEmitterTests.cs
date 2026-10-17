@@ -2,6 +2,7 @@ using System.Text;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.UnionHoistPlanData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
@@ -30,13 +31,14 @@ public sealed class OptionalConverterEmitterTests
 
         var sources = OptionalConverterEmitter.Emit(models);
 
+        // This checks the complete inventory, not its enumeration order.
         await Assert
             .That(sources.Select(static source => source.RelativePath))
             .IsEquivalentTo(
             [
                 "Internal/Serialization/OptionalOfBooleanJsonConverter.cs",
                 "Internal/Serialization/OptionalOfStringJsonConverter.cs",
-            ]);
+            ], CollectionOrdering.Any);
     }
 
     [Test]

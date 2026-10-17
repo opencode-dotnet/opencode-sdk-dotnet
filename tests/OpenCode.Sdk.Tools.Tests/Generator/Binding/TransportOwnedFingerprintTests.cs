@@ -15,7 +15,7 @@ public sealed class TransportOwnedFingerprintTests
         var hash = TransportOwnedFingerprint.ComputeSha256(operation);
 
         await Assert.That(hash.Length).IsEqualTo(64);
-        await Assert.That(hash.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'))).IsTrue();
+        await Assert.That(hash.AsEnumerable()).All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
     }
 
     /// <summary>Query-parameter declaration order carries no wire meaning, so an upstream

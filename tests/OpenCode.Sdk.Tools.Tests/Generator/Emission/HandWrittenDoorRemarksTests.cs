@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
@@ -55,8 +56,9 @@ public sealed partial class HandWrittenDoorRemarksTests
             .Select(static door => $"{door.TypeName}.{door.Name} carries {door.Remarks.Count} operation remarks")
             .ToArray();
 
+        // Member/type membership is the contract; declaration order is not asserted here.
         await Assert.That(doors.Select(static door => door.TypeName).Distinct(StringComparer.Ordinal))
-            .IsEquivalentTo(DoorTypes);
+            .IsEquivalentTo(DoorTypes, CollectionOrdering.Any);
         await Assert.That(unmarked).IsEmpty();
     }
 

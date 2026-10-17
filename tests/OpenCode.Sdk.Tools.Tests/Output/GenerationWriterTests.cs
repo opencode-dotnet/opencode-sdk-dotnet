@@ -523,7 +523,7 @@ public sealed class GenerationWriterTests
             Request([GenerationTestData.Source(relativePath, "generated")], familyFolders: [SessionsFamily]),
             CancellationToken.None);
 
-        await Assert.That(fileSystem.File.Exists(OwnedPath(fileSystem, relativePath))).IsTrue();
+        await Assert.That(OwnedPath(fileSystem, relativePath)).Satisfies(fileSystem.File.Exists);
         await Assert.That(result.CreatedPaths).Contains(relativePath);
     }
 
@@ -570,7 +570,7 @@ public sealed class GenerationWriterTests
         var result = await writer.WriteAsync(request, CancellationToken.None);
         var rerun = await writer.WriteAsync(request, CancellationToken.None);
 
-        await Assert.That(fileSystem.File.Exists(OwnedPath(fileSystem, relativePath))).IsTrue();
+        await Assert.That(OwnedPath(fileSystem, relativePath)).Satisfies(fileSystem.File.Exists);
         await Assert.That(result.CreatedPaths).Contains(relativePath);
         await Assert.That(rerun.HasChanges).IsFalse();
     }
@@ -700,7 +700,7 @@ public sealed class GenerationWriterTests
         var result = await writer.WriteAsync(Request([]), CancellationToken.None);
 
         await Assert.That(result.DeletedPaths).Contains(ReachReportName);
-        await Assert.That(fileSystem.File.Exists(ReachPath)).IsFalse();
+        await Assert.That(ReachPath).Satisfies(path => !fileSystem.File.Exists(path));
     }
 
     [Test]
@@ -724,15 +724,17 @@ public sealed class GenerationWriterTests
         var move = await writer.WriteAsync(request, CancellationToken.None);
         var rerun = await writer.WriteAsync(request, CancellationToken.None);
 
-        await Assert.That(move.DeletedPaths).IsEquivalentTo([rootAdapter, rootModel]);
-        await Assert.That(fileSystem.File.Exists(OwnedPath(fileSystem, rootModel))).IsFalse();
-        await Assert.That(fileSystem.File.Exists(OwnedPath(fileSystem, rootAdapter))).IsFalse();
-        await Assert.That(fileSystem.File.Exists(OwnedPath(fileSystem, familyModel))).IsTrue();
-        await Assert.That(fileSystem.File.Exists(OwnedPath(fileSystem, familyAdapter))).IsTrue();
+        // This checks the complete inventory, not its enumeration order.
+        await Assert.That(move.DeletedPaths).IsEquivalentTo([rootAdapter, rootModel], CollectionOrdering.Any);
+        await Assert.That(OwnedPath(fileSystem, rootModel)).Satisfies(path => !fileSystem.File.Exists(path));
+        await Assert.That(OwnedPath(fileSystem, rootAdapter)).Satisfies(path => !fileSystem.File.Exists(path));
+        await Assert.That(OwnedPath(fileSystem, familyModel)).Satisfies(fileSystem.File.Exists);
+        await Assert.That(OwnedPath(fileSystem, familyAdapter)).Satisfies(fileSystem.File.Exists);
         var written = JsonSerializer.Deserialize(
             await fileSystem.File.ReadAllTextAsync(GenerationTestData.ManifestPath, CancellationToken.None),
             ToolJsonContext.Default.GenerationManifest);
-        await Assert.That(written!.Files).IsEquivalentTo([familyAdapter, familyModel]);
+        // This checks the complete inventory, not its enumeration order.
+        await Assert.That(written!.Files).IsEquivalentTo([familyAdapter, familyModel], CollectionOrdering.Any);
         await Assert.That(rerun.HasChanges).IsFalse();
     }
 

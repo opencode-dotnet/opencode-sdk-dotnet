@@ -1,4 +1,5 @@
 using OpenCode.Sdk.Tools.Tests.Suppressions.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Suppressions;
 
@@ -21,7 +22,8 @@ public sealed class AnalyzerConfigAuditTests
 
         var duplicates = AnalyzerConfigAudit.FindDuplicateSections(inventory.AnalyzerConfigs);
 
-        await Assert.That(duplicates).IsEquivalentTo([$"{EditorConfig}: {LiveSection} at lines 2, 4"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(duplicates).IsEquivalentTo([$"{EditorConfig}: {LiveSection} at lines 2, 4"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -34,7 +36,8 @@ public sealed class AnalyzerConfigAuditTests
 
         var unmatched = AnalyzerConfigAudit.FindUnmatchedSections(inventory);
 
-        await Assert.That(unmatched).IsEquivalentTo([$"{EditorConfig}:4: [src/Gone.cs] matches no file"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(unmatched).IsEquivalentTo([$"{EditorConfig}:4: [src/Gone.cs] matches no file"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -47,7 +50,8 @@ public sealed class AnalyzerConfigAuditTests
 
         var unmatched = AnalyzerConfigAudit.FindUnmatchedSections(inventory);
 
-        await Assert.That(unmatched).IsEquivalentTo([$"{EditorConfig}:4: [Gone.cs] matches no file"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(unmatched).IsEquivalentTo([$"{EditorConfig}:4: [Gone.cs] matches no file"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -60,8 +64,9 @@ public sealed class AnalyzerConfigAuditTests
 
         var unmatched = AnalyzerConfigAudit.FindUnmatchedSections(inventory);
 
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
         await Assert.That(unmatched).IsEquivalentTo(
-            [$"{EditorConfig}:2: [src/{{Here,Gone}}.cs] has an alternative, 'src/Gone.cs', that matches no file"]);
+            [$"{EditorConfig}:2: [src/{{Here,Gone}}.cs] has an alternative, 'src/Gone.cs', that matches no file"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -75,8 +80,9 @@ public sealed class AnalyzerConfigAuditTests
 
         var unmatched = AnalyzerConfigAudit.FindUnmatchedSections(inventory);
 
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
         await Assert.That(unmatched).IsEquivalentTo(
-            [$"{EditorConfig}:2: [{{Top.cs,src/Here.cs}}] has an alternative, 'Top.cs', that matches no file"]);
+            [$"{EditorConfig}:2: [{{Top.cs,src/Here.cs}}] has an alternative, 'Top.cs', that matches no file"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -89,7 +95,8 @@ public sealed class AnalyzerConfigAuditTests
 
         var unmatched = AnalyzerConfigAudit.FindUnmatchedSections(inventory);
 
-        await Assert.That(unmatched).IsEquivalentTo([$"{EditorConfig}:4: [**/*.ps1] matches no file"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(unmatched).IsEquivalentTo([$"{EditorConfig}:4: [**/*.ps1] matches no file"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -110,7 +117,8 @@ public sealed class AnalyzerConfigAuditTests
     {
         var alternatives = AnalyzerConfigAudit.ExpandAlternatives("{a,{b,c}}/x.cs");
 
-        await Assert.That(alternatives).IsEquivalentTo(["a/x.cs", "b/x.cs", "c/x.cs"]);
+        // This checks the complete inventory, not its enumeration order.
+        await Assert.That(alternatives).IsEquivalentTo(["a/x.cs", "b/x.cs", "c/x.cs"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -118,7 +126,8 @@ public sealed class AnalyzerConfigAuditTests
     {
         var alternatives = AnalyzerConfigAudit.ExpandAlternatives("src/{{Here,Gone}}.cs");
 
-        await Assert.That(alternatives).IsEquivalentTo(["src/{Here}.cs", "src/{Gone}.cs"]);
+        // This checks the complete inventory, not its enumeration order.
+        await Assert.That(alternatives).IsEquivalentTo(["src/{Here}.cs", "src/{Gone}.cs"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -128,7 +137,8 @@ public sealed class AnalyzerConfigAuditTests
 
         var alternatives = AnalyzerConfigAudit.ExpandAlternatives(range);
 
-        await Assert.That(alternatives).IsEquivalentTo([range]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(alternatives).IsEquivalentTo([range], CollectionOrdering.Any);
     }
 
     [Test]
@@ -138,7 +148,8 @@ public sealed class AnalyzerConfigAuditTests
 
         var alternatives = AnalyzerConfigAudit.ExpandAlternatives(escaped);
 
-        await Assert.That(alternatives).IsEquivalentTo([escaped]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(alternatives).IsEquivalentTo([escaped], CollectionOrdering.Any);
     }
 
     [Test]
@@ -148,6 +159,7 @@ public sealed class AnalyzerConfigAuditTests
 
         var alternatives = AnalyzerConfigAudit.ExpandAlternatives(characterClass);
 
-        await Assert.That(alternatives).IsEquivalentTo([characterClass]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(alternatives).IsEquivalentTo([characterClass], CollectionOrdering.Any);
     }
 }

@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Packaging;
 
@@ -36,6 +37,7 @@ public sealed class GeneratedTypeCatalogTests
 
         var types = new GeneratedTypeCatalog().ReadDeclarations(source, "Models/AgentInfo.cs", generated: true);
 
-        await Assert.That(types.Select(static type => type.FullName)).IsEquivalentTo(["OpenCode.Sdk.Models.AgentInfo"]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(types.Select(static type => type.FullName)).IsEquivalentTo(["OpenCode.Sdk.Models.AgentInfo"], CollectionOrdering.Any);
     }
 }

@@ -49,7 +49,7 @@ public sealed class InternalNameCollisionCheckTests
         var error = exception.Errors[0];
         await Assert.That(error.Category).IsEqualTo(BindingErrorCategory.Naming);
         await Assert.That(error.Subject).IsEqualTo(reservedName);
-        await Assert.That(error.Problem.Contains(reservedName, StringComparison.Ordinal)).IsTrue();
+        await Assert.That(error.Problem).Contains(reservedName, StringComparison.Ordinal);
     }
 
     [Test]

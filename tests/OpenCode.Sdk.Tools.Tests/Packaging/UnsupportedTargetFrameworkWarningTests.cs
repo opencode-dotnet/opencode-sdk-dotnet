@@ -1,4 +1,5 @@
 using System.Reflection;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Packaging;
 
@@ -33,7 +34,8 @@ public sealed class UnsupportedTargetFrameworkWarningTests(PackedConsumerFeed fe
         var build = await feed.BuildConsumerAsync(Core, Unsupported, suppress: false, cancellationToken);
 
         await Assert.That(build.ExitCode).IsEqualTo(0).Because(build.Output);
-        await Assert.That(WarnedPackages(build)).IsEquivalentTo([Core]).Because(build.Output);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(WarnedPackages(build)).IsEquivalentTo([Core], CollectionOrdering.Any).Because(build.Output);
     }
 
     [Test]
@@ -43,7 +45,8 @@ public sealed class UnsupportedTargetFrameworkWarningTests(PackedConsumerFeed fe
         var build = await feed.BuildConsumerAsync(Extensions, Unsupported, suppress: false, cancellationToken);
 
         await Assert.That(build.ExitCode).IsEqualTo(0).Because(build.Output);
-        await Assert.That(WarnedPackages(build)).IsEquivalentTo([Core, Extensions]).Because(build.Output);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(WarnedPackages(build)).IsEquivalentTo([Core, Extensions], CollectionOrdering.Any).Because(build.Output);
     }
 
     [Test]

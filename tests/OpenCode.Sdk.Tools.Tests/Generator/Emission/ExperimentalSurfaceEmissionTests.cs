@@ -31,7 +31,7 @@ public sealed class ExperimentalSurfaceEmissionTests
         var handle = Type<ClassDeclarationSyntax>(sources, "ProbeClient");
 
         await Assert.That(Diagnostic(handle)).IsEqualTo("OPENCODE001");
-        await Assert.That(handle.Members.OfType<MethodDeclarationSyntax>().All(static method => Diagnostic(method) is null)).IsTrue();
+        await Assert.That(handle.Members.OfType<MethodDeclarationSyntax>()).All().Satisfy(Diagnostic, value => value.IsNull());
         var collection = Type<ClassDeclarationSyntax>(sources, "ProbesClient");
         await Assert.That(Diagnostic(collection)).IsNull();
         // The handle's methods are reported only where its type is named, so the factory that hands it out carries the id.
@@ -77,7 +77,7 @@ public sealed class ExperimentalSurfaceEmissionTests
         var client = Type<ClassDeclarationSyntax>(sources, "ProbesClient");
 
         await Assert.That(Diagnostic(client)).IsEqualTo("OPENCODE001");
-        await Assert.That(client.Members.OfType<MethodDeclarationSyntax>().All(static method => Diagnostic(method) is null)).IsTrue();
+        await Assert.That(client.Members.OfType<MethodDeclarationSyntax>()).All().Satisfy(Diagnostic, value => value.IsNull());
         var root = Type<ClassDeclarationSyntax>(sources, "OpenCodeClient");
         await Assert.That(Diagnostic(root.Members.OfType<PropertyDeclarationSyntax>().Single(static property => property.Identifier.ValueText == "Probes")))
             .IsEqualTo("OPENCODE001");
@@ -146,7 +146,7 @@ public sealed class ExperimentalSurfaceEmissionTests
             .Where(static declaration => declaration.Modifiers.Any(SyntaxKind.InternalKeyword)).ToArray();
 
         await Assert.That(declarations.Length).IsGreaterThan(0);
-        await Assert.That(declarations.All(static declaration => Diagnostic(declaration) is null)).IsTrue();
+        await Assert.That(declarations).All().Satisfy(Diagnostic, value => value.IsNull());
     }
 
     [Test]
@@ -223,7 +223,7 @@ public sealed class ExperimentalSurfaceEmissionTests
         var unsuppressed = await GeneratedSourceCompiler.CompileConsumerAsync(sources, consumer, suppressExperimental: false);
         var suppressed = await GeneratedSourceCompiler.CompileConsumerAsync(sources, consumer, suppressExperimental: true);
 
-        await Assert.That(unsuppressed.Any(static diagnostic => diagnostic.Id == "OPENCODE001" && diagnostic.Severity == DiagnosticSeverity.Error)).IsTrue();
+        await Assert.That(unsuppressed).Contains(static diagnostic => diagnostic.Id == "OPENCODE001" && diagnostic.Severity == DiagnosticSeverity.Error);
         await Assert.That(suppressed).IsEmpty();
     }
 

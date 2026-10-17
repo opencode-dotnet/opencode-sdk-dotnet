@@ -8,6 +8,7 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
@@ -21,17 +22,17 @@ public sealed class SourceEmitterTests
         var first = SourceEmitter.Emit(plan);
         var second = SourceEmitter.Emit(plan);
 
-        await Assert
-            .That(first
-                .Select(static source => source.RelativePath)
-                .SequenceEqual(first.Select(static source => source.RelativePath).Order(StringComparer.Ordinal), StringComparer.Ordinal))
-            .IsTrue();
-        await Assert
-            .That(first
-                .Select(static source => source.Utf8Source.ToArray())
-                .Zip(second.Select(static source => source.Utf8Source.ToArray()), static (left, right) => left.SequenceEqual(right))
-                .All(static equal => equal))
-            .IsTrue();
+        await Assert.That(first.Select(static source => source.RelativePath))
+            .IsEquivalentTo(first.Select(static source => source.RelativePath).Order(StringComparer.Ordinal), StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(second).Count().IsEqualTo(first.Count);
+        await Assert.That(second.Select(static source => source.RelativePath))
+            .IsEquivalentTo(first.Select(static source => source.RelativePath), StringComparer.Ordinal, CollectionOrdering.Matching);
+        for (var index = 0; index < first.Count; index++)
+        {
+            await Assert.That(second[index].Utf8Source.ToArray())
+                .IsEquivalentTo(first[index].Utf8Source.ToArray(), CollectionOrdering.Matching)
+                .Because($"source {first[index].RelativePath}");
+        }
     }
 
     /// <summary>
@@ -65,7 +66,7 @@ public sealed class SourceEmitterTests
                 .Variants
                 .OrderBy(static variant => variant.Tag, StringComparer.Ordinal)
                 .Select(static variant => new KeyValuePair<string, string>(variant.Tag, variant.TypeName));
-            await Assert.That(ReadConverterMappings(source).SequenceEqual(expected)).IsTrue();
+            await Assert.That(ReadConverterMappings(source)).IsEquivalentTo(expected, CollectionOrdering.Matching).Because($"converter {union.ConceptName}");
         }
 
         foreach (var structural in plan.Models.OfType<StructuralUnionModelPlan>())
@@ -74,9 +75,9 @@ public sealed class SourceEmitterTests
                 $"/Internal/{structural.Name}JsonConverter.cs", StringComparison.Ordinal));
             var expected = structural.Arms.Where(static arm => arm.Claim is null).SelectMany(arm => arm.Tokens.Select(token =>
                 new KeyValuePair<string, string>(token.ToString(), arm.Name)));
-            await Assert.That(ReadStructuralConverterMappings(source).SequenceEqual(expected)).IsTrue();
+            await Assert.That(ReadStructuralConverterMappings(source)).IsEquivalentTo(expected, CollectionOrdering.Matching).Because($"converter {structural.Name}");
             var claimed = structural.Arms.Where(static arm => arm.Claim is not null).Select(static arm => arm.Name);
-            await Assert.That(ReadFirstMatchOrder(source).SequenceEqual(claimed, StringComparer.Ordinal)).IsTrue();
+            await Assert.That(ReadFirstMatchOrder(source)).IsEquivalentTo(claimed, StringComparer.Ordinal, CollectionOrdering.Matching).Because($"converter {structural.Name}");
         }
 
         var requiredRegistryTypes = plan
@@ -119,9 +120,7 @@ public sealed class SourceEmitterTests
         var registrySource = sources.Single(static source =>
             source.RelativePath == "Internal/Serialization/OpenCodeJsonContext.cs");
         var emittedRegistryTypes = ReadRegistryTypes(registrySource);
-        await Assert
-            .That(emittedRegistryTypes.SequenceEqual(expectedRegistryTypes, StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(emittedRegistryTypes).IsEquivalentTo(expectedRegistryTypes, StringComparer.Ordinal, CollectionOrdering.Matching).Because($"registry {registrySource.RelativePath}");
         await Assert.That(allRequiredRegistryTypes.Except(emittedRegistryTypes, StringComparer.Ordinal)).IsEmpty();
 
         var diagnostics = await GeneratedSourceCompiler.CompileWithSdkCoreAsync(sources);

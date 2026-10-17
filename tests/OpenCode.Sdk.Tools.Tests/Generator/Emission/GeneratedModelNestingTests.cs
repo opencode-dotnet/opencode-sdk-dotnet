@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
@@ -42,8 +43,9 @@ public sealed class GeneratedModelNestingTests
             }
         }
 
+        // Only membership and cardinality matter; this expected collection has one item.
         await Assert.That(sections.Where(static section => section.StartsWith("[src/OpenCode.Sdk", StringComparison.Ordinal)))
-            .IsEquivalentTo([ModelsSection]);
+            .IsEquivalentTo([ModelsSection], CollectionOrdering.Any);
     }
 
     [Test]

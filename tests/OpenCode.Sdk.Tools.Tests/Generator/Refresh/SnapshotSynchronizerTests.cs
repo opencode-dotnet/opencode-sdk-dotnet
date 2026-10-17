@@ -43,15 +43,17 @@ public sealed class SnapshotSynchronizerTests
 
         var receipt = outcome.Receipt;
         await Assert.That(receipt.UpstreamCommit).IsEqualTo(RefreshScenarioData.Commit);
-        await Assert.That(receipt.AddedOperations).IsEquivalentTo(["v2.gamma.get"]);
-        await Assert.That(receipt.RemovedOperations).IsEquivalentTo(["v2.alpha.get"]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(receipt.AddedOperations).IsEquivalentTo(["v2.gamma.get"], CollectionOrdering.Any);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(receipt.RemovedOperations).IsEquivalentTo(["v2.alpha.get"], CollectionOrdering.Any);
         await Assert.That(receipt.Patches).IsEmpty();
         await Assert.That(receipt.GeneratedBaselineSha256).IsEqualTo(DocumentInspector.Sha256Hex(CandidateDocument));
         await Assert.That(receipt.NormalizedDocumentSha256).IsEqualTo(DocumentInspector.Sha256Hex(CandidateDocument));
         await Assert
             .That(await fileSystem.File.ReadAllBytesAsync(outcome.NormalizedDocumentPath, CancellationToken.None))
-            .IsEquivalentTo(CandidateDocument);
-        await Assert.That(fileSystem.File.Exists(outcome.ReceiptPath)).IsTrue();
+            .IsEquivalentTo(CandidateDocument, CollectionOrdering.Matching);
+        await Assert.That(outcome.ReceiptPath).Satisfies(fileSystem.File.Exists);
         await Assert
             .That(runner.Invocations.Count(static invocation => invocation.StartsWith("bun run generate", StringComparison.Ordinal)))
             .IsEqualTo(1);
@@ -72,7 +74,8 @@ public sealed class SnapshotSynchronizerTests
         await Assert.That(receipt.RawDocumentSha256).IsEqualTo(DocumentInspector.Sha256Hex(AcceptedDocument));
         await Assert.That(receipt.GeneratedBaselineSha256).IsEqualTo(DocumentInspector.Sha256Hex(CandidateDocument));
         await Assert.That(receipt.NormalizedDocumentSha256).IsEqualTo(DocumentInspector.Sha256Hex(CandidateDocument));
-        await Assert.That(receipt.AddedOperations).IsEquivalentTo(["v2.gamma.get"]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(receipt.AddedOperations).IsEquivalentTo(["v2.gamma.get"], CollectionOrdering.Any);
         await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
@@ -88,8 +91,7 @@ public sealed class SnapshotSynchronizerTests
         var exception = await scenario.PrepareRefusalAsync();
 
         await Assert.That(exception.Message).Contains("retire the patch");
-        await Assert.That(runner.Invocations.Any(static invocation => invocation.StartsWith("git -c core.longpaths=true apply", StringComparison.Ordinal)))
-            .IsFalse();
+        await Assert.That(runner.Invocations).DoesNotContain(static invocation => invocation.StartsWith("git -c core.longpaths=true apply", StringComparison.Ordinal));
         await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
@@ -129,7 +131,7 @@ public sealed class SnapshotSynchronizerTests
         await Assert.That(preimage.Sha256).IsEqualTo(DocumentInspector.Sha256Hex(Encoding.UTF8.GetBytes("before")));
         await Assert
             .That(await fileSystem.File.ReadAllBytesAsync(outcome.NormalizedDocumentPath, CancellationToken.None))
-            .IsEquivalentTo(normalized);
+            .IsEquivalentTo(normalized, CollectionOrdering.Matching);
         await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
     }
 
@@ -221,7 +223,7 @@ public sealed class SnapshotSynchronizerTests
         await Assert.That(applied.NormalizedDocumentPath).IsNull();
         await Assert
             .That(await fileSystem.File.ReadAllBytesAsync(SnapshotPaths.AcceptedDocument, CancellationToken.None))
-            .IsEquivalentTo(CandidateDocument);
+            .IsEquivalentTo(CandidateDocument, CollectionOrdering.Matching);
         var committed = JsonSerializer.Deserialize(
             await fileSystem.File.ReadAllTextAsync(SnapshotPaths.CommittedReceipt, CancellationToken.None),
             ToolJsonContext.Default.SnapshotReceipt);
@@ -230,10 +232,8 @@ public sealed class SnapshotSynchronizerTests
         await Assert.That(snapshotMarkdown).Contains($"| Commit | `{RefreshScenarioData.Commit}` |");
         await Assert.That(snapshotMarkdown).DoesNotContain("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         await Assert.That(snapshotMarkdown).DoesNotContain("Date: 2026-08-13");
-        await Assert
-            .That(runner.Invocations.Any(invocation =>
-                invocation.StartsWith($"git -c core.longpaths=true checkout --detach {RefreshScenarioData.Commit}", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(runner.Invocations).Contains(invocation =>
+            invocation.StartsWith($"git -c core.longpaths=true checkout --detach {RefreshScenarioData.Commit}", StringComparison.Ordinal));
     }
 
     [Test]
@@ -278,8 +278,8 @@ public sealed class SnapshotSynchronizerTests
 
         var outcome = await scenario.Synchronizer.VerifyAsync(CancellationToken.None);
 
-        await Assert.That(outcome.Problems.Any(static problem => problem.Contains("hash", StringComparison.Ordinal))).IsTrue();
-        await Assert.That(outcome.Problems.Any(static problem => problem.Contains("checkout", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(outcome.Problems).Contains(static problem => problem.Contains("hash", StringComparison.Ordinal));
+        await Assert.That(outcome.Problems).Contains(static problem => problem.Contains("checkout", StringComparison.Ordinal));
     }
 
     [Test]
@@ -332,14 +332,10 @@ public sealed class SnapshotSynchronizerTests
 
         // A checkout that moved under the door disagrees with both readings: the committed pin
         // and the accepted receipt's own record of the same file.
-        await Assert
-            .That(outcome.Problems.Any(static problem =>
-                problem.Contains("watched source 'packages/core/src/pty.ts' changed: pinned", StringComparison.Ordinal)))
-            .IsTrue();
-        await Assert
-            .That(outcome.Problems.Any(static problem =>
-                problem.Contains("the receipt records watched source 'packages/core/src/pty.ts' at", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(outcome.Problems).Contains(static problem =>
+            problem.Contains("watched source 'packages/core/src/pty.ts' changed: pinned", StringComparison.Ordinal));
+        await Assert.That(outcome.Problems).Contains(static problem =>
+            problem.Contains("the receipt records watched source 'packages/core/src/pty.ts' at", StringComparison.Ordinal));
     }
 
     /// <summary>

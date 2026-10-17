@@ -5,6 +5,7 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
@@ -71,13 +72,14 @@ public sealed class GeneratedFileNameTests
             .Where(static source => source.RelativePath.Contains("OptionalOf", StringComparison.Ordinal))
             .ToArray();
 
+        // This checks the complete inventory, not its enumeration order.
         await Assert
             .That(converters.Select(static source => source.RelativePath))
             .IsEquivalentTo(
             [
                 "Internal/Serialization/OptionalOfBooleanJsonConverter.cs",
                 "Internal/Serialization/OptionalOfStringJsonConverter.cs",
-            ]);
+            ], CollectionOrdering.Any);
         var mismatches = converters
             .Select(static source => (source.RelativePath, Declared: FirstDeclaredTypeName(source)))
             .Where(static entry => !string.Equals(FileStem(entry.RelativePath), entry.Declared, StringComparison.Ordinal))

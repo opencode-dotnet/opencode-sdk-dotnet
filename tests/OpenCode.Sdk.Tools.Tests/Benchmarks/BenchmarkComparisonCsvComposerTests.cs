@@ -1,5 +1,6 @@
 using OpenCode.Sdk.Tools.Benchmarks;
 using OpenCode.Sdk.Tools.Benchmarks.Models;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Benchmarks;
 
@@ -90,7 +91,7 @@ public sealed class BenchmarkComparisonCsvComposerTests
             .Skip(1)
             .Select(line => line.Split(',')[0])
             .ToArray();
-        await Assert.That(caseColumn.SequenceEqual(
+        await Assert.That(caseColumn).IsEquivalentTo(
             [
                 "\"Health/AdaptSuccess [Fixture=health]\"",
                 "\"Health/GetHealthAsync [Fixture=health]\"",
@@ -99,7 +100,7 @@ public sealed class BenchmarkComparisonCsvComposerTests
                 "\"Health/NewRung [Fixture=health]\"",
                 "\"Health/NewRung [Fixture=health]\"",
             ],
-            StringComparer.Ordinal)).IsTrue();
+            StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]

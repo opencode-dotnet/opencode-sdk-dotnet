@@ -1,6 +1,7 @@
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
@@ -37,7 +38,7 @@ public sealed class StreamOperationEmissionTests
         foreach (var expected in expectedStatuses)
         {
             var status = operation.ErrorMap.Statuses.Single(candidate => candidate.StatusCode == expected.Status);
-            await Assert.That(status.Tags.Select(static tag => tag.Tag).SequenceEqual(expected.Tags, StringComparer.Ordinal)).IsTrue();
+            await Assert.That(status.Tags.Select(static tag => tag.Tag)).IsEquivalentTo(expected.Tags, StringComparer.Ordinal, CollectionOrdering.Matching);
         }
 
         var sources = SourceEmitter.Emit(plan);

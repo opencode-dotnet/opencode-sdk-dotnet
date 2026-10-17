@@ -46,7 +46,7 @@ public sealed class PatchSetLoaderTests
         var patch = patches.Single();
         await Assert.That(patch.ManifestName).IsEqualTo("001-test.json");
         await Assert.That(patch.Manifest.Order).IsEqualTo(1);
-        await Assert.That(fileSystem.File.Exists(patch.PatchPath)).IsTrue();
+        await Assert.That(patch.PatchPath).Satisfies(fileSystem.File.Exists);
     }
 
     [Test]

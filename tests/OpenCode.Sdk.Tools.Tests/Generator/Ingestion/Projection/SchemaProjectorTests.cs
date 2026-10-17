@@ -161,7 +161,7 @@ public sealed class SchemaProjectorTests
 
         var result = await host.ProjectAsync(scenario);
 
-        await Assert.That(result.Schemas.ContainsKey("session.info")).IsTrue();
+        await Assert.That(result.Schemas).ContainsKey("session.info");
     }
 
     [Test]
