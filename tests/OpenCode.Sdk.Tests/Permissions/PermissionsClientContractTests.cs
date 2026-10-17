@@ -1,5 +1,4 @@
 using System.Net;
-using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 
@@ -51,31 +50,6 @@ public sealed class PermissionsClientContractTests
         await Assert.That(response.Saved).IsEmpty();
         await Assert.That(scenario.Requests.Single().RequestUri)
             .IsEqualTo(new Uri("http://localhost:4096/api/permission/saved?projectID=prj_9"));
-    }
-
-    [Test]
-    public async Task ListSavedAsync_Should_Throw_The_Declared_400_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Permissions.ListSavedAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(400);
-        await Assert.That(exception.Error).IsTypeOf<InvalidRequestError>();
-    }
-
-    [Test]
-    public async Task ListSavedAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Permissions.ListSavedAsync(requestOptions: OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
     }
 
     [Test]

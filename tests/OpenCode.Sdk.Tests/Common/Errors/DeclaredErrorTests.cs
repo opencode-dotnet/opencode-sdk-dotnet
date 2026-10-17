@@ -10,6 +10,10 @@ using OpenCode.Sdk.Tests.FileSystem;
 using OpenCode.Sdk.Tests.Forms;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Integrations;
+using OpenCode.Sdk.Tests.LanguageModels;
+using OpenCode.Sdk.Tests.Permissions;
+using OpenCode.Sdk.Tests.Projects;
+using OpenCode.Sdk.Tests.Server;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.Tests.Vcs;
 using OpenCode.Sdk.Tests.Worktrees;
@@ -29,6 +33,11 @@ public sealed class DeclaredErrorTests
         .. FileSystemDeclaredErrors.Rows(),
         .. IntegrationsDeclaredErrors.Rows(),
         .. VcsDeclaredErrors.Rows(),
+        .. LanguageModelsDeclaredErrors.Rows(),
+        .. OpenCodeClientDeclaredErrors.Rows(),
+        .. PermissionsDeclaredErrors.Rows(),
+        .. ProjectsDeclaredErrors.Rows(),
+        .. ServerDeclaredErrors.Rows(),
     ];
 
     [Test]
