@@ -132,6 +132,9 @@ public sealed class ModelMaterializationMatrixTests
             .Single(static model => model.Properties.Any(static property => property.WireName == "patchScalar"));
         await Assert.That(PatchMember(patch, "patchScalar").EmitsOptionalWrapper).IsTrue();
         await Assert.That(PatchMember(patch, "patchNumber").EmitsOptionalWrapper).IsTrue();
+        await Assert.That(PatchMember(patch, "patchSpecialNumber").EmitsOptionalWrapper).IsTrue();
+        await Assert.That(PatchMember(patch, "patchSpecialNumber").Type).IsTypeOf<SpecialNumberTypeReferencePlan>();
+        await Assert.That(PatchMember(patch, "patchSpecialNumber").Type.IsNullable).IsTrue();
         await Assert.That(PatchMember(patch, "patchList").EmitsOptionalWrapper).IsTrue();
         await Assert.That(PatchMember(patch, "patchDictionary").EmitsOptionalWrapper).IsTrue();
         await Assert.That(PatchMember(patch, "patchPlain").EmitsOptionalWrapper).IsFalse();
@@ -146,6 +149,7 @@ public sealed class ModelMaterializationMatrixTests
             {
                 ["patchScalar"] = null,
                 ["patchNumber"] = null,
+                ["patchSpecialNumber"] = null,
                 ["patchList"] = null,
                 ["patchDictionary"] = null,
                 ["patchPlain"] = null,
@@ -154,7 +158,7 @@ public sealed class ModelMaterializationMatrixTests
             typeInfo);
         using (var document = JsonDocument.Parse(await SerializeAsync(cleared, typeInfo)))
         {
-            foreach (var name in new[] { "patchScalar", "patchNumber", "patchList", "patchDictionary", })
+            foreach (var name in new[] { "patchScalar", "patchNumber", "patchList", "patchDictionary", "patchSpecialNumber", })
             {
                 await Assert.That(document.RootElement.GetProperty(name).ValueKind).IsEqualTo(JsonValueKind.Null);
             }
@@ -181,6 +185,26 @@ public sealed class ModelMaterializationMatrixTests
             await Assert.That(document.RootElement.GetProperty("patchDictionary").GetProperty("key").GetString()).IsEqualTo("set");
             await Assert.That(document.RootElement.GetProperty("patchPlain").GetString()).IsEqualTo("plain");
             await Assert.That(document.RootElement.GetProperty("patchRequired").GetString()).IsEqualTo("kept");
+        }
+
+        foreach (var (input, expected, json) in new[]
+                 {
+                     (JsonValue.Create(4.5), 4.5, "4.5"),
+                     (JsonValue.Create("NaN"), double.NaN, "\"NaN\""),
+                     (JsonValue.Create("Infinity"), double.PositiveInfinity, "\"Infinity\""),
+                     (JsonValue.Create("-Infinity"), double.NegativeInfinity, "\"-Infinity\""),
+                 })
+        {
+            var special = Deserialize(new JsonObject { ["patchRequired"] = null, ["patchSpecialNumber"] = input, }, typeInfo);
+            await Assert.That(GetProperty(GetProperty(special, "PatchSpecialNumber")!, "Value")).IsEqualTo(expected);
+            using var document = JsonDocument.Parse(await SerializeAsync(special, typeInfo));
+            await Assert.That(document.RootElement.GetProperty("patchSpecialNumber").GetRawText()).IsEqualTo(json);
+        }
+
+        foreach (var invalid in new[] { "nan", "+Infinity", "1.5", })
+        {
+            var payload = new JsonObject { ["patchRequired"] = null, ["patchSpecialNumber"] = invalid, };
+            _ = await Assert.That(() => Deserialize(payload, typeInfo)).Throws<JsonException>();
         }
     }
 

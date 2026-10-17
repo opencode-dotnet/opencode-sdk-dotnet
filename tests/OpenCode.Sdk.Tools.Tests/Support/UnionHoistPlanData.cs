@@ -133,6 +133,13 @@ internal static class UnionHoistPlanData
             JsonNullRepresentation = JsonNullRepresentation.ClrNull,
         };
 
+    public static SpecialNumberTypeReferencePlan SpecialNumber(bool isNullable = false) =>
+        new()
+        {
+            IsNullable = isNullable,
+            JsonNullRepresentation = JsonNullRepresentation.ClrNull,
+        };
+
     /// <summary>
     /// Runs the hoist binder over a scenario and wraps the result as the emit plan the source
     /// emitters read, for the cases whose proof is the rendered member rather than the bound plan.

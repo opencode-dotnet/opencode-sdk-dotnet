@@ -9,6 +9,7 @@ using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
 using TUnit.Assertions.Enums;
+using static OpenCode.Sdk.Tools.Tests.Support.UnionHoistPlanData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
@@ -233,6 +234,19 @@ public sealed class SourceEmitterTests(PinnedBinding pinned)
                     ((TypeOfExpressionSyntax)assignment.Right).Type.ToString()))
                 .OrderBy(static mapping => mapping.Key, StringComparer.Ordinal),
         ];
+    }
+
+    [Test]
+    public async Task Emit_Should_Refuse_Two_Optional_Instantiations_That_Share_A_Converter_Name()
+    {
+        var model = Record("WidgetPatchRequest",
+            Property("primitive", Named("double", isNullable: true), isRequired: false, emitsOptionalWrapper: true),
+            Property("nominal", Named("Double", isNullable: true), isRequired: false, emitsOptionalWrapper: true));
+        var plan = (EmitterPlanFixture.CreateModelSnapshot() with { Models = [model], Unions = [], Clients = [] }).WithSingleSlice();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => SourceEmitter.Emit(plan));
+
+        await Assert.That(exception.Message).IsEqualTo("Multiple emitters produced 'Internal/Serialization/OptionalOfDoubleJsonConverter.cs'.");
     }
 
     private static IReadOnlyList<KeyValuePair<string, string>> ReadStructuralConverterMappings(GeneratedSource source)

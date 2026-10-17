@@ -18,6 +18,39 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 public sealed class OptionalConverterEmitterTests(PinnedBinding pinned)
 {
     [Test]
+    public async Task Emit_Should_Keep_Plain_And_Special_Number_Converters_Distinct_And_Ordered()
+    {
+        var model = Record("WidgetPatchRequest",
+            Property("special", SpecialNumber(isNullable: true), isRequired: false, emitsOptionalWrapper: true),
+            Property("plain", Named("double", isNullable: true), isRequired: false, emitsOptionalWrapper: true));
+
+        var sources = OptionalConverterEmitter.Emit([model]);
+
+        await Assert.That(sources.Select(static source => source.RelativePath)).IsEquivalentTo(
+        [
+            "Internal/Serialization/OptionalOfDoubleJsonConverter.cs",
+            "Internal/Serialization/OptionalOfSpecialNumberJsonConverter.cs",
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Emit_Should_Refuse_A_Wrapped_Container_Of_Special_Numbers(bool dictionary)
+    {
+        var special = SpecialNumber();
+        TypeReferencePlan container = dictionary
+            ? new DictionaryTypeReferencePlan { ValueType = special, IsNullable = true, JsonNullRepresentation = JsonNullRepresentation.ClrNull, }
+            : new ListTypeReferencePlan { ElementType = special, IsNullable = true, JsonNullRepresentation = JsonNullRepresentation.ClrNull, };
+        var model = Record("WidgetPatchRequest", Property("values", container, isRequired: false, emitsOptionalWrapper: true));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => OptionalConverterEmitter.Emit([model]));
+
+        await Assert.That(exception.Message).IsEqualTo(
+            "No optional converter name exists for plan 'SpecialNumberTypeReferencePlan'; admit the representation first.");
+    }
+
+    [Test]
     public async Task Emit_Should_Produce_One_Converter_Per_Distinct_Instantiation()
     {
         ModelPlan[] models =

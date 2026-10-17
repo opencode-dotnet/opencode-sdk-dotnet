@@ -18,6 +18,14 @@ internal static class OptionalConverterEmitter
     /// <summary>The named types the emitters render without reaching into the generated models namespace.</summary>
     private static readonly string[] NonModelNames = ["bool", "double", "long", "string", "int", "JsonElement", "Uri"];
 
+    /// <summary>The named floating-point literals AllowNamedFloatingPointLiterals admits, beside the <c>double</c> member each one names.</summary>
+    private static readonly (string Literal, string Member)[] SpecialNumbers =
+    [
+        ("NaN", "NaN"),
+        ("Infinity", "PositiveInfinity"),
+        ("-Infinity", "NegativeInfinity"),
+    ];
+
     public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ModelPlan> models)
     {
         ArgumentNullException.ThrowIfNull(models);
@@ -27,7 +35,7 @@ internal static class OptionalConverterEmitter
             .SelectMany(static model => model.Properties)
             .Where(static property => property.EmitsOptionalWrapper)
             .Select(static property => property.Type)
-            .DistinctBy(static type => TypeReferenceNamePolicy.Format(type), StringComparer.Ordinal)
+            .DistinctBy(static type => (TypeReferenceNamePolicy.Format(type), OptionalConverterNamePolicy.ConverterTypeName(type)))
             .OrderBy(static type => OptionalConverterNamePolicy.ConverterTypeName(type), StringComparer.Ordinal);
         return Array.AsReadOnly([.. instantiations.Select(EmitConverter)]);
     }
@@ -77,6 +85,25 @@ internal static class OptionalConverterEmitter
                 EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("reader"), "TokenType"),
                 EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonTokenType"), "Null")),
             SyntaxFactory.Block(SyntaxFactory.ReturnStatement(EmissionSyntax.MemberAccess(wrapper, "Null")))));
+        if (inner is SpecialNumberTypeReferencePlan)
+        {
+            var literal = EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("reader"), "GetString"));
+            var number = SyntaxFactory.SwitchExpression(literal).WithArms(SyntaxFactory.SeparatedList(
+                SpecialNumbers.Select(static number => SyntaxFactory.SwitchExpressionArm(
+                    SyntaxFactory.ConstantPattern(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(number.Literal))),
+                    EmissionSyntax.MemberAccess(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.DoubleKeyword)), number.Member)))
+                .Append(SyntaxFactory.SwitchExpressionArm(SyntaxFactory.DiscardPattern(), SyntaxFactory.ThrowExpression(
+                    SyntaxFactory.ObjectCreationExpression(SyntaxFactory.IdentifierName("JsonException"))
+                        .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
+                            SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                                SyntaxKind.StringLiteralExpression,
+                                SyntaxFactory.Literal("The JSON string is not a named floating-point literal.")))))))))));
+            body.Add(SyntaxFactory.IfStatement(SyntaxFactory.BinaryExpression(SyntaxKind.EqualsExpression,
+                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("reader"), "TokenType"),
+                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonTokenType"), "String")),
+                SyntaxFactory.Block(SyntaxFactory.ReturnStatement(Construct(wrapper, number)))));
+        }
+
         body.AddRange(EmitReadValue(inner, wrapper));
         return SyntaxFactory
             .MethodDeclaration(wrapper, "Read")
@@ -134,6 +161,20 @@ internal static class OptionalConverterEmitter
                 SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(
                     EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("writer"), "WriteNullValue"))),
                 SyntaxFactory.ReturnStatement())));
+        if (inner is SpecialNumberTypeReferencePlan)
+        {
+            foreach (var number in SpecialNumbers)
+            {
+                body.Add(SyntaxFactory.IfStatement(EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(
+                    SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.DoubleKeyword)), "Is" + number.Member),
+                    SyntaxFactory.Argument(EmissionSyntax.MemberAccess(value, "Value"))), SyntaxFactory.Block(
+                    SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(
+                        EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("writer"), "WriteStringValue"),
+                        SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(number.Literal))))),
+                    SyntaxFactory.ReturnStatement())));
+            }
+        }
+
         body.AddRange(EmitWriteValue(inner, value));
         return SyntaxFactory
             .MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), "Write")
@@ -212,6 +253,7 @@ internal static class OptionalConverterEmitter
         NamedTypeReferencePlan { Name: "bool" } => "GetBoolean",
         NamedTypeReferencePlan { Name: "long" } => "GetInt64",
         NamedTypeReferencePlan { Name: "double" } => "GetDouble",
+        SpecialNumberTypeReferencePlan => "GetDouble",
         _ => null,
     };
 
@@ -220,6 +262,7 @@ internal static class OptionalConverterEmitter
         NamedTypeReferencePlan { Name: "string" } => "WriteStringValue",
         NamedTypeReferencePlan { Name: "bool" } => "WriteBooleanValue",
         NamedTypeReferencePlan { Name: "long" or "double" } => "WriteNumberValue",
+        SpecialNumberTypeReferencePlan => "WriteNumberValue",
         _ => null,
     };
 
