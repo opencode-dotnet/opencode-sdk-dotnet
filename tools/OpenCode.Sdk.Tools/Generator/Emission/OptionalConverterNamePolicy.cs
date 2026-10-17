@@ -10,7 +10,9 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 internal static class OptionalConverterNamePolicy
 {
     public static string ConverterTypeName(TypeReferencePlan inner) =>
-        $"OptionalOf{Suffix(inner ?? throw new ArgumentNullException(nameof(inner)))}JsonConverter";
+        inner is SpecialNumberTypeReferencePlan
+            ? "OptionalOfSpecialNumberJsonConverter"
+            : $"OptionalOf{Suffix(inner ?? throw new ArgumentNullException(nameof(inner)))}JsonConverter";
 
     /// <summary>
     /// The instantiation's name in identifier form: the CLR spelling of a primitive, the model

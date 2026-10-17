@@ -1,6 +1,9 @@
 using System.Text;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
+using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
 using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.UnionHoistPlanData;
@@ -17,6 +20,70 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 [ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
 public sealed class OptionalConverterEmitterTests(PinnedBinding pinned)
 {
+    [Test]
+    public async Task Emit_Should_Keep_Plain_And_Special_Number_Converters_Distinct_And_Ordered()
+    {
+        var model = Record("WidgetPatchRequest",
+            Property("special", SpecialNumber(isNullable: true), isRequired: false, emitsOptionalWrapper: true),
+            Property("plain", Named("double", isNullable: true), isRequired: false, emitsOptionalWrapper: true));
+
+        var sources = OptionalConverterEmitter.Emit([model]);
+
+        await Assert.That(sources.Select(static source => source.RelativePath)).IsEquivalentTo(
+        [
+            "Internal/Serialization/OptionalOfDoubleJsonConverter.cs",
+            "Internal/Serialization/OptionalOfSpecialNumberJsonConverter.cs",
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Emit_Should_Refuse_A_Wrapped_Container_Of_Special_Numbers(bool dictionary)
+    {
+        var special = SpecialNumber();
+        TypeReferencePlan container = dictionary
+            ? new DictionaryTypeReferencePlan { ValueType = special, IsNullable = true, JsonNullRepresentation = JsonNullRepresentation.ClrNull, }
+            : new ListTypeReferencePlan { ElementType = special, IsNullable = true, JsonNullRepresentation = JsonNullRepresentation.ClrNull, };
+        var model = Record("WidgetPatchRequest", Property("values", container, isRequired: false, emitsOptionalWrapper: true));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => OptionalConverterEmitter.Emit([model]));
+
+        await Assert.That(exception.Message).IsEqualTo(
+            "No optional converter name exists for plan 'SpecialNumberTypeReferencePlan'; admit the representation first.");
+    }
+
+    [Test]
+    public async Task Emit_Should_Preserve_Converter_Name_Collisions_For_The_Source_Emitter_To_Refuse()
+    {
+        var model = Record("WidgetPatchRequest",
+            Property("primitive", Named("double", isNullable: true), isRequired: false, emitsOptionalWrapper: true),
+            Property("nominal", Named("Double", isNullable: true), isRequired: false, emitsOptionalWrapper: true));
+        var plan = (EmitterPlanFixture.CreateModelSnapshot() with { Models = [model], Unions = [], Clients = [] }).WithSingleSlice();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => SourceEmitter.Emit(plan));
+
+        await Assert.That(exception.Message).IsEqualTo("Multiple emitters produced 'Internal/Serialization/OptionalOfDoubleJsonConverter.cs'.");
+    }
+
+    [Test]
+    public async Task Emit_Should_Apply_Number_Handling_Only_To_Unwrapped_Special_Numbers()
+    {
+        var model = Record("WidgetPatchRequest",
+            Property("required", SpecialNumber(), isRequired: true),
+            Property("optional", SpecialNumber(isNullable: true), isRequired: false),
+            Property("wrapped", SpecialNumber(isNullable: true), isRequired: false, emitsOptionalWrapper: true));
+        var plan = (EmitterPlanFixture.CreateModelSnapshot() with { Models = [model], Unions = [] }).WithSingleSlice();
+        var root = await CSharpSyntaxTree.ParseText(EmitterSnapshot.Create(ModelEmitter.Emit(plan))).GetRootAsync();
+        var properties = root.DescendantNodes().OfType<PropertyDeclarationSyntax>()
+            .ToDictionary(property => property.Identifier.ValueText, StringComparer.Ordinal);
+
+        await Assert.That(properties["Required"].ToString()).Contains("[JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]");
+        await Assert.That(properties["Optional"].ToString()).Contains("[JsonNumberHandling(JsonNumberHandling.AllowNamedFloatingPointLiterals)]");
+        await Assert.That(properties["Wrapped"].ToString()).DoesNotContain("JsonNumberHandling");
+        await Assert.That(properties["Wrapped"].ToString()).Contains("[JsonConverter(typeof(OptionalOfSpecialNumberJsonConverter))]");
+    }
+
     [Test]
     public async Task Emit_Should_Produce_One_Converter_Per_Distinct_Instantiation()
     {

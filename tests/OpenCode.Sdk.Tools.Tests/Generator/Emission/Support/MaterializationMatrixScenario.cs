@@ -8,6 +8,8 @@ internal sealed class MaterializationMatrixScenario : SpecScenario
     public const string ChoiceOperationId = "matrix.choice";
     public const string PatchOperationId = "matrix.patch";
 
+    private static readonly string[] SpecialNumberLiterals = ["NaN", "Infinity", "-Infinity"];
+
     protected override void Arrange(SpecDocumentBuilder spec) => spec
         .WithSchema("MatrixChoiceAlpha", schema => Choice(schema, "alpha"))
         .WithSchema("MatrixChoiceBeta", schema => Choice(schema, "beta"))
@@ -40,6 +42,14 @@ internal sealed class MaterializationMatrixScenario : SpecScenario
         .AdditionalPropertiesFalse()
         .Property("patchScalar", NullableString)
         .Property("patchNumber", NullableNumber)
+        .Property("patchSpecialNumber", property => property.AnyOf(
+            branch => branch.AnyOf(
+            [
+                value => value.Type("number"),
+                .. SpecialNumberLiterals.Select(static literal =>
+                    (Action<SchemaBuilder>)(value => value.Type("string").Enum(literal))),
+            ]),
+            branch => branch.Type("null")))
         .Property("patchList", property => property.AnyOf(
             branch => branch.Type("array").Items(item => item.Type("string")),
             branch => branch.Type("null")))
