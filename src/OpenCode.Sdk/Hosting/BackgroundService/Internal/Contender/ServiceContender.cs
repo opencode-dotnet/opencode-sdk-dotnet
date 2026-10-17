@@ -49,6 +49,7 @@ internal sealed class ServiceContender : IServiceContender
     private readonly Lock _gate = new();
     private readonly Stream _stderr;
     private readonly SafeProcessHandle? _process;
+    private readonly TimeProvider _time;
     /// <summary>The handoff ticket's UTF-8 bytes, matched in the raw tail so a cut cannot split a match.</summary>
     private readonly byte[]? _redact;
 
@@ -67,13 +68,14 @@ internal sealed class ServiceContender : IServiceContender
     /// <summary>How the process ended, once a poll learned it; unknown when another reaper took the pid first.</summary>
     private ChildExitStatus? _exit;
 
-    public ServiceContender(int processId, Stream stderr, SafeProcessHandle? process, string? redact)
+    public ServiceContender(int processId, Stream stderr, SafeProcessHandle? process, string? redact, TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(stderr);
 
         ProcessId = processId;
         _stderr = stderr;
         _process = process;
+        _time = time;
         _redact = string.IsNullOrEmpty(redact) ? null : Encoding.UTF8.GetBytes(redact);
         _retainLimit = StderrLimit + (_redact is null ? 0 : _redact.Length - 1);
 
@@ -437,7 +439,11 @@ internal sealed class ServiceContender : IServiceContender
                 }
             }
 
-            await Task.Delay(delay).ConfigureAwait(false);
+#if NET
+            await Task.Delay(delay, _time).ConfigureAwait(false);
+#else
+            await _time.Delay(delay).ConfigureAwait(false);
+#endif
             delay = delay + delay < ExitWatchCap ? delay + delay : ExitWatchCap;
         }
     }

@@ -157,7 +157,7 @@ public sealed class ServiceContenderSpawnerRequestTests
         }
     }
 
-    private static ServiceContenderSpawner Spawner(RecordingSpawn recording) => new(recording.Posix, recording.Windows);
+    private static ServiceContenderSpawner Spawner(RecordingSpawn recording) => new(recording.Posix, recording.Windows, TimeProvider.System);
 
     private static IServiceContenderSpawner.ContenderStartInfo Start(
         ResolvedExecutable? executable = null, IReadOnlyDictionary<string, string?>? environment = null) =>

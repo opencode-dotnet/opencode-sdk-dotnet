@@ -15,7 +15,10 @@ internal sealed class ManualTimeProvider : TimeProvider
     private readonly List<ManualTimer> _timers = [];
     private readonly Channel<bool> _created = Channel.CreateUnbounded<bool>();
     private readonly List<(DateTimeOffset Due, int Count, TaskCompletionSource Armed)> _armedWaiters = [];
-    private DateTimeOffset _now = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+    private DateTimeOffset _now;
+
+    public ManualTimeProvider(DateTimeOffset? start = null) =>
+        _now = start ?? new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
 

@@ -32,13 +32,13 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
     /// <exception cref="OpenCodeServerException">The bound expired, the service failed, its health protocol is incompatible at a matching version, a contender failed with none live, or a spawn failed.</exception>
     public async Task<ServiceRegistration> RunAsync(CancellationToken cancellationToken)
     {
-        var deadline = seams.Clock.UtcNow + seams.Timing.PromiseTimeout;
+        var deadline = seams.Time.GetUtcNow() + seams.Timing.PromiseTimeout;
         try
         {
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (seams.Clock.UtcNow >= deadline)
+                if (seams.Time.GetUtcNow() >= deadline)
                 {
                     throw _failure ?? (_lastReplaceFailure is null
                         ? new OpenCodeServerException(ServiceEnsurer.TimeoutMessage)
@@ -67,7 +67,11 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
                     await HarvestAndMaybeSpawnAsync(registration is not null, cancellationToken).ConfigureAwait(false);
                 }
 
-                await Task.Delay(seams.Timing.PollInterval, cancellationToken).ConfigureAwait(false);
+#if NET
+                await Task.Delay(seams.Timing.PollInterval, seams.Time, cancellationToken).ConfigureAwait(false);
+#else
+                await seams.Time.Delay(seams.Timing.PollInterval, cancellationToken).ConfigureAwait(false);
+#endif
             }
         }
         finally
@@ -107,7 +111,7 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
         ReleaseStoppedContenders(registration.ProcessId);
         _timeoutIdentity = null;
         _timeoutCount = 0;
-        _lastSpawn = seams.Clock.UtcNow - _spawnDelay;
+        _lastSpawn = seams.Time.GetUtcNow() - _spawnDelay;
     }
 
     /// <summary>
@@ -231,7 +235,7 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
     {
         if (_lastSpawn is null && registered)
         {
-            _lastSpawn = seams.Clock.UtcNow;
+            _lastSpawn = seams.Time.GetUtcNow();
         }
 
         var finished = _contenders.Where(static contender => contender.Finished).ToList();
@@ -255,11 +259,11 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
 
         // One candidate plus one lock probe for pre-lock stalls. After a failure, the survivors
         // finish without replacements that could hide the error until the bound.
-        if (_failure is null && _contenders.Count < 2 && (_lastSpawn is not { } spawned || seams.Clock.UtcNow - spawned >= _spawnDelay))
+        if (_failure is null && _contenders.Count < 2 && (_lastSpawn is not { } spawned || seams.Time.GetUtcNow() - spawned >= _spawnDelay))
         {
             Announce(OpenCodeServerEnsureReason.Missing, previousVersion: null);
             _contenders.Add(await SpawnAsync(cancellationToken).ConfigureAwait(false));
-            _lastSpawn = seams.Clock.UtcNow;
+            _lastSpawn = seams.Time.GetUtcNow();
         }
     }
 

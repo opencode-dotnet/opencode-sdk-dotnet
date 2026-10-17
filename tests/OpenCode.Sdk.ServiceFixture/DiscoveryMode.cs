@@ -28,7 +28,7 @@ internal static class DiscoveryMode
             // a test reads the verdict, the time and the timeline are only diagnostics.
             var timing = requestTimeout is { } bound ? ServiceTiming.Default with { RequestTimeout = bound } : ServiceTiming.Default;
             var transport = new LoopbackTransport(new TimelineConnector(new LoopbackSocketConnector(), timeline));
-            var probe = new RecordingProbe(new ServiceInfoProbe(timing, transport), timeline);
+            var probe = new RecordingProbe(new ServiceInfoProbe(timing, transport, TimeProvider.System), timeline);
             var stopwatch = Stopwatch.StartNew();
             var server = await OpenCodeServer.DiscoverWithSeamsAsync(options, probe, CancellationToken.None).ConfigureAwait(false);
             await Console.Error

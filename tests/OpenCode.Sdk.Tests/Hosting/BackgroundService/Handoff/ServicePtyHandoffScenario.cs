@@ -1,5 +1,4 @@
 using System.Net;
-using NSubstitute;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using OpenCode.Sdk.Tests.Support;
@@ -25,14 +24,9 @@ internal sealed class ServicePtyHandoffScenario
     /// </summary>
     public static readonly TimeSpan RequestTimeout = ServiceTimingData.PatientRequestTimeout;
 
-    public ServicePtyHandoffScenario()
-    {
-        Clock.UtcNow.Returns(Now);
-    }
-
     public MockFileSystem FileSystem { get; } = new();
 
-    public IServiceClock Clock { get; } = Substitute.For<IServiceClock>();
+    public ManualTimeProvider Clock { get; } = new(Now);
 
     public static ServiceRegistration Registration(Uri endpoint) =>
         new(SourceId, Version, endpoint.ToString(), endpoint, RegisteredPid, Password);

@@ -18,7 +18,8 @@ internal sealed class ServiceStopper(
     IServicePtyShutdown ptyShutdown,
     IServicePtyHandoff ptyHandoff,
     IServiceProcessControl processControl,
-    ServiceTiming timing)
+    ServiceTiming timing,
+    TimeProvider time)
 {
     /// <summary>Stops the registered service a selection points at.</summary>
     /// <param name="options">The caller's options; null means every default.</param>
@@ -50,7 +51,7 @@ internal sealed class ServiceStopper(
         await ClearSidecarAsync(paths.RegistrationFile, cancellationToken).ConfigureAwait(false);
         if (registration is not null)
         {
-            await new ServiceTerminator(fileSystem, processControl, timing)
+            await new ServiceTerminator(fileSystem, processControl, timing, time)
                 .TerminateAsync(registration, paths.RegistrationFile, cancellationToken)
                 .ConfigureAwait(false);
         }

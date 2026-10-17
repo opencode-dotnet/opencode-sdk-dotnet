@@ -104,7 +104,7 @@ internal sealed class Pipeline : IDisposable
     /// </summary>
     private bool CredentialSent => Connection.Authorization is not null;
 
-    public static Pipeline Create(OpenCodeClientOptions options)
+    public static Pipeline Create(OpenCodeClientOptions options, TimeProvider? time = null)
     {
         ArgumentNullException.ThrowIfNull(options);
 
@@ -118,7 +118,7 @@ internal sealed class Pipeline : IDisposable
         var httpClient = TransportPolicy.CreateOwnedHttpClient(options.Endpoint);
         try
         {
-            return new Pipeline(httpClient, ownsHttpClient: true, options);
+            return new Pipeline(httpClient, ownsHttpClient: true, options, time: time);
         }
         catch
         {

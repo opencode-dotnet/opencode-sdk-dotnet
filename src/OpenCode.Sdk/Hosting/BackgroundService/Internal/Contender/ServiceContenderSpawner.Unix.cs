@@ -40,6 +40,6 @@ internal sealed partial class ServiceContenderSpawner
         // the contender owns it from here.
         var stderr = child.StandardError
                      ?? throw new InvalidOperationException("The contender's standard error was routed to a pipe, but the spawn returned no read end.");
-        return new ServiceContender(child.ProcessId, stderr, null, redaction);
+        return new ServiceContender(child.ProcessId, stderr, null, redaction, _time);
     }
 }

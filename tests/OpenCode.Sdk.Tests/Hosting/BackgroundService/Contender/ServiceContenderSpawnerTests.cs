@@ -59,7 +59,45 @@ public sealed class ServiceContenderSpawnerTests
     private static readonly RealFileSystem FileSystem = new();
 
     /// <summary>The shipped spawner over the shipped spawns; it holds no per-spawn state.</summary>
-    private static readonly ServiceContenderSpawner Spawner = new(new PosixSpawn(), new WindowsSpawn());
+    private static readonly ServiceContenderSpawner Spawner = new(new PosixSpawn(), new WindowsSpawn(), TimeProvider.System);
+
+    [Test]
+    [Timeout(120_000)]
+    public async Task Contender_Should_Back_Off_On_The_Injected_Clock(CancellationToken cancellationToken)
+    {
+        var time = new ManualTimeProvider();
+        using var contender = new ServiceContenderSpawner(new PosixSpawn(), new WindowsSpawn(), time)
+            .Start(FixtureProbe("contender-probe", "daemon-sleep"));
+        try
+        {
+            _ = await LiveReadiness.WaitAsync(
+                _ => Task.FromResult(contender.Stderr),
+                tail => ReadyPid(tail) == contender.ProcessId,
+                "the contender's ready line before advancing its exit watch",
+                cancellationToken);
+            var delay = TimeSpan.FromMilliseconds(1);
+            for (var poll = 0; poll < 12; poll++)
+            {
+                await time.WaitForArmedAsync(delay, ExitBound);
+                time.Advance(delay - TimeSpan.FromTicks(1));
+                await Assert.That(time.ArmedIn(TimeSpan.FromTicks(1))).IsEqualTo(1);
+                time.Advance(TimeSpan.FromTicks(1));
+                delay = delay + delay < TimeSpan.FromSeconds(1) ? delay + delay : TimeSpan.FromSeconds(1);
+            }
+
+            await time.WaitForArmedAsync(TimeSpan.FromSeconds(1), ExitBound);
+            await Assert.That(ProcessObservation.IsRunning(contender.ProcessId)).IsTrue();
+        }
+        finally
+        {
+            ProcessObservation.KillIfRunning(contender.ProcessId);
+            time.Advance(TimeSpan.FromSeconds(1));
+            _ = await WaitForTheProbeAsync(contender, "the killed contender to finish", CancellationToken.None)
+                .WaitAsync(ExitBound, CancellationToken.None);
+            await ProcessObservation.WaitForExitAsync(contender.ProcessId, CancellationToken.None).WaitAsync(ExitBound, CancellationToken.None);
+            contender.Dispose();
+        }
+    }
 
     [Test]
     [Timeout(120_000)]
