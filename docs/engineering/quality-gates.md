@@ -230,6 +230,13 @@ no unexpected or duplicate modules. The roster is deliberately explicit rather t
 cannot shrink together with the coverage it guards — so adding or removing a test project or a test
 target framework updates it in the same change.
 
+Every CI test pass runs under a 25-minute session `--timeout`, about four times the slowest
+measured module (`OpenCode.Sdk.Tests` on net472 on Windows, under six minutes), so a hung module
+fails inside its step instead of at the job timeout. An expired session exits with code 7 and keeps
+the TRX of the rows that finished, but it does not name the rows still in flight. When the main
+pass fails, the job also writes that pass's test listing to `test-results/main/listed-tests.txt`,
+and the rows in flight are among those listed but not recorded.
+
 ## Clone gate
 
 The detector ignores using directives; a baseline entry that matches no clone fails the gate like a new clone does.
