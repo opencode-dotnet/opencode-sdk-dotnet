@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using OpenCode.Sdk.Tools.Clones;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Clones;
 
@@ -32,6 +33,47 @@ public sealed class CloneDetectorTests
     }
 
     [Test]
+    public async Task RunAsync_Should_Write_The_Using_Directive_Ignore_Pattern()
+    {
+        var scenario = await new CloneScenario().WithRun("src").BuildAsync();
+        _ = await RunAsync(scenario, "src");
+        var config = scenario.FileSystem.Path.Combine(scenario.FileSystem.Path.GetTempPath(), "detector-work", "src.json");
+        using var document = JsonDocument.Parse(await scenario.FileSystem.File.ReadAllTextAsync(config));
+
+        await Assert.That(document.RootElement.TryGetProperty("ignorePattern", out var patterns)).IsTrue();
+        await Assert.That(patterns.EnumerateArray().Select(static pattern => pattern.GetString()!))
+            .IsEquivalentTo([@"(?m)^[ \t]*(global[ \t]+)?using[ \t]+(static[ \t]+)?([A-Za-z_][A-Za-z0-9_]*[ \t]*=[ \t]*)?[A-Za-z_][A-Za-z0-9_.]*[ \t]*;"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Ignore_A_Shared_Using_Header()
+    {
+        var result = await new CloneScenario().DetectUsingPairAsync(resourceBody: false);
+
+        await Assert.That(result.ExitCode).IsEqualTo(0);
+        await Assert.That(result.Clones).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Keep_A_Shared_Body_With_Using_Statements()
+    {
+        var result = await new CloneScenario().DetectUsingPairAsync(resourceBody: true);
+
+        await Assert.That(result.ExitCode).IsEqualTo(0);
+        await Assert.That(result.Clones).IsEqualTo(1);
+        await Assert.That(result.DuplicatedLines).IsGreaterThan(10);
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Keep_String_Literal_Using_Text_In_Body_Clone_Tokens()
+    {
+        var tokens = await new CloneScenario().DetectStringLiteralPairTokensAsync();
+
+        await Assert.That(tokens[0]).IsGreaterThan(50);
+        await Assert.That(tokens[0]).IsEqualTo(tokens[1]);
+    }
+
+    [Test]
     public async Task Arguments_Should_Gate_Hand_Written_Src_Against_Its_Baseline()
     {
         var arguments = CloneDetector.Arguments(Scope("src"), Config, updateBaseline: false);
@@ -55,7 +97,7 @@ public sealed class CloneDetectorTests
         var arguments = CloneDetector.Arguments(Scope("tests"), Config, updateBaseline: false);
 
         await Assert.That(arguments).IsEquivalentTo(
-            [CloneDetector.RunnerPath, "tests", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/tests.baseline.json", Fingerprints, "--threshold", "8.5"]);
+            [CloneDetector.RunnerPath, "tests", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/tests.baseline.json", Fingerprints, "--threshold", "7"]);
     }
 
     [Test]

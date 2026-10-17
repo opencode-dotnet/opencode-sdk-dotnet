@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-10-16
+Date: 2026-10-17
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -107,8 +107,11 @@ them, available:
 ```bash
 dotnet tool restore
 git submodule update --init --depth 1 external/opencode
-cd external/opencode && bun install --frozen-lockfile --ignore-scripts
+(cd external/opencode && bun install --frozen-lockfile --ignore-scripts)
+(cd tools/jscpd && bun install --frozen-lockfile --ignore-scripts)
 ```
+
+The last line installs the clone detector: `verify-clones` and the Tools clone tests run it.
 
 `OpenCode.Sdk.Tests` checks all three before test discovery
 (`tests/OpenCode.Sdk.Tests/Harness/PinnedServerPrerequisites.cs`): a missing checkout, a missing
@@ -224,11 +227,13 @@ target framework updates it in the same change.
 
 ## Clone gate
 
+The detector ignores using directives; a baseline entry that matches no clone fails the gate like a new clone does.
+
 The lint job runs `dotnet run --file tools/opencode-tool.cs -- verify-clones`: the pinned jscpd in
 `tools/jscpd/`, installed with the pinned Bun from its own lockfile, at a 50-token minimum over four
 scopes. Hand-written `src/`, `tools/` and `tests/` are gated against the committed baselines in
 `tools/jscpd/`: a clone a baseline does not hold fails the job, `tools/` also fails above 3%
-duplicated lines, and `tests/` above 8.5%. The tests threshold only falls: a change that removes
+duplicated lines, and `tests/` above 7%. The tests threshold only falls: a change that removes
 test clones lowers it to its new measurement, rounded up to the next 0.5%. Generated output is
 reported, not gated. The generator's manifest decides which `src/` files are generated, so the split
 needs no path convention. A failure names each new clone with its

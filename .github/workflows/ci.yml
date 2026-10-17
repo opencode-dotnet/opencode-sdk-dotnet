@@ -233,6 +233,12 @@ jobs:
       - name: Setup pinned server runtime
         uses: ./.github/actions/setup-pinned-server
 
+      # The Tools clone tests run the pinned detector itself, so its ignore pattern is proven on
+      # every platform's binary.
+      - name: Install clone detector
+        working-directory: tools/jscpd
+        run: bun install --frozen-lockfile --ignore-scripts
+
       # The key hashes only the repository's own restore inputs. A '**' pattern also walked
       # external/opencode/node_modules, which the step above installs, once to restore and again
       # to save: about a minute per Windows and macOS job.
