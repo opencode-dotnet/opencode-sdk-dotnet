@@ -8,6 +8,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 
 internal static class EmitterPlanFixture
 {
+    public const string ValueSummary = "/// Gets the value.";
+
     public static async Task<EmitPlan> CreateStreamPlanAsync()
     {
         var document = await BindingTestHost.IngestAsync(new StreamOperationScenario());

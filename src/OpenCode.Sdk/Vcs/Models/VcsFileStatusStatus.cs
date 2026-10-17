@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The vcs file status status. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
+/// The vcs file status. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
 [JsonConverter(typeof(VcsFileStatusStatusJsonConverter))]
 public readonly struct VcsFileStatusStatus : IEquatable<VcsFileStatusStatus>

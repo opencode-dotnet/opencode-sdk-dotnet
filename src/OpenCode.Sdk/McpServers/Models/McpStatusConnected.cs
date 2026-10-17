@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp status connected value.
+/// Represents an MCP status connected value.
 /// </summary>
 public sealed record McpStatusConnected : IMcpStatus
 {

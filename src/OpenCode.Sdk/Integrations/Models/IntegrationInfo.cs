@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a integration info value.
+/// Represents an integration info value.
 /// </summary>
 public sealed record IntegrationInfo
 {

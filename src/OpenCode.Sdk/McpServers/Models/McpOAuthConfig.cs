@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp o auth config value.
+/// Represents an MCP OAuth config value.
 /// </summary>
 public sealed record McpOAuthConfig
 {

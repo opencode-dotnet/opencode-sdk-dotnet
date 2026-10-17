@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp status disabled value.
+/// Represents an MCP status disabled value.
 /// </summary>
 public sealed record McpStatusDisabled : IMcpStatus
 {

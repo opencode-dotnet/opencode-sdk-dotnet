@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a integration attempt status pending time value.
+/// Represents an integration attempt status pending time value.
 /// </summary>
 public sealed record IntegrationAttemptStatusPendingTime : IIntegrationAttemptStatusTime
 {

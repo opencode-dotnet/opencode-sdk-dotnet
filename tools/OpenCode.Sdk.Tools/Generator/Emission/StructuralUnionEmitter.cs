@@ -33,7 +33,7 @@ internal static class StructuralUnionEmitter
             .Append("Unknown")
             .Select(name => SyntaxFactory
                 .EnumMemberDeclaration(name)
-                .WithLeadingTrivia(EmissionSyntax.Documentation($"Represents the {DisplayName(name)} arm.")));
+                .WithLeadingTrivia(EmissionSyntax.Documentation($"Represents the {GeneratedDisplayName.Of(name)} arm.")));
         var declaration = SyntaxFactory
             .EnumDeclaration(union.KindTypeName)
             .AddAttributeLists(ExperimentalAttributeSyntax.Emit(union.ExperimentalDiagnostic))
@@ -78,7 +78,7 @@ internal static class StructuralUnionEmitter
                     TypeSyntaxEmitter.EmitNamed($"{union.Name}JsonConverter")))))
             .WithMembers(SyntaxFactory.List(members))
             .WithLeadingTrivia(EmissionSyntax.Documentation(
-                union.Description ?? $"Represents a {DisplayName(union.Name)} structural union."));
+                union.Description ?? $"Represents {GeneratedDisplayName.WithIndefiniteArticle(union.Name)} structural union."));
         declaration = EmissionSyntax.DocumentedType(declaration, union.Documentation);
         var unit = EmissionSyntax.CompilationUnit(
             union.Namespace,
@@ -180,7 +180,7 @@ internal static class StructuralUnionEmitter
                         SyntaxFactory.SingletonSeparatedList(TypeSyntaxEmitter.Emit(arm.Type)))),
                 SyntaxFactory.Argument(KindMember(union, arm.Name)))))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation($"Gets the {DisplayName(arm.Name)} value."));
+            .WithLeadingTrivia(EmissionSyntax.Documentation(GeneratedDisplayName.MemberSummary(arm.Name)));
 
     private static MethodDeclarationSyntax EmitFactory(StructuralUnionModelPlan union, StructuralUnionArmPlan arm)
     {
@@ -199,7 +199,7 @@ internal static class StructuralUnionEmitter
             .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList(
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("value")).WithType(TypeSyntaxEmitter.Emit(arm.Type)))))
             .WithBody(SyntaxFactory.Block(statements))
-            .WithLeadingTrivia(EmissionSyntax.Documentation($"Creates a {DisplayName(union.Name)} from its {DisplayName(arm.Name)} arm."));
+            .WithLeadingTrivia(EmissionSyntax.Documentation($"Creates {GeneratedDisplayName.WithIndefiniteArticle(union.Name)} from its {GeneratedDisplayName.Of(arm.Name)} arm."));
     }
 
     private static bool IsReferenceType(TypeReferencePlan type) => type switch
@@ -758,7 +758,4 @@ internal static class StructuralUnionEmitter
             SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
                 SyntaxKind.StringLiteralExpression,
                 SyntaxFactory.Literal(message))))));
-
-    private static string DisplayName(string name) =>
-        string.Join(' ', CSharpNamePolicy.SplitWords(name).Select(static word => word.ToLowerInvariant()));
 }

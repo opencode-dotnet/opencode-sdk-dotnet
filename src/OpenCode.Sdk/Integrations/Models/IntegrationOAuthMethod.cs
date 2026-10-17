@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a integration o auth method value.
+/// Represents an integration OAuth method value.
 /// </summary>
 public sealed record IntegrationOAuthMethod : IIntegrationMethod
 {

@@ -128,7 +128,7 @@ public sealed record ConfigInfo
     public ConfigInfoToolOutput? ToolOutput { get; init; }
 
     /// <summary>
-    /// Gets the mcp value.
+    /// Gets the MCP value.
     /// </summary>
     [JsonPropertyName("mcp")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Models;
 public sealed record FormOption
 {
     /// <summary>
-    /// Gets the value value.
+    /// Gets the value.
     /// </summary>
     [JsonPropertyName("value")]
     public required string Value { get; init; }

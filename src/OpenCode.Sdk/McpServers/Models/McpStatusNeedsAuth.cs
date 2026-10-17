@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp status needs auth value.
+/// Represents an MCP status needs auth value.
 /// </summary>
 public sealed record McpStatusNeedsAuth : IMcpStatus
 {

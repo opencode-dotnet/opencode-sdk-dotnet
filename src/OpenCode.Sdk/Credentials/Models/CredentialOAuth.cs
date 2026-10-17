@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a credential o auth value.
+/// Represents a credential OAuth value.
 /// </summary>
 public sealed record CredentialOAuth : ICredentialValue
 {

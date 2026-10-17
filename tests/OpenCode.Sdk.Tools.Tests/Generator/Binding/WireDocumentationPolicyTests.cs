@@ -124,7 +124,7 @@ public sealed class WireDocumentationPolicyTests
         var record = plan.Models.Single(static model => model.Name == "EventCreateRequest");
         await Assert.That(record.Documentation.Summary).IsNull();
         var source = Encoding.UTF8.GetString(ModelEmitter.Emit(plan).Single(static source => source.RelativePath.EndsWith("/EventCreateRequest.cs", StringComparison.Ordinal)).Utf8Source.Span);
-        await Assert.That(source).Contains("Represents a event create request value.");
+        await Assert.That(source).Contains("Represents an event create request value.");
     }
 
     [Test]

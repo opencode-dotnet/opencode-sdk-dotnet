@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp remote config o auth structural union.
+/// Represents an MCP remote config OAuth structural union.
 /// </summary>
 [JsonConverter(typeof(McpRemoteConfigOAuthJsonConverter))]
 public sealed record McpRemoteConfigOAuth
@@ -23,12 +23,12 @@ public sealed record McpRemoteConfigOAuth
     /// </summary>
     public McpRemoteConfigOAuthKind Kind { get; }
     /// <summary>
-    /// Gets the mcp o auth config value.
+    /// Gets the MCP OAuth config value.
     /// </summary>
     public McpOAuthConfig McpOAuthConfig => GetValue<McpOAuthConfig>(McpRemoteConfigOAuthKind.McpOAuthConfig);
 
     /// <summary>
-    /// Creates a mcp remote config o auth from its mcp o auth config arm.
+    /// Creates an MCP remote config OAuth from its MCP OAuth config arm.
     /// </summary>
     public static McpRemoteConfigOAuth FromMcpOAuthConfig(McpOAuthConfig value)
     {
@@ -42,7 +42,7 @@ public sealed record McpRemoteConfigOAuth
     public bool Boolean => GetValue<bool>(McpRemoteConfigOAuthKind.Boolean);
 
     /// <summary>
-    /// Creates a mcp remote config o auth from its boolean arm.
+    /// Creates an MCP remote config OAuth from its boolean arm.
     /// </summary>
     public static McpRemoteConfigOAuth FromBoolean(bool value)
     {

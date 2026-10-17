@@ -1,3 +1,4 @@
+using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
@@ -6,6 +7,22 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
 public sealed class UnionEmitterTests
 {
+    [Test]
+    public async Task Emit_Should_Render_Brand_And_Value_Prose_In_Summaries_And_Prefix_Refusal()
+    {
+        var union = EmitterPlanFixture.CreateUnionSnapshot()[0] with
+        {
+            ConceptName = "OAuthEvent",
+            Description = null,
+            HoistedMembers = [new HoistedMemberPlan { Name = "Value", WireName = "value", Type = UnionHoistPlanData.Named("string") }],
+        };
+        var source = EmitterSnapshot.Create(UnionEmitter.Emit([union], ModelPlacementFixture.SingleSlice([union])));
+        await Assert.That(source).Contains("Represents an OAuth event union.");
+        await Assert.That(source).Contains("Gets the value. Every declared variant carries it");
+        await Assert.That(source).Contains("Preserves an unknown OAuth event payload.");
+        await Assert.That(source).Contains("The OAuthEvent payload carries the 'rpc.' prefix-tagged arm and is not an unknown OAuth event.");
+    }
+
     [Test]
     public async Task Emit_Should_Inherit_The_Hand_Written_Stream_Cause_Marker()
     {

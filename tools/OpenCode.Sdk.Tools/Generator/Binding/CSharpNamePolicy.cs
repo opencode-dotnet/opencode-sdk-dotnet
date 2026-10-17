@@ -10,7 +10,7 @@ internal static class CSharpNamePolicy
     /// in any case, is written the brand's way, so an operation-derived <c>oauth</c> reads
     /// <c>OAuth</c> exactly as the schema-derived names already do.
     /// </summary>
-    private static readonly FrozenDictionary<string, string> BrandSpellings =
+    internal static readonly FrozenDictionary<string, string> BrandSpellings =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["oauth"] = "OAuth" }
             .ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 

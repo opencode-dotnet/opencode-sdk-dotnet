@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp remote config value.
+/// Represents an MCP remote config value.
 /// </summary>
 public sealed record McpRemoteConfig : IMcp
 {
@@ -29,7 +29,7 @@ public sealed record McpRemoteConfig : IMcp
     public IReadOnlyDictionary<string, string>? Headers { get; init; }
 
     /// <summary>
-    /// Gets the o auth value.
+    /// Gets the OAuth value.
     /// </summary>
     [JsonPropertyName("oauth")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

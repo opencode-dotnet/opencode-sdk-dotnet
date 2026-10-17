@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp resource catalog value.
+/// Represents an MCP resource catalog value.
 /// </summary>
 public sealed record McpResourceCatalog
 {

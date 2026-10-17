@@ -1,10 +1,21 @@
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
+using OpenCode.Sdk.Tools.Tests.Support;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
 public sealed class ModelEmitterTests
 {
+    [Test]
+    public async Task Emit_Should_Choose_The_Exact_First_Word_Article()
+    {
+        var member = UnionHoistPlanData.Property("value", UnionHoistPlanData.Named("string"), isRequired: true);
+        var plan = (EmitterPlanFixture.CreateModelSnapshot() with { Models = [UnionHoistPlanData.Record("hour", member)], Unions = [] }).WithSingleSlice();
+        var source = EmitterSnapshot.Create(ModelEmitter.Emit(plan));
+        await Assert.That(source).Contains("Represents an hour value.");
+        await Assert.That(source).Contains(EmitterPlanFixture.ValueSummary);
+    }
+
     [Test]
     public async Task Emit_Should_Produce_Immutable_Annotated_Models()
     {

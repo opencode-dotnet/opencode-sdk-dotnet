@@ -33,7 +33,7 @@ public sealed record CredentialEntry
     public required bool Active { get; init; }
 
     /// <summary>
-    /// Gets the value value.
+    /// Gets the value.
     /// </summary>
     [JsonPropertyName("value")]
     public required ICredentialValue Value { get; init; }

@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a experimental migration v 1 status structural union.
+/// Represents an experimental migration V1 status structural union.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 [JsonConverter(typeof(ExperimentalMigrationV1StatusJsonConverter))]
@@ -24,12 +24,12 @@ public sealed record ExperimentalMigrationV1Status
     /// </summary>
     public ExperimentalMigrationV1StatusKind Kind { get; }
     /// <summary>
-    /// Gets the experimental migration v 1 status idle value.
+    /// Gets the experimental migration V1 status idle value.
     /// </summary>
     public ExperimentalMigrationV1StatusIdle ExperimentalMigrationV1StatusIdle => GetValue<ExperimentalMigrationV1StatusIdle>(ExperimentalMigrationV1StatusKind.ExperimentalMigrationV1StatusIdle);
 
     /// <summary>
-    /// Creates a experimental migration v 1 status from its experimental migration v 1 status idle arm.
+    /// Creates an experimental migration V1 status from its experimental migration V1 status idle arm.
     /// </summary>
     public static ExperimentalMigrationV1Status FromExperimentalMigrationV1StatusIdle(ExperimentalMigrationV1StatusIdle value)
     {
@@ -38,12 +38,12 @@ public sealed record ExperimentalMigrationV1Status
     }
 
     /// <summary>
-    /// Gets the experimental migration v 1 status running value.
+    /// Gets the experimental migration V1 status running value.
     /// </summary>
     public ExperimentalMigrationV1StatusRunning ExperimentalMigrationV1StatusRunning => GetValue<ExperimentalMigrationV1StatusRunning>(ExperimentalMigrationV1StatusKind.ExperimentalMigrationV1StatusRunning);
 
     /// <summary>
-    /// Creates a experimental migration v 1 status from its experimental migration v 1 status running arm.
+    /// Creates an experimental migration V1 status from its experimental migration V1 status running arm.
     /// </summary>
     public static ExperimentalMigrationV1Status FromExperimentalMigrationV1StatusRunning(ExperimentalMigrationV1StatusRunning value)
     {
@@ -52,12 +52,12 @@ public sealed record ExperimentalMigrationV1Status
     }
 
     /// <summary>
-    /// Gets the experimental migration v 1 status error value.
+    /// Gets the experimental migration V1 status error value.
     /// </summary>
     public ExperimentalMigrationV1StatusError ExperimentalMigrationV1StatusError => GetValue<ExperimentalMigrationV1StatusError>(ExperimentalMigrationV1StatusKind.ExperimentalMigrationV1StatusError);
 
     /// <summary>
-    /// Creates a experimental migration v 1 status from its experimental migration v 1 status error arm.
+    /// Creates an experimental migration V1 status from its experimental migration V1 status error arm.
     /// </summary>
     public static ExperimentalMigrationV1Status FromExperimentalMigrationV1StatusError(ExperimentalMigrationV1StatusError value)
     {
