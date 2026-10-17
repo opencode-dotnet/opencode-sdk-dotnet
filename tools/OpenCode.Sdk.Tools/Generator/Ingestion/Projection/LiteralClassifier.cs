@@ -4,21 +4,15 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
-internal sealed class LiteralClassifier
+internal static class LiteralClassifier
 {
-    public LiteralMarker? FindFirstMarker(IOpenApiSchema schema)
+    public static LiteralMarker? FindFirstMarker(IOpenApiSchema schema)
     {
         ArgumentNullException.ThrowIfNull(schema);
 
-        var candidate = schema is OpenApiSchemaReference reference ? reference.Target : schema;
-        if (candidate is not OpenApiSchema { Properties: not null, Required: not null } objectSchema)
+        foreach (var property in RequiredProperties(schema))
         {
-            return null;
-        }
-
-        foreach (var property in objectSchema.Properties)
-        {
-            if (!objectSchema.Required.Contains(property.Key) || property.Value is not OpenApiSchema propertySchema)
+            if (property.Value is not OpenApiSchema propertySchema)
             {
                 continue;
             }
@@ -33,20 +27,13 @@ internal sealed class LiteralClassifier
         return null;
     }
 
-    public PrefixMarker? FindFirstPrefixMarker(IOpenApiSchema schema)
+    public static PrefixMarker? FindFirstPrefixMarker(IOpenApiSchema schema)
     {
         ArgumentNullException.ThrowIfNull(schema);
 
-        var candidate = schema is OpenApiSchemaReference reference ? reference.Target : schema;
-        if (candidate is not OpenApiSchema { Properties: not null, Required: not null } objectSchema)
+        foreach (var property in RequiredProperties(schema))
         {
-            return null;
-        }
-
-        foreach (var property in objectSchema.Properties)
-        {
-            if (!objectSchema.Required.Contains(property.Key)
-                || property.Value is not OpenApiSchema { Type: JsonSchemaType.String, Enum: null, Const: null, Format: null, Pattern: { } pattern }
+            if (property.Value is not OpenApiSchema { Type: JsonSchemaType.String, Enum: null, Const: null, Format: null, Pattern: { } pattern }
                 || TemplateLiteralPrefixPolicy.TryDecodePrefix(pattern) is not { } prefix)
             {
                 continue;
@@ -58,7 +45,15 @@ internal sealed class LiteralClassifier
         return null;
     }
 
-    public LiteralNode? Project(OpenApiSchema schema, string location, IngestionErrorCollector errors)
+    private static IEnumerable<KeyValuePair<string, IOpenApiSchema>> RequiredProperties(IOpenApiSchema schema)
+    {
+        var candidate = schema is OpenApiSchemaReference reference ? reference.Target : schema;
+        return candidate is OpenApiSchema { Properties: not null, Required: not null } objectSchema
+            ? objectSchema.Properties.Where(property => objectSchema.Required.Contains(property.Key))
+            : [];
+    }
+
+    public static LiteralNode? Project(OpenApiSchema schema, string location, IngestionErrorCollector errors)
     {
         ArgumentNullException.ThrowIfNull(schema);
         ArgumentException.ThrowIfNullOrWhiteSpace(location);

@@ -54,15 +54,7 @@ internal static class QueryEnumShapePolicy
 
         // Ingestion promotes every inline enum into the graph, so the enum a parameter binds
         // always arrives behind a reference; a key is what the model and its name hang on.
-        string? key = null;
-        var visited = new HashSet<string>(StringComparer.Ordinal);
-        while (candidate is RefNode reference && visited.Add(reference.Target)
-                                              && graph.TryGetValue(reference.Target, out var target))
-        {
-            key = reference.Target;
-            candidate = target;
-        }
-
-        return candidate is EnumNode { Format: null } node && ResolveSpineKind(node) is null ? key : null;
+        var resolved = candidate is null ? null : RefChain.Resolve(candidate, graph);
+        return resolved?.Node is EnumNode { Format: null } node && ResolveSpineKind(node) is null ? resolved.LastKey : null;
     }
 }

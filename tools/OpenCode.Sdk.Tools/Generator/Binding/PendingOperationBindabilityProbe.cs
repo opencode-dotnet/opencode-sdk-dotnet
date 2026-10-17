@@ -7,8 +7,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// <summary>
 /// Marks each pending operation with the bindability the real selection-path binder finds, so
 /// wall-free drift among pending operations surfaces as a committed diff instead of accumulating
-/// silently — the interim telltale bridging until the operation inventory/assurance-ledger lane
-/// standardizes pending-operation tracking. Declined operations are probed the same way and for
+/// silently. Declined operations are probed the same way and for
 /// the same reason: a decline asserts a standing wall, and only this probe can confirm it still
 /// stands.
 ///

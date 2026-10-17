@@ -1038,7 +1038,7 @@ internal static class EmitterPlanFixture
         };
         var unions = new[] { CreateHoistEvent(), CreateHoistPhase(), };
         var errors = new BindingErrorCollector();
-        var hoisted = new UnionMemberHoistBinder().Bind(unions, models, HoistCuration(), errors);
+        var hoisted = UnionMemberHoistBinder.Bind(unions, models, HoistCuration(), errors);
         errors.ThrowIfAny();
         return new EmitPlan
         {

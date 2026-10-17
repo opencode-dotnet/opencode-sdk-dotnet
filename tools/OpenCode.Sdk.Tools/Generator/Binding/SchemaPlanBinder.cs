@@ -3,41 +3,27 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
-internal sealed class SchemaPlanBinder(
-    StructuralUnionPlanBinder structuralUnions,
-    UnionMembershipValidator unionMemberships,
-    UnionDiscriminatorSelector discriminators,
-    UnionMemberHoistBinder memberHoists)
+internal sealed class SchemaPlanBinder(SchemaBindingContext context)
 {
-    private readonly StringComparer _comparer = StringComparer.Ordinal;
-    private readonly StructuralUnionPlanBinder _structuralUnions = structuralUnions
-                                                                   ?? throw new ArgumentNullException(nameof(structuralUnions));
-    private readonly UnionMembershipValidator _unionMemberships = unionMemberships
-                                                                  ?? throw new ArgumentNullException(nameof(unionMemberships));
-    private readonly UnionDiscriminatorSelector _discriminators = discriminators
-                                                                  ?? throw new ArgumentNullException(nameof(discriminators));
-    private readonly UnionMemberHoistBinder _memberHoists = memberHoists ?? throw new ArgumentNullException(nameof(memberHoists));
+    private readonly SchemaBindingContext _context = context;
 
-    public SchemaBindingResult Bind(SpecDocument document, ReachableSchemaSet reachable, GenerationCuration curation,
-        IReadOnlyDictionary<string, string> typeNames, BindingErrorCollector errors)
+    public SchemaBindingResult Bind(GenerationCuration curation)
     {
-        ArgumentNullException.ThrowIfNull(document);
-        ArgumentNullException.ThrowIfNull(reachable);
         ArgumentNullException.ThrowIfNull(curation);
-        ArgumentNullException.ThrowIfNull(typeNames);
-        ArgumentNullException.ThrowIfNull(errors);
 
-        var responseRoots = reachable.ResponseRootKeys.ToHashSet(_comparer);
-        var requestKeys = reachable.RequestReachableKeys.ToHashSet(_comparer);
-        var streamCauseKeys = reachable.StreamCauseKeys.ToHashSet(_comparer);
-        var inhabitation = new SchemaInhabitationPolicy(document.Schemas);
-        var typeBinder = new TypePlanBinder(document.Schemas, typeNames, errors);
-        var context = new SchemaBindingContext(document, reachable, responseRoots, streamCauseKeys, typeNames, typeBinder, inhabitation, errors);
-        var decisions = BindExplicitUnions(context, responseRoots);
-        var errorUnion = new ErrorUnionBinder(context).Bind();
+        var document = _context.Document;
+        var reachable = _context.Reachable;
+        var typeNames = _context.TypeNames;
+        var errors = _context.Errors;
+        var responseRoots = _context.ResponseRootKeys;
+        var requestKeys = reachable.RequestReachableKeys.ToHashSet(StringComparer.Ordinal);
+        var streamCauseKeys = _context.StreamCauseKeys;
+        var inhabitation = _context.Inhabitation;
+        var decisions = BindExplicitUnions();
+        var errorUnion = new ErrorUnionBinder(_context).Bind();
         decisions.Add(errorUnion.Union);
         var graph = UnionInheritanceGraph.Create(decisions, streamCauseKeys, errors);
-        var objects = new ObjectModelBinder(context);
+        var objects = new ObjectModelBinder(_context);
         var models = new List<ModelPlan>();
         foreach (var key in reachable.GraphKeys)
         {
@@ -66,7 +52,7 @@ internal sealed class SchemaPlanBinder(
                     break;
                 case UnionNode { Classification: UnionClassification.Structural } structural
                     when UnstructuredUnionPolicy.Collapse(structural, document.Schemas) is null:
-                    var structuralPlan = _structuralUnions.Bind(key, name, structural, document.Schemas, typeBinder, errors);
+                    var structuralPlan = StructuralUnionPlanBinder.Bind(_context, key, name, structural);
                     if (structuralPlan is not null)
                     {
                         models.Add(structuralPlan);
@@ -76,12 +62,12 @@ internal sealed class SchemaPlanBinder(
             }
         }
 
-        var orderedModels = models.OrderBy(static model => model.Name, _comparer).ToArray();
-        var orderedUnions = graph.Unions.OrderBy(static union => union.Name, _comparer).ToArray();
-        _unionMemberships.Validate([.. orderedModels.OfType<ObjectModelPlan>()], orderedUnions, errors);
+        var orderedModels = models.OrderBy(static model => model.Name, StringComparer.Ordinal).ToArray();
+        var orderedUnions = graph.Unions.OrderBy(static union => union.Name, StringComparer.Ordinal).ToArray();
+        UnionMembershipValidator.Validate([.. orderedModels.OfType<ObjectModelPlan>()], orderedUnions, errors);
         // Hoisting adds members after membership validation. Its interfaces never enter the
         // registry because no converter or source-generated metadata materializes them.
-        var hoisted = _memberHoists.Bind(orderedUnions, orderedModels, curation, errors);
+        var hoisted = UnionMemberHoistBinder.Bind(orderedUnions, orderedModels, curation, errors);
         orderedModels = [.. hoisted.Models];
         orderedUnions = [.. hoisted.Unions];
         return new SchemaBindingResult
@@ -99,16 +85,16 @@ internal sealed class SchemaPlanBinder(
         };
     }
 
-    private List<UnionBindingResult> BindExplicitUnions(SchemaBindingContext context, HashSet<string> responseRoots)
+    private List<UnionBindingResult> BindExplicitUnions()
     {
-        var markedBinder = new MarkedUnionBinder(context, _discriminators);
+        var markedBinder = new MarkedUnionBinder(_context);
         var decisions = new List<UnionBindingResult>();
-        foreach (var key in context.Reachable.GraphKeys)
+        foreach (var key in _context.Reachable.GraphKeys)
         {
-            if (!responseRoots.Contains(key)
-                && context.Document.Schemas.TryGetValue(key, out var schema)
+            if (!_context.ResponseRootKeys.Contains(key)
+                && _context.Document.Schemas.TryGetValue(key, out var schema)
                 && schema is UnionNode { Classification: UnionClassification.Marked } union
-                && context.TypeNames.TryGetValue(key, out var name))
+                && _context.TypeNames.TryGetValue(key, out var name))
             {
                 decisions.Add(markedBinder.Bind(key, name, union));
             }
@@ -118,7 +104,7 @@ internal sealed class SchemaPlanBinder(
     }
 
     /// <summary>The materializable types the serializer registry must carry, never hoisted interfaces.</summary>
-    private string[] ComposeRegistryNames(IReadOnlyList<ModelPlan> models, IReadOnlyList<UnionPlan> unions) =>
+    private static string[] ComposeRegistryNames(IReadOnlyList<ModelPlan> models, IReadOnlyList<UnionPlan> unions) =>
     [
         .. models
             .Select(static model => model.Name)
@@ -128,8 +114,8 @@ internal sealed class SchemaPlanBinder(
                 .Where(static arm => arm.Type.IsCollection)
                 .Select(static arm => TypeReferenceNamePolicy.Format(arm.Type)))
             .Concat(unions.SelectMany(static union => new[] { union.Name, union.UnknownTypeName, }))
-            .Distinct(_comparer)
-            .Order(_comparer),
+            .Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal),
     ];
 
     /// <summary>Each value's member name comes from <see cref="EnumMemberNamePolicy"/>.</summary>

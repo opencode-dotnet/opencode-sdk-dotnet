@@ -14,11 +14,9 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// outer promise instead of hiding it. A union with fewer than two members shares nothing across
 /// arms and is left alone.
 /// </remarks>
-internal sealed class UnionMemberHoistBinder
+internal static class UnionMemberHoistBinder
 {
-    private readonly StringComparer _comparer = StringComparer.Ordinal;
-
-    public UnionHoistPlan Bind(IReadOnlyList<UnionPlan> unions, IReadOnlyList<ModelPlan> models,
+    public static UnionHoistPlan Bind(IReadOnlyList<UnionPlan> unions, IReadOnlyList<ModelPlan> models,
         GenerationCuration curation, BindingErrorCollector errors)
     {
         ArgumentNullException.ThrowIfNull(unions);
@@ -27,7 +25,7 @@ internal sealed class UnionMemberHoistBinder
         ArgumentNullException.ThrowIfNull(errors);
 
         var context = CreateContext(unions, models, curation, errors);
-        var hoisted = new Dictionary<string, IReadOnlyList<HoistedMemberPlan>>(_comparer);
+        var hoisted = new Dictionary<string, IReadOnlyList<HoistedMemberPlan>>(StringComparer.Ordinal);
         foreach (var union in OrderByChainDepth(unions, context.Unions))
         {
             hoisted[union.Name] = HoistUnion(union, context, hoisted);
@@ -43,17 +41,17 @@ internal sealed class UnionMemberHoistBinder
         };
     }
 
-    private HoistContext CreateContext(IReadOnlyList<UnionPlan> unions, IReadOnlyList<ModelPlan> models,
+    private static HoistContext CreateContext(IReadOnlyList<UnionPlan> unions, IReadOnlyList<ModelPlan> models,
         GenerationCuration curation, BindingErrorCollector errors)
     {
-        var objectModels = models.OfType<ObjectModelPlan>().ToDictionary(static model => model.Name, _comparer);
+        var objectModels = models.OfType<ObjectModelPlan>().ToDictionary(static model => model.Name, StringComparer.Ordinal);
         var implementations = new HoistedImplementationAccumulator();
         // One policy instance answers both the union interface and every carrier interface, so the
         // two can never disagree about which record property satisfies a declared member.
         var satisfaction = new HoistedMemberSatisfactionPolicy(
-            models.OfType<EnumModelPlan>().Select(static model => model.Name).ToHashSet(_comparer));
+            models.OfType<EnumModelPlan>().Select(static model => model.Name).ToHashSet(StringComparer.Ordinal));
         return new HoistContext(
-            unions.ToDictionary(static union => union.Name, _comparer),
+            unions.ToDictionary(static union => union.Name, StringComparer.Ordinal),
             objectModels,
             new HoistedMemberIdentityPolicy(objectModels),
             satisfaction,
@@ -62,7 +60,7 @@ internal sealed class UnionMemberHoistBinder
             errors);
     }
 
-    private ReadOnlyCollection<HoistedMemberPlan> HoistUnion(UnionPlan union, HoistContext context,
+    private static ReadOnlyCollection<HoistedMemberPlan> HoistUnion(UnionPlan union, HoistContext context,
         IReadOnlyDictionary<string, IReadOnlyList<HoistedMemberPlan>> hoisted)
     {
         var result = new List<HoistedMemberPlan>();
@@ -188,10 +186,10 @@ internal sealed class UnionMemberHoistBinder
         }
     }
 
-    private HashSet<string> InheritedNames(UnionPlan union, IReadOnlyDictionary<string, UnionPlan> unions,
+    private static HashSet<string> InheritedNames(UnionPlan union, IReadOnlyDictionary<string, UnionPlan> unions,
         IReadOnlyDictionary<string, IReadOnlyList<HoistedMemberPlan>> hoisted)
     {
-        var result = new HashSet<string>(_comparer) { union.MarkerName };
+        var result = new HashSet<string>(StringComparer.Ordinal) { union.MarkerName };
         for (var current = union.BaseTypeName; current is not null && unions.TryGetValue(current, out var outer);
              current = outer.BaseTypeName)
         {

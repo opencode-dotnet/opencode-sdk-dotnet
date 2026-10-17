@@ -106,7 +106,7 @@ public sealed class OperationPlanBinderTests
     {
         var inventory = GeneratedTypeNameInventory.Create(candidates, clients, [], schemaNames ?? new Dictionary<string, string>(StringComparer.Ordinal));
         var errors = new BindingErrorCollector();
-        new OperationPlanBinder().CheckTypeNameCollisions(inventory, clients, errors);
+        OperationPlanBinder.CheckTypeNameCollisions(inventory, clients, errors);
         return errors.Snapshot();
     }
 
@@ -135,7 +135,7 @@ public sealed class OperationPlanBinderTests
             HoistedInterfaces = []
         };
         var errors = new BindingErrorCollector();
-        new OperationPlanBinder().CheckTypeNameCollisions(GeneratedTypeNameInventory.Create(candidates, clients, [], new Dictionary<string, string>(StringComparer.Ordinal)), clients, errors);
+        OperationPlanBinder.CheckTypeNameCollisions(GeneratedTypeNameInventory.Create(candidates, clients, [], new Dictionary<string, string>(StringComparer.Ordinal)), clients, errors);
         await Assert.That(errors.Snapshot()).IsEquivalentTo([
             new BindingError(BindingErrorCategory.Naming, "WidgetsClient", "client type name 'WidgetsClient' collides with another generated type"),
             new BindingError(BindingErrorCategory.Naming, "widget.list", "multiple operations map to response type 'WidgetListResponse'"),
@@ -447,17 +447,17 @@ public sealed class OperationPlanBinderTests
         {
             if (variation == "invalid-binder")
             {
-                var reachable = new ReachableSchemaCollector().Collect(document, document.Operations, errors);
-                var schemas = new SchemaPlanBinder(new StructuralUnionPlanBinder(), new UnionMembershipValidator(),
-                    new UnionDiscriminatorSelector(), new UnionMemberHoistBinder()).Bind(document, reachable, curation,
-                    new Dictionary<string, string>(StringComparer.Ordinal), errors);
-                _ = new OperationPlanBinder().Bind(document, document.Operations, curation, schemas, errors);
+                var reachable = ReachableSchemaCollector.Collect(document, document.Operations, errors);
+                var names = new Dictionary<string, string>(StringComparer.Ordinal);
+                var context = SchemaBindingContext.Create(document, reachable, names, errors);
+                var schemas = new SchemaPlanBinder(context).Bind(curation);
+                _ = OperationPlanBinder.Bind(document, document.Operations, curation, schemas, errors);
                 errors.ThrowIfAny();
             }
             else if (variation == "invalid")
             {
-                new CurationValidator().Validate(document, document.Operations,
-                    new ReachableSchemaCollector().Collect(document, document.Operations, errors), curation, errors);
+                CurationValidator.Validate(document, document.Operations,
+                    ReachableSchemaCollector.Collect(document, document.Operations, errors), curation, errors);
                 errors.ThrowIfAny();
             }
             else

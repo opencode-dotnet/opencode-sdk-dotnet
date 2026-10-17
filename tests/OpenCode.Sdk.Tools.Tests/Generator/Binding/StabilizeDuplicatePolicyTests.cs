@@ -36,8 +36,8 @@ public sealed class StabilizeDuplicatePolicyTests
             }
         }));
         var errors = new BindingErrorCollector();
-        var reachable = new ReachableSchemaCollector().Collect(document, document.Operations, errors);
-        _ = new StabilizeDuplicatePolicy().Resolve(document, reachable, identical ? [SchemaName("Widget_1", "ReviewedWidget")] : [], errors);
+        var reachable = ReachableSchemaCollector.Collect(document, document.Operations, errors);
+        _ = StabilizeDuplicatePolicy.Resolve(document, reachable, identical ? [SchemaName("Widget_1", "ReviewedWidget")] : [], errors);
         await Assert.That(Assert.Throws<BindingException>(errors.ThrowIfAny).Errors.Single()).IsEqualTo(new BindingError(category, "Widget_1", problem));
     }
 
@@ -270,9 +270,9 @@ public sealed class StabilizeDuplicatePolicyTests
         var operations = document
             .Operations.Where(operation => selection.OperationIds.Contains(operation.OperationId, StringComparer.Ordinal))
             .ToArray();
-        var reachable = new ReachableSchemaCollector().Collect(document, operations, errors);
+        var reachable = ReachableSchemaCollector.Collect(document, operations, errors);
 
-        var collapse = new StabilizeDuplicatePolicy().Resolve(document, reachable, curation.SchemaNames, errors);
+        var collapse = StabilizeDuplicatePolicy.Resolve(document, reachable, curation.SchemaNames, errors);
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(collapse.Aliases.Count).IsGreaterThan(0);
@@ -320,8 +320,8 @@ public sealed class StabilizeDuplicatePolicyTests
     private static async Task<StabilizeDuplicateCollapse> ResolveAsync(SpecScenario scenario, BindingErrorCollector errors)
     {
         var document = await BindingTestHost.IngestAsync(scenario);
-        var reachable = new ReachableSchemaCollector().Collect(document, document.Operations, errors);
-        return new StabilizeDuplicatePolicy().Resolve(document, reachable, [], errors);
+        var reachable = ReachableSchemaCollector.Collect(document, document.Operations, errors);
+        return StabilizeDuplicatePolicy.Resolve(document, reachable, [], errors);
     }
 
     private static IReadOnlyList<string> Folds(StabilizeDuplicateCollapse collapse) =>

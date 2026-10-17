@@ -745,31 +745,6 @@ dotnet_diagnostic.VSTHRD111.severity = none
 [tools/opencode-tool.cs]
 dotnet_diagnostic.MA0048.severity = none
 
-# GraphKeyBuilder centralizes pointer and branch-identity policy shared by projection
-# collaborators. Winner: one sealed policy owner instead of duplicated static mechanics;
-# static-member rules remain enabled for every other file.
-[tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/GraphKeyBuilder.cs]
-dotnet_diagnostic.CA1822.severity = none
-dotnet_diagnostic.S2325.severity = none
-
-# ErrorStyleClassifier is a named policy collaborator constructed by object projection;
-# making its only operation static would erase that ownership boundary. Winner: the sealed
-# classifier contract; static-member rules remain enabled for every other file.
-[tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/ErrorStyleClassifier.cs]
-dotnet_diagnostic.CA1822.severity = none
-dotnet_diagnostic.S2325.severity = none
-
-# EnumSchemaProjector and LiteralClassifier are named schema-policy collaborators composed by
-# SchemaProjector; static operations would erase that ownership. Winner: the sealed collaborator
-# contracts; static-member rules remain enabled for every other file.
-[tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/EnumSchemaProjector.cs]
-dotnet_diagnostic.CA1822.severity = none
-dotnet_diagnostic.S2325.severity = none
-
-[tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/LiteralClassifier.cs]
-dotnet_diagnostic.CA1822.severity = none
-dotnet_diagnostic.S2325.severity = none
-
 # The abstract adapter base carries shared, non-virtual mapping behavior for the
 # generated response adapters, and default interface members cannot carry shared
 # behavior on the net472/netstandard2.0 targets (CS8701). Winner: the

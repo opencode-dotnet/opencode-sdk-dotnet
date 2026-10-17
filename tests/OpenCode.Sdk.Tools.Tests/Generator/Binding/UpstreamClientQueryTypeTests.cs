@@ -136,8 +136,8 @@ public sealed class UpstreamClientQueryTypeTests
     /// <summary>A plain string or a number once references and a nullable wrapper are followed, as the binder classifies it.</summary>
     private static bool IsScalarText(SpecDocument document, SchemaNode schema)
     {
-        var resolved = OperationFacetContext.Resolve(document, schema);
-        var value = resolved is NullableNode { Format: null } nullable ? OperationFacetContext.Resolve(document, nullable.Inner) : resolved;
+        var resolved = RefChain.Resolve(schema, document.Schemas).Node;
+        var value = resolved is NullableNode { Format: null } nullable ? RefChain.Resolve(nullable.Inner, document.Schemas).Node : resolved;
         return value is PrimitiveNode { Kind: PrimitiveKind.String, Format: null } or PrimitiveNode { Kind: PrimitiveKind.Integer or PrimitiveKind.Number };
     }
 

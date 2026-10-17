@@ -71,7 +71,7 @@ internal sealed class ErrorUnionBinder(SchemaBindingContext context)
 
         var errors = _context.Errors.Snapshot();
         _publishedErrors.Append(errors);
-        return new ErrorUnionBindingResult(new UnionBindingResult(null, plan, edges.AsReadOnly()),
+        return new ErrorUnionBindingResult(new UnionBindingResult(null, plan, plan is null ? [] : edges.AsReadOnly()),
             new ReadOnlyDictionary<string, UnionVariantPlan>(admitted), new ReadOnlyDictionary<string, BindingError>(refused), errors);
     }
 

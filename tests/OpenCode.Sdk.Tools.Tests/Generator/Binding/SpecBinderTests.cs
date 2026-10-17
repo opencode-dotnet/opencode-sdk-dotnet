@@ -12,6 +12,31 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class SpecBinderTests
 {
     [Test]
+    [Arguments(false, "JSON-encoded strings are not supported by the emitter")]
+    [Arguments(true, "tuple schemas are not supported by the emitter")]
+    public async Task Bind_Should_Refuse_Unsupported_Type_Shapes_Without_Milestone_Text(bool tuple, string problem)
+    {
+        var document = await IngestAsync(SpecScenario.Define(spec => spec
+            .WithObject("ItemInfo", schema => schema.Property("value", value =>
+            {
+                if (tuple)
+                {
+                    value.Type("array").PrefixItems(static item => item.Type("string"), static item => item.Type("integer"))
+                        .MinItems(2).MaxItems(2);
+                }
+                else
+                {
+                    value.Type("string").ContentSchema("application/json", static inner => inner.Type("string"));
+                }
+            }, required: true))
+            .WithJsonOperation("health.get", "/health", static schema => schema.Ref("ItemInfo"))));
+        var exception = RefuseHealth(document);
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Schema, "ItemInfo.value", problem),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task Bind_Should_Preserve_The_Marker_Refusal_For_An_Unnamed_Error_Schema()
     {
         var document = await IngestAsync(SpecScenario.Define(static spec =>
@@ -180,11 +205,9 @@ public sealed class SpecBinderTests
         schemas["CBadMarker"] = (ObjectNode)schemas["CBadMarker"] with { LiteralMarkers = [] };
         document = document with { Schemas = schemas };
         var errors = new BindingErrorCollector();
-        var reachable = new ReachableSchemaCollector().Collect(document, document.Operations, errors);
+        var reachable = ReachableSchemaCollector.Collect(document, document.Operations, errors);
         var names = new Dictionary<string, string>(StringComparer.Ordinal) { ["AAdmitted"] = "AdmittedError", ["CBadMarker"] = "BadMarkerError" };
-        var result = new ErrorUnionBinder(new SchemaBindingContext(document, reachable,
-            reachable.ResponseRootKeys.ToHashSet(StringComparer.Ordinal), reachable.StreamCauseKeys.ToHashSet(StringComparer.Ordinal), names,
-            new TypePlanBinder(schemas, names, errors), new SchemaInhabitationPolicy(schemas), errors)).Bind();
+        var result = new ErrorUnionBinder(SchemaBindingContext.Create(document, reachable, names, errors)).Bind();
         var expectedRefusals = new Dictionary<string, BindingError>(StringComparer.Ordinal)
         {
             ["BUnnamed"] = new(BindingErrorCategory.Naming, "BUnnamed", "error schema has no unique C# type name"),
@@ -266,7 +289,7 @@ public sealed class SpecBinderTests
                 experimentalDiagnostic: fault == "shared-diagnostic" ? "OPENCODE001" : null);
         }
         var errors = new BindingErrorCollector();
-        new CurationValidator().Validate(document, selected, new ReachableSchemaCollector().Collect(document, selected, errors), Curation(groups), errors);
+        CurationValidator.Validate(document, selected, ReachableSchemaCollector.Collect(document, selected, errors), Curation(groups), errors);
         var identity = expected[0];
         await Assert.That(Assert.Throws<BindingException>(errors.ThrowIfAny).Errors
             .Where(error => error.Category == identity.Category && error.Subject == identity.Subject))
@@ -302,7 +325,7 @@ public sealed class SpecBinderTests
         var errors = new BindingErrorCollector();
         var selected = document.Operations.Where(operation => operation.OperationId == "health.get" || fault == "selected").ToArray();
         var declared = fault switch { "malformed" => "bad", "fingerprint" => new string('0', 64), _ => hash };
-        new CurationValidator().Validate(document, selected, new ReachableSchemaCollector().Collect(document, selected, errors),
+        CurationValidator.Validate(document, selected, ReachableSchemaCollector.Collect(document, selected, errors),
             Curation(Groups("health", RootGroup()), transportOwned: [TransportOwned(subject, declared)]), errors);
         var expected = new BindingError(BindingErrorCategory.Curation, subject, problem);
         var exception = Assert.Throws<BindingException>(errors.ThrowIfAny);
@@ -1847,8 +1870,6 @@ public sealed class SpecBinderTests
             Curation(Groups("health", RootGroup()), schemaNames: responseCollision ? [SchemaName("ItemInfo", "HealthResponse")] : [])));
         BindingError[] expected = [
             new(BindingErrorCategory.Schema, "OpenCodeError", "multiple error schemas declare tag 'SharedError' (GoneError, LostError)"),
-            new(BindingErrorCategory.Schema, "GoneError", "union membership references absent union 'IOpenCodeError'"),
-            new(BindingErrorCategory.Schema, "LostError", "union membership references absent union 'IOpenCodeError'"),
         ];
         if (responseCollision)
         {

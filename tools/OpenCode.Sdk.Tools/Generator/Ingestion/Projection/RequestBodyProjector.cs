@@ -5,13 +5,11 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
 internal sealed class RequestBodyProjector
 {
-    private readonly GraphKeyBuilder _keys;
     private readonly SchemaProjector _schemaProjector;
 
-    public RequestBodyProjector(SchemaProjector schemaProjector, GraphKeyBuilder keys)
+    public RequestBodyProjector(SchemaProjector schemaProjector)
     {
         _schemaProjector = schemaProjector ?? throw new ArgumentNullException(nameof(schemaProjector));
-        _keys = keys ?? throw new ArgumentNullException(nameof(keys));
     }
 
     public SpecRequestBody? Project(IOpenApiRequestBody? requestBody, string root, ProjectionState state)
@@ -24,7 +22,7 @@ internal sealed class RequestBodyProjector
             return null;
         }
 
-        var pointer = _keys.Append(string.Empty, "requestBody");
+        var pointer = GraphKeyBuilder.Append(string.Empty, "requestBody");
         var location = string.Concat(root, pointer);
         var errorCount = state.Errors.Count;
         if (requestBody is not OpenApiRequestBody)
@@ -41,9 +39,7 @@ internal sealed class RequestBodyProjector
         }
 
         var mediaEntry = content.Single();
-        var mediaPointer = _keys.Append(_keys.Append(pointer, "content"), mediaEntry.Key);
-        var mediaLocation = string.Concat(root, mediaPointer);
-        var media = MediaTypeProjector.Project(mediaEntry.Key, mediaEntry.Value, mediaLocation, state.Errors);
+        var media = MediaTypeProjector.ProjectMediaEntry(mediaEntry, root, pointer, state, out var mediaPointer);
         if (media is null)
         {
             return null;
@@ -51,11 +47,11 @@ internal sealed class RequestBodyProjector
 
         if (mediaEntry.Value.Schema is null)
         {
-            state.Errors.Add(mediaLocation, "request body media schema is required");
+            state.Errors.Add(string.Concat(root, mediaPointer), "request body media schema is required");
             return null;
         }
 
-        var schema = _schemaProjector.Project(mediaEntry.Value.Schema, root, _keys.Append(mediaPointer, "schema"), state);
+        var schema = _schemaProjector.Project(mediaEntry.Value.Schema, root, GraphKeyBuilder.Append(mediaPointer, "schema"), state);
         return schema is null || state.Errors.Count != errorCount
             ? null
             : new SpecRequestBody

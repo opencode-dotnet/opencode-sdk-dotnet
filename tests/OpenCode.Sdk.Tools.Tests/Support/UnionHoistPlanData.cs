@@ -15,7 +15,7 @@ internal static class UnionHoistPlanData
     {
         var errors = new BindingErrorCollector();
         var arms = new[] { (Name: "CreatedEvent", Tag: "created", Version: "1"), (Name: "DeletedEvent", Tag: "deleted", Version: "2") };
-        var result = new UnionMemberHoistBinder().Bind(
+        var result = UnionMemberHoistBinder.Bind(
             [Union("IExampleEvent", [.. arms.Select(static arm => Arm(arm.Name))])],
             [
                 .. arms.Select(static arm => Variant(arm.Name, arm.Tag, Property("durable", Named(arm.Name + "Durable"), isRequired: true))),
@@ -44,7 +44,7 @@ internal static class UnionHoistPlanData
     }
 
     public static void CheckNames(UnionHoistPlan plan, BindingErrorCollector errors) =>
-        new OperationPlanBinder().CheckTypeNameCollisions(GeneratedTypeNameInventory.Create(new OwnershipCandidates
+        OperationPlanBinder.CheckTypeNameCollisions(GeneratedTypeNameInventory.Create(new OwnershipCandidates
         {
             Models = plan.Models,
             Unions = plan.Unions,
@@ -145,7 +145,7 @@ internal static class UnionHoistPlanData
         ArgumentNullException.ThrowIfNull(curation);
 
         var errors = new BindingErrorCollector();
-        var hoisted = new UnionMemberHoistBinder().Bind(unions, models, curation, errors);
+        var hoisted = UnionMemberHoistBinder.Bind(unions, models, curation, errors);
         CheckNames(hoisted, errors);
         errors.ThrowIfAny();
         return new EmitPlan

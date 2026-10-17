@@ -2,7 +2,7 @@
 A change that adds, removes or alters a suppression updates this file in the same commit.
 
 build-switch: 12
-editorconfig: 158
+editorconfig: 150
 globalconfig: 1
 no-warn: 18
 pragma: 26
@@ -170,14 +170,6 @@ editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ServerDiagnosticSce
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionEventProbe.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionEventProbeTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/Shared/ProcessMark.cs] dotnet_diagnostic.MA0045.severity = none
-editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/EnumSchemaProjector.cs] dotnet_diagnostic.CA1822.severity = none
-editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/EnumSchemaProjector.cs] dotnet_diagnostic.S2325.severity = none
-editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/ErrorStyleClassifier.cs] dotnet_diagnostic.CA1822.severity = none
-editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/ErrorStyleClassifier.cs] dotnet_diagnostic.S2325.severity = none
-editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/GraphKeyBuilder.cs] dotnet_diagnostic.CA1822.severity = none
-editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/GraphKeyBuilder.cs] dotnet_diagnostic.S2325.severity = none
-editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/LiteralClassifier.cs] dotnet_diagnostic.CA1822.severity = none
-editorconfig .editorconfig [tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/LiteralClassifier.cs] dotnet_diagnostic.S2325.severity = none
 editorconfig .editorconfig [tools/opencode-tool.cs] dotnet_diagnostic.MA0048.severity = none
 globalconfig .globalconfig dotnet_diagnostic.VSTHRD010.severity = none
 no-warn src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj OPENCODE001

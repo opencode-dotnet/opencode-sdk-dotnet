@@ -8,15 +8,13 @@ internal sealed class ResponseProjector
 {
     private readonly EnvelopeClassifier _envelopes;
     private readonly EffectStreamProjector _effectStreams;
-    private readonly GraphKeyBuilder _keys;
     private readonly SchemaProjector _schemaProjector;
 
-    public ResponseProjector(SchemaProjector schemaProjector, GraphKeyBuilder keys, EnvelopeClassifier envelopes)
+    public ResponseProjector(SchemaProjector schemaProjector, EnvelopeClassifier envelopes)
     {
         _schemaProjector = schemaProjector ?? throw new ArgumentNullException(nameof(schemaProjector));
-        _keys = keys ?? throw new ArgumentNullException(nameof(keys));
         _envelopes = envelopes ?? throw new ArgumentNullException(nameof(envelopes));
-        _effectStreams = new EffectStreamProjector(_schemaProjector, _keys);
+        _effectStreams = new EffectStreamProjector(_schemaProjector);
     }
 
     public IReadOnlyList<SpecResponse> Project(OpenApiResponses? responses, string root, ProjectionState state)
@@ -33,7 +31,7 @@ internal sealed class ResponseProjector
         var statusCodes = new HashSet<int>();
         foreach (var (key, response) in responses)
         {
-            var keyLocation = string.Concat(root, _keys.Append(_keys.Append(string.Empty, "responses"), key));
+            var keyLocation = string.Concat(root, GraphKeyBuilder.Append(GraphKeyBuilder.Append(string.Empty, "responses"), key));
             if (!int.TryParse(key, NumberStyles.None, CultureInfo.InvariantCulture, out var statusCode))
             {
                 state.Errors.Add(keyLocation, $"response key '{key}' must be an integer status code");
@@ -65,7 +63,7 @@ internal sealed class ResponseProjector
     private SpecResponse? ProjectResponse(int statusCode, IOpenApiResponse response, string root, ProjectionState state)
     {
         var status = statusCode.ToString(CultureInfo.InvariantCulture);
-        var pointer = _keys.Append(_keys.Append(string.Empty, "responses"), status);
+        var pointer = GraphKeyBuilder.Append(GraphKeyBuilder.Append(string.Empty, "responses"), status);
         var location = string.Concat(root, pointer);
         var errorCount = state.Errors.Count;
         if (response is not OpenApiResponse)
@@ -98,9 +96,7 @@ internal sealed class ResponseProjector
         }
 
         var mediaEntry = content.Single();
-        var mediaPointer = _keys.Append(_keys.Append(pointer, "content"), mediaEntry.Key);
-        var mediaLocation = string.Concat(root, mediaPointer);
-        var media = MediaTypeProjector.Project(mediaEntry.Key, mediaEntry.Value, mediaLocation, state.Errors);
+        var media = MediaTypeProjector.ProjectMediaEntry(mediaEntry, root, pointer, state, out var mediaPointer);
         if (media is null)
         {
             return null;
@@ -109,7 +105,7 @@ internal sealed class ResponseProjector
         SchemaNode? schema = null;
         if (mediaEntry.Value.Schema is not null)
         {
-            schema = _schemaProjector.Project(mediaEntry.Value.Schema, root, _keys.Append(mediaPointer, "schema"), state);
+            schema = _schemaProjector.Project(mediaEntry.Value.Schema, root, GraphKeyBuilder.Append(mediaPointer, "schema"), state);
         }
 
         var effectStream = _effectStreams.Project(media.EffectStream, root, mediaPointer, state);

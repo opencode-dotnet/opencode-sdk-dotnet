@@ -5,15 +5,11 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
 internal sealed class ObjectSchemaProjector
 {
-    private readonly ErrorStyleClassifier _errorStyleClassifier;
-    private readonly GraphKeyBuilder _keys;
     private readonly SchemaProjector _schemaProjector;
 
-    public ObjectSchemaProjector(SchemaProjector schemaProjector, GraphKeyBuilder keys, ErrorStyleClassifier errorStyleClassifier)
+    public ObjectSchemaProjector(SchemaProjector schemaProjector)
     {
         _schemaProjector = schemaProjector ?? throw new ArgumentNullException(nameof(schemaProjector));
-        _keys = keys ?? throw new ArgumentNullException(nameof(keys));
-        _errorStyleClassifier = errorStyleClassifier ?? throw new ArgumentNullException(nameof(errorStyleClassifier));
     }
 
     public SchemaNode? Project(OpenApiSchema schema, string root, string pointer, string location, ProjectionState state)
@@ -36,7 +32,7 @@ internal sealed class ObjectSchemaProjector
 
         if (schema.AdditionalProperties is not null)
         {
-            return ProjectDictionary(schema, schema.AdditionalProperties, root, _keys.Append(pointer, "additionalProperties"), state);
+            return ProjectDictionary(schema, schema.AdditionalProperties, root, GraphKeyBuilder.Append(pointer, "additionalProperties"), state);
         }
 
         return new FreeFormObjectNode
@@ -69,7 +65,7 @@ internal sealed class ObjectSchemaProjector
         }
 
         var pattern = patterns.Single();
-        var valuePointer = _keys.Append(_keys.Append(pointer, "patternProperties"), pattern.Key);
+        var valuePointer = GraphKeyBuilder.Append(GraphKeyBuilder.Append(pointer, "patternProperties"), pattern.Key);
         return ProjectDictionary(schema, pattern.Value, root, valuePointer, state);
     }
 
@@ -93,7 +89,7 @@ internal sealed class ObjectSchemaProjector
         var missingRequired = schema.Required?.Where(name => !properties.ContainsKey(name)).ToArray() ?? [];
         if (missingRequired.Length > 0)
         {
-            var requiredLocation = string.Concat(root, _keys.Append(pointer, "required"));
+            var requiredLocation = string.Concat(root, GraphKeyBuilder.Append(pointer, "required"));
             foreach (var missing in missingRequired)
             {
                 state.Errors.Add(requiredLocation, $"required property '{missing}' is not declared in properties");
@@ -105,7 +101,7 @@ internal sealed class ObjectSchemaProjector
         var projectedProperties = new List<SpecProperty>(properties.Count);
         foreach (var property in properties)
         {
-            var projected = _schemaProjector.Project(property.Value, root, _keys.Append(_keys.Append(pointer, "properties"), property.Key), state);
+            var projected = _schemaProjector.Project(property.Value, root, GraphKeyBuilder.Append(GraphKeyBuilder.Append(pointer, "properties"), property.Key), state);
             if (projected is null)
             {
                 continue;
@@ -157,7 +153,7 @@ internal sealed class ObjectSchemaProjector
             AdditionalPropertiesSchema = additionalPropertiesSchema,
             LiteralMarkers = markers,
             PrefixMarkers = prefixMarkers,
-            ErrorStyle = _errorStyleClassifier.Classify(projectedProperties),
+            ErrorStyle = ErrorStyleClassifier.Classify(projectedProperties),
         };
     }
 
@@ -166,16 +162,16 @@ internal sealed class ObjectSchemaProjector
     /// StructWithRest encoding (<see cref="RestWrapperPolicy"/>); the pointer names where the
     /// document really says it, so a promoted value keeps an honest graph key.
     /// </summary>
-    private (IOpenApiSchema? Schema, string? Pointer) ResolveAdditionalProperties(OpenApiSchema schema, string pointer)
+    private static (IOpenApiSchema? Schema, string? Pointer) ResolveAdditionalProperties(OpenApiSchema schema, string pointer)
     {
         if (schema.AdditionalProperties is { } own)
         {
-            return (own, _keys.Append(pointer, "additionalProperties"));
+            return (own, GraphKeyBuilder.Append(pointer, "additionalProperties"));
         }
 
         if (RestWrapperPolicy.TryGetRest(schema) is { } rest)
         {
-            return (rest, _keys.Append(_keys.Append(_keys.Append(pointer, "allOf"), "0"), "additionalProperties"));
+            return (rest, GraphKeyBuilder.Append(GraphKeyBuilder.Append(GraphKeyBuilder.Append(pointer, "allOf"), "0"), "additionalProperties"));
         }
 
         return (null, null);

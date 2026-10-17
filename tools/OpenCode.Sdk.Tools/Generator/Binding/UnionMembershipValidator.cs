@@ -3,18 +3,16 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
-internal sealed class UnionMembershipValidator
+internal static class UnionMembershipValidator
 {
-    private readonly StringComparer _comparer = StringComparer.Ordinal;
-
-    public void Validate(IReadOnlyList<ObjectModelPlan> models, IReadOnlyList<UnionPlan> unions,
+    public static void Validate(IReadOnlyList<ObjectModelPlan> models, IReadOnlyList<UnionPlan> unions,
         BindingErrorCollector errors)
     {
         ArgumentNullException.ThrowIfNull(models);
         ArgumentNullException.ThrowIfNull(unions);
         ArgumentNullException.ThrowIfNull(errors);
 
-        var unionsByName = unions.ToDictionary(static union => union.Name, _comparer);
+        var unionsByName = unions.ToDictionary(static union => union.Name, StringComparer.Ordinal);
         foreach (var model in models)
         {
             ValidateModel(model, unionsByName, errors);

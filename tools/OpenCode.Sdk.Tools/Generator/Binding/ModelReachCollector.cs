@@ -11,10 +11,9 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// </summary>
 internal static class ModelReachCollector
 {
-    public static IReadOnlyDictionary<string, IReadOnlyList<string>> Collect(ReachableSchemaCollector reachableSchemas, ReachScope scope,
+    public static IReadOnlyDictionary<string, IReadOnlyList<string>> Collect(ReachScope scope,
         OwnershipCandidates candidates, BindingErrorCollector errors)
     {
-        ArgumentNullException.ThrowIfNull(reachableSchemas);
         ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(candidates);
         ArgumentNullException.ThrowIfNull(errors);
@@ -27,7 +26,7 @@ internal static class ModelReachCollector
                      .Where(operation => familyOf.ContainsKey(operation.OperationId))
                      .GroupBy(operation => familyOf[operation.OperationId], StringComparer.Ordinal))
         {
-            var reachable = reachableSchemas.Collect(scope.Document, [.. family], errors);
+            var reachable = ReachableSchemaCollector.Collect(scope.Document, [.. family], errors);
             foreach (var typeName in reachable.GraphKeys.Where(scope.TypeNames.ContainsKey).Select(key => scope.TypeNames[key]))
             {
                 _ = Reached(reach, typeName).Add(family.Key);
@@ -38,15 +37,14 @@ internal static class ModelReachCollector
         return reach.ToDictionary(static entry => entry.Key, static entry => (IReadOnlyList<string>)[.. entry.Value], StringComparer.Ordinal);
     }
 
-    public static IReadOnlySet<string> CollectSubset(ReachableSchemaCollector reachableSchemas, ReachScope scope,
+    public static IReadOnlySet<string> CollectSubset(ReachScope scope,
         OwnershipCandidates candidates, BindingErrorCollector errors)
     {
-        ArgumentNullException.ThrowIfNull(reachableSchemas);
         ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(candidates);
         ArgumentNullException.ThrowIfNull(errors);
 
-        var reachable = reachableSchemas.Collect(scope.Document, scope.Selected, errors);
+        var reachable = ReachableSchemaCollector.Collect(scope.Document, scope.Selected, errors);
         var reach = reachable.GraphKeys.Where(scope.TypeNames.ContainsKey).Select(key => scope.TypeNames[key])
             .Distinct(StringComparer.Ordinal)
             .ToDictionary(static name => name, static _ => new SortedSet<string>(StringComparer.Ordinal) { "subset" }, StringComparer.Ordinal);

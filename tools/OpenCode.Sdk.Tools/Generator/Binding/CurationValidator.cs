@@ -3,11 +3,9 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
-internal sealed class CurationValidator
+internal static class CurationValidator
 {
-    private readonly StringComparer _comparer = StringComparer.Ordinal;
-
-    public void Validate(SpecDocument document, IReadOnlyList<SpecOperation> selected, ReachableSchemaSet reachable,
+    public static void Validate(SpecDocument document, IReadOnlyList<SpecOperation> selected, ReachableSchemaSet reachable,
         GenerationCuration curation, BindingErrorCollector errors)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -16,10 +14,10 @@ internal sealed class CurationValidator
         ArgumentNullException.ThrowIfNull(curation);
         ArgumentNullException.ThrowIfNull(errors);
 
-        var selectedIds = selected.Select(static operation => operation.OperationId).ToHashSet(_comparer);
-        var selectedGroups = selected.Select(GetGroup).ToHashSet(_comparer);
-        var documentIds = document.Operations.Select(static operation => operation.OperationId).ToHashSet(_comparer);
-        var documentGroups = document.Operations.Select(GetGroup).ToHashSet(_comparer);
+        var selectedIds = selected.Select(static operation => operation.OperationId).ToHashSet(StringComparer.Ordinal);
+        var selectedGroups = selected.Select(GetGroup).ToHashSet(StringComparer.Ordinal);
+        var documentIds = document.Operations.Select(static operation => operation.OperationId).ToHashSet(StringComparer.Ordinal);
+        var documentGroups = document.Operations.Select(GetGroup).ToHashSet(StringComparer.Ordinal);
         ValidateGroups(selected, selectedGroups, documentGroups, curation, errors);
         ValidateOperationNames(selected, documentIds, curation, errors);
         ValidateParameterNames(selected, curation, errors);
@@ -169,10 +167,10 @@ internal sealed class CurationValidator
     /// working object, so every operation of a handle family that carries it must name it the same
     /// way, across every group the family merges.
     /// </summary>
-    private void ValidateParameterNames(IReadOnlyList<SpecOperation> selected, GenerationCuration curation,
+    private static void ValidateParameterNames(IReadOnlyList<SpecOperation> selected, GenerationCuration curation,
         BindingErrorCollector errors)
     {
-        var operations = selected.ToDictionary(static operation => operation.OperationId, _comparer);
+        var operations = selected.ToDictionary(static operation => operation.OperationId, StringComparer.Ordinal);
         foreach (var row in curation.ParameterNames)
         {
             var subject = row.OperationId + ":" + row.Parameter;

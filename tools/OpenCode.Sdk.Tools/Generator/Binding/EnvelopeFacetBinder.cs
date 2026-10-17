@@ -361,22 +361,9 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
             return ListOf(Named(itemName));
         }
 
-        // 'data' may also be a RefNode naming an ARRAY component directly — vcs.branches' exact
-        // shape, Vcs.BranchList = {"type":"array","items":{"type":"string"}} — rather than
-        // wrapping the array inline at this position. Resolve the reference through the ref
-        // graph and, only when the resolved target is itself an array, apply the same item
-        // logic as the arm above: a named item keeps its own identity, and every other item
-        // shape (here, a primitive string) falls through to the type machinery, which walks the
-        // very same reference (RefNode -> ArrayNode -> item) on its own. This does not widen the
-        // guard below: the guard exists to stop a RefNode resolving to a NOMINAL
-        // (object/enum/union) target with a failed name lookup from resurrecting a
-        // mechanically-derived name, and that refusal is unchanged — only a ref resolving to an
-        // ARRAY gains this path, keyed on shape (ref -> array), never on operation id. Resolve
-        // only follows RefNode chains — it does not unwrap a NullableNode, and its own visited
-        // set stops a ref alias cycle by handing back the cycling RefNode — so a nullable-wrapped
-        // array or a cycling ref falls through this arm unmatched and reaches the same guard,
-        // refusing exactly as before; intentional, since this dialect has no NullableNode-
-        // unwrapping step of its own yet.
+        // A reference to an array component binds as an array: named items keep their identity,
+        // and other items bind through the type machinery. Ref walks do not unwrap nullable
+        // nodes; a nullable target or alias cycle reaches the nominal-name refusal below.
         if (data.Schema is RefNode arrayReference && _context.Resolve(arrayReference) is ArrayNode resolvedArray)
         {
             if (resolvedArray.Item is RefNode resolvedItem
@@ -389,12 +376,8 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
                    ?? _context.RefuseNull<TypeReferencePlan>("success payload does not bind to a supported type plan");
         }
 
-        // A RefNode or ArrayNode that reached here already failed the name lookups above (a
-        // target the resolver left unnamed — a collapsed structural union, or a schema the
-        // dialect excludes from naming — or a ref that does not resolve to an array); the
-        // dialect keeps refusing those exactly as before instead of letting the type machinery
-        // resurrect a mechanically-derived name. Every other shape (a dictionary, for one)
-        // delegates to the type machinery.
+        // A failed nominal lookup must not resurrect a mechanically-derived name through the
+        // type machinery. Other shapes, such as dictionaries, delegate to that machinery.
         if (data.Schema is RefNode or ArrayNode)
         {
             return _context.RefuseNull<TypeReferencePlan>(
@@ -447,9 +430,7 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
         && _context.Document.Schemas.TryGetValue(reference.Target, out var target)
         && target is ObjectNode wrapper
         && wrapper.Properties.FirstOrDefault(static property => property.Name is "data") is { } data
-        // A literal inline array resolves to itself; a RefNode naming an array component (the
-        // vcs.branches shape) resolves through the ref graph to the same ArrayNode — one check
-        // classifies both.
+        // Inline arrays and references to array components share the same resolved shape.
         && _context.Resolve(data.Schema) is ArrayNode
             ? EnvelopeKind.DataLocationList
             : EnvelopeKind.DataLocation;

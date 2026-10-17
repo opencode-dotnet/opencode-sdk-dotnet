@@ -9,21 +9,7 @@ namespace OpenCode.Sdk.Tools.Tests.Support;
 
 internal sealed class BindingTestHost
 {
-    private readonly SpecBinder _binder;
-
-    public BindingTestHost()
-    {
-        _binder = new SpecBinder(
-            new ReachableSchemaCollector(),
-            new StabilizeDuplicatePolicy(),
-            new CurationValidator(),
-            new SchemaAliasValidator(),
-            new SchemaAliasApplier(),
-            new SchemaNameResolver(),
-            new SchemaPlanBinder(new StructuralUnionPlanBinder(), new UnionMembershipValidator(), new UnionDiscriminatorSelector(),
-                new UnionMemberHoistBinder()),
-            new OperationPlanBinder());
-    }
+    private readonly SpecBinder _binder = new();
 
     /// <summary>The production binder pipeline, exposed for callers that drive it themselves (e.g. the pending-operation probe).</summary>
     public ISpecBinder Binder => _binder;

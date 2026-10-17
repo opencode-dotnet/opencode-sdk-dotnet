@@ -4,9 +4,9 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
-internal sealed class EnumSchemaProjector
+internal static class EnumSchemaProjector
 {
-    public EnumNode? Project(OpenApiSchema schema, string location, IngestionErrorCollector errors)
+    public static EnumNode? Project(OpenApiSchema schema, string location, IngestionErrorCollector errors)
     {
         ArgumentNullException.ThrowIfNull(schema);
         ArgumentException.ThrowIfNullOrWhiteSpace(location);

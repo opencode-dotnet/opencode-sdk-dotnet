@@ -7,13 +7,11 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
 internal sealed class PrefixItemsAdapter
 {
-    private readonly GraphKeyBuilder _keys;
     private readonly SchemaProjector _schemaProjector;
 
-    public PrefixItemsAdapter(SchemaProjector schemaProjector, GraphKeyBuilder keys)
+    public PrefixItemsAdapter(SchemaProjector schemaProjector)
     {
         _schemaProjector = schemaProjector ?? throw new ArgumentNullException(nameof(schemaProjector));
-        _keys = keys ?? throw new ArgumentNullException(nameof(keys));
     }
 
     public SchemaNode? Project(OpenApiSchema schema, string root, string pointer, string location, ProjectionState state)
@@ -45,7 +43,7 @@ internal sealed class PrefixItemsAdapter
         var items = new List<SchemaNode>(prefixItems.Count);
         for (var index = 0; index < prefixItems.Count; index++)
         {
-            var itemPointer = _keys.Append(_keys.Append(pointer, "prefixItems"), index.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            var itemPointer = GraphKeyBuilder.Append(GraphKeyBuilder.Append(pointer, "prefixItems"), index.ToString(System.Globalization.CultureInfo.InvariantCulture));
             var itemLocation = string.Concat(root, itemPointer);
             if (prefixItems[index] is not { } rawItem)
             {
@@ -115,24 +113,16 @@ internal sealed class PrefixItemsAdapter
             return null;
         }
 
-        var item = _schemaProjector.Project(schema.Items, root, _keys.Append(pointer, "items"), state);
-        return item is null
-            ? null
-            : new ArrayNode
-            {
-                Description = schema.Description,
-                Format = schema.Format,
-                Item = item,
-            };
+        return _schemaProjector.ProjectArrayItems(schema, itemsReference, root, pointer, state);
     }
 
-    private bool ValidateArity(OpenApiSchema schema, int arity, string root, string pointer, IngestionErrorCollector errors)
+    private static bool ValidateArity(OpenApiSchema schema, int arity, string root, string pointer, IngestionErrorCollector errors)
     {
         var isValid = true;
         var arityText = arity.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (schema.MinItems != arity)
         {
-            errors.Add(string.Concat(root, _keys.Append(pointer, "minItems")), $"minItems must equal tuple arity {arityText}");
+            errors.Add(string.Concat(root, GraphKeyBuilder.Append(pointer, "minItems")), $"minItems must equal tuple arity {arityText}");
             isValid = false;
         }
 
@@ -141,7 +131,7 @@ internal sealed class PrefixItemsAdapter
             return isValid;
         }
 
-        errors.Add(string.Concat(root, _keys.Append(pointer, "maxItems")), $"maxItems must equal tuple arity {arityText}");
+        errors.Add(string.Concat(root, GraphKeyBuilder.Append(pointer, "maxItems")), $"maxItems must equal tuple arity {arityText}");
 
         return false;
     }
