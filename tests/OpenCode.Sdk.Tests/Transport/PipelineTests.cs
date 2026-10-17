@@ -11,6 +11,15 @@ namespace OpenCode.Sdk.Tests.Transport;
 
 public sealed class PipelineTests
 {
+    private static async Task ExecuteInfoAsync(Pipeline pipeline) =>
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+
+    private static async Task AssertLocationHeadersAbsentAsync(RecordedRequest request)
+    {
+        await Assert.That(request.Headers).DoesNotContainKey("x-opencode-directory");
+        await Assert.That(request.Headers).DoesNotContainKey("x-opencode-workspace");
+    }
+
     private static readonly Uri Endpoint = new("http://localhost:4096");
     private const string OperationId = "test.operation";
 
@@ -193,11 +202,11 @@ public sealed class PipelineTests
             Directory = "/repo"
         });
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        await ExecuteInfoAsync(pipeline);
 
         var request = handler.Requests.Single();
         await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo("%2Frepo");
-        await Assert.That(request.Headers.ContainsKey("x-opencode-workspace")).IsFalse();
+        await Assert.That(request.Headers).DoesNotContainKey("x-opencode-workspace");
     }
 
     [Test]
@@ -207,11 +216,9 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient, location: new LocationSelector());
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        await ExecuteInfoAsync(pipeline);
 
-        var request = handler.Requests.Single();
-        await Assert.That(request.Headers.ContainsKey("x-opencode-directory")).IsFalse();
-        await Assert.That(request.Headers.ContainsKey("x-opencode-workspace")).IsFalse();
+        await AssertLocationHeadersAbsentAsync(handler.Requests.Single());
     }
 
     [Test]
@@ -257,11 +264,9 @@ public sealed class PipelineTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = CreatePipeline(httpClient);
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        await ExecuteInfoAsync(pipeline);
 
-        var request = handler.Requests.Single();
-        await Assert.That(request.Headers.ContainsKey("x-opencode-directory")).IsFalse();
-        await Assert.That(request.Headers.ContainsKey("x-opencode-workspace")).IsFalse();
+        await AssertLocationHeadersAbsentAsync(handler.Requests.Single());
     }
 
     [Test]
@@ -304,7 +309,7 @@ public sealed class PipelineTests
         _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         await Assert.That(httpClient.BaseAddress).IsNull();
-        await Assert.That(httpClient.DefaultRequestHeaders.Any()).IsFalse();
+        await Assert.That(httpClient.DefaultRequestHeaders).IsEmpty();
     }
 
     [Test]
@@ -751,7 +756,7 @@ public sealed class PipelineTests
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None))
             .Throws<ArgumentOutOfRangeException>();
 
-        await Assert.That(handler.Requests.Any()).IsFalse();
+        await Assert.That(handler.Requests).IsEmpty();
     }
 
     [Test]

@@ -2,6 +2,8 @@ using System.Text;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Streaming;
 
 public sealed class ServerSentEventReaderTests
@@ -13,7 +15,7 @@ public sealed class ServerSentEventReaderTests
 
         var frames = await ReadAllAsync(stream);
 
-        await Assert.That(frames.SequenceEqual(["{\"a\":1}", "{\"a\":2}"], StringComparer.Ordinal)).IsTrue();
+        await Assert.That(frames).IsEquivalentTo(["{\"a\":1}", "{\"a\":2}"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -95,7 +97,7 @@ public sealed class ServerSentEventReaderTests
 
         var frames = await ReadAllAsync(stream);
 
-        await Assert.That(frames.SequenceEqual(["first", "\uFEFFsecond"], StringComparer.Ordinal)).IsTrue();
+        await Assert.That(frames).IsEquivalentTo(["first", "\uFEFFsecond"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -186,7 +188,7 @@ public sealed class ServerSentEventReaderTests
 
         var frames = await ReadAllAsync(stream);
 
-        await Assert.That(frames.SequenceEqual(["{\"a\":1}", "{\"a\":2}"], StringComparer.Ordinal)).IsTrue();
+        await Assert.That(frames).IsEquivalentTo(["{\"a\":1}", "{\"a\":2}"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -197,7 +199,7 @@ public sealed class ServerSentEventReaderTests
 
         var frames = await ReadAllAsync(stream);
 
-        await Assert.That(frames.SequenceEqual([first, "next"], StringComparer.Ordinal)).IsTrue();
+        await Assert.That(frames).IsEquivalentTo([first, "next"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -245,7 +247,7 @@ public sealed class ServerSentEventReaderTests
 
         var frames = await ReadAllAsync(stream);
 
-        await Assert.That(frames.SequenceEqual(["first", "second"], StringComparer.Ordinal)).IsTrue();
+        await Assert.That(frames).IsEquivalentTo(["first", "second"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -255,7 +257,7 @@ public sealed class ServerSentEventReaderTests
 
         var frames = await ReadAllAsync(stream);
 
-        await Assert.That(frames.SequenceEqual(["first", "second"], StringComparer.Ordinal)).IsTrue();
+        await Assert.That(frames).IsEquivalentTo(["first", "second"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -275,7 +277,7 @@ public sealed class ServerSentEventReaderTests
 
         var frames = await ReadAllAsync(stream);
 
-        await Assert.That(frames.SequenceEqual([" padded", "tight"], StringComparer.Ordinal)).IsTrue();
+        await Assert.That(frames).IsEquivalentTo([" padded", "tight"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]

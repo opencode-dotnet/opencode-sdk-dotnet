@@ -23,12 +23,12 @@ public sealed class GitProcessCancellationTests
             },
             primary)).Throws<OperationCanceledException>();
 
-        await Assert.That(ReferenceEquals(caught, primary)).IsTrue();
+        await Assert.That(caught).IsSameReferenceAs(primary);
         await Assert.That(waitAttempted).IsTrue();
         await Assert.That(caught!.Data[OwnedCleanup.FailuresKey]).IsTypeOf<AggregateException>();
         var failures = caught.Data[OwnedCleanup.FailuresKey] as AggregateException;
         await Assert.That(failures!.InnerExceptions.Count).IsEqualTo(2);
-        await Assert.That(ReferenceEquals(failures.InnerExceptions[0], interruptFailure)).IsTrue();
-        await Assert.That(ReferenceEquals(failures.InnerExceptions[1], waitFailure)).IsTrue();
+        await Assert.That(failures.InnerExceptions[0]).IsSameReferenceAs(interruptFailure);
+        await Assert.That(failures.InnerExceptions[1]).IsSameReferenceAs(waitFailure);
     }
 }

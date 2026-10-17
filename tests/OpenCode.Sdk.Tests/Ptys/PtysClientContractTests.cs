@@ -7,6 +7,19 @@ namespace OpenCode.Sdk.Tests.Ptys;
 
 public sealed class PtysClientContractTests
 {
+    private static async Task AssertTicketHeaderAbsentAsync(IReadOnlyDictionary<string, string> headers) =>
+        await Assert.That(headers).DoesNotContainKey(TicketHeader);
+
+    private static async Task AssertConnectTokenErrorAsync<TError>(PtysClient ptys, int status)
+    {
+        var exception = await Assert
+            .That(async () => _ = await ptys.GetPtyClient("pty_9").CreateConnectTokenAsync())
+            .Throws<OpenCodeApiException>();
+
+        await Assert.That(exception!.Status).IsEqualTo(status);
+        await Assert.That(exception.Error).IsTypeOf<TError>();
+    }
+
     private const string TicketHeader = "x-opencode-ticket";
 
     private const string ConnectTokenBody = "{\"ticket\":\"tkt_1\",\"expires_in\":30}";
@@ -154,7 +167,7 @@ public sealed class PtysClientContractTests
 
         var request = handler.Requests.Single();
         await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo("%2Fper%2Fdir");
-        await Assert.That(request.Headers.ContainsKey("x-opencode-workspace")).IsFalse();
+        await Assert.That(request.Headers).DoesNotContainKey("x-opencode-workspace");
         await Assert.That(request.Headers[TicketHeader]).IsEqualTo("1");
     }
 
@@ -182,7 +195,7 @@ public sealed class PtysClientContractTests
         await Assert.That(scenario.Requests.Count).IsEqualTo(4);
         foreach (var request in scenario.Requests)
         {
-            await Assert.That(request.Headers.ContainsKey(TicketHeader)).IsFalse();
+            await AssertTicketHeaderAbsentAsync(request.Headers);
         }
     }
 
@@ -196,7 +209,7 @@ public sealed class PtysClientContractTests
 
         _ = await scenario.Client.Ptys.ListPtysAsync();
 
-        await Assert.That(scenario.Requests.Single().Headers.ContainsKey(TicketHeader)).IsFalse();
+        await AssertTicketHeaderAbsentAsync(scenario.Requests.Single().Headers);
     }
 
     [Test]
@@ -204,12 +217,7 @@ public sealed class PtysClientContractTests
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.PtyNotFoundError);
 
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Ptys.GetPtyClient("pty_9").CreateConnectTokenAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<PtyNotFoundError>();
+        await AssertConnectTokenErrorAsync<PtyNotFoundError>(scenario.Client.Ptys, 404);
     }
 
     [Test]
@@ -217,12 +225,7 @@ public sealed class PtysClientContractTests
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.Forbidden, WireBodyData.ForbiddenError);
 
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Ptys.GetPtyClient("pty_9").CreateConnectTokenAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(403);
-        await Assert.That(exception.Error).IsTypeOf<ForbiddenError>();
+        await AssertConnectTokenErrorAsync<ForbiddenError>(scenario.Client.Ptys, 403);
     }
 
     [Test]

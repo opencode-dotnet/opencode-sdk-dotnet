@@ -70,7 +70,7 @@ public sealed class OpenCodeServerDescriptorTests
                 .SelectMany(static descriptors => descriptors.Where(static entry => entry.Key <= 2).Select(static entry => entry.Value))
                 .ToList();
             await Assert.That(standard).Count().IsEqualTo(Servers * 3);
-            await Assert.That(standard.TrueForAll(static pipe => pipe.IsPipe)).IsTrue();
+            await Assert.That(standard).All().Satisfy(pipe => pipe.IsPipe, value => value.IsTrue());
             await Assert.That(standard.Select(static pipe => pipe.Target).Distinct(StringComparer.Ordinal).Count()).IsEqualTo(Servers * 3);
             if (OperatingSystem.IsMacOS())
             {

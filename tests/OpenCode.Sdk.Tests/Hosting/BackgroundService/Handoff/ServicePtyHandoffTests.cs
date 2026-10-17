@@ -49,7 +49,7 @@ public sealed class ServicePtyHandoffTests
         await Assert.That(sidecar.ExpiresAt).IsEqualTo(TicketExpiry);
         await Assert.That(sidecar.Handoff!.Value.GetRawText()).IsEqualTo(Ticket.GetRawText());
         await Assert.That(_scenario.TemporaryFiles()).IsEmpty();
-        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath]);
+        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -94,8 +94,7 @@ public sealed class ServicePtyHandoffTests
 
         await PrepareAsync(server.Endpoint);
 
-        _ = await AssertNullSidecarAsync();
-        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath, ShutdownPath]);
+        await AssertShutdownFallbackAsync(server);
     }
 
     [Test]
@@ -108,9 +107,14 @@ public sealed class ServicePtyHandoffTests
 
         await PrepareAsync(server.Endpoint);
 
+        await AssertShutdownFallbackAsync(server);
+        await Assert.That(_scenario.TemporaryFiles()).IsEmpty();
+    }
+
+    private async Task AssertShutdownFallbackAsync(LoopbackHttpServer server)
+    {
         _ = await AssertNullSidecarAsync();
         await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath, ShutdownPath], CollectionOrdering.Matching);
-        await Assert.That(_scenario.TemporaryFiles()).IsEmpty();
     }
 
     [Test]
@@ -140,7 +144,7 @@ public sealed class ServicePtyHandoffTests
         await PrepareAsync(server.Endpoint);
 
         await Assert.That(_scenario.ReadSidecar()!.Handoff).IsNull();
-        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath, ShutdownPath]);
+        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath, ShutdownPath], CollectionOrdering.Matching);
     }
 
     [Test]

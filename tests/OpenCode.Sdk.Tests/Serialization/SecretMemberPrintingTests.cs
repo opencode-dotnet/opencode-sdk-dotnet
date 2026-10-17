@@ -183,7 +183,8 @@ public sealed class SecretMemberPrintingTests
 
         using var expected = JsonDocument.Parse(json);
         using var actual = JsonDocument.Parse(JsonSerializer.Serialize(value, OpenCodeJsonContext.Default.ICredentialValue));
-        await Assert.That(JsonElement.DeepEquals(expected.RootElement, actual.RootElement)).IsTrue();
+        await Assert.That(actual.RootElement).IsEqualTo(expected.RootElement, EqualityComparer<JsonElement>.Create(JsonElement.DeepEquals))
+            .Because($"expected JSON: {expected.RootElement.GetRawText()}; actual JSON: {actual.RootElement.GetRawText()}");
     }
 
     /// <summary>No known MCP status arm carries a secret, so its unknown carrier keeps the compiler's print, payload included.</summary>

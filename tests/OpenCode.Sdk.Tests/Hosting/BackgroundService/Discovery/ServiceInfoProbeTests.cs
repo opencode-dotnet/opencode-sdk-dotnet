@@ -7,6 +7,8 @@ using OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
 using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using OpenCode.Sdk.Tests.Support;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Discovery;
 
 /// <summary>
@@ -57,7 +59,7 @@ public sealed class ServiceInfoProbeTests
         var result = await Probe().ProbeAsync(Registration(prefixed), CancellationToken.None);
 
         await Assert.That(result.State).IsEqualTo(ServiceState.Ready);
-        await Assert.That(server.RequestPaths).IsEquivalentTo(["/api/info"]);
+        await Assert.That(server.RequestPaths).IsEquivalentTo(["/api/info"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -67,7 +69,7 @@ public sealed class ServiceInfoProbeTests
 
         _ = await Probe().ProbeAsync(Registration(server.Endpoint, password: null), CancellationToken.None);
 
-        await Assert.That(server.Requests.Single().Headers.ContainsKey("Authorization")).IsFalse();
+        await Assert.That(server.Requests.Single().Headers).DoesNotContainKey("Authorization");
     }
 
     [Test]
@@ -92,7 +94,7 @@ public sealed class ServiceInfoProbeTests
         var result = await Probe().ProbeAsync(Registration(server.Endpoint), CancellationToken.None);
 
         await Assert.That(result.State).IsEqualTo(ServiceState.Waiting);
-        await Assert.That(server.RequestPaths).IsEquivalentTo(["/api/info"]);
+        await Assert.That(server.RequestPaths).IsEquivalentTo(["/api/info"], CollectionOrdering.Matching);
     }
 
     [Test]

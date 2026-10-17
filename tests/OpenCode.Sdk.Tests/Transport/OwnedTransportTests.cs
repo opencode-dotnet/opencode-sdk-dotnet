@@ -78,7 +78,7 @@ public sealed class OwnedTransportTests
             .Throws<OpenCodeTransportException>();
 
         await Assert.That(exception!.Message).Contains("302");
-        await Assert.That(server.RequestPaths).IsEquivalentTo(["/api/info"]);
+        await AssertOnlyInfoRequestAsync(server.RequestPaths);
     }
 
     [Test]
@@ -275,6 +275,12 @@ public sealed class OwnedTransportTests
         }
     }
 #endif
+
+    private static async Task AssertOnlyInfoRequestAsync(IReadOnlyList<string> requestPaths)
+    {
+        await Assert.That(requestPaths).Count().IsEqualTo(1);
+        await Assert.That(requestPaths[0]).IsEqualTo("/api/info");
+    }
 
     /// <summary>Reports when the inner handler has returned a response, which is when its headers are in.</summary>
     /// <summary>

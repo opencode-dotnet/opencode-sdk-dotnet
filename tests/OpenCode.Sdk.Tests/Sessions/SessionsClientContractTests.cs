@@ -3,6 +3,8 @@ using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Sessions;
 
 public sealed class SessionsClientContractTests
@@ -74,15 +76,11 @@ public sealed class SessionsClientContractTests
         }
 
         await Assert.That(received.Count).IsEqualTo(2);
-        await Assert.That(received.All(static session => session.Id == "ses_100")).IsTrue();
-        await Assert
-            .That(scenario.Requests.Select(static request => request.RequestUri!.AbsoluteUri).SequenceEqual(
-            [
+        await Assert.That(received).All().Satisfy(item => item.Id, value => value.IsEqualTo("ses_100"));
+        await Assert.That(scenario.Requests.Select(static request => request.RequestUri!.AbsoluteUri)).IsEquivalentTo([
                 "http://localhost:4096/api/session?limit=1&order=desc&search=a%20b&parentID=null",
                 $"http://localhost:4096/api/session?limit=1&search=a%20b&parentID=null&cursor={firstNext}",
-            ],
-            StringComparer.Ordinal))
-            .IsTrue();
+            ], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]

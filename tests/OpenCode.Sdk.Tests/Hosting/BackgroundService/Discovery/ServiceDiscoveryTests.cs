@@ -132,7 +132,7 @@ public sealed class ServiceDiscoveryTests
         var registration = await Discovery().DiscoverAsync(new OpenCodeServerDiscoverOptions { Channel = "dev" }, CancellationToken.None);
 
         await Assert.That(registration).IsNotNull();
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsTrue();
+        await Assert.That(SharedRegistrationPath()).Satisfies(_fileSystem.File.Exists);
     }
 
     [Test]

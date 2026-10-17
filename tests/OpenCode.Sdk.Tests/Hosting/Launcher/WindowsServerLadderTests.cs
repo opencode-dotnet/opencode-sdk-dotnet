@@ -202,7 +202,7 @@ public sealed class WindowsServerLadderTests
 
         await Assert.That(armedBefore.Min()).IsGreaterThanOrEqualTo(1);
         await Assert.That(armedOneTickBefore).IsEquivalentTo(armedBefore, CollectionOrdering.Matching);
-        await Assert.That(kills.ToArray()).IsEquivalentTo([started, started + Grace]);
+        await Assert.That(kills.ToArray()).IsEquivalentTo([started, started + Grace], CollectionOrdering.Matching);
         _ = await treeKill.Received(1).KillTreeAsync(ProcessId, Grace);
         _ = await treeKill.Received(1).KillTreeAsync(ProcessId, Bounds.TreeKill);
     }

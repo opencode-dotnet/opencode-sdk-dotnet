@@ -1,3 +1,5 @@
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Support;
 
 /// <summary>
@@ -24,7 +26,8 @@ public sealed class TestMirrorTests
     {
         var collisions = TestMirror.Collisions([SourceFile(PublicFile), SourceFile("Sessions/Internal/Widget.cs")]);
 
-        await Assert.That(collisions).IsEquivalentTo(["Sessions/Internal/Widget and Sessions/Widget"]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(collisions).IsEquivalentTo(["Sessions/Internal/Widget and Sessions/Widget"], CollectionOrdering.Any);
     }
 
     [Test]

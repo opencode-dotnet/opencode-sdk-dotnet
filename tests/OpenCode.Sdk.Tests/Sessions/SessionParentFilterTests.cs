@@ -12,7 +12,7 @@ public sealed class SessionParentFilterTests
     [Test]
     public async Task RootOnly_Should_Be_A_Singleton()
     {
-        await Assert.That(ReferenceEquals(SessionParentFilter.RootOnly, SessionParentFilter.RootOnly)).IsTrue();
+        await Assert.That(SessionParentFilter.RootOnly).IsSameReferenceAs(SessionParentFilter.RootOnly);
     }
 
     [Test]

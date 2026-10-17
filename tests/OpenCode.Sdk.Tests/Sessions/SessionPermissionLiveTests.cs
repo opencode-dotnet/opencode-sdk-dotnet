@@ -2,6 +2,7 @@ using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Sessions.Support;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Sessions;
 
@@ -55,8 +56,10 @@ public sealed class SessionPermissionLiveTests(SimulatedDriveServerFixture serve
                 await Assert.That(observed.Id).IsEqualTo(cleanupState.PermissionId);
                 await Assert.That(observed.SessionId).IsEqualTo(createdSession.Session.Id);
                 await Assert.That(observed.Action).IsEqualTo(permissionAction);
-                await Assert.That(observed.Resources).IsEquivalentTo([PermissionResource]);
-                await Assert.That(observed.Save).IsEquivalentTo([PermissionResource]);
+                // Granted resource membership is the contract, not resource enumeration order.
+                await Assert.That(observed.Resources).IsEquivalentTo([PermissionResource], CollectionOrdering.Any);
+                // Granted resource membership is the contract, not resource enumeration order.
+                await Assert.That(observed.Save).IsEquivalentTo([PermissionResource], CollectionOrdering.Any);
             }
 
             var replied = await session.ReplyToPermissionAsync(
@@ -79,7 +82,7 @@ public sealed class SessionPermissionLiveTests(SimulatedDriveServerFixture serve
 
             var afterRemoval = await client.Permissions.ListSavedAsync(
                 new PermissionSavedListRequest { ProjectId = location.Project.Id }, cancellationToken: cancellationToken);
-            await Assert.That(afterRemoval.Saved.Any(info => info.Id == cleanupState.SavedId)).IsFalse();
+            await Assert.That(afterRemoval.Saved).DoesNotContain(info => info.Id == cleanupState.SavedId);
             await Assert.That(OwnedSavedPermissions(afterRemoval.Saved, location.Project.Id)).IsEmpty();
 
             WriteEvidence(consumed.Status, removed.Status);
@@ -103,7 +106,7 @@ public sealed class SessionPermissionLiveTests(SimulatedDriveServerFixture serve
             "permission probe agent", cancellationToken);
         var agent = (await client.Agents.GetAgentAsync(agentId, cancellationToken: cancellationToken)).Agent;
         await Assert.That(agent.Id).IsEqualTo(agentId);
-        await Assert.That(agent.Permissions.Any(rule => (rule.Action, rule.Resource, rule.Effect) == (permissionAction, "*", PermissionEffect.Ask))).IsTrue();
+        await Assert.That(agent.Permissions).Contains(rule => (rule.Action, rule.Resource, rule.Effect) == (permissionAction, "*", PermissionEffect.Ask));
     }
 
     private static OwnedSessionCleanup CreateCleanup(

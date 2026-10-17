@@ -1,4 +1,6 @@
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Harness.Ownership;
 
 public sealed class OwnedCleanupTests
@@ -63,8 +65,9 @@ public sealed class OwnedCleanupTests
             await outerLate.WaitForAllAsync(CancellationToken.None);
 
             var failures = (IReadOnlyCollection<KeyValuePair<string, Exception>>)attached!;
+            // Late failure completion order is not part of this assertion's contract.
             await Assert.That(failures.Select(entry => entry.Value))
-                .IsEquivalentTo(new Exception[] { firstFailure, secondFailure });
+                .IsEquivalentTo(new Exception[] { firstFailure, secondFailure }, CollectionOrdering.Any);
         }
         finally
         {

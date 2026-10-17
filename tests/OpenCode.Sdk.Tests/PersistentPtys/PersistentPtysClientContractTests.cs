@@ -3,6 +3,8 @@ using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.PersistentPtys;
 
 public sealed class PersistentPtysClientContractTests
@@ -331,7 +333,7 @@ public sealed class PersistentPtysClientContractTests
 
         var response = await scenario.Client.PersistentPtys.GetPersistentPtyClient(PtyId).GetSnapshotAsync();
 
-        await Assert.That(response.Snapshot.Checkpoint.ToArray()).IsEquivalentTo(new byte[] { 0x1B, 0x63 });
+        await Assert.That(response.Snapshot.Checkpoint.ToArray()).IsEquivalentTo(new byte[] { 0x1B, 0x63 }, CollectionOrdering.Matching);
         await Assert.That(response.Snapshot.Cursor.Y).IsEqualTo(2);
         await Assert.That(response.Snapshot.Info.Size.Cols).IsEqualTo(80);
         await Assert.That(scenario.Requests.Single().RequestUri)

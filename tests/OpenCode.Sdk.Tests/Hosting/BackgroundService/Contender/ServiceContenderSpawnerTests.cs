@@ -7,6 +7,7 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Contender;
 
@@ -154,7 +155,7 @@ public sealed class ServiceContenderSpawnerTests
                 .Because(contender.Stderr);
             var report = ParseEchoReport(contender.Stderr);
 
-            await Assert.That(report.Argv.SequenceEqual(probeArguments, StringComparer.Ordinal)).IsTrue();
+            await Assert.That(report.Argv).IsEquivalentTo(probeArguments, StringComparer.Ordinal, CollectionOrdering.Matching);
             await Assert.That(report.Environment[sentinelName]).IsEqualTo(unicodeValue);
             await Assert.That(report.Environment[emptyName]).IsEqualTo(string.Empty);
             await Assert.That(report.Environment[removedName]).IsNull();

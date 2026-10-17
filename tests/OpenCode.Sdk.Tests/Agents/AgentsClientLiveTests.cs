@@ -70,8 +70,8 @@ public sealed class AgentsClientLiveTests(SimulatedDriveServerFixture server)
         await Assert.That(agent.Name).IsEqualTo("Build");
         await Assert.That(agent.Mode).IsEqualTo(AgentInfoMode.Primary);
         await Assert.That(agent.Hidden).IsFalse();
-        await Assert.That(agent.Permissions.Any(rule =>
-            rule is { Action: "question", Resource: "*" } && rule.Effect == PermissionEffect.Allow)).IsTrue();
+        await Assert.That(agent.Permissions).Contains(rule =>
+            rule is { Action: "question", Resource: "*" } && rule.Effect == PermissionEffect.Allow);
     }
 
     private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);

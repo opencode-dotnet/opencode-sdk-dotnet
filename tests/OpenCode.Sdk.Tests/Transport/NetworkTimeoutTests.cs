@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.Tests.Transport.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Transport;
 
@@ -96,6 +97,7 @@ public sealed class NetworkTimeoutTests
     [Test]
     public async Task The_Long_Polls_Should_Be_The_Operations_That_Hold_Their_Headers_Until_The_Work_Ends()
     {
+        // This checks the complete inventory, not its enumeration order.
         await Assert.That(NetworkTimeouts.LongPolls).IsEquivalentTo(
         [
             "experimental.session.wait",
@@ -103,7 +105,7 @@ public sealed class NetworkTimeoutTests
             "experimental.generate.text",
             "session.generate",
             "session.command",
-        ]);
+        ], CollectionOrdering.Any);
     }
 
     /// <summary>Minus one millisecond is <see cref="Timeout.InfiniteTimeSpan"/> itself, so the negative case is minus two.</summary>

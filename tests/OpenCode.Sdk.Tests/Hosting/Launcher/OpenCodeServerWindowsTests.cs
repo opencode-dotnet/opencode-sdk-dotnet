@@ -4,6 +4,7 @@ using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Hosting.Launcher.Support;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Hosting.Launcher;
 
@@ -158,7 +159,8 @@ public sealed class OpenCodeServerWindowsTests
             .Select(static entry => entry.Value)
             .ToArray();
 
-        await Assert.That(values).IsEquivalentTo(["entry"]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(values).IsEquivalentTo(["entry"], CollectionOrdering.Any);
         BranchReport.Print("Windows — the server's environment held one entry for the name: " + values[0]);
     }
 

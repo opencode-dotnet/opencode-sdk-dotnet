@@ -57,8 +57,8 @@ public sealed class SessionFormLiveTests(SimulatedDriveServerFixture server)
 
             var sessionPending = await session.ListFormsAsync(cancellationToken: cancellationToken);
             var locationPending = await client.Forms.ListFormsAsync(cancellationToken: cancellationToken);
-            await Assert.That(sessionPending.Forms.Any(form => form.Id == formId)).IsTrue();
-            await Assert.That(locationPending.Forms.Any(form => form.Id == formId)).IsTrue();
+            await Assert.That(sessionPending.Forms).Contains(form => form.Id == formId);
+            await Assert.That(locationPending.Forms).Contains(form => form.Id == formId);
             var pending = await session.GetFormAsync(formId, cancellationToken: cancellationToken);
             await Assert.That(pending.Form.State).IsTypeOf<FormStatePending>();
 
@@ -79,8 +79,8 @@ public sealed class SessionFormLiveTests(SimulatedDriveServerFixture server)
 
             sessionPending = await session.ListFormsAsync(cancellationToken: cancellationToken);
             locationPending = await client.Forms.ListFormsAsync(cancellationToken: cancellationToken);
-            await Assert.That(sessionPending.Forms.Any(form => form.Id == formId)).IsFalse();
-            await Assert.That(locationPending.Forms.Any(form => form.Id == formId)).IsFalse();
+            await Assert.That(sessionPending.Forms).DoesNotContain(form => form.Id == formId);
+            await Assert.That(locationPending.Forms).DoesNotContain(form => form.Id == formId);
             var repeated = await session.ReplyToFormAsync(
                 formId, replyRequest, OpenCodeRequestOptions.NoThrow, cancellationToken);
             await Assert.That(repeated.Status).IsEqualTo(409);

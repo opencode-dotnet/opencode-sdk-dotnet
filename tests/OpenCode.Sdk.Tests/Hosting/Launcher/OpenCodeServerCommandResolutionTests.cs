@@ -48,7 +48,7 @@ public sealed class OpenCodeServerCommandResolutionTests
 
             await Assert.That(resolved.IsBatchScript).IsFalse();
             await Assert.That(resolved.Path).IsNotEqualTo(launch.Command[0]);
-            await Assert.That(FileSystem.File.Exists(resolved.Path)).IsTrue();
+            await Assert.That(resolved.Path).Satisfies(FileSystem.File.Exists);
             return;
         }
 
@@ -119,6 +119,6 @@ public sealed class OpenCodeServerCommandResolutionTests
 
         // The refusal is fail-closed, not a late check: the shim records every run it gets, and
         // it never got one.
-        await Assert.That(FileSystem.File.Exists(shim.MarkerPath)).IsFalse();
+        await Assert.That(shim.MarkerPath).Satisfies(path => !FileSystem.File.Exists(path));
     }
 }

@@ -3,6 +3,7 @@ using System.Text;
 using NSubstitute;
 using OpenCode.Sdk.Internal;
 using Testably.Abstractions;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService;
 
@@ -25,7 +26,7 @@ public sealed class ServiceFileSystemTests
         var created = await new ServiceFileSystem().TryCreateExclusiveAsync(path, Content, CancellationToken.None);
 
         await Assert.That(created).IsTrue();
-        await Assert.That(directory.FileSystem.File.ReadAllBytes(path)).IsEquivalentTo(Content);
+        await Assert.That(directory.FileSystem.File.ReadAllBytes(path)).IsEquivalentTo(Content, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -51,7 +52,7 @@ public sealed class ServiceFileSystemTests
             .That(async () => _ = await new ServiceFileSystem().TryCreateExclusiveAsync(path, Content, CancellationToken.None))
             .Throws<DirectoryNotFoundException>();
 
-        await Assert.That(directory.FileSystem.Directory.Exists(directory.File("missing"))).IsFalse();
+        await Assert.That(directory.File("missing")).Satisfies(path => !directory.FileSystem.Directory.Exists(path));
     }
 
     [Test]
@@ -63,7 +64,7 @@ public sealed class ServiceFileSystemTests
 
         var bytes = await new ServiceFileSystem().TryReadAllBytesAsync(path, CancellationToken.None);
 
-        await Assert.That(bytes).IsEquivalentTo(Content);
+        await Assert.That(bytes).IsEquivalentTo(Content, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -96,7 +97,7 @@ public sealed class ServiceFileSystemTests
             directory.FileSystem.File.Delete(path);
         }
 
-        await Assert.That(directory.FileSystem.File.Exists(path)).IsFalse();
+        await Assert.That(path).Satisfies(path => !directory.FileSystem.File.Exists(path));
     }
 
     [Test]
@@ -109,7 +110,7 @@ public sealed class ServiceFileSystemTests
         var removed = new ServiceFileSystem().TryDelete(path);
 
         await Assert.That(removed).IsTrue();
-        await Assert.That(directory.FileSystem.File.Exists(path)).IsFalse();
+        await Assert.That(path).Satisfies(path => !directory.FileSystem.File.Exists(path));
     }
 
     [Test]
@@ -142,7 +143,7 @@ public sealed class ServiceFileSystemTests
 
         new ServiceFileSystem().Rename(source, destination);
 
-        await Assert.That(directory.FileSystem.File.Exists(source)).IsFalse();
+        await Assert.That(source).Satisfies(path => !directory.FileSystem.File.Exists(path));
         await Assert.That(directory.FileSystem.File.ReadAllText(destination)).IsEqualTo("published");
     }
 
@@ -202,7 +203,7 @@ public sealed class ServiceFileSystemTests
             await Assert.That(await reader.ReadToEndAsync()).IsEqualTo("previous");
         }
 
-        await Assert.That(directory.FileSystem.File.Exists(source)).IsFalse();
+        await Assert.That(source).Satisfies(path => !directory.FileSystem.File.Exists(path));
     }
 
     /// <summary>
@@ -234,7 +235,7 @@ public sealed class ServiceFileSystemTests
         await Assert.That(directory.FileSystem.File.ReadAllText(destination)).IsEqualTo("previous");
         using (directory.FileSystem.FileStream.New(source, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
         {
-            await Assert.That(directory.FileSystem.File.Exists(source)).IsTrue();
+            await Assert.That(source).Satisfies(directory.FileSystem.File.Exists);
         }
     }
 
@@ -299,7 +300,7 @@ public sealed class ServiceFileSystemTests
 
         _ = kernel.Received(1).Replace(source, destination);
         await Assert.That(directory.FileSystem.File.ReadAllText(destination)).IsEqualTo("published");
-        await Assert.That(directory.FileSystem.File.Exists(source)).IsFalse();
+        await Assert.That(source).Satisfies(path => !directory.FileSystem.File.Exists(path));
     }
 
     [Test]
@@ -346,7 +347,7 @@ public sealed class ServiceFileSystemTests
         {
             // Windows has no Unix mode; the file inherits the parent directory's DACL, which is
             // the documented behavior, and the assertion is that creation itself succeeded.
-            await Assert.That(directory.FileSystem.File.Exists(path)).IsTrue();
+            await Assert.That(path).Satisfies(directory.FileSystem.File.Exists);
             return;
         }
 

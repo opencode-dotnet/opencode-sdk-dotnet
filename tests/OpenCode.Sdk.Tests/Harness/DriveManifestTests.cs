@@ -31,7 +31,7 @@ public sealed class DriveManifestTests
         var manifest = DriveManifest.Write(fileSystem, registry);
 
         var path = fileSystem.Path.Combine(registry, manifest.InstanceName + ".json");
-        await Assert.That(fileSystem.File.Exists(path)).IsTrue();
+        await Assert.That(path).Satisfies(fileSystem.File.Exists);
         using var document = JsonDocument.Parse(fileSystem.File.ReadAllText(path));
         var endpoints = document.RootElement.GetProperty("endpoints");
         await Assert.That(endpoints.GetProperty("backend").GetString())

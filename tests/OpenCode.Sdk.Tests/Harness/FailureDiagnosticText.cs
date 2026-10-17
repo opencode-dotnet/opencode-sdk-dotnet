@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text;
 using OpenCode.Sdk.Tests.Harness.Ownership;
+using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Harness;
 
@@ -29,6 +30,16 @@ internal sealed class FailureDiagnosticText(int maximumCharacters = 16_384)
             }
 
             _ = text.AppendLine(current.GetType().FullName).AppendLine(new FailureDiagnosticText(1_024).Bound(current.Message));
+            if (current.Data[EventDiagnosticSummary.DataKey] is string events)
+            {
+                _ = text.AppendLine(EventDiagnosticSummary.DataKey).AppendLine(Bound(events));
+            }
+
+            if (current.Data[OwnedCleanup.StepTimingsKey] is string timings)
+            {
+                _ = text.AppendLine(OwnedCleanup.StepTimingsKey).AppendLine(Bound(timings));
+            }
+
             if (current.InnerException is { } inner)
             {
                 pending.Enqueue(inner);
@@ -50,6 +61,12 @@ internal sealed class FailureDiagnosticText(int maximumCharacters = 16_384)
             if (current.Data[OwnedCleanup.FailuresKey] is AggregateException cleanup)
             {
                 pending.Enqueue(cleanup);
+            }
+
+            if (current.Data[GitRepositoryWorkspace.CleanupFailuresKey] is AggregateException repositoryCleanup)
+            {
+                _ = text.AppendLine(GitRepositoryWorkspace.CleanupFailuresKey);
+                pending.Enqueue(repositoryCleanup);
             }
 
             if (current.Data[OwnedCleanup.LateFailuresKey] is ConcurrentQueue<KeyValuePair<string, Exception>> late)

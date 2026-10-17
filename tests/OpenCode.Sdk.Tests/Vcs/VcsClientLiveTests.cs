@@ -2,6 +2,7 @@ using System.Globalization;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Vcs;
 
@@ -30,7 +31,8 @@ public sealed class VcsClientLiveTests(SimulatedDriveServerFixture server)
         await Assert.That(branches.Status).IsEqualTo(200);
         await Assert.That(branches.IsError).IsFalse();
         await Assert.That(branches.Location.Directory).IsEqualTo(vcs.Location.Directory);
-        await Assert.That(branches.Branches).IsEquivalentTo(["main"]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(branches.Branches).IsEquivalentTo(["main"], CollectionOrdering.Any);
 
         var reviewBase = await client.Vcs.GetBaseAsync(
             new VcsBaseRequest { Location = location }, cancellationToken: cancellationToken);

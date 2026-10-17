@@ -31,8 +31,8 @@ public sealed class ServerClientLiveTests(SimulatedDriveServerFixture server)
             await Assert.That(url.IsDefaultPort).IsFalse();
         }
 
-        await Assert.That(response.ServerInfo.Urls.Any(value =>
-            Uri.TryCreate(value, UriKind.Absolute, out var url) && url == server.Endpoint)).IsTrue();
+        await Assert.That(response.ServerInfo.Urls).Contains(value =>
+            Uri.TryCreate(value, UriKind.Absolute, out var url) && url == server.Endpoint);
 
         Console.WriteLine(
             "server-live: status=" + Number(response.Status) +

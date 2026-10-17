@@ -55,7 +55,7 @@ public sealed class PersistentPtyUpgradeFailurePolicyTests
 
         await Assert.That(mapped.Message).Contains("404");
         await Assert.That(mapped.Message).Contains("instead of completing the protocol upgrade");
-        await Assert.That(mapped.Message.Contains("does not exist", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(mapped.Message).DoesNotContain("does not exist", StringComparison.Ordinal);
         await Assert.That(mapped.InnerException).IsSameReferenceAs(fault);
     }
 

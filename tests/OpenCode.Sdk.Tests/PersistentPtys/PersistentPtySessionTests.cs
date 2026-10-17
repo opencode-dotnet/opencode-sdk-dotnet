@@ -2,6 +2,7 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.PersistentPtys;
 
@@ -54,7 +55,7 @@ public sealed class PersistentPtySessionTests
 
         await Assert.That(frames.Count).IsEqualTo(1);
         await Assert.That(((PersistentPtyOutputFrame)frames[0]).Data.ToArray())
-            .IsEquivalentTo(PersistentPtyFrameData.Output("after attach"));
+            .IsEquivalentTo(PersistentPtyFrameData.Output("after attach"), CollectionOrdering.Matching);
         await Assert.That(socket.DisposeCalls).IsEqualTo(0);
     }
 
@@ -86,7 +87,7 @@ public sealed class PersistentPtySessionTests
             await Assert.That(resized.Cols).IsEqualTo(120);
             await Assert.That(resized.Rows).IsEqualTo(40);
             await Assert.That(resized.Generation).IsEqualTo(4L);
-            await Assert.That(resized.Checkpoint.ToArray()).IsEquivalentTo(ResizeCheckpoint);
+            await Assert.That(resized.Checkpoint.ToArray()).IsEquivalentTo(ResizeCheckpoint, CollectionOrdering.Matching);
         }),
         static () => (PersistentPtyFrameData.ExitedJson, static async frame =>
         {
@@ -280,10 +281,10 @@ public sealed class PersistentPtySessionTests
 
         await Assert.That(frames.Count).IsEqualTo(3);
         await Assert.That(((PersistentPtyOutputFrame)frames[0]).Data.ToArray())
-            .IsEquivalentTo(PersistentPtyFrameData.Output("$ "));
+            .IsEquivalentTo(PersistentPtyFrameData.Output("$ "), CollectionOrdering.Matching);
         await Assert.That(((PersistentPtyReplayCompleteFrame)frames[1]).EndOffset).IsEqualTo(42L);
         await Assert.That(((PersistentPtyOutputFrame)frames[2]).Data.ToArray())
-            .IsEquivalentTo(PersistentPtyFrameData.Output("hello\n"));
+            .IsEquivalentTo(PersistentPtyFrameData.Output("hello\n"), CollectionOrdering.Matching);
     }
 
     [Test]
@@ -344,7 +345,7 @@ public sealed class PersistentPtySessionTests
         // The body is a JSON object carrying a string type, so blaming the envelope would be a
         // false report: the frame kind the SDK could not read is what a reader needs to see.
         await Assert.That(failure!.Message).Contains("'resized'");
-        await Assert.That(failure.Message.Contains("not a JSON object", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(failure.Message).DoesNotContain("not a JSON object", StringComparison.Ordinal);
         await Assert.That(failure.InnerException).IsNotNull();
     }
 
@@ -386,7 +387,7 @@ public sealed class PersistentPtySessionTests
 
         var frames = await ReadAllAsync(session);
 
-        await Assert.That(((PersistentPtyOutputFrame)frames.Single()).Data.ToArray()).IsEquivalentTo(output);
+        await Assert.That(((PersistentPtyOutputFrame)frames.Single()).Data.ToArray()).IsEquivalentTo(output, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -402,7 +403,7 @@ public sealed class PersistentPtySessionTests
 
         var resized = (PersistentPtyResizedFrame)frames.Single();
         await Assert.That(resized.Cols).IsEqualTo(120);
-        await Assert.That(resized.Checkpoint.ToArray()).IsEquivalentTo(ResizeCheckpoint);
+        await Assert.That(resized.Checkpoint.ToArray()).IsEquivalentTo(ResizeCheckpoint, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -419,7 +420,7 @@ public sealed class PersistentPtySessionTests
             .Throws<OpenCodeTransportException>();
 
         await Assert.That(((PersistentPtyOutputFrame)frames.Single()).Data.ToArray())
-            .IsEquivalentTo(PersistentPtyFrameData.Output("live"));
+            .IsEquivalentTo(PersistentPtyFrameData.Output("live"), CollectionOrdering.Matching);
         await Assert.That(failure!.Message).Contains("4404");
     }
 
@@ -453,7 +454,7 @@ public sealed class PersistentPtySessionTests
         await session.WriteAsync(PersistentPtyFrameData.Output("ls\n"));
 
         await Assert.That(socket.SentMessages.Single())
-            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 80, 24, PersistentPtyFrameData.Output("ls\n")));
+            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 80, 24, PersistentPtyFrameData.Output("ls\n")), CollectionOrdering.Matching);
     }
 
     [Test]
@@ -481,9 +482,7 @@ public sealed class PersistentPtySessionTests
 
         await Task.WhenAll(resize, write);
 
-        await Assert.That(socket.SentMessages[0]).IsEquivalentTo(PersistentPtyFrameData.Framed(0, 100, 30, []));
-        await Assert.That(socket.SentMessages[1])
-            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 100, 30, PersistentPtyFrameData.Output("ls\n")));
+        await AssertResizedFramesAsync(socket);
         await Assert.That(socket.MaxConcurrentSends).IsEqualTo(1);
     }
 
@@ -497,7 +496,7 @@ public sealed class PersistentPtySessionTests
 
         await Assert.That(socket.SentMessageTypes.Single()).IsEqualTo(WebSocketMessageType.Binary);
         await Assert.That(socket.SentMessages.Single())
-            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 80, 24, PersistentPtyFrameData.Output("ls\n")));
+            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 80, 24, PersistentPtyFrameData.Output("ls\n")), CollectionOrdering.Matching);
     }
 
     [Test]
@@ -512,7 +511,7 @@ public sealed class PersistentPtySessionTests
         // is not at the server's default: a write that framed 80x24 anyway would resize the
         // caller's terminal on the very first keystroke.
         await Assert.That(socket.SentMessages.Single())
-            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 132, 50, PersistentPtyFrameData.Output("ls\n")));
+            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 132, 50, PersistentPtyFrameData.Output("ls\n")), CollectionOrdering.Matching);
     }
 
     [Test]
@@ -550,7 +549,7 @@ public sealed class PersistentPtySessionTests
 
         await Assert.That(socket.SentMessageTypes.Single()).IsEqualTo(WebSocketMessageType.Binary);
         await Assert.That(socket.SentMessages.Single())
-            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 80, 24, PersistentPtyFrameData.Output(SubmittedLine + Enter)));
+            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 80, 24, PersistentPtyFrameData.Output(SubmittedLine + Enter)), CollectionOrdering.Matching);
     }
 
     [Test]
@@ -563,7 +562,7 @@ public sealed class PersistentPtySessionTests
         await session.SubmitAsync(SubmittedLine);
 
         await Assert.That(socket.SentMessages[1])
-            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 100, 30, PersistentPtyFrameData.Output(SubmittedLine + Enter)));
+            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 100, 30, PersistentPtyFrameData.Output(SubmittedLine + Enter)), CollectionOrdering.Matching);
     }
 
     [Test]
@@ -575,7 +574,7 @@ public sealed class PersistentPtySessionTests
         await session.SubmitAsync(string.Empty);
 
         await Assert.That(socket.SentMessages.Single())
-            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 80, 24, PersistentPtyFrameData.Output(Enter)));
+            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 80, 24, PersistentPtyFrameData.Output(Enter)), CollectionOrdering.Matching);
     }
 
     [Test]
@@ -635,9 +634,13 @@ public sealed class PersistentPtySessionTests
         await session.ResizeAsync(100, 30);
         await session.WriteAsync(PersistentPtyFrameData.Output("ls\n"));
 
-        await Assert.That(socket.SentMessages[0]).IsEquivalentTo(PersistentPtyFrameData.Framed(0, 100, 30, []));
-        await Assert.That(socket.SentMessages[1])
-            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 100, 30, PersistentPtyFrameData.Output("ls\n")));
+        await AssertResizedFramesAsync(socket);
+    }
+
+    private static async Task AssertResizedFramesAsync(ScriptedTerminalWebSocket socket)
+    {
+        await Assert.That(socket.SentMessages[0]).IsEquivalentTo(PersistentPtyFrameData.Framed(0, 100, 30, []), CollectionOrdering.Matching);
+        await Assert.That(socket.SentMessages[1]).IsEquivalentTo(PersistentPtyFrameData.Framed(1, 100, 30, PersistentPtyFrameData.Output("ls\n")), CollectionOrdering.Matching);
     }
 
     [Test]
@@ -684,7 +687,7 @@ public sealed class PersistentPtySessionTests
 
         // No control entered the socket, so the still-live attachment retains its original size.
         await Assert.That(socket.SentMessages.Single())
-            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 80, 24, PersistentPtyFrameData.Output("ls\n")));
+            .IsEquivalentTo(PersistentPtyFrameData.Framed(1, 80, 24, PersistentPtyFrameData.Output("ls\n")), CollectionOrdering.Matching);
     }
 
     [Test]
@@ -712,7 +715,7 @@ public sealed class PersistentPtySessionTests
         var frames = await ReadAllAsync(session);
 
         await Assert.That(((PersistentPtyOutputFrame)frames[0]).Data.ToArray())
-            .IsEquivalentTo(PersistentPtyFrameData.Output("mocked"));
+            .IsEquivalentTo(PersistentPtyFrameData.Output("mocked"), CollectionOrdering.Matching);
         await Assert.That(((PersistentPtyTitleChangedFrame)frames[1]).Title).IsEqualTo("vim");
     }
 

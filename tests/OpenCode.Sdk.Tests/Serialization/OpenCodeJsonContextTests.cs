@@ -693,7 +693,8 @@ public sealed class OpenCodeJsonContextTests
         var roundTrip = _serializer.Serialize<ISessionMessageAssistantContent>(unknown);
         using var expected = JsonDocument.Parse(json);
         using var actual = JsonDocument.Parse(roundTrip);
-        await Assert.That(JsonElement.DeepEquals(expected.RootElement, actual.RootElement)).IsTrue();
+        await Assert.That(actual.RootElement).IsEqualTo(expected.RootElement, EqualityComparer<JsonElement>.Create(JsonElement.DeepEquals))
+            .Because($"expected JSON: {expected.RootElement.GetRawText()}; actual JSON: {actual.RootElement.GetRawText()}");
     }
 
     [Test]
@@ -789,8 +790,8 @@ public sealed class OpenCodeJsonContextTests
 
         state.Add("mutation", nullValue);
 
-        await Assert.That(model.State.ContainsKey("mutation")).IsTrue();
-        await Assert.That(model.State.ContainsKey("original")).IsTrue();
+        await Assert.That(model.State).ContainsKey("mutation");
+        await Assert.That(model.State).ContainsKey("original");
     }
 
     [Test]
@@ -808,7 +809,7 @@ public sealed class OpenCodeJsonContextTests
 
         delta.Add("mutation", "two");
 
-        await Assert.That(model.Delta.ContainsKey("mutation")).IsTrue();
+        await Assert.That(model.Delta).ContainsKey("mutation");
     }
 
     [Test]

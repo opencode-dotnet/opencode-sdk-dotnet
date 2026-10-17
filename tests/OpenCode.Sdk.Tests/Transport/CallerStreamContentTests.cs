@@ -2,6 +2,8 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.Tests.Transport.Support;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Transport;
 
 /// <summary>
@@ -29,7 +31,7 @@ public sealed class CallerStreamContentTests
         var recorded = handler.Requests.Single();
         await Assert.That(recorded.ContentType).IsEqualTo("application/octet-stream");
         await Assert.That(recorded.ContentLength).IsEqualTo(4);
-        await Assert.That(recorded.BodyBytes!).IsEquivalentTo(new byte[] { 0x02, 0xFF, 0xFE, 0x0A });
+        await Assert.That(recorded.BodyBytes!).IsEquivalentTo(new byte[] { 0x02, 0xFF, 0xFE, 0x0A }, CollectionOrdering.Matching);
         await Assert.That(source.CanRead).IsTrue();
         await Assert.That(source.Position).IsEqualTo(6);
     }
@@ -75,7 +77,7 @@ public sealed class CallerStreamContentTests
 
         var recorded = handler.Requests.Single();
         await Assert.That(recorded.ContentLength).IsNull();
-        await Assert.That(recorded.BodyBytes!).IsEquivalentTo(new byte[] { 0x41, 0x42, 0x43 });
+        await Assert.That(recorded.BodyBytes!).IsEquivalentTo(new byte[] { 0x41, 0x42, 0x43 }, CollectionOrdering.Matching);
     }
 
     /// <summary>A redirect or a retry in a caller-supplied handler would need the bytes again.</summary>
@@ -95,7 +97,7 @@ public sealed class CallerStreamContentTests
         await content.CopyToAsync(first);
 
         _ = await Assert.That(async () => await content.CopyToAsync(second)).Throws<InvalidOperationException>();
-        await Assert.That(first.ToArray()).IsEquivalentTo(new byte[] { 0x01, 0x02 });
+        await Assert.That(first.ToArray()).IsEquivalentTo(new byte[] { 0x01, 0x02 }, CollectionOrdering.Matching);
     }
 
     /// <summary>

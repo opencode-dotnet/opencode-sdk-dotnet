@@ -194,12 +194,7 @@ public sealed class ServiceEnsurerTests
         AnswerRegistered(Ready);
         ElectOnSpawn("2.0.4");
 
-        var registration = await Ensurer().EnsureAsync(
-            Announcing(new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace }),
-            CancellationToken.None);
-
-        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
-        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.VersionMismatch, (string?)Version)]);
+        await EnsureReplacementAsync();
         _ = _handoff.Received(1).PrepareAsync(SharedRegistrationPath(), WithPid(RegisteredPid), Timing.RequestTimeout, Arg.Any<CancellationToken>());
         _ = _handoff.DidNotReceiveWithAnyArgs().ClearAsync(default!, default);
         await Assert.That(_signalled).Contains(RegisteredPid);
@@ -261,12 +256,7 @@ public sealed class ServiceEnsurerTests
         AnswerRegistered(Failed);
         ElectOnSpawn("2.0.4");
 
-        var registration = await Ensurer().EnsureAsync(
-            Announcing(new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace }),
-            CancellationToken.None);
-
-        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
-        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.VersionMismatch, (string?)Version)]);
+        await EnsureReplacementAsync();
         _ = _handoff.Received(1).ClearAsync(SharedRegistrationPath(), Arg.Any<CancellationToken>());
         _ = _handoff.DidNotReceiveWithAnyArgs().PrepareAsync(default!, default!, default, default);
         await Assert.That(_signalled).Contains(RegisteredPid);
@@ -291,7 +281,8 @@ public sealed class ServiceEnsurerTests
 
         await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
         await Assert.That(_spawnedAt.Single() - _refusedAt[0]).IsEqualTo(spawnDelay);
-        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.Missing, (string?)null)]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.Missing, (string?)null)], CollectionOrdering.Any);
         await Assert.That(_signalled).IsEmpty();
     }
 
@@ -378,7 +369,8 @@ public sealed class ServiceEnsurerTests
 
         await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
         await Assert.That(_starts.Count).IsEqualTo(1);
-        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.Missing, (string?)null)]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.Missing, (string?)null)], CollectionOrdering.Any);
         await Assert.That(_signalled).IsEmpty();
         _ = _probe.Received(2).ProbeAsync(WithPid(RegisteredPid), Arg.Any<CancellationToken>());
     }
@@ -397,7 +389,8 @@ public sealed class ServiceEnsurerTests
             .EnsureAsync(Announcing(), CancellationToken.None);
 
         await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
-        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.Missing, (string?)null)]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.Missing, (string?)null)], CollectionOrdering.Any);
         _ = _probe.Received(3).ProbeAsync(WithPid(RegisteredPid), Arg.Any<CancellationToken>());
         _ = _handoff.Received(1).ClearAsync(SharedRegistrationPath(), Arg.Any<CancellationToken>());
         await Assert.That(_signalled).Contains(RegisteredPid);
@@ -568,7 +561,8 @@ public sealed class ServiceEnsurerTests
 
         await Assert.That(exception!.Message).IsEqualTo(ServiceEnsurer.TimeoutMessage);
         await Assert.That(_starts.Count).IsEqualTo(2);
-        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.Missing, (string?)null)]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.Missing, (string?)null)], CollectionOrdering.Any);
         foreach (var contender in _spawned)
         {
             contender.Received(1).Release();
@@ -623,12 +617,7 @@ public sealed class ServiceEnsurerTests
         AnswerRegistered(Ready with { Compatible = false });
         ElectOnSpawn("2.0.4");
 
-        var registration = await Ensurer().EnsureAsync(
-            Announcing(new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace }),
-            CancellationToken.None);
-
-        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
-        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.VersionMismatch, (string?)Version)]);
+        await EnsureReplacementAsync();
         await Assert.That(_signalled).Contains(RegisteredPid);
     }
 
@@ -896,6 +885,17 @@ public sealed class ServiceEnsurerTests
         _ = await Assert
             .That(async () => _ = await Ensurer().EnsureAsync(options: null, new CancellationToken(canceled: true)))
             .Throws<OperationCanceledException>();
+    }
+
+    private async Task EnsureReplacementAsync()
+    {
+        var registration = await Ensurer().EnsureAsync(
+            Announcing(new OpenCodeServerEnsureOptions { ExpectedVersion = "2.0.4", VersionPolicy = OpenCodeServerVersionPolicy.Replace }),
+            CancellationToken.None);
+
+        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(_announced).IsEquivalentTo([(OpenCodeServerEnsureReason.VersionMismatch, (string?)Version)], CollectionOrdering.Any);
     }
 
     private ServiceEnsurer Ensurer(ServiceTiming? timing = null) =>

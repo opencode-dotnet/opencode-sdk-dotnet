@@ -1,5 +1,7 @@
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness.Ownership;
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Support;
 
 public sealed class OwnedEventReaderTests
@@ -20,7 +22,7 @@ public sealed class OwnedEventReaderTests
 
         await Assert.That(thrown).IsSameReferenceAs(primary);
         var failures = (AggregateException)primary.Data[OwnedCleanup.FailuresKey]!;
-        await Assert.That(failures.InnerExceptions).IsEquivalentTo(new Exception[] { readerFailure, removalFailure });
+        await Assert.That(failures.InnerExceptions).IsEquivalentTo(new Exception[] { readerFailure, removalFailure }, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -93,8 +95,10 @@ public sealed class OwnedEventReaderTests
             await Assert.That(observed.Value).IsSameReferenceAs(readerFailure);
             release.Set();
             await report.WaitForAllAsync(CancellationToken.None);
-            await Assert.That(attached.Select(entry => entry.Value)).IsEquivalentTo(new Exception[] { readerFailure, callbackFailure });
-            await Assert.That(attached.Select(entry => entry.Key)).IsEquivalentTo(["event reader", "event cancellation"]);
+            // Late failure completion order is not part of this assertion's contract.
+            await Assert.That(attached.Select(entry => entry.Value)).IsEquivalentTo(new Exception[] { readerFailure, callbackFailure }, CollectionOrdering.Any);
+            // Late failure completion order is not part of this assertion's contract.
+            await Assert.That(attached.Select(entry => entry.Key)).IsEquivalentTo(["event reader", "event cancellation"], CollectionOrdering.Any);
         }
         finally
         {
@@ -148,7 +152,7 @@ public sealed class OwnedEventReaderTests
 
         await Assert.That(thrown).IsSameReferenceAs(primary);
         await Assert.That(thrown!.CancellationToken).IsEqualTo(caller.Token);
-        await Assert.That(primary.Data.Contains(OwnedCleanup.FailuresKey)).IsFalse();
+        await Assert.That(primary.Data.Keys.Cast<object>()).DoesNotContain(OwnedCleanup.FailuresKey);
     }
 
     [Test]

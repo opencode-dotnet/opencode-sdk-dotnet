@@ -1,6 +1,7 @@
 using System.Text.Json;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Serialization;
 
@@ -22,7 +23,8 @@ public sealed class OpenModelRoundTripTests
 
         await Assert.That(settings.ChunkTimeout!.Kind).IsEqualTo(ProviderSettingsChunkTimeoutKind.Number);
         await Assert.That(settings.ChunkTimeout.Number).IsEqualTo(5);
-        await Assert.That(settings.AdditionalProperties.Keys).IsEquivalentTo(["baseURL", "headers", "retries"]);
+        // Dictionary/set membership is the contract; enumeration order is not.
+        await Assert.That(settings.AdditionalProperties.Keys).IsEquivalentTo(["baseURL", "headers", "retries"], CollectionOrdering.Any);
         await Assert.That(settings.AdditionalProperties["baseURL"].GetString()).IsEqualTo("https://llm.example.test");
         await AssertRoundTripAsync(json, _serializer.Serialize(settings));
     }
@@ -51,7 +53,8 @@ public sealed class OpenModelRoundTripTests
         var settings = _serializer.Deserialize<ProviderSettings>(json);
 
         await Assert.That(settings.Encoding).IsEqualTo(ProviderEncoding.Gzip);
-        await Assert.That(settings.AdditionalProperties.Keys).IsEquivalentTo(["baseURL"]);
+        // Dictionary/set membership is the contract; enumeration order is not.
+        await Assert.That(settings.AdditionalProperties.Keys).IsEquivalentTo(["baseURL"], CollectionOrdering.Any);
         await AssertRoundTripAsync(json, _serializer.Serialize(settings));
     }
 
@@ -62,7 +65,8 @@ public sealed class OpenModelRoundTripTests
 
         var settings = _serializer.Deserialize<ModelSettings>(json);
 
-        await Assert.That(settings.AdditionalProperties.Keys).IsEquivalentTo(["reasoningEffort", "temperature"]);
+        // Dictionary/set membership is the contract; enumeration order is not.
+        await Assert.That(settings.AdditionalProperties.Keys).IsEquivalentTo(["reasoningEffort", "temperature"], CollectionOrdering.Any);
         await AssertRoundTripAsync(json, _serializer.Serialize(settings));
     }
 
@@ -79,7 +83,7 @@ public sealed class OpenModelRoundTripTests
     {
         using var expectedDocument = JsonDocument.Parse(expected);
         using var actualDocument = JsonDocument.Parse(actual);
-        await Assert.That(JsonElement.DeepEquals(expectedDocument.RootElement, actualDocument.RootElement)).IsTrue()
-            .Because(actual);
+        await Assert.That(actualDocument.RootElement).IsEqualTo(expectedDocument.RootElement, EqualityComparer<JsonElement>.Create(JsonElement.DeepEquals))
+            .Because($"expected JSON: {expectedDocument.RootElement.GetRawText()}; actual JSON: {actualDocument.RootElement.GetRawText()}; {actual}");
     }
 }

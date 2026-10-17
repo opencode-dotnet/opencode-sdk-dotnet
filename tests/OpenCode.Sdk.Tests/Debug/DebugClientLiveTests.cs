@@ -31,7 +31,7 @@ public sealed class DebugClientLiveTests(SimulatedDriveServerFixture server)
 
         await Assert.That(beforeEviction.Status).IsEqualTo(200);
         await Assert.That(beforeEviction.IsError).IsFalse();
-        await Assert.That(Contains(beforeEviction.Locations, ownedLocation)).IsTrue();
+        await Assert.That(beforeEviction.Locations.Select(location => location.Directory)).Contains(ownedLocation.Directory, StringComparer.Ordinal);
 
         var eviction = await rootClient.Debug.EvictLocationAsync(
             new DebugLocationEvictRequest
@@ -50,7 +50,7 @@ public sealed class DebugClientLiveTests(SimulatedDriveServerFixture server)
 
         await Assert.That(afterEviction.Status).IsEqualTo(200);
         await Assert.That(afterEviction.IsError).IsFalse();
-        await Assert.That(Contains(afterEviction.Locations, ownedLocation)).IsFalse();
+        await Assert.That(afterEviction.Locations.Select(location => location.Directory)).DoesNotContain(ownedLocation.Directory, StringComparer.Ordinal);
 
         var reopened = await locationClient.GetLocationAsync(cancellationToken: cancellationToken);
 
@@ -62,7 +62,7 @@ public sealed class DebugClientLiveTests(SimulatedDriveServerFixture server)
 
         await Assert.That(afterReopening.Status).IsEqualTo(200);
         await Assert.That(afterReopening.IsError).IsFalse();
-        await Assert.That(Contains(afterReopening.Locations, ownedLocation)).IsTrue();
+        await Assert.That(afterReopening.Locations.Select(location => location.Directory)).Contains(ownedLocation.Directory, StringComparer.Ordinal);
 
         Console.WriteLine(
             "debug-location-live: warm=" + Number(warmed.Status) +
@@ -70,10 +70,6 @@ public sealed class DebugClientLiveTests(SimulatedDriveServerFixture server)
             " reopen=" + Number(reopened.Status) +
             " directory=" + ownedLocation.Directory);
     }
-
-    private static bool Contains(IReadOnlyList<LocationPublicRef> locations, LocationPublicRef expected) =>
-        locations.Any(location =>
-            string.Equals(location.Directory, expected.Directory, StringComparison.Ordinal));
 
     private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
 }

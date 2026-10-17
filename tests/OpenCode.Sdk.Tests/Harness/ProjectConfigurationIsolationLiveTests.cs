@@ -36,7 +36,7 @@ public sealed class ProjectConfigurationIsolationLiveTests(PinnedOpenCodeServerF
         await Assert.That(response.Status).IsEqualTo(200);
         var sources = response.Config.Select(Source).OfType<string>().ToList();
         Console.WriteLine("project-config-isolation: config sources at " + workingDirectory + ": " + string.Join(", ", sources));
-        await Assert.That(sources.Any(InsideRunRoot)).IsTrue();
+        await Assert.That(sources).Contains(InsideRunRoot);
         await Assert.That(sources.Where(source => !InsideRunRoot(source))).IsEmpty();
     }
 
@@ -60,7 +60,7 @@ public sealed class ProjectConfigurationIsolationLiveTests(PinnedOpenCodeServerF
         var separator = FileSystem.Path.DirectorySeparatorChar;
         await Assert.That(reported.TrimEnd(separator))
             .EndsWith(separator + RunRootName + separator + "tmp" + separator + "opencode");
-        await Assert.That(FileSystem.Directory.Exists(FileSystem.Path.Combine(server.RunRoot.Path, "tmp", "opencode"))).IsTrue();
+        await Assert.That(FileSystem.Path.Combine(server.RunRoot.Path, "tmp", "opencode")).Satisfies(FileSystem.Directory.Exists);
     }
 
     /// <summary>

@@ -2,11 +2,18 @@ using System.Net;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests;
 
 public sealed class OpenCodeClientContractTests
 {
+    private static async Task AssertInfoRequestAsync(RecordedRequest request)
+    {
+        await Assert.That(request.RequestUri).IsEqualTo(new Uri("http://localhost:4096/api/info"));
+        await Assert.That(request.Method).IsEqualTo(HttpMethod.Get);
+    }
+
     [Test]
     public async Task GetInfoAsync_Should_Return_The_Typed_Payload()
     {
@@ -19,9 +26,9 @@ public sealed class OpenCodeClientContractTests
         await Assert.That(response.RawBody).IsNull();
         await Assert.That(response.ServerInfo.Version).IsEqualTo("0.0.0-test");
         await Assert.That(response.ServerInfo.Pid).IsEqualTo(42);
-        await Assert.That(response.ServerInfo.Urls).IsEquivalentTo(["http://localhost:4096"]);
-        await Assert.That(scenario.Requests.Single().RequestUri).IsEqualTo(new Uri("http://localhost:4096/api/info"));
-        await Assert.That(scenario.Requests.Single().Method).IsEqualTo(HttpMethod.Get);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(response.ServerInfo.Urls).IsEquivalentTo(["http://localhost:4096"], CollectionOrdering.Any);
+        await AssertInfoRequestAsync(scenario.Requests.Single());
     }
 
     [Test]

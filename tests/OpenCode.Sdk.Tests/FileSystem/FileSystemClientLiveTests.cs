@@ -4,6 +4,8 @@ using System.Text;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.FileSystem;
 
 [ClassDataSource<SimulatedDriveServerFixture>(Shared = SharedType.PerTestSession)]
@@ -94,7 +96,7 @@ public sealed class FileSystemClientLiveTests(SimulatedDriveServerFixture server
         var read = await client.FileSystem.ReadFileAsync(new FsReadRequest { Path = ReadTarget }, cancellationToken: cancellationToken);
 
         await Assert.That(read.Status).IsEqualTo(200);
-        await Assert.That(read.Content.ToArray()).IsEquivalentTo(Encoding.UTF8.GetBytes(text));
+        await Assert.That(read.Content.ToArray()).IsEquivalentTo(Encoding.UTF8.GetBytes(text), CollectionOrdering.Matching);
         await Assert.That(MediaTypeHeaderValue.Parse(read.ContentType!).MediaType).IsEqualTo("text/plain");
 
         var missing = await client.FileSystem.ReadFileAsync(
@@ -137,7 +139,7 @@ public sealed class FileSystemClientLiveTests(SimulatedDriveServerFixture server
 
         var read = await client.FileSystem.ReadFileAsync(new FsReadRequest { Path = WriteTarget }, cancellationToken: cancellationToken);
 
-        await Assert.That(read.Content.ToArray()).IsEquivalentTo(bytes);
+        await Assert.That(read.Content.ToArray()).IsEquivalentTo(bytes, CollectionOrdering.Matching);
         await Assert.That(workspace.HasBytes(WriteTarget, bytes)).IsTrue();
 
         Console.WriteLine(
