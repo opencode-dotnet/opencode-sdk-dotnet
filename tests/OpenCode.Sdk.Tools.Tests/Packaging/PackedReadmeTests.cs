@@ -20,15 +20,13 @@ public sealed partial class PackedReadmeTests(PackedConsumerFeed feed)
 {
     private static readonly RealFileSystem FileSystem = new();
 
-    private static readonly TimeSpan MatchTimeout = TimeSpan.FromSeconds(1);
-
     [Test]
     [Arguments("OpenCodeDotNet.Sdk")]
     [Arguments("OpenCodeDotNet.Sdk.Extensions")]
     public async Task The_Packed_Readme_Should_Link_The_Repository_At_The_Packed_Commit(string packageId)
     {
         var package = await ReadPackageAsync(packageId);
-        var link = new Regex(Regex.Escape(package.RepositoryUrl) + @"/(?:blob|tree)/(?<ref>[^/)\s]+)/", RegexOptions.None, MatchTimeout);
+        var link = new Regex(Regex.Escape(package.RepositoryUrl) + @"/(?:blob|tree)/(?<ref>[^/)\s]+)/", RegexOptions.None, Regex.InfiniteMatchTimeout);
         var references = link.Matches(package.Readme).Select(static match => match.Groups["ref"].Value).ToArray();
 
         await Assert.That(package.Commit).Matches(CommitPattern());
@@ -92,10 +90,10 @@ public sealed partial class PackedReadmeTests(PackedConsumerFeed feed)
         }
     }
 
-    [GeneratedRegex("^[0-9a-f]{40}$", RegexOptions.None, 1000)]
+    [GeneratedRegex("^[0-9a-f]{40}$", RegexOptions.None, Timeout.Infinite)]
     private static partial Regex CommitPattern();
 
-    [GeneratedRegex("%[0-9A-Fa-f]{2}", RegexOptions.None, 1000)]
+    [GeneratedRegex("%[0-9A-Fa-f]{2}", RegexOptions.None, Timeout.Infinite)]
     private static partial Regex PercentSequence();
 
     private sealed record PackedReadme(string Readme, string RepositoryUrl, string Commit);

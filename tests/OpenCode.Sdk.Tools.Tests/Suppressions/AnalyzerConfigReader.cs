@@ -98,12 +98,13 @@ internal static partial class AnalyzerConfigReader
 
     private static bool Is(string actual, string expected) => string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase);
 
-    [GeneratedRegex(@"^\[(?<name>(?:[^#;]|\\#|\\;)+)\]\s*(?:[#;].*)?$", RegexOptions.None, 1000)]
+    [GeneratedRegex(@"^\[(?<name>(?:[^#;]|\\#|\\;)+)\]\s*(?:[#;].*)?$", RegexOptions.None, Timeout.Infinite)]
     private static partial Regex SectionLine();
 
+    // Quadratic, so it keeps a finite match timeout: the lazy value and the trailing whitespace run overlap, so a long run of spaces rescans.
     [GeneratedRegex(@"^(?<key>[\w.\-]+)\s*[=:]\s*(?<value>.*?)\s*(?:[#;].*)?$", RegexOptions.None, 1000)]
     private static partial Regex PropertyLine();
 
-    [GeneratedRegex(@"^(?:[A-Za-z]{1,8}[0-9]{3,5}|dotnet_code_quality)[._]", RegexOptions.IgnoreCase, 1000)]
+    [GeneratedRegex(@"^(?:[A-Za-z]{1,8}[0-9]{3,5}|dotnet_code_quality)[._]", RegexOptions.IgnoreCase, Timeout.Infinite)]
     private static partial Regex RuleOption();
 }

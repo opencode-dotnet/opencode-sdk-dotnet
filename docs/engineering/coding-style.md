@@ -1,6 +1,6 @@
 # Coding Style — hand-written code
 
-Date: 2026-10-16
+Date: 2026-10-18
 
 Binding authoring style for every hand-written line in this repository — product code,
 `tools/`, and tests. Generated output is governed by the generator's emitters (ADR-0003);
@@ -126,6 +126,12 @@ for a pile of static steps.
   rather than treating `IReadOnly*` as a deep-immutability guarantee. Generated wire models are
   shallow init-only DTOs (ADR-0004/0014); hand-written domain types choose stronger ownership only
   when a concrete consumer or concurrency boundary requires it.
+- **Regular expressions:** a regex whose pattern matches in linear time and whose input is
+  repository-pinned or test-local passes `Timeout.Infinite` (`matchTimeoutMilliseconds:`), or
+  `Regex.InfiniteMatchTimeout` where the API takes a `TimeSpan`. A regex over untrusted input, or
+  one whose pattern can backtrack superlinearly, keeps a finite timeout with its reason beside it.
+  The match timeout is wall-clock: on a linear pattern over pinned input it guards nothing and fails
+  on a stalled runner (#426).
 
 ## 4. Layout
 

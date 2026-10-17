@@ -13,7 +13,7 @@ public sealed class DriveManifestTests
     /// builds for.
     /// </summary>
     private static readonly Regex InstanceNamePattern =
-        new("^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$", RegexOptions.None, TimeSpan.FromSeconds(1));
+        new("^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$", RegexOptions.None, Regex.InfiniteMatchTimeout);
 
     /// <summary>
     /// MockFileSystem simulates the host OS, so the registry path must stay portable across

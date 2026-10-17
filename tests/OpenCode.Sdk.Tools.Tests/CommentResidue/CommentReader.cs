@@ -239,6 +239,7 @@ internal static partial class CommentReader
 
     private static bool IsScript(string path) => ScriptExtensions.Any(extension => path.EndsWith(extension, StringComparison.Ordinal));
 
+    // Quadratic, so it keeps a finite match timeout: each unclosed "<#" scans lazily to the end of the text before the next one retries.
     [GeneratedRegex(@"<#.*?#>", RegexOptions.Singleline, 1000)]
     private static partial Regex PowerShellBlock();
 }

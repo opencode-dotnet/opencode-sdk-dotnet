@@ -126,6 +126,6 @@ internal static partial class ProjectSuppressionReader
 
     private static bool Is(string actual, string expected) => string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase);
 
-    [GeneratedRegex(@"(?:^|\s)(?:-p:|/p:|--property:|-property:)(?<name>[A-Za-z]+)=(?<value>""[^""]*""|'[^']*'|\S+)", RegexOptions.Multiline, 1000)]
+    [GeneratedRegex(@"(?:^|\s)(?:-p:|/p:|--property:|-property:)(?<name>[A-Za-z]+)=(?<value>""[^""]*""|'[^']*'|\S+)", RegexOptions.Multiline, Timeout.Infinite)]
     private static partial Regex CommandLineProperty();
 }
