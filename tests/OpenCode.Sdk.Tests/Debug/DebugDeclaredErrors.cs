@@ -7,16 +7,18 @@ namespace OpenCode.Sdk.Tests.Debug;
 
 public static class DebugDeclaredErrors
 {
+    private static readonly DeclaredErrorDoor ListLocationsDoor = new(
+        nameof(DebugClient.ListLocationsAsync),
+        "debug.location.list",
+        "get",
+        "/api/debug/location",
+        static async (client, options) => await client.Debug.ListLocationsAsync(requestOptions: options));
+
     public static IEnumerable<Func<DeclaredErrorCase>> Rows() =>
     [
         static () => new(
             "debug.location.list:400:InvalidRequestError",
-            new DeclaredErrorDoor(
-                nameof(DebugClient.ListLocationsAsync),
-                "debug.location.list",
-                "get",
-                "/api/debug/location",
-                static async (client, options) => await client.Debug.ListLocationsAsync(requestOptions: options)),
+            ListLocationsDoor,
             HttpStatusCode.BadRequest,
             WireBodyData.InvalidRequestError,
             "InvalidRequestError",
@@ -24,12 +26,7 @@ public static class DebugDeclaredErrors
             "#/paths/~1api~1debug~1location/get/responses/400/content/application~1json/schema"),
         static () => new(
             "debug.location.list:401:UnauthorizedError",
-            new DeclaredErrorDoor(
-                nameof(DebugClient.ListLocationsAsync),
-                "debug.location.list",
-                "get",
-                "/api/debug/location",
-                static async (client, options) => await client.Debug.ListLocationsAsync(requestOptions: options)),
+            ListLocationsDoor,
             HttpStatusCode.Unauthorized,
             WireBodyData.UnauthorizedError,
             "UnauthorizedError",

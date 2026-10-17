@@ -7,21 +7,23 @@ namespace OpenCode.Sdk.Tests.Experimental;
 
 public static class ExperimentalDeclaredErrors
 {
+    private static readonly DeclaredErrorDoor WriteFileDoor = new(
+        nameof(ExperimentalClient.WriteFileAsync),
+        "experimental.fs.write",
+        "post",
+        "/api/experimental/fs/write",
+        static async (client, options) =>
+        {
+            using var content = new MemoryStream([0x01]);
+            return await client.Experimental.WriteFileAsync(
+                new ExperimentalFsWriteRequest { Path = "a.bin" }, content, options);
+        });
+
     public static IEnumerable<Func<DeclaredErrorCase>> Rows() =>
     [
         static () => new(
             "experimental.fs.write:400:InvalidRequestError",
-            new DeclaredErrorDoor(
-                nameof(ExperimentalClient.WriteFileAsync),
-                "experimental.fs.write",
-                "post",
-                "/api/experimental/fs/write",
-                static async (client, options) =>
-                {
-                    using var content = new MemoryStream([0x01]);
-                    return await client.Experimental.WriteFileAsync(
-                        new ExperimentalFsWriteRequest { Path = "a.bin" }, content, options);
-                }),
+            WriteFileDoor,
             HttpStatusCode.BadRequest,
             WireBodyData.InvalidRequestError,
             "InvalidRequestError",

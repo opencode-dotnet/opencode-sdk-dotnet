@@ -7,17 +7,19 @@ namespace OpenCode.Sdk.Tests.Worktrees;
 
 public static class WorktreesDeclaredErrors
 {
+    private static readonly DeclaredErrorDoor CreateWorktreeDoor = new(
+        nameof(WorktreesClient.CreateWorktreeAsync),
+        "worktree.create",
+        "post",
+        "/api/worktree",
+        static async (client, options) => await client.Worktrees.CreateWorktreeAsync(
+            new WorktreeCreateRequest { ProjectId = "prj_1", Directory = "/repo/feature" }, options));
+
     public static IEnumerable<Func<DeclaredErrorCase>> Rows() =>
     [
         static () => new(
             "worktree.create:400:InvalidRequestError",
-            new DeclaredErrorDoor(
-                nameof(WorktreesClient.CreateWorktreeAsync),
-                "worktree.create",
-                "post",
-                "/api/worktree",
-                static async (client, options) => await client.Worktrees.CreateWorktreeAsync(
-                    new WorktreeCreateRequest { ProjectId = "prj_1", Directory = "/repo/feature" }, options)),
+            CreateWorktreeDoor,
             HttpStatusCode.BadRequest,
             WireBodyData.InvalidRequestError,
             "InvalidRequestError",
