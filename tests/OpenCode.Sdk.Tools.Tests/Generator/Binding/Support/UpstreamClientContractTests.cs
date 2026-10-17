@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding.Support;
 
 /// <summary>
@@ -102,6 +104,27 @@ public sealed class UpstreamClientContractTests
         _ = contract.TryGetQueryType("GET", "/api/vcs/diff", "note", out var type, out var problem);
 
         await Assert.That(type).IsEqualTo("\"a \\\" quote, a { brace and readonly text\"").Because(problem);
+    }
+
+    /// <summary>
+    /// A client forty times the pinned client's size still reads its first and last route: matching
+    /// stays linear in the source, which is why the parse carries no wall-clock timeout.
+    /// </summary>
+    [Test]
+    public async Task Parse_Should_Read_The_First_And_Last_Route_Of_A_Client_Forty_Times_The_Pinned_Size()
+    {
+        const int copies = 3000;
+        var client = string.Concat(Enumerable.Range(0, copies)
+            .Select(static copy => Client.Replace("/api/vcs/diff", RoutePath(copy), StringComparison.Ordinal)));
+
+        var contract = UpstreamClientContract.Parse(client, Api);
+
+        _ = contract.TryGetQueryType("GET", RoutePath(0), "mode", out var first, out var firstProblem);
+        _ = contract.TryGetQueryType("GET", RoutePath(copies - 1), "mode", out var last, out var lastProblem);
+        await Assert.That(first).IsEqualTo("Vcs.Mode").Because(firstProblem);
+        await Assert.That(last).IsEqualTo("Vcs.Mode").Because(lastProblem);
+
+        static string RoutePath(int copy) => "/api/vcs/diff" + copy.ToString(CultureInfo.InvariantCulture);
     }
 
     [Test]
