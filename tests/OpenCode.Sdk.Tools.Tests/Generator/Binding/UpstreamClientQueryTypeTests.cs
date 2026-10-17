@@ -6,6 +6,7 @@ using OpenCode.Sdk.Tools.Serialization;
 using OpenCode.Sdk.Tools.Tests.Generator.Binding.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
@@ -78,7 +79,7 @@ public sealed class UpstreamClientQueryTypeTests
 
         var bound = (await BoundSubjectsAsync()).Select(static subject => subject.Key).Order(StringComparer.Ordinal);
 
-        await Assert.That(bound).IsEquivalentTo(expected);
+        await Assert.That(bound).IsEquivalentTo(expected, CollectionOrdering.Matching);
     }
 
     /// <summary>

@@ -40,7 +40,7 @@ public sealed class StructuralUnionEmissionTests
             var serialized = Serialize(value, typeInfo);
             using var expected = JsonDocument.Parse(payload);
             using var actual = JsonDocument.Parse(serialized);
-            await Assert.That(JsonElement.DeepEquals(expected.RootElement, actual.RootElement)).IsTrue();
+            await Assert.That(actual.RootElement).IsDeepEqualTo(expected.RootElement);
         }
     }
 

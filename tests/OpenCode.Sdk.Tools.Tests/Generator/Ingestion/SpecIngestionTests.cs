@@ -4,6 +4,7 @@ using OpenCode.Sdk.Tools.Generator.Ingestion;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Abstractions;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Ingestion;
 
@@ -24,7 +25,7 @@ public sealed class SpecIngestionTests
 
         await Assert.That(document.Operations).Count().IsEqualTo(1);
         await Assert.That(document.Operations[0].OperationId).IsEqualTo("session.get");
-        await Assert.That(document.Operations[0].Segments).IsEquivalentTo(["session", "get"]);
+        await Assert.That(document.Operations[0].Segments).IsEquivalentTo(["session", "get"], CollectionOrdering.Matching);
         await Assert.That(document.Schemas["Session"]).IsTypeOf<ObjectNode>();
     }
 

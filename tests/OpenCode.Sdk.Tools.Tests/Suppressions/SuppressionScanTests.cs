@@ -124,7 +124,8 @@ public sealed class SuppressionScanTests
             .WithFile(Source, "#pragma warning disable CA1000, S1075, 618 // the reason", Type, "#pragma warning restore CA1000, S1075, 618")
             .LedgerLinesAsync();
 
-        await Assert.That(lines).IsEquivalentTo([$"pragma {Source} CA1000", $"pragma {Source} CS0618", $"pragma {Source} S1075"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(lines).IsEquivalentTo([$"pragma {Source} CA1000", $"pragma {Source} CS0618", $"pragma {Source} S1075"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -140,7 +141,8 @@ public sealed class SuppressionScanTests
                 Type)
             .LedgerLinesAsync();
 
-        await Assert.That(lines).IsEquivalentTo([$"pragma {Source} MA0045", $"suppress-message {Source} CA1001"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(lines).IsEquivalentTo([$"pragma {Source} MA0045", $"suppress-message {Source} CA1001"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -150,7 +152,8 @@ public sealed class SuppressionScanTests
             .WithFile(Source, "#pragma warning disable", Type)
             .LedgerLinesAsync();
 
-        await Assert.That(lines).IsEquivalentTo([$"pragma {Source} *"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(lines).IsEquivalentTo([$"pragma {Source} *"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -170,7 +173,8 @@ public sealed class SuppressionScanTests
             .WithFile(Source, "#nullable disable warnings", Type, "#nullable enable")
             .LedgerLinesAsync();
 
-        await Assert.That(lines).IsEquivalentTo([$"nullable {Source} nullable = disable warnings"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(lines).IsEquivalentTo([$"nullable {Source} nullable = disable warnings"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -187,11 +191,12 @@ public sealed class SuppressionScanTests
                 Type)
             .LedgerLinesAsync();
 
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
         await Assert.That(lines).IsEquivalentTo(
         [
             $"suppress-message {Source} CA1000", $"suppress-message {Source} CA1001", $"suppress-message {Source} CA1002",
             $"suppress-message {Source} IL2026",
-        ]);
+        ], CollectionOrdering.Any);
     }
 
     [Test]
@@ -223,7 +228,8 @@ public sealed class SuppressionScanTests
             .WithFile(Source, TypeHeader, "{", "    [SlopwatchSuppress(", "        \"SW003\",", "        \"r\")]", Method, "}")
             .LedgerLinesAsync();
 
-        await Assert.That(lines).IsEquivalentTo([$"slopwatch-suppress {Source} SW003"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(lines).IsEquivalentTo([$"slopwatch-suppress {Source} SW003"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -240,8 +246,9 @@ public sealed class SuppressionScanTests
             .WithFile(Project, ProjectOpen, "  <!-- slopwatch-ignore: SW005 the reason -->", ProjectClose)
             .LedgerLinesAsync();
 
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
         await Assert.That(lines).IsEquivalentTo(
-            [$"slopwatch-ignore {Source} SW003", $"slopwatch-ignore {Source} SW004", $"slopwatch-ignore {Project} SW005"]);
+            [$"slopwatch-ignore {Source} SW003", $"slopwatch-ignore {Source} SW004", $"slopwatch-ignore {Project} SW005"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -265,12 +272,13 @@ public sealed class SuppressionScanTests
                 ProjectClose)
             .LedgerLinesAsync();
 
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
         await Assert.That(lines).IsEquivalentTo(
         [
             $"no-warn {Project} S1075", $"no-warn {Project} S2068", $"no-warn {Project} ['$(TargetFramework)' == 'net472'] CA2000",
             $"warnings-not-as-errors {Project} CA1000", $"build-switch {Project} TreatWarningsAsErrors = false",
             $"build-switch {Project} Nullable = disable", $"build-switch {Project} RunAnalyzersDuringLiveAnalysis = false",
-        ]);
+        ], CollectionOrdering.Any);
     }
 
     [Test]
@@ -308,7 +316,8 @@ public sealed class SuppressionScanTests
                 "#:property NoWarn=CA1002")
             .LedgerLinesAsync();
 
-        await Assert.That(lines).IsEquivalentTo(["no-warn tools/app.cs CA1000", "no-warn tools/app.cs CA1001"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(lines).IsEquivalentTo(["no-warn tools/app.cs CA1000", "no-warn tools/app.cs CA1001"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -318,7 +327,8 @@ public sealed class SuppressionScanTests
             .WithFile(Workflow, "jobs:", "  build:", "    steps:", "      - run: dotnet build -c Release -p:RunAnalyzers=false -p:IncludeNet472Tests=true")
             .LedgerLinesAsync();
 
-        await Assert.That(lines).IsEquivalentTo([$"build-switch {Workflow} [command line] RunAnalyzers = false"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(lines).IsEquivalentTo([$"build-switch {Workflow} [command line] RunAnalyzers = false"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -343,6 +353,7 @@ public sealed class SuppressionScanTests
                 "DOTNET_CODE_QUALITY.CA1822.api_surface = private")
             .LedgerLinesAsync();
 
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
         await Assert.That(lines).IsEquivalentTo(
         [
             $"editorconfig {EditorConfig} {CSharpSection} dotnet_diagnostic.CA1000.severity = none",
@@ -355,7 +366,7 @@ public sealed class SuppressionScanTests
             $"editorconfig {EditorConfig} {CSharpSection} roslynator_analyzers.enabled_by_default = false",
             $"editorconfig {EditorConfig} {CSharpSection} MA0051.maximum_lines_per_method = 80",
             $"editorconfig {EditorConfig} {CSharpSection} DOTNET_CODE_QUALITY.CA1822.api_surface = private",
-        ]);
+        ], CollectionOrdering.Any);
     }
 
     [Test]
@@ -365,7 +376,8 @@ public sealed class SuppressionScanTests
             .WithFile(EditorConfig, "# comment\r[*.cs]\rdotnet_diagnostic.CA1000.severity = none")
             .LedgerLinesAsync();
 
-        await Assert.That(lines).IsEquivalentTo([$"editorconfig {EditorConfig} {CSharpSection} dotnet_diagnostic.CA1000.severity = none"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(lines).IsEquivalentTo([$"editorconfig {EditorConfig} {CSharpSection} dotnet_diagnostic.CA1000.severity = none"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -375,7 +387,8 @@ public sealed class SuppressionScanTests
             .WithFile(GlobalConfig, "is_global = true", GlobalVsthrd010)
             .LedgerLinesAsync();
 
-        await Assert.That(lines).IsEquivalentTo([$"globalconfig {GlobalConfig} {GlobalVsthrd010}"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(lines).IsEquivalentTo([$"globalconfig {GlobalConfig} {GlobalVsthrd010}"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -385,7 +398,8 @@ public sealed class SuppressionScanTests
             .WithFile("src/.editorconfig", "is_global = false", GlobalVsthrd010)
             .LedgerLinesAsync();
 
-        await Assert.That(lines).IsEquivalentTo([$"globalconfig src/.editorconfig {GlobalVsthrd010}"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(lines).IsEquivalentTo([$"globalconfig src/.editorconfig {GlobalVsthrd010}"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -427,7 +441,8 @@ public sealed class SuppressionScanTests
             .WithBaselineEntry("SW003", "src\\\\A.cs", "9f2c")
             .LedgerLinesAsync();
 
-        await Assert.That(lines).IsEquivalentTo([$"slopwatch-baseline {SuppressionScan.SlopwatchBaselinePath} [{Source}] SW003 = 9f2c"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(lines).IsEquivalentTo([$"slopwatch-baseline {SuppressionScan.SlopwatchBaselinePath} [{Source}] SW003 = 9f2c"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -470,6 +485,7 @@ public sealed class SuppressionScanTests
             .WithFile(Source, "#pragma warning disable MA0045", "#pragma warning restore MA0045", "#pragma warning disable MA0045")
             .LedgerLinesAsync();
 
-        await Assert.That(lines).IsEquivalentTo([$"pragma {Source} MA0045 x2"]);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
+        await Assert.That(lines).IsEquivalentTo([$"pragma {Source} MA0045 x2"], CollectionOrdering.Any);
     }
 }

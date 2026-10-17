@@ -1,5 +1,7 @@
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
@@ -17,10 +19,12 @@ public sealed class NamedStabilizeSchemaTests
 
         var primary = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "Widget");
         var secondary = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "ExtendedWidget");
-        await Assert.That(primary.Properties.Select(static property => property.WireName)).IsEquivalentTo(["id"]);
-        await Assert.That(secondary.Properties.Select(static property => property.WireName)).IsEquivalentTo(["id", "extra"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(primary.Properties.Select(static property => property.WireName)).IsEquivalentTo(["id"], CollectionOrdering.Any);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(secondary.Properties.Select(static property => property.WireName)).IsEquivalentTo(["id", "extra"], CollectionOrdering.Any);
         await Assert.That(secondary.Properties.Single(static property => property.WireName == "extra").IsRequired).IsFalse();
-        await Assert.That(plan.ImplicitAliases.Aliases.ContainsKey("Widget_1")).IsFalse();
+        await Assert.That(plan.ImplicitAliases.Aliases).DoesNotContainKey("Widget_1");
         var holder = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "Holder");
         await Assert.That(((NamedTypeReferencePlan)holder.Properties.Single(static property => property.WireName == "primary").Type).Name).IsEqualTo("Widget");
         await Assert.That(((NamedTypeReferencePlan)holder.Properties.Single(static property => property.WireName == "secondary").Type).Name).IsEqualTo("ExtendedWidget");
@@ -40,11 +44,10 @@ public sealed class NamedStabilizeSchemaTests
         var curation = Curation(Groups("widget", RootGroup()),
             schemaNames: [SchemaName("Values_1", "NumericValues")]);
 
-        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(
-            document, Selection("widget.get"), curation));
+        var exception = RefuseWidget(document, curation);
 
-        await Assert.That(exception.Errors.Any(static error => error.Subject == "Values_1"
-            && error.Problem.Contains("not structurally identical", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "Values_1"
+            && error.Problem.Contains("not structurally identical", StringComparison.Ordinal));
     }
 
     [Test]
@@ -67,8 +70,8 @@ public sealed class NamedStabilizeSchemaTests
         var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(
             document, Selection("widget.get", "widget.list"), curation));
 
-        await Assert.That(exception.Errors.Any(static error => error.Subject == "Envelope_1"
-            && error.Problem.Contains("not structurally identical", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "Envelope_1"
+            && error.Problem.Contains("not structurally identical", StringComparison.Ordinal));
     }
 
     [Test]
@@ -81,11 +84,10 @@ public sealed class NamedStabilizeSchemaTests
         var curation = Curation(Groups("widget", RootGroup()),
             schemaNames: [SchemaName("Widget_1", name, reason)]);
 
-        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(
-            document, Selection("widget.get"), curation));
+        var exception = RefuseWidget(document, curation);
 
-        await Assert.That(exception.Errors.Any(error => error.Subject == "Widget_1"
-            && error.Problem.Contains(problem, StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors).Contains(error => error.Subject == "Widget_1"
+            && error.Problem.Contains(problem, StringComparison.Ordinal));
     }
 
     [Test]
@@ -98,12 +100,11 @@ public sealed class NamedStabilizeSchemaTests
         var curation = Curation(Groups("widget", RootGroup()),
             schemaNames: [SchemaName("Widget_1", "ExtendedWidget")]);
 
-        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(
-            document, Selection("widget.get"), curation));
+        var exception = RefuseWidget(document, curation);
 
-        await Assert.That(exception.Errors.Any(static error => error.Subject == "Widget_1"
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "Widget_1"
             && error.Problem.Contains("folds into", StringComparison.Ordinal)
-            && error.Problem.Contains("remove the row", StringComparison.Ordinal))).IsTrue();
+            && error.Problem.Contains("remove the row", StringComparison.Ordinal));
     }
 
     [Test]
@@ -116,9 +117,13 @@ public sealed class NamedStabilizeSchemaTests
 
         await Assert.That(plan.ImplicitAliases.Aliases["Widget_1"]).IsEqualTo("Widget");
         var holder = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "Holder");
+        // Member/type membership is the contract; declaration order is not asserted here.
         await Assert.That(holder.Properties.Select(static property => ((NamedTypeReferencePlan)property.Type).Name))
-            .IsEquivalentTo(["Widget", "Widget"]);
+            .IsEquivalentTo(["Widget", "Widget"], CollectionOrdering.Any);
     }
+
+    private static BindingException RefuseWidget(SpecDocument document, GenerationCuration curation) =>
+        Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("widget.get"), curation));
 
     private static SpecScenario Scenario(bool equivalent = false) => SpecScenario.Define(spec => spec
         .WithSchema("Widget", static schema => schema.Type("object")

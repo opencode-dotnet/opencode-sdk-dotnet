@@ -79,7 +79,7 @@ public sealed class CloneDetectorTests
         var arguments = CloneDetector.Arguments(Scope("src"), Config, updateBaseline: false);
 
         await Assert.That(arguments).IsEquivalentTo(
-            [CloneDetector.RunnerPath, "src", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/src.baseline.json", Fingerprints]);
+            [CloneDetector.RunnerPath, "src", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/src.baseline.json", Fingerprints], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -88,7 +88,7 @@ public sealed class CloneDetectorTests
         var arguments = CloneDetector.Arguments(Scope("tools"), Config, updateBaseline: false);
 
         await Assert.That(arguments).IsEquivalentTo(
-            [CloneDetector.RunnerPath, "tools", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/tools.baseline.json", Fingerprints, "--threshold", "3"]);
+            [CloneDetector.RunnerPath, "tools", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/tools.baseline.json", Fingerprints, "--threshold", "3"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -97,7 +97,7 @@ public sealed class CloneDetectorTests
         var arguments = CloneDetector.Arguments(Scope("tests"), Config, updateBaseline: false);
 
         await Assert.That(arguments).IsEquivalentTo(
-            [CloneDetector.RunnerPath, "tests", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/tests.baseline.json", Fingerprints, "--threshold", "7"]);
+            [CloneDetector.RunnerPath, "tests", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/tests.baseline.json", Fingerprints, "--threshold", "6.5"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -106,7 +106,7 @@ public sealed class CloneDetectorTests
     {
         var arguments = CloneDetector.Arguments(Scope(name), Config, updateBaseline: true);
 
-        await Assert.That(arguments).IsEquivalentTo([CloneDetector.RunnerPath, path, "--config", Config, FailOnEmpty]);
+        await Assert.That(arguments).IsEquivalentTo([CloneDetector.RunnerPath, path, "--config", Config, FailOnEmpty], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -115,7 +115,7 @@ public sealed class CloneDetectorTests
         var arguments = CloneDetector.Arguments(Scope("tools"), Config, updateBaseline: true);
 
         await Assert.That(arguments).IsEquivalentTo(
-            [CloneDetector.RunnerPath, "tools", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/tools.baseline.json", "--update-baseline"]);
+            [CloneDetector.RunnerPath, "tools", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/tools.baseline.json", "--update-baseline"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -158,7 +158,8 @@ public sealed class CloneDetectorTests
 
         var result = await RunAsync(scenario, "src");
 
-        await Assert.That(result.NewCloneLocations).IsEquivalentTo([new CloneLocation("src/NestedFolderPastTheWrapColumn/A0.cs:3-33", "src/NestedFolderPastTheWrapColumn/B0.cs:5-35", 212)]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(result.NewCloneLocations).IsEquivalentTo([new CloneLocation("src/NestedFolderPastTheWrapColumn/A0.cs:3-33", "src/NestedFolderPastTheWrapColumn/B0.cs:5-35", 212)], CollectionOrdering.Any);
     }
 
     [Test]

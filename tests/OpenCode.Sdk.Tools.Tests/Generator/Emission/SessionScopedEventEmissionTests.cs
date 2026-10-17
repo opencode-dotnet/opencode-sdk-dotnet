@@ -28,8 +28,8 @@ public sealed class SessionScopedEventEmissionTests
         await Assert.That(member.ExpressionBody!.Expression.ToString()).IsEqualTo("Data.SessionId");
         await Assert.That(member.Modifiers).IsEmpty();
         await Assert.That(member.AttributeLists).IsEmpty();
-        await Assert.That(record.Members.OfType<PropertyDeclarationSyntax>()
-            .Any(static property => property.Identifier.ValueText == "SessionId" && property.ExplicitInterfaceSpecifier is null)).IsFalse();
+        await Assert.That(record.Members.OfType<PropertyDeclarationSyntax>())
+            .DoesNotContain(static property => property.Identifier.ValueText == "SessionId" && property.ExplicitInterfaceSpecifier is null);
     }
 
     [Test]
@@ -55,8 +55,8 @@ public sealed class SessionScopedEventEmissionTests
         var carrier = Record(SourceEmitter.Emit(plan), name);
 
         await Assert.That(carrier.BaseList!.Types.Select(static type => type.Type.ToString())).DoesNotContain("ISessionScopedEvent");
-        await Assert.That(carrier.Members.OfType<PropertyDeclarationSyntax>()
-            .Any(static property => property.ExplicitInterfaceSpecifier?.Name.ToString() == "ISessionScopedEvent")).IsFalse();
+        await Assert.That(carrier.Members.OfType<PropertyDeclarationSyntax>())
+            .DoesNotContain(static property => property.ExplicitInterfaceSpecifier?.Name.ToString() == "ISessionScopedEvent");
     }
 
     [Test]

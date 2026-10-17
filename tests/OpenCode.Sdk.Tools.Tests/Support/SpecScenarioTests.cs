@@ -7,7 +7,7 @@ public sealed class SpecScenarioTests
     {
         var context = SpecScenario.Define(_ => { }).Build();
 
-        await Assert.That(context.FileSystem.File.Exists(context.SpecPath)).IsTrue();
+        await Assert.That(context.SpecPath).Satisfies(context.FileSystem.File.Exists);
         await Assert.That(context.SpecPath).IsEqualTo("spec/openapi.json");
     }
 

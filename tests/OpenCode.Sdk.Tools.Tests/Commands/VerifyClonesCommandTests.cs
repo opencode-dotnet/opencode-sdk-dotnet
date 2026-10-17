@@ -5,6 +5,7 @@ using OpenCode.Sdk.Tools.Tests.Support;
 using Spectre.Console;
 using Spectre.Console.Cli.Testing;
 using Spectre.Console.Testing;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Commands;
 
@@ -142,8 +143,9 @@ public sealed class VerifyClonesCommandTests
         var result = await RunAsync(scenario, Command, "--report-directory", reports);
 
         await Assert.That(result.ExitCode).IsEqualTo(1);
+        // This checks the complete inventory, not its enumeration order.
         await Assert.That(scenario.FileSystem.Directory.EnumerateFiles(reports).Select(path => scenario.FileSystem.Path.GetFileName(path)))
-            .IsEquivalentTo(["src.json", "tools.json", "tests.json", "generated.json"]);
+            .IsEquivalentTo(["src.json", "tools.json", "tests.json", "generated.json"], CollectionOrdering.Any);
         await Assert.That(await scenario.FileSystem.File.ReadAllTextAsync(scenario.FileSystem.Path.Combine(reports, "src.json")))
             .Contains("\"isNew\": true");
     }

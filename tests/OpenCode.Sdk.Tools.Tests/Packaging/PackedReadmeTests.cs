@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Packaging;
 
@@ -32,7 +33,8 @@ public sealed partial class PackedReadmeTests(PackedConsumerFeed feed)
         await Assert.That(package.Readme).DoesNotContain(package.RepositoryUrl + "/blob/master/");
         await Assert.That(package.Readme).DoesNotContain(package.RepositoryUrl + "/tree/master/");
         await Assert.That(references).IsNotEmpty();
-        await Assert.That(references.Distinct(StringComparer.Ordinal)).IsEquivalentTo([package.Commit]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(references.Distinct(StringComparer.Ordinal)).IsEquivalentTo([package.Commit], CollectionOrdering.Any);
     }
 
     /// <summary>

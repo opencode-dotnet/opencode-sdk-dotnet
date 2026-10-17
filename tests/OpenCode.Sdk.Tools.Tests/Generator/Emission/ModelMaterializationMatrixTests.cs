@@ -9,6 +9,7 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
@@ -530,7 +531,8 @@ public sealed class ModelMaterializationMatrixTests
         await Assert.That(GetProperty(value, "Timeout")).IsEqualTo(2.5);
         var bag = (IReadOnlyDictionary<string, JsonElement>)(GetProperty(value, "AdditionalProperties")
                                                             ?? throw new InvalidOperationException("The open members materialized to null."));
-        await Assert.That(bag.Keys).IsEquivalentTo(["baseURL", "nested"]);
+        // Dictionary/set membership is the contract; enumeration order is not.
+        await Assert.That(bag.Keys).IsEquivalentTo(["baseURL", "nested"], CollectionOrdering.Any);
         await Assert.That(bag["baseURL"].GetString()).IsEqualTo("https://example.test");
         await Assert.That(bag["nested"].GetProperty("enabled").GetBoolean()).IsTrue();
         // The serializer's writable bag is not part of the public surface.
@@ -767,17 +769,18 @@ public sealed class ModelMaterializationMatrixTests
         await Assert.That(GetProperty(location, "Directory")).IsEqualTo("widget-place");
     }
 
+    private static void DefinePlaceInfo(SchemaBuilder schema) => _ = schema.Type("object")
+        .Property("directory", property => property.Type("string"), required: true);
+
+    private static void DefineWidgetError(SchemaBuilder schema) => _ = schema.Type("object").AdditionalPropertiesFalse()
+        .Property("_tag", property => property.Type("string").Enum("WidgetError"), required: true)
+        .Property("message", property => property.Type("string"), required: true);
+
     private static async Task<(EmitPlan Plan, OperationPlan Operation)> CreatePromotedDataLocationListPlanAsync()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("PlaceInfo", schema => schema
-                .Type("object")
-                .Property("directory", property => property.Type("string"), required: true))
-            .WithSchema("WidgetError", schema => schema
-                .Type("object")
-                .AdditionalPropertiesFalse()
-                .Property("_tag", property => property.Type("string").Enum("WidgetError"), required: true)
-                .Property("message", property => property.Type("string"), required: true))
+            .WithSchema("PlaceInfo", DefinePlaceInfo)
+            .WithSchema("WidgetError", DefineWidgetError)
             .WithSchema("WidgetEnvelope", schema => schema
                 .Type("object")
                 .AdditionalPropertiesFalse()
@@ -833,14 +836,8 @@ public sealed class ModelMaterializationMatrixTests
     private static async Task<(EmitPlan Plan, OperationPlan Operation)> CreateRefToNamedArrayDataLocationListPlanAsync()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("PlaceInfo", schema => schema
-                .Type("object")
-                .Property("directory", property => property.Type("string"), required: true))
-            .WithSchema("WidgetError", schema => schema
-                .Type("object")
-                .AdditionalPropertiesFalse()
-                .Property("_tag", property => property.Type("string").Enum("WidgetError"), required: true)
-                .Property("message", property => property.Type("string"), required: true))
+            .WithSchema("PlaceInfo", DefinePlaceInfo)
+            .WithSchema("WidgetError", DefineWidgetError)
             .WithSchema("WidgetNameList", schema => schema
                 .Type("array")
                 .Items(static item => item.Type("string")))

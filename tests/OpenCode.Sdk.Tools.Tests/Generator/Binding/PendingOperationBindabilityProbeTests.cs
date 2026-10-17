@@ -3,6 +3,7 @@ using OpenCode.Sdk.Tools.Generator.Binding.Abstractions;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
@@ -125,9 +126,8 @@ public sealed class PendingOperationBindabilityProbeTests
 
         var marks = probe.Probe(document, ["widget.connect", "widget.list"]);
 
-        await Assert.That(marks.Select(static mark => mark.OperationId)
-                .SequenceEqual(["widget.connect", "widget.list"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(marks.Select(static mark => mark.OperationId))
+            .IsEquivalentTo(["widget.connect", "widget.list"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]

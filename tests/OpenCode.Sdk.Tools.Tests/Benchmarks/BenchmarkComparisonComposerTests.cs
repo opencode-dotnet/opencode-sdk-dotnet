@@ -1,5 +1,6 @@
 using OpenCode.Sdk.Tools.Benchmarks;
 using OpenCode.Sdk.Tools.Benchmarks.Models;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Benchmarks;
 
@@ -69,13 +70,13 @@ public sealed class BenchmarkComparisonComposerTests
         var comparison = BenchmarkComparisonComposer.Compose(before, after);
 
         var order = comparison.Rows.Select(row => $"{row.CaseLabel}|{row.Runtime}").ToArray();
-        await Assert.That(order.SequenceEqual(
+        await Assert.That(order).IsEquivalentTo(
             [
                 "Health/AdaptSuccess [Fixture=health]|.NET 10.0",
                 "Health/GetHealthAsync [Fixture=health]|.NET 10.0",
                 "Health/GetHealthAsync [Fixture=health]|.NET Framework 4.7.2",
             ],
-            StringComparer.Ordinal)).IsTrue();
+            StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]

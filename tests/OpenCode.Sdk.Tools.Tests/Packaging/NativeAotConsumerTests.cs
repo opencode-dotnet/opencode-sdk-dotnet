@@ -51,7 +51,7 @@ public sealed partial class NativeAotConsumerTests(PackedConsumerFeed feed)
     public async Task The_Published_Native_Aot_Consumer_Should_Print_Its_Marker_And_Exit_Zero(CancellationToken cancellationToken)
     {
         var publish = await feed.PublishConsumerAsync(cancellationToken);
-        await Assert.That(FileSystem.File.Exists(publish.Executable)).IsTrue()
+        await Assert.That(publish.Executable).Satisfies(FileSystem.File.Exists)
             .Because("the publish produced no native executable:\n" + publish.Output);
 
         var run = await _runner.RunAsync(

@@ -1,5 +1,6 @@
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Ingestion;
 
@@ -16,10 +17,8 @@ public sealed class PinnedSpecSmokeTests
         var document = await IngestPinnedSpecAsync();
 
         await Assert.That(document.Operations).IsNotEmpty();
-        await Assert
-            .That(document.Operations.All(static operation =>
-                !operation.OperationId.StartsWith("v2.", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(document.Operations).All(static operation =>
+            !operation.OperationId.StartsWith("v2.", StringComparison.Ordinal));
     }
 
     [Test]
@@ -142,12 +141,9 @@ public sealed class PinnedSpecSmokeTests
         var first = await IngestPinnedSpecAsync();
         var second = await IngestPinnedSpecAsync();
 
-        await Assert.That(first.Schemas.Keys.SequenceEqual(second.Schemas.Keys, StringComparer.Ordinal)).IsTrue();
-        await Assert
-            .That(first
-                .Operations.Select(static operation => operation.OperationId)
-                .SequenceEqual(second.Operations.Select(static operation => operation.OperationId), StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(first.Schemas.Keys).IsEquivalentTo(second.Schemas.Keys, StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(first.Operations.Select(static operation => operation.OperationId))
+            .IsEquivalentTo(second.Operations.Select(static operation => operation.OperationId), StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     private static SpecEnvelopeShape EnvelopeOf(SpecDocument document, string operationId) =>

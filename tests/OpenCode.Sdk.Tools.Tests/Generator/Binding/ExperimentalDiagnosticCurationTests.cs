@@ -1,4 +1,5 @@
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
@@ -11,6 +12,10 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 /// </summary>
 public sealed class ExperimentalDiagnosticCurationTests
 {
+    private static BindingException RefuseMergedGroups(SpecDocument document, IReadOnlyDictionary<string, GroupCuration> groups) =>
+        Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document,
+            Selection("probe.get", "other.get"), Curation(groups)));
+
     [Test]
     [Arguments("/api/probe")]
     [Arguments("/api/experimental")]
@@ -50,7 +55,7 @@ public sealed class ExperimentalDiagnosticCurationTests
             selected ? Selection("probe.get") : Selection(),
             Curation(Groups("probe", RootGroup() with { ExperimentalDiagnostic = "OPENCODE001" }))));
 
-        await Assert.That(exception.Errors.Any(static error => error.Problem == "experimentalDiagnostic requires a selected experimental route")).IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Problem == "experimentalDiagnostic requires a selected experimental route");
     }
 
     [Test]
@@ -68,7 +73,7 @@ public sealed class ExperimentalDiagnosticCurationTests
             Selection("probe.get"), Curation(Groups("probe", RootGroup() with { ExperimentalDiagnostic = id }),
                 stringQueryParameters: ExperimentalOperationScenario.QueryRows)));
 
-        await Assert.That(exception.Errors.Any(static error => error.Problem.Contains("must match ^OPENCODE[0-9]{3}$", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Problem.Contains("must match ^OPENCODE[0-9]{3}$", StringComparison.Ordinal));
     }
 
     [Test]
@@ -78,11 +83,10 @@ public sealed class ExperimentalDiagnosticCurationTests
         var groups = Groups("probe", ClientGroup("Probes", null, null, experimentalDiagnostic: "OPENCODE001"));
         groups["other"] = ClientGroup("Probes", null, null, experimentalDiagnostic: "OPENCODE002");
 
-        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document,
-            Selection("probe.get", "other.get"), Curation(groups)));
+        var exception = RefuseMergedGroups(document, groups);
 
-        await Assert.That(exception.Errors.Any(static error => error.Subject == "Probes"
-            && error.Problem.Contains("the same experimentalDiagnostic", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "Probes"
+            && error.Problem.Contains("the same experimentalDiagnostic", StringComparison.Ordinal));
     }
 
     [Test]
@@ -92,11 +96,10 @@ public sealed class ExperimentalDiagnosticCurationTests
         var groups = Groups("probe", RootGroup() with { ExperimentalDiagnostic = "OPENCODE001" });
         groups["other"] = RootGroup() with { ExperimentalDiagnostic = "OPENCODE002" };
 
-        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document,
-            Selection("probe.get", "other.get"), Curation(groups)));
+        var exception = RefuseMergedGroups(document, groups);
 
-        await Assert.That(exception.Errors.Any(static error => error.Subject == "OpenCodeClient"
-            && error.Problem.Contains("OPENCODE001, OPENCODE002", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "OpenCodeClient"
+            && error.Problem.Contains("OPENCODE001, OPENCODE002", StringComparison.Ordinal));
     }
 
     [Test]
@@ -106,10 +109,9 @@ public sealed class ExperimentalDiagnosticCurationTests
         var groups = Groups("probe", ClientGroup("Probes", null, null, experimentalDiagnostic: "OPENCODE001"));
         groups["other"] = ClientGroup("Others", null, null, experimentalDiagnostic: "OPENCODE001");
 
-        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document,
-            Selection("probe.get", "other.get"), Curation(groups)));
+        var exception = RefuseMergedGroups(document, groups);
 
-        await Assert.That(exception.Errors.Any(static error => error.Problem.Contains("not one merged family", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Problem.Contains("not one merged family", StringComparison.Ordinal));
     }
 
     [Test]
@@ -153,11 +155,10 @@ public sealed class ExperimentalDiagnosticCurationTests
         var groups = Groups("probe", ClientGroup("Probes", null, null, experimentalDiagnostic: "OPENCODE001"));
         groups["other"] = ClientGroup("Others", null, null, experimentalDiagnostic: "OPENCODE002");
 
-        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document,
-            Selection("probe.get", "other.get"), Curation(groups)));
+        var exception = RefuseMergedGroups(document, groups);
 
-        await Assert.That(exception.Errors.Any(static error => error.Subject == "ProbeInfo"
-            && error.Problem.Contains("OPENCODE001, OPENCODE002", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "ProbeInfo"
+            && error.Problem.Contains("OPENCODE001, OPENCODE002", StringComparison.Ordinal));
     }
 
     [Test]
@@ -170,8 +171,8 @@ public sealed class ExperimentalDiagnosticCurationTests
         var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document,
             Selection("probe.get"), Curation(Groups("probe", RootGroup()))));
 
-        await Assert.That(exception.Errors.Any(static error => error.Subject == "probe"
-            && error.Problem.Contains("requires experimentalDiagnostic", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "probe"
+            && error.Problem.Contains("requires experimentalDiagnostic", StringComparison.Ordinal));
     }
 
     private static SpecScenario TwoGroupsScenario() => SpecScenario.Define(static spec => spec
