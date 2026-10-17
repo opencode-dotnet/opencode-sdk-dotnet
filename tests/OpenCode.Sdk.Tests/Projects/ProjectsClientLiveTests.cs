@@ -61,7 +61,7 @@ public sealed class ProjectsClientLiveTests(SimulatedDriveServerFixture server)
         await Assert.That(current.IsError).IsFalse();
         await Assert.That(string.IsNullOrWhiteSpace(current.ResolvedLocation.Project.Id)).IsFalse();
         await Assert.That(current.ResolvedLocation.Project.Canonical).IsEqualTo(current.ResolvedLocation.Project.Directory);
-        await Assert.That(workspace.HasTextFile(current.ResolvedLocation.Project.Directory, OwnerFile, owner)).IsTrue();
+        await Assert.That(workspace.ReadTextFile(current.ResolvedLocation.Project.Directory, OwnerFile)).IsEqualTo(owner);
 
         var listed = await client.Projects.ListProjectsAsync(cancellationToken: cancellationToken);
 
@@ -69,7 +69,7 @@ public sealed class ProjectsClientLiveTests(SimulatedDriveServerFixture server)
         await Assert.That(listed.IsError).IsFalse();
         var project = listed.Projects.Single(item => item.Id == current.ResolvedLocation.Project.Id);
         await Assert.That(project.Canonical).IsEqualTo(current.ResolvedLocation.Project.Canonical);
-        await Assert.That(workspace.HasTextFile(project.Canonical, OwnerFile, owner)).IsTrue();
+        await Assert.That(workspace.ReadTextFile(project.Canonical, OwnerFile)).IsEqualTo(owner);
 
         Console.WriteLine(
             "projects-live: current=" + Number(current.Status) +

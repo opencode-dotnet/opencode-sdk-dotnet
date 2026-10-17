@@ -76,6 +76,23 @@ public sealed class TestWorkspace : IDisposable
         }
     }
 
+    /// <summary>Reads the bytes of a file below the workspace, refusing paths that escape it.</summary>
+    public byte[] ReadBytes(string relativePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
+
+        return _fileSystem.File.ReadAllBytes(ResolvePathBelow(Path, relativePath));
+    }
+
+    /// <summary>Reads the contents below a reported directory, refusing paths that escape it.</summary>
+    public string ReadTextFile(string directory, string relativePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
+
+        return _fileSystem.File.ReadAllText(ResolvePathBelow(directory, relativePath));
+    }
+
     private string ResolvePathBelow(string root, string relativePath)
     {
         if (_fileSystem.Path.IsPathRooted(relativePath))

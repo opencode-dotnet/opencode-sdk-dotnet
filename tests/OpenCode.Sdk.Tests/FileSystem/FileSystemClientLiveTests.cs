@@ -49,7 +49,7 @@ public sealed class FileSystemClientLiveTests(SimulatedDriveServerFixture server
         await Assert.That(listed.Status).IsEqualTo(200);
         await Assert.That(listed.IsError).IsFalse();
         await Assert.That(listed.Location.Directory).IsEqualTo(found.Location.Directory);
-        await Assert.That(workspace.HasTextFile(listed.Location.Directory, RootFile, owner)).IsTrue();
+        await Assert.That(workspace.ReadTextFile(listed.Location.Directory, RootFile)).IsEqualTo(owner);
         var rootFile = listed.Entries.Single(item => NormalizeSeparators(item.Path) == RootFile);
         await Assert.That(rootFile.Type).IsEqualTo(FileSystemEntryType.File);
         var childDirectory = listed.Entries.Single(
@@ -140,7 +140,7 @@ public sealed class FileSystemClientLiveTests(SimulatedDriveServerFixture server
         var read = await client.FileSystem.ReadFileAsync(new FsReadRequest { Path = WriteTarget }, cancellationToken: cancellationToken);
 
         await Assert.That(read.Content.ToArray()).IsEquivalentTo(bytes, CollectionOrdering.Matching);
-        await Assert.That(workspace.HasBytes(WriteTarget, bytes)).IsTrue();
+        await Assert.That(workspace.ReadBytes(WriteTarget)).IsEquivalentTo(bytes, CollectionOrdering.Matching);
 
         Console.WriteLine(
             "filesystem-live: write-status=" + Number(written.Status) +
