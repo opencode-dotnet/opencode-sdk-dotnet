@@ -68,6 +68,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="../../spec/openapi.json" Link="Fixtures/Pinned/openapi.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Pinned.openapi.json" />
     <EmbeddedResource Include="Fixtures/**/*.json" />
     <EmbeddedResource Include="Fixtures/**/*.js" />
     <EmbeddedResource Include="Fixtures/**/*.md" />

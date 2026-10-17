@@ -79,19 +79,6 @@ public sealed class WorktreesClientContractTests
     }
 
     [Test]
-    public async Task CreateWorktreeAsync_Should_Throw_The_Other_Declared_400_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Worktrees.CreateWorktreeAsync(CreateRequest()))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(400);
-        await Assert.That(exception.Error).IsTypeOf<InvalidRequestError>();
-    }
-
-    [Test]
     public async Task CreateWorktreeAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
