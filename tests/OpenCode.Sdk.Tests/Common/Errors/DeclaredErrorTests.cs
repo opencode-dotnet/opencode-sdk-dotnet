@@ -11,6 +11,7 @@ using OpenCode.Sdk.Tests.Forms;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Integrations;
 using OpenCode.Sdk.Tests.Support;
+using OpenCode.Sdk.Tests.Vcs;
 using OpenCode.Sdk.Tests.Worktrees;
 
 namespace OpenCode.Sdk.Tests.Common.Errors;
@@ -27,6 +28,7 @@ public sealed class DeclaredErrorTests
         .. FormsDeclaredErrors.Rows(),
         .. FileSystemDeclaredErrors.Rows(),
         .. IntegrationsDeclaredErrors.Rows(),
+        .. VcsDeclaredErrors.Rows(),
     ];
 
     [Test]
