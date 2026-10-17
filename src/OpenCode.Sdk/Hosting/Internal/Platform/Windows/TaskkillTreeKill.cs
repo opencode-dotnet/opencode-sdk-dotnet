@@ -15,7 +15,8 @@ namespace OpenCode.Sdk.Internal;
 /// </summary>
 /// <param name="spawn">The spawn the kill runs through.</param>
 /// <param name="exits">The exit watch the kill's own exit is awaited through.</param>
-internal sealed class TaskkillTreeKill(IWindowsSpawn spawn, IWindowsChildExit exits) : IWindowsTreeKill
+/// <param name="time">The clock for the supplied tree-kill bound.</param>
+internal sealed class TaskkillTreeKill(IWindowsSpawn spawn, IWindowsChildExit exits, TimeProvider time) : IWindowsTreeKill
 {
     /// <summary>
     /// Gets the absolute path to the system taskkill.exe. The system folder is read from the
@@ -59,7 +60,7 @@ internal sealed class TaskkillTreeKill(IWindowsSpawn spawn, IWindowsChildExit ex
 
         using (watch)
         {
-            if (!await BoundedWait.CompletesWithinAsync(watch.Exited, bound).ConfigureAwait(false))
+            if (!await BoundedWait.CompletesWithinAsync(watch.Exited, bound, time).ConfigureAwait(false))
             {
                 // Ended, not awaited: the watch releases its handle once it is gone, and the
                 // caller's own bound is not stretched by the time that takes.

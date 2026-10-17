@@ -345,6 +345,47 @@ public sealed class OwnedServerChildTests
         }
     }
 
+    [Test]
+    public async Task DisposeAsync_Should_Bound_Pump_Release_On_The_Owned_Clock()
+    {
+        var time = new ManualTimeProvider();
+        using var readerGate = new ManualResetEventSlim();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var stdout = new MemoryStream(Encoding.UTF8.GetBytes(BodyLine + "\n"));
+        var pump = PipeOutputPump.Start(stdout, null, line =>
+        {
+            _ = entered.TrySetResult();
+            readerGate.Wait();
+        }, IgnoreLine);
+        var exited = new TaskCompletionSource<ChildExitStatus>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var child = ReadinessChild(pump, exited, Substitute.For<IServerLadder>(), time);
+        Task? releasing = null;
+        try
+        {
+            await entered.Task.WaitAsync(HangGuard.Bound);
+            releasing = child.DisposeAsync().AsTask();
+            _ = await Task.WhenAny(releasing, time.WaitForArmedAsync(PipeOutputPump.ReleaseBound, HangGuard.Bound));
+            await Assert.That(time.ArmedIn(PipeOutputPump.ReleaseBound)).IsEqualTo(1);
+            time.Advance(PipeOutputPump.ReleaseBound - TimeSpan.FromMilliseconds(1));
+            await Assert.That(releasing.IsCompleted).IsFalse();
+            time.Advance(TimeSpan.FromMilliseconds(1));
+            await releasing.WaitAsync(HangGuard.Bound);
+            await Assert.That(pump.ReadersEnded.IsCompleted).IsFalse();
+        }
+        finally
+        {
+            readerGate.Set();
+            await pump.ReadersEnded.WaitAsync(HangGuard.Bound);
+            if (releasing is not null)
+            {
+                await releasing.WaitAsync(HangGuard.Bound);
+            }
+
+            await child.DisposeAsync();
+            _ = await child.Closed.WaitAsync(HangGuard.Bound);
+        }
+    }
+
     private static async Task<OwnedServerChild> ClosedStdoutChildAsync(
         TaskCompletionSource<ChildExitStatus> exited, IServerLadder ladder, TimeProvider time)
     {

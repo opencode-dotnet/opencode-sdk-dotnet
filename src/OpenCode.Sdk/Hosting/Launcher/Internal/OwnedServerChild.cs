@@ -195,7 +195,7 @@ internal sealed class OwnedServerChild : IAsyncDisposable
                         await lease.DisposeAsync().ConfigureAwait(false);
                     }
 
-                    await _process.Output.ReleaseAsync().ConfigureAwait(false);
+                    await _process.Output.ReleaseAsync(_time).ConfigureAwait(false);
                 }
                 finally
                 {

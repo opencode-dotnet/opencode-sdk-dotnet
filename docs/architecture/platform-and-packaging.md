@@ -46,6 +46,8 @@ document. A polyfilled member whose downlevel behaviour is a hazard is banned in
 `BannedSymbols.txt`, which names its replacement. `CancellationTokenSource.CancelAsync` is one: below
 .NET 8 it spins the calling worker until a queued `Cancel` starts, and concurrent callers stall the
 thread pool, so product and test code cancel through the internal `CancelOnWorkerAsync`.
+The src-only `BannedSymbols.Clock.txt` enforces clock injection
+([client-runtime.md](client-runtime.md)).
 
 ### WebSocket support
 

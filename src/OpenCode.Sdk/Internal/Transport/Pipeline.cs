@@ -69,7 +69,9 @@ internal sealed class Pipeline : IDisposable
         _framer = framer ?? new ServerSentEventFramer();
         _clientNetworkTimeout = networkTimeout ?? options.NetworkTimeout;
         _eventStreamIdleWindow = options.EventStreamIdleTimeout ?? StreamReconnect.DefaultIdleWindow;
+#pragma warning disable RS0030 // The client pipeline composition root chooses the system clock only when no internal provider was supplied.
         _time = time ?? TimeProvider.System;
+#pragma warning restore RS0030
         _lifetimeToken = _lifetime.Token;
 
         // The options are read exactly once, here: the policies hold an immutable snapshot,

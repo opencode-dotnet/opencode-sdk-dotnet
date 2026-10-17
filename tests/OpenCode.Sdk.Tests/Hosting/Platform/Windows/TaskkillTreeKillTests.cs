@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using Microsoft.Win32.SafeHandles;
+using NSubstitute;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
@@ -92,7 +94,7 @@ public sealed class TaskkillTreeKillTests
     public async Task KillTreeAsync_Should_Run_The_System_Taskkill_With_No_Handle_Of_The_Host(CancellationToken cancellationToken)
     {
         var recording = new RecordingSpawn();
-        var outcome = await new TaskkillTreeKill(recording, new WindowsChildExit()).KillTreeAsync(4242, Bound).WaitAsync(cancellationToken);
+        var outcome = await new TaskkillTreeKill(recording, new WindowsChildExit(), TimeProvider.System).KillTreeAsync(4242, Bound).WaitAsync(cancellationToken);
         var request = recording.Requests.Single();
 
         await Assert.That(outcome).IsEqualTo(TreeKillOutcome.Failed);
@@ -121,7 +123,7 @@ public sealed class TaskkillTreeKillTests
         var bound = TimeSpan.FromMilliseconds(500);
         var run = Stopwatch.StartNew();
 
-        var outcome = await new TaskkillTreeKill(hanging, new WindowsChildExit()).KillTreeAsync(4242, bound);
+        var outcome = await new TaskkillTreeKill(hanging, new WindowsChildExit(), TimeProvider.System).KillTreeAsync(4242, bound);
         var elapsed = run.Elapsed;
 
         await Assert.That(outcome).IsEqualTo(TreeKillOutcome.TimedOut);
@@ -130,7 +132,50 @@ public sealed class TaskkillTreeKillTests
         await Assert.That(hanging.Held!.ExitCode).IsEqualTo(1);
     }
 
-    private static TaskkillTreeKill Kill() => new(new WindowsSpawn(), new WindowsChildExit());
+    [Test]
+    [Timeout(120_000)]
+    public async Task KillTreeAsync_Should_Run_The_Supplied_Bound_On_The_Supplied_Clock(CancellationToken cancellationToken)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            BranchReport.Print("POSIX — the launcher ends its server through its process group, never a tree kill");
+            return;
+        }
+
+        var time = new ManualTimeProvider();
+        var hanging = new LingeringSpawn();
+        var watching = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var exits = Substitute.For<IWindowsChildExit>();
+        _ = exits.Watch(Arg.Any<SafeProcessHandle>()).Returns(call =>
+        {
+            var watch = new WindowsChildExit().Watch(call.Arg<SafeProcessHandle>());
+            _ = watching.TrySetResult();
+            return watch;
+        });
+        var killing = new TaskkillTreeKill(hanging, exits, time).KillTreeAsync(4242, Bound);
+        try
+        {
+            await Assert.That(killing.IsCompleted).IsFalse();
+            await watching.Task.WaitAsync(cancellationToken);
+            await time.WaitForArmedAsync(Bound, HangGuard.Bound);
+            await Assert.That(time.ArmedIn(Bound)).IsEqualTo(1);
+            time.Advance(Bound - TimeSpan.FromMilliseconds(1));
+            await Assert.That(killing.IsCompleted).IsFalse();
+            time.Advance(TimeSpan.FromMilliseconds(1));
+            await Assert.That(await killing.WaitAsync(cancellationToken)).IsEqualTo(TreeKillOutcome.TimedOut);
+            // The watch starts only after LingeringSpawn holds the spawned process's native handle.
+            var held = hanging.Held!;
+            await Assert.That(await ProcessObservation.ObserveExitWithinAsync(held, Bound, cancellationToken)).IsTrue();
+            await Assert.That(held.ExitCode).IsEqualTo(1);
+        }
+        finally
+        {
+            hanging.Dispose();
+            _ = await killing.WaitAsync(cancellationToken);
+        }
+    }
+
+    private static TaskkillTreeKill Kill() => new(new WindowsSpawn(), new WindowsChildExit(), TimeProvider.System);
 
     /// <summary>A spawn that records each request and starts nothing.</summary>
     private sealed class RecordingSpawn : IWindowsSpawn

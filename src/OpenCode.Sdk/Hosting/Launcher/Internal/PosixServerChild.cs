@@ -106,7 +106,7 @@ internal static class PosixServerChild
                 ?? throw new InvalidOperationException("The server's standard output was routed to a pipe, but the spawn returned no read end.");
             var pump = PipeOutputPump.Start(standardOutput, spawned.StandardError, start.OnStandardOutput, start.OnStandardError);
             watch = PosixChildExitWatch.Start(spawned.ProcessId, seams.Exits, seams.Signals, childrenReapedAutomatically);
-            var ladder = new PosixServerLadder(spawned.ProcessId, watch, seams.Signals, PosixServerLadder.ForcedExitTimeout);
+            var ladder = new PosixServerLadder(spawned.ProcessId, watch, seams.Signals, PosixServerLadder.ForcedExitTimeout, seams.Time);
             return new OwnedServerChild(
                 new OwnedServerProcess
                 {

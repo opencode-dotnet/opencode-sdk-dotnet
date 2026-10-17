@@ -4,19 +4,10 @@ namespace OpenCode.Sdk.Internal;
 internal static class BoundedWait
 {
     /// <summary>
-    /// Waits at most <paramref name="bound"/> for <paramref name="task"/> to end. A task that
-    /// faulted or was canceled has ended too: the wait reports that and raises nothing, and how the
-    /// task ended stays on the task for its owner to read.
-    /// </summary>
-    /// <param name="task">The awaited task.</param>
-    /// <param name="bound">How long the caller waits.</param>
-    /// <returns>True when the task ended inside the bound, however it ended.</returns>
-    public static Task<bool> CompletesWithinAsync(Task task, TimeSpan bound) =>
-        CompletesWithinAsync(task, bound, TimeProvider.System);
-
-    /// <summary>
     /// Waits at most <paramref name="bound"/>, measured on <paramref name="time"/>, for
-    /// <paramref name="task"/> to end, as <see cref="CompletesWithinAsync(Task, TimeSpan)"/> does.
+    /// <paramref name="task"/> to end. A faulted or canceled task has ended too, as
+    /// <see cref="Task.IsCompleted"/> reports: the wait raises nothing, and how the task ended
+    /// stays on the task for its owner to read.
     /// </summary>
     /// <param name="task">The awaited task.</param>
     /// <param name="bound">How long the caller waits.</param>

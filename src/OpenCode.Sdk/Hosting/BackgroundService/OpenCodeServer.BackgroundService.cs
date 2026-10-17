@@ -21,8 +21,9 @@ public partial class OpenCodeServer
         OpenCodeServerDiscoverOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        // The discovery composition root chooses the clock for its info probe.
+#pragma warning disable RS0030 // The discovery composition root chooses the system clock and passes it to its info probe.
         var time = TimeProvider.System;
+#pragma warning restore RS0030
         return DiscoverWithSeamsAsync(options, PlatformProbe(ServiceTiming.Default, time), cancellationToken);
     }
 
@@ -86,8 +87,9 @@ public partial class OpenCodeServer
         CancellationToken cancellationToken = default)
     {
         var timing = ServiceTiming.Default;
-        // The stop composition root shares one clock across its probe, handoff and terminator.
+#pragma warning disable RS0030 // The stop composition root chooses the system clock; its probe, handoff and terminator share it.
         var time = TimeProvider.System;
+#pragma warning restore RS0030
         var fileSystem = new ServiceFileSystem();
         var ptyShutdown = new ServicePtyShutdown();
         var stopper = new ServiceStopper(
@@ -120,8 +122,9 @@ public partial class OpenCodeServer
         OpenCodeServerEnsureOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        // The ensure composition root shares one clock across the election and its contenders.
+#pragma warning disable RS0030 // The ensure composition root chooses the system clock; election collaborators and spawned contenders receive it.
         var time = TimeProvider.System;
+#pragma warning restore RS0030
         return EnsureWithSeamsAsync(options, ServiceTiming.Default, new ServiceContenderSpawner(new PosixSpawn(), new WindowsSpawn(), time), time, cancellationToken);
     }
 

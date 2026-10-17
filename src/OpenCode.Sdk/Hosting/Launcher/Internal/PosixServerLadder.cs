@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
@@ -33,21 +31,25 @@ internal sealed class PosixServerLadder : IServerLadder
     private readonly PosixChildExitWatch _watch;
     private readonly IProcessGroupSignal _signals;
     private readonly TimeSpan _forcedExitTimeout;
+    private readonly TimeProvider _time;
 
     /// <summary>Initializes the ladder for one server.</summary>
     /// <param name="processGroupId">The server's pid, which names its group.</param>
     /// <param name="watch">The server's exit watch, which also guards the pid fallback.</param>
     /// <param name="signals">The signal seam.</param>
     /// <param name="forcedExitTimeout">How long the last rung waits; the shipped value is <see cref="ForcedExitTimeout"/>.</param>
-    public PosixServerLadder(int processGroupId, PosixChildExitWatch watch, IProcessGroupSignal signals, TimeSpan forcedExitTimeout)
+    /// <param name="time">The clock for the shared grace and forced-root wait.</param>
+    public PosixServerLadder(int processGroupId, PosixChildExitWatch watch, IProcessGroupSignal signals, TimeSpan forcedExitTimeout, TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(watch);
         ArgumentNullException.ThrowIfNull(signals);
+        ArgumentNullException.ThrowIfNull(time);
 
         _processGroupId = processGroupId;
         _watch = watch;
         _signals = signals;
         _forcedExitTimeout = forcedExitTimeout;
+        _time = time;
     }
 
     /// <summary>Runs the ladder; bounded by the grace plus the forced-exit wait.</summary>
@@ -92,7 +94,7 @@ internal sealed class PosixServerLadder : IServerLadder
 
     private async Task<bool> GroupEndedWithinAsync(TimeSpan grace)
     {
-        var elapsed = Stopwatch.StartNew();
+        var started = _time.GetTimestamp();
         if (!await RootExitedWithinAsync(grace).ConfigureAwait(false))
         {
             return false;
@@ -101,13 +103,17 @@ internal sealed class PosixServerLadder : IServerLadder
         var interval = FirstProbeInterval;
         while (_signals.ProbeGroup(_processGroupId) is not SignalDelivery.NoSuchTarget)
         {
-            var remaining = grace - elapsed.Elapsed;
+            var remaining = grace - _time.GetElapsedTime(started);
             if (remaining <= TimeSpan.Zero)
             {
                 return false;
             }
 
-            await Task.Delay(Shorter(interval, remaining)).ConfigureAwait(false);
+#if NET
+            await Task.Delay(Shorter(interval, remaining), _time).ConfigureAwait(false);
+#else
+            await _time.Delay(Shorter(interval, remaining)).ConfigureAwait(false);
+#endif
             interval = Shorter(interval + interval, LongestProbeInterval);
         }
 
@@ -118,7 +124,7 @@ internal sealed class PosixServerLadder : IServerLadder
     {
         try
         {
-            _ = await _watch.Exited.WaitAsync(window).ConfigureAwait(false);
+            _ = await _watch.Exited.WaitAsync(window, _time).ConfigureAwait(false);
             return true;
         }
         catch (TimeoutException)

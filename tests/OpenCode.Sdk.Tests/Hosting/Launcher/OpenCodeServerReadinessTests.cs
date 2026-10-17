@@ -298,6 +298,13 @@ public sealed class OpenCodeServerReadinessTests
             await draining.WaitAsync(SdkTestSupport.HangGuard.Bound, cancellationToken);
             time.Advance(OwnedServerChild.EarlyEndBound);
         }
+
+        var releasing = time.WaitForArmedAsync(PipeOutputPump.ReleaseBound, SdkTestSupport.HangGuard.Bound, count: 1);
+        if (await Task.WhenAny(Task.WhenAll(startingTasks), releasing).WaitAsync(SdkTestSupport.HangGuard.Bound, cancellationToken) == releasing)
+        {
+            await releasing.WaitAsync(SdkTestSupport.HangGuard.Bound, cancellationToken);
+            time.Advance(PipeOutputPump.ReleaseBound);
+        }
     }
 
     private static LauncherSeams ObserveSpawn(
