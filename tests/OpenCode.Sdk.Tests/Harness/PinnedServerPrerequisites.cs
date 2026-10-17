@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Abstractions;
@@ -10,9 +11,10 @@ namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
 /// What every source-run server in this assembly needs before its first test: the pinned submodule
-/// checked out, its dependencies installed, and on PATH the Bun the pin's <c>packageManager</c>
-/// names. It is checked once, before discovery, because TUnit reports a failed discovery hook as one
-/// error for the module, where a failed session hook fails every test at 0 ms with the same message.
+/// checked out at this repository's recorded commit, its dependencies installed, and on PATH the Bun
+/// the pin's <c>packageManager</c> names. It is checked once, before discovery, because TUnit reports
+/// a failed discovery hook as one error for the module, where a failed session hook fails every test
+/// at 0 ms with the same message.
 /// A missing piece refuses the whole module, a run filtered to tests that start no server included:
 /// every gate and CI leg prepares the checkout, so an unprepared one is a mistake to name before it
 /// costs a run, not a mode to support. One exception is explicit: <see cref="BunMismatchVariable"/>
@@ -61,6 +63,8 @@ public static class PinnedServerPrerequisites
     /// <param name="repositoryRoot">This repository's root.</param>
     /// <param name="bunVersion">What <c>bun --version</c> printed, or null when no Bun is on PATH.</param>
     /// <param name="bunMismatch">The value of <see cref="BunMismatchVariable"/>, or null when it is unset.</param>
+    /// <param name="recordedCommit">The submodule's gitlink in this repository's index, or null when unreadable.</param>
+    /// <param name="checkedOutCommit">The submodule's checked-out HEAD, or null when unreadable.</param>
     /// <param name="cancellationToken">The caller's token.</param>
     /// <returns>
     /// The problems in the order to fix them, empty when the checkout is prepared, and the Bun
@@ -71,6 +75,8 @@ public static class PinnedServerPrerequisites
         string repositoryRoot,
         string? bunVersion,
         string? bunMismatch,
+        string? recordedCommit,
+        string? checkedOutCommit,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(fileSystem);
@@ -91,6 +97,20 @@ public static class PinnedServerPrerequisites
             // Without the checkout neither the install nor the pinned Bun version can be read.
             problems.Add(source);
             return new Readiness(problems, AllowedMismatch: null);
+        }
+
+        foreach (var (commit, name) in new[] { (recordedCommit, "recorded gitlink"), (checkedOutCommit, "checked-out HEAD") })
+        {
+            if (string.IsNullOrWhiteSpace(commit))
+            {
+                problems.Add($"Cannot read the pin's {name} at '{submodule}'. Run: git submodule update --init --depth 1 external/opencode");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(recordedCommit) && !string.IsNullOrWhiteSpace(checkedOutCommit)
+            && !string.Equals(recordedCommit, checkedOutCommit, StringComparison.Ordinal))
+        {
+            problems.Add($"The pin's checkout at '{submodule}' is {checkedOutCommit}, but this repository records {recordedCommit}. Run: git submodule update --init --depth 1 external/opencode");
         }
 
         string? allowedMismatch = null;
@@ -153,11 +173,28 @@ public static class PinnedServerPrerequisites
         var fileSystem = new RealFileSystem();
         var repositoryRoot = new PinnedServerCommand(fileSystem).RepositoryRoot;
         var bunVersion = await ReadBunVersionAsync(cancellationToken).ConfigureAwait(false);
+        var submodule = Submodule(fileSystem, repositoryRoot);
+        var commits = new List<string?>();
+        foreach (var arguments in new[] { $"-C \"{repositoryRoot}\" ls-files -s -- external/opencode", $"-C \"{submodule}\" rev-parse HEAD" })
+        {
+            try
+            {
+                commits.Add(await ReadProcessOutputAsync("git", arguments, "git " + arguments, cancellationToken).ConfigureAwait(false));
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or Win32Exception)
+            {
+                commits.Add(null);
+            }
+        }
+
+        var gitlink = commits[0]?.Split([' ', '\t'], StringSplitOptions.RemoveEmptyEntries);
         var readiness = await FindAsync(
             fileSystem,
             repositoryRoot,
             bunVersion,
             Environment.GetEnvironmentVariable(BunMismatchVariable),
+            gitlink is { Length: 4 } && gitlink[0] == "160000" && gitlink[2] == "0" ? gitlink[1] : null,
+            commits[1],
             cancellationToken).ConfigureAwait(false);
         return (repositoryRoot, readiness);
     }
@@ -198,12 +235,20 @@ public static class PinnedServerPrerequisites
             return null;
         }
 
+        return await ReadProcessOutputAsync(
+            bun.IsBatchScript ? "cmd.exe" : bun.Path,
+            bun.IsBatchScript ? "/d /c \"\"" + bun.Path + "\" --version\"" : "--version",
+            bun.Path + " --version", cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<string> ReadProcessOutputAsync(string fileName, string arguments, string command, CancellationToken cancellationToken)
+    {
         using var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
-                FileName = bun.IsBatchScript ? "cmd.exe" : bun.Path,
-                Arguments = bun.IsBatchScript ? "/d /c \"\"" + bun.Path + "\" --version\"" : "--version",
+                FileName = fileName,
+                Arguments = arguments,
                 CreateNoWindow = true,
                 RedirectStandardError = true,
                 RedirectStandardOutput = true,
@@ -213,7 +258,7 @@ public static class PinnedServerPrerequisites
 
         if (!process.Start())
         {
-            throw new InvalidOperationException($"'{bun.Path} --version' did not start.");
+            throw new InvalidOperationException($"'{command}' did not start.");
         }
 
         // The readers drain on their own token: cancelling them first could fill a pipe the child
@@ -236,7 +281,7 @@ public static class PinnedServerPrerequisites
         return process.ExitCode is 0
             ? output.Trim()
             : throw new InvalidOperationException(
-                $"'{bun.Path} --version' exited with code {process.ExitCode.ToString(CultureInfo.InvariantCulture)}: {error.Trim()}");
+                $"'{command}' exited with code {process.ExitCode.ToString(CultureInfo.InvariantCulture)}: {error.Trim()}");
     }
 
     /// <summary>What the pinned server still needs, and the Bun mismatch the opt-in allowed.</summary>
