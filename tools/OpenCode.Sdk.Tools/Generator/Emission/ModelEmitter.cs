@@ -12,9 +12,10 @@ internal static class ModelEmitter
     public static IReadOnlyList<GeneratedSource> Emit(EmitPlan plan)
     {
         ArgumentNullException.ThrowIfNull(plan);
-        var unions = plan.Unions.ToDictionary(static union => union.Name, StringComparer.Ordinal);
 
         var result = new List<GeneratedSource>(plan.Models.Count);
+        var unions = plan.Unions.ToDictionary(static union => union.Name, StringComparer.Ordinal);
+        var owners = DescriptionCurationBinder.InheritedMemberOwners(plan, unions);
         foreach (var model in plan.Models.OrderBy(static model => model.Name, StringComparer.Ordinal))
         {
             if (model is StructuralUnionModelPlan)
@@ -24,8 +25,7 @@ internal static class ModelEmitter
 
             result.AddRange(model switch
             {
-                ObjectModelPlan objectModel => [EmitObject(objectModel, ResolveImplementedUnions(objectModel, unions), unions,
-                    GeneratedPlacement.ModelPathOf(plan.Placement, model.Name))],
+                ObjectModelPlan objectModel => [EmitObject(objectModel, unions, owners[model.Name], GeneratedPlacement.ModelPathOf(plan.Placement, model.Name))],
                 EnumModelPlan enumModel => ExtensibleEnumEmitter.Emit(enumModel, plan.Placement),
                 _ => throw new InvalidOperationException($"Unknown model plan '{model.GetType().Name}'."),
             });
@@ -34,9 +34,10 @@ internal static class ModelEmitter
         return Array.AsReadOnly([.. result]);
     }
 
-    private static GeneratedSource EmitObject(ObjectModelPlan model, IReadOnlyList<UnionPlan> implemented,
-        IReadOnlyDictionary<string, UnionPlan> unions, string relativePath)
+    private static GeneratedSource EmitObject(ObjectModelPlan model, Dictionary<string, UnionPlan> unions,
+        IReadOnlyDictionary<string, string> owners, string relativePath)
     {
+        var implemented = ResolveImplementedUnions(model, unions);
         // A variant overrides one abstract marker per level of its union chain: a nested
         // union's variant carries both its own tag and the fixed outer tag. A union's one
         // prefix-tagged arm carries that union's marker as a guarded string in place of a tag.
@@ -79,7 +80,8 @@ internal static class ModelEmitter
         }
 
         var guardsPrefix = chainMarkers.Any(static marker => marker.Prefix is not null);
-        declaration = EmissionSyntax.DocumentedType(declaration, model.Documentation);
+        declaration = EmissionSyntax.DocumentedType(declaration, model.Documentation,
+            inheritedMembers: owners);
         var unit = EmissionSyntax.CompilationUnit(model.Namespace, CollectUsings(model, guardsPrefix), [declaration]);
         return EmissionSyntax.CreateSource(relativePath, unit);
     }
@@ -501,7 +503,7 @@ internal static class ModelEmitter
     /// serving both contracts.
     /// </summary>
     private static List<ChainMarker> GetChainMarkers(string modelName,
-        IReadOnlyList<UnionPlan> implemented, IReadOnlyDictionary<string, UnionPlan> unions)
+        IReadOnlyList<UnionPlan> implemented, Dictionary<string, UnionPlan> unions)
     {
         var result = new List<ChainMarker>();
         foreach (var union in implemented)

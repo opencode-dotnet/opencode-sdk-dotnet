@@ -1,6 +1,340 @@
 {
   "descriptions": [
     {
+      "type": "IMcpTimeout",
+      "member": "Startup",
+      "summary": "Maximum time in milliseconds to establish and initialize the MCP server.",
+      "reason": "The optional annotation is absent from OpenAPI; document the shared timeout owner.",
+      "sources": [
+        { "location": "packages/schema/src/mcp.ts:9", "excerpt": "    description: \"Maximum time in milliseconds to establish and initialize the MCP server.\"," }
+      ]
+    },
+    {
+      "type": "IMcpTimeout",
+      "member": "Catalog",
+      "summary": "Maximum time in milliseconds to wait for MCP discovery requests such as tools/list and prompts/list.",
+      "reason": "The optional annotation is absent from OpenAPI; document the shared timeout owner.",
+      "sources": [
+        { "location": "packages/schema/src/mcp.ts:12", "excerpt": "    description: \"Maximum time in milliseconds to wait for MCP discovery requests such as tools/list and prompts/list.\"," }
+      ]
+    },
+    {
+      "type": "IMcpTimeout",
+      "member": "Execution",
+      "summary": "Maximum time in milliseconds to wait for MCP tool and prompt execution.",
+      "reason": "The optional annotation is absent from OpenAPI; document the shared timeout owner.",
+      "sources": [
+        { "location": "packages/schema/src/mcp.ts:15", "excerpt": "    description: \"Maximum time in milliseconds to wait for MCP tool and prompt execution.\"," }
+      ]
+    },
+    {
+      "type": "IMcp",
+      "member": "Codemode",
+      "summary": "Expose this server's tools through Code Mode. Defaults to true.",
+      "reason": "The optional annotation is absent from OpenAPI; the union owner supplies the known configurations' documentation.",
+      "sources": [
+        { "location": "packages/schema/src/mcp.ts:35", "excerpt": "    description: \"Expose this server's tools through Code Mode. Defaults to true.\"," },
+        { "location": "packages/schema/src/mcp.ts:60", "excerpt": "    description: \"Expose this server's tools through Code Mode. Defaults to true.\"," }
+      ]
+    },
+    {
+      "type": "ISessionMessageCompactionTime",
+      "member": "Created",
+      "summary": "Creation time in milliseconds since the Unix epoch.",
+      "reason": "The shared Base declares the epoch-millisecond codec, but OpenAPI retains only its numeric representation.",
+      "sources": [
+        { "location": "packages/schema/src/session-message.ts:36", "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis })," }
+      ]
+    },
+    {
+      "type": "ISessionInboxInfoTime",
+      "member": "Created",
+      "summary": "Enqueue time in milliseconds since the Unix epoch.",
+      "reason": "The shared enqueued shape declares the epoch-millisecond codec, but OpenAPI retains only its numeric representation.",
+      "sources": [
+        { "location": "packages/schema/src/session-inbox.ts:52", "excerpt": "const Enqueued = {" },
+        { "location": "packages/schema/src/session-inbox.ts:55", "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis })," }
+      ]
+    },
+    {
+      "type": "IDurableEnvelope",
+      "member": "Seq",
+      "summary": "Position in one aggregate's durable log. Use only values from durable envelopes or synced markers as after cursors.",
+      "reason": "The shared durable owner documents cursor provenance once for its implementing records.",
+      "sources": [
+        { "location": "packages/schema/src/event.ts:17", "excerpt": " * Position in one aggregate's durable log. Values originate from the durable" },
+        { "location": "packages/schema/src/event.ts:18", "excerpt": " * event envelope and synced markers;" },
+        { "location": "packages/schema/src/event.ts:19", "excerpt": " * `after` cursors accept only values that came from those sources." }
+      ]
+    },
+    {
+      "type": "IDurableEnvelope",
+      "member": "Version",
+      "summary": "Durable schema version of this event type, from the event definition that committed it.",
+      "reason": "The shared durable owner documents the version's declared role once for its implementing records.",
+      "sources": [
+        { "location": "packages/schema/src/event.ts:27", "excerpt": "/** Durable schema version of one event type, from the event definition that committed it. */" }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistant",
+      "summary": "An assistant message with text, reasoning or tool-call output parts.",
+      "reason": "Retain the declared output alternatives without the implementation-only per-step and failure lifecycle.",
+      "sources": [
+        { "location": "packages/schema/src/session-message.ts:215", "excerpt": "  type: Schema.tag(\"assistant\")," },
+        { "location": "packages/schema/src/session-message.ts:218", "excerpt": "  content: AssistantContent.pipe(Schema.Array)," },
+        { "location": "packages/schema/src/session-message.ts:195", "excerpt": "export const AssistantContent = Schema.Union([AssistantText, AssistantReasoning, AssistantTool]).pipe(" }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistant",
+      "member": "Finish",
+      "summary": "The finish reason; the pinned values are stop, length, tool-calls, content-filter, error and unknown.",
+      "reason": "Retain the declared reason set without running-null or failure-normalization claims.",
+      "sources": [
+        { "location": "packages/schema/src/session-message.ts:224", "excerpt": "  finish: FinishReason.pipe(optional)," },
+        { "location": "packages/schema/src/llm.ts:5", "excerpt": "export const FinishReason = Schema.Literals([\"stop\", \"length\", \"tool-calls\", \"content-filter\", \"error\", \"unknown\"])" }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistant",
+      "member": "Content",
+      "summary": "Assistant output parts: text, reasoning and tool calls.",
+      "reason": "Retain the declared output alternatives without inferring streaming order.",
+      "sources": [
+        { "location": "packages/schema/src/session-message.ts:218", "excerpt": "  content: AssistantContent.pipe(Schema.Array)," },
+        { "location": "packages/schema/src/session-message.ts:195", "excerpt": "export const AssistantContent = Schema.Union([AssistantText, AssistantReasoning, AssistantTool]).pipe(" }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistant",
+      "member": "Cost",
+      "summary": "Cost in US dollars recorded on the assistant message.",
+      "reason": "Retain the declared currency without inferring computation, per-step scope or absence lifecycle.",
+      "sources": [
+        { "location": "packages/schema/src/session-message.ts:227", "excerpt": "  cost: Money.USD.pipe(optional)," },
+        { "location": "packages/schema/src/money.ts:7", "excerpt": "  Schema.brand(\"Money.USD\")," }
+      ]
+    },
+    {
+      "type": "SessionTextDeltaData",
+      "member": "Delta",
+      "summary": "A live-only text fragment.",
+      "reason": "Retain the declared fragment role without the implementation-only batching policy.",
+      "sources": [
+        { "location": "packages/schema/src/session-event.ts:403", "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary." },
+        { "location": "packages/schema/src/session-event.ts:410", "excerpt": "      delta: Schema.String," }
+      ]
+    },
+    {
+      "type": "SessionTextEndedData",
+      "member": "Text",
+      "summary": "The complete text of the part at the replayable full-value boundary.",
+      "reason": "Retain the declared full-value boundary without prescribing replacement of accumulated deltas.",
+      "sources": [
+        { "location": "packages/schema/src/session-event.ts:403", "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary." },
+        { "location": "packages/schema/src/session-event.ts:422", "excerpt": "      text: Schema.String," }
+      ]
+    },
+    {
+      "type": "SessionTextEndedData",
+      "member": "State",
+      "summary": "Opaque provider state for the text part.",
+      "reason": "Retain the declared opaque state without promising future-request reuse.",
+      "sources": [
+        { "location": "packages/schema/src/session-event.ts:423", "excerpt": "      state: SessionMessage.ProviderState.pipe(optional)," },
+        { "location": "packages/schema/src/session-message.ts:39", "excerpt": "export const ProviderState = Schema.Record(Schema.String, Schema.Unknown).annotate({" }
+      ]
+    },
+    {
+      "type": "SessionPromptRequest",
+      "summary": "A session input durably admitted to the inbox, scheduling agent-loop execution unless Resume is false.",
+      "reason": "Retain the route's admission and scheduling contract without inferring response-before-model timing.",
+      "sources": [
+        { "location": "packages/protocol/src/groups/session.ts:405", "excerpt": "        success: Schema.Struct({ data: SessionInbox.User })," },
+        { "location": "packages/protocol/src/groups/session.ts:413", "excerpt": "            description: \"Durably admit one session input and schedule agent-loop execution unless resume is false.\"," }
+      ]
+    },
+    {
+      "type": "SessionPromptRequest",
+      "member": "Id",
+      "summary": "An optional message identifier starting with msg_.",
+      "reason": "Retain the declared identifier prefix without inferring idempotence or conflict behavior.",
+      "sources": [
+        { "location": "packages/protocol/src/groups/session.ts:399", "excerpt": "          id: SessionMessage.ID.pipe(Schema.optional)," },
+        { "location": "packages/schema/src/session-message.ts:23", "excerpt": "export const ID = Schema.String.check(Schema.isStartingWith(\"msg_\")).pipe(" }
+      ]
+    },
+    {
+      "type": "SessionPromptRequest",
+      "member": "Files",
+      "summary": "File attachments, each referencing a file by its Uri member.",
+      "reason": "Retain the declared attachment reference without inventing URI schemes, size limits or file-reading policy.",
+      "sources": [
+        { "location": "packages/schema/src/prompt-input.ts:31", "excerpt": "  files: Schema.Array(FileAttachment).pipe(optional)," },
+        { "location": "packages/schema/src/prompt-input.ts:10", "excerpt": "  uri: Schema.String," }
+      ]
+    },
+    {
+      "type": "SessionPromptRequest",
+      "member": "Skills",
+      "summary": "Skills to attach by identifier.",
+      "reason": "Retain the declared attachment role without inferring text placement or unknown-identifier errors.",
+      "sources": [
+        { "location": "packages/schema/src/prompt-input.ts:33", "excerpt": "  skills: Schema.Array(SkillAttachment).pipe(optional)," },
+        { "location": "packages/schema/src/prompt-input.ts:25", "excerpt": "  id: Skill.ID," }
+      ]
+    },
+    {
+      "type": "SessionPromptRequest",
+      "member": "Delivery",
+      "summary": "The input delivery mode; the pinned values are steer and queue.",
+      "reason": "Retain the declared modes without inferring a default or boundary-ordering policy.",
+      "sources": [
+        { "location": "packages/protocol/src/groups/session.ts:402", "excerpt": "          delivery: SessionInbox.Delivery.pipe(Schema.optional)," },
+        { "location": "packages/schema/src/session-inbox.ts:11", "excerpt": "export const Delivery = Schema.Literals([\"steer\", \"queue\"]).annotate({ identifier: \"Session.Inbox.Delivery\" })" }
+      ]
+    },
+    {
+      "type": "SessionPromptRequest",
+      "member": "Resume",
+      "summary": "Controls scheduling of agent-loop execution after durable admission: false omits that scheduling.",
+      "reason": "Retain the route's scheduling qualification without inferring a true default or pending-input lifecycle.",
+      "sources": [
+        { "location": "packages/protocol/src/groups/session.ts:413", "excerpt": "            description: \"Durably admit one session input and schedule agent-loop execution unless resume is false.\"," }
+      ]
+    },
+    {
+      "type": "SessionCreateRequest",
+      "summary": "A request to create a session at the requested location; ParentId links a child at its parent's location.",
+      "reason": "Retain the route's create and parent-location roles without inferring existing-identifier adoption.",
+      "sources": [
+        { "location": "packages/protocol/src/groups/session.ts:239", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
+      ]
+    },
+    {
+      "type": "SessionCreateRequest",
+      "member": "ParentId",
+      "summary": "Links a child session to its parent at the parent's location.",
+      "reason": "Retain the declared parent-location relationship without inferring metadata, permission, agent or model inheritance.",
+      "sources": [
+        { "location": "packages/protocol/src/groups/session.ts:239", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
+      ]
+    },
+    {
+      "type": "SessionCreateRequest",
+      "member": "Location",
+      "summary": "The requested location for a session; ParentId places a child at its parent's location.",
+      "reason": "Retain the declared parent-location qualification without inferring a process-working-directory default.",
+      "sources": [
+        { "location": "packages/protocol/src/groups/session.ts:239", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
+      ]
+    },
+    {
+      "type": "SessionCreateRequest",
+      "member": "Permissions",
+      "summary": "When at least one rule matches, the last matching rule wins; session rules are evaluated after the agent's rules.",
+      "reason": "Retain the declared ordering and precedence without implying what happens when no rule matches.",
+      "sources": [
+        { "location": "packages/schema/src/session.ts:56", "excerpt": "  /** Evaluated after the agent's rules; the last matching rule wins. */" },
+        { "location": "packages/protocol/src/groups/session.ts:230", "excerpt": "          permissions: Permission.Ruleset.pipe(Schema.optional)," }
+      ]
+    },
+    {
+      "type": "SessionExecutionFailed",
+      "summary": "Reports an execution failure with its error in Data.Error.",
+      "reason": "Retain the declared failure payload without inferring idle transitions or exhausted-restart publication.",
+      "sources": [
+        { "location": "packages/schema/src/session-event.ts:247", "excerpt": "    type: \"session.execution.failed\"," },
+        { "location": "packages/schema/src/session-event.ts:249", "excerpt": "    schema: { ...Base, error: SessionError.Error }," }
+      ]
+    },
+    {
+      "type": "SessionExecutionInterrupted",
+      "summary": "Reports interrupted execution; the pinned Data.Reason values are user, shutdown, superseded and inactivity.",
+      "reason": "Retain the declared interruption reasons without inferring preservation, resumption or restart-exhaustion behavior.",
+      "sources": [
+        { "location": "packages/schema/src/session-event.ts:254", "excerpt": "    type: \"session.execution.interrupted\"," },
+        { "location": "packages/schema/src/session-event.ts:256", "excerpt": "    schema: { ...Base, reason: Schema.Literals([\"user\", \"shutdown\", \"superseded\", \"inactivity\"]) }," }
+      ]
+    },
+    {
+      "type": "SessionCreateRequest",
+      "member": "Id",
+      "summary": "An optional session identifier starting with ses.",
+      "reason": "Retain the declared identifier prefix without inferring existing-session adoption.",
+      "sources": [
+        { "location": "packages/schema/src/session-id.ts:5", "excerpt": "export const SessionID = Schema.String.check(Schema.isStartingWith(\"ses\")).pipe(" },
+        { "location": "packages/protocol/src/groups/session.ts:223", "excerpt": "          id: Session.ID.pipe(Schema.optional)," }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistant",
+      "member": "Tokens",
+      "summary": "Token usage with input, output, reasoning and cache read/write parts.",
+      "reason": "Retain the declared usage structure without inferring per-step scope or absence lifecycle.",
+      "sources": [
+        { "location": "packages/schema/src/session-message.ts:228", "excerpt": "  tokens: TokenUsage.Info.pipe(optional)," },
+        { "location": "packages/schema/src/token-usage.ts:6", "excerpt": "export const Info = Schema.Struct({" },
+        { "location": "packages/schema/src/token-usage.ts:10", "excerpt": "  cache: Schema.Struct({" }
+      ]
+    },
+    {
+      "type": "SessionMessageAssistant",
+      "member": "Retry",
+      "summary": "Retry information containing an attempt number, time and error.",
+      "reason": "Retain the declared retry structure without inferring attempt numbering or clearing lifecycle.",
+      "sources": [
+        { "location": "packages/schema/src/session-message.ts:230", "excerpt": "  retry: AssistantRetry.pipe(optional)," },
+        { "location": "packages/schema/src/session-message.ts:207", "excerpt": "  attempt: PositiveInt," },
+        { "location": "packages/schema/src/session-message.ts:208", "excerpt": "  at: DateTimeUtcFromMillis," },
+        { "location": "packages/schema/src/session-message.ts:209", "excerpt": "  error: SessionError.Error," }
+      ]
+    },
+    {
+      "type": "SessionTextDeltaData",
+      "member": "Ordinal",
+      "summary": "A non-negative ordinal for this text part.",
+      "reason": "Retain the declared non-negative ordinal without inferring zero-based indexing or separate reasoning numbering.",
+      "sources": [
+        { "location": "packages/schema/src/session-event.ts:405", "excerpt": "    type: \"session.text.delta\"," },
+        { "location": "packages/schema/src/session-event.ts:409", "excerpt": "      ordinal: NonNegativeInt," },
+        { "location": "packages/schema/src/schema.ts:4", "excerpt": "export const NonNegativeInt = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))" }
+      ]
+    },
+    {
+      "type": "SessionCreateRequest",
+      "member": "Model",
+      "summary": "A model reference identifying the provider, model and optional variant.",
+      "reason": "Retain the declared model-reference structure without inferring defaults or validation timing.",
+      "sources": [
+        { "location": "packages/protocol/src/groups/session.ts:227", "excerpt": "          model: Model.Ref.pipe(Schema.optional)," },
+        { "location": "packages/schema/src/model.ts:19", "excerpt": "export const Ref = Schema.Struct({" },
+        { "location": "packages/schema/src/model.ts:21", "excerpt": "  providerID: Provider.ID," },
+        { "location": "packages/schema/src/model.ts:22", "excerpt": "  variant: VariantID.pipe(optional)," }
+      ]
+    },
+    {
+      "type": "ExperimentalSessionStatsRequest",
+      "member": "From",
+      "summary": "The start of the aggregated time range.",
+      "reason": "Retain the declared time-range role without inferring a unit or bound inclusion.",
+      "sources": [
+        { "location": "packages/protocol/src/groups/session.ts:204", "excerpt": "          from: Schema.NumberFromString.pipe(Schema.optional)," },
+        { "location": "packages/protocol/src/groups/session.ts:216", "excerpt": "          description: \"Aggregate local session activity, usage, and tool reliability for a time range.\"," }
+      ]
+    },
+    {
+      "type": "ExperimentalSessionStatsRequest",
+      "member": "To",
+      "summary": "The end of the aggregated time range.",
+      "reason": "Retain the declared time-range role without inferring a unit or bound inclusion.",
+      "sources": [
+        { "location": "packages/protocol/src/groups/session.ts:205", "excerpt": "          to: Schema.NumberFromString.pipe(Schema.optional)," },
+        { "location": "packages/protocol/src/groups/session.ts:216", "excerpt": "          description: \"Aggregate local session activity, usage, and tool reliability for a time range.\"," }
+      ]
+    },
+    {
       "type": "SessionTextDelta",
       "member": null,
       "summary": "A live fragment of assistant text: append its Data.Delta to the text part its Data.AssistantMessageId and Data.Ordinal name.",

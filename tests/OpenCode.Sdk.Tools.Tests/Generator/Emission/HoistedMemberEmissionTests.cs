@@ -1,6 +1,9 @@
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 using static OpenCode.Sdk.Tools.Tests.Support.UnionHoistPlanData;
 
@@ -8,6 +11,68 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
 public sealed class HoistedMemberEmissionTests
 {
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Emit_Should_Inherit_Only_Curated_Public_Members_Unless_Directly_Documented(bool direct)
+    {
+        var plan = EmitterPlanFixture.CreateHoistPlan();
+        var text = new DocumentationPlan("A <curated> & value.", "Owner remarks.");
+        plan = plan with
+        {
+            HoistedInterfaces = [.. plan.HoistedInterfaces.Select(carrier => carrier with
+            {
+                Documentation = new() { Members = new Dictionary<string, DocumentationPlan>(StringComparer.Ordinal) { ["Seq"] = text } },
+            })],
+            Unions = [.. plan.Unions.Select(union => union with
+            {
+                Documentation = new() { Members = new Dictionary<string, DocumentationPlan>(StringComparer.Ordinal)
+                {
+                    [union.Name == "IExampleEvent" ? "Created" : "Phase"] = text,
+                } },
+            })],
+            Models = [.. plan.Models.Select(model => model is ObjectModelPlan { Name: "CreatedEvent" } concrete ? concrete with
+            {
+                Properties = [.. concrete.Properties.Select(property => property.Name == "Created" ? property with { Name = "Born" } : property)],
+                ExplicitHoistedImplementations = [.. concrete.ExplicitHoistedImplementations.Select(bridge =>
+                    bridge.MemberName == "Created" ? bridge with { PropertyName = "Born" } : bridge)],
+            } : model).Select(model => model.Name == "CreatedEventDurable" && direct ? model with
+            {
+                Documentation = new() { Members = new Dictionary<string, DocumentationPlan>(StringComparer.Ordinal) { ["Seq"] = new("Direct summary.", null) } },
+            } : model)],
+        };
+        var sources = SourceEmitter.Emit(plan);
+        var roots = await Task.WhenAll(sources.Select(source => CSharpSyntaxTree.ParseText(System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)).GetRootAsync()));
+        var inherited = roots.SelectMany(root => root.DescendantNodes().OfType<PropertyDeclarationSyntax>()
+            .Where(static property => property.GetLeadingTrivia().ToFullString().Contains("<inheritdoc", StringComparison.Ordinal))
+            .Select(property => ((TypeDeclarationSyntax)property.Parent!).Identifier.ValueText + "." + property.Identifier.ValueText
+                + ": " + property.GetLeadingTrivia().ToFullString().Trim()))
+            .Order(StringComparer.Ordinal).ToArray();
+        string[] expected =
+        [
+            "CreatedEvent.Born: /// <inheritdoc cref=\"IExampleEvent.Created\" />",
+            "DeletedEvent.Created: /// <inheritdoc cref=\"IExampleEvent.Created\" />",
+            "DeletedEventDurable.Seq: /// <inheritdoc cref=\"IDurableEnvelope.Seq\" />",
+            "PhaseEndedEvent.Created: /// <inheritdoc cref=\"IExampleEvent.Created\" />",
+            "PhaseEndedEvent.Phase: /// <inheritdoc cref=\"IExamplePhase.Phase\" />",
+            "PhaseEndedEventDurable.Seq: /// <inheritdoc cref=\"IDurableEnvelope.Seq\" />",
+            "PhaseStartedEvent.Created: /// <inheritdoc cref=\"IExampleEvent.Created\" />",
+            "PhaseStartedEvent.Phase: /// <inheritdoc cref=\"IExamplePhase.Phase\" />",
+            "PhaseStartedEventDurable.Seq: /// <inheritdoc cref=\"IDurableEnvelope.Seq\" />",
+        ];
+        if (!direct)
+        {
+            expected = [expected[0], "CreatedEventDurable.Seq: /// <inheritdoc cref=\"IDurableEnvelope.Seq\" />", .. expected[1..]];
+        }
+
+        await Assert.That(inherited).IsEquivalentTo(expected, CollectionOrdering.Matching);
+        await Assert.That(EmitterSnapshot.Content(sources, "Example/Models/IExampleEvent.cs")).Contains("A &lt;curated&gt; &amp; value.");
+        await Assert.That(EmitterSnapshot.Content(sources, "Example/Models/IExampleEvent.cs"))
+            .Contains("Owner remarks. Every declared variant carries it; an unrecognized variant preserved as UnknownExampleEvent returns null through this interface. An ordinary optional property may also be absent.");
+        await Assert.That(EmitterSnapshot.Content(sources, "Example/Models/CreatedEventDurable.cs"))
+            .Contains(direct ? "/// Direct summary." : "/// <inheritdoc cref=\"IDurableEnvelope.Seq\" />");
+    }
+
     [Test]
     public async Task Emit_Should_Render_The_Carrier_Fallback_And_Value_Grammatically()
     {

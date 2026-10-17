@@ -12,7 +12,7 @@ namespace OpenCode.Sdk.Models;
 public interface ISessionMessageCompactionTime
 {
     /// <summary>
-    /// Gets the created value.
+    /// Creation time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("created")]
     public double Created { get; }

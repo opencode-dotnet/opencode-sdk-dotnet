@@ -8,9 +8,7 @@ namespace OpenCode.Sdk.Models;
 /// </summary>
 public sealed record SessionInboxMoveTime : ISessionInboxInfoTime
 {
-    /// <summary>
-    /// Gets the created value.
-    /// </summary>
+    /// <inheritdoc cref="ISessionInboxInfoTime.Created" />
     [JsonPropertyName("created")]
     public required double Created { get; init; }
 }

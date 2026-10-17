@@ -28,13 +28,13 @@ public sealed record SessionTextEndedData
     public required long Ordinal { get; init; }
 
     /// <summary>
-    /// Gets the text value.
+    /// The complete text of the part at the replayable full-value boundary.
     /// </summary>
     [JsonPropertyName("text")]
     public required string Text { get; init; }
 
     /// <summary>
-    /// Gets the state value.
+    /// Opaque provider state for the text part.
     /// </summary>
     [JsonPropertyName("state")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

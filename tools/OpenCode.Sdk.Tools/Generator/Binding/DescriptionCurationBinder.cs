@@ -31,7 +31,7 @@ internal static partial class DescriptionCurationBinder
 
         var byType = rows.GroupBy(static row => row.Type, StringComparer.Ordinal)
             .ToDictionary(static group => group.Key, static group => group.ToArray(), StringComparer.Ordinal);
-        return plan with
+        var bound = plan with
         {
             Models = [.. plan.Models.Select(model => BindModel(model, byType))],
             Unions = [.. plan.Unions.Select(union => union with
@@ -59,6 +59,61 @@ internal static partial class DescriptionCurationBinder
                 })],
             })],
         };
+        _ = InheritedMemberOwners(bound, bound.Unions.ToDictionary(static union => union.Name, StringComparer.Ordinal), errors);
+
+        return bound;
+    }
+
+    public static IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> InheritedMemberOwners(EmitPlan plan,
+        IReadOnlyDictionary<string, UnionPlan> unions,
+        BindingErrorCollector? errors = null)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(unions);
+        var result = new Dictionary<string, IReadOnlyDictionary<string, string>>(StringComparer.Ordinal);
+        foreach (var model in plan.Models.OfType<ObjectModelPlan>().OrderBy(static model => model.Name, StringComparer.Ordinal))
+        {
+            var owners = plan.HoistedInterfaces.Where(carrier => carrier.ImplementedBy.Contains(model.Name, StringComparer.Ordinal)
+                    || model.ImplementedHoistedInterfaceNames.Contains(carrier.Name, StringComparer.Ordinal))
+                .ToDictionary(static carrier => carrier.Name, static carrier => carrier.Documentation, StringComparer.Ordinal);
+            var pending = new Queue<string>(model.ImplementedUnionNames.Concat(plan.Unions
+                .Where(union => union.Variants.Any(variant => string.Equals(variant.TypeName, model.Name, StringComparison.Ordinal))
+                    || string.Equals(union.PrefixVariant?.TypeName, model.Name, StringComparison.Ordinal))
+                .Select(static union => union.Name)));
+            while (pending.TryDequeue(out var name))
+            {
+                if (unions.TryGetValue(name, out var union) && owners.TryAdd(name, union.Documentation)
+                    && union.BaseTypeName is { } parent)
+                {
+                    pending.Enqueue(parent);
+                }
+            }
+
+            var candidates = owners.SelectMany(owner => owner.Value.Members.Select(member =>
+            {
+                var property = model.ExplicitHoistedImplementations.FirstOrDefault(bridge =>
+                    string.Equals(bridge.InterfaceName, owner.Key, StringComparison.Ordinal)
+                    && string.Equals(bridge.MemberName, member.Key, StringComparison.Ordinal))?.PropertyName ?? member.Key;
+                return (Property: property, Reference: owner.Key + "." + member.Key, Documentation: member.Value);
+            })).Where(candidate => !model.Documentation.Members.ContainsKey(candidate.Property)
+                && model.Properties.Any(property => string.Equals(property.Name, candidate.Property, StringComparison.Ordinal)));
+            var members = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var group in candidates.GroupBy(static candidate => candidate.Property, StringComparer.Ordinal))
+            {
+                var ordered = group.OrderBy(static candidate => candidate.Reference, StringComparer.Ordinal).ToArray();
+                if (ordered.Select(static candidate => candidate.Documentation).Distinct().Count() > 1)
+                {
+                    errors?.Add(BindingErrorCategory.Curation, model.Name + "." + group.Key,
+                        "description has conflicting curated owners: " + string.Join(", ", ordered.Select(static candidate => candidate.Reference)));
+                }
+
+                members.Add(group.Key, ordered[0].Reference);
+            }
+
+            result.Add(model.Name, members);
+        }
+
+        return result;
     }
 
     private static void Validate(IReadOnlyDictionary<string, IReadOnlySet<string>> targets,

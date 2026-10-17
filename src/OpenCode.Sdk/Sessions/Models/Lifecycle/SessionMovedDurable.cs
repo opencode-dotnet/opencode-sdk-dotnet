@@ -14,15 +14,11 @@ public sealed record SessionMovedDurable : IDurableEnvelope
     [JsonPropertyName("aggregateID")]
     public required string AggregateId { get; init; }
 
-    /// <summary>
-    /// Gets the seq value.
-    /// </summary>
+    /// <inheritdoc cref="IDurableEnvelope.Seq" />
     [JsonPropertyName("seq")]
     public required long Seq { get; init; }
 
-    /// <summary>
-    /// Gets the version value.
-    /// </summary>
+    /// <inheritdoc cref="IDurableEnvelope.Version" />
     [JsonPropertyName("version")]
     public required double Version { get; init; }
 }

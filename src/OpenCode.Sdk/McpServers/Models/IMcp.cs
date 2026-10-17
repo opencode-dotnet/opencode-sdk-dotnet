@@ -26,8 +26,11 @@ public interface IMcp
     public bool? Disabled { get; }
 
     /// <summary>
-    /// Gets the codemode value. Every declared variant carries it; the value is null when the payload is an unrecognized variant preserved as UnknownMcp.
+    /// Expose this server&apos;s tools through Code Mode. Defaults to true.
     /// </summary>
+    /// <remarks>
+    /// Every declared variant carries it; an unrecognized variant preserved as UnknownMcp returns null through this interface. An ordinary optional property may also be absent.
+    /// </remarks>
     [JsonPropertyName("codemode")]
     public bool? Codemode { get; }
 

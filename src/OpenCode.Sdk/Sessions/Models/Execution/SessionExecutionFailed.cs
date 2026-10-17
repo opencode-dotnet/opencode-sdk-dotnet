@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The &apos;session.execution.failed&apos; event.
+/// Reports an execution failure with its error in Data.Error.
 /// </summary>
 public sealed record SessionExecutionFailed : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

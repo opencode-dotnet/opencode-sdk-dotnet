@@ -71,7 +71,18 @@ internal static class UnionEmitter
                 SyntaxFactory.SimpleBaseType(TypeSyntaxEmitter.EmitNamed(union.BaseTypeName)))));
         }
 
-        declaration = EmissionSyntax.DocumentedType(declaration, union.Documentation, PinBoundInterfaceRemarks.Runs);
+        var documentation = union.Documentation with
+        {
+            Members = union.Documentation.Members.ToDictionary(static pair => pair.Key, pair =>
+                union.HoistedMembers.Any(member => string.Equals(member.Name, pair.Key, StringComparison.Ordinal))
+                    ? pair.Value with
+                    {
+                        Remarks = pair.Value.Remarks + " Every declared variant carries it; an unrecognized variant preserved as "
+                        + union.UnknownTypeName + " returns null through this interface. An ordinary optional property may also be absent."
+                    }
+                    : pair.Value, StringComparer.Ordinal),
+        };
+        declaration = EmissionSyntax.DocumentedType(declaration, documentation, PinBoundInterfaceRemarks.Runs);
         var unit = EmissionSyntax.CompilationUnit(
             union.Namespace,
             HoistedUsings(union.HoistedMembers, [GeneratedNamespace.Internal, "System.Text.Json.Serialization"]),
