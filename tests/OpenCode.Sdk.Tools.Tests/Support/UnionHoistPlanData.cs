@@ -21,6 +21,7 @@ internal static class UnionHoistPlanData
                 .. arms.Select(static arm => Variant(arm.Name, arm.Tag, Property("durable", Named(arm.Name + "Durable"), isRequired: true))),
                 .. arms.Select(static arm => Envelope(arm.Name + "Durable", arm.Version)),
             ], curation, errors);
+        CheckNames(result, errors);
         errors.ThrowIfAny();
         return result;
     }
@@ -41,6 +42,14 @@ internal static class UnionHoistPlanData
             Variants = variants,
         };
     }
+
+    public static void CheckNames(UnionHoistPlan plan, BindingErrorCollector errors) =>
+        new OperationPlanBinder().CheckTypeNameCollisions(GeneratedTypeNameInventory.Create(new OwnershipCandidates
+        {
+            Models = plan.Models,
+            Unions = plan.Unions,
+            HoistedInterfaces = plan.Interfaces,
+        }, [], plan.Claims, new Dictionary<string, string>(StringComparer.Ordinal)), [], errors);
 
     public static UnionVariantPlan Arm(string typeName) =>
         new()
@@ -137,6 +146,7 @@ internal static class UnionHoistPlanData
 
         var errors = new BindingErrorCollector();
         var hoisted = new UnionMemberHoistBinder().Bind(unions, models, curation, errors);
+        CheckNames(hoisted, errors);
         errors.ThrowIfAny();
         return new EmitPlan
         {

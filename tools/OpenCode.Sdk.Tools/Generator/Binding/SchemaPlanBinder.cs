@@ -41,12 +41,8 @@ internal sealed class SchemaPlanBinder(
         var models = new List<ModelPlan>();
         foreach (var key in reachable.GraphKeys)
         {
-            if (responseRoots.Contains(key) || !document.Schemas.TryGetValue(key, out var schema) || !typeNames.TryGetValue(key, out var name))
-            {
-                continue;
-            }
-
-            if (!inhabitation.IsInhabited(schema))
+            if (responseRoots.Contains(key) || !document.Schemas.TryGetValue(key, out var schema)
+                || !typeNames.TryGetValue(key, out var name) || !inhabitation.IsInhabited(schema))
             {
                 continue;
             }
@@ -55,9 +51,13 @@ internal sealed class SchemaPlanBinder(
             {
                 case ObjectNode objectNode:
                     var objectPlan = objects.Bind(key, name, objectNode, graph.ImplementedUnionNames(key), requestKeys.Contains(key));
-                    if (objectPlan is not null)
+                    if (objectPlan is FacetResult<ObjectModelPlan>.Bound bound)
                     {
-                        models.Add(objectPlan);
+                        models.Add(bound.Value);
+                    }
+                    else if (objectPlan is FacetResult<ObjectModelPlan>.Refused refused)
+                    {
+                        errors.Append(refused.Errors);
                     }
 
                     break;
@@ -86,9 +86,11 @@ internal sealed class SchemaPlanBinder(
         orderedUnions = [.. hoisted.Unions];
         return new SchemaBindingResult
         {
+            TypeNames = typeNames,
             Models = orderedModels,
             Unions = orderedUnions,
             HoistedInterfaces = hoisted.Interfaces,
+            HoistedClaims = hoisted.Claims,
             ErrorUnion = errorUnion,
             Registry = new RegistryPlan
             {

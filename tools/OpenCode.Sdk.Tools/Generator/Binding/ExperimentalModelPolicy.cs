@@ -10,11 +10,12 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 internal static class ExperimentalModelPolicy
 {
     public static IReadOnlyDictionary<string, string> Collect(ReachableSchemaCollector reachableSchemas, ReachScope scope,
-        OwnershipCandidates candidates, BindingErrorCollector errors)
+        OwnershipCandidates candidates, GeneratedTypeNameInventory inventory, BindingErrorCollector errors)
     {
         ArgumentNullException.ThrowIfNull(reachableSchemas);
         ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(candidates);
+        ArgumentNullException.ThrowIfNull(inventory);
         ArgumentNullException.ThrowIfNull(errors);
 
         var diagnostics = scope.Clients.SelectMany(static client => client.Operations)
@@ -23,15 +24,11 @@ internal static class ExperimentalModelPolicy
             scope with { Selected = [.. scope.Selected.Where(static operation => !ExperimentalRoutePolicy.IsExperimental(operation.Path))] },
             candidates, errors);
         var reachedBy = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
-        var generatedTypes = candidates.Models.Select(static model => model.Name)
-            .Concat(candidates.Unions.SelectMany(static union => new[] { union.Name, union.UnknownTypeName }))
-            .Concat(candidates.Models.OfType<StructuralUnionModelPlan>().Select(static union => union.KindTypeName))
-            .Concat(candidates.HoistedInterfaces.Select(static plan => plan.Name)).ToHashSet(StringComparer.Ordinal);
         foreach (var subset in scope.Selected.Where(operation => diagnostics.GetValueOrDefault(operation.OperationId) is not null)
                      .GroupBy(operation => diagnostics[operation.OperationId]!, StringComparer.Ordinal))
         {
             var reached = ModelReachCollector.CollectSubset(reachableSchemas, scope with { Selected = [.. subset] }, candidates, errors);
-            foreach (var name in reached.Where(name => generatedTypes.Contains(name) && !stable.Contains(name)))
+            foreach (var name in reached.Where(name => inventory.Names.Contains(name) && !stable.Contains(name)))
             {
                 if (!reachedBy.TryGetValue(name, out var ids))
                 {

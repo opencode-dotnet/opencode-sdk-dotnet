@@ -6,7 +6,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 
 internal sealed class ErrorUnionBinder(SchemaBindingContext context)
 {
-    private readonly SchemaBindingContext _context = context;
+    private readonly SchemaBindingContext _context = context with { Errors = new BindingErrorCollector() };
+    private readonly BindingErrorCollector _publishedErrors = context.Errors;
 
     public ErrorUnionBindingResult Bind()
     {
@@ -68,8 +69,10 @@ internal sealed class ErrorUnionBinder(SchemaBindingContext context)
             };
         }
 
+        var errors = _context.Errors.Snapshot();
+        _publishedErrors.Append(errors);
         return new ErrorUnionBindingResult(new UnionBindingResult(null, plan, edges.AsReadOnly()),
-            new ReadOnlyDictionary<string, UnionVariantPlan>(admitted), new ReadOnlyDictionary<string, BindingError>(refused));
+            new ReadOnlyDictionary<string, UnionVariantPlan>(admitted), new ReadOnlyDictionary<string, BindingError>(refused), errors);
     }
 
     /// <summary>

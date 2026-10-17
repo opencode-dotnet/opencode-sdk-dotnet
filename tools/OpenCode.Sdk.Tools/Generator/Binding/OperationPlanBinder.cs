@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Globalization;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
@@ -12,19 +11,20 @@ internal sealed class OperationPlanBinder
     private readonly StringComparer _comparer = StringComparer.Ordinal;
 
     public IReadOnlyList<ClientPlan> Bind(SpecDocument document, IReadOnlyList<SpecOperation> selected,
-        GenerationCuration curation, IReadOnlyDictionary<string, string> typeNames, BindingErrorCollector errors)
+        GenerationCuration curation, SchemaBindingResult schemas, BindingErrorCollector errors)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(selected);
         ArgumentNullException.ThrowIfNull(curation);
-        ArgumentNullException.ThrowIfNull(typeNames);
+        ArgumentNullException.ThrowIfNull(schemas);
         ArgumentNullException.ThrowIfNull(errors);
 
+        var typeNames = schemas.TypeNames;
         var typeBinder = new TypePlanBinder(document.Schemas, typeNames, errors);
         var bound = new List<BoundOperation>(selected.Count);
         foreach (var operation in selected.OrderBy(static operation => operation.OperationId, _comparer))
         {
-            var operationPlan = new SingleOperationBinder(document, operation, curation, typeNames, errors, typeBinder).Bind();
+            var operationPlan = new SingleOperationBinder(new OperationFacetContext(document, operation, curation, typeNames, errors, typeBinder), schemas.ErrorUnion).Bind();
             if (operationPlan is not null)
             {
                 bound.Add(operationPlan);
@@ -38,7 +38,6 @@ internal sealed class OperationPlanBinder
 
         var clients = ExperimentalClientPolicy.Apply(AssembleClients(bound), errors);
         CheckMemberCollisions(clients, errors);
-        CheckTypeNameCollisions(clients, bound, typeNames, errors);
         return clients;
     }
 
@@ -179,415 +178,77 @@ internal sealed class OperationPlanBinder
         }
     }
 
-    private void CheckTypeNameCollisions(List<ClientPlan> clients, List<BoundOperation> bound,
-        IReadOnlyDictionary<string, string> typeNames, BindingErrorCollector errors)
+    public IReadOnlySet<string> CheckTypeNameCollisions(GeneratedTypeNameInventory inventory, IReadOnlyList<ClientPlan> clients, BindingErrorCollector errors)
     {
-        // Model names shadow across namespaces (consumer CS0104) and hand-written spine
-        // names collide outright (CS0101), so both seed the owner set — reserved names
-        // first, each model name individually, because a bulk union would swallow a
-        // model/spine duplicate instead of refusing it.
+        ArgumentNullException.ThrowIfNull(inventory);
+        ArgumentNullException.ThrowIfNull(clients);
+        ArgumentNullException.ThrowIfNull(errors);
+        var refusedHoists = new HashSet<string>(_comparer);
+        var hoistedOwners = new HashSet<string>(_comparer);
+        foreach (var claim in inventory.Claims.Where(claim => claim.Role is GeneratedTypeNameInventory.ClaimRole.Hoisted
+                     && (!hoistedOwners.Add(claim.Name) || inventory.OtherClaims(claim).Any(static other => other.Role is not GeneratedTypeNameInventory.ClaimRole.Hoisted))))
+        {
+            if (inventory.OtherClaims(claim).Any(static other => other.Role is not GeneratedTypeNameInventory.ClaimRole.Hoisted))
+            {
+                _ = refusedHoists.Add(claim.Name);
+            }
+            errors.Add(BindingErrorCategory.Naming, claim.Subject,
+                $"hoisted member '{claim.WireName}' resolves to '{claim.Name}', which already names another generated type");
+        }
+
+        // Spine names claim first, followed by models individually so a model/spine duplicate refuses.
         var owners = new HashSet<string>(_comparer);
         owners.UnionWith(ReservedNamePolicy.SpineTypeNames);
-        foreach (var entry in typeNames
-                     .Where(entry => !owners.Add(entry.Value) && ReservedNamePolicy.SpineTypeNames.Contains(entry.Value))
-                     .OrderBy(static entry => entry.Key, StringComparer.Ordinal))
+        // Derived kit/adapter names reserve their declarations; their owning declaration reports duplicates.
+        owners.UnionWith(inventory.Claims.Where(static claim => claim.Role is GeneratedTypeNameInventory.ClaimRole.Derived).Select(static claim => claim.Name));
+        foreach (var claim in inventory.Claims.Where(claim => claim.Role is GeneratedTypeNameInventory.ClaimRole.Model
+                     && !owners.Add(claim.Name))
+                     .OrderBy(static claim => claim.Subject, StringComparer.Ordinal))
         {
-            errors.Add(
-                BindingErrorCategory.Naming,
-                entry.Key,
-                $"model type name '{entry.Value}' collides with the hand-written spine type '{entry.Value}'");
+            errors.Add(BindingErrorCategory.Naming, claim.Subject, ReservedNamePolicy.SpineTypeNames.Contains(claim.Name)
+                ? $"model type name '{claim.Name}' collides with the hand-written spine type '{claim.Name}'"
+                : $"type name '{claim.Name}' collides with another generated type");
         }
 
-        foreach (var name in clients.Select(static client => client.Name).Where(name => !owners.Add(name)))
+        foreach (var claim in inventory.Claims.Where(claim => claim.Role is not (GeneratedTypeNameInventory.ClaimRole.Model
+                     or GeneratedTypeNameInventory.ClaimRole.Hoisted or GeneratedTypeNameInventory.ClaimRole.EnvelopeDto
+                     or GeneratedTypeNameInventory.ClaimRole.Derived) && !owners.Add(claim.Name)))
         {
-            errors.Add(BindingErrorCategory.Naming, name, $"client type name '{name}' collides with another generated type");
+            var problem = claim.Role switch
+            {
+                GeneratedTypeNameInventory.ClaimRole.Client => $"client type name '{claim.Name}' collides with another generated type",
+                GeneratedTypeNameInventory.ClaimRole.Response => $"multiple operations map to response type '{claim.Name}'",
+                GeneratedTypeNameInventory.ClaimRole.StreamAdapter => $"multiple operations map to stream adapter '{claim.Name}'",
+                GeneratedTypeNameInventory.ClaimRole.QueryRequest => $"request type name '{claim.Name}' collides with another generated type",
+                GeneratedTypeNameInventory.ClaimRole.Model or GeneratedTypeNameInventory.ClaimRole.EnvelopeDto
+                    or GeneratedTypeNameInventory.ClaimRole.Hoisted or GeneratedTypeNameInventory.ClaimRole.Derived => throw new UnreachableException(),
+                _ => throw new UnreachableException(),
+            };
+            errors.Add(BindingErrorCategory.Naming, claim.Subject, problem);
         }
 
-        // A streaming operation declares no response type; its adapter name is claimed below.
-        foreach (var operation in bound.Where(operation =>
-                     operation.Plan.Envelope is { } envelope && !owners.Add(envelope.ResponseTypeName)))
+        var derivedOwners = new HashSet<string>(ReservedNamePolicy.SpineTypeNames, _comparer);
+        var responseNames = inventory.Claims.Where(static claim => claim.Role is GeneratedTypeNameInventory.ClaimRole.Response)
+            .ToDictionary(static claim => claim.Subject, static claim => claim.Name, _comparer);
+        foreach (var claim in inventory.Claims.Where(claim => claim.Role is GeneratedTypeNameInventory.ClaimRole.Derived && !derivedOwners.Add(claim.Name)))
         {
-            errors.Add(
-                BindingErrorCategory.Naming,
-                operation.OperationId,
-                $"multiple operations map to response type '{operation.Plan.Envelope!.ResponseTypeName}'");
-        }
-
-        foreach (var operation in bound.Where(operation =>
-                     operation.Plan.Stream is { } stream && !owners.Add(stream.AdapterTypeName)))
-        {
-            errors.Add(
-                BindingErrorCategory.Naming,
-                operation.OperationId,
-                $"multiple operations map to stream adapter '{operation.Plan.Stream!.AdapterTypeName}'");
-        }
-
-        // A merged request's type IS the body model, so only standalone query records
-        // claim a name of their own.
-        foreach (var operation in bound.Where(operation =>
-                     operation.Plan.QueryRequest is { RidesRequestBody: false } query && !owners.Add(query.TypeName)))
-        {
-            errors.Add(
-                BindingErrorCategory.Naming,
-                operation.OperationId,
-                $"request type name '{operation.Plan.QueryRequest!.TypeName}' collides with another generated type");
+            // Equal response declarations already refuse with their response-name diagnostic.
+            if (responseNames.TryGetValue(claim.Subject, out var responseName)
+                && inventory.OtherClaims(claim).Any(other => other.Role is GeneratedTypeNameInventory.ClaimRole.Derived
+                    && responseNames.TryGetValue(other.Subject, out var otherResponse) && string.Equals(responseName, otherResponse, StringComparison.Ordinal)))
+            {
+                continue;
+            }
+            errors.Add(BindingErrorCategory.Naming, claim.Subject, $"type name '{claim.Name}' collides with another generated type");
         }
 
         var routeMembers = new HashSet<string>(_comparer);
-        foreach (var operation in bound.Where(operation =>
-                     !routeMembers.Add($"{operation.Plan.RouteContainerName}.{operation.Plan.RouteMemberName}")))
+        var operations = clients.SelectMany(static client => client.Operations).OrderBy(static operation => operation.OperationId, _comparer).ToArray();
+        foreach (var operation in operations.Where(operation => !routeMembers.Add($"{operation.RouteContainerName}.{operation.RouteMemberName}")))
         {
-            errors.Add(
-                BindingErrorCategory.Naming,
-                operation.OperationId,
-                $"multiple operations map to route member '{operation.Plan.RouteContainerName}.{operation.Plan.RouteMemberName}'");
+            errors.Add(BindingErrorCategory.Naming, operation.OperationId,
+                $"multiple operations map to route member '{operation.RouteContainerName}.{operation.RouteMemberName}'");
         }
-    }
-
-    private sealed record BoundOperation
-    {
-        public required string OperationId { get; init; }
-
-        public required string Group { get; init; }
-
-        public required GroupCuration Row { get; init; }
-
-        public required bool IsHandleOperation { get; init; }
-
-        public required OperationPlan Plan { get; init; }
-    }
-
-    /// <summary>
-    /// Binds one selected operation, batching every wire-contract refusal it finds. The
-    /// per-facet work lives in the facet binders over the shared context; this class owns
-    /// the orchestration order, the names, the body-and-query merge policy, the error map,
-    /// and the path parameters. A new operation shape is one facet file plus one call here.
-    /// </summary>
-    private sealed class SingleOperationBinder(
-        SpecDocument document,
-        SpecOperation operation,
-        GenerationCuration curation,
-        IReadOnlyDictionary<string, string> typeNames,
-        BindingErrorCollector errors,
-        TypePlanBinder types)
-    {
-        private readonly OperationFacetContext _context = new(document, operation, curation, typeNames, errors, types);
-
-        public BoundOperation? Bind()
-        {
-            var group = _context.Operation.Segments[0];
-            if (!_context.Curation.Groups.TryGetValue(group, out var row))
-            {
-                // The curation validator already reported the missing row.
-                return null;
-            }
-
-            if (!new OperationWireShapeWall(_context, row.Emission).Check())
-            {
-                return null;
-            }
-
-            var success = _context.Operation.Responses.Single(static response => response.StatusCode is 200 or 204);
-            var stream = success.IsSse ? new StreamFacetBinder(_context).Bind(success) : null;
-            var envelope = success.IsSse ? null : new EnvelopeFacetBinder(_context).Bind(success);
-            if (success.IsSse && _context.Operation.RequestBody is not null)
-            {
-                _context.Refuse("streaming operations must not carry a request body");
-                return null;
-            }
-
-            var errorMap = BindErrorMap();
-            var declaredHeaders = BindDeclaredHeaders();
-            var parameters = BindParameters(row, declaredHeaders);
-            var optionalPlanErrorsBefore = _context.Errors.Count;
-            var (queryRequest, requestBody) = BindRequests();
-
-            var handle = parameters?.Any(static parameter => parameter.IsHandleParameter) ?? false;
-            var (methodName, routeMemberName, rowRequired) = ResolveNames(row, handle);
-            if (rowRequired is not null)
-            {
-                _context.Refuse(rowRequired);
-                return null;
-            }
-
-            if (methodName is null || routeMemberName is null)
-            {
-                _context.Refuse("the operation's names cannot be derived mechanically: the group does not pluralize naively");
-                return null;
-            }
-
-            var pagination = new PaginationFacetBinder(_context)
-                .Bind(methodName, parameters, declaredHeaders, queryRequest, requestBody, envelope);
-
-            if ((success.IsSse ? stream is null : envelope is null)
-                || errorMap is null || parameters is null || _context.Errors.Count != optionalPlanErrorsBefore)
-            {
-                return null;
-            }
-
-            return new BoundOperation
-            {
-                OperationId = _context.Operation.OperationId,
-                Group = group,
-                Row = row,
-                IsHandleOperation = handle,
-                Plan = new OperationPlan
-                {
-                    OperationId = _context.Operation.OperationId,
-                    MethodName = methodName,
-                    HttpMethod = _context.Operation.Method,
-                    RouteTemplate = _context.Operation.Path,
-                    ExperimentalDiagnostic = ExperimentalRoutePolicy.IsExperimental(_context.Operation.Path) ? row.ExperimentalDiagnostic : null,
-                    RouteContainerName = row.ClientName ?? CSharpNamePolicy.ToPascalCase(group),
-                    RouteMemberName = routeMemberName,
-                    Parameters = parameters,
-                    DeclaredHeaders = declaredHeaders,
-                    QueryRequest = queryRequest,
-                    RequestBody = requestBody,
-                    Envelope = envelope,
-                    Stream = stream,
-                    Pagination = pagination,
-                    ErrorMap = errorMap,
-                    Summary = _context.Operation.Summary,
-                    Description = _context.Operation.Description,
-                },
-            };
-        }
-
-        /// <summary>
-        /// The names a row or the mechanical policy give the operation; the third member is the
-        /// refusal when neither may name it — the HTTP method is never a name source (ADR-0008).
-        /// </summary>
-        private (string? MethodName, string? RouteMemberName, string? RowRequired) ResolveNames(GroupCuration row, bool handle)
-        {
-            var curatedName = _context.Curation.OperationNames.FirstOrDefault(operationName =>
-                string.Equals(operationName.OperationId, _context.Operation.OperationId, StringComparison.Ordinal));
-            if (curatedName is null && (OperationNamePolicy.RowRequiredProblem(_context.Operation)
-                                       ?? OperationNamePolicy.AmbiguousPluralProblem(_context.Operation, handle: handle)) is { } rowRequired)
-            {
-                return (null, null, rowRequired);
-            }
-
-            return (OperationNamePolicy.MethodName(_context.Operation, curatedName, handle),
-                OperationNamePolicy.RouteMemberName(_context.Operation, row.Placement, curatedName, handle),
-                null);
-        }
-
-        private (QueryRequestPlan? Query, RequestBodyPlan? Body) BindRequests()
-        {
-            var queryRequest = new QueryRequestFacetBinder(_context).Bind();
-            var requestBody = new RequestBodyFacetBinder(_context).Bind();
-            // A raw-byte body is the caller's stream, not a model the query can ride, so its
-            // query parameters keep their own request record beside it.
-            if (queryRequest is null || requestBody is null || requestBody.IsBinary)
-            {
-                return (queryRequest, requestBody);
-            }
-
-            // A body and query merge into one uniform request model only for the location
-            // channel; every other mix keeps the deliberate wall.
-            if (queryRequest.Properties.Any(static property => property.Kind is not QueryValueKind.Location))
-            {
-                _context.Refuse("operations mixing a request body and query parameters are supported only for the location selector");
-                return (queryRequest, requestBody);
-            }
-
-            return (queryRequest with { RidesRequestBody = true }, requestBody);
-        }
-
-        private ErrorMapPlan? BindErrorMap()
-        {
-            var statuses = new List<ErrorStatusPlan>();
-            var complete = true;
-            foreach (var response in _context.Operation.Responses.Where(static response => response.StatusCode is >= 400))
-            {
-                var tags = BindErrorStatus(response);
-                if (tags is null)
-                {
-                    complete = false;
-                    continue;
-                }
-
-                statuses.Add(new ErrorStatusPlan
-                {
-                    StatusCode = response.StatusCode,
-                    Tags = tags,
-                });
-            }
-
-            return complete
-                ? new ErrorMapPlan
-                {
-                    Statuses = [.. statuses.OrderBy(static status => status.StatusCode)],
-                }
-                : null;
-        }
-
-        private IReadOnlyList<ErrorTagPlan>? BindErrorStatus(SpecResponse response)
-        {
-            if (response.ContentType is not { IsJson: true } || response.Schema is null)
-            {
-                return RefuseNullTags("error responses must carry a JSON schema");
-            }
-
-            var targets = ResolveErrorTargets(response.Schema);
-            if (targets is null)
-            {
-                return RefuseNullTags("error responses must reference tagged error schemas");
-            }
-
-            var tags = new List<ErrorTagPlan>(targets.Count);
-            foreach (var (key, node) in targets)
-            {
-                if (ErrorMarkerPolicy.Resolve(node, out var problem) is not { } marker)
-                {
-                    return RefuseNullTags($"error responses must reference tagged error schemas: '{key}': {problem}");
-                }
-
-                if (!_context.TypeNames.TryGetValue(key, out var typeName))
-                {
-                    _context.Errors.Add(BindingErrorCategory.Naming, key, "error schema has no unique C# type name");
-                    return null;
-                }
-
-                tags.Add(new ErrorTagPlan
-                {
-                    Tag = marker.Value,
-                    TypeName = typeName,
-                });
-            }
-
-            var duplicate = tags.GroupBy(static tag => tag.Tag, StringComparer.Ordinal).FirstOrDefault(static tag => tag.Skip(1).Any());
-            if (duplicate is not null)
-            {
-                return RefuseNullTags(
-                    $"status '{response.StatusCode.ToString(CultureInfo.InvariantCulture)}' declares duplicate error tag '{duplicate.Key}'");
-            }
-
-            return [.. tags.OrderBy(static tag => tag.Tag, StringComparer.Ordinal)];
-        }
-
-        /// <summary>Resolves an error response schema into the object schemas carrying its tags.</summary>
-        private List<KeyValuePair<string, ObjectNode>>? ResolveErrorTargets(SchemaNode schema)
-        {
-            if (schema is not RefNode reference || !_context.Document.Schemas.TryGetValue(reference.Target, out var target))
-            {
-                return null;
-            }
-
-            switch (target)
-            {
-                case ObjectNode objectNode:
-                    return [new KeyValuePair<string, ObjectNode>(reference.Target, objectNode)];
-                case UnionNode { Classification: UnionClassification.Marked } union:
-                    var branches = new List<KeyValuePair<string, ObjectNode>>(union.Branches.Count);
-                    foreach (var branch in union.Branches)
-                    {
-                        if (branch is not RefNode branchReference
-                            || !_context.Document.Schemas.TryGetValue(branchReference.Target, out var branchTarget)
-                            || branchTarget is not ObjectNode branchNode)
-                        {
-                            return null;
-                        }
-
-                        branches.Add(new KeyValuePair<string, ObjectNode>(branchReference.Target, branchNode));
-                    }
-
-                    return branches;
-                default:
-                    return null;
-            }
-        }
-
-        /// <summary>
-        /// Binds the declared request headers. The wire-shape wall has already refused a
-        /// header the emitted signature could not carry, and refused every header outside an
-        /// internal-raw family, so the declaration order carries straight into the plan.
-        /// </summary>
-        private IReadOnlyList<DeclaredHeaderPlan> BindDeclaredHeaders() =>
-        [
-            .. _context.Operation
-                .Parameters
-                .Where(static parameter => parameter.Location is SpecParameterLocation.Header)
-                .Select(static parameter => new DeclaredHeaderPlan
-                {
-                    WireName = parameter.Name,
-                    Name = CSharpNamePolicy.ToCamelCase(parameter.Name),
-                }),
-        ];
-
-        /// <summary>The C# name a parameter-name row gives one of this operation's route values, if any.</summary>
-        private string? CuratedParameterName(string wireName) =>
-            _context.Curation.ParameterNames.FirstOrDefault(row =>
-                    string.Equals(row.OperationId, _context.Operation.OperationId, StringComparison.Ordinal)
-                    && string.Equals(row.Parameter, wireName, StringComparison.Ordinal))
-                ?.DotNetName;
-
-        private IReadOnlyList<OperationParameterPlan>? BindParameters(GroupCuration row,
-            IReadOnlyList<DeclaredHeaderPlan> declaredHeaders)
-        {
-            var plans = _context.Operation
-                .Parameters
-                .Where(static parameter => parameter.Location is SpecParameterLocation.Path)
-                .Select(parameter => new OperationParameterPlan
-                {
-                    WireName = parameter.Name,
-                    Name = CuratedParameterName(parameter.Name) ?? CSharpNamePolicy.ToCamelCase(parameter.Name),
-                    TypeName = "string",
-                    IsHandleParameter = row.Placement is GroupPlacement.Client
-                                        && string.Equals(parameter.Name, row.HandleParameter, StringComparison.Ordinal),
-                })
-                .ToList();
-
-            // Route values and declared headers share one emitted signature, so they are
-            // checked against one another rather than each within its own location.
-            var names = plans
-                .Select(static plan => plan.Name)
-                .Concat(declaredHeaders.Select(static header => header.Name))
-                .ToArray();
-            var duplicate = names.GroupBy(static name => name, StringComparer.Ordinal).FirstOrDefault(static name => name.Skip(1).Any());
-            if (duplicate is not null)
-            {
-                _context.Errors.Add(
-                    BindingErrorCategory.Naming,
-                    _context.Operation.OperationId,
-                    $"multiple parameters map to C# name '{duplicate.Key}'");
-                return null;
-            }
-
-            // Emitted signatures append these names after bind-time checks; a wire parameter
-            // landing on one must fail here, never as an emitted compile error.
-            var reserved = names
-                .Where(static name => ReservedNamePolicy.ParameterNames.Contains(name))
-                .Order(StringComparer.Ordinal)
-                .ToArray();
-            if (reserved.Length > 0)
-            {
-                foreach (var name in reserved)
-                {
-                    _context.Errors.Add(
-                        BindingErrorCategory.Naming,
-                        _context.Operation.OperationId,
-                        $"parameter name '{name}' is reserved by the emitted method signature");
-                }
-
-                return null;
-            }
-
-            return [.. plans.OrderBy(plan => TemplatePosition(plan.WireName))];
-        }
-
-        private int TemplatePosition(string wireName)
-        {
-            var position = _context.Operation.Path.IndexOf($"{{{wireName}}}", StringComparison.Ordinal);
-            Debug.Assert(position >= 0, "Ingestion guarantees every path parameter appears in the route template.");
-            return position;
-        }
-
-        private IReadOnlyList<ErrorTagPlan>? RefuseNullTags(string problem)
-        {
-            _context.Refuse(problem);
-            return null;
-        }
+        return refusedHoists;
     }
 }

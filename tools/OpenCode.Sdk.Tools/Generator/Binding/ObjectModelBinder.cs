@@ -7,20 +7,23 @@ internal sealed class ObjectModelBinder(SchemaBindingContext context)
 {
     private readonly SchemaBindingContext _context = context;
 
-    public ObjectModelPlan? Bind(string key, string name, ObjectNode node, IReadOnlyList<string> implementedNames, bool isRequestReachable)
+    public FacetResult<ObjectModelPlan> Bind(string key, string name, ObjectNode node, IReadOnlyList<string> implementedNames, bool isRequestReachable)
     {
-        var errors = _context.Errors;
+        var errors = new BindingErrorCollector();
+        var types = new TypePlanBinder(_context.Document.Schemas, _context.TypeNames, errors);
         if (!TryAdmitAdditionalProperties(key, node, errors, out var emitsExtensionData))
         {
-            return null;
+            return new FacetResult<ObjectModelPlan>.Refused(errors.Snapshot());
         }
 
         var properties = new List<ModelPropertyPlan>(node.Properties.Count);
+        var refused = false;
         foreach (var property in node.Properties)
         {
-            var type = _context.Types.Bind(key, property.Name, property.Schema);
+            var type = types.Bind(key, property.Name, property.Schema);
             if (type is null)
             {
+                refused = true;
                 continue;
             }
 
@@ -51,9 +54,9 @@ internal sealed class ObjectModelBinder(SchemaBindingContext context)
             });
         }
 
-        if (properties.Count != node.Properties.Count)
+        if (refused)
         {
-            return null;
+            return new FacetResult<ObjectModelPlan>.Refused(errors.Snapshot());
         }
 
         var duplicate = properties.GroupBy(static property => property.Name, StringComparer.Ordinal)
@@ -61,15 +64,15 @@ internal sealed class ObjectModelBinder(SchemaBindingContext context)
         if (duplicate is not null)
         {
             errors.Add(BindingErrorCategory.Naming, key, $"multiple properties map to C# name '{duplicate.Key}'");
-            return null;
+            return new FacetResult<ObjectModelPlan>.Refused(errors.Snapshot());
         }
 
         if (emitsExtensionData && TakesExtensionDataMemberName(key, properties, errors))
         {
-            return null;
+            return new FacetResult<ObjectModelPlan>.Refused(errors.Snapshot());
         }
 
-        return new ObjectModelPlan
+        return new FacetResult<ObjectModelPlan>.Bound(new ObjectModelPlan
         {
             Name = name,
             Namespace = GeneratedNamespace.Models,
@@ -77,7 +80,7 @@ internal sealed class ObjectModelBinder(SchemaBindingContext context)
             Properties = properties,
             ImplementedUnionNames = implementedNames,
             EmitsExtensionData = emitsExtensionData,
-        };
+        });
     }
 
     /// <summary>

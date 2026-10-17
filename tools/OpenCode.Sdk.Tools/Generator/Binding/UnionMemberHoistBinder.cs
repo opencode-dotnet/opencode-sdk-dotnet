@@ -39,6 +39,7 @@ internal sealed class UnionMemberHoistBinder
             Unions = [.. unions.Select(union => hoisted[union.Name] is { Count: > 0 } members ? union with { HoistedMembers = members } : union)],
             Models = context.Implementations.Apply(models),
             Interfaces = context.Carriers.Interfaces,
+            Claims = context.Carriers.Claims,
         };
     }
 
@@ -46,8 +47,6 @@ internal sealed class UnionMemberHoistBinder
         GenerationCuration curation, BindingErrorCollector errors)
     {
         var objectModels = models.OfType<ObjectModelPlan>().ToDictionary(static model => model.Name, _comparer);
-        var taken = new HashSet<string>(models.Select(static model => model.Name), _comparer);
-        taken.UnionWith(unions.SelectMany(static union => new[] { union.Name, union.UnknownTypeName, }));
         var implementations = new HoistedImplementationAccumulator();
         // One policy instance answers both the union interface and every carrier interface, so the
         // two can never disagree about which record property satisfies a declared member.
@@ -58,7 +57,7 @@ internal sealed class UnionMemberHoistBinder
             objectModels,
             new HoistedMemberIdentityPolicy(objectModels),
             satisfaction,
-            new HoistedCarrierComposer(objectModels, curation.HoistedMemberNames, taken, satisfaction, implementations, errors),
+            new HoistedCarrierComposer(objectModels, curation.HoistedMemberNames, satisfaction, implementations, errors),
             implementations,
             errors);
     }

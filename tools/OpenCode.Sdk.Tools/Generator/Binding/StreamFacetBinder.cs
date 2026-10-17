@@ -6,27 +6,27 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// <summary>Binds the <see cref="OperationPlan.Stream"/> facet of a streaming success.</summary>
 internal sealed class StreamFacetBinder(OperationFacetContext context)
 {
-    private readonly OperationFacetContext _context = context ?? throw new ArgumentNullException(nameof(context));
+    private readonly OperationFacetContext _context = context.CreateLocal();
 
     /// <summary>
     /// Reads a streaming success: the frame profile the contract declares, the payload its
     /// JSON-encoded data field carries, and the event name that reports a mid-stream failure.
     /// Every part is required — a stream whose shape is not fully declared is refused.
     /// </summary>
-    public StreamPlan? Bind(SpecResponse success)
+    public FacetResult<StreamPlan?> Bind(SpecResponse success)
     {
         ArgumentNullException.ThrowIfNull(success);
 
         if (success.ContentType is not { IsEventStream: true } || success.Schema is null)
         {
-            return _context.RefuseNull<StreamPlan>("a streaming success must carry a text/event-stream schema");
+            return _context.RefuseFacet<StreamPlan?>("a streaming success must carry a text/event-stream schema");
         }
 
         if (success.Schema is not RefNode reference
             || !_context.Document.Schemas.TryGetValue(reference.Target, out var target)
             || target is not ObjectNode frame)
         {
-            return _context.RefuseNull<StreamPlan>("the event frame must reference a named object schema");
+            return _context.RefuseFacet<StreamPlan?>("the event frame must reference a named object schema");
         }
 
         var id = frame.Properties.FirstOrDefault(static property => property.Name is "id");
@@ -38,34 +38,34 @@ internal sealed class StreamFacetBinder(OperationFacetContext context)
             || eventName is not { IsRequired: true }
             || data is not { IsRequired: true })
         {
-            return _context.RefuseNull<StreamPlan>("the event frame must declare exactly 'id', 'event' and 'data', and require 'event' and 'data'");
+            return _context.RefuseFacet<StreamPlan?>("the event frame must declare exactly 'id', 'event' and 'data', and require 'event' and 'data'");
         }
 
         if (!SpineShapePolicy.IsNullableUnformattedString(_context, id.Schema))
         {
-            return _context.RefuseNull<StreamPlan>("the event frame 'id' must be a nullable string");
+            return _context.RefuseFacet<StreamPlan?>("the event frame 'id' must be a nullable string");
         }
 
         if (_context.Resolve(eventName.Schema) is not PrimitiveNode { Kind: PrimitiveKind.String, Format: null })
         {
-            return _context.RefuseNull<StreamPlan>("the event frame 'event' must be a string");
+            return _context.RefuseFacet<StreamPlan?>("the event frame 'event' must be a string");
         }
 
         var payload = BindFramePayload(data.Schema);
         var failure = BindEffectStream(success);
         if (payload is null || failure is null)
         {
-            return null;
+            return _context.Refused<StreamPlan?>();
         }
 
         var responseTypeName = OperationNamePolicy.ResponseTypeName(_context.Operation);
-        return new StreamPlan
+        return new FacetResult<StreamPlan?>.Bound(new StreamPlan
         {
             PayloadTypeName = payload,
             AdapterTypeName = $"{responseTypeName}StreamAdapter",
             FailureEventName = failure.EventName,
             CauseTypeName = failure.CauseTypeName,
-        };
+        });
     }
 
     /// <summary>The frame's data field is a JSON-encoded string; the stream yields what it encodes.</summary>

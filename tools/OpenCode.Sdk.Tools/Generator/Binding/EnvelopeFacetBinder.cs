@@ -6,9 +6,9 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// <summary>Binds the <see cref="OperationPlan.Envelope"/> facet of a non-streaming success.</summary>
 internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
 {
-    private readonly OperationFacetContext _context = context ?? throw new ArgumentNullException(nameof(context));
+    private readonly OperationFacetContext _context = context.CreateLocal();
 
-    public EnvelopePlan? Bind(SpecResponse success)
+    public FacetResult<EnvelopePlan?> Bind(SpecResponse success)
     {
         ArgumentNullException.ThrowIfNull(success);
 
@@ -19,13 +19,13 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
 
         if (IsBinary(success))
         {
-            return BindBinaryEnvelope();
+            return new FacetResult<EnvelopePlan?>.Bound(BindBinaryEnvelope());
         }
 
         if (success.ContentType is not { IsJson: true } || success.Schema is null)
         {
             _context.Refuse("the success response must carry a JSON schema");
-            return null;
+            return _context.Refused<EnvelopePlan?>();
         }
 
         // Read once and threaded through: SingleKeyMember refuses a malformed wrapper by name, so
@@ -39,12 +39,12 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
             : null;
         if (success.EnvelopeShape is SpecEnvelopeShape.DataLocation && locationTypeName is null)
         {
-            return null;
+            return _context.Refused<EnvelopePlan?>();
         }
 
         if (payload is null)
         {
-            return null;
+            return _context.Refused<EnvelopePlan?>();
         }
 
         // A single-key body wears its payload's own key; every other wrapped shape uses the
@@ -55,7 +55,7 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
             : "data";
         if (wireMemberName is null)
         {
-            return null;
+            return _context.Refused<EnvelopePlan?>();
         }
 
         var responseTypeName = OperationNamePolicy.ResponseTypeName(_context.Operation);
@@ -67,11 +67,11 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
             success.EnvelopeShape is SpecEnvelopeShape.SingleKey);
         if (payloadName is null)
         {
-            return null;
+            return _context.Refused<EnvelopePlan?>();
         }
 
         var kind = KindOf(success);
-        return new EnvelopePlan
+        return new FacetResult<EnvelopePlan?>.Bound(new EnvelopePlan
         {
             ResponseTypeName = responseTypeName,
             AdapterTypeName = $"{responseTypeName}Adapter",
@@ -86,7 +86,7 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
             {
                 Summary = kind is EnvelopeKind.Bare ? null : success.Schema.Description ?? _context.Resolve(success.Schema).Description,
             },
-        };
+        });
     }
 
     private EnvelopeKind KindOf(SpecResponse success) => success.EnvelopeShape switch
@@ -201,16 +201,16 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
         return payloadName;
     }
 
-    private EnvelopePlan? BindNoContentEnvelope(SpecResponse success)
+    private FacetResult<EnvelopePlan?> BindNoContentEnvelope(SpecResponse success)
     {
         if (success.ContentType is not null || success.Schema is not null)
         {
             _context.Refuse("a 204 success must not carry content");
-            return null;
+            return _context.Refused<EnvelopePlan?>();
         }
 
         var responseTypeName = OperationNamePolicy.ResponseTypeName(_context.Operation);
-        return new EnvelopePlan
+        return new FacetResult<EnvelopePlan?>.Bound(new EnvelopePlan
         {
             ResponseTypeName = responseTypeName,
             AdapterTypeName = $"{responseTypeName}Adapter",
@@ -219,7 +219,7 @@ internal sealed class EnvelopeFacetBinder(OperationFacetContext context)
             Kind = EnvelopeKind.NoContent,
             SuccessStatusCode = 204,
             EnvelopeDtoTypeName = null,
-        };
+        });
     }
 
     private TypeReferencePlan? BindBarePayload(SchemaNode schema)
