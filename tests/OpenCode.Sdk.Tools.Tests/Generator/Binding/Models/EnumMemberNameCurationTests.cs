@@ -1,6 +1,7 @@
 using System.Text;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
+using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
@@ -96,9 +97,7 @@ public sealed class EnumMemberNameCurationTests
         var curation = Curation(Groups("mcp", RootGroup()),
             enumMemberNames: [EnumMemberName("Mcp.Protocol", "2026-07-28", "Revision20260728", reason: " ")]);
 
-        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("mcp.get"), curation));
-
-        await Assert.That(exception.Errors.Any(static error => error.Problem.Contains("must declare a reason", StringComparison.Ordinal))).IsTrue();
+        await AssertMcpRefusalAsync(document, curation, "must declare a reason");
     }
 
     [Test]
@@ -112,9 +111,7 @@ public sealed class EnumMemberNameCurationTests
                 EnumMemberName("Mcp.Protocol", "2026-07-28", "Revision2026"),
             ]);
 
-        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("mcp.get"), curation));
-
-        await Assert.That(exception.Errors.Any(static error => error.Problem.Contains("is duplicated", StringComparison.Ordinal))).IsTrue();
+        await AssertMcpRefusalAsync(document, curation, "is duplicated");
     }
 
     /// <summary>
@@ -167,6 +164,12 @@ public sealed class EnumMemberNameCurationTests
         await Assert.That(source).Contains("public static Mode NoneValue { get; } = new(Values.NoneValue);");
         await Assert.That(source).Contains("public bool IsKnown => _value is Values.None or Values.NoneValue;");
         await Assert.That(source.Split("\"none\"").Length - 1).IsEqualTo(1);
+    }
+
+    private static async Task AssertMcpRefusalAsync(SpecDocument document, GenerationCuration curation, string problem)
+    {
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("mcp.get"), curation));
+        await Assert.That(exception.Errors).Contains(error => error.Problem.Contains(problem, StringComparison.Ordinal));
     }
 
     private static SpecScenario ModeScenario(params string[] values) =>

@@ -97,7 +97,7 @@ public sealed class CloneDetectorTests
         var arguments = CloneDetector.Arguments(Scope("tests"), Config, updateBaseline: false);
 
         await Assert.That(arguments).IsEquivalentTo(
-            [CloneDetector.RunnerPath, "tests", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/tests.baseline.json", Fingerprints, "--threshold", "6.5"], CollectionOrdering.Matching);
+            [CloneDetector.RunnerPath, "tests", "--config", Config, FailOnEmpty, "--baseline", "tools/jscpd/tests.baseline.json", Fingerprints, "--threshold", "6"], CollectionOrdering.Matching);
     }
 
     [Test]

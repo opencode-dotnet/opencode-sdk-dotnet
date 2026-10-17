@@ -1,5 +1,6 @@
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 using static OpenCode.Sdk.Tools.Tests.Support.UnionHoistPlanData;
 
@@ -72,7 +73,8 @@ public sealed class UnionMemberHoistBinderTests
             ]);
 
         var union = plan.Unions.Single();
-        await Assert.That(union.HoistedMembers.Select(static member => member.Name)).IsEquivalentTo(["Id"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(union.HoistedMembers.Select(static member => member.Name)).IsEquivalentTo(["Id"], CollectionOrdering.Any);
         await Assert.That(union.HoistedMembers.Single().WireName).IsEqualTo("id");
     }
 
@@ -86,7 +88,8 @@ public sealed class UnionMemberHoistBinderTests
                 Variant("DeletedEvent", "deleted", NumberLiteral("version", "2")),
             ]);
 
-        await Assert.That(plan.Unions.Single().HoistedMembers.Select(static member => member.Name)).IsEquivalentTo(["Version"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(plan.Unions.Single().HoistedMembers.Select(static member => member.Name)).IsEquivalentTo(["Version"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -165,11 +168,14 @@ public sealed class UnionMemberHoistBinderTests
 
         var hoisted = plan.Interfaces.Single();
         await Assert.That(hoisted.Name).IsEqualTo("IExampleEventDurable");
-        await Assert.That(hoisted.Members.Select(static member => member.Name)).IsEquivalentTo(["Seq", "Version"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(hoisted.Members.Select(static member => member.Name)).IsEquivalentTo(["Seq", "Version"], CollectionOrdering.Any);
         // No carrier implements a hoisted interface, so its members stay as the records declare them.
-        await Assert.That(hoisted.Members.All(static member => !member.Type.IsNullable)).IsTrue();
-        await Assert.That(Model(plan, "CreatedEventDurable").ImplementedHoistedInterfaceNames).IsEquivalentTo(["IExampleEventDurable"]);
-        await Assert.That(Model(plan, "DeletedEventDurable").ImplementedHoistedInterfaceNames).IsEquivalentTo(["IExampleEventDurable"]);
+        await Assert.That(hoisted.Members).All().Satisfy(member => member.Type.IsNullable, value => value.IsFalse());
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(Model(plan, "CreatedEventDurable").ImplementedHoistedInterfaceNames).IsEquivalentTo(["IExampleEventDurable"], CollectionOrdering.Any);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(Model(plan, "DeletedEventDurable").ImplementedHoistedInterfaceNames).IsEquivalentTo(["IExampleEventDurable"], CollectionOrdering.Any);
 
         var member = plan.Unions.Single().HoistedMembers.Single();
         await Assert.That(((NamedTypeReferencePlan)member.Type).Name).IsEqualTo("IExampleEventDurable");
@@ -191,7 +197,7 @@ public sealed class UnionMemberHoistBinderTests
             ]);
 
         await Assert.That(plan.Interfaces.Select(static hoisted => hoisted.Name).Order(StringComparer.Ordinal))
-            .IsEquivalentTo(["IExampleEventDurable", "IExampleEventDurableOrigin"]);
+            .IsEquivalentTo(["IExampleEventDurable", "IExampleEventDurableOrigin"], CollectionOrdering.Matching);
         var envelope = plan.Interfaces.Single(static hoisted => hoisted.Name == "IExampleEventDurable");
         await Assert.That(((NamedTypeReferencePlan)envelope.Members.Single().Type).Name).IsEqualTo("IExampleEventDurableOrigin");
         await Assert.That(Model(plan, "CreatedEventDurable").ExplicitHoistedImplementations.Single().MemberName).IsEqualTo("Origin");
@@ -213,8 +219,9 @@ public sealed class UnionMemberHoistBinderTests
 
         var created = Model(plan, "CreatedEvent");
         // A reference type already answers its nullable annotation; a value type needs the cast.
+        // Member/type membership is the contract; declaration order is not asserted here.
         await Assert.That(created.ExplicitHoistedImplementations.Select(static implementation => implementation.MemberName))
-            .IsEquivalentTo(["Seq"]);
+            .IsEquivalentTo(["Seq"], CollectionOrdering.Any);
         await Assert.That(created.ExplicitHoistedImplementations.Single().InterfaceName).IsEqualTo("IExampleEvent");
     }
 
@@ -239,10 +246,12 @@ public sealed class UnionMemberHoistBinderTests
                     Property("phase", Named("string"), isRequired: true)),
             ]);
 
+        // Member/type membership is the contract; declaration order is not asserted here.
         await Assert.That(plan.Unions.Single(static union => union.Name == "IExampleEvent").HoistedMembers
-            .Select(static member => member.Name)).IsEquivalentTo(["Id"]);
+            .Select(static member => member.Name)).IsEquivalentTo(["Id"], CollectionOrdering.Any);
+        // Member/type membership is the contract; declaration order is not asserted here.
         await Assert.That(plan.Unions.Single(static union => union.Name == "IExamplePhase").HoistedMembers
-            .Select(static member => member.Name)).IsEquivalentTo(["Phase"]);
+            .Select(static member => member.Name)).IsEquivalentTo(["Phase"], CollectionOrdering.Any);
     }
 
     [Test]

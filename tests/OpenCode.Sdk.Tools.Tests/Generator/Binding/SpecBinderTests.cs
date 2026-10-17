@@ -157,6 +157,91 @@ public sealed class SpecBinderTests
             .IsEquivalentTo(expected, CollectionOrdering.Matching);
     }
 
+    private static Action<SchemaBuilder>[] SpecialNumberArms() =>
+    [
+        value => value.Type("number"),
+        value => value.Type("string").Enum("NaN"),
+        value => value.Type("string").Enum("Infinity"),
+        value => value.Type("string").Enum("-Infinity"),
+    ];
+
+    private static EmitPlan BindHealth(SpecDocument document) => new BindingTestHost().Bind(
+        document,
+        Selection("health.get"),
+        Curation(new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
+        {
+            ["health"] = RootGroup(),
+        }));
+
+    private static BindingException RefuseHealth(SpecDocument document) =>
+        Assert.Throws<BindingException>(() => _ = BindHealth(document));
+
+    private static async Task AssertThingAsync(EmitPlan plan) =>
+        await Assert.That(plan.Models).Contains(static model => model.Name == "Thing");
+
+    private static async Task AssertMarkedTagsAsync(UnionPlan union, string marker, IReadOnlyList<string> tags)
+    {
+        await Assert.That(union.MarkerWireName).IsEqualTo(marker);
+        await Assert.That(union.Variants.Select(static variant => variant.Tag).Order(StringComparer.Ordinal))
+            .IsEquivalentTo(tags, StringComparer.Ordinal, CollectionOrdering.Matching);
+    }
+
+    private static async Task AssertCurationProblemAsync(BindingException exception, string problem) =>
+        await Assert.That(exception.Errors).Contains(error => error.Category == BindingErrorCategory.Curation
+            && error.Problem.Contains(problem, StringComparison.Ordinal));
+
+    private static BindingException RefuseHealthGroups(SpecDocument document, IReadOnlyDictionary<string, GroupCuration> groups) =>
+        Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection("health.get"), Curation(groups)));
+
+    private static EmitPlan BindHealthRows(SpecDocument document) =>
+        new BindingTestHost().Bind(document, Selection("health.get"), Curation(Groups("health", RootGroup())));
+
+    private static SpecScenario ChoiceScenario(Action<SpecDocumentBuilder> configure) => SpecScenario.Define(spec =>
+    {
+        configure(spec);
+        _ = spec.WithSchema("Container", schema => schema.Type("object")
+                .Property("choice", property => property.Ref("Choice"), required: true))
+            .WithOperation("choice.get", configure: operation => operation
+                .Response(200, "application/json", schema => schema.Ref("Container")));
+    });
+
+    private static SpecScenario MarkedNestedUnionScenario(Action<SchemaBuilder> wrap) => SpecScenario.Define(spec => spec
+        .WithSchema("Alpha", schema => schema.Type("object")
+            .Property("type", property => property.Type("string").Enum("alpha"), required: true))
+        .WithSchema("WrapOne", schema => schema.Type("object")
+            .Property("type", property => property.Type("string").Enum("wrap"), required: true)
+            .Property("status", property => property.Type("string").Enum("one"), required: true))
+        .WithSchema("WrapTwo", schema => schema.Type("object")
+            .Property("type", property => property.Type("string").Enum("wrap"), required: true)
+            .Property("status", property => property.Type("string").Enum("two"), required: true))
+        .WithSchema("Wrap", wrap)
+        .WithSchema("Outer", schema => schema.AnyOf(alpha => alpha.Ref("Alpha"), branch => branch.Ref("Wrap")))
+        .WithOperation("health.get", configure: operation => operation
+            .Response(200, "application/json", schema => schema.Ref("Outer"))));
+
+    private static async Task<UnionPlan> AssertPrefixEventsAsync(EmitPlan plan)
+    {
+        var events = plan.Unions.Single(static union => union.Name == "IEvent");
+        await AssertMarkedTagsAsync(events, "type", ["created", "deleted"]);
+        return events;
+    }
+
+    private static async Task AssertChoiceRefusalAsync(SpecDocument document, string problem)
+    {
+        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
+            document, Selection("choice.get"), Curation(Groups("choice", RootGroup()))));
+        await Assert.That(exception.Errors).Contains(error => error.Subject == "Choice"
+            && error.Problem.Contains(problem, StringComparison.Ordinal));
+    }
+
+    private static async Task AssertGadgetErrorTagsAsync(EmitPlan plan)
+    {
+        var gadget = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
+        var status = gadget.ErrorMap.Statuses.Single(static entry => entry.StatusCode == 400);
+        await Assert.That(status.Tags.Select(static tag => tag.TypeName))
+            .IsEquivalentTo(["GadgetError"], StringComparer.Ordinal, CollectionOrdering.Matching);
+    }
+
     [Test]
     public async Task Bind_Should_Check_The_Reason_Of_A_Redundant_Alias()
     {
@@ -247,11 +332,13 @@ public sealed class SpecBinderTests
         var plan = await new BindingTestHost().BindPinnedAsync();
 
         var durable = plan.Unions.Single(static union => union.Name == "ISessionEventDurable");
+        // Member/type membership is the contract; declaration order is not asserted here.
         await Assert
             .That(durable.HoistedMembers.Select(static member => member.Name))
-            .IsEquivalentTo(["Id", "Created", "Metadata", "Durable", "Location"]);
+            .IsEquivalentTo(["Id", "Created", "Metadata", "Durable", "Location"], CollectionOrdering.Any);
         var envelope = plan.HoistedInterfaces.Single(static carrier => carrier.Name == "IDurableEnvelope");
-        await Assert.That(envelope.Members.Select(static member => member.Name)).IsEquivalentTo(["AggregateId", "Seq", "Version"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(envelope.Members.Select(static member => member.Name)).IsEquivalentTo(["AggregateId", "Seq", "Version"], CollectionOrdering.Any);
         await Assert.That(envelope.ImplementedBy).Contains("SessionCreatedDurable");
         await Assert.That(envelope.ImplementedBy).Contains("SessionDeletedDurable");
         // The worktree envelope has the same shape but belongs to no union that hoists it.
@@ -262,10 +349,11 @@ public sealed class SpecBinderTests
         // The nested compaction union inherits 'Id' and 'Metadata' from the message union, its
         // fixed 'type' marker and its own 'status' marker dispatch, and 'reason' binds to a
         // different generated enum per arm — so only the promoted time carrier is left to hoist.
+        // Member/type membership is the contract; declaration order is not asserted here.
         await Assert
             .That(plan.Unions.Single(static union => union.Name == "ISessionMessageCompaction").HoistedMembers
                 .Select(static member => member.Name))
-            .IsEquivalentTo(["Time"]);
+            .IsEquivalentTo(["Time"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -275,12 +363,12 @@ public sealed class SpecBinderTests
 
         var plan = new BindingTestHost().Bind(document, selection, curation);
 
-        await Assert.That(plan.SelectedOperationIds.SequenceEqual(selection.OperationIds, StringComparer.Ordinal)).IsTrue();
+        await Assert.That(plan.SelectedOperationIds).IsEquivalentTo(selection.OperationIds, StringComparer.Ordinal, CollectionOrdering.Matching);
         // Every operation the pinned profile leaves unselected is declined or transport-owned by
         // decision, so the pinned plan carries no pending operations at all.
         await Assert.That(plan.PendingOperations).IsEmpty();
-        await Assert.That(plan.Models.Any(static model => model.Name == "PromptFileSourceUri")).IsTrue();
-        await Assert.That(plan.Models.Any(static model => model.Name == "ConfigInfo")).IsTrue();
+        await Assert.That(plan.Models).Contains(static model => model.Name == "PromptFileSourceUri");
+        await Assert.That(plan.Models).Contains(static model => model.Name == "ConfigInfo");
 
         var promptFile = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "PromptFileSourceUri");
         var promptUri = promptFile.Properties.Single(static property => property.WireName == "uri").Type;
@@ -303,18 +391,14 @@ public sealed class SpecBinderTests
         await Assert.That(compaction.FixedMarker.Value).IsEqualTo("compaction");
         await Assert.That(compaction.Variants).Count().IsEqualTo(3);
 
-        await Assert.That(plan.Unions.Any(static union => union.Name == "ISessionMessageAssistantContent")).IsTrue();
-        await Assert.That(plan.Unions.Any(static union => union.Name == "ISessionMessageToolState")).IsTrue();
-        await Assert.That(plan.Unions.Any(static union => union.Name == "IPromptFileSource")).IsTrue();
-        await Assert.That(plan.Unions.Any(static union => union.Name == "IToolContent")).IsTrue();
+        await Assert.That(plan.Unions).Contains(static union => union.Name == "ISessionMessageAssistantContent");
+        await Assert.That(plan.Unions).Contains(static union => union.Name == "ISessionMessageToolState");
+        await Assert.That(plan.Unions).Contains(static union => union.Name == "IPromptFileSource");
+        await Assert.That(plan.Unions).Contains(static union => union.Name == "IToolContent");
 
         var errors = plan.Unions.Single(static union => union.Name == "IOpenCodeError");
-        await Assert
-            .That(errors
-                .Variants.Select(static variant => variant.TypeName)
-                .Order(StringComparer.Ordinal)
-                .SequenceEqual(ExpectedErrorTypeNames, StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(errors.Variants.Select(static variant => variant.TypeName).Order(StringComparer.Ordinal))
+            .IsEquivalentTo(ExpectedErrorTypeNames, StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -333,29 +417,18 @@ public sealed class SpecBinderTests
         await Assert.That(operation.QueryRequest).IsNull();
         await Assert.That(operation.RequestBody).IsNull();
         await Assert.That(operation.Stream!.PayloadTypeName).IsEqualTo("IEvent");
-        await Assert
-            .That(operation
-                .ErrorMap.Statuses.Select(static status => status.StatusCode)
-                .Order()
-                .SequenceEqual([400, 401]))
-            .IsTrue();
+        await Assert.That(operation.ErrorMap.Statuses.Select(static status => status.StatusCode).Order())
+            .IsEquivalentTo([400, 401], CollectionOrdering.Matching);
 
         var sessionCreated = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "SessionCreated");
-        await Assert
-            .That(sessionCreated
-                .ImplementedUnionNames.Order(StringComparer.Ordinal)
-                .SequenceEqual(["IEvent", "ISessionEventDurable"], StringComparer.Ordinal))
-            .IsTrue();
-        await Assert
-            .That(plan.Models.Any(static model => model.Name.StartsWith("Form", StringComparison.Ordinal)
-                                                  && model.Name.Length > 0 && model.Name[^1] is '1'))
-            .IsFalse();
-        await Assert
-            .That(plan.Unions.Any(static union => union.Name.StartsWith("IForm", StringComparison.Ordinal)
-                                                  && union.Name.Length > 0 && union.Name[^1] is '1'))
-            .IsFalse();
-        await Assert.That(plan.Models.Any(static model => model.Name == "TuiCommandExecuteDataCommand0")).IsFalse();
-        await Assert.That(plan.Registry.TypeNames.Any(static name => name.Contains("V2", StringComparison.Ordinal))).IsFalse();
+        await Assert.That(sessionCreated.ImplementedUnionNames.Order(StringComparer.Ordinal))
+            .IsEquivalentTo(["IEvent", "ISessionEventDurable"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(plan.Models).DoesNotContain(static model => model.Name.StartsWith("Form", StringComparison.Ordinal)
+            && model.Name.Length > 0 && model.Name[^1] is '1');
+        await Assert.That(plan.Unions).DoesNotContain(static union => union.Name.StartsWith("IForm", StringComparison.Ordinal)
+            && union.Name.Length > 0 && union.Name[^1] is '1');
+        await Assert.That(plan.Models).DoesNotContain(static model => model.Name == "TuiCommandExecuteDataCommand0");
+        await Assert.That(plan.Registry.TypeNames).DoesNotContain(static name => name.Contains("V2", StringComparison.Ordinal));
     }
 
     [Test]
@@ -365,12 +438,12 @@ public sealed class SpecBinderTests
 
         var plan = new BindingTestHost().Bind(document, selection, curation);
 
-        await Assert.That(plan.Models.Any(static model => model.Name == "SessionInboxUserPayload")).IsTrue();
-        await Assert.That(plan.Models.Any(static model => model.Name == "SessionInboxSyntheticPayload")).IsTrue();
-        await Assert.That(plan.Models.Any(static model => model.Name == "SessionInboxUserPayload1")).IsFalse();
-        await Assert.That(plan.Models.Any(static model => model.Name == "SessionInboxSyntheticPayload1")).IsFalse();
-        await Assert.That(plan.Registry.TypeNames.Contains("SessionInboxUserPayload", StringComparer.Ordinal)).IsTrue();
-        await Assert.That(plan.Registry.TypeNames.Contains("SessionInboxSyntheticPayload", StringComparer.Ordinal)).IsTrue();
+        await Assert.That(plan.Models).Contains(static model => model.Name == "SessionInboxUserPayload");
+        await Assert.That(plan.Models).Contains(static model => model.Name == "SessionInboxSyntheticPayload");
+        await Assert.That(plan.Models).DoesNotContain(static model => model.Name == "SessionInboxUserPayload1");
+        await Assert.That(plan.Models).DoesNotContain(static model => model.Name == "SessionInboxSyntheticPayload1");
+        await Assert.That(plan.Registry.TypeNames).Contains("SessionInboxUserPayload", StringComparer.Ordinal);
+        await Assert.That(plan.Registry.TypeNames).Contains("SessionInboxSyntheticPayload", StringComparer.Ordinal);
 
         var user = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "SessionInboxItemUser");
         var synthetic = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "SessionInboxItemSynthetic");
@@ -547,29 +620,15 @@ public sealed class SpecBinderTests
         var first = host.Bind(document, selection, curation);
         var second = host.Bind(document, selection, curation);
 
-        await Assert
-            .That(first
-                .Models.Select(static model => model.Name)
-                .SequenceEqual(second.Models.Select(static model => model.Name), StringComparer.Ordinal))
-            .IsTrue();
-        await Assert
-            .That(first
-                .Unions.Select(static union => union.Name)
-                .SequenceEqual(second.Unions.Select(static union => union.Name), StringComparer.Ordinal))
-            .IsTrue();
-        await Assert.That(first.Registry.TypeNames.SequenceEqual(second.Registry.TypeNames, StringComparer.Ordinal)).IsTrue();
-        await Assert
-            .That(first
-                .Clients.Select(static client => client.Name)
-                .SequenceEqual(second.Clients.Select(static client => client.Name), StringComparer.Ordinal))
-            .IsTrue();
-        await Assert
-            .That(first
-                .Clients.SelectMany(static client => client.Operations.Select(static operation => operation.MethodName))
-                .SequenceEqual(
-                    second.Clients.SelectMany(static client => client.Operations.Select(static operation => operation.MethodName)),
-                    StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(first.Models.Select(static model => model.Name))
+            .IsEquivalentTo(second.Models.Select(static model => model.Name), StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(first.Unions.Select(static union => union.Name))
+            .IsEquivalentTo(second.Unions.Select(static union => union.Name), StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(first.Registry.TypeNames).IsEquivalentTo(second.Registry.TypeNames, StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(first.Clients.Select(static client => client.Name))
+            .IsEquivalentTo(second.Clients.Select(static client => client.Name), StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(first.Clients.SelectMany(static client => client.Operations.Select(static operation => operation.MethodName)))
+            .IsEquivalentTo(second.Clients.SelectMany(static client => client.Operations.Select(static operation => operation.MethodName)), StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -637,12 +696,10 @@ public sealed class SpecBinderTests
                 .Property("value", property => property.Type("string"), required: true))
             .WithOperation("health.get", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("ThingEncoded")))));
-        var curation = Curation(Groups("health", RootGroup()));
+        var plan = BindHealthRows(document);
 
-        var plan = new BindingTestHost().Bind(document, Selection("health.get"), curation);
-
-        await Assert.That(plan.Models.Any(static model => model.Name == "Thing")).IsTrue();
-        await Assert.That(plan.Models.Any(static model => model.Name == "ThingEncoded")).IsFalse();
+        await AssertThingAsync(plan);
+        await Assert.That(plan.Models).DoesNotContain(static model => model.Name == "ThingEncoded");
     }
 
     [Test]
@@ -665,8 +722,8 @@ public sealed class SpecBinderTests
         var plan = new BindingTestHost().Bind(document, Selection("widget.update"), curation);
 
         // Inline members derive their names from the current group/action identity.
-        await Assert.That(plan.Models.Any(static model => model.Name == "WidgetUpdateSize")).IsTrue();
-        await Assert.That(plan.Registry.TypeNames.Any(static name => name.Contains("V2", StringComparison.Ordinal))).IsFalse();
+        await Assert.That(plan.Models).Contains(static model => model.Name == "WidgetUpdateSize");
+        await Assert.That(plan.Registry.TypeNames).DoesNotContain(static name => name.Contains("V2", StringComparison.Ordinal));
     }
 
     [Test]
@@ -685,12 +742,10 @@ public sealed class SpecBinderTests
                 .Property("encoded", property => property.Ref("ThingEncoded"), required: true))
             .WithOperation("health.get", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("Pair")))));
-        var curation = Curation(Groups("health", RootGroup()));
+        var plan = BindHealthRows(document);
 
-        var plan = new BindingTestHost().Bind(document, Selection("health.get"), curation);
-
-        await Assert.That(plan.Models.Any(static model => model.Name == "Thing")).IsTrue();
-        await Assert.That(plan.Models.Any(static model => model.Name == "ThingEncoded")).IsTrue();
+        await AssertThingAsync(plan);
+        await Assert.That(plan.Models).Contains(static model => model.Name == "ThingEncoded");
     }
 
     [Test]
@@ -776,22 +831,14 @@ public sealed class SpecBinderTests
             Selection("health.get"),
             curation));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Subject == "event.subscribe"
-                                                       && error.Problem.Contains("not selected", StringComparison.Ordinal)))
-            .IsTrue();
-        await Assert
-            .That(exception.Errors.Any(static error => error.Subject == "health.get"
-                                                       && error.Problem.Contains("duplicated", StringComparison.Ordinal)))
-            .IsTrue();
-        await Assert
-            .That(exception.Errors.Any(static error => error.Subject == "health.get"
-                                                       && error.Problem.Contains("declare a reason", StringComparison.Ordinal)))
-            .IsTrue();
-        await Assert
-            .That(exception.Errors.Any(static error => error.Subject == "missing.get"
-                                                       && error.Problem.Contains("does not exist", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "event.subscribe"
+            && error.Problem.Contains("not selected", StringComparison.Ordinal));
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "health.get"
+            && error.Problem.Contains("duplicated", StringComparison.Ordinal));
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "health.get"
+            && error.Problem.Contains("declare a reason", StringComparison.Ordinal));
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "missing.get"
+            && error.Problem.Contains("does not exist", StringComparison.Ordinal));
     }
 
     [Test]
@@ -878,14 +925,10 @@ public sealed class SpecBinderTests
             Selection("event.subscribe", "event.watch"),
             curation));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
-                                                       && error.Problem.Contains("multiple members", StringComparison.Ordinal)))
-            .IsTrue();
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
-                                                       && error.Problem.Contains("route member", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Naming
+            && error.Problem.Contains("multiple members", StringComparison.Ordinal));
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Naming
+            && error.Problem.Contains("route member", StringComparison.Ordinal));
     }
 
     [Test]
@@ -911,18 +954,12 @@ public sealed class SpecBinderTests
             Selection("item.get"),
             curation));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Subject == "Item"
-                                                       && error.Problem.Contains("duplicated", StringComparison.Ordinal)))
-            .IsTrue();
-        await Assert
-            .That(exception.Errors.Any(static error => error.Subject == "Item"
-                                                       && error.Problem.Contains("declare a reason", StringComparison.Ordinal)))
-            .IsTrue();
-        await Assert
-            .That(exception.Errors.Any(static error => error.Subject == "Missing"
-                                                       && error.Problem.Contains("does not exist", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "Item"
+            && error.Problem.Contains("duplicated", StringComparison.Ordinal));
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "Item"
+            && error.Problem.Contains("declare a reason", StringComparison.Ordinal));
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "Missing"
+            && error.Problem.Contains("does not exist", StringComparison.Ordinal));
     }
 
     [Test]
@@ -980,7 +1017,8 @@ public sealed class SpecBinderTests
 
         var hybrid = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "HybridInfo");
         await Assert.That(hybrid.EmitsExtensionData).IsTrue();
-        await Assert.That(hybrid.Properties.Select(static property => property.Name)).IsEquivalentTo(["Id"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(hybrid.Properties.Select(static property => property.Name)).IsEquivalentTo(["Id"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -1057,39 +1095,13 @@ public sealed class SpecBinderTests
     [Test]
     public async Task Bind_Should_Bind_Nested_Marked_Union_With_The_Discriminating_Marker()
     {
-        var document = await IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("Alpha", schema => schema
-                .Type("object")
-                .Property("type", property => property.Type("string").Enum("alpha"), required: true))
-            .WithSchema("WrapOne", schema => schema
-                .Type("object")
-                .Property("type", property => property.Type("string").Enum("wrap"), required: true)
-                .Property("status", property => property.Type("string").Enum("one"), required: true))
-            .WithSchema("WrapTwo", schema => schema
-                .Type("object")
-                .Property("type", property => property.Type("string").Enum("wrap"), required: true)
-                .Property("status", property => property.Type("string").Enum("two"), required: true))
-            .WithSchema("Wrap", schema => schema.AnyOf(one => one.Ref("WrapOne"), two => two.Ref("WrapTwo")))
-            .WithSchema("Outer", schema => schema.AnyOf(alpha => alpha.Ref("Alpha"), wrap => wrap.Ref("Wrap")))
-            .WithOperation("health.get", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("Outer")))));
+        var document = await IngestAsync(MarkedNestedUnionScenario(schema => schema.AnyOf(
+            one => one.Ref("WrapOne"), two => two.Ref("WrapTwo"))));
 
-        var plan = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
-            {
-                ["health"] = RootGroup(),
-            }));
+        var plan = BindHealth(document);
 
         var outer = plan.Unions.Single(static union => union.Name == "IOuter");
-        await Assert.That(outer.MarkerWireName).IsEqualTo("type");
-        await Assert
-            .That(outer
-                .Variants.Select(static variant => variant.Tag)
-                .Order(StringComparer.Ordinal)
-                .SequenceEqual(["alpha", "wrap"], StringComparer.Ordinal))
-            .IsTrue();
+        await AssertMarkedTagsAsync(outer, "type", ["alpha", "wrap"]);
 
         var nested = plan.Unions.Single(static union => union.Name == "IWrap");
         await Assert.That(nested.MarkerWireName).IsEqualTo("status");
@@ -1112,13 +1124,7 @@ public sealed class SpecBinderTests
             .WithOperation("health.get", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("Twin")))));
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
-            {
-                ["health"] = RootGroup(),
-            })));
+        var exception = RefuseHealth(document);
 
         await Assert
             .That(exception.Errors.Single(static error => error.Category == BindingErrorCategory.Schema).Problem)
@@ -1186,15 +1192,9 @@ public sealed class SpecBinderTests
             },
         };
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(groups)));
+        var exception = RefuseHealthGroups(document, groups);
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
-                                                       && error.Problem.Contains("root group cannot declare", StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertCurationProblemAsync(exception, "root group cannot declare");
     }
 
     [Test]
@@ -1269,13 +1269,7 @@ public sealed class SpecBinderTests
             .WithOperation("health.get", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("VersionedItem")))));
 
-        var plan = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
-            {
-                ["health"] = RootGroup(),
-            }));
+        var plan = BindHealth(document);
 
         var item = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "VersionedItem");
         var version = item.Properties.Single(static property => property.WireName == "version").Type;
@@ -1286,30 +1280,10 @@ public sealed class SpecBinderTests
     [Test]
     public async Task Bind_Should_Bind_A_Nested_Marked_OneOf_Union()
     {
-        var document = await IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("Alpha", schema => schema
-                .Type("object")
-                .Property("type", property => property.Type("string").Enum("alpha"), required: true))
-            .WithSchema("WrapOne", schema => schema
-                .Type("object")
-                .Property("type", property => property.Type("string").Enum("wrap"), required: true)
-                .Property("status", property => property.Type("string").Enum("one"), required: true))
-            .WithSchema("WrapTwo", schema => schema
-                .Type("object")
-                .Property("type", property => property.Type("string").Enum("wrap"), required: true)
-                .Property("status", property => property.Type("string").Enum("two"), required: true))
-            .WithSchema("Wrap", schema => schema.OneOf(one => one.Ref("WrapOne"), two => two.Ref("WrapTwo")))
-            .WithSchema("Outer", schema => schema.AnyOf(alpha => alpha.Ref("Alpha"), wrap => wrap.Ref("Wrap")))
-            .WithOperation("health.get", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("Outer")))));
+        var document = await IngestAsync(MarkedNestedUnionScenario(schema => schema.OneOf(
+            one => one.Ref("WrapOne"), two => two.Ref("WrapTwo"))));
 
-        var plan = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
-            {
-                ["health"] = RootGroup(),
-            }));
+        var plan = BindHealth(document);
 
         var wrap = plan.Unions.Single(static union => union.Name == "IWrap");
         await Assert.That(wrap.MarkerWireName).IsEqualTo("status");
@@ -1355,23 +1329,24 @@ public sealed class SpecBinderTests
         var structural = plan.Models.OfType<StructuralUnionModelPlan>().Single();
         await Assert.That(structural.Name).IsEqualTo("StructuralValue");
         await Assert.That(structural.KindTypeName).IsEqualTo("StructuralValueKind");
-        await Assert
-            .That(structural
-                .Arms.Select(static arm => arm.Name)
-                .SequenceEqual(["Text", "Number", "Boolean", "TextList"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(structural.Arms.Select(static arm => arm.Name))
+            .IsEquivalentTo(["Text", "Number", "Boolean", "TextList"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        // Dictionary/set membership is the contract; enumeration order is not.
         await Assert
             .That(structural.Arms.Single(static arm => arm.Name == "Text").Tokens)
-            .IsEquivalentTo([JsonTokenType.String]);
+            .IsEquivalentTo([JsonTokenType.String], CollectionOrdering.Any);
+        // Dictionary/set membership is the contract; enumeration order is not.
         await Assert
             .That(structural.Arms.Single(static arm => arm.Name == "Number").Tokens)
-            .IsEquivalentTo([JsonTokenType.Number]);
+            .IsEquivalentTo([JsonTokenType.Number], CollectionOrdering.Any);
+        // Dictionary/set membership is the contract; enumeration order is not.
         await Assert
             .That(structural.Arms.Single(static arm => arm.Name == "Boolean").Tokens)
-            .IsEquivalentTo([JsonTokenType.True, JsonTokenType.False]);
+            .IsEquivalentTo([JsonTokenType.True, JsonTokenType.False], CollectionOrdering.Any);
+        // Dictionary/set membership is the contract; enumeration order is not.
         await Assert
             .That(structural.Arms.Single(static arm => arm.Name == "TextList").Tokens)
-            .IsEquivalentTo([JsonTokenType.StartArray]);
+            .IsEquivalentTo([JsonTokenType.StartArray], CollectionOrdering.Any);
         await Assert
             .That(structural.Arms.Single(static arm => arm.Name == "Number").Type)
             .IsTypeOf<NamedTypeReferencePlan>();
@@ -1439,7 +1414,7 @@ public sealed class SpecBinderTests
         var plan = new BindingTestHost().Bind(document, Selection("choice.get"), Curation(Groups("choice", RootGroup())));
 
         var union = plan.Models.OfType<StructuralUnionModelPlan>().Single();
-        await Assert.That(union.Arms.All(static arm => arm.Claim is null)).IsTrue();
+        await Assert.That(union.Arms).All().Satisfy(arm => arm.Claim, value => value.IsNull());
     }
 
     [Test]
@@ -1499,105 +1474,49 @@ public sealed class SpecBinderTests
     [Test]
     public async Task Bind_Should_Require_Text_To_Precede_A_Structural_Special_Number()
     {
-        var document = await IngestAsync(SpecScenario.Define(spec => spec
+        var document = await IngestAsync(ChoiceScenario(spec => spec
             .WithSchema("Choice", schema => schema.AnyOf(
-                branch => branch.AnyOf(
-                    value => value.Type("number"),
-                    value => value.Type("string").Enum("NaN"),
-                    value => value.Type("string").Enum("Infinity"),
-                    value => value.Type("string").Enum("-Infinity")),
-                branch => branch.Type("boolean")))
-            .WithSchema("Container", schema => schema
-                .Type("object")
-                .Property("choice", property => property.Ref("Choice"), required: true))
-            .WithOperation("choice.get", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("Container")))));
+                branch => branch.AnyOf(SpecialNumberArms()),
+                branch => branch.Type("boolean")))));
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("choice.get"),
-            Curation(Groups("choice", RootGroup()))));
-
-        await Assert
-            .That(exception.Errors.Any(static error => error.Subject == "Choice"
-                                                       && error.Problem.Contains("requires an earlier text branch", StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertChoiceRefusalAsync(document, "requires an earlier text branch");
     }
 
     [Test]
     public async Task Bind_Should_Count_Resolved_Never_Branches_As_Uninhabitable()
     {
-        var document = await IngestAsync(SpecScenario.Define(spec => spec
+        var document = await IngestAsync(ChoiceScenario(spec => spec
             .WithSchema("Impossible", schema => schema.Raw("not", "{}"))
             .WithSchema("Choice", schema => schema.AnyOf(
                 branch => branch.Ref("Impossible"),
-                branch => branch.Type("string")))
-            .WithSchema("Container", schema => schema
-                .Type("object")
-                .Property("choice", property => property.Ref("Choice"), required: true))
-            .WithOperation("choice.get", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("Container")))));
+                branch => branch.Type("string")))));
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("choice.get"),
-            Curation(Groups("choice", RootGroup()))));
-
-        await Assert
-            .That(exception.Errors.Any(static error => error.Subject == "Choice"
-                                                       && error.Problem.Contains("at least two inhabitable", StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertChoiceRefusalAsync(document, "at least two inhabitable");
     }
 
     [Test]
     public async Task Bind_Should_Refuse_A_Structural_Arm_Colliding_With_Carrier_Members()
     {
-        var document = await IngestAsync(SpecScenario.Define(spec => spec
+        var document = await IngestAsync(ChoiceScenario(spec => spec
             .WithSchema("Kind", schema => schema
                 .Type("object")
                 .Property("value", property => property.Type("string"), required: true))
             .WithSchema("Choice", schema => schema.AnyOf(
                 branch => branch.Type("string"),
-                branch => branch.Ref("Kind")))
-            .WithSchema("Container", schema => schema
-                .Type("object")
-                .Property("choice", property => property.Ref("Choice"), required: true))
-            .WithOperation("choice.get", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("Container")))));
+                branch => branch.Ref("Kind")))));
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("choice.get"),
-            Curation(Groups("choice", RootGroup()))));
-
-        await Assert
-            .That(exception.Errors.Any(static error => error.Subject == "Choice"
-                                                       && error.Problem.Contains("reserved carrier member", StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertChoiceRefusalAsync(document, "reserved carrier member");
     }
 
     [Test]
     public async Task Bind_Should_Refuse_A_Structural_Union_Arm_That_Is_A_Base64_String()
     {
-        var document = await IngestAsync(SpecScenario.Define(spec => spec
+        var document = await IngestAsync(ChoiceScenario(spec => spec
             .WithSchema("Choice", schema => schema.AnyOf(
                 branch => branch.Type("string").Format("byte").Raw("contentEncoding", "\"base64\""),
-                branch => branch.Type("boolean")))
-            .WithSchema("Container", schema => schema
-                .Type("object")
-                .Property("choice", property => property.Ref("Choice"), required: true))
-            .WithOperation("choice.get", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("Container")))));
+                branch => branch.Type("boolean")))));
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("choice.get"),
-            Curation(Groups("choice", RootGroup()))));
-
-        await Assert
-            .That(exception.Errors.Any(static error => error.Subject == "Choice"
-                                                       && error.Problem.Contains("binary arms are not supported", StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertChoiceRefusalAsync(document, "binary arms are not supported");
     }
 
     [Test]
@@ -1655,18 +1574,10 @@ public sealed class SpecBinderTests
         // The nested union discriminates on the parent's own marker, so the parent dispatches
         // straight to its leaves rather than handing the payload to a second converter.
         var outer = plan.Unions.Single(static union => union.Name == "ILogItem");
-        await Assert
-            .That(outer
-                .Variants.Select(static variant => variant.Tag)
-                .Order(StringComparer.Ordinal)
-                .SequenceEqual(["created", "renamed", "synced"], StringComparer.Ordinal))
-            .IsTrue();
-        await Assert
-            .That(outer
-                .Variants.Select(static variant => variant.TypeName)
-                .Order(StringComparer.Ordinal)
-                .SequenceEqual(["Created", "Renamed", "Synced"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(outer.Variants.Select(static variant => variant.Tag).Order(StringComparer.Ordinal))
+            .IsEquivalentTo(["created", "renamed", "synced"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(outer.Variants.Select(static variant => variant.TypeName).Order(StringComparer.Ordinal))
+            .IsEquivalentTo(["Created", "Renamed", "Synced"], StringComparer.Ordinal, CollectionOrdering.Matching);
 
         // The grouping survives as an interface the leaves implement.
         var nested = plan.Unions.Single(static union => union.Name == "IDurable");
@@ -1674,7 +1585,7 @@ public sealed class SpecBinderTests
         await Assert.That(nested.FixedMarker).IsNull();
 
         var created = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "Created");
-        await Assert.That(created.ImplementedUnionNames.SequenceEqual(["IDurable"], StringComparer.Ordinal)).IsTrue();
+        await Assert.That(created.ImplementedUnionNames).IsEquivalentTo(["IDurable"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -1699,23 +1610,14 @@ public sealed class SpecBinderTests
             .WithOperation("health.get", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("Feed")))));
 
-        var plan = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
-            {
-                ["health"] = RootGroup(),
-            }));
+        var plan = BindHealth(document);
 
         var shared = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "Shared");
-        await Assert
-            .That(shared
-                .ImplementedUnionNames.Order(StringComparer.Ordinal)
-                .SequenceEqual(["IDurable", "ILive"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(shared.ImplementedUnionNames.Order(StringComparer.Ordinal))
+            .IsEquivalentTo(["IDurable", "ILive"], StringComparer.Ordinal, CollectionOrdering.Matching);
 
         var alpha = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "Alpha");
-        await Assert.That(alpha.ImplementedUnionNames.SequenceEqual(["IDurable"], StringComparer.Ordinal)).IsTrue();
+        await Assert.That(alpha.ImplementedUnionNames).IsEquivalentTo(["IDurable"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -1738,18 +1640,10 @@ public sealed class SpecBinderTests
                 .Response(404, "application/json", schema => schema.Ref("GoneError"))
                 .Response(410, "application/json", schema => schema.Ref("LostError")))));
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
-            {
-                ["health"] = RootGroup(),
-            })));
+        var exception = RefuseHealth(document);
 
-        await Assert
-            .That(exception.Errors.Any(static error =>
-                error.Problem.Contains("multiple error schemas declare tag 'SharedError'", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(exception.Errors).Contains(static error =>
+            error.Problem.Contains("multiple error schemas declare tag 'SharedError'", StringComparison.Ordinal));
     }
 
     [Test]
@@ -1768,22 +1662,14 @@ public sealed class SpecBinderTests
                         .Property("message", inner => inner.Type("string"), required: true),
                     required: true)));
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
-            {
-                ["health"] = RootGroup(),
-            })));
+        var exception = RefuseHealth(document);
 
-        await Assert
-            .That(exception.Errors.Any(static error =>
+        await Assert.That(exception.Errors).Contains(static error =>
                 error.Problem.Contains("error responses must reference tagged error schemas", StringComparison.Ordinal)
                 && error.Problem.Contains("WorkError", StringComparison.Ordinal)
                 && error.Problem.Contains(
                     "the error carries a required 'name' literal and no '_tag' literal: the {name, data} error dialect is not admitted",
-                    StringComparison.Ordinal)))
-            .IsTrue();
+                    StringComparison.Ordinal));
     }
 
     [Test]
@@ -1802,15 +1688,9 @@ public sealed class SpecBinderTests
             },
         };
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(groups)));
+        var exception = RefuseHealthGroups(document, groups);
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
-                                                       && error.Problem.Contains("not a recognized group placement", StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertCurationProblemAsync(exception, "not a recognized group placement");
     }
 
     [Test]
@@ -1829,15 +1709,9 @@ public sealed class SpecBinderTests
             },
         };
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(groups)));
+        var exception = RefuseHealthGroups(document, groups);
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
-                                                       && error.Problem.Contains("not a recognized group emission", StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertCurationProblemAsync(exception, "not a recognized group emission");
     }
 
     [Test]
@@ -1852,17 +1726,9 @@ public sealed class SpecBinderTests
             },
         };
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(groups)));
+        var exception = RefuseHealthGroups(document, groups);
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
-                                                       && error.Problem.Contains(
-                                                           "root group cannot declare internalRaw emission",
-                                                           StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertCurationProblemAsync(exception, "root group cannot declare internalRaw emission");
     }
 
     [Test]
@@ -1884,13 +1750,11 @@ public sealed class SpecBinderTests
             Selection("health.get"),
             Curation(groups)));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Curation
                                                        && error.Subject == "pty"
                                                        && error.Problem.Contains(
                                                            "internalRaw emission requires at least one selected operation",
-                                                           StringComparison.Ordinal)))
-            .IsTrue();
+                                                           StringComparison.Ordinal));
     }
 
     [Test]
@@ -1916,12 +1780,10 @@ public sealed class SpecBinderTests
             Selection("health.get"),
             Curation(Groups("health", RootGroup()), transportOwned: [TransportOwned("pty.connect", staleHash)])));
 
-        await Assert
-            .That(exception.Errors.Any(error => error.Category == BindingErrorCategory.Curation
+        await Assert.That(exception.Errors).Contains(error => error.Category == BindingErrorCategory.Curation
                                                && error.Subject == "pty.connect"
                                                && error.Problem.Contains("no longer matches", StringComparison.Ordinal)
-                                               && error.Problem.Contains(staleHash, StringComparison.Ordinal)))
-            .IsTrue();
+                                               && error.Problem.Contains(staleHash, StringComparison.Ordinal));
     }
 
     [Test]
@@ -1934,11 +1796,9 @@ public sealed class SpecBinderTests
             Selection("health.get"),
             Curation(Groups("health", RootGroup()), transportOwned: [TransportOwned("pty.connect", new string('0', 64))])));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Curation
                                                        && error.Subject == "pty.connect"
-                                                       && error.Problem.Contains("does not exist in the spec", StringComparison.Ordinal)))
-            .IsTrue();
+                                                       && error.Problem.Contains("does not exist in the spec", StringComparison.Ordinal));
     }
 
     [Test]
@@ -1953,11 +1813,9 @@ public sealed class SpecBinderTests
             Selection("health.get"),
             Curation(Groups("health", RootGroup()), transportOwned: [TransportOwned("pty.connect", hash, reason: " ")])));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Curation
                                                        && error.Subject == "pty.connect"
-                                                       && error.Problem.Contains("must declare a reason", StringComparison.Ordinal)))
-            .IsTrue();
+                                                       && error.Problem.Contains("must declare a reason", StringComparison.Ordinal));
     }
 
     [Test]
@@ -1994,11 +1852,9 @@ public sealed class SpecBinderTests
                 Groups("health", RootGroup()),
                 transportOwned: [TransportOwned("pty.connect", hash), TransportOwned("pty.connect", hash)])));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Curation
                                                        && error.Subject == "pty.connect"
-                                                       && error.Problem.Contains("duplicated", StringComparison.Ordinal)))
-            .IsTrue();
+                                                       && error.Problem.Contains("duplicated", StringComparison.Ordinal));
     }
 
     [Test]
@@ -2007,7 +1863,7 @@ public sealed class SpecBinderTests
         var plan = await BindTransportOwnedScenarioAsync();
 
         await Assert.That(plan.PendingOperations).IsEmpty();
-        await Assert.That(plan.TransportOwnedOperationIds.SequenceEqual(["pty.connect"], StringComparer.Ordinal)).IsTrue();
+        await Assert.That(plan.TransportOwnedOperationIds).IsEquivalentTo(["pty.connect"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -2027,11 +1883,9 @@ public sealed class SpecBinderTests
             Selection("health.get", "pty.connect"),
             Curation(groups, transportOwned: [TransportOwned("pty.connect", hash)])));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Curation
                                                        && error.Subject == "pty.connect"
-                                                       && error.Problem.Contains("transport-owned operation cannot be selected", StringComparison.Ordinal)))
-            .IsTrue();
+                                                       && error.Problem.Contains("transport-owned operation cannot be selected", StringComparison.Ordinal));
     }
 
     /// <summary>Binds the transport-owned scenario with a matching fingerprint row beside one
@@ -2096,11 +1950,9 @@ public sealed class SpecBinderTests
             Selection("health.get"),
             Curation(Groups("health", RootGroup()), declined: [Declined("health.get"), Declined("widget.tail")])));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Curation
                                                        && error.Subject == "health.get"
-                                                       && error.Problem.Contains("declined operation cannot be selected", StringComparison.Ordinal)))
-            .IsTrue();
+                                                       && error.Problem.Contains("declined operation cannot be selected", StringComparison.Ordinal));
     }
 
     [Test]
@@ -2115,11 +1967,9 @@ public sealed class SpecBinderTests
             Selection("health.get"),
             Curation(Groups("health", RootGroup()), declined: [Declined("widget.tail"), Declined("gadget.gone")])));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Curation
                                                        && error.Subject == "gadget.gone"
-                                                       && error.Problem.Contains("does not exist in the spec", StringComparison.Ordinal)))
-            .IsTrue();
+                                                       && error.Problem.Contains("does not exist in the spec", StringComparison.Ordinal));
     }
 
     [Test]
@@ -2132,11 +1982,9 @@ public sealed class SpecBinderTests
             Selection("health.get"),
             Curation(Groups("health", RootGroup()), declined: [Declined("widget.tail", reason: " ")])));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Curation
                                                        && error.Subject == "widget.tail"
-                                                       && error.Problem.Contains("must declare a reason", StringComparison.Ordinal)))
-            .IsTrue();
+                                                       && error.Problem.Contains("must declare a reason", StringComparison.Ordinal));
     }
 
     [Test]
@@ -2149,11 +1997,9 @@ public sealed class SpecBinderTests
             Selection("health.get"),
             Curation(Groups("health", RootGroup()), declined: [Declined("widget.tail"), Declined("widget.tail")])));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Curation
                                                        && error.Subject == "widget.tail"
-                                                       && error.Problem.Contains("duplicated", StringComparison.Ordinal)))
-            .IsTrue();
+                                                       && error.Problem.Contains("duplicated", StringComparison.Ordinal));
     }
 
     [Test]
@@ -2173,11 +2019,9 @@ public sealed class SpecBinderTests
                 transportOwned: [TransportOwned("pty.connect", hash)],
                 declined: [Declined("pty.connect")])));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Curation
                                                        && error.Subject == "pty.connect"
-                                                       && error.Problem.Contains("cannot also be transport-owned", StringComparison.Ordinal)))
-            .IsTrue();
+                                                       && error.Problem.Contains("cannot also be transport-owned", StringComparison.Ordinal));
     }
 
     /// <summary>A walled operation (wildcard path, WebSocket-marked) beside one selected root
@@ -2203,10 +2047,8 @@ public sealed class SpecBinderTests
             .That(async () => _ = await IngestAsync(scenario))
             .Throws<IngestionException>();
 
-        await Assert
-            .That(exception!.Errors.Any(static error =>
-                error.Problem.Contains("must appear exactly once", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(exception!.Errors).Contains(static error =>
+            error.Problem.Contains("must appear exactly once", StringComparison.Ordinal));
     }
 
     [Test]
@@ -2219,20 +2061,10 @@ public sealed class SpecBinderTests
             Selection("gadget.get"),
             GadgetCuration(Alias("GadgetError1", "GadgetError")));
 
-        var gadget = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
-        var status = gadget.ErrorMap.Statuses.Single(static entry => entry.StatusCode == 400);
-        await Assert
-            .That(status
-                .Tags.Select(static tag => tag.TypeName)
-                .SequenceEqual(["GadgetError"], StringComparer.Ordinal))
-            .IsTrue();
-        await Assert.That(plan.Models.Any(static model => model.Name == "GadgetError1")).IsFalse();
-        await Assert
-            .That(plan
-                .Unions.Single(static union => union.Name == "IOpenCodeError")
-                .Variants.Select(static variant => variant.TypeName)
-                .SequenceEqual(["GadgetError"], StringComparer.Ordinal))
-            .IsTrue();
+        await AssertGadgetErrorTagsAsync(plan);
+        await Assert.That(plan.Models).DoesNotContain(static model => model.Name == "GadgetError1");
+        await Assert.That(plan.Unions.Single(static union => union.Name == "IOpenCodeError").Variants.Select(static variant => variant.TypeName))
+            .IsEquivalentTo(["GadgetError"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -2242,13 +2074,7 @@ public sealed class SpecBinderTests
 
         var plan = new BindingTestHost().Bind(document, Selection("gadget.get"), GadgetCuration());
 
-        var gadget = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
-        var status = gadget.ErrorMap.Statuses.Single(static entry => entry.StatusCode == 400);
-        await Assert
-            .That(status
-                .Tags.Select(static tag => tag.TypeName)
-                .SequenceEqual(["GadgetError"], StringComparer.Ordinal))
-            .IsTrue();
+        await AssertGadgetErrorTagsAsync(plan);
         await Assert.That(plan.ImplicitAliases.Aliases["GadgetError_1"]).IsEqualTo("GadgetError");
     }
 
@@ -2292,10 +2118,8 @@ public sealed class SpecBinderTests
             Selection("gadget.get"),
             GadgetCuration()));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Operation
-                                                       && error.Problem.Contains("duplicate error tag", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Operation
+            && error.Problem.Contains("duplicate error tag", StringComparison.Ordinal));
     }
 
     [Test]
@@ -2359,10 +2183,8 @@ public sealed class SpecBinderTests
             Selection("gadget.get"),
             GadgetCuration(Alias("GadgetError2", "GadgetError1"), Alias("GadgetError1", "GadgetError"))));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
-                                                       && error.Problem.Contains("chain", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Curation
+            && error.Problem.Contains("chain", StringComparison.Ordinal));
     }
 
     [Test]
@@ -2375,10 +2197,8 @@ public sealed class SpecBinderTests
             Selection("gadget.get"),
             GadgetCuration(Alias("GadgetError1", "GadgetError"), Alias("GadgetError1", "GadgetError"))));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
-                                                       && error.Problem.Contains("duplicated", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Curation
+            && error.Problem.Contains("duplicated", StringComparison.Ordinal));
     }
 
     [Test]
@@ -2412,22 +2232,9 @@ public sealed class SpecBinderTests
     {
         var document = await IngestAsync(PrefixUnionScenario());
 
-        var plan = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
-            {
-                ["health"] = RootGroup(),
-            }));
+        var plan = BindHealth(document);
 
-        var events = plan.Unions.Single(static union => union.Name == "IEvent");
-        await Assert.That(events.MarkerWireName).IsEqualTo("type");
-        await Assert
-            .That(events
-                .Variants.Select(static variant => variant.Tag)
-                .Order(StringComparer.Ordinal)
-                .SequenceEqual(["created", "deleted"], StringComparer.Ordinal))
-            .IsTrue();
+        var events = await AssertPrefixEventsAsync(plan);
         await Assert.That(events.PrefixVariant).IsNotNull();
         await Assert.That(events.PrefixVariant!.TypeName).IsEqualTo("RpcEvent");
         await Assert.That(events.PrefixVariant.Prefix).IsEqualTo("rpc.");
@@ -2453,22 +2260,9 @@ public sealed class SpecBinderTests
                 .Property("type", static property => property.Type("string").Enum("created"), required: true)
                 .Property("id", static property => property.Type("string").Pattern(EventIdPrefixPattern), required: true))));
 
-        var plan = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
-            {
-                ["health"] = RootGroup(),
-            }));
+        var plan = BindHealth(document);
 
-        var events = plan.Unions.Single(static union => union.Name == "IEvent");
-        await Assert.That(events.MarkerWireName).IsEqualTo("type");
-        await Assert
-            .That(events
-                .Variants.Select(static variant => variant.Tag)
-                .Order(StringComparer.Ordinal)
-                .SequenceEqual(["created", "deleted"], StringComparer.Ordinal))
-            .IsTrue();
+        var events = await AssertPrefixEventsAsync(plan);
         await Assert.That(events.PrefixVariant!.TypeName).IsEqualTo("RpcEvent");
 
         var created = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "Created");
@@ -2497,13 +2291,7 @@ public sealed class SpecBinderTests
             .WithOperation("health.get", configure: static operation => operation
                 .Response(200, "application/json", static schema => schema.Ref("Outer")))));
 
-        var plan = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
-            {
-                ["health"] = RootGroup(),
-            }));
+        var plan = BindHealth(document);
 
         var outer = plan.Unions.Single(static union => union.Name == "IOuter");
         await Assert.That(outer.MarkerWireName).IsEqualTo("type");
@@ -2512,12 +2300,8 @@ public sealed class SpecBinderTests
         var nested = plan.Unions.Single(static union => union.Name == "IWrap");
         await Assert.That(nested.MarkerWireName).IsEqualTo("status");
         await Assert.That(nested.PrefixVariant).IsNull();
-        await Assert
-            .That(nested
-                .Variants.Select(static variant => variant.Tag)
-                .Order(StringComparer.Ordinal)
-                .SequenceEqual(["one", "two"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(nested.Variants.Select(static variant => variant.Tag).Order(StringComparer.Ordinal))
+            .IsEquivalentTo(["one", "two"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -2712,11 +2496,9 @@ public sealed class SpecBinderTests
             Selection("gadget.get"),
             GadgetCuration(alias)));
 
-        await Assert
-            .That(exception.Errors.Any(error => error.Category == BindingErrorCategory.Curation
+        await Assert.That(exception.Errors).Contains(error => error.Category == BindingErrorCategory.Curation
                                                 && string.Equals(error.Subject, subject ?? alias.Schema, StringComparison.Ordinal)
-                                                && error.Problem.Contains(expectedProblem, StringComparison.Ordinal)))
-            .IsTrue();
+                                                && error.Problem.Contains(expectedProblem, StringComparison.Ordinal));
     }
 
     /// <summary>

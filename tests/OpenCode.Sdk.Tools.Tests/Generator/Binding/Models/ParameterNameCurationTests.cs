@@ -77,7 +77,7 @@ public sealed class ParameterNameCurationTests
 
         var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("shell.get", "shell.remove"), curation));
 
-        await Assert.That(exception.Errors.Any(static error => error.Problem.Contains("must declare a reason", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Problem.Contains("must declare a reason", StringComparison.Ordinal));
     }
 
     [Test]
@@ -94,7 +94,7 @@ public sealed class ParameterNameCurationTests
 
         var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("shell.get", "shell.remove"), curation));
 
-        await Assert.That(exception.Errors.Any(static error => error.Problem.Contains("is duplicated", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Problem.Contains("is duplicated", StringComparison.Ordinal));
     }
 
     /// <summary>A handle family that names its parameter on one operation and not the other would split one working object in two.</summary>
@@ -106,7 +106,7 @@ public sealed class ParameterNameCurationTests
 
         var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("shell.get", "shell.remove"), curation));
 
-        await Assert.That(exception.Errors.Any(static error => error.Problem.Contains("the same way", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Problem.Contains("the same way", StringComparison.Ordinal));
     }
 
     /// <summary>A row that spells what the mechanical rule already gives renames nothing, so it would only hide a stale intent.</summary>
@@ -122,7 +122,7 @@ public sealed class ParameterNameCurationTests
 
         var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("shell.get"), curation));
 
-        await Assert.That(exception.Errors.Any(static error => error.Problem.Contains("changes no name", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Problem.Contains("changes no name", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -141,9 +141,8 @@ public sealed class ParameterNameCurationTests
         var exception = Assert.Throws<BindingException>(() =>
             new BindingTestHost().Bind(document, Selection("shell.get", "shell.remove", "terminal.get"), curation));
 
-        await Assert.That(exception.Errors.Any(static error => error.Subject == "Shells"
-                                                              && error.Problem.Contains("the same way", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "Shells"
+                                                              && error.Problem.Contains("the same way", StringComparison.Ordinal));
     }
 
     /// <summary>A flat operation's renamed route value reaches its method signature, its parameter documentation and its route builder, while the template keeps the wire name.</summary>
