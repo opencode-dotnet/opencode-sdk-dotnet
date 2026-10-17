@@ -22,6 +22,7 @@ namespace OpenCode.Sdk.Tests.Harness;
 internal sealed class EnsureServiceContext : IAsyncDisposable
 {
     private const int RealDaemonPort = 49374;
+    private const int WindowsReleasePort = 45278;
     private const int LogTailLines = 40;
     private static readonly TimeSpan ExitBound = TimeSpan.FromSeconds(15);
 
@@ -294,7 +295,7 @@ internal sealed class EnsureServiceContext : IAsyncDisposable
     {
         _runRoot = new TestRunRoot(_fileSystem);
         _isolation = ServerIsolation.For(_fileSystem, _runRoot.Path);
-        _port = ReservePort();
+        _port = ReservePort(LoopbackPortReservation.Reserve());
         _registrationFile = _fileSystem.Path.Combine(
             Environment["XDG_STATE_HOME"], "opencode", _channelFile!);
         await SeedConfigAsync(cancellationToken).ConfigureAwait(false);
@@ -304,14 +305,13 @@ internal sealed class EnsureServiceContext : IAsyncDisposable
         _shimPath = await OpenCodeCommandShim.WriteAsync(_fileSystem, _shimDirectory, cancellationToken).ConfigureAwait(false);
     }
 
-    private static int ReservePort()
+    internal static int ReservePort(int port)
     {
-        var port = LoopbackPortReservation.Reserve();
-        if (port == RealDaemonPort)
+        if (port is WindowsReleasePort or RealDaemonPort)
         {
             throw new InvalidOperationException(
-                $"The reserved loopback port is {RealDaemonPort.ToString(CultureInfo.InvariantCulture)}, the release "
-                + "channels' default where the maintainer's real daemon lives; the environment is contaminated. "
+                $"The reserved loopback port is {port.ToString(CultureInfo.InvariantCulture)} and could belong to a real daemon "
+                + "(the Windows release default or an explicitly configured service); the environment is contaminated. "
                 + "Refusing to run rather than touch it.");
         }
 

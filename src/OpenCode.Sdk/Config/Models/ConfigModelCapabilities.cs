@@ -28,4 +28,18 @@ public sealed record ConfigModelCapabilities
     [JsonPropertyName("output")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<string>? Output { get; init; }
+
+    /// <summary>
+    /// Gets the temperature value.
+    /// </summary>
+    [JsonPropertyName("temperature")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Temperature { get; init; }
+
+    /// <summary>
+    /// Gets the reasoning value.
+    /// </summary>
+    [JsonPropertyName("reasoning")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IConfigModelReasoning? Reasoning { get; init; }
 }

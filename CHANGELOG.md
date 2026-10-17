@@ -11,6 +11,14 @@ Nightly builds of `master` are on
 
 ### 🐛 Fixes
 
+- **The SDK speaks opencode 2.0.32.** `ExperimentalClient.CreateVoiceSessionAsync` opens an
+  experimental voice session. `ConfigModelCapabilities.Reasoning` exposes the supported and
+  unsupported reasoning arms, `ConfigModelCapabilities.Temperature` and
+  `ModelCapabilities.Temperature` expose temperature support, and `ConfigModel.ReleaseDate`
+  carries the model's release date. For a spawned service, caller environment entries win over
+  service-config `env` at spawn; a 2.0.32 service re-applies its saved `env` after startup, so saved
+  values win for everything read after startup.
+
 - **IntelliSense reaches implementing members and restores declared halves.** Properties that
   implement a documented interface member (durable envelopes' `Seq` and `Version`, the MCP
   timeouts and `Codemode`, inbox and compaction `Created` times) show that member's documentation,

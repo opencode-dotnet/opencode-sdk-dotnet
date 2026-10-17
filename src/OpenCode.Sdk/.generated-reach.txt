@@ -56,6 +56,9 @@ ConfigModelCostTier owner=Config reached-by=Config
 ConfigModelLimit owner=Config reached-by=Config
 ConfigModelPricing owner=Config reached-by=Config
 ConfigModelPricingKind owner=Config reached-by=Config
+ConfigModelReasoningBudget owner=Config reached-by=Config
+ConfigModelReasoningSupported owner=Config reached-by=Config
+ConfigModelReasoningUnsupported owner=Config reached-by=Config
 ConfigModelSelection owner=Config reached-by=Config
 ConfigModelSelectionExplicit owner=Config reached-by=Config
 ConfigModelSelectionKind owner=Config reached-by=Config
@@ -112,6 +115,8 @@ ExperimentalSessionImportRequest owner=Experimental reached-by=Experimental
 ExperimentalSessionInstructionsEntryPutRequest owner=Experimental reached-by=Experimental
 ExperimentalSessionSkillRequest owner=Experimental reached-by=Experimental
 ExperimentalSessionStatsRequestTools owner=Experimental reached-by=Experimental
+ExperimentalVoiceSessionData owner=Experimental reached-by=Experimental
+ExperimentalVoiceSessionRequest owner=Experimental reached-by=Experimental
 FileDiffInfo owner=Vcs reached-by=Events,Experimental,Sessions,Vcs
 FileDiffInfoStatus owner=Vcs reached-by=Events,Experimental,Sessions,Vcs
 FileNotFoundError owner=FileSystem reached-by=FileSystem
@@ -152,6 +157,7 @@ FormWhenValue owner=Forms reached-by=Events,Forms,Integrations,Sessions
 FormWhenValueKind owner=Forms reached-by=Events,Forms,Integrations,Sessions
 FsFindRequestType owner=FileSystem reached-by=FileSystem
 IConfigEntry owner=Config reached-by=Config
+IConfigModelReasoning owner=Config reached-by=Config
 IConnectionInfo owner=Integrations reached-by=Integrations
 ICredentialValue owner=Credentials reached-by=Credentials
 IDurableEnvelope owner=Sessions reached-by=Events,Sessions
@@ -187,6 +193,8 @@ ISessionStatsTools owner=Sessions reached-by=Experimental
 ISessionStatus owner=Sessions reached-by=Events
 IStreamFailureCause owner=Common reached-by=Events,Sessions
 IToolContent owner=Sessions reached-by=Events,Experimental,Sessions
+IVoiceTransport owner=Experimental reached-by=Experimental
+IVoiceTransportInput owner=Experimental reached-by=Experimental
 InstallationUpdateAvailable owner=Events reached-by=Events
 InstallationUpdateAvailableData owner=Events reached-by=Events
 InstallationUpdated owner=Events reached-by=Events
@@ -684,6 +692,7 @@ TuiToastShowData owner=Events reached-by=Events
 TuiToastShowDataVariant owner=Events reached-by=Events
 UnauthorizedError owner=Common reached-by=Agents,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Shells,Skills,Vcs,Websearch,Worktrees
 UnknownConfigEntry owner=Config reached-by=Config
+UnknownConfigModelReasoning owner=Config reached-by=Config
 UnknownConnectionInfo owner=Integrations reached-by=Integrations
 UnknownCredentialValue owner=Credentials reached-by=Credentials
 UnknownError owner=Common reached-by=Experimental,Sessions
@@ -714,6 +723,8 @@ UnknownSessionStatsTools owner=Sessions reached-by=Experimental
 UnknownSessionStatus owner=Sessions reached-by=Events
 UnknownStreamFailureCause owner=Common reached-by=Events,Sessions
 UnknownToolContent owner=Sessions reached-by=Events,Experimental,Sessions
+UnknownVoiceTransport owner=Experimental reached-by=Experimental
+UnknownVoiceTransportInput owner=Experimental reached-by=Experimental
 VcsBase owner=Vcs reached-by=Vcs
 VcsBaseSource owner=Vcs reached-by=Vcs
 VcsBranch owner=Vcs reached-by=Vcs
@@ -724,6 +735,10 @@ VcsFileStatusStatus owner=Vcs reached-by=Vcs
 VcsInfo owner=Vcs reached-by=Vcs
 VcsInitNotSupportedError owner=Vcs reached-by=Vcs
 VcsMode owner=Vcs reached-by=Vcs
+VoiceWebRtcTransport owner=Experimental reached-by=Experimental
+VoiceWebRtcTransportInput owner=Experimental reached-by=Experimental
+VoiceWebSocketTransport owner=Experimental reached-by=Experimental
+VoiceWebSocketTransportInput owner=Experimental reached-by=Experimental
 WebSearchProvider owner=Websearch reached-by=Websearch
 WebSearchResponse owner=Websearch reached-by=Websearch
 WebSearchResult owner=Websearch reached-by=Websearch

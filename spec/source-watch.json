@@ -75,7 +75,7 @@
     },
     {
       "path": "packages/server/src/routes.ts",
-      "sha256": "7d61d4a59322812ccdee2d269d7abae00e313224bf3971dcc5965bbef886e1ca",
+      "sha256": "e486f6b670f7c2eb4b73a2c029b08a5c5a9442df2f646d22143f316324d88bdc",
       "behavior": "The PTY ticket service and the persistent-PTY service are wired into the server layer graph.",
       "anchor": {
         "type": "contains",
@@ -156,7 +156,7 @@
     },
     {
       "path": "packages/cli/package.json",
-      "sha256": "f69914f2c1cb2b038c752542ab4754f83c16e39a30147e09976bcd62e077c919",
+      "sha256": "ffc734f35af71d5396ecf1f162725c903a149264c6c46ab9ab3f6ca22442c482",
       "behavior": "The CLI package bin map names \u0022opencode\u0022 as the installed command and keeps \u0022opencode2\u0022 as a transitional alias of the same launcher, so the shipped launcher default resolves \u0022opencode\u0022 from PATH. The CLI depends on the opencode-pty package at 0.2.0.",
       "anchor": {
         "type": "contains",
@@ -165,7 +165,7 @@
     },
     {
       "path": "packages/core/package.json",
-      "sha256": "0e9a4c79e28afb605be8952c185d8936af3bb92410e860281d9e510a16b74821",
+      "sha256": "4553035ed83131c02328a9f1369ca09c4fb3630e5d16726a117442aeb54b6f9e",
       "behavior": "The opencode-pty daemon dependency is pinned at 0.2.0, which takes its runtime directory and name as arguments instead of OPENCODE_PTY_RUNTIME_DIR; the daemon protocol the persistent-PTY door speaks stays at version 7.",
       "anchor": {
         "type": "contains",
@@ -210,7 +210,7 @@
     },
     {
       "path": "packages/tui/src/component/terminal-pane.tsx",
-      "sha256": "1ab67b8b99c42c4bf470466072a9226047733ee8a752127a6243e56063aa3591",
+      "sha256": "fda95e06a5d4eefbf1ff6f580f71f3ef8e049ced9c9b807b89b4e56aeecb5c55",
       "behavior": "Behavioral oracle: the TUI resumes a terminal from the snapshot tail cursor.",
       "anchor": {
         "type": "contains",
@@ -246,7 +246,7 @@
     },
     {
       "path": "packages/cli/src/server-process.ts",
-      "sha256": "6ba7e3a0d9165dc358db80dec6f7f8598ad2f9cf1ecf5471386facdea65cadc1",
+      "sha256": "5467b66bb6a45151754f920443e1f50d755d751da1c7fa7390651bd6641f5e92",
       "behavior": "In stdio mode the serve command prints exactly one JSON line carrying the bound url to stdout after full boot and exits when stdin reaches EOF, which is the readiness line ServerReadyLine parses and the lease OpenCodeServer releases. In service mode it changes into the user home (which ServerIsolation\u0027s isolated home relies on), returns at once when a compatible incumbent already answers, and, when the bind finds the port in use, spends up to 15 seconds re-checking for a recognized incumbent and retrying the bind every 100 milliseconds: a recognized incumbent makes it exit 0 as the loser, and a freed port makes it the service. That exit 0 is the exit the Ensure election reads as a lost race and answers by doubling its spawn delay; a loser that exited non-zero would fail every multi-contender Ensure. On Windows, a service run from a package-manager or curl install first holds a second hard link to its own image under the cache directory, so an installer can replace the binary while the daemon runs; the pid and start time the stop door identifies it by are unchanged, and a daemon the stop door ends hard leaves that link for the next service start to sweep. An OPENCODE_PTY_HANDOFF that does not decode is logged and ignored, so the server starts with fresh persistent terminals instead of failing. In service mode with remote access configured, it attaches the remote-access tunnel in the background after binding; a tunnel failure is logged and changes neither the readiness line nor the exit status.",
       "anchor": {
         "type": "contains",
@@ -301,7 +301,7 @@
     {
       "path": "packages/core/src/session/session.ts",
       "sha256": "53d67aef56a1a6b518fad623d51a15b26f071db25c7e5f1c71a21c36ac3a9d11",
-      "behavior": "session.shell answers only after the shell command ends (it joins the running fiber) and experimental.session.wait only after the session's execution is idle, so neither sends response headers while it waits; the SDK's network timeout leaves both unbounded unless a call sets a window.",
+      "behavior": "session.shell answers only after the shell command ends (it joins the running fiber) and experimental.session.wait only after the session\u0027s execution is idle, so neither sends response headers while it waits; the SDK\u0027s network timeout leaves both unbounded unless a call sets a window.",
       "anchor": {
         "type": "contains",
         "text": "yield* execution.awaitIdle(sessionID)"
@@ -310,7 +310,7 @@
     {
       "path": "packages/server/src/handlers/generate.ts",
       "sha256": "9231f95384e907545dc53cab06c6577a4a7c34abbd709b6a685da534226de4d3",
-      "behavior": "experimental.generate.text answers with the whole generation in one body, so it sends no response headers until the model finishes; the SDK's network timeout leaves it unbounded unless a call sets a window.",
+      "behavior": "experimental.generate.text answers with the whole generation in one body, so it sends no response headers until the model finishes; the SDK\u0027s network timeout leaves it unbounded unless a call sets a window.",
       "anchor": {
         "type": "contains",
         "text": ".text(request.payload)"
@@ -319,7 +319,7 @@
     {
       "path": "packages/core/src/session/generate.ts",
       "sha256": "ad58915073c82d64d50c48641d5a6160e20b5788cb26190026f1a4ba517a3257",
-      "behavior": "session.generate returns the whole generation in one body, so it sends no response headers until the model finishes; the SDK's network timeout leaves it unbounded unless a call sets a window.",
+      "behavior": "session.generate returns the whole generation in one body, so it sends no response headers until the model finishes; the SDK\u0027s network timeout leaves it unbounded unless a call sets a window.",
       "anchor": {
         "type": "contains",
         "text": "const response = yield* llm.generate(prepared.request, prepared.options)"
@@ -328,7 +328,7 @@
     {
       "path": "packages/core/src/session/command.ts",
       "sha256": "90f3c32cfb52746de287dbbad1f9bbc9ccbff9c9bc9dc565a652e55831eda32f",
-      "behavior": "session.command awaits the command's execution before it answers, so a command that does long work holds the response headers until it ends; the SDK's network timeout leaves it unbounded unless a call sets a window.",
+      "behavior": "session.command awaits the command\u0027s execution before it answers, so a command that does long work holds the response headers until it ends; the SDK\u0027s network timeout leaves it unbounded unless a call sets a window.",
       "anchor": {
         "type": "contains",
         "text": "yield* commands.execute({"
@@ -453,7 +453,7 @@
     },
     {
       "path": "packages/cli/src/services/service-config.ts",
-      "sha256": "ae1b8f6d28ff38063e6f31995c2b94e9e8196c3a02bf3b7afbe020af3e48b725",
+      "sha256": "1a38bd1ba12990938b8da3c9f4ad1cab14dd24d50e743437bdd0a6758d0e7ad3",
       "behavior": "The release channels latest, dev, beta, and next share service.json; every other channel is sanitized into service-\u003Cchannel\u003E.json; a legacy SHA-1 filename exists for every channel except latest and local; versionBelongsToChannel admits the exact installed version or the 0.0.0-\u003Cchannel\u003E-N[.M] spelling; migration copies a donor exclusively with mode 0600, ignores write failures, and admits only the current shape. Info declares optional disabled (a boolean), remote (an object holding a string route), and remoteAccepted (the literal true, which the CLI writes when remote access is accepted while pairing or turned off after it was on, and which the service get, set, and unset commands do not reach) beside hostname, port, password, cors, and env. read turns a document that fails both the current shape and the legacy shape (remote as a boolean) into an empty config, so an invalid document, including one whose remoteAccepted is present but not true, is absent config; a legacy document is rewritten in place, true getting a generated route and false dropping the key.",
       "anchor": {
         "type": "contains",
@@ -525,7 +525,7 @@
     },
     {
       "path": "packages/client/test/service.test.ts",
-      "sha256": "98b171926f67814e3a0b44ac9da8c4099e8f506f916424b2606f98595cbdb2a7",
+      "sha256": "0a9d55eaae24739200d8b9c6c4cd088d378f36d181fbde429adf4f6f833f4183",
       "behavior": "Upstream\u0027s own discovery expectations: a compatible registered service is reused, a waiting one is awaited, a failed one is reported without spawning, and a version-mismatched one is replaced; stop escalates by pid when the registration disappears and preserves a successor\u0027s registration; a contender failure is retained without recruiting replacements, survives until the deadline, and is dropped after an eviction. ServiceEnsurerTests, ServiceStopperTests, ServiceDiscoveryTests, and the Ensure live tests re-prove them.",
       "anchor": {
         "type": "contains",
@@ -534,7 +534,7 @@
     },
     {
       "path": "packages/cli/test/service.test.ts",
-      "sha256": "c97c285027dd9c37884f36fbfc6ce5e9fea558ae6bf491871f5de06bc9559095",
+      "sha256": "7cda29fd29474ba6770eb33d8d8e266ee57ee11c14a91ca6f3c2958d4b1ad452",
       "behavior": "Upstream\u0027s own filename and channel expectations: the release channels share service.json, custom channels are sanitized, and version-to-channel membership follows the pre-release spelling; ServicePathResolverTests and ServiceMigrationTests re-prove them. A managed-service contender that finds its port occupied binds once the port is released.",
       "anchor": {
         "type": "contains",
@@ -588,7 +588,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "a0d3f21a366eea08da3beaee0d54944d79df5e750b79cc5af31ac9aeffd51094",
+      "sha256": "81dfe93dff4adcf82f37b6342917e0a5afa7c7c5e623adb8e92b00f99eda5404",
       "behavior": "The workspace catalog pins the Effect release the protocol document is generated with, whose JSON Schema encoding of StructWithRest (a struct\u0027s properties beside a single-element allOf carrying only the rest\u0027s additionalProperties) the projector admits as an open object, and whose union decode (SchemaAST Union.getParser: literal sentinels, then the first member in declaration order that decodes) the structural union first-match arm mirrors, as tools/oracles/first-match-union.ts proves; an Effect bump is reviewed against both, and the oracle re-run, before the snapshot moves.",
       "anchor": {
         "type": "contains",
@@ -669,7 +669,7 @@
     },
     {
       "path": "packages/protocol/src/api.ts",
-      "sha256": "9bc2d903aaaa3070fc895af250c4ad6b2a892c9e7247ca31ad10627c43525e05",
+      "sha256": "92ddbb151c8156523bacd4ef42104f7a6ac3b59d44cfd4783472a8309afc3e3f",
       "behavior": "The API assembly decides which groups carry the location middleware. It passes the middleware into makePtyGroup, which applies it to every PTY endpoint except pty.connect, so pty.connect resolves its location in its own handler; the persistent-PTY group carries none.",
       "anchor": {
         "type": "contains",
@@ -678,7 +678,7 @@
     },
     {
       "path": "packages/client/test/service-reconnect.test.ts",
-      "sha256": "2028bf60f9fadfcc96796c6e8c43d905b7ba61a54da3445ca16fa84a9f696c85",
+      "sha256": "cb114111ac9c0d68dd5fab8237ed050e55062afe6b6815cb06258562500a7af7",
       "behavior": "Behavioral oracle for both clients: a registered owner whose health endpoint disappears fails ensure with the incompatible-health-protocol error and is neither signalled, handed off, nor replaced; a nonmatching version requirement replaces it, and an explicit stop ends it. ServiceEnsurerTests re-proves the election side.",
       "anchor": {
         "type": "contains",

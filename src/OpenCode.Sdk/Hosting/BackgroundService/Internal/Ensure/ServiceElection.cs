@@ -291,7 +291,11 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
         }
     }
 
-    /// <summary>The channel's service-config <c>env</c> (the CLI's <c>ServiceConfig.options()</c>), with the caller's entries over it.</summary>
+    /// <summary>
+    /// The channel's service-config <c>env</c> (the CLI's <c>ServiceConfig.options()</c>), with the
+    /// caller's entries winning at spawn. A 2.0.32 server re-applies its saved <c>env</c> over
+    /// everything inherited, so saved entries win for everything the server reads after startup.
+    /// </summary>
     private async Task<IReadOnlyDictionary<string, string>?> OverlayAsync(CancellationToken cancellationToken)
     {
         IReadOnlyDictionary<string, string>? configured = null;

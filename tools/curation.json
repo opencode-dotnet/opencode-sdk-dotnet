@@ -2327,6 +2327,11 @@
   ],
   "operationNames": [
     {
+      "operationId": "experimental.voice.session",
+      "methodName": "CreateVoiceSessionAsync",
+      "reason": "The operation creates a voice session; its closing segment 'session' is not a naming verb."
+    },
+    {
       "operationId": "event.subscribe",
       "methodName": "SubscribeAsync",
       "reason": "The reviewed public surface names the global event subscription directly."
@@ -2879,6 +2884,21 @@
   ],
   "schemaNames": [
     {
+      "schema": "Config.Model.Reasoning#/anyOf/supported=false",
+      "dotnetName": "ConfigModelReasoningUnsupported",
+      "reason": "The supported=false arm declares that the configured model does not support reasoning; name the capability rather than its boolean literal."
+    },
+    {
+      "schema": "Config.Model.Reasoning#/anyOf/supported=true",
+      "dotnetName": "ConfigModelReasoningSupported",
+      "reason": "The supported=true arm carries reasoning toggle, effort and budget capabilities; name the capability rather than its boolean literal."
+    },
+    {
+      "schema": "Config.Model.Reasoning#/anyOf/supported=true/properties/budget",
+      "dotnetName": "ConfigModelReasoningBudget",
+      "reason": "The reasoning budget declares the supported arm's minimum and maximum; name the capability rather than its boolean literal."
+    },
+    {
       "schema": "PersistentPty.CreateInput#/properties/size",
       "dotnetName": "PtySize",
       "reason": "The viewport size is shared by normal and persistent PTYs, not specific to the create operation; the Pty prefix places it with the PTY family."
@@ -3177,6 +3197,11 @@
     }
   ],
   "modelOwners": [
+    {
+      "match": "Voice",
+      "owner": "Experimental",
+      "reason": "The voice transport unions and their WebRTC and WebSocket arms belong to the experimental voice session operation alone."
+    },
     {
       "match": "Prompt",
       "owner": "Sessions",
