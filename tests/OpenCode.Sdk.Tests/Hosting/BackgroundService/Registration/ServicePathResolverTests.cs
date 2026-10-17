@@ -2,6 +2,8 @@ using NSubstitute;
 using OpenCode.Sdk.Internal;
 using Testably.Abstractions.Testing;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
 
 /// <summary>
@@ -124,7 +126,7 @@ public sealed class ServicePathResolverTests
         var paths = Resolver().Resolve(Select("dev", null, null, null));
 
         string[] expected = [Path(state, "opencode", DevLegacyName)];
-        await Assert.That(paths.LegacyRegistrationFiles).IsEquivalentTo(expected);
+        await Assert.That(paths.LegacyRegistrationFiles).IsEquivalentTo(expected, CollectionOrdering.Matching);
         await Assert.That(paths.LegacyConfigFile).IsEqualTo(Path(config, "opencode", DevLegacyName));
     }
 
@@ -139,7 +141,7 @@ public sealed class ServicePathResolverTests
 
         await Assert.That(paths.RegistrationFile).IsEqualTo(Path(state, "opencode", "service-preview-a.json"));
         string[] expected = [Path(state, "opencode", PreviewLegacyName), Path(state, "opencode", "service.json")];
-        await Assert.That(paths.LegacyRegistrationFiles).IsEquivalentTo(expected);
+        await Assert.That(paths.LegacyRegistrationFiles).IsEquivalentTo(expected, CollectionOrdering.Matching);
         await Assert.That(paths.LegacyConfigFile).IsEqualTo(Path(config, "opencode", PreviewLegacyName));
     }
 

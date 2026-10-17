@@ -2,6 +2,7 @@ using System.Globalization;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Worktrees.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Worktrees;
 
@@ -57,7 +58,8 @@ public sealed class WorktreesClientLiveTests(SimulatedDriveServerFixture server)
             var final = await client.Worktrees.ListWorktreesAsync(request, cancellationToken: cancellationToken);
             await Assert.That(final.Status).IsEqualTo(200);
             await Assert.That(final.IsError).IsFalse();
-            await Assert.That(final.Worktrees).IsEquivalentTo(after.Worktrees);
+            // This checks the complete inventory, not its enumeration order.
+            await Assert.That(final.Worktrees).IsEquivalentTo(after.Worktrees, CollectionOrdering.Any);
 
             Console.WriteLine(
                 "worktree-live: mode=owned arm=list-create-list-refresh-list status=" +

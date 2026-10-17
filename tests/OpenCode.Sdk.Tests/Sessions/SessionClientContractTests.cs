@@ -333,15 +333,11 @@ public sealed class SessionClientContractTests
         await Assert.That(received.Count).IsEqualTo(2);
         await Assert.That(received[0]).IsTypeOf<SessionMessageUser>();
         await Assert.That(received[1]).IsTypeOf<SessionMessageShell>();
-        await Assert
-            .That(scenario.Requests.Select(static request => request.RequestUri!.AbsoluteUri).SequenceEqual(
-            [
+        await Assert.That(scenario.Requests.Select(static request => request.RequestUri!.AbsoluteUri)).IsEquivalentTo([
                 $"http://localhost:4096/api/session/ses_100/message?limit=2&order=asc&cursor={initialCursor}",
                 $"http://localhost:4096/api/session/ses_100/message?limit=2&cursor={firstNext}",
                 $"http://localhost:4096/api/session/ses_100/message?limit=2&cursor={secondNext}",
-            ],
-            StringComparer.Ordinal))
-            .IsTrue();
+            ], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]

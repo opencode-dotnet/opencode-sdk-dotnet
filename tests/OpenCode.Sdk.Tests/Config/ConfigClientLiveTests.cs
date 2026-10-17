@@ -32,7 +32,7 @@ public sealed class ConfigClientLiveTests(SimulatedDriveServerFixture server)
             await Assert.That(shell.Name).IsNotEmpty();
         }
 
-        await Assert.That(response.Shells.Any(static shell => shell.Acceptable)).IsTrue();
+        await Assert.That(response.Shells).Contains(static shell => shell.Acceptable);
 
         Console.WriteLine(
             "config-live: shells status=" + Number(response.Status) +

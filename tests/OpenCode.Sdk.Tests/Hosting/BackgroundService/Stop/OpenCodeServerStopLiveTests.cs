@@ -34,8 +34,8 @@ public sealed class OpenCodeServerStopLiveTests(PinnedManagedServiceFixture serv
         await OpenCodeServer.StopAsync(new OpenCodeServerStopOptions { RegistrationFilePath = service.RegistrationFile }, cancellationToken);
 
         await Assert.That(await ProcessObservation.ObserveExitWithinAsync(service.ProcessId, ExitBound, cancellationToken)).IsTrue();
-        await Assert.That(FileSystem.File.Exists(service.RegistrationFile)).IsFalse();
-        await Assert.That(FileSystem.File.Exists(sidecar)).IsFalse();
+        await Assert.That(service.RegistrationFile).Satisfies(path => !FileSystem.File.Exists(path));
+        await Assert.That(sidecar).Satisfies(path => !FileSystem.File.Exists(path));
     }
 
     [Test]
@@ -51,7 +51,7 @@ public sealed class OpenCodeServerStopLiveTests(PinnedManagedServiceFixture serv
         await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
         await Assert.That(result.StandardOutput.Trim()).IsEqualTo("stopped").Because(result.StandardError);
         await Assert.That(await ProcessObservation.ObserveExitWithinAsync(service.ProcessId, ExitBound, cancellationToken)).IsTrue();
-        await Assert.That(FileSystem.File.Exists(service.RegistrationFile)).IsFalse();
+        await Assert.That(service.RegistrationFile).Satisfies(path => !FileSystem.File.Exists(path));
     }
 
     [Test]
@@ -66,8 +66,8 @@ public sealed class OpenCodeServerStopLiveTests(PinnedManagedServiceFixture serv
 
         await OpenCodeServer.StopAsync(new OpenCodeServerStopOptions { RegistrationFilePath = other }, cancellationToken);
 
-        await Assert.That(FileSystem.File.Exists(other)).IsFalse();
-        await Assert.That(FileSystem.File.Exists(service.RegistrationFile)).IsTrue();
+        await Assert.That(other).Satisfies(path => !FileSystem.File.Exists(path));
+        await Assert.That(service.RegistrationFile).Satisfies(FileSystem.File.Exists);
         await Assert.That(ProcessObservation.IsRunning(service.ProcessId)).IsTrue();
         // "Still answering" is a claim about another process: one discover call answers null
         // whenever its two-second probe bound expires, which a loaded host can make it do while

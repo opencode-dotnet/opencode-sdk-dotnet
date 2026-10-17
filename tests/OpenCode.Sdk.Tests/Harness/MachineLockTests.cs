@@ -48,7 +48,7 @@ public sealed class MachineLockTests
 
             using var second = await MachineLock.AcquireAtAsync(FileSystem, path, ShortTimeout);
 
-            await Assert.That(FileSystem.File.Exists(path)).IsTrue();
+            await Assert.That(path).Satisfies(FileSystem.File.Exists);
         }
         finally
         {

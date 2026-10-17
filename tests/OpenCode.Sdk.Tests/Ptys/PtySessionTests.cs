@@ -4,6 +4,8 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Ptys.Support;
 using OpenCode.Sdk.Tests.Support;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Ptys;
 
 public sealed class PtySessionTests
@@ -46,7 +48,7 @@ public sealed class PtySessionTests
         var frames = await ReadAllAsync(session);
 
         await Assert.That(frames.OfType<PtyOutputFrame>().Select(static frame => frame.Text).ToArray())
-            .IsEquivalentTo(["chunk-one", "chunk-two", "chunk-three"]);
+            .IsEquivalentTo(["chunk-one", "chunk-two", "chunk-three"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -119,7 +121,7 @@ public sealed class PtySessionTests
 
         var output = (PtyOutputFrame)frames.Single();
         await Assert.That(output.Text.Length).IsGreaterThan(0);
-        await Assert.That(output.Text.All(static character => character is '�')).IsTrue();
+        await Assert.That(output.Text.AsEnumerable()).All().Satisfy(character => character.IsEqualTo('\uFFFD'));
     }
 
     [Test]
@@ -154,10 +156,7 @@ public sealed class PtySessionTests
         var socket = new ScriptedTerminalWebSocket().Closing(SessionNotFound, SessionNotFoundReason);
         await using var session = new PtySession(socket);
 
-        var failure = await Assert.That(async () => _ = await ReadAllAsync(session))
-            .Throws<OpenCodeTransportException>();
-
-        await Assert.That(failure!.Message).Contains("4404");
+        var failure = await AssertSessionNotFoundAsync(session);
         await Assert.That(failure.Message).Contains(SessionNotFoundReason);
     }
 
@@ -169,11 +168,16 @@ public sealed class PtySessionTests
         var socket = new ScriptedTerminalWebSocket().Closing(SessionNotFound, string.Empty);
         await using var session = new PtySession(socket);
 
+        var failure = await AssertSessionNotFoundAsync(session);
+        await Assert.That(failure.Message).DoesNotContain("()", StringComparison.Ordinal);
+    }
+
+    private static async Task<OpenCodeTransportException> AssertSessionNotFoundAsync(PtySession session)
+    {
         var failure = await Assert.That(async () => _ = await ReadAllAsync(session))
             .Throws<OpenCodeTransportException>();
-
         await Assert.That(failure!.Message).Contains("4404");
-        await Assert.That(failure.Message.Contains("()", StringComparison.Ordinal)).IsFalse();
+        return failure;
     }
 
     [Test]
@@ -273,7 +277,7 @@ public sealed class PtySessionTests
 
         await session.WriteAsync("héllo→\n");
 
-        await Assert.That(socket.SentText).IsEquivalentTo(["héllo→\n"]);
+        await Assert.That(socket.SentText).IsEquivalentTo(["héllo→\n"], CollectionOrdering.Matching);
         await Assert.That(socket.SentMessages.Single().Length).IsEqualTo(Encoding.UTF8.GetByteCount("héllo→\n"));
     }
 
@@ -304,7 +308,7 @@ public sealed class PtySessionTests
         await Task.WhenAll(first, second);
 
         await Assert.That(socket.MaxConcurrentSends).IsEqualTo(1);
-        await Assert.That(socket.SentText).IsEquivalentTo(["first", "second"]);
+        await Assert.That(socket.SentText).IsEquivalentTo(["first", "second"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -424,7 +428,7 @@ public sealed class PtySessionTests
         await Task.WhenAll(write, submit);
 
         await Assert.That(socket.MaxConcurrentSends).IsEqualTo(1);
-        await Assert.That(socket.SentText).IsEquivalentTo(["partial", SubmittedLine + Enter]);
+        await Assert.That(socket.SentText).IsEquivalentTo(["partial", SubmittedLine + Enter], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -442,7 +446,7 @@ public sealed class PtySessionTests
 
         // The write owned the gate when disposal began: it must complete on its own terms rather
         // than fail on a semaphore the disposal tore down under it.
-        await Assert.That(socket.SentText).IsEquivalentTo(["in-flight"]);
+        await Assert.That(socket.SentText).IsEquivalentTo(["in-flight"], CollectionOrdering.Matching);
         await Assert.That(socket.CloseOutputCalls).IsEqualTo(1);
         await Assert.That(socket.DisposeCalls).IsEqualTo(1);
     }
@@ -475,7 +479,7 @@ public sealed class PtySessionTests
         }
 
         await Assert.That(refusal).IsNotNull();
-        await Assert.That(socket.SentText).IsEquivalentTo(["first"]);
+        await Assert.That(socket.SentText).IsEquivalentTo(["first"], CollectionOrdering.Matching);
         await Assert.That(socket.DisposeCalls).IsEqualTo(1);
     }
 

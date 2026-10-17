@@ -36,7 +36,7 @@ public sealed class OpenCodeServerStopEscalationTests
 
         stopwatch.Stop();
         await Assert.That(await lingering.ObserveExitWithinAsync(ExitBound, cancellationToken)).IsTrue();
-        await Assert.That(FileSystem.File.Exists(registration)).IsFalse();
+        await Assert.That(registration).Satisfies(path => !FileSystem.File.Exists(path));
         if (OperatingSystem.IsWindows())
         {
             Console.WriteLine($"branch: Windows — the terminate rung is a hard kill; stop took {stopwatch.Elapsed}");

@@ -3,6 +3,8 @@ using Testably.Abstractions;
 using Testably.Abstractions.Testing;
 using Testably.Abstractions.Testing.Initializer;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Harness;
 
 public sealed class ProviderCredentialVariablesTests
@@ -30,8 +32,8 @@ public sealed class ProviderCredentialVariablesTests
         var names = await ProviderCredentialVariables.ParseCatalogAsync(stream, cancellationToken);
 
         string[] expected = ["ONE_API_KEY", "ONE_REGION"];
-        await Assert.That(names.OrderBy(static name => name, StringComparer.Ordinal)).IsEquivalentTo(expected);
-        await Assert.That(names.Contains("One_Api_Key")).IsTrue();
+        await Assert.That(names.OrderBy(static name => name, StringComparer.Ordinal)).IsEquivalentTo(expected, CollectionOrdering.Matching);
+        await Assert.That(names).Contains("One_Api_Key", StringComparer.OrdinalIgnoreCase);
     }
 
     [Test]
@@ -50,7 +52,7 @@ public sealed class ProviderCredentialVariablesTests
         var names = ProviderCredentialVariables.ParseSource(source).Distinct(StringComparer.Ordinal).OrderBy(static name => name, StringComparer.Ordinal);
 
         string[] expected = ["EXA_API_KEY", "GCLOUD_PROJECT", "GCP_PROJECT", "TOGETHER_AI_API_KEY", "TOGETHER_API_KEY"];
-        await Assert.That(names).IsEquivalentTo(expected);
+        await Assert.That(names).IsEquivalentTo(expected, CollectionOrdering.Matching);
     }
 
     /// <summary>
@@ -109,7 +111,8 @@ public sealed class ProviderCredentialVariablesTests
 
         string[] expectedComputed = ["models-dev.ts"];
         await Assert.That(unpaired).IsEmpty();
-        await Assert.That(computed).IsEquivalentTo(expectedComputed);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(computed).IsEquivalentTo(expectedComputed, CollectionOrdering.Any);
         await Assert.That(declared).Contains("SNOWFLAKE_CORTEX_PAT");
         await Assert.That(declared.Where(name => !credentials.Names.Contains(name))).IsEmpty();
     }
@@ -124,7 +127,8 @@ public sealed class ProviderCredentialVariablesTests
         var methods = ReadEnvMethods(source);
 
         string[] expected = ["ONE_API_KEY", "ONE_REGION"];
-        await Assert.That(methods.Declared).IsEquivalentTo(expected);
+        // Dictionary/set membership is the contract; enumeration order is not.
+        await Assert.That(methods.Declared).IsEquivalentTo(expected, CollectionOrdering.Any);
         await Assert.That(methods.Computed).IsEqualTo(1);
         await Assert.That(methods.Unpaired).IsEqualTo(0);
     }
@@ -200,7 +204,7 @@ public sealed class ProviderCredentialVariablesTests
         var credentials = await ProviderCredentialVariables.FromPinnedSourceAsync(FileSystem, cancellationToken);
 
         await Assert.That(credentials.Unavailable).IsNull();
-        await Assert.That(credentials.Names.Contains("APPDATA")).IsFalse();
+        await Assert.That(credentials.Names).DoesNotContain("APPDATA", StringComparer.OrdinalIgnoreCase);
         await Assert.That(ProviderCredentialVariables.IsNotCredential("appdata")).IsTrue();
     }
 
@@ -228,7 +232,8 @@ public sealed class ProviderCredentialVariablesTests
         }
 
         string[] expected = ["amazon-bedrock.ts"];
-        await Assert.That(computed).IsEquivalentTo(expected);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(computed).IsEquivalentTo(expected, CollectionOrdering.Any);
     }
 
     [Test]
@@ -266,7 +271,8 @@ public sealed class ProviderCredentialVariablesTests
 
         string[] expected = ["GOOGLE_APPLICATION_CREDENTIALS", "CLOUDSDK_CONFIG", "AZURE_CONFIG_DIR"];
         await Assert.That(credentials.Unavailable).IsNull();
-        await Assert.That(credentials.Names).IsEquivalentTo(expected);
+        // Dictionary/set membership is the contract; enumeration order is not.
+        await Assert.That(credentials.Names).IsEquivalentTo(expected, CollectionOrdering.Any);
     }
 
     [Test]

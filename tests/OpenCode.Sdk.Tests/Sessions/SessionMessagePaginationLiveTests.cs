@@ -112,7 +112,7 @@ public sealed class SessionMessagePaginationLiveTests(SimulatedDriveServerFixtur
                 }
             }
 
-            await Assert.That(enumeratedIdentity.SequenceEqual(manualIdentity)).IsTrue();
+            await Assert.That(enumeratedIdentity).IsEquivalentTo(manualIdentity, CollectionOrdering.Matching);
             var enumeratedUsers = enumerated.OfType<SessionMessageUser>().Where(message => message.Text == Prompt).ToList();
             var enumeratedAssistants = OwnedReplies(enumerated);
             await Assert.That(enumeratedUsers).Count().IsEqualTo(1);

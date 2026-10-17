@@ -3,6 +3,8 @@ using System.Globalization;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Harness;
 
 /// <summary>
@@ -30,7 +32,7 @@ public sealed class InheritedEnvironmentTests
         });
 
         string[] expected = ["OPENCODE_API_KEY", "OPENCODE_SIMULATE", "opencode_pty_bin"];
-        await Assert.That(plan.Removed.OrderBy(static name => name, StringComparer.Ordinal)).IsEquivalentTo(expected);
+        await Assert.That(plan.Removed.OrderBy(static name => name, StringComparer.Ordinal)).IsEquivalentTo(expected, CollectionOrdering.Matching);
         await Assert.That(plan.NoProxy).IsNull();
     }
 
@@ -47,7 +49,7 @@ public sealed class InheritedEnvironmentTests
         });
 
         string[] expected = ["GIT_CEILING_DIRECTORIES", "GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE"];
-        await Assert.That(plan.Removed.OrderBy(static name => name, StringComparer.Ordinal)).IsEquivalentTo(expected);
+        await Assert.That(plan.Removed.OrderBy(static name => name, StringComparer.Ordinal)).IsEquivalentTo(expected, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -105,7 +107,7 @@ public sealed class InheritedEnvironmentTests
             ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"]);
 
         string[] expected = ["AWS_PROFILE", "AWS_SESSION_TOKEN", "OPENAI_API_KEY", "anthropic_api_key"];
-        await Assert.That(plan.Removed.OrderBy(static name => name, StringComparer.Ordinal)).IsEquivalentTo(expected);
+        await Assert.That(plan.Removed.OrderBy(static name => name, StringComparer.Ordinal)).IsEquivalentTo(expected, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -121,7 +123,7 @@ public sealed class InheritedEnvironmentTests
         });
 
         string[] expected = ["OTEL_EXPORTER_OTLP_ENDPOINT", "OTEL_EXPORTER_OTLP_HEADERS", "otel_resource_attributes"];
-        await Assert.That(plan.Removed.OrderBy(static name => name, StringComparer.Ordinal)).IsEquivalentTo(expected);
+        await Assert.That(plan.Removed.OrderBy(static name => name, StringComparer.Ordinal)).IsEquivalentTo(expected, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -138,7 +140,8 @@ public sealed class InheritedEnvironmentTests
             []);
 
         string[] expected = ["OPENCODE_SIMULATE"];
-        await Assert.That(plan.Removed).IsEquivalentTo(expected);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(plan.Removed).IsEquivalentTo(expected, CollectionOrdering.Any);
     }
 
     /// <summary>

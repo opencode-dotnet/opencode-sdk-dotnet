@@ -1,6 +1,8 @@
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Sessions;
 
 public sealed class SessionClientPaginationTests
@@ -26,7 +28,7 @@ public sealed class SessionClientPaginationTests
 
         await Assert.That(itemCount).IsEqualTo(0);
         await Assert.That(client.Requests.Count).IsEqualTo(2);
-        await Assert.That(ReferenceEquals(client.Requests[0], initialRequest)).IsTrue();
+        await Assert.That(client.Requests[0]).IsSameReferenceAs(initialRequest);
         await Assert.That(client.Requests[1]?.Limit).IsEqualTo(2);
         await Assert.That(client.Requests[1]?.Order).IsNull();
         await Assert.That(client.Requests[1]?.Cursor).IsEqualTo(string.Empty);
@@ -45,7 +47,7 @@ public sealed class SessionClientPaginationTests
             received.Add(((SessionMessageUser)message).Id);
         }
 
-        await Assert.That(received.SequenceEqual(["msg_1", "msg_2", "msg_3"], StringComparer.Ordinal)).IsTrue();
+        await Assert.That(received).IsEquivalentTo(["msg_1", "msg_2", "msg_3"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -64,7 +66,7 @@ public sealed class SessionClientPaginationTests
         await Assert.That(received.Count).IsEqualTo(2);
         await Assert.That(received[0].Cursor.Next).IsEqualTo("cur_1");
         await Assert.That(received[1].Cursor.Next).IsNull();
-        await Assert.That(received.All(static page => page.Status == 200)).IsTrue();
+        await Assert.That(received).All().Satisfy(item => item.Status, value => value.IsEqualTo(200));
         await Assert.That(client.Requests.Count).IsEqualTo(2);
     }
 
@@ -159,7 +161,7 @@ public sealed class SessionClientPaginationTests
         }
 
         await Assert.That(client.Requests.Count).IsEqualTo(2);
-        await Assert.That(ReferenceEquals(client.Requests[0], initialRequest)).IsTrue();
+        await Assert.That(client.Requests[0]).IsSameReferenceAs(initialRequest);
         await Assert.That(client.Requests[1]?.Limit).IsEqualTo(3);
         await Assert.That(client.Requests[1]?.Search).IsEqualTo("needle");
         await Assert.That(client.Requests[1]?.Project).IsEqualTo("prj_1");

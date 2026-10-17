@@ -55,7 +55,7 @@ public sealed class PersistentSimulationHostTests
         await Assert.That(starting).IsLessThan(ready);
         await Assert.That(snapshot.StandardError[starting]).Contains("level=INFO");
         await Assert.That(snapshot.StandardError[ready]).Contains("level=WARN");
-        await Assert.That(snapshot.StandardError.Any(static line => line.Contains(StdinClosed, StringComparison.Ordinal))).IsFalse();
+        await Assert.That(snapshot.StandardError).DoesNotContain(static line => line.Contains(StdinClosed, StringComparison.Ordinal));
         Console.WriteLine(
             "persistent-host-diagnostics (the ladder ended the host before the lease closed): " + snapshot.StandardError[starting] +
             " | " + snapshot.StandardError[ready]);

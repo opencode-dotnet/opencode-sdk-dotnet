@@ -36,7 +36,7 @@ public sealed class SessionLogTranscriptTests
             new SessionLogRequest { Follow = false }, CancellationToken.None);
 
         await Assert.That(items).Count().IsEqualTo(100);
-        await Assert.That(items.All(item => item.Type.Length > 4000)).IsTrue();
+        await Assert.That(items).All().Satisfy(item => item.Type.Length, value => value.IsGreaterThan(4000));
         await Assert.That(items[50].Type).StartsWith("event-0050-");
     }
 

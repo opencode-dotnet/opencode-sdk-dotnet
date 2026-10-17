@@ -2,6 +2,7 @@ using System.Globalization;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Sessions.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Sessions;
 
@@ -88,7 +89,7 @@ public sealed class SessionInboxLiveTests(SimulatedDriveServerFixture server)
             var active = await client.Sessions.GetActiveAsync(cancellationToken: cancellationToken);
             await Assert.That(active.Status).IsEqualTo(200);
             await Assert.That(active.IsError).IsFalse();
-            await Assert.That(active.Active.ContainsKey(sessionId)).IsTrue();
+            await Assert.That(active.Active).ContainsKey(sessionId);
             await Assert.That(active.Active[sessionId].Type).IsEqualTo("running");
 
             var admittedB = await session.PromptAsync(
@@ -116,8 +117,7 @@ public sealed class SessionInboxLiveTests(SimulatedDriveServerFixture server)
             await AssertNoContentAsync(repeated);
             var afterCancellation = await session.ListInboxAsync(cancellationToken: cancellationToken);
             await AssertInboxAbsentAsync(afterCancellation, inboxId);
-            // Only the held turn is pending (the queued prompt was not dispatched); read what this test added.
-            await Assert.That((await server.Controller.PendingInvocationIdsAsync()).Except(pendingBefore, StringComparer.Ordinal)).IsEquivalentTo([invocationA.Invocation.Id]);
+            await AssertOnlyNewPendingInvocationAsync(pendingBefore, invocationA.Invocation.Id);
 
             await invocationA.ChunkTextAsync(replyA);
             await invocationA.FinishAsync();
@@ -195,8 +195,7 @@ public sealed class SessionInboxLiveTests(SimulatedDriveServerFixture server)
                 OpenCodeRequestOptions.NoThrow,
                 cancellationToken);
             await AssertConflictAsync(conflict, inboxId);
-            // Only the held turn is pending (the queued prompt was not dispatched); read what this test added.
-            await Assert.That((await server.Controller.PendingInvocationIdsAsync()).Except(pendingBefore, StringComparer.Ordinal)).IsEquivalentTo([invocationA.Invocation.Id]);
+            await AssertOnlyNewPendingInvocationAsync(pendingBefore, invocationA.Invocation.Id);
 
             await invocationA.ChunkTextAsync(replyA);
             await invocationA.FinishAsync();
@@ -288,11 +287,19 @@ public sealed class SessionInboxLiveTests(SimulatedDriveServerFixture server)
         await Assert.That(rows[0].Delivery).IsEqualTo(delivery);
     }
 
+    private async Task AssertOnlyNewPendingInvocationAsync(IEnumerable<string> pendingBefore, string invocationId)
+    {
+        // Only the held turn is pending (the queued prompt was not dispatched); read what this test added.
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That((await server.Controller.PendingInvocationIdsAsync()).Except(pendingBefore, StringComparer.Ordinal))
+            .IsEquivalentTo([invocationId], CollectionOrdering.Any);
+    }
+
     private static async Task AssertInboxAbsentAsync(SessionInboxListResponse response, string inboxId)
     {
         await Assert.That(response.Status).IsEqualTo(200);
         await Assert.That(response.IsError).IsFalse();
-        await Assert.That(response.Inbox.OfType<SessionInboxUser>().Any(item => item.Id == inboxId)).IsFalse();
+        await Assert.That(response.Inbox.OfType<SessionInboxUser>()).DoesNotContain(item => item.Id == inboxId);
     }
 
     private static async Task AssertConflictAsync(OpenCodeResponse response, string inboxId)
@@ -341,8 +348,8 @@ public sealed class SessionInboxLiveTests(SimulatedDriveServerFixture server)
         await Assert.That(cancelled).IsGreaterThan(enqueued);
         await Assert.That(textEnded).IsGreaterThan(cancelled);
         await Assert.That(succeeded).IsGreaterThan(textEnded);
-        await Assert.That(items.OfType<SessionInboxDelivered>().Any(item =>
-            item.Data.SessionId == sessionId && item.Data.InboxId == inboxId)).IsFalse();
+        await Assert.That(items.OfType<SessionInboxDelivered>()).DoesNotContain(item =>
+            item.Data.SessionId == sessionId && item.Data.InboxId == inboxId);
     }
 
     private static async Task AssertSteerLogAsync(

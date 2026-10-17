@@ -5,6 +5,8 @@ using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Discovery;
 
 /// <summary>
@@ -39,21 +41,11 @@ public sealed class OpenCodeServerDiscoveryIsolatedProcessTests
         await using var health = LoopbackHttpServer.Start(static _ => ReadyHealth());
         var state = FileSystem.Path.Combine(root.Path, "state");
         Seed(FileSystem.Path.Combine(state, "opencode", "service.json"), health.Endpoint);
-        var environment = new Dictionary<string, string?>(StringComparer.Ordinal)
-        {
-            ["XDG_STATE_HOME"] = state,
-            ["XDG_CONFIG_HOME"] = FileSystem.Path.Combine(root.Path, "config"),
-            ["OPENCODE_CONFIG_DIR"] = null,
-        };
+        var environment = StateEnvironment(root, state);
 
-        var result = await new ServiceFixtureCommand(FileSystem)
-            .RunAsync(["discover-default", ServiceTimingData.PatientRequestTimeoutMilliseconds], environment, cancellationToken);
+        var result = await RunDiscoverDefaultAsync(environment, cancellationToken);
 
-        await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
-        await Assert.That(result.StandardOutput.Trim())
-            .IsEqualTo(ServiceFixtureOutput.FoundLine(ServiceInfoBodyData.Pid, health.Endpoint))
-            .Because(result.StandardError);
-        await Assert.That(health.RequestPaths).IsEquivalentTo(["/api/info"]);
+        await AssertFoundAsync(result, health);
     }
 
     [Test]
@@ -75,14 +67,9 @@ public sealed class OpenCodeServerDiscoveryIsolatedProcessTests
             ["USERPROFILE"] = home,
         };
 
-        var result = await new ServiceFixtureCommand(FileSystem)
-            .RunAsync(["discover-default", ServiceTimingData.PatientRequestTimeoutMilliseconds], environment, cancellationToken);
+        var result = await RunDiscoverDefaultAsync(environment, cancellationToken);
 
-        await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
-        await Assert.That(result.StandardOutput.Trim())
-            .IsEqualTo(ServiceFixtureOutput.FoundLine(ServiceInfoBodyData.Pid, health.Endpoint))
-            .Because(result.StandardError);
-        await Assert.That(health.RequestPaths).IsEquivalentTo(["/api/info"]);
+        await AssertFoundAsync(result, health);
     }
 
     /// <summary>
@@ -110,15 +97,9 @@ public sealed class OpenCodeServerDiscoveryIsolatedProcessTests
 
         var state = FileSystem.Path.Combine(root.Path, "state");
         Seed(FileSystem.Path.Combine(state, "opencode", "service.json"), stale);
-        var environment = new Dictionary<string, string?>(StringComparer.Ordinal)
-        {
-            ["XDG_STATE_HOME"] = state,
-            ["XDG_CONFIG_HOME"] = FileSystem.Path.Combine(root.Path, "config"),
-            ["OPENCODE_CONFIG_DIR"] = null,
-        };
+        var environment = StateEnvironment(root, state);
 
-        var result = await new ServiceFixtureCommand(FileSystem)
-            .RunAsync(["discover-default", ServiceTimingData.PatientRequestTimeoutMilliseconds], environment, cancellationToken);
+        var result = await RunDiscoverDefaultAsync(environment, cancellationToken);
 
         await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
         await Assert.That(result.StandardOutput.Trim()).IsEqualTo("missing").Because(result.StandardError);
@@ -127,12 +108,34 @@ public sealed class OpenCodeServerDiscoveryIsolatedProcessTests
         await Assert.That(ServiceFixtureOutput.ConnectRefused(result.StandardError)).IsTrue()
             .Because(result.StandardError);
         bool[] loopbackConnects = OperatingSystem.IsWindows() ? [true] : [];
-        await Assert.That(ServiceFixtureOutput.LoopbackConnects(result.StandardError)).IsEquivalentTo(loopbackConnects)
+        await Assert.That(ServiceFixtureOutput.LoopbackConnects(result.StandardError)).IsEquivalentTo(loopbackConnects, CollectionOrdering.Matching)
             .Because(result.StandardError);
     }
 
     private static LoopbackHttpResponse ReadyHealth() =>
         new() { StatusCode = HttpStatusCode.OK, Body = ServiceInfoBodyData.Ready, ContentType = "application/json" };
+
+    private static Dictionary<string, string?> StateEnvironment(TestRunRoot root, string state) =>
+        new(StringComparer.Ordinal)
+        {
+            ["XDG_STATE_HOME"] = state,
+            ["XDG_CONFIG_HOME"] = FileSystem.Path.Combine(root.Path, "config"),
+            ["OPENCODE_CONFIG_DIR"] = null,
+        };
+
+    private static Task<ServiceFixtureResult> RunDiscoverDefaultAsync(
+        IReadOnlyDictionary<string, string?> environment, CancellationToken cancellationToken) =>
+        new ServiceFixtureCommand(FileSystem)
+            .RunAsync(["discover-default", ServiceTimingData.PatientRequestTimeoutMilliseconds], environment, cancellationToken);
+
+    private static async Task AssertFoundAsync(ServiceFixtureResult result, LoopbackHttpServer health)
+    {
+        await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
+        await Assert.That(result.StandardOutput.Trim())
+            .IsEqualTo(ServiceFixtureOutput.FoundLine(ServiceInfoBodyData.Pid, health.Endpoint))
+            .Because(result.StandardError);
+        await Assert.That(health.RequestPaths).IsEquivalentTo(["/api/info"], CollectionOrdering.Matching);
+    }
 
     /// <summary>Writes the registration the loopback daemon (pid 42, version 0.0.0-test) would have published.</summary>
     private static void Seed(string path, Uri endpoint)

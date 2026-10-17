@@ -1,6 +1,7 @@
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Sessions.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Sessions;
 
@@ -78,7 +79,7 @@ public sealed class GettingStartedRecipeLiveTests(SimulatedDriveServerFixture se
                 }
             }
 
-            await Assert.That(texts).IsEquivalentTo([reply]);
+            await Assert.That(texts).IsEquivalentTo([reply], CollectionOrdering.Matching);
         }
         catch (Exception exception)
         {

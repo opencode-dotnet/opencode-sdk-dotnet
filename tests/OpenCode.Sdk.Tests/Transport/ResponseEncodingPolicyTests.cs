@@ -3,6 +3,8 @@ using System.Text;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Transport;
 
 public sealed class ResponseEncodingPolicyTests
@@ -16,7 +18,7 @@ public sealed class ResponseEncodingPolicyTests
         var decoded = ResponseEncodingPolicy.Decode(body, charset: null);
 
         await Assert.That(decoded.DecodedBody).IsNull();
-        await Assert.That(decoded.Utf8Body.Span.SequenceEqual(payload)).IsTrue();
+        await Assert.That(decoded.Utf8Body.ToArray()).IsEquivalentTo(payload, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -77,7 +79,7 @@ public sealed class ResponseEncodingPolicyTests
 
         var decoded = ResponseEncodingPolicy.Decode(pooled, payload.Length, charset: null);
 
-        await Assert.That(decoded.Utf8Body.Span.SequenceEqual(payload)).IsTrue();
+        await Assert.That(decoded.Utf8Body.ToArray()).IsEquivalentTo(payload, CollectionOrdering.Matching);
     }
 
     public static IEnumerable<Func<(byte[] Body, string? Charset)>> ParityCases() =>

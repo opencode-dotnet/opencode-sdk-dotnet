@@ -211,7 +211,7 @@ public sealed class PinnedOpenCodeServerFixtureFailureTests
             await Assert.That(observed).IsSameReferenceAs(primary);
             var failures = primary.Data[OwnedCleanup.FailuresKey] as AggregateException;
             await Assert.That(failures!.InnerExceptions).Contains(captureFailure);
-            await Assert.That(failures.InnerExceptions.OfType<TimeoutException>().Any()).IsTrue();
+            await Assert.That(failures.InnerExceptions.OfType<TimeoutException>()).IsNotEmpty();
             await Assert.That(await scenario.ReadLogAsync(fixture, "stdout.log")).Contains(ServerDiagnosticScenario.FinalStandardOutput);
             await Assert.That(await scenario.ReadMetadataAsync(fixture)).Contains("Deliberate live body failure");
         }

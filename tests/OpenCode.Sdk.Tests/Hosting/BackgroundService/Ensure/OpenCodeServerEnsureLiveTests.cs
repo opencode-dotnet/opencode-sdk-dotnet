@@ -135,7 +135,7 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
             new OpenCodeServerStopOptions { RegistrationFilePath = release.RegistrationFile },
             cancellationToken);
 
-        await Assert.That(FileSystem.File.Exists(release.RegistrationFile)).IsFalse();
+        await Assert.That(release.RegistrationFile).Satisfies(path => !FileSystem.File.Exists(path));
         await Assert.That(await ProcessObservation.ObserveExitWithinAsync(server.ProcessId, ExitBound, cancellationToken)).IsTrue()
             .Because("the published build's daemon should leave once Stop ends it");
     }
@@ -281,7 +281,7 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
             new OpenCodeServerStopOptions { RegistrationFilePath = context.RegistrationFile },
             cancellationToken);
 
-        await Assert.That(FileSystem.File.Exists(context.RegistrationFile)).IsFalse();
+        await Assert.That(context.RegistrationFile).Satisfies(path => !FileSystem.File.Exists(path));
         await Assert.That(await ProcessObservation.ObserveExitWithinAsync(processId, ExitBound, cancellationToken)).IsTrue()
             .Because("the stopped daemon must leave the process table, reaped by the host that spawned it");
     }

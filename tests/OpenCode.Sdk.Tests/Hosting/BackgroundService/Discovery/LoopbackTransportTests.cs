@@ -3,6 +3,9 @@ using System.Net.Sockets;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Hosting.BackgroundService.Support;
 using OpenCode.Sdk.Tests.Support;
+#if !NET
+using TUnit.Assertions.Enums;
+#endif
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Discovery;
 
@@ -103,8 +106,9 @@ public sealed class LoopbackTransportTests
         var listening = await new LoopbackTransport(connector).IsListeningAsync(endpoint, CancellationToken.None);
 
         await Assert.That(listening).IsFalse();
+        // Only membership and cardinality matter; this expected collection has one item.
         await Assert.That(connector.Records)
-            .IsEquivalentTo([new LoopbackConnectRecord(OperatingSystem.IsWindows(), TokenCanBeCanceled: false, SocketError.ConnectionRefused)]);
+            .IsEquivalentTo([new LoopbackConnectRecord(OperatingSystem.IsWindows(), TokenCanBeCanceled: false, SocketError.ConnectionRefused)], CollectionOrdering.Any);
     }
 
     [Test]

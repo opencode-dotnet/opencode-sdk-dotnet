@@ -93,6 +93,6 @@ public sealed class ExternalServerEndpointTests
         var rendered = endpoint!.ToString();
 
         await Assert.That(rendered).Contains(Endpoint);
-        await Assert.That(rendered.Contains(Password, StringComparison.Ordinal)).IsFalse();
+        await Assert.That(rendered).DoesNotContain(Password, StringComparison.Ordinal);
     }
 }

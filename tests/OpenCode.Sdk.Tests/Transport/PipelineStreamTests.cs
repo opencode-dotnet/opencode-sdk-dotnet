@@ -6,6 +6,8 @@ using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.Tests.Transport.Support;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Transport;
 
 public sealed class PipelineStreamTests
@@ -287,11 +289,8 @@ public sealed class PipelineStreamTests
 
         var payloads = await CollectAsync(pipeline);
 
-        await Assert
-            .That(payloads
-                .Select(static payload => payload.Value)
-                .SequenceEqual(["first", "second"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(payloads
+                .Select(static payload => payload.Value)).IsEquivalentTo(["first", "second"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -326,11 +325,8 @@ public sealed class PipelineStreamTests
 
         // The plane consumes whatever the framer seam yields: the scripted frames arrive in
         // order and dispatch exactly as wire-framed ones would.
-        await Assert
-            .That(payloads
-                .Select(static payload => payload.Value)
-                .SequenceEqual(["first", "second"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(payloads
+                .Select(static payload => payload.Value)).IsEquivalentTo(["first", "second"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(framer.FramedStream).IsNotNull();
     }
 

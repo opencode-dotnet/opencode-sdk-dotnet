@@ -2,6 +2,8 @@ using System.Net;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.FileSystem;
 
 public sealed class FileSystemClientContractTests
@@ -152,7 +154,7 @@ public sealed class FileSystemClientContractTests
         var response = await scenario.Client.FileSystem.ReadFileAsync(new FsReadRequest { Path = "assets/logo.png" });
 
         await Assert.That(response.Status).IsEqualTo(200);
-        await Assert.That(response.Content.ToArray()).IsEquivalentTo(bytes);
+        await Assert.That(response.Content.ToArray()).IsEquivalentTo(bytes, CollectionOrdering.Matching);
         await Assert.That(response.ContentType).IsEqualTo("image/png");
         await Assert.That(scenario.Requests.Single().RequestUri)
             .IsEqualTo(new Uri("http://localhost:4096/api/fs/read/assets/logo.png"));

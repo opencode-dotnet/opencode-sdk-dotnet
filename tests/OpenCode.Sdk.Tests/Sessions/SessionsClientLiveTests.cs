@@ -119,7 +119,7 @@ public sealed class SessionsClientLiveTests(SimulatedDriveServerFixture server)
             await Assert.That(importedMessages.Status).IsEqualTo(200);
             await Assert.That(importedMessages.IsError).IsFalse();
             var importedEvidence = _messageEvidence.Project(importedMessages.Messages);
-            await Assert.That(importedEvidence.SequenceEqual(exportedEvidence)).IsTrue();
+            await Assert.That(importedEvidence).IsEquivalentTo(exportedEvidence, CollectionOrdering.Matching);
 
             Console.WriteLine(
                 "session-transfer-live: export=" + Number(exported.Status) +
@@ -175,8 +175,8 @@ public sealed class SessionsClientLiveTests(SimulatedDriveServerFixture server)
             await Assert.That(response.SessionStats.Sessions).IsGreaterThan(0);
             await Assert.That(response.SessionStats.Prompts).IsGreaterThan(0);
             await Assert.That(response.SessionStats.Steps).IsGreaterThan(0);
-            await Assert.That(response.SessionStats.Models.Any(model =>
-                model.Model is { Id: ModelId, ProviderId: ProviderId })).IsTrue();
+            await Assert.That(response.SessionStats.Models).Contains(model =>
+                model.Model is { Id: ModelId, ProviderId: ProviderId });
 
             Console.WriteLine(
                 "session-stats-live: sessions=" + Number(response.SessionStats.Sessions) +
@@ -234,17 +234,15 @@ public sealed class SessionsClientLiveTests(SimulatedDriveServerFixture server)
             }
 
             await Assert.That(pages.Count).IsGreaterThan(1);
-            await Assert.That(pages.All(static page => page is { Status: 200, IsError: false })).IsTrue();
+            await Assert.That(pages).All().Satisfy(page => page.Status, value => value.IsEqualTo(200));
+            await Assert.That(pages).All().Satisfy(page => page.IsError, value => value.IsFalse());
             await Assert.That(pages[^1].Cursor.Next).IsNull();
-            await Assert
-                .That(pages
+            await Assert.That(pages
                     .SelectMany(static page => page.Sessions)
-                    .Select(static session => session.Id)
-                    .SequenceEqual(enumerated.Select(static session => session.Id), StringComparer.Ordinal))
-                .IsTrue();
-            await Assert.That(enumerated.All(session => session.ProjectId == first.ProjectId)).IsTrue();
-            await Assert.That(enumerated.Any(session => session.Id == first.Id)).IsTrue();
-            await Assert.That(enumerated.Any(session => session.Id == second.Id)).IsTrue();
+                    .Select(static session => session.Id)).IsEquivalentTo(enumerated.Select(static session => session.Id), StringComparer.Ordinal, CollectionOrdering.Matching);
+            await Assert.That(enumerated).All().Satisfy(item => item.ProjectId, value => value.IsEqualTo(first.ProjectId));
+            await Assert.That(enumerated).Contains(session => session.Id == first.Id);
+            await Assert.That(enumerated).Contains(session => session.Id == second.Id);
 
             Console.WriteLine(
                 "session-pagination-live: pages=" + Number(pages.Count) +
@@ -294,13 +292,13 @@ public sealed class SessionsClientLiveTests(SimulatedDriveServerFixture server)
         await Assert.That(response.IsError).IsFalse();
         await Assert.That(response.SessionExport.Info.Id).IsEqualTo(sessionId);
         await Assert.That(response.SessionExport.Messages.Count).IsGreaterThan(0);
-        await Assert.That(response.SessionExport.Messages.OfType<SessionMessageUser>().Any()).IsTrue();
-        await Assert.That(response.SessionExport.Messages.OfType<SessionMessageAssistant>().Any()).IsTrue();
+        await Assert.That(response.SessionExport.Messages.OfType<SessionMessageUser>()).IsNotEmpty();
+        await Assert.That(response.SessionExport.Messages.OfType<SessionMessageAssistant>()).IsNotEmpty();
         var evidence = _messageEvidence.Project(response.SessionExport.Messages);
-        await Assert.That(evidence.Any(message =>
-            message is { Type: "user", Text: TransferPrompt })).IsTrue();
-        await Assert.That(evidence.Any(message =>
-            message is { Type: "assistant", Text: TransferReply })).IsTrue();
+        await Assert.That(evidence).Contains(message =>
+            message is { Type: "user", Text: TransferPrompt });
+        await Assert.That(evidence).Contains(message =>
+            message is { Type: "assistant", Text: TransferReply });
         return evidence;
     }
 

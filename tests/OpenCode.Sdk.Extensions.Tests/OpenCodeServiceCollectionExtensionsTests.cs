@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using OpenCode.Sdk.Extensions.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Extensions.Tests;
 
@@ -44,8 +45,9 @@ public sealed class OpenCodeServiceCollectionExtensionsTests
         foreach (var family in families)
         {
             var resolved = provider.GetService(family.PropertyType);
-            await Assert.That(resolved).IsNotNull();
-            await Assert.That(resolved).IsSameReferenceAs(family.GetValue(root));
+            await Assert.That(resolved).IsNotNull().Because($"root family {family.Name} ({family.PropertyType.FullName})");
+            await Assert.That(resolved).IsSameReferenceAs(family.GetValue(root))
+                .Because($"root family {family.Name} ({family.PropertyType.FullName})");
         }
     }
 
@@ -103,8 +105,9 @@ public sealed class OpenCodeServiceCollectionExtensionsTests
 
         var failure = await Assert.That(() => provider.GetRequiredService<IOptions<OpenCodeClientOptions>>().Value).Throws<Exception>();
 
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
         await Assert.That(Chain(failure!).OfType<ArgumentOutOfRangeException>().Select(static refusal => refusal.ParamName ?? string.Empty))
-            .IsEquivalentTo(["value"]);
+            .IsEquivalentTo(["value"], CollectionOrdering.Any);
     }
 
     [Test]

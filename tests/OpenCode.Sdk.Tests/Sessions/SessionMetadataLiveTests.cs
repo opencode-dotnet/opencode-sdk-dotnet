@@ -3,6 +3,7 @@ using System.Text.Json;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Sessions.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Sessions;
 
@@ -50,7 +51,8 @@ public sealed class SessionMetadataLiveTests(SimulatedDriveServerFixture server)
             // Replacement, not merge: the key the PATCH left out is gone.
             var reread = await session.GetAsync(cancellationToken: cancellationToken);
             await Assert.That(reread.Session.Metadata).IsNotNull();
-            await Assert.That(reread.Session.Metadata!.Keys).IsEquivalentTo(["source"]);
+            // Dictionary/set membership is the contract; enumeration order is not.
+            await Assert.That(reread.Session.Metadata!.Keys).IsEquivalentTo(["source"], CollectionOrdering.Any);
             await Assert.That(reread.Session.Metadata["source"].GetString()).IsEqualTo("patch");
 
             var replay = await new SessionLogTranscript(session).ReadToEndAsync(
@@ -58,7 +60,8 @@ public sealed class SessionMetadataLiveTests(SimulatedDriveServerFixture server)
                 cancellationToken);
             var logged = replay.OfType<SessionMetadataUpdated>().Single();
             await Assert.That(logged.Data.SessionId).IsEqualTo(sessionId);
-            await Assert.That(logged.Data.Metadata.Keys).IsEquivalentTo(["source"]);
+            // Dictionary/set membership is the contract; enumeration order is not.
+            await Assert.That(logged.Data.Metadata.Keys).IsEquivalentTo(["source"], CollectionOrdering.Any);
             await Assert.That(logged.Data.Metadata["source"].GetString()).IsEqualTo("patch");
             await Assert.That(logged.Durable.AggregateId).IsEqualTo(sessionId);
 

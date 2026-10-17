@@ -18,7 +18,7 @@ public sealed class TestWorkspaceTests
             .Throws<ArgumentException>();
 
         await Assert.That(exception!.ParamName).IsEqualTo("relativePath");
-        await Assert.That(fileSystem.File.Exists(outside)).IsFalse();
+        await AssertFileAbsentAsync(fileSystem, outside);
     }
 
     [Test]
@@ -35,7 +35,7 @@ public sealed class TestWorkspaceTests
             .Throws<ArgumentException>();
 
         await Assert.That(exception!.ParamName).IsEqualTo("relativePath");
-        await Assert.That(fileSystem.File.Exists(outside)).IsFalse();
+        await AssertFileAbsentAsync(fileSystem, outside);
     }
 
     [Test]
@@ -49,10 +49,13 @@ public sealed class TestWorkspaceTests
 
         var expected = fileSystem.Path.GetFullPath(fileSystem.Path.Combine(workspace.Path, "nested", "owned.txt"));
         await Assert.That(written).IsEqualTo(expected);
-        await Assert.That(fileSystem.File.Exists(expected)).IsTrue();
+        await Assert.That(expected).Satisfies(fileSystem.File.Exists);
         using var reader = fileSystem.File.OpenText(expected);
         await Assert.That(await reader.ReadToEndAsync()).IsEqualTo("owned content");
     }
+
+    private static async Task AssertFileAbsentAsync(MockFileSystem fileSystem, string file) =>
+        await Assert.That(file).Satisfies(path => !fileSystem.File.Exists(path));
 
     [Test]
     public async Task HasTextFile_Should_Distinguish_The_Owned_Marker_From_Wrong_Or_Missing_Content()

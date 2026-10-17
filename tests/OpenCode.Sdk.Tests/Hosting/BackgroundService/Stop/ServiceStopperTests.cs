@@ -62,7 +62,7 @@ public sealed class ServiceStopperTests
 
         await Stopper().StopAsync(options: null, CancellationToken.None);
 
-        await Assert.That(_fileSystem.File.Exists(Sidecar())).IsFalse();
+        await Assert.That(Sidecar()).Satisfies(path => !_fileSystem.File.Exists(path));
         _ = _probe.DidNotReceiveWithAnyArgs().ProbeAsync(default!, default);
         _ = _ptyShutdown.DidNotReceiveWithAnyArgs().ShutdownAsync(default!, default);
         _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
@@ -78,8 +78,8 @@ public sealed class ServiceStopperTests
 
         await Stopper().StopAsync(options: null, CancellationToken.None);
 
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsTrue();
-        await Assert.That(_fileSystem.File.Exists(Sidecar())).IsFalse();
+        await Assert.That(SharedRegistrationPath()).Satisfies(_fileSystem.File.Exists);
+        await Assert.That(Sidecar()).Satisfies(path => !_fileSystem.File.Exists(path));
         _ = _probe.DidNotReceiveWithAnyArgs().ProbeAsync(default!, default);
         _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
     }
@@ -145,7 +145,7 @@ public sealed class ServiceStopperTests
         await StopWithFailedShutdownAsync(new OpenCodeApiException("The daemon refused the shutdown."));
 
         _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
+        await AssertSharedRegistrationAbsentAsync();
     }
 
     [Test]
@@ -154,7 +154,7 @@ public sealed class ServiceStopperTests
         await StopWithFailedShutdownAsync(new OpenCodeTransportException("The daemon went away."));
 
         _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
+        await AssertSharedRegistrationAbsentAsync();
     }
 
     [Test]
@@ -225,13 +225,11 @@ public sealed class ServiceStopperTests
                 throw new OperationCanceledException(cancellation.Token);
             });
 
-        _ = await Assert
-            .That(async () => await Stopper().StopAsync(options: null, cancellation.Token))
-            .Throws<OperationCanceledException>();
+        await AssertCancelledStopAsync(cancellation.Token);
 
         _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
-        await Assert.That(_fileSystem.File.Exists(Sidecar())).IsTrue();
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsTrue();
+        await Assert.That(Sidecar()).Satisfies(_fileSystem.File.Exists);
+        await AssertSharedRegistrationPresentAsync();
     }
 
     /// <summary>
@@ -262,7 +260,7 @@ public sealed class ServiceStopperTests
 
         _ = _processControl.Received(1).TrySignal(successor, ProcessSignal.Terminate);
         _ = _processControl.DidNotReceive().TrySignal(Live, Arg.Any<ProcessSignal>());
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
+        await Assert.That(SharedRegistrationPath()).Satisfies(path => !_fileSystem.File.Exists(path));
     }
 
     /// <summary>The registration went away while the stop was asking for the shutdown: the sidecar is cleared, and nothing is signalled.</summary>
@@ -281,7 +279,7 @@ public sealed class ServiceStopperTests
         await Stopper().StopAsync(options: null, CancellationToken.None);
 
         _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
-        await Assert.That(_fileSystem.File.Exists(Sidecar())).IsFalse();
+        await Assert.That(Sidecar()).Satisfies(path => !_fileSystem.File.Exists(path));
     }
 
     [Test]
@@ -294,8 +292,8 @@ public sealed class ServiceStopperTests
 
         _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
         _ = _processControl.DidNotReceive().TrySignal(Arg.Any<ProcessIdentity>(), ProcessSignal.Kill);
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
-        await Assert.That(_fileSystem.File.Exists(Sidecar())).IsFalse();
+        await Assert.That(SharedRegistrationPath()).Satisfies(path => !_fileSystem.File.Exists(path));
+        await Assert.That(Sidecar()).Satisfies(path => !_fileSystem.File.Exists(path));
     }
 
     [Test]
@@ -306,12 +304,8 @@ public sealed class ServiceStopperTests
 
         await Stopper().StopAsync(options: null, CancellationToken.None);
 
-        Received.InOrder(() =>
-        {
-            _ = _processControl.TrySignal(Live, ProcessSignal.Terminate);
-            _ = _processControl.TrySignal(Live, ProcessSignal.Kill);
-        });
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
+        AssertEscalationOrder();
+        await AssertSharedRegistrationAbsentAsync();
     }
 
     [Test]
@@ -343,12 +337,8 @@ public sealed class ServiceStopperTests
 
         await Stopper().StopAsync(options: null, CancellationToken.None);
 
-        Received.InOrder(() =>
-        {
-            _ = _processControl.TrySignal(Live, ProcessSignal.Terminate);
-            _ = _processControl.TrySignal(Live, ProcessSignal.Kill);
-        });
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
+        AssertEscalationOrder();
+        await AssertSharedRegistrationAbsentAsync();
     }
 
     [Test]
@@ -365,11 +355,7 @@ public sealed class ServiceStopperTests
 
         await Stopper().StopAsync(options: null, CancellationToken.None);
 
-        Received.InOrder(() =>
-        {
-            _ = _processControl.TrySignal(Live, ProcessSignal.Terminate);
-            _ = _processControl.TrySignal(Live, ProcessSignal.Kill);
-        });
+        AssertEscalationOrder();
         await Assert.That(ReadText(SharedRegistrationPath())).IsEqualTo(ServiceRegistrationData.Minimal);
     }
 
@@ -385,7 +371,7 @@ public sealed class ServiceStopperTests
 
         await Assert.That(exception!.Message).Contains("48213");
         _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Kill);
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsTrue();
+        await Assert.That(SharedRegistrationPath()).Satisfies(_fileSystem.File.Exists);
     }
 
     [Test]
@@ -397,7 +383,7 @@ public sealed class ServiceStopperTests
         await Stopper().StopAsync(options: null, CancellationToken.None);
 
         _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
+        await Assert.That(SharedRegistrationPath()).Satisfies(path => !_fileSystem.File.Exists(path));
     }
 
     [Test]
@@ -417,7 +403,7 @@ public sealed class ServiceStopperTests
         await Stopper().StopAsync(options: null, CancellationToken.None);
 
         _ = _processControl.DidNotReceive().TrySignal(Arg.Any<ProcessIdentity>(), ProcessSignal.Kill);
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
+        await Assert.That(SharedRegistrationPath()).Satisfies(path => !_fileSystem.File.Exists(path));
     }
 
     [Test]
@@ -457,12 +443,10 @@ public sealed class ServiceStopperTests
                 return NoService;
             });
 
-        _ = await Assert
-            .That(async () => await Stopper().StopAsync(options: null, cancellation.Token))
-            .Throws<OperationCanceledException>();
+        await AssertCancelledStopAsync(cancellation.Token);
 
         _ = _processControl.DidNotReceiveWithAnyArgs().TrySignal(default, default);
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsTrue();
+        await AssertSharedRegistrationPresentAsync();
     }
 
     [Test]
@@ -478,13 +462,11 @@ public sealed class ServiceStopperTests
             return true;
         });
 
-        _ = await Assert
-            .That(async () => await Stopper().StopAsync(options: null, cancellation.Token))
-            .Throws<OperationCanceledException>();
+        await AssertCancelledStopAsync(cancellation.Token);
 
         _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
         _ = _processControl.DidNotReceive().TrySignal(Arg.Any<ProcessIdentity>(), ProcessSignal.Kill);
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsTrue();
+        await Assert.That(SharedRegistrationPath()).Satisfies(_fileSystem.File.Exists);
     }
 
     [Test]
@@ -498,8 +480,8 @@ public sealed class ServiceStopperTests
         await Stopper().StopAsync(new OpenCodeServerStopOptions { Channel = "dev" }, CancellationToken.None);
 
         _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
-        await Assert.That(_fileSystem.File.Exists(SharedRegistrationPath())).IsFalse();
-        await Assert.That(_fileSystem.File.Exists(legacy)).IsTrue();
+        await Assert.That(SharedRegistrationPath()).Satisfies(path => !_fileSystem.File.Exists(path));
+        await Assert.That(legacy).Satisfies(_fileSystem.File.Exists);
     }
 
     [Test]
@@ -516,7 +498,7 @@ public sealed class ServiceStopperTests
             Arg.Is<ServiceRegistration>(registration => registration != null && registration.Password == null),
             Arg.Any<CancellationToken>());
         _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Terminate);
-        await Assert.That(_fileSystem.File.Exists(direct)).IsFalse();
+        await Assert.That(direct).Satisfies(path => !_fileSystem.File.Exists(path));
         _ = _environment.DidNotReceiveWithAnyArgs().GetEnvironmentVariable(default!);
     }
 
@@ -551,6 +533,23 @@ public sealed class ServiceStopperTests
 
         await Stopper().StopAsync(options: null, CancellationToken.None);
     }
+
+    private async Task AssertSharedRegistrationAbsentAsync() =>
+        await Assert.That(SharedRegistrationPath()).Satisfies(path => !_fileSystem.File.Exists(path));
+
+    private async Task AssertCancelledStopAsync(CancellationToken cancellationToken) =>
+        _ = await Assert.That(async () => await Stopper().StopAsync(options: null, cancellationToken))
+            .Throws<OperationCanceledException>();
+
+    private async Task AssertSharedRegistrationPresentAsync() =>
+        await Assert.That(SharedRegistrationPath()).Satisfies(_fileSystem.File.Exists);
+
+    private void AssertEscalationOrder() =>
+        Received.InOrder(() =>
+        {
+            _ = _processControl.TrySignal(Live, ProcessSignal.Terminate);
+            _ = _processControl.TrySignal(Live, ProcessSignal.Kill);
+        });
 
     private ServiceStopper Stopper() =>
         new(

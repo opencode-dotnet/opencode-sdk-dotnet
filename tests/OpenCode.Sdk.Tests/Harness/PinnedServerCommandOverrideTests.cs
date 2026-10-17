@@ -1,3 +1,5 @@
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Harness;
 
 public sealed class PinnedServerCommandOverrideTests
@@ -18,7 +20,7 @@ public sealed class PinnedServerCommandOverrideTests
         var command = PinnedServerCommandOverride.FromEnvironment(Read("opencode|serve"));
 
         await Assert.That(command).IsNotNull();
-        await Assert.That(command!.Command).IsEquivalentTo(["opencode", "serve"]);
+        await Assert.That(command!.Command).IsEquivalentTo(["opencode", "serve"], CollectionOrdering.Matching);
     }
 
     /// <summary>
@@ -30,7 +32,7 @@ public sealed class PinnedServerCommandOverrideTests
     {
         var command = PinnedServerCommandOverride.FromEnvironment(Read("opencode"));
 
-        await Assert.That(command!.Command).IsEquivalentTo(["opencode"]);
+        await Assert.That(command!.Command).IsEquivalentTo(["opencode"], CollectionOrdering.Matching);
     }
 
     /// <summary>The separator is what lets an absolute path with spaces stay one token.</summary>
@@ -39,7 +41,7 @@ public sealed class PinnedServerCommandOverrideTests
     {
         var command = PinnedServerCommandOverride.FromEnvironment(Read(@"C:\Program Files\oc\opencode.cmd|serve"));
 
-        await Assert.That(command!.Command).IsEquivalentTo([@"C:\Program Files\oc\opencode.cmd", "serve"]);
+        await Assert.That(command!.Command).IsEquivalentTo([@"C:\Program Files\oc\opencode.cmd", "serve"], CollectionOrdering.Matching);
     }
 
     [Test]

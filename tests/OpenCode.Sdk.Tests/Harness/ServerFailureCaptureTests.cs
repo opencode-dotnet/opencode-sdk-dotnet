@@ -2,6 +2,7 @@ using System.Globalization;
 using OpenCode.Sdk.Tests.Harness.Ownership;
 using Testably.Abstractions.Testing;
 using Testably.Abstractions.Testing.Initializer;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Harness;
 
@@ -31,8 +32,9 @@ public sealed class ServerFailureCaptureTests
 
         var kept = fileSystem.Path.Combine(artifacts.Directory, "server-logs");
         await Assert.That(failed).IsNull();
+        // Only membership and cardinality matter; this expected collection has one item.
         await Assert.That(fileSystem.Directory.GetFileSystemEntries(kept).Select(fileSystem.Path.GetFileName).OfType<string>())
-            .IsEquivalentTo(["opencode-local.log"]);
+            .IsEquivalentTo(["opencode-local.log"], CollectionOrdering.Any);
         await Assert.That(await ReadAsync(fileSystem, fileSystem.Path.Combine(kept, "opencode-local.log")))
             .IsEqualTo("spawning process git rev-parse");
         await Assert.That(fileSystem.Directory.EnumerateFiles(artifacts.Directory, "opencode.db", SearchOption.AllDirectories)).IsEmpty();
@@ -74,9 +76,10 @@ public sealed class ServerFailureCaptureTests
         _ = await new ServerFailureCapture(artifacts, fileSystem, new OwnedOperationDeadline())
             .CaptureAsync(output: null, processId: null, external: false, failure: null, [], logs);
 
+        // This checks the complete inventory, not its enumeration order.
         await Assert.That(fileSystem.Directory.GetFiles(fileSystem.Path.Combine(artifacts.Directory, "server-logs"))
                 .Select(fileSystem.Path.GetFileName).OfType<string>())
-            .IsEquivalentTo(Enumerable.Range(2, 8).Select(LogName));
+            .IsEquivalentTo(Enumerable.Range(2, 8).Select(LogName), CollectionOrdering.Any);
     }
 
     [Test]
@@ -90,7 +93,7 @@ public sealed class ServerFailureCaptureTests
                 fileSystem.Path.GetFullPath(fileSystem.Path.Combine("run", "data", "opencode", "log")));
 
         await Assert.That(failed).IsNull();
-        await Assert.That(fileSystem.Directory.Exists(fileSystem.Path.Combine(artifacts.Directory, "server-logs"))).IsFalse();
+        await Assert.That(fileSystem.Path.Combine(artifacts.Directory, "server-logs")).Satisfies(path => !fileSystem.Directory.Exists(path));
     }
 
     private static string LogName(int index) => "opencode-" + index.ToString(CultureInfo.InvariantCulture) + ".log";

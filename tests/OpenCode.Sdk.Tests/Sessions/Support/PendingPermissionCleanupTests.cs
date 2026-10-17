@@ -2,6 +2,8 @@ using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness.Ownership;
 using OpenCode.Sdk.Tests.Support;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Sessions.Support;
 
 public sealed class PendingPermissionCleanupTests
@@ -57,7 +59,7 @@ public sealed class PendingPermissionCleanupTests
         var thrown = await Assert.That(() => cleanup.CompleteAsync(primary)).Throws<InvalidOperationException>();
 
         await Assert.That(thrown).IsSameReferenceAs(primary);
-        await Assert.That(steps).IsEquivalentTo(["discovery", "saved", "session"]);
+        await Assert.That(steps).IsEquivalentTo(["discovery", "saved", "session"], CollectionOrdering.Matching);
         var failures = (AggregateException)primary.Data[OwnedCleanup.FailuresKey]!;
         await Assert.That(failures.InnerExceptions).Count().IsEqualTo(2);
         var rejection = failures.InnerExceptions[0] as OpenCodeApiException;

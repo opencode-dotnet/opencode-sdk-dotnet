@@ -65,8 +65,8 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             await Assert.That(replay[^1]).IsSameReferenceAs(markers[0]);
             await Assert.That(markers[0].AggregateId).IsEqualTo(sessionId);
             await Assert.That(markers[0].Seq).IsNotNull();
-            await Assert.That(replay.Take(replay.Count - 1).All(item => item is ISessionEventDurable)).IsTrue();
-            await Assert.That(replay.OfType<SessionCreated>().Any(created => created.Data.SessionId == sessionId)).IsTrue();
+            await Assert.That(replay.Take(replay.Count - 1)).All().Satisfy(item => item.IsAssignableTo<ISessionEventDurable>());
+            await Assert.That(replay.OfType<SessionCreated>()).Contains(created => created.Data.SessionId == sessionId);
 
             var ownedTexts = replay.OfType<SessionTextEnded>()
                 .Where(text => text.Data.SessionId == sessionId && text.Data.Text == ReplayReply)
@@ -98,8 +98,8 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             var resumedMarkers = resumed.OfType<EventLogSynced>().ToList();
             await Assert.That(resumedMarkers).Count().IsEqualTo(1);
             await Assert.That(resumed[^1]).IsSameReferenceAs(resumedMarkers[0]);
-            await Assert.That(resumed.Take(resumed.Count - 1).All(item => item is ISessionEventDurable)).IsTrue();
-            await Assert.That(resumed.Any(item => item is SessionExecutionStarted started && started.Id == anchor.Id)).IsFalse();
+            await Assert.That(resumed.Take(resumed.Count - 1)).All().Satisfy(item => item.IsAssignableTo<ISessionEventDurable>());
+            await Assert.That(resumed).DoesNotContain(item => item is SessionExecutionStarted started && started.Id == anchor.Id);
             var resumedTextIndex = FindIndex(resumed, ownedText.Id, ownedText.Durable.Seq);
             var resumedSucceededIndex = FindIndex(resumed, ownedSucceeded.Id, ownedSucceeded.Durable.Seq);
             await Assert.That(resumedTextIndex).IsGreaterThanOrEqualTo(0);
@@ -149,8 +149,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             await transcript.AttachAsync(finiteMarkers[0].Seq!.Value, cancellationToken);
             await Assert.That(transcript.Marker).IsNotNull();
             await Assert.That(transcript.Marker!.AggregateId).IsEqualTo(sessionId);
-            await Assert.That(transcript.ReplayItems.OfType<SessionTextEnded>()
-                .Any(text => text.Data.Text == FollowSecondReply)).IsFalse();
+            await Assert.That(transcript.ReplayItems.OfType<SessionTextEnded>()).DoesNotContain(text => text.Data.Text == FollowSecondReply);
 
             cleanup.MarkTurnStarted();
             var followedTurn = new SimulatedSessionTurn(server, client, session, sessionId);
@@ -213,8 +212,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
 
             var settled = await transcript.ReadToEndAsync(
                 new SessionLogRequest { Follow = false }, cancellationToken);
-            await Assert.That(settled.OfType<SessionExecutionSucceeded>()
-                .Any(succeeded => succeeded.Durable.Seq == terminal.Durable.Seq)).IsTrue();
+            await AssertSucceededAsync(settled, terminal.Durable.Seq);
             var watermark = settled.OfType<EventLogSynced>().Single().Seq;
             await Assert.That(watermark).IsNotNull();
             var beyond = watermark!.Value + PastTailOffset;
@@ -278,8 +276,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
 
             var settled = await transcript.ReadToEndAsync(
                 new SessionLogRequest { Follow = false }, cancellationToken);
-            await Assert.That(settled.OfType<SessionExecutionSucceeded>()
-                .Any(succeeded => succeeded.Durable.Seq == openingTerminal.Durable.Seq)).IsTrue();
+            await AssertSucceededAsync(settled, openingTerminal.Durable.Seq);
             var watermark = settled.OfType<EventLogSynced>().Single().Seq;
             await Assert.That(watermark).IsNotNull();
             var covered = watermark!.Value + SkippedOffset;
@@ -314,8 +311,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
                 .Where(started => started.Data.SessionId == sessionId && started.Durable.Seq <= covered)
                 .ToList();
             await Assert.That(skipped).IsNotEmpty();
-            await Assert.That(transcript.LiveItems.OfType<SessionExecutionStarted>()
-                .Any(started => started.Durable.Seq == skipped[0].Durable.Seq)).IsFalse();
+            await Assert.That(transcript.LiveItems.OfType<SessionExecutionStarted>()).DoesNotContain(started => started.Durable.Seq == skipped[0].Durable.Seq);
 
             Console.WriteLine(
                 "session-log-skipped-live: cursor=" + Number(covered) +
@@ -358,6 +354,9 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
         items.FindIndex(item => item is ISessionEventDurable durable
                                 && durable.Id == id
                                 && durable.Durable?.Seq == sequence);
+
+    private static async Task AssertSucceededAsync(IEnumerable<ISessionLogItem> items, long sequence) =>
+        await Assert.That(items.OfType<SessionExecutionSucceeded>()).Contains(succeeded => succeeded.Durable.Seq == sequence);
 
     private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
 }

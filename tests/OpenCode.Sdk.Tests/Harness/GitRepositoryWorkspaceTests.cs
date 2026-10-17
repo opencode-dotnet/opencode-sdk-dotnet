@@ -68,10 +68,10 @@ public sealed class GitRepositoryWorkspaceTests
             inner.Path.Combine(inner.Path.GetTempPath(), "run"),
             CancellationToken.None)).Throws<InvalidOperationException>();
 
-        await Assert.That(ReferenceEquals(caught, initializationFailure)).IsTrue();
+        await Assert.That(caught).IsSameReferenceAs(initializationFailure);
         await Assert.That(caught!.Data[GitRepositoryWorkspace.CleanupFailuresKey]).IsTypeOf<AggregateException>();
         var cleanup = caught.Data[GitRepositoryWorkspace.CleanupFailuresKey] as AggregateException;
         await Assert.That(cleanup!.InnerExceptions.Count).IsEqualTo(1);
-        await Assert.That(ReferenceEquals(cleanup.InnerExceptions[0], cleanupFailure)).IsTrue();
+        await Assert.That(cleanup.InnerExceptions[0]).IsSameReferenceAs(cleanupFailure);
     }
 }

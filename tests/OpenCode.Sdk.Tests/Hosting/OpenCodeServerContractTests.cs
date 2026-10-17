@@ -1,5 +1,6 @@
 using System.Reflection;
 using OpenCode.Sdk.Internal;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Hosting;
 
@@ -141,7 +142,8 @@ public sealed class OpenCodeServerContractTests
         // hand-written copy-list cannot know about it on its own, so this assertion is what turns
         // that silence loud instead of quiet. Extend both the expected list and the propagation
         // check below in the same change that adds the member.
-        await Assert.That(behaviorMembers).IsEquivalentTo(["EventStreamIdleTimeout", "Location", "NetworkTimeout"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(behaviorMembers).IsEquivalentTo(["EventStreamIdleTimeout", "Location", "NetworkTimeout"], CollectionOrdering.Any);
 
         var server = CreateStartedDoor();
         var sentinelLocation = new LocationSelector { Directory = "/sentinel-workspace" };
@@ -177,7 +179,7 @@ public sealed class OpenCodeServerContractTests
         using var first = server.CreateClient();
         using var second = server.CreateClient();
 
-        await Assert.That(ReferenceEquals(first, second)).IsFalse();
+        await Assert.That(first).IsNotSameReferenceAs(second);
     }
 
     [Test]

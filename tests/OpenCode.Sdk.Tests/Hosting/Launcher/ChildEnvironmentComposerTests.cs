@@ -67,7 +67,7 @@ public sealed class ChildEnvironmentComposerTests
 
         var composed = composer.Compose(entries: null, Password);
 
-        await Assert.That(composed.ContainsKey("BROKEN")).IsFalse();
+        await Assert.That(composed).DoesNotContainKey("BROKEN");
         await Assert.That(composed["KEPT"]).IsEqualTo("yes");
     }
 

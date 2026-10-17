@@ -29,9 +29,9 @@ public sealed class ServiceMigrationTests
 
         await Migration().ApplyAsync(Select(Channel), paths, CancellationToken.None);
 
-        await Assert.That(_fileSystem.File.Exists(paths.RegistrationFile)).IsTrue();
+        await Assert.That(paths.RegistrationFile).Satisfies(_fileSystem.File.Exists);
         await Assert.That(_fileSystem.File.ReadAllText(paths.RegistrationFile)).IsEqualTo(donor);
-        await Assert.That(_fileSystem.File.Exists(paths.LegacyRegistrationFiles[0])).IsTrue();
+        await Assert.That(paths.LegacyRegistrationFiles[0]).Satisfies(_fileSystem.File.Exists);
     }
 
     [Test]
@@ -47,7 +47,7 @@ public sealed class ServiceMigrationTests
 
         await Migration().ApplyAsync(Select(Channel), paths, CancellationToken.None);
 
-        await Assert.That(_fileSystem.File.Exists(paths.RegistrationFile)).IsFalse();
+        await AssertFileAbsentAsync(paths.RegistrationFile);
     }
 
     [Test]
@@ -69,7 +69,7 @@ public sealed class ServiceMigrationTests
 
         await Migration().ApplyAsync(Select(Channel, installedVersion: "1.2.4"), paths, CancellationToken.None);
 
-        await Assert.That(_fileSystem.File.Exists(paths.RegistrationFile)).IsFalse();
+        await AssertFileAbsentAsync(paths.RegistrationFile);
     }
 
     [Test]
@@ -106,7 +106,7 @@ public sealed class ServiceMigrationTests
 
         await Migration().ApplyAsync(Select(CustomChannel), paths, CancellationToken.None);
 
-        await Assert.That(_fileSystem.File.Exists(paths.RegistrationFile)).IsFalse();
+        await AssertFileAbsentAsync(paths.RegistrationFile);
         await Assert.That(_fileSystem.File.ReadAllText(paths.LegacyRegistrationFiles[1])).IsEqualTo(ServiceRegistrationData.StableRelease);
     }
 
@@ -135,7 +135,7 @@ public sealed class ServiceMigrationTests
         // SDK must neither create it nor fail the lookup over its absence.
         await Migration().ApplyAsync(Select(Channel), detached, CancellationToken.None);
 
-        await Assert.That(_fileSystem.Directory.Exists(stateDirectory)).IsFalse();
+        await Assert.That(stateDirectory).Satisfies(path => !_fileSystem.Directory.Exists(path));
     }
 
     [Test]
@@ -177,7 +177,7 @@ public sealed class ServiceMigrationTests
         await Migration().ApplyAsync(Select(Channel), paths, CancellationToken.None);
 
         await Assert.That(_fileSystem.File.ReadAllText(paths.ConfigFile!)).IsEqualTo(config);
-        await Assert.That(_fileSystem.File.Exists(paths.LegacyConfigFile!)).IsTrue();
+        await Assert.That(paths.LegacyConfigFile!).Satisfies(_fileSystem.File.Exists);
     }
 
     [Test]
@@ -188,7 +188,7 @@ public sealed class ServiceMigrationTests
 
         await Migration().ApplyAsync(Select(Channel), paths, CancellationToken.None);
 
-        await Assert.That(_fileSystem.File.Exists(paths.ConfigFile!)).IsFalse();
+        await AssertFileAbsentAsync(paths.ConfigFile!);
     }
 
     [Test]
@@ -215,7 +215,7 @@ public sealed class ServiceMigrationTests
 
         await Migration().ApplyAsync(Select(Channel), paths, CancellationToken.None);
 
-        await Assert.That(_fileSystem.File.Exists(paths.ConfigFile!)).IsFalse();
+        await AssertFileAbsentAsync(paths.ConfigFile!);
     }
 
     [Test]
@@ -232,6 +232,9 @@ public sealed class ServiceMigrationTests
 
     private ServiceMigration Migration() =>
         new(new TestablyServiceFileSystem(_fileSystem));
+
+    private async Task AssertFileAbsentAsync(string file) =>
+        await Assert.That(file).Satisfies(path => !_fileSystem.File.Exists(path));
 
     private ServicePaths ChannelPaths(string? channel)
     {

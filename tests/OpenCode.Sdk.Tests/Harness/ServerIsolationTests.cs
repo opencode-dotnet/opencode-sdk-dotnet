@@ -1,5 +1,6 @@
 using Testably.Abstractions.Testing;
 using Testably.Abstractions.Testing.Initializer;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Harness;
 
@@ -18,7 +19,7 @@ public sealed class ServerIsolationTests
         // (packages/util/src/global.ts:17 at the pin) and the variable os.homedir() reads on this
         // platform. MockFileSystem simulates the host OS, so the platform branch matches it.
         _ = environment.TryGetValue("OPENCODE_TEST_HOME", out var home);
-        await Assert.That(fileSystem.Directory.Exists(home)).IsTrue();
+        await Assert.That(home).Satisfies(fileSystem.Directory.Exists);
         await Assert.That(home is { } path
             && path.StartsWith(runRoot + fileSystem.Path.DirectorySeparatorChar, StringComparison.Ordinal)).IsTrue();
         _ = environment.TryGetValue(OperatingSystem.IsWindows() ? "USERPROFILE" : "HOME", out var platformHome);
@@ -43,7 +44,7 @@ public sealed class ServerIsolationTests
         var windows = OperatingSystem.IsWindows();
         await Assert.That(roaming).IsEqualTo(windows ? fileSystem.Path.Combine(home, "AppData", "Roaming") : null);
         await Assert.That(local).IsEqualTo(windows ? fileSystem.Path.Combine(home, "AppData", "Local") : null);
-        await Assert.That(new[] { roaming, local }.All(store => store is null || fileSystem.Directory.Exists(store))).IsTrue();
+        await Assert.That([roaming, local]).All().Satisfy(store => store.Satisfies(path => path is null || fileSystem.Directory.Exists(path)));
     }
 
     [Test]
@@ -57,7 +58,8 @@ public sealed class ServerIsolationTests
         // A terminal the server opens runs the user's own shell in this home. zsh answers a home
         // without startup files with its first-run wizard, which waits for a key and swallows the
         // line a test submits.
-        await Assert.That(home is { } path && fileSystem.File.Exists(fileSystem.Path.Combine(path, ".zshrc"))).IsTrue();
+        await Assert.That(home).IsNotNull();
+        await Assert.That(fileSystem.Path.Combine(home, ".zshrc")).Satisfies(fileSystem.File.Exists);
     }
 
     [Test]
@@ -109,7 +111,8 @@ public sealed class ServerIsolationTests
         var discovering = ServerIsolation.ForProjectConfiguration(fileSystem, runRoot).Environment;
 
         await Assert.That(discovering["OPENCODE_DISABLE_PROJECT_CONFIG"]).IsEqualTo("0");
-        await Assert.That(discovering.Keys).IsEquivalentTo(isolated.Keys);
+        // Dictionary/set membership is the contract; enumeration order is not.
+        await Assert.That(discovering.Keys).IsEquivalentTo(isolated.Keys, CollectionOrdering.Any);
         await Assert.That(discovering.Where(pair => pair.Key != "OPENCODE_DISABLE_PROJECT_CONFIG" && isolated[pair.Key] != pair.Value)).IsEmpty();
     }
 
@@ -126,7 +129,7 @@ public sealed class ServerIsolationTests
         var environment = ServerIsolation.For(fileSystem, runRoot).Environment;
 
         var temporary = environment["TMPDIR"];
-        await Assert.That(fileSystem.Directory.Exists(temporary)).IsTrue();
+        await Assert.That(temporary).Satisfies(fileSystem.Directory.Exists);
         await Assert.That(temporary.StartsWith(runRoot + fileSystem.Path.DirectorySeparatorChar, StringComparison.Ordinal)).IsTrue();
         _ = environment.TryGetValue("TMP", out var tmp);
         _ = environment.TryGetValue("TEMP", out var temp);
@@ -196,7 +199,7 @@ public sealed class ServerIsolationTests
 
         var expected = fileSystem.Path.Combine(runRoot, "programdata");
         await Assert.That(programData).IsEqualTo(expected);
-        await Assert.That(fileSystem.Directory.Exists(expected)).IsTrue();
+        await Assert.That(expected).Satisfies(fileSystem.Directory.Exists);
         await Assert.That(fileSystem.Directory.EnumerateFileSystemEntries(expected)).IsEmpty();
     }
 
@@ -208,13 +211,13 @@ public sealed class ServerIsolationTests
     [Test]
     public async Task Unmovable_Should_Name_Upstreams_System_Sources_On_Linux_And_MacOS()
     {
-        await Assert.That(SystemConfigurationSources.Unmovable(macOS: false, "dev")).IsEquivalentTo(["/etc/opencode"]);
+        await Assert.That(SystemConfigurationSources.Unmovable(macOS: false, "dev")).IsEquivalentTo(["/etc/opencode"], CollectionOrdering.Matching);
         await Assert.That(SystemConfigurationSources.Unmovable(macOS: true, "dev")).IsEquivalentTo(
             [
                 "/Library/Application Support/opencode",
                 "/Library/Managed Preferences/dev/ai.opencode.managed.plist",
                 "/Library/Managed Preferences/ai.opencode.managed.plist",
-            ]);
+            ], CollectionOrdering.Matching);
     }
 
     /// <summary>

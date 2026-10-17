@@ -2,6 +2,8 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.Tests.Transport.Support;
 
+using TUnit.Assertions.Enums;
+
 namespace OpenCode.Sdk.Tests.Transport;
 
 /// <summary>
@@ -12,6 +14,16 @@ namespace OpenCode.Sdk.Tests.Transport;
 public sealed class RequestDecorationPolicyTests
 {
     private const string OperationId = "test.operation";
+
+    private static async Task AssertDecoratedLocationAsync(
+        Pipeline pipeline, RecordingHttpHandler handler, OpenCodeRequestOptions options, string expectedDirectory)
+    {
+        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None);
+
+        var request = handler.Requests.Single();
+        await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo(expectedDirectory);
+        await Assert.That(request.Headers).DoesNotContainKey("x-opencode-workspace");
+    }
 
     [Test]
     public async Task RequestDecorationPolicy_Should_Let_PerCall_Location_Win_Member_By_Member()
@@ -27,11 +39,7 @@ public sealed class RequestDecorationPolicyTests
             Location = new LocationSelector { Directory = "/per/dir" },
         };
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None);
-
-        var request = handler.Requests.Single();
-        await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo("%2Fper%2Fdir");
-        await Assert.That(request.Headers.ContainsKey("x-opencode-workspace")).IsFalse();
+        await AssertDecoratedLocationAsync(pipeline, handler, options, "%2Fper%2Fdir");
     }
 
     [Test]
@@ -56,7 +64,7 @@ public sealed class RequestDecorationPolicyTests
 
         var request = handler.Requests.Single();
         await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo("%2Famb%2Fdir");
-        await Assert.That(request.Headers.ContainsKey("x-opencode-workspace")).IsFalse();
+        await Assert.That(request.Headers).DoesNotContainKey("x-opencode-workspace");
     }
 
     [Test]
@@ -79,7 +87,7 @@ public sealed class RequestDecorationPolicyTests
         // Pinned literal for Uri.EscapeDataString("/tmp/päth ü"), computed once rather than
         // recomputed inline so the test does not exercise the very API it is pinning.
         await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo("%2Ftmp%2Fp%C3%A4th%20%C3%BC");
-        await Assert.That(request.Headers.ContainsKey("x-opencode-workspace")).IsFalse();
+        await Assert.That(request.Headers).DoesNotContainKey("x-opencode-workspace");
     }
 
     [Test]
@@ -92,8 +100,8 @@ public sealed class RequestDecorationPolicyTests
         _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         var request = handler.Requests.Single();
-        await Assert.That(request.Headers.ContainsKey("x-opencode-directory")).IsFalse();
-        await Assert.That(request.Headers.ContainsKey("x-opencode-workspace")).IsFalse();
+        await Assert.That(request.Headers).DoesNotContainKey("x-opencode-directory");
+        await Assert.That(request.Headers).DoesNotContainKey("x-opencode-workspace");
     }
 
     [Test]
@@ -135,7 +143,7 @@ public sealed class RequestDecorationPolicyTests
             CancellationToken.None);
 
         var request = handler.Requests.Single();
-        await Assert.That(request.Headers.Keys.Order(StringComparer.Ordinal)).IsEquivalentTo(["User-Agent"]);
+        await Assert.That(request.Headers.Keys.Order(StringComparer.Ordinal)).IsEquivalentTo(["User-Agent"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -149,11 +157,7 @@ public sealed class RequestDecorationPolicyTests
             Location = new LocationSelector { Directory = "/per/dir" },
         };
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None);
-
-        var request = handler.Requests.Single();
-        await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo("%2Fper%2Fdir");
-        await Assert.That(request.Headers.ContainsKey("x-opencode-workspace")).IsFalse();
+        await AssertDecoratedLocationAsync(pipeline, handler, options, "%2Fper%2Fdir");
     }
 
     /// <summary>
@@ -188,6 +192,6 @@ public sealed class RequestDecorationPolicyTests
             ? Uri.UnescapeDataString(directoryHeader)
             : null;
         await Assert.That(wireDirectory).IsEqualTo(expected?.Directory);
-        await Assert.That(request.Headers.ContainsKey("x-opencode-workspace")).IsFalse();
+        await Assert.That(request.Headers).DoesNotContainKey("x-opencode-workspace");
     }
 }

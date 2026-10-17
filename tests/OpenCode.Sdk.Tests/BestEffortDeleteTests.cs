@@ -28,7 +28,7 @@ public sealed class BestEffortDeleteTests
             var deleted = BestEffortDelete.TryDeleteTree(_fileSystem, root);
 
             await Assert.That(deleted).IsTrue();
-            await Assert.That(_fileSystem.Directory.Exists(root)).IsFalse();
+            await Assert.That(root).Satisfies(path => !_fileSystem.Directory.Exists(path));
         }
         finally
         {
