@@ -16,7 +16,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 /// on the per-operation records and the types only experimental operations reach, and never on an
 /// internal artifact. A consumer compilation proves the emitted id is the one the compiler reports.
 /// </summary>
-public sealed class ExperimentalSurfaceEmissionTests
+[ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
+public sealed class ExperimentalSurfaceEmissionTests(PinnedBinding pinned)
 {
     [Test]
     public async Task Emit_Should_Mark_An_All_Experimental_Handle_With_An_Unmarked_Empty_Collection()
@@ -205,7 +206,7 @@ public sealed class ExperimentalSurfaceEmissionTests
     [Test]
     public async Task Emit_Should_Mark_A_Hoisted_Interface_From_Its_Plan()
     {
-        var plan = await new BindingTestHost().BindPinnedAsync();
+        var plan = pinned.Plan;
         var hoisted = plan.HoistedInterfaces.Single(static value => value.Name == "IDurableEnvelope") with { ExperimentalDiagnostic = "OPENCODE003" };
 
         var sources = HoistedInterfaceEmitter.Emit([hoisted], plan.Placement);
@@ -217,7 +218,7 @@ public sealed class ExperimentalSurfaceEmissionTests
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Compile_Should_Report_The_Experimental_Diagnostic_Unless_The_Consumer_Suppresses_It()
     {
-        var sources = SourceEmitter.Emit(await new BindingTestHost().BindPinnedAsync());
+        var sources = SourceEmitter.Emit(pinned.Plan);
         var consumer = ExperimentalConsumerSyntax.CreateTree();
 
         var unsuppressed = await GeneratedSourceCompiler.CompileConsumerAsync(sources, consumer, suppressExperimental: false);

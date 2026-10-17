@@ -13,14 +13,15 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 /// its stream would stop reconnecting. Every id each table names is an operation of the pinned
 /// document, identity curation applied.
 /// </summary>
-public sealed class HandWrittenTransportTableTests
+[ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
+public sealed class HandWrittenTransportTableTests(PinnedBinding pinnedBinding)
 {
     [Test]
     [Arguments("Internal/Transport/NetworkTimeouts.cs", "LongPollOperations")]
     [Arguments("Internal/Transport/StreamReconnect.cs", "ReconnectingOperations")]
     public async Task Every_Table_Id_Should_Name_A_Pinned_Operation(string tablePath, string tableField)
     {
-        var (document, _, _) = await BindingTestHost.LoadPinnedInputsAsync();
+        var document = pinnedBinding.Document;
         var pinned = document.Operations.Select(static operation => operation.OperationId).ToHashSet(StringComparer.Ordinal);
 
         var ids = await TableIdsAsync(tablePath, tableField);

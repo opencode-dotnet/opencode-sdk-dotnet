@@ -9,12 +9,13 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Ingestion;
 /// the known lossy seams, no count assertions. A red landmark is evidence about the wire,
 /// never a reason to patch the assertion.
 /// </summary>
-public sealed class PinnedSpecSmokeTests
+[ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
+public sealed class PinnedSpecSmokeTests(PinnedBinding pinned)
 {
     [Test]
     public async Task Ingest_Should_Absorb_The_Pinned_Spec()
     {
-        var document = await IngestPinnedSpecAsync();
+        var document = pinned.Document;
 
         await Assert.That(document.Operations).IsNotEmpty();
         await Assert.That(document.Operations).All(static operation =>
@@ -24,7 +25,7 @@ public sealed class PinnedSpecSmokeTests
     [Test]
     public async Task Ingest_Should_Flag_Stream_Wildcard_And_WebSocket_Operations()
     {
-        var document = await IngestPinnedSpecAsync();
+        var document = pinned.Document;
 
         var sessionLog = document.Operations.Single(static operation => operation.OperationId == "session.log");
         await Assert.That(sessionLog.IsSse).IsTrue();
@@ -43,7 +44,7 @@ public sealed class PinnedSpecSmokeTests
     [Test]
     public async Task Ingest_Should_Classify_Marked_Nested_And_Structural_Union_Landmarks()
     {
-        var document = await IngestPinnedSpecAsync();
+        var document = pinned.Document;
 
         var durableEvent = (UnionNode)document.Schemas["Session.Event.Durable"];
         await Assert.That(durableEvent.Keyword).IsEqualTo(UnionKeyword.AnyOf);
@@ -66,7 +67,7 @@ public sealed class PinnedSpecSmokeTests
     [Test]
     public async Task Ingest_Should_Project_Special_Number_And_Unrestricted_Landmarks()
     {
-        var document = await IngestPinnedSpecAsync();
+        var document = pinned.Document;
 
         var shell = (ObjectNode)document.Schemas["Session.Message.Shell"];
         await Assert
@@ -82,7 +83,7 @@ public sealed class PinnedSpecSmokeTests
     [Test]
     public async Task Ingest_Should_Project_The_Pinned_Stream_Cause_Schema()
     {
-        var document = await IngestPinnedSpecAsync();
+        var document = pinned.Document;
 
         foreach (var operationId in new[] { "session.log", "event.subscribe", })
         {
@@ -119,7 +120,7 @@ public sealed class PinnedSpecSmokeTests
     {
         // WorktreeError is a tagged error whose fields keep the former name/data shape, so it
         // carries both markers; the _tag marker decides.
-        var document = await IngestPinnedSpecAsync();
+        var document = pinned.Document;
 
         await Assert.That(((ObjectNode)document.Schemas["WorktreeErrorEncoded"]).ErrorStyle).IsEqualTo(ErrorStyle.EffectTag);
         await Assert.That(((ObjectNode)document.Schemas["UnauthorizedErrorEncoded"]).ErrorStyle).IsEqualTo(ErrorStyle.EffectTag);
@@ -128,7 +129,7 @@ public sealed class PinnedSpecSmokeTests
     [Test]
     public async Task Ingest_Should_Classify_Envelope_Shapes()
     {
-        var document = await IngestPinnedSpecAsync();
+        var document = pinned.Document;
 
         await Assert.That(EnvelopeOf(document, "session.list")).IsEqualTo(SpecEnvelopeShape.CursorData);
         await Assert.That(EnvelopeOf(document, "agent.list")).IsEqualTo(SpecEnvelopeShape.DataLocation);
@@ -138,6 +139,7 @@ public sealed class PinnedSpecSmokeTests
     [Test]
     public async Task Ingest_Should_Be_Deterministic_Across_Repeated_Runs()
     {
+        // Ingest twice on purpose: comparing a cached result with itself proves nothing.
         var first = await IngestPinnedSpecAsync();
         var second = await IngestPinnedSpecAsync();
 

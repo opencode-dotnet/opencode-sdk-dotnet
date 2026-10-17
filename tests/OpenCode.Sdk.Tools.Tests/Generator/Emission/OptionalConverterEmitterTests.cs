@@ -14,7 +14,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 /// instantiation, and a body that binds metadata through the emitted context rather than through
 /// the reflection path.
 /// </summary>
-public sealed class OptionalConverterEmitterTests
+[ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
+public sealed class OptionalConverterEmitterTests(PinnedBinding pinned)
 {
     [Test]
     public async Task Emit_Should_Produce_One_Converter_Per_Distinct_Instantiation()
@@ -44,7 +45,7 @@ public sealed class OptionalConverterEmitterTests
     [Test]
     public async Task Emit_Should_Read_And_Write_The_Explicit_Null_State_For_A_Scalar()
     {
-        var source = await EmitPinnedAsync("OptionalOfStringJsonConverter");
+        var source = EmitPinned("OptionalOfStringJsonConverter");
 
         await Assert.That(source).Contains("internal sealed class OptionalOfStringJsonConverter : JsonConverter<Optional<string?>>");
         await Assert.That(source).Contains("public override bool HandleNull => true;");
@@ -58,7 +59,7 @@ public sealed class OptionalConverterEmitterTests
     [Test]
     public async Task Emit_Should_Bind_A_Container_Instantiation_Through_The_Generated_Context()
     {
-        var source = await EmitPinnedAsync("OptionalOfPermissionRuleListJsonConverter");
+        var source = EmitPinned("OptionalOfPermissionRuleListJsonConverter");
 
         await Assert.That(source).Contains("OpenCodeJsonContext.Default.GetTypeInfo(typeof(IReadOnlyList<PermissionRule>))");
         await Assert.That(source).Contains("JsonSerializer.Deserialize(ref reader, typeInfo)");
@@ -69,11 +70,10 @@ public sealed class OptionalConverterEmitterTests
         await Assert.That(source).DoesNotContain(", options);");
     }
 
-    private static async Task<string> EmitPinnedAsync(string converterName)
+    private string EmitPinned(string converterName)
     {
-        var plan = await new BindingTestHost().BindPinnedAsync();
         var source = OptionalConverterEmitter
-            .Emit(plan.Models)
+            .Emit(pinned.Plan.Models)
             .Single(candidate => candidate.RelativePath == $"Internal/Serialization/{converterName}.cs");
         return Encoding.UTF8.GetString(source.Utf8Source.Span);
     }
