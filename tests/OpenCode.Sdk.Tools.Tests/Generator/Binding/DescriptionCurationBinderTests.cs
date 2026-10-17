@@ -7,7 +7,8 @@ using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
-public sealed class DescriptionCurationBinderTests
+[ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
+public sealed class DescriptionCurationBinderTests(PinnedBinding pinned)
 {
     [Test]
     [Arguments(null, "curation is null")]
@@ -164,7 +165,9 @@ public sealed class DescriptionCurationBinderTests
     [Test]
     public async Task Emit_Should_Keep_The_Consume_Only_Remark_On_A_Curated_Hoisted_Interface()
     {
-        var (document, selection, curation) = await BindingTestHost.LoadPinnedInputsAsync();
+        var document = pinned.Document;
+        var selection = pinned.Selection;
+        var curation = pinned.Curation;
         var plan = new BindingTestHost().Bind(document, selection,
             curation with { Descriptions = [.. curation.Descriptions, Description("IDurableEnvelope", null, "A curated envelope summary.")] });
 

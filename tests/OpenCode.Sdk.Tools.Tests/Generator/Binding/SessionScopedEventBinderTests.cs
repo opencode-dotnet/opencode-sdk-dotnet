@@ -6,7 +6,8 @@ using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
-public sealed class SessionScopedEventBinderTests
+[ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
+public sealed class SessionScopedEventBinderTests(PinnedBinding pinned)
 {
     [Test]
     public async Task Bind_Should_Project_A_Required_Identifier_From_An_Event_Payload()
@@ -167,7 +168,7 @@ public sealed class SessionScopedEventBinderTests
     [Test]
     public async Task Bind_Should_Exclude_The_Pinned_Form_Events()
     {
-        var plan = await new BindingTestHost().BindPinnedAsync();
+        var plan = pinned.Plan;
         var events = plan.Models.OfType<ObjectModelPlan>()
             .Where(static model => model.Properties.Any(static property => property.WireName == "type"
                 && property.LiteralValue is "form.cancelled" or "form.replied" or "form.created"))
@@ -189,7 +190,7 @@ public sealed class SessionScopedEventBinderTests
     [Arguments("tui.session.select")]
     public async Task Bind_Should_Project_The_Pinned_Log_Only_And_Non_Session_Family_Events(string wireType)
     {
-        var plan = await new BindingTestHost().BindPinnedAsync();
+        var plan = pinned.Plan;
         var model = plan.Models.OfType<ObjectModelPlan>().Single(model => model.Properties
             .Any(property => property.WireName == "type" && property.LiteralValue == wireType));
 

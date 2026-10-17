@@ -7,7 +7,8 @@ using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
-public sealed class WireDocumentationPolicyTests
+[ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
+public sealed class WireDocumentationPolicyTests(PinnedBinding pinned)
 {
     [Test]
     public async Task Bind_Should_Document_An_Event_By_Its_Literal_Type()
@@ -188,7 +189,7 @@ public sealed class WireDocumentationPolicyTests
     [Test]
     public async Task Bind_Should_Call_Only_The_Error_Spine_Records_Errors()
     {
-        var plan = await new BindingTestHost().BindPinnedAsync();
+        var plan = pinned.Plan;
 
         await Assert.That(plan.Models.Single(static model => model.Name == "SessionNotFoundError").Documentation.Summary)
             .IsEqualTo("The 'SessionNotFoundError' error.");

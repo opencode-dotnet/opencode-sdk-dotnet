@@ -12,7 +12,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding.Models;
 /// names one working object, so every operation that carries it names it the same way; a row that
 /// names nothing the document has refuses like every other channel.
 /// </summary>
-public sealed class ParameterNameCurationTests
+[ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
+public sealed class ParameterNameCurationTests(PinnedBinding pinned)
 {
     private static readonly GroupCuration ShellFamily = ClientGroup("Shells", "ShellClient", "id");
 
@@ -172,7 +173,7 @@ public sealed class ParameterNameCurationTests
     [Test]
     public async Task Bind_Should_Apply_The_Repository_Rows_To_The_Pinned_Document()
     {
-        var plan = await new BindingTestHost().BindPinnedAsync();
+        var plan = pinned.Plan;
 
         var shell = plan.Clients.Single(static client => client is { Role: ClientRole.Handle, Name: "ShellClient" }).HandleParameter!;
         await Assert.That(shell.Name).IsEqualTo("shellId");

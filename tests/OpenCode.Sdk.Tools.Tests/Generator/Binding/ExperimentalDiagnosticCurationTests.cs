@@ -10,7 +10,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 /// its group names the family's id, and every way the rows can disagree with the document or with
 /// each other refuses generation. A type is experimental only when no stable operation reaches it.
 /// </summary>
-public sealed class ExperimentalDiagnosticCurationTests
+[ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
+public sealed class ExperimentalDiagnosticCurationTests(PinnedBinding pinned)
 {
     private static BindingException RefuseMergedGroups(SpecDocument document, IReadOnlyDictionary<string, GroupCuration> groups) =>
         Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document,
@@ -34,7 +35,7 @@ public sealed class ExperimentalDiagnosticCurationTests
     [Test]
     public async Task Bind_Should_Keep_A_Union_Stable_When_A_Stable_Operation_Reaches_Its_Arms()
     {
-        var plan = await new BindingTestHost().BindPinnedAsync();
+        var plan = pinned.Plan;
 
         await Assert.That(plan.Unions.Single(static union => union.Name == "ISessionLogItem").ExperimentalDiagnostic).IsNull();
         await Assert.That(plan.HoistedInterfaces.Single(static value => value.Name == "IDurableEnvelope").ExperimentalDiagnostic).IsNull();
