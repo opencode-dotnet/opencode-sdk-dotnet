@@ -1,8 +1,0 @@
-tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/ModelOwnershipPolicyTests.cs	3
-tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/OperationPlanBinderTests.cs	3
-tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/QueryParameterClassificationTests.cs	2
-tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/SecretMemberPolicyTests.cs	10
-tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/SessionScopedEventBinderTests.cs	4
-tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/SpecBinderTests.cs	8
-tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/StabilizeDuplicatePolicyTests.cs	5
-tests/OpenCode.Sdk.Tools.Tests/Generator/Binding/UnionMemberHoistBinderTests.cs	9

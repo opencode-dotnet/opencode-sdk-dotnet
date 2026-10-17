@@ -54,7 +54,8 @@ public sealed class QueryParameterClassificationTests
             typed: [QueryParameterType(Operation, "limit", "int"), QueryParameterType(Operation, "after", "long")],
             strings: [StringQueryParameter(Operation, "search")]);
 
-        await Assert.That(Kinds(plan)).IsEquivalentTo(["limit:Int32", "after:Int64", "search:Text"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(Kinds(plan)).IsEquivalentTo(["limit:Int32", "after:Int64", "search:Text"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -82,7 +83,8 @@ public sealed class QueryParameterClassificationTests
 
         var plan = Bind(document);
 
-        await Assert.That(Kinds(plan)).IsEquivalentTo(["order:ListOrder", "archived:BooleanText"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(Kinds(plan)).IsEquivalentTo(["order:ListOrder", "archived:BooleanText"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -327,10 +329,9 @@ public sealed class QueryParameterClassificationTests
         Encoding.UTF8.GetString(sources.Single(source => source.RelativePath.EndsWith(fileName, StringComparison.Ordinal)).Utf8Source.Span);
 
     private static async Task AssertRefusedAsync(BindingException exception, string subject, string problem) =>
-        await Assert.That(exception.Errors.Any(error => error.Category is BindingErrorCategory.Curation
+        await Assert.That(exception.Errors).Contains(error => error.Category is BindingErrorCategory.Curation
                                                         && error.Subject == subject
-                                                        && error.Problem.Contains(problem, StringComparison.Ordinal)))
-            .IsTrue()
+                                                        && error.Problem.Contains(problem, StringComparison.Ordinal))
             .Because(string.Join(" | ", exception.Errors.Select(static error => error.Subject + ": " + error.Problem)));
 
     private static void NullableString(SchemaBuilder schema) => schema.AnyOf(

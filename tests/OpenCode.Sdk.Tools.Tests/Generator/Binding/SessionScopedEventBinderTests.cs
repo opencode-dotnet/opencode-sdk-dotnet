@@ -1,5 +1,7 @@
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
@@ -36,8 +38,9 @@ public sealed class SessionScopedEventBinderTests
         var row = SessionScopedEventScenario.Rule() with { Identifier = "Session.ID_1" };
         var plan = new BindingTestHost().Bind(document, Selection("event.get"), SessionScopedEventScenario.EventCuration(row));
 
+        // Member/type membership is the contract; declaration order is not asserted here.
         await Assert.That(plan.Models.OfType<ObjectModelPlan>().Where(static model => model.SessionScopedEvent is not null)
-            .Select(static model => model.Name)).IsEquivalentTo(["Qualified", "Duplicate", "LogOnly"]);
+            .Select(static model => model.Name)).IsEquivalentTo(["Qualified", "Duplicate", "LogOnly"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -47,10 +50,12 @@ public sealed class SessionScopedEventBinderTests
         var plan = new BindingTestHost().Bind(document, Selection("event.get"), SessionScopedEventScenario.EventCuration());
 
         var logOnly = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "LogOnly");
-        await Assert.That(logOnly.ImplementedUnionNames).IsEquivalentTo(["IEventLog"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(logOnly.ImplementedUnionNames).IsEquivalentTo(["IEventLog"], CollectionOrdering.Any);
         await Assert.That(logOnly.SessionScopedEvent).IsNotNull();
+        // Member/type membership is the contract; declaration order is not asserted here.
         await Assert.That(plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "Qualified").ImplementedUnionNames)
-            .IsEquivalentTo(["IEvent", "IEventLog"]);
+            .IsEquivalentTo(["IEvent", "IEventLog"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -105,11 +110,7 @@ public sealed class SessionScopedEventBinderTests
     {
         var document = await BindingTestHost.IngestAsync(new SessionScopedEventScenario(optionalPayload: true));
 
-        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(
-            document, Selection("event.get"), SessionScopedEventScenario.EventCuration()));
-
-        await Assert.That(exception.Errors.Any(static error => error.Subject == "Qualified"
-            && error.Problem.Contains("payload must be required and non-nullable", StringComparison.Ordinal))).IsTrue();
+        await AssertRequiredPayloadRefusalAsync(document);
     }
 
     /// <summary>A payload the wire may send as null cannot answer the contract, even when it is required.</summary>
@@ -118,11 +119,16 @@ public sealed class SessionScopedEventBinderTests
     {
         var document = await BindingTestHost.IngestAsync(new SessionScopedEventScenario(nullablePayload: true));
 
+        await AssertRequiredPayloadRefusalAsync(document);
+    }
+
+    private static async Task AssertRequiredPayloadRefusalAsync(SpecDocument document)
+    {
         var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(
             document, Selection("event.get"), SessionScopedEventScenario.EventCuration()));
 
-        await Assert.That(exception.Errors.Any(static error => error.Subject == "Qualified"
-            && error.Problem.Contains("payload must be required and non-nullable", StringComparison.Ordinal))).IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Subject == "Qualified"
+            && error.Problem.Contains("payload must be required and non-nullable", StringComparison.Ordinal));
     }
 
     [Test]
@@ -167,9 +173,10 @@ public sealed class SessionScopedEventBinderTests
                 && property.LiteralValue is "form.cancelled" or "form.replied" or "form.created"))
             .ToArray();
 
+        // Member/type membership is the contract; declaration order is not asserted here.
         await Assert.That(events.Select(static model => model.Properties.Single(static property => property.WireName == "type").LiteralValue ?? string.Empty))
-            .IsEquivalentTo(["form.cancelled", "form.replied", "form.created"]);
-        await Assert.That(events.All(static model => model.SessionScopedEvent is null)).IsTrue();
+            .IsEquivalentTo(["form.cancelled", "form.replied", "form.created"], CollectionOrdering.Any);
+        await Assert.That(events).All().Satisfy(model => model.SessionScopedEvent, value => value.IsNull());
     }
 
     [Test]

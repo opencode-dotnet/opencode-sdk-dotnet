@@ -4,6 +4,7 @@ using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 using static OpenCode.Sdk.Tools.Tests.Support.UnionHoistPlanData;
 
@@ -162,6 +163,7 @@ public sealed class SecretMemberPolicyTests
             Row("id", redact: false) with { Reason = " " },
         ]);
 
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
         await Assert.That(Problems(exception)).IsEquivalentTo(
         [
             "VaultInfo.absent: redacted member curation names no generated model member",
@@ -170,7 +172,7 @@ public sealed class SecretMemberPolicyTests
             "VaultInfo.id: redacted member curation is duplicated",
             "VaultInfo.id: redacted member curation must declare a reason",
             "VaultInfo.id: redacted member curation lifts a mask the upstream redaction list never applies",
-        ]);
+        ], CollectionOrdering.Any);
     }
 
     [Test]
@@ -184,6 +186,7 @@ public sealed class SecretMemberPolicyTests
             new SecretLookingNameCuration { Property = "id", Reason = " " },
         ]);
 
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
         await Assert.That(Problems(exception)).IsEquivalentTo(
         [
             "absent: secret-looking name curation names no generated model member",
@@ -192,7 +195,7 @@ public sealed class SecretMemberPolicyTests
             "id: secret-looking name curation is duplicated",
             "id: secret-looking name curation must declare a reason",
             "id: secret-looking name curation names a member the secret-name wall never stops",
-        ]);
+        ], CollectionOrdering.Any);
     }
 
     /// <summary>A missing row is curation, never a shape wall: an operation the secret-name wall alone refuses probes as bindable.</summary>
@@ -214,7 +217,8 @@ public sealed class SecretMemberPolicyTests
             [Masked("VaultKey"), Record("PlainKey", Property("id", Named("string"), isRequired: true))],
             [Union("IVaultValue", Arm("VaultKey")), Union("IPlainValue", Arm("PlainKey"))]);
 
-        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"], CollectionOrdering.Any);
     }
 
     /// <summary>The arm holds a list of records, each holding a dictionary of the masked record.</summary>
@@ -229,7 +233,8 @@ public sealed class SecretMemberPolicyTests
             ],
             [Union("IVaultValue", Arm("VaultShelf"))]);
 
-        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"], CollectionOrdering.Any);
     }
 
     /// <summary>The only arm that reaches the masked record is the union's prefix-tagged one.</summary>
@@ -243,7 +248,8 @@ public sealed class SecretMemberPolicyTests
                 PrefixVariant = new UnionPrefixVariantPlan { TypeName = "VaultKey", Prefix = "vault:", MarkerWireName = "type" },
             }]);
 
-        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -253,7 +259,8 @@ public sealed class SecretMemberPolicyTests
             [Masked("VaultKey")],
             [Union("IOuterValue", NestedArm("IInnerValue")), Union("IInnerValue", Arm("VaultKey"))]);
 
-        await Assert.That(Flagged(result)).IsEquivalentTo(["IInnerValue", "IOuterValue"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IInnerValue", "IOuterValue"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -268,7 +275,8 @@ public sealed class SecretMemberPolicyTests
             ],
             [Union("IVaultValue", Arm("VaultHolder"))]);
 
-        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue", "VaultSetting"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue", "VaultSetting"], CollectionOrdering.Any);
     }
 
     /// <summary>A record that holds itself settles: the reach stops growing rather than recursing.</summary>
@@ -283,7 +291,8 @@ public sealed class SecretMemberPolicyTests
             ],
             [Union("IPlainTree", Arm("PlainNode")), Union("IVaultTree", Arm("VaultNode"))]);
 
-        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultTree"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultTree"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -359,13 +368,14 @@ public sealed class SecretMemberPolicyTests
 
         var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection("vault.get"), curation));
 
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
         await Assert.That(Problems(exception)).IsEquivalentTo(
         [
             "Absent: redacted open members curation names no generated model",
             "VaultInfo: redacted open members curation names a model that leaves no member open",
             "VaultSettings: redacted open members curation is duplicated",
             "VaultSettings: redacted open members curation must declare a reason",
-        ]);
+        ], CollectionOrdering.Any);
     }
 
     /// <summary>A masked open bag taints a union the way a masked member does: an unknown arm may carry the same options.</summary>
@@ -379,7 +389,8 @@ public sealed class SecretMemberPolicyTests
             ],
             [Union("IVaultValue", Arm("VaultSettings")), Union("IPlainValue", Arm("PlainSettings"))]);
 
-        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"]);
+        // Member/type membership is the contract; declaration order is not asserted here.
+        await Assert.That(Flagged(result)).IsEquivalentTo(["IVaultValue"], CollectionOrdering.Any);
     }
 
     /// <summary>The settings record leaves its remaining members open; the info record holding it does not.</summary>

@@ -3,12 +3,101 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 public sealed class OperationPlanBinderTests
 {
+    private static void DefinePlaceInfo(SchemaBuilder schema) => _ = schema.Type("object")
+        .Property("directory", property => property.Type("string"), required: true);
+
+    private static void DefineLocationEnvelope(SchemaBuilder schema, Action<SchemaBuilder> data) => _ = schema
+        .Type("object").AdditionalPropertiesFalse()
+        .Property("location", property => property.Ref("PlaceInfo"), required: true)
+        .Property("data", data, required: true);
+
+    private static BindingException RefuseWidgetItem(SpecDocument document) =>
+        Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection("widget.item"),
+            Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)))));
+
+    private static OperationPlan BindWidgetList(SpecDocument document) =>
+        BindWidgets(document, integers: ["limit"], strings: ["cursor"])
+            .Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
+
+    private static BindingException RefuseMergedGadget(SpecDocument document, IReadOnlyDictionary<string, GroupCuration> groups) =>
+        Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document,
+            Selection("gadget.part", "gizmo.list"), Curation(groups)));
+
+    private static BindingException RefuseGadgetPartNames(SpecDocument document) =>
+        Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document,
+            Selection("gadget.part", "gadget.part.get"),
+            Curation(Groups("gadget", ClientGroup(clientName: "Gadgets", handleName: "GadgetClient", handleParameter: "gadgetID")))));
+
+    private static SpecScenario WidgetPayloadConflictScenario(Action<SchemaBuilder> payload) => SpecScenario.Define(spec => spec
+        .WithSchema("PlaceInfo", schema => schema.Type("object")
+            .Property("directory", property => property.Type("string"), required: true))
+        .WithSchema("WidgetsEnvelope", schema => schema.Type("object").AdditionalPropertiesFalse()
+            .Property("location", property => property.Ref("PlaceInfo"), required: true)
+            .Property("data", payload, required: true))
+        .WithOperation("widget.list", path: "/api/widget", configure: operation => operation
+            .Response(200, "application/json", schema => schema.Ref("WidgetsEnvelope")))
+        .WithOperation("widget.summary", path: "/api/widget-summary", configure: operation => operation
+            .Response(200, "application/json", schema => schema.Ref("WidgetsEnvelope"))));
+
+    private static OperationPlan BindGadgetPart(SpecDocument document) => new BindingTestHost().Bind(
+            document,
+            Selection("gadget.part"),
+            Curation(Groups("gadget", ClientGroup(clientName: "Gadgets", handleName: "GadgetClient", handleParameter: "gadgetID"))))
+        .Clients.Single(static client => client.Role == ClientRole.Handle).Operations.Single();
+
+    private static async Task AssertFlatQueryAsync(OperationPlan list)
+    {
+        await Assert.That(list.QueryRequest!.DerivesFromListRequest).IsFalse();
+        await Assert.That(list.QueryRequest.Properties).All().Satisfy(property => property.IsInherited, value => value.IsFalse());
+    }
+
+    private static async Task AssertFlatQueryNamesAsync(OperationPlan list, IReadOnlyList<string> names)
+    {
+        await Assert.That(list.QueryRequest!.DerivesFromListRequest).IsFalse();
+        await Assert.That(list.QueryRequest.Properties.Select(static property => property.PropertyName))
+            .IsEquivalentTo(names, StringComparer.Ordinal, CollectionOrdering.Matching);
+    }
+
+    private static async Task AssertPromotedListDataAsync(EmitPlan plan)
+    {
+        await Assert.That(plan.Models).Contains(static model => string.Equals(model.Name, "WidgetListData", StringComparison.Ordinal));
+        // The wrapper component's own spelling never reaches the surface.
+        await Assert.That(plan.Models).DoesNotContain(static model => model.Name.Contains("Response", StringComparison.Ordinal));
+    }
+
+    private static async Task AssertWidgetPayloadConflictAsync(SpecDocument document)
+    {
+        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
+            document,
+            Selection("widget.list", "widget.summary"),
+            Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)))));
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Naming
+            && error.Problem.Contains("claimed as both 'WidgetListData' and 'WidgetSummaryData'", StringComparison.Ordinal));
+    }
+
+    private static async Task<OperationPlan> AssertCreateRequestAsync(EmitPlan plan)
+    {
+        var create = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
+        await Assert.That(create.RequestBody!.TypeName).IsEqualTo("WidgetCreateRequest");
+        return create;
+    }
+
+    private static async Task AssertProblemAsync(BindingException exception, BindingErrorCategory category, string problem) =>
+        await Assert.That(exception.Errors).Contains(error => error.Category == category
+            && error.Problem.Contains(problem, StringComparison.Ordinal));
+
+    private static async Task AssertOperationProblemAsync(BindingException exception, string operationId, string expectedProblem) =>
+        await Assert.That(exception.Errors).Contains(error => error.Category == BindingErrorCategory.Operation
+            && string.Equals(error.Subject, operationId, StringComparison.Ordinal)
+            && error.Problem.Contains(expectedProblem, StringComparison.Ordinal));
+
     [Test]
     [Arguments("member", "GadgetClient", "multiple members map to C# name 'GetPartAsync'")]
     [Arguments("response", "gadget.part.get", "multiple operations map to response type 'GadgetPartResponse'", "multiple operations map to route member 'Gadgets.GetPart'")]
@@ -49,7 +138,7 @@ public sealed class OperationPlanBinderTests
         BindingError[] expected = secondProblem is null ? [new(BindingErrorCategory.Naming, subject, problem)]
             : [new(BindingErrorCategory.Naming, subject, problem), new(BindingErrorCategory.Naming, subject, secondProblem)];
         await Assert.That(exception.Errors.Where(error => error.Category == BindingErrorCategory.Naming && error.Subject == subject))
-            .IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching)
+            .IsEquivalentTo(expected, CollectionOrdering.Matching)
             .Because(string.Join(" | ", exception.Errors.Select(static error => error.Subject + ": " + error.Problem)));
     }
 
@@ -208,27 +297,18 @@ public sealed class OperationPlanBinderTests
     {
         var plan = await new BindingTestHost().BindPinnedAsync();
 
+        await Assert.That(plan.Clients.Select(static client => client.Name))
+            .IsEquivalentTo(ExpectedClientNames, StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert
-            .That(plan
-                .Clients.Select(static client => client.Name)
-                .SequenceEqual(ExpectedClientNames, StringComparer.Ordinal))
-            .IsTrue();
-        await Assert
-            .That(plan.Clients.All(static client => client.Namespace == (client.Emission is EmissionMode.InternalRaw ? "OpenCode.Sdk.Internal" : "OpenCode.Sdk")))
-            .IsTrue();
+            .That(plan.Clients)
+            .All(static client => client.Namespace == (client.Emission is EmissionMode.InternalRaw ? "OpenCode.Sdk.Internal" : "OpenCode.Sdk"));
 
         var root = plan.Clients.Single(static client => client.Role == ClientRole.Root);
         await Assert.That(root.Name).IsEqualTo("OpenCodeClient");
-        await Assert
-            .That(root
-                .SubClients.Select(static subClient => subClient.PropertyName)
-                .SequenceEqual(ExpectedSubClientPropertyNames, StringComparer.Ordinal))
-            .IsTrue();
-        await Assert
-            .That(root
-                .SubClients.Select(static subClient => subClient.TypeName)
-                .SequenceEqual(ExpectedSubClientTypeNames, StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(root.SubClients.Select(static subClient => subClient.PropertyName))
+            .IsEquivalentTo(ExpectedSubClientPropertyNames, StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(root.SubClients.Select(static subClient => subClient.TypeName))
+            .IsEquivalentTo(ExpectedSubClientTypeNames, StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(root.HandleFactory).IsNull();
         await Assert.That(root.HandleParameter).IsNull();
 
@@ -249,11 +329,8 @@ public sealed class OperationPlanBinderTests
         await Assert.That(health.Envelope.PayloadType).IsTypeOf<NamedTypeReferencePlan>();
         await Assert.That(((NamedTypeReferencePlan)health.Envelope.PayloadType!).Name).IsEqualTo("ServerInfo");
         await Assert.That(health.Envelope.Kind).IsEqualTo(EnvelopeKind.Bare);
-        await Assert
-            .That(health
-                .ErrorMap.Statuses.Select(static status => status.StatusCode)
-                .SequenceEqual([400, 401]))
-            .IsTrue();
+        await Assert.That(health.ErrorMap.Statuses.Select(static status => status.StatusCode))
+            .IsEquivalentTo([400, 401], CollectionOrdering.Matching);
         await Assert.That(health.ErrorMap.Statuses[0].Tags.Single().Tag).IsEqualTo("InvalidRequestError");
         await Assert.That(health.ErrorMap.Statuses[0].Tags.Single().TypeName).IsEqualTo("InvalidRequestError");
         await Assert.That(health.ErrorMap.Statuses[1].Tags.Single().Tag).IsEqualTo("UnauthorizedError");
@@ -270,11 +347,8 @@ public sealed class OperationPlanBinderTests
         await Assert.That(location.Envelope.PayloadType).IsTypeOf<NamedTypeReferencePlan>();
         await Assert.That(((NamedTypeReferencePlan)location.Envelope.PayloadType!).Name).IsEqualTo("LocationPublicInfo");
         await Assert.That(location.Envelope.Kind).IsEqualTo(EnvelopeKind.Bare);
-        await Assert
-            .That(location
-                .ErrorMap.Statuses.Select(static status => status.StatusCode)
-                .SequenceEqual([400, 401, 404]))
-            .IsTrue();
+        await Assert.That(location.ErrorMap.Statuses.Select(static status => status.StatusCode))
+            .IsEquivalentTo([400, 401, 404], CollectionOrdering.Matching);
         await Assert.That(location.ErrorMap.Statuses[0].Tags.Single().Tag).IsEqualTo("InvalidRequestError");
         await Assert.That(location.ErrorMap.Statuses[1].Tags.Single().Tag).IsEqualTo("UnauthorizedError");
         await Assert.That(location.ErrorMap.Statuses[2].Tags.Single().Tag).IsEqualTo("LocationNotFoundError");
@@ -300,11 +374,8 @@ public sealed class OperationPlanBinderTests
         await Assert.That(reload.RouteMemberName).IsEqualTo("ReloadLocations");
         await Assert.That(reload.Parameters).IsEmpty();
         await Assert.That(reload.Envelope!.ResponseTypeName).IsEqualTo("LocationReloadResponse");
-        await Assert
-            .That(reload
-                .ErrorMap.Statuses.Select(static status => status.StatusCode)
-                .SequenceEqual([400, 401, 503]))
-            .IsTrue();
+        await Assert.That(reload.ErrorMap.Statuses.Select(static status => status.StatusCode))
+            .IsEquivalentTo([400, 401, 503], CollectionOrdering.Matching);
         await Assert.That(reload.ErrorMap.Statuses[2].Tags.Single().Tag).IsEqualTo("ServiceUnavailableError");
     }
 
@@ -333,11 +404,8 @@ public sealed class OperationPlanBinderTests
     {
         var plan = await new BindingTestHost().BindPinnedAsync();
 
-        await Assert
-            .That(plan.TransportOwnedOperationIds.SequenceEqual(
-                ["persistentPty.connect", "pty.connect"],
-                StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(plan.TransportOwnedOperationIds)
+            .IsEquivalentTo(["persistentPty.connect", "pty.connect"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     /// <summary>
@@ -380,9 +448,10 @@ public sealed class OperationPlanBinderTests
         await Assert.That(operation.RequestBody.TypeName).IsEqualTo("Stream");
         await Assert.That(operation.RequestBody.ParameterName).IsEqualTo("content");
         await Assert.That(operation.QueryRequest!.RidesRequestBody).IsFalse();
+        // Member/type membership is the contract; declaration order is not asserted here.
         await Assert
             .That(operation.QueryRequest.Properties.Select(static property => $"{property.PropertyName}:{property.Kind}:{property.IsRequired}"))
-            .IsEquivalentTo(["Location:Location:False", "Path:Text:True"]);
+            .IsEquivalentTo(["Location:Location:False", "Path:Text:True"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -406,12 +475,8 @@ public sealed class OperationPlanBinderTests
 
         var sessions = plan.Clients.Single(static client => client.Name == "SessionsClient");
         await Assert.That(sessions.ContainerName).IsEqualTo("Sessions");
-        await Assert
-            .That(sessions
-                .Operations.Select(static operation => operation.MethodName)
-                .SequenceEqual(["CreateSessionAsync", "GetActiveAsync", "ListSessionsAsync"],
-                    StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(sessions.Operations.Select(static operation => operation.MethodName))
+            .IsEquivalentTo(["CreateSessionAsync", "GetActiveAsync", "ListSessionsAsync"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(sessions.HandleFactory!.MethodName).IsEqualTo("GetSessionClient");
         await Assert.That(sessions.HandleFactory.HandleTypeName).IsEqualTo("SessionClient");
         await Assert.That(sessions.HandleFactory.Parameter.WireName).IsEqualTo("sessionID");
@@ -421,19 +486,10 @@ public sealed class OperationPlanBinderTests
         var list = sessions.Operations.Single(static operation => operation.MethodName == "ListSessionsAsync");
         await Assert.That(list.QueryRequest!.TypeName).IsEqualTo("SessionListRequest");
         await Assert.That(list.QueryRequest.DerivesFromListRequest).IsTrue();
-        await Assert
-            .That(list
-                .QueryRequest.Properties.Select(static property => property.PropertyName)
-                .SequenceEqual(
-                    ["Limit", "Order", "Search", "ParentId", "Directory", "Project", "Subpath", "Cursor"],
-                    StringComparer.Ordinal))
-            .IsTrue();
-        await Assert
-            .That(list
-                .QueryRequest.Properties.Where(static property => property.IsInherited)
-                .Select(static property => property.PropertyName)
-                .SequenceEqual(["Limit", "Order", "Cursor"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(list.QueryRequest.Properties.Select(static property => property.PropertyName))
+            .IsEquivalentTo(["Limit", "Order", "Search", "ParentId", "Directory", "Project", "Subpath", "Cursor"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(list.QueryRequest.Properties.Where(static property => property.IsInherited).Select(static property => property.PropertyName))
+            .IsEquivalentTo(["Limit", "Order", "Cursor"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(list.Envelope!.Kind).IsEqualTo(EnvelopeKind.CursorList);
         await Assert.That(list.Envelope.PayloadName).IsEqualTo("Sessions");
         await Assert.That(list.Envelope.PayloadType).IsTypeOf<ListTypeReferencePlan>();
@@ -441,12 +497,8 @@ public sealed class OperationPlanBinderTests
         await Assert
             .That(((NamedTypeReferencePlan)((ListTypeReferencePlan)list.Envelope.PayloadType).ElementType).Name)
             .IsEqualTo("SessionInfo");
-        await Assert
-            .That(list
-                .ErrorMap.Statuses[0]
-                .Tags.Select(static tag => tag.TypeName)
-                .SequenceEqual(["InvalidCursorError", "InvalidRequestError"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(list.ErrorMap.Statuses[0].Tags.Select(static tag => tag.TypeName))
+            .IsEquivalentTo(["InvalidCursorError", "InvalidRequestError"], StringComparer.Ordinal, CollectionOrdering.Matching);
 
         var create = sessions.Operations.Single(static operation => operation.MethodName == "CreateSessionAsync");
         await Assert.That(create.HttpMethod).IsEqualTo("post");
@@ -463,11 +515,8 @@ public sealed class OperationPlanBinderTests
 
         var shells = plan.Clients.Single(static client => client.Name == "ShellsClient");
         await Assert.That(shells.ContainerName).IsEqualTo("Shells");
-        await Assert
-            .That(shells
-                .Operations.Select(static operation => operation.MethodName)
-                .SequenceEqual(["CreateShellAsync", "ListShellsAsync"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(shells.Operations.Select(static operation => operation.MethodName))
+            .IsEquivalentTo(["CreateShellAsync", "ListShellsAsync"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(shells.HandleFactory!.MethodName).IsEqualTo("GetShellClient");
         await Assert.That(shells.HandleFactory.Parameter.WireName).IsEqualTo("id");
 
@@ -542,11 +591,8 @@ public sealed class OperationPlanBinderTests
         await Assert.That(session.ContainerName).IsEqualTo("Sessions");
         await Assert.That(session.HandleParameter!.WireName).IsEqualTo("sessionID");
         await Assert.That(session.HandleParameter.IsHandleParameter).IsTrue();
-        await Assert
-            .That(session
-                .Operations.Select(static operation => operation.MethodName)
-                .SequenceEqual(ExpectedSessionClientMethodNames, StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(session.Operations.Select(static operation => operation.MethodName))
+            .IsEquivalentTo(ExpectedSessionClientMethodNames, StringComparer.Ordinal, CollectionOrdering.Matching);
 
         var remove = session.Operations.Single(static operation => operation.MethodName == "RemoveAsync");
         await Assert.That(remove.HttpMethod).IsEqualTo("delete");
@@ -556,11 +602,8 @@ public sealed class OperationPlanBinderTests
 
         var shell = plan.Clients.Single(static client => client.Name == "ShellClient");
         await Assert.That(shell.HandleParameter!.WireName).IsEqualTo("id");
-        await Assert
-            .That(shell
-                .Operations.Select(static operation => operation.MethodName)
-                .SequenceEqual(["GetAsync", "GetOutputAsync", "RemoveAsync"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(shell.Operations.Select(static operation => operation.MethodName))
+            .IsEquivalentTo(["GetAsync", "GetOutputAsync", "RemoveAsync"], StringComparer.Ordinal, CollectionOrdering.Matching);
 
         var getShell = shell.Operations.Single(static operation => operation.MethodName == "GetAsync");
         await Assert.That(getShell.QueryRequest!.TypeName).IsEqualTo("ShellRequest");
@@ -571,22 +614,16 @@ public sealed class OperationPlanBinderTests
         await Assert.That(messages.QueryRequest.DerivesFromListRequest).IsTrue();
         await Assert.That(messages.Envelope!.Kind).IsEqualTo(EnvelopeKind.CursorList);
         await Assert.That(messages.Envelope.PayloadName).IsEqualTo("Messages");
-        await Assert
-            .That(messages
-                .ErrorMap.Statuses.Select(static status => status.StatusCode)
-                .SequenceEqual([400, 401, 404, 500]))
-            .IsTrue();
+        await Assert.That(messages.ErrorMap.Statuses.Select(static status => status.StatusCode))
+            .IsEquivalentTo([400, 401, 404, 500], CollectionOrdering.Matching);
 
         var message = session.Operations.Single(static operation => operation.MethodName == "GetMessageAsync");
         await Assert.That(message.RouteTemplate).IsEqualTo("/api/session/{sessionID}/message/{messageID}");
         await Assert.That(message.RouteContainerName).IsEqualTo("Sessions");
         await Assert.That(message.RouteMemberName).IsEqualTo("GetMessage");
         await Assert.That(message.Summary).IsEqualTo("Get session message");
-        await Assert
-            .That(message
-                .Parameters.Select(static parameter => parameter.Name)
-                .SequenceEqual(["sessionId", "messageId"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(message.Parameters.Select(static parameter => parameter.Name))
+            .IsEquivalentTo(["sessionId", "messageId"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(message.Parameters[0].IsHandleParameter).IsTrue();
         await Assert.That(message.Parameters[1].IsHandleParameter).IsFalse();
         await Assert.That(message.Parameters[1].WireName).IsEqualTo("messageID");
@@ -597,18 +634,11 @@ public sealed class OperationPlanBinderTests
         await Assert.That(message.Envelope.PayloadType).IsTypeOf<NamedTypeReferencePlan>();
         await Assert.That(((NamedTypeReferencePlan)message.Envelope.PayloadType!).Name).IsEqualTo("ISessionMessageInfo");
         await Assert.That(message.Envelope.Kind).IsEqualTo(EnvelopeKind.Data);
-        await Assert
-            .That(message
-                .ErrorMap.Statuses.Select(static status => status.StatusCode)
-                .SequenceEqual([400, 401, 404]))
-            .IsTrue();
-        await Assert
-            .That(message
-                .ErrorMap.Statuses[2]
-                .Tags.Select(static tag => tag.Tag)
-                .SequenceEqual(["MessageNotFoundError", "SessionNotFoundError"], StringComparer.Ordinal))
-            .IsTrue();
-        await Assert.That(message.ErrorMap.Statuses[2].Tags.All(static tag => tag.Tag == tag.TypeName)).IsTrue();
+        await Assert.That(message.ErrorMap.Statuses.Select(static status => status.StatusCode))
+            .IsEquivalentTo([400, 401, 404], CollectionOrdering.Matching);
+        await Assert.That(message.ErrorMap.Statuses[2].Tags.Select(static tag => tag.Tag))
+            .IsEquivalentTo(["MessageNotFoundError", "SessionNotFoundError"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(message.ErrorMap.Statuses[2].Tags).All(static tag => tag.Tag == tag.TypeName);
     }
 
     /// <summary>
@@ -630,9 +660,7 @@ public sealed class OperationPlanBinderTests
         await Assert.That(output.Envelope.PayloadType).IsTypeOf<NamedTypeReferencePlan>();
         await Assert.That(((NamedTypeReferencePlan)output.Envelope.PayloadType!).Name).IsEqualTo("ShellOutputData");
         await Assert.That(output.Envelope.LocationTypeName).IsEqualTo("LocationPublicRef");
-        await Assert
-            .That(plan.Models.Any(static model => string.Equals(model.Name, "ShellOutputData", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(plan.Models).Contains(static model => string.Equals(model.Name, "ShellOutputData", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -653,9 +681,7 @@ public sealed class OperationPlanBinderTests
         await Assert.That(handoff.Envelope.PayloadName).IsEqualTo("Handoff");
         await Assert.That(((NamedTypeReferencePlan)handoff.Envelope.PayloadType!).Name).IsEqualTo("PersistentPtyHandoff");
         await Assert.That(handoff.Envelope.PayloadType.IsNullable).IsTrue();
-        await Assert
-            .That(plan.Models.Any(static model => string.Equals(model.Name, "PersistentPtyHandoffData", StringComparison.Ordinal)))
-            .IsFalse();
+        await Assert.That(plan.Models).DoesNotContain(static model => string.Equals(model.Name, "PersistentPtyHandoffData", StringComparison.Ordinal));
     }
 
     [Test]
@@ -748,11 +774,8 @@ public sealed class OperationPlanBinderTests
         await Assert.That(part.RouteTemplate).IsEqualTo("/api/gadget/{gadgetID}/part/{partID}");
         await Assert.That(part.RouteContainerName).IsEqualTo("Gadgets");
         await Assert.That(part.RouteMemberName).IsEqualTo("GetPart");
-        await Assert
-            .That(part
-                .Parameters.Select(static parameter => parameter.Name)
-                .SequenceEqual(["gadgetId", "partId"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(part.Parameters.Select(static parameter => parameter.Name))
+            .IsEquivalentTo(["gadgetId", "partId"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(part.Envelope!.ResponseTypeName).IsEqualTo("GadgetPartResponse");
         await Assert.That(part.Envelope.AdapterTypeName).IsEqualTo("GadgetPartResponseAdapter");
         await Assert.That(part.Envelope.PayloadName).IsEqualTo("Part");
@@ -779,7 +802,7 @@ public sealed class OperationPlanBinderTests
             Selection("widget.item"),
             Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null))));
 
-        await Assert.That(plan.Clients.Any(static client => client.Role == ClientRole.Handle)).IsFalse();
+        await Assert.That(plan.Clients).DoesNotContain(static client => client.Role == ClientRole.Handle);
         var widgets = plan.Clients.Single(static client => client.Role == ClientRole.Collection);
         await Assert.That(widgets.HandleFactory).IsNull();
         var item = widgets.Operations.Single();
@@ -811,17 +834,9 @@ public sealed class OperationPlanBinderTests
     {
         var document = await BindingTestHost.IngestAsync(GadgetScenario(parametersReversed: true));
 
-        var plan = new BindingTestHost().Bind(
-            document,
-            Selection("gadget.part"),
-            Curation(Groups("gadget", ClientGroup(clientName: "Gadgets", handleName: "GadgetClient", handleParameter: "gadgetID"))));
-
-        var part = plan.Clients.Single(static client => client.Role == ClientRole.Handle).Operations.Single();
-        await Assert
-            .That(part
-                .Parameters.Select(static parameter => parameter.WireName)
-                .SequenceEqual(["gadgetID", "partID"], StringComparer.Ordinal))
-            .IsTrue();
+        var part = BindGadgetPart(document);
+        await Assert.That(part.Parameters.Select(static parameter => parameter.WireName))
+            .IsEquivalentTo(["gadgetID", "partID"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -835,15 +850,9 @@ public sealed class OperationPlanBinderTests
             .WithOperation("widget.item", path: "/api/widget/item", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref(schemaName)))));
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("widget.item"),
-            Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)))));
+        var exception = RefuseWidgetItem(document);
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
-                                                       && error.Problem.Contains("spine", StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertProblemAsync(exception, BindingErrorCategory.Naming, "spine");
     }
 
     [Test]
@@ -967,32 +976,20 @@ public sealed class OperationPlanBinderTests
         await Assert.That(list.QueryRequest).IsNotNull();
         await Assert.That(list.QueryRequest!.TypeName).IsEqualTo("WidgetListRequest");
         await Assert.That(list.QueryRequest.DerivesFromListRequest).IsTrue();
-        await Assert
-            .That(list
-                .QueryRequest.Properties.Select(static property => property.WireName)
-                .SequenceEqual(["limit", "order", "cursor", "search", "parentID"], StringComparer.Ordinal))
-            .IsTrue();
-        await Assert
-            .That(list
-                .QueryRequest.Properties.Select(static property => property.PropertyName)
-                .SequenceEqual(["Limit", "Order", "Cursor", "Search", "ParentId"], StringComparer.Ordinal))
-            .IsTrue();
-        await Assert
-            .That(list
-                .QueryRequest.Properties.Select(static property => property.Kind)
-                .SequenceEqual([
+        await Assert.That(list.QueryRequest.Properties.Select(static property => property.WireName))
+            .IsEquivalentTo(["limit", "order", "cursor", "search", "parentID"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(list.QueryRequest.Properties.Select(static property => property.PropertyName))
+            .IsEquivalentTo(["Limit", "Order", "Cursor", "Search", "ParentId"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(list.QueryRequest.Properties.Select(static property => property.Kind))
+            .IsEquivalentTo([
                     QueryValueKind.Int32,
                     QueryValueKind.ListOrder,
                     QueryValueKind.Text,
                     QueryValueKind.Text,
                     QueryValueKind.SessionParentFilter,
-                ]))
-            .IsTrue();
-        await Assert
-            .That(list
-                .QueryRequest.Properties.Select(static property => property.IsInherited)
-                .SequenceEqual([true, true, true, false, false]))
-            .IsTrue();
+                ], CollectionOrdering.Matching);
+        await Assert.That(list.QueryRequest.Properties.Select(static property => property.IsInherited))
+            .IsEquivalentTo([true, true, true, false, false], CollectionOrdering.Matching);
         await Assert.That(list.Parameters).IsEmpty();
     }
 
@@ -1023,16 +1020,10 @@ public sealed class OperationPlanBinderTests
 
         var plan = BindWidgets(document);
 
-        await Assert
-            .That(plan
-                .Models.Select(static model => model.Name)
-                .SequenceEqual(["WidgetInfo"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(plan.Models.Select(static model => model.Name))
+            .IsEquivalentTo(["WidgetInfo"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(plan.Unions).IsEmpty();
-        await Assert
-            .That(plan.Registry.TypeNames
-                .SequenceEqual(["WidgetInfo"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(plan.Registry.TypeNames).IsEquivalentTo(["WidgetInfo"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -1043,17 +1034,12 @@ public sealed class OperationPlanBinderTests
             .Parameter("order", "query", QueryScenarioData.NullableOrderEnum)
             .Parameter("cursor", "query", QueryScenarioData.NullableString)));
 
-        var plan = BindWidgets(document, integers: ["limit"], strings: ["cursor"]);
-
-        var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
+        var list = BindWidgetList(document);
         await Assert.That(list.QueryRequest!.TypeName).IsEqualTo("WidgetListRequest");
         await Assert.That(list.QueryRequest.DerivesFromListRequest).IsTrue();
-        await Assert
-            .That(list
-                .QueryRequest.Properties.Select(static property => property.PropertyName)
-                .SequenceEqual(["Limit", "Order", "Cursor"], StringComparer.Ordinal))
-            .IsTrue();
-        await Assert.That(list.QueryRequest.Properties.All(static property => property.IsInherited)).IsTrue();
+        await Assert.That(list.QueryRequest.Properties.Select(static property => property.PropertyName))
+            .IsEquivalentTo(["Limit", "Order", "Cursor"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(list.QueryRequest.Properties).All().Satisfy(property => property.IsInherited, value => value.IsTrue());
     }
 
     [Test]
@@ -1066,11 +1052,8 @@ public sealed class OperationPlanBinderTests
                 branch => branch.Type("null")))
             .Parameter("cursor", "query", QueryScenarioData.NullableString)));
 
-        var plan = BindWidgets(document, integers: ["limit"], strings: ["cursor"]);
-
-        var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
-        await Assert.That(list.QueryRequest!.DerivesFromListRequest).IsFalse();
-        await Assert.That(list.QueryRequest.Properties.All(static property => !property.IsInherited)).IsTrue();
+        var list = BindWidgetList(document);
+        await AssertFlatQueryAsync(list);
     }
 
     [Test]
@@ -1081,11 +1064,8 @@ public sealed class OperationPlanBinderTests
             .Parameter("order", "query", QueryScenarioData.NullableOrderEnum)
             .Parameter("cursor", "query", QueryScenarioData.NullableString)));
 
-        var plan = BindWidgets(document, integers: ["limit"], strings: ["cursor"]);
-
-        var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
-        await Assert.That(list.QueryRequest!.DerivesFromListRequest).IsFalse();
-        await Assert.That(list.QueryRequest.Properties.All(static property => !property.IsInherited)).IsTrue();
+        var list = BindWidgetList(document);
+        await AssertFlatQueryAsync(list);
     }
 
     [Test]
@@ -1095,15 +1075,8 @@ public sealed class OperationPlanBinderTests
             .Parameter("limit", "query", QueryScenarioData.NullableString)
             .Parameter("cursor", "query", QueryScenarioData.NullableString)));
 
-        var plan = BindWidgets(document, integers: ["limit"], strings: ["cursor"]);
-
-        var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
-        await Assert.That(list.QueryRequest!.DerivesFromListRequest).IsFalse();
-        await Assert
-            .That(list
-                .QueryRequest.Properties.Select(static property => property.PropertyName)
-                .SequenceEqual(["Limit", "Cursor"], StringComparer.Ordinal))
-            .IsTrue();
+        var list = BindWidgetList(document);
+        await AssertFlatQueryNamesAsync(list, ["Limit", "Cursor"]);
     }
 
     [Test]
@@ -1111,12 +1084,7 @@ public sealed class OperationPlanBinderTests
     {
         var document = await BindingTestHost.IngestAsync(GadgetScenario());
 
-        var plan = new BindingTestHost().Bind(
-            document,
-            Selection("gadget.part"),
-            Curation(Groups("gadget", ClientGroup(clientName: "Gadgets", handleName: "GadgetClient", handleParameter: "gadgetID"))));
-
-        var part = plan.Clients.Single(static client => client.Role == ClientRole.Handle).Operations.Single();
+        var part = BindGadgetPart(document);
         await Assert.That(part.QueryRequest).IsNull();
     }
 
@@ -1135,15 +1103,9 @@ public sealed class OperationPlanBinderTests
             .That(((NamedTypeReferencePlan)((ListTypeReferencePlan)list.Envelope.PayloadType).ElementType).Name)
             .IsEqualTo("WidgetInfo");
         await Assert.That(list.Envelope.EnvelopeDtoTypeName).IsEqualTo("WidgetListResponseEnvelope");
-        await Assert
-            .That(plan
-                .Models.Select(static model => model.Name)
-                .SequenceEqual(["WidgetInfo"], StringComparer.Ordinal))
-            .IsTrue();
-        await Assert
-            .That(plan.Registry.TypeNames
-                .SequenceEqual(["WidgetInfo", "WidgetListResponseEnvelope"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(plan.Models.Select(static model => model.Name))
+            .IsEquivalentTo(["WidgetInfo"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(plan.Registry.TypeNames).IsEquivalentTo(["WidgetInfo", "WidgetListResponseEnvelope"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -1173,9 +1135,7 @@ public sealed class OperationPlanBinderTests
             .Parameter("limit", "query", QueryScenarioData.NullableString)
             .Parameter("cursor", "query", QueryScenarioData.NullableString)));
 
-        var plan = BindWidgets(document, integers: ["limit"], strings: ["cursor"]);
-
-        var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
+        var list = BindWidgetList(document);
         await Assert.That(list.QueryRequest!.DerivesFromListRequest).IsFalse();
         await Assert.That(list.Pagination).IsNull();
     }
@@ -1191,12 +1151,10 @@ public sealed class OperationPlanBinderTests
 
         var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document, integers: ["limit"], strings: ["cursor", "search"]));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Operation
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Operation
                                                        && error.Problem.Contains(
                                                            "cursor pagination cannot continue a query that declares a required parameter",
-                                                           StringComparison.Ordinal)))
-            .IsTrue();
+                                                           StringComparison.Ordinal));
     }
 
     [Test]
@@ -1217,12 +1175,10 @@ public sealed class OperationPlanBinderTests
             Selection("widget.list"),
             curation));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Naming
                                                         && error.Problem.Contains(
                                                             "must be an asynchronous List method",
-                                                            StringComparison.Ordinal)))
-            .IsTrue();
+                                                            StringComparison.Ordinal));
     }
 
     [Test]
@@ -1238,12 +1194,9 @@ public sealed class OperationPlanBinderTests
         await Assert.That(((NamedTypeReferencePlan)list.Envelope.PayloadType!).Name).IsEqualTo("WidgetInfo");
         await Assert.That(list.Envelope.LocationTypeName).IsEqualTo("PlaceInfo");
         await Assert.That(list.Envelope.EnvelopeDtoTypeName).IsEqualTo("WidgetListResponseEnvelope");
-        await Assert
-            .That(plan
-                .Models.Select(static model => model.Name)
-                .SequenceEqual(["PlaceInfo", "WidgetInfo"], StringComparer.Ordinal))
-            .IsTrue();
-        await Assert.That(plan.Registry.TypeNames.Contains("WidgetListResponseEnvelope", StringComparer.Ordinal)).IsTrue();
+        await Assert.That(plan.Models.Select(static model => model.Name))
+            .IsEquivalentTo(["PlaceInfo", "WidgetInfo"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(plan.Registry.TypeNames).Contains("WidgetListResponseEnvelope", StringComparer.Ordinal);
     }
 
     [Test]
@@ -1305,11 +1258,7 @@ public sealed class OperationPlanBinderTests
         await Assert.That(list.Envelope.PayloadType).IsTypeOf<ListTypeReferencePlan>();
         var elementType = (NamedTypeReferencePlan)((ListTypeReferencePlan)list.Envelope.PayloadType!).ElementType;
         await Assert.That(elementType.Name).IsEqualTo("WidgetListData");
-        await Assert.That(plan.Models.Any(static model => string.Equals(model.Name, "WidgetListData", StringComparison.Ordinal)))
-            .IsTrue();
-
-        // The wrapper component's own spelling never reaches the surface.
-        await Assert.That(plan.Models.Any(static model => model.Name.Contains("Response", StringComparison.Ordinal))).IsFalse();
+        await AssertPromotedListDataAsync(plan);
     }
 
     /// <summary>
@@ -1334,11 +1283,7 @@ public sealed class OperationPlanBinderTests
         await Assert.That(list.Envelope.PayloadType).IsTypeOf<NamedTypeReferencePlan>();
         await Assert.That(((NamedTypeReferencePlan)list.Envelope.PayloadType!).Name).IsEqualTo("WidgetListData");
         await Assert.That(list.Envelope.LocationTypeName).IsEqualTo("PlaceInfo");
-        await Assert.That(plan.Models.Any(static model => string.Equals(model.Name, "WidgetListData", StringComparison.Ordinal)))
-            .IsTrue();
-
-        // The wrapper component's own spelling never reaches the surface.
-        await Assert.That(plan.Models.Any(static model => model.Name.Contains("Response", StringComparison.Ordinal))).IsFalse();
+        await AssertPromotedListDataAsync(plan);
     }
 
     /// <summary>
@@ -1349,33 +1294,10 @@ public sealed class OperationPlanBinderTests
     [Test]
     public async Task Bind_Should_Refuse_A_Promoted_Data_Location_Inline_Object_Claimed_By_Two_Operations()
     {
-        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("PlaceInfo", schema => schema
-                .Type("object")
-                .Property("directory", property => property.Type("string"), required: true))
-            .WithSchema("WidgetsEnvelope", schema => schema
-                .Type("object")
-                .AdditionalPropertiesFalse()
-                .Property("location", property => property.Ref("PlaceInfo"), required: true)
-                .Property("data", property => property
-                    .Type("object")
-                    .Property("id", static inner => inner.Type("string"), required: true), required: true))
-            .WithOperation("widget.list", path: "/api/widget", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("WidgetsEnvelope")))
-            .WithOperation("widget.summary", path: "/api/widget-summary", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("WidgetsEnvelope")))));
+        var document = await BindingTestHost.IngestAsync(WidgetPayloadConflictScenario(property => property
+            .Type("object").Property("id", static inner => inner.Type("string"), required: true)));
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("widget.list", "widget.summary"),
-            Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)))));
-
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
-                                                       && error.Problem.Contains(
-                                                           "claimed as both 'WidgetListData' and 'WidgetSummaryData'",
-                                                           StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertWidgetPayloadConflictAsync(document);
     }
 
     /// <summary>
@@ -1409,12 +1331,8 @@ public sealed class OperationPlanBinderTests
             .WithSchema("PlaceInfo", schema => schema
                 .Type("object")
                 .Property("directory", property => property.Type("string"), required: true))
-            .WithSchema("WidgetEnvelope", schema => schema
-                .Type("object")
-                .AdditionalPropertiesFalse()
-                .Property("location", property => property.Ref("PlaceInfo"), required: true)
-                .Property("data", property => property.Type("array").Items(static item => item.Ref("WidgetAlias")),
-                    required: true))
+            .WithSchema("WidgetEnvelope", schema => DefineLocationEnvelope(schema,
+                property => property.Type("array").Items(static item => item.Ref("WidgetAlias"))))
             .WithOperation("widget.list", path: "/api/widget", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("WidgetEnvelope")))));
 
@@ -1432,17 +1350,11 @@ public sealed class OperationPlanBinderTests
     public async Task Bind_Should_Bind_A_Data_Location_List_Envelope_Whose_Data_Refs_A_Named_Array_Component()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("PlaceInfo", schema => schema
-                .Type("object")
-                .Property("directory", property => property.Type("string"), required: true))
+            .WithSchema("PlaceInfo", DefinePlaceInfo)
             .WithSchema("WidgetNameList", schema => schema
                 .Type("array")
                 .Items(static item => item.Type("string")))
-            .WithSchema("WidgetEnvelope", schema => schema
-                .Type("object")
-                .AdditionalPropertiesFalse()
-                .Property("location", property => property.Ref("PlaceInfo"), required: true)
-                .Property("data", property => property.Ref("WidgetNameList"), required: true))
+            .WithSchema("WidgetEnvelope", schema => DefineLocationEnvelope(schema, property => property.Ref("WidgetNameList")))
             .WithOperation("widget.list", path: "/api/widget", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("WidgetEnvelope")))));
 
@@ -1467,14 +1379,8 @@ public sealed class OperationPlanBinderTests
     public async Task Bind_Should_Refuse_A_Data_Location_Ref_Resolving_To_A_Nominal_Object_With_No_Name()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("PlaceInfo", schema => schema
-                .Type("object")
-                .Property("directory", property => property.Type("string"), required: true))
-            .WithSchema("WidgetEnvelope", schema => schema
-                .Type("object")
-                .AdditionalPropertiesFalse()
-                .Property("location", property => property.Ref("PlaceInfo"), required: true)
-                .Property("data", property => property.Ref("WidgetEnvelope"), required: true))
+            .WithSchema("PlaceInfo", DefinePlaceInfo)
+            .WithSchema("WidgetEnvelope", schema => DefineLocationEnvelope(schema, property => property.Ref("WidgetEnvelope")))
             .WithOperation("widget.list", path: "/api/widget", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("WidgetEnvelope")))));
 
@@ -1493,9 +1399,7 @@ public sealed class OperationPlanBinderTests
     public async Task Bind_Should_Refuse_A_Data_Location_Ref_Resolving_To_A_Nullable_Array()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("PlaceInfo", schema => schema
-                .Type("object")
-                .Property("directory", property => property.Type("string"), required: true))
+            .WithSchema("PlaceInfo", DefinePlaceInfo)
             .WithSchema("NullableWidgetNameList", schema => schema.AnyOf(
                 static branch => branch.Type("array").Items(static item => item.Type("string")),
                 static branch => branch.Type("null")))
@@ -1514,35 +1418,11 @@ public sealed class OperationPlanBinderTests
     [Test]
     public async Task Bind_Should_Refuse_A_Promoted_Data_Location_List_Item_Claimed_By_Two_Operations()
     {
-        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("PlaceInfo", schema => schema
-                .Type("object")
-                .Property("directory", property => property.Type("string"), required: true))
-            .WithSchema("WidgetsEnvelope", schema => schema
-                .Type("object")
-                .AdditionalPropertiesFalse()
-                .Property("location", property => property.Ref("PlaceInfo"), required: true)
-                .Property("data", property => property
-                    .Type("array")
-                    .Items(static item => item
-                        .Type("object")
-                        .Property("id", static inner => inner.Type("string"), required: true)), required: true))
-            .WithOperation("widget.list", path: "/api/widget", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("WidgetsEnvelope")))
-            .WithOperation("widget.summary", path: "/api/widget-summary", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("WidgetsEnvelope")))));
+        var document = await BindingTestHost.IngestAsync(WidgetPayloadConflictScenario(property => property
+            .Type("array").Items(static item => item.Type("object")
+                .Property("id", static inner => inner.Type("string"), required: true))));
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("widget.list", "widget.summary"),
-            Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)))));
-
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
-                                                       && error.Problem.Contains(
-                                                           "claimed as both 'WidgetListData' and 'WidgetSummaryData'",
-                                                           StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertWidgetPayloadConflictAsync(document);
     }
 
     [Test]
@@ -1576,10 +1456,8 @@ public sealed class OperationPlanBinderTests
 
         var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
-                                                       && error.Problem.Contains("envelope DTO", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Naming
+            && error.Problem.Contains("envelope DTO", StringComparison.Ordinal));
     }
 
     [Test]
@@ -1598,11 +1476,10 @@ public sealed class OperationPlanBinderTests
 
         var plan = BindWidgets(document, "widget.create");
 
-        var create = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
-        await Assert.That(create.RequestBody!.TypeName).IsEqualTo("WidgetCreateRequest");
-        await Assert.That(plan.Models.Any(static model => model.Name == "WidgetCreateRequest")).IsTrue();
-        await Assert.That(plan.Models.Any(static model => model.Name == "WidgetCreatePayload")).IsFalse();
-        await Assert.That(plan.Registry.TypeNames.Contains("WidgetCreateRequest", StringComparer.Ordinal)).IsTrue();
+        _ = await AssertCreateRequestAsync(plan);
+        await Assert.That(plan.Models).Contains(static model => model.Name == "WidgetCreateRequest");
+        await Assert.That(plan.Models).DoesNotContain(static model => model.Name == "WidgetCreatePayload");
+        await Assert.That(plan.Registry.TypeNames).Contains("WidgetCreateRequest", StringComparer.Ordinal);
     }
 
     [Test]
@@ -1624,8 +1501,8 @@ public sealed class OperationPlanBinderTests
 
         var plan = BindWidgets(document);
 
-        await Assert.That(plan.Models.Any(static model => model.Name == "WidgetShared")).IsTrue();
-        await Assert.That(plan.Models.Any(static model => model.Name == "WidgetCreateRequest")).IsFalse();
+        await Assert.That(plan.Models).Contains(static model => model.Name == "WidgetShared");
+        await Assert.That(plan.Models).DoesNotContain(static model => model.Name == "WidgetCreateRequest");
     }
 
     [Test]
@@ -1668,11 +1545,8 @@ public sealed class OperationPlanBinderTests
         await Assert.That(list.Envelope!.Kind).IsEqualTo(EnvelopeKind.Data);
         await Assert.That(list.Envelope.PayloadType).IsTypeOf<NamedTypeReferencePlan>();
         await Assert.That(((NamedTypeReferencePlan)list.Envelope.PayloadType!).Name).IsEqualTo("WidgetInfo");
-        await Assert
-            .That(plan
-                .Models.Select(static model => model.Name)
-                .SequenceEqual(["WidgetInfo"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(plan.Models.Select(static model => model.Name))
+            .IsEquivalentTo(["WidgetInfo"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -1785,9 +1659,8 @@ public sealed class OperationPlanBinderTests
         await Assert.That(stats.Envelope!.Kind).IsEqualTo(EnvelopeKind.Bare);
         await Assert.That(stats.Envelope.PayloadType).IsTypeOf<NamedTypeReferencePlan>();
         await Assert.That(((NamedTypeReferencePlan)stats.Envelope.PayloadType!).Name).IsEqualTo("WidgetStatsData");
-        await Assert.That(plan.Models.Any(static model => string.Equals(model.Name, "WidgetStatsData", StringComparison.Ordinal)))
-            .IsTrue();
-        await Assert.That(plan.Registry.TypeNames.Contains("WidgetStatsData", StringComparer.Ordinal)).IsTrue();
+        await Assert.That(plan.Models).Contains(static model => string.Equals(model.Name, "WidgetStatsData", StringComparison.Ordinal));
+        await Assert.That(plan.Registry.TypeNames).Contains("WidgetStatsData", StringComparer.Ordinal);
         await Assert.That(plan.Registry.PayloadEntries.Count).IsEqualTo(0);
     }
 
@@ -1812,8 +1685,7 @@ public sealed class OperationPlanBinderTests
         await Assert.That(stats.Envelope.PayloadName).IsEqualTo("Handoff");
         await Assert.That(((NamedTypeReferencePlan)stats.Envelope.PayloadType!).Name).IsEqualTo("WidgetInfo");
         await Assert.That(stats.Envelope.PayloadType.IsNullable).IsTrue();
-        await Assert.That(plan.Models.Any(static model => string.Equals(model.Name, "WidgetStatsData", StringComparison.Ordinal)))
-            .IsFalse();
+        await Assert.That(plan.Models).DoesNotContain(static model => string.Equals(model.Name, "WidgetStatsData", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -1856,11 +1728,10 @@ public sealed class OperationPlanBinderTests
         var stats = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
         await Assert.That(stats.Envelope!.Kind).IsEqualTo(EnvelopeKind.Data);
         await Assert.That(((NamedTypeReferencePlan)stats.Envelope.PayloadType!).Name).IsEqualTo("WidgetStatsData");
-        await Assert.That(plan.Models.Any(static model => string.Equals(model.Name, "WidgetStatsData", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(plan.Models).Contains(static model => string.Equals(model.Name, "WidgetStatsData", StringComparison.Ordinal));
 
         // The wrapper component's own spelling never reaches the surface.
-        await Assert.That(plan.Models.Any(static model => model.Name.Contains("Envelope", StringComparison.Ordinal))).IsFalse();
+        await Assert.That(plan.Models).DoesNotContain(static model => model.Name.Contains("Envelope", StringComparison.Ordinal));
     }
 
     [Test]
@@ -1884,12 +1755,10 @@ public sealed class OperationPlanBinderTests
             Selection("widget.stats", "widget.summary"),
             Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)))));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Naming
                                                        && error.Problem.Contains(
                                                            "claimed as both 'WidgetStatsData' and 'WidgetSummaryData'",
-                                                           StringComparison.Ordinal)))
-            .IsTrue();
+                                                           StringComparison.Ordinal));
     }
 
     [Test]
@@ -1909,12 +1778,10 @@ public sealed class OperationPlanBinderTests
 
         var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document, "widget.stats"));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Naming
                                                        && error.Problem.Contains(
                                                            "C# type name 'WidgetStatsData' collides with schema",
-                                                           StringComparison.Ordinal)))
-            .IsTrue();
+                                                           StringComparison.Ordinal));
     }
 
     [Test]
@@ -2022,9 +1889,7 @@ public sealed class OperationPlanBinderTests
         await Assert.That(condition.Envelope.PayloadType).IsTypeOf<NamedTypeReferencePlan>();
         var payloadTypeName = ((NamedTypeReferencePlan)condition.Envelope.PayloadType!).Name;
         await Assert.That(payloadTypeName).IsEqualTo("IWidgetConditionData");
-        await Assert
-            .That(plan.Unions.Any(union => union.Name == "IWidgetConditionData" && union.ConceptName == "WidgetConditionData"))
-            .IsTrue();
+        await Assert.That(plan.Unions).Contains(union => union.Name == "IWidgetConditionData" && union.ConceptName == "WidgetConditionData");
     }
 
     [Test]
@@ -2075,13 +1940,9 @@ public sealed class OperationPlanBinderTests
         await Assert.That(collection.Operations).IsEmpty();
         // On a handle the family is the subject, so the verb-only gizmo.list keeps no group.
         var handle = plan.Clients.Single(static client => client.Role == ClientRole.Handle);
-        await Assert
-            .That(handle
-                .Operations.Select(static operation => operation.MethodName)
-                .Order(StringComparer.Ordinal)
-                .SequenceEqual(["GetPartAsync", "ListAsync"], StringComparer.Ordinal))
-            .IsTrue();
-        await Assert.That(handle.Operations.All(static operation => operation.RouteContainerName == "Gadgets")).IsTrue();
+        await Assert.That(handle.Operations.Select(static operation => operation.MethodName).Order(StringComparer.Ordinal))
+            .IsEquivalentTo(["GetPartAsync", "ListAsync"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(handle.Operations).All().Satisfy(operation => operation.RouteContainerName, value => value.IsEqualTo("Gadgets"));
     }
 
     [Test]
@@ -2095,15 +1956,9 @@ public sealed class OperationPlanBinderTests
             ["gizmo"] = ClientGroup(clientName: "Gadgets", handleName: null, handleParameter: null),
         };
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("gadget.part", "gizmo.list"),
-            Curation(groups)));
+        var exception = RefuseMergedGadget(document, groups);
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
-                                                       && error.Problem.Contains("identical handle", StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertProblemAsync(exception, BindingErrorCategory.Curation, "identical handle");
     }
 
     /// <summary>
@@ -2125,17 +1980,9 @@ public sealed class OperationPlanBinderTests
                 emission: EmissionMode.InternalRaw),
         };
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("gadget.part", "gizmo.list"),
-            Curation(groups)));
+        var exception = RefuseMergedGadget(document, groups);
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Curation
-                                                       && error.Problem.Contains(
-                                                           "identical handle and emission",
-                                                           StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertProblemAsync(exception, BindingErrorCategory.Curation, "identical handle and emission");
     }
 
     [Test]
@@ -2164,12 +2011,8 @@ public sealed class OperationPlanBinderTests
         var handle = plan.Clients.Single(static client => client.Role == ClientRole.Handle);
         await Assert.That(handle.Name).IsEqualTo("GadgetRawClient");
         await Assert.That(handle.Emission).IsEqualTo(EmissionMode.InternalRaw);
-        await Assert
-            .That(handle
-                .Operations.Select(static operation => operation.MethodName)
-                .Order(StringComparer.Ordinal)
-                .SequenceEqual(["GetPartAsync", "ListAsync"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(handle.Operations.Select(static operation => operation.MethodName).Order(StringComparer.Ordinal))
+            .IsEquivalentTo(["GetPartAsync", "ListAsync"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert
             .That(handle
                 .Operations.Single(static operation => operation.MethodName == "ListAsync")
@@ -2201,7 +2044,7 @@ public sealed class OperationPlanBinderTests
         await Assert.That(handle.Name).IsEqualTo("PtyRawClient");
         await Assert.That(handle.Emission).IsEqualTo(EmissionMode.InternalRaw);
         await Assert.That(handle.ContainerName).IsEqualTo("Ptys");
-        await Assert.That(handle.Operations.All(static operation => operation.RouteContainerName == "Ptys")).IsTrue();
+        await Assert.That(handle.Operations).All().Satisfy(operation => operation.RouteContainerName, value => value.IsEqualTo("Ptys"));
     }
 
     [Test]
@@ -2228,12 +2071,10 @@ public sealed class OperationPlanBinderTests
 
         var exception = Assert.Throws<BindingException>(() => _ = BindPtys(document, EmissionMode.Public));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Operation
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Operation
                                                        && error.Problem.Contains(
                                                            "header parameter 'x-opencode-ticket' has no runtime channel",
-                                                           StringComparison.Ordinal)))
-            .IsTrue();
+                                                           StringComparison.Ordinal));
     }
 
     [Test]
@@ -2243,12 +2084,10 @@ public sealed class OperationPlanBinderTests
 
         var exception = Assert.Throws<BindingException>(() => _ = BindPtys(document, EmissionMode.InternalRaw));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Operation
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Operation
                                                        && error.Problem.Contains(
                                                            "must be optional, not deep-object, and declare a nullable string schema",
-                                                           StringComparison.Ordinal)))
-            .IsTrue();
+                                                           StringComparison.Ordinal));
     }
 
     [Test]
@@ -2269,12 +2108,10 @@ public sealed class OperationPlanBinderTests
             queryParameterTypes: [QueryParameterType("widget.list", "limit", "int")],
             stringQueryParameters: [StringQueryParameter("widget.list", "cursor")])));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Operation
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Operation
                                                        && error.Problem.Contains(
                                                            "cursor pagination cannot carry a declared header",
-                                                           StringComparison.Ordinal)))
-            .IsTrue();
+                                                           StringComparison.Ordinal));
     }
 
     [Test]
@@ -2284,12 +2121,10 @@ public sealed class OperationPlanBinderTests
 
         var exception = Assert.Throws<BindingException>(() => _ = BindPtys(document, EmissionMode.InternalRaw));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Naming
                                                        && error.Problem.Contains(
                                                            "'declaredHeaders' is reserved",
-                                                           StringComparison.Ordinal)))
-            .IsTrue();
+                                                           StringComparison.Ordinal));
     }
 
     [Test]
@@ -2369,12 +2204,8 @@ public sealed class OperationPlanBinderTests
         await Assert.That(property.Kind).IsEqualTo(QueryValueKind.Enum);
         await Assert.That(property.EnumTypeName).IsEqualTo("WidgetMode");
         await Assert.That(property.IsRequired).IsTrue();
-        await Assert
-            .That(plan
-                .Models.Select(static model => model.Name)
-                .Order(StringComparer.Ordinal)
-                .SequenceEqual(["WidgetInfo", "WidgetMode"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(plan.Models.Select(static model => model.Name).Order(StringComparer.Ordinal))
+            .IsEquivalentTo(["WidgetInfo", "WidgetMode"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -2393,9 +2224,8 @@ public sealed class OperationPlanBinderTests
         await Assert.That(property.EnumTypeName).IsEqualTo("WidgetListRequestType");
         await Assert.That(property.IsRequired).IsFalse();
         var model = (EnumModelPlan)plan.Models.Single(static model => model.Name is "WidgetListRequestType");
-        await Assert
-            .That(model.Values.Select(static value => value.WireValue).SequenceEqual(["file", "directory"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(model.Values.Select(static value => value.WireValue))
+            .IsEquivalentTo(["file", "directory"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     /// <summary>
@@ -2411,10 +2241,8 @@ public sealed class OperationPlanBinderTests
 
         var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document));
 
-        await Assert
-            .That(exception.Errors.Any(static error =>
-                error.Problem.Contains("query parameter 'mode' has an unsupported schema shape", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(exception.Errors).Contains(static error =>
+            error.Problem.Contains("query parameter 'mode' has an unsupported schema shape", StringComparison.Ordinal));
     }
 
     [Test]
@@ -2427,11 +2255,8 @@ public sealed class OperationPlanBinderTests
 
         var list = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
         await Assert.That(list.QueryRequest!.Properties.Single().Kind).IsEqualTo(QueryValueKind.ListOrder);
-        await Assert
-            .That(plan
-                .Models.Select(static model => model.Name)
-                .SequenceEqual(["WidgetInfo"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(plan.Models.Select(static model => model.Name))
+            .IsEquivalentTo(["WidgetInfo"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -2508,8 +2333,7 @@ public sealed class OperationPlanBinderTests
 
         var plan = BindWidgets(document, "widget.create");
 
-        var create = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
-        await Assert.That(create.RequestBody!.TypeName).IsEqualTo("WidgetCreateRequest");
+        var create = await AssertCreateRequestAsync(plan);
         await Assert.That(create.QueryRequest!.RidesRequestBody).IsTrue();
         await Assert.That(create.QueryRequest.TypeName).IsEqualTo("WidgetCreateRequest");
         await Assert.That(create.QueryRequest.Properties.Single().Kind).IsEqualTo(QueryValueKind.Location);
@@ -2538,11 +2362,8 @@ public sealed class OperationPlanBinderTests
         var property = list.QueryRequest!.Properties.Single();
         await Assert.That(property.Kind).IsEqualTo(QueryValueKind.Location);
         await Assert.That(property.PropertyName).IsEqualTo("Location");
-        await Assert
-            .That(plan
-                .Models.Select(static model => model.Name)
-                .SequenceEqual(["WidgetInfo"], StringComparer.Ordinal))
-            .IsTrue();
+        await Assert.That(plan.Models.Select(static model => model.Name))
+            .IsEquivalentTo(["WidgetInfo"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -2717,7 +2538,7 @@ public sealed class OperationPlanBinderTests
         await Assert.That(create.Envelope.PayloadName).IsNull();
         await Assert.That(create.Envelope.PayloadType).IsNull();
         await Assert.That(create.Envelope.EnvelopeDtoTypeName).IsNull();
-        await Assert.That(plan.Registry.TypeNames.Contains("WidgetCreateResponseEnvelope", StringComparer.Ordinal)).IsFalse();
+        await Assert.That(plan.Registry.TypeNames).DoesNotContain("WidgetCreateResponseEnvelope", StringComparer.Ordinal);
     }
 
     [Test]
@@ -2929,12 +2750,10 @@ public sealed class OperationPlanBinderTests
         await Assert.That(operation.Stream.CauseTypeName).IsEqualTo("IStreamFailureCause[]");
 
         var cause = plan.Unions.Single(static union => union.Name == "IStreamFailureCause");
-        await Assert
-            .That(cause
-                .Variants.Select(static variant => variant.Tag)
-                .SequenceEqual(["Die", "Interrupt"], StringComparer.Ordinal))
-            .IsTrue();
-        await Assert.That(cause.KnownImpossibleTags).IsEquivalentTo(["Fail"]);
+        await Assert.That(cause.Variants.Select(static variant => variant.Tag))
+            .IsEquivalentTo(["Die", "Interrupt"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        // Dictionary/set membership is the contract; enumeration order is not.
+        await Assert.That(cause.KnownImpossibleTags).IsEquivalentTo(["Fail"], CollectionOrdering.Any);
         await Assert.That(plan.Models.Select(static model => model.Name)).Contains("StreamFailureCauseDie");
         await Assert.That(plan.Models.Select(static model => model.Name)).Contains("StreamFailureCauseInterrupt");
         await Assert.That(plan.Models.Select(static model => model.Name)).DoesNotContain("StreamFailureCauseFail");
@@ -2983,9 +2802,10 @@ public sealed class OperationPlanBinderTests
             .Clients.SelectMany(static client => client.Operations)
             .Single();
 
+        // Member/type membership is the contract; declaration order is not asserted here.
         await Assert
             .That(operation.QueryRequest!.Properties.Select(static property => $"{property.PropertyName}:{property.Kind}"))
-            .IsEquivalentTo(["Wildcard:RouteTail", "Path:Text"]);
+            .IsEquivalentTo(["Wildcard:RouteTail", "Path:Text"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -3009,16 +2829,9 @@ public sealed class OperationPlanBinderTests
                 .Parameter("request", "path", schema => schema.Type("string"), required: true)
                 .Response(200, "application/json", schema => schema.Ref("ItemInfo")))));
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("widget.item"),
-            Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)))));
+        var exception = RefuseWidgetItem(document);
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
-                                                       && error.Problem.Contains("reserved by the emitted method signature",
-                                                           StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertProblemAsync(exception, BindingErrorCategory.Naming, "reserved by the emitted method signature");
     }
 
     [Test]
@@ -3075,11 +2888,9 @@ public sealed class OperationPlanBinderTests
             Selection("widget.state"),
             Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)))));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Naming
                                                        && error.Problem.Contains("WidgetStateResponse", StringComparison.Ordinal)
-                                                       && error.Problem.Contains("response type", StringComparison.Ordinal)))
-            .IsTrue();
+                                                       && error.Problem.Contains("response type", StringComparison.Ordinal));
     }
 
     [Test]
@@ -3092,10 +2903,8 @@ public sealed class OperationPlanBinderTests
             Selection("gadget.part"),
             Curation(Groups("gadget", ClientGroup(clientName: "Gadgets", handleName: "ListCursor", handleParameter: "gadgetID")))));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
-                                                       && error.Problem.Contains("ListCursor", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Naming
+            && error.Problem.Contains("ListCursor", StringComparison.Ordinal));
     }
 
     [Test]
@@ -3109,19 +2918,11 @@ public sealed class OperationPlanBinderTests
                     .Type("object")
                     .Property("data", property => property.Ref("GadgetPart"), required: true)))));
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("gadget.part", "gadget.part.get"),
-            Curation(Groups("gadget", ClientGroup(clientName: "Gadgets", handleName: "GadgetClient", handleParameter: "gadgetID")))));
+        var exception = RefuseGadgetPartNames(document);
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
-                                                       && error.Problem.Contains("GetPartAsync", StringComparison.Ordinal)))
-            .IsTrue();
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
-                                                       && error.Problem.Contains("GadgetPartResponse", StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertProblemAsync(exception, BindingErrorCategory.Naming, "GetPartAsync");
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Naming
+            && error.Problem.Contains("GadgetPartResponse", StringComparison.Ordinal));
     }
 
     [Test]
@@ -3131,16 +2932,11 @@ public sealed class OperationPlanBinderTests
             .WithOperation("gadget.part.get", path: "/api/gadget-part", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("GadgetPart")))));
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
-            document,
-            Selection("gadget.part", "gadget.part.get"),
-            Curation(Groups("gadget", ClientGroup(clientName: "Gadgets", handleName: "GadgetClient", handleParameter: "gadgetID")))));
+        var exception = RefuseGadgetPartNames(document);
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Naming
                                                        && error.Problem.Contains("route member", StringComparison.Ordinal)
-                                                       && error.Problem.Contains("GetPart", StringComparison.Ordinal)))
-            .IsTrue();
+                                                       && error.Problem.Contains("GetPart", StringComparison.Ordinal));
     }
 
     [Test]
@@ -3153,10 +2949,8 @@ public sealed class OperationPlanBinderTests
             Selection("gadget.part"),
             Curation(Groups("gadget", ClientGroup(clientName: "Gadget", handleName: "GadgetClient", handleParameter: "gadgetID")))));
 
-        await Assert
-            .That(exception.Errors.Any(static error => error.Category == BindingErrorCategory.Naming
-                                                       && error.Problem.Contains("GadgetClient", StringComparison.Ordinal)))
-            .IsTrue();
+        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Naming
+            && error.Problem.Contains("GadgetClient", StringComparison.Ordinal));
     }
 
     [Test]
@@ -3297,11 +3091,7 @@ public sealed class OperationPlanBinderTests
             Selection(operationId),
             Curation(Groups(groupName, RootGroup()))));
 
-        await Assert
-            .That(exception.Errors.Any(error => error.Category == BindingErrorCategory.Operation
-                                                && string.Equals(error.Subject, operationId, StringComparison.Ordinal)
-                                                && error.Problem.Contains(expectedProblem, StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertOperationProblemAsync(exception, operationId, expectedProblem);
     }
 
     private static Task AssertStreamRefusalAsync(SpecDocument document, string expectedProblem) =>
@@ -3473,11 +3263,7 @@ public sealed class OperationPlanBinderTests
     {
         var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document, operationId, strings: strings));
 
-        await Assert
-            .That(exception.Errors.Any(error => error.Category == BindingErrorCategory.Operation
-                                                && string.Equals(error.Subject, operationId, StringComparison.Ordinal)
-                                                && error.Problem.Contains(expectedProblem, StringComparison.Ordinal)))
-            .IsTrue();
+        await AssertOperationProblemAsync(exception, operationId, expectedProblem);
     }
 
     private static class QueryScenarioData

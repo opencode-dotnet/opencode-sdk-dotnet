@@ -16,6 +16,12 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 /// </summary>
 public sealed class StabilizeDuplicatePolicyTests
 {
+    private static async Task AssertWidgetFoldAsync(BindingErrorCollector errors, StabilizeDuplicateCollapse collapse)
+    {
+        await Assert.That(errors.Count).IsEqualTo(0);
+        await Assert.That(Folds(collapse)).IsEquivalentTo(["Widget_1 -> Widget"], CollectionOrdering.Matching);
+    }
+
     [Test]
     [Arguments(false, BindingErrorCategory.Schema, "stabilize duplicate 'Widget_1' is not structurally identical to its base 'Widget'")]
     [Arguments(true, BindingErrorCategory.Curation, "stabilize duplicate 'Widget_1' folds into 'Widget' mechanically, so its schemaNames row is redundant; remove the row")]
@@ -42,8 +48,7 @@ public sealed class StabilizeDuplicatePolicyTests
 
         var collapse = await ResolveAsync(TwoWidgetsScenario(static schema => Widget(schema)), errors);
 
-        await Assert.That(errors.Count).IsEqualTo(0);
-        await Assert.That(Folds(collapse)).IsEquivalentTo(["Widget_1 -> Widget"]);
+        await AssertWidgetFoldAsync(errors, collapse);
     }
 
     [Test]
@@ -63,8 +68,7 @@ public sealed class StabilizeDuplicatePolicyTests
 
         var collapse = await ResolveAsync(reorderedObjects, errors);
 
-        await Assert.That(errors.Count).IsEqualTo(0);
-        await Assert.That(Folds(collapse)).IsEquivalentTo(["Widget_1 -> Widget"], CollectionOrdering.Matching);
+        await AssertWidgetFoldAsync(errors, collapse);
     }
 
     [Test]
@@ -168,9 +172,10 @@ public sealed class StabilizeDuplicatePolicyTests
             errors);
 
         await Assert.That(collapse.Aliases.Count).IsEqualTo(0);
+        // Diagnostic membership and multiplicity matter, not report enumeration order.
         await Assert
             .That(Refusals(errors).Select(static error => error.Subject))
-            .IsEquivalentTo(["Gadget_1", "Part_1"]);
+            .IsEquivalentTo(["Gadget_1", "Part_1"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -183,7 +188,7 @@ public sealed class StabilizeDuplicatePolicyTests
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert
             .That(Folds(collapse))
-            .IsEquivalentTo(["Gadget_1 -> Gadget", "Part_1 -> Part"]);
+            .IsEquivalentTo(["Gadget_1 -> Gadget", "Part_1 -> Part"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -196,7 +201,7 @@ public sealed class StabilizeDuplicatePolicyTests
             errors);
 
         await Assert.That(errors.Count).IsEqualTo(0);
-        await Assert.That(Folds(collapse)).IsEquivalentTo(["Widget_1 -> Widget"]);
+        await Assert.That(Folds(collapse)).IsEquivalentTo(["Widget_1 -> Widget"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -271,9 +276,9 @@ public sealed class StabilizeDuplicatePolicyTests
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(collapse.Aliases.Count).IsGreaterThan(0);
-        await Assert.That(collapse.Aliases.ContainsKey("Session.Inbox.MovePayload_1")).IsFalse();
+        await Assert.That(collapse.Aliases).DoesNotContainKey("Session.Inbox.MovePayload_1");
         await Assert.That(Folds(collapse)).IsEquivalentTo(ReachableStabilizeDuplicates(document, reachable)
-            .Except(["Session.Inbox.MovePayload_1 -> Session.Inbox.MovePayload"], StringComparer.Ordinal));
+            .Except(["Session.Inbox.MovePayload_1 -> Session.Inbox.MovePayload"], StringComparer.Ordinal), CollectionOrdering.Matching);
     }
 
     /// <summary>

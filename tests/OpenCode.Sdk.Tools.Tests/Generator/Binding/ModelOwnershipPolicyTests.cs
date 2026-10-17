@@ -239,7 +239,8 @@ public sealed class ModelOwnershipPolicyTests
         var placement = Place(errors, OwnershipPlanData.Models("FormInfo", "FormatInfo"));
 
         await Assert.That(placement.HomeOf("FormInfo")).IsEqualTo(TypeHome.Family("Forms"));
-        await Assert.That(placement.Unplaced).IsEquivalentTo(["FormatInfo"]);
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(placement.Unplaced).IsEquivalentTo(["FormatInfo"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -301,7 +302,8 @@ public sealed class ModelOwnershipPolicyTests
 
         await Assert.That(errors.Count).IsEqualTo(0);
         await Assert.That(placement.HomeOf(SessionLoginRequest)).IsEqualTo(TypeHome.Family(Credentials));
-        await Assert.That(placement.BodyRequests).IsEquivalentTo([SessionLoginRequest]);
+        // Dictionary/set membership is the contract; enumeration order is not.
+        await Assert.That(placement.BodyRequests).IsEquivalentTo([SessionLoginRequest], CollectionOrdering.Any);
     }
 
     [Test]
@@ -399,8 +401,9 @@ public sealed class ModelOwnershipPolicyTests
         var placement = Place(errors, OwnershipPlanData.Models("OutputFormat"));
 
         await Assert.That(errors.Count).IsEqualTo(0);
-        await Assert.That(placement.Homes.ContainsKey("OutputFormat")).IsFalse();
-        await Assert.That(placement.Unplaced).IsEquivalentTo(["OutputFormat"]);
+        await Assert.That(placement.Homes).DoesNotContainKey("OutputFormat");
+        // Only membership and cardinality matter; this expected collection has one item.
+        await Assert.That(placement.Unplaced).IsEquivalentTo(["OutputFormat"], CollectionOrdering.Any);
     }
 
     [Test]
@@ -530,9 +533,8 @@ public sealed class ModelOwnershipPolicyTests
     {
         var exception = Assert.Throws<BindingException>(errors.ThrowIfAny);
 
-        await Assert.That(exception.Errors.Any(error => error.Category == BindingErrorCategory.Curation
+        await Assert.That(exception.Errors).Contains(error => error.Category == BindingErrorCategory.Curation
                                                         && string.Equals(error.Subject, subject, StringComparison.Ordinal)
-                                                        && error.Problem.Contains(problem, StringComparison.Ordinal)))
-            .IsTrue();
+                                                        && error.Problem.Contains(problem, StringComparison.Ordinal));
     }
 }
