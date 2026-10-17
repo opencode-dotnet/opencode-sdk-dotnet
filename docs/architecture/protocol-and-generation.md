@@ -162,7 +162,9 @@ Curation may:
   `sources` list (each a `packages/path:line` location and a verbatim excerpt) that the curation
   validator requires and a Tools test proves against the pinned upstream tree, and facts inferred
   only from implementation are reported upstream instead and never change protocol semantics
-  (ADR-0013);
+  (ADR-0013). A curated interface member's documentation reaches each implementing public property
+  without its own row through `<inheritdoc cref>`; different curated documentation from two owners
+  for such a property refuses generation;
 - place a model in a slice where its name carries no family prefix, through a reason-bearing
   `modelOwners` row; a family's prefixes are its name, its singular, its group key and the
   group's `prefixAliases`, and a model with no prefix and no row fails generation. A

@@ -12,7 +12,7 @@ namespace OpenCode.Sdk.Models;
 public interface ISessionInboxInfoTime
 {
     /// <summary>
-    /// Gets the created value.
+    /// Enqueue time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("created")]
     public double Created { get; }

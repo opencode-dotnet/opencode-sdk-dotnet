@@ -21,13 +21,13 @@ public sealed record SessionTextDeltaData
     public required string AssistantMessageId { get; init; }
 
     /// <summary>
-    /// Gets the ordinal value.
+    /// A non-negative ordinal for this text part.
     /// </summary>
     [JsonPropertyName("ordinal")]
     public required long Ordinal { get; init; }
 
     /// <summary>
-    /// Gets the delta value.
+    /// A live-only text fragment.
     /// </summary>
     [JsonPropertyName("delta")]
     public required string Delta { get; init; }

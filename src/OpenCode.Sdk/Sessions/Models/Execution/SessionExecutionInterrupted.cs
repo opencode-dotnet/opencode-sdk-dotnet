@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The &apos;session.execution.interrupted&apos; event.
+/// Reports interrupted execution; the pinned Data.Reason values are user, shutdown, superseded and inactivity.
 /// </summary>
 public sealed record SessionExecutionInterrupted : ISessionEventDurable, IEvent, ISessionScopedEvent
 {

@@ -42,9 +42,7 @@ public sealed record McpLocalConfig : IMcp
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? Disabled { get; init; }
 
-    /// <summary>
-    /// Gets the codemode value.
-    /// </summary>
+    /// <inheritdoc cref="IMcp.Codemode" />
     [JsonPropertyName("codemode")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? Codemode { get; init; }

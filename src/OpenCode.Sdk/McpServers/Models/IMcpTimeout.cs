@@ -12,19 +12,19 @@ namespace OpenCode.Sdk.Models;
 public interface IMcpTimeout
 {
     /// <summary>
-    /// Gets the startup value.
+    /// Maximum time in milliseconds to establish and initialize the MCP server.
     /// </summary>
     [JsonPropertyName("startup")]
     public long? Startup { get; }
 
     /// <summary>
-    /// Gets the catalog value.
+    /// Maximum time in milliseconds to wait for MCP discovery requests such as tools/list and prompts/list.
     /// </summary>
     [JsonPropertyName("catalog")]
     public long? Catalog { get; }
 
     /// <summary>
-    /// Gets the execution value.
+    /// Maximum time in milliseconds to wait for MCP tool and prompt execution.
     /// </summary>
     [JsonPropertyName("execution")]
     public long? Execution { get; }

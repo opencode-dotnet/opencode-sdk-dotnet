@@ -9,6 +9,14 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 🐛 Fixes
+
+- **IntelliSense reaches implementing members and restores declared halves.** Properties that
+  implement a documented interface member (durable envelopes' `Seq` and `Version`, the MCP
+  timeouts and `Codemode`, inbox and compaction `Created` times) show that member's documentation,
+  and 26 summaries that preview.12 dropped as partly implementation-only return with the part
+  upstream declares. SDK types and runtime behavior are unchanged.
+
 ## [0.9.0-preview.12] - 2026-10-17
 
 **Streams and automatic traversals take per-call options, and the public surface sheds its last

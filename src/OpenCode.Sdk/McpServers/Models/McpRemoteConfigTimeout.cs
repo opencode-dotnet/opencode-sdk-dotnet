@@ -8,23 +8,17 @@ namespace OpenCode.Sdk.Models;
 /// </summary>
 public sealed record McpRemoteConfigTimeout : IMcpTimeout
 {
-    /// <summary>
-    /// Gets the startup value.
-    /// </summary>
+    /// <inheritdoc cref="IMcpTimeout.Startup" />
     [JsonPropertyName("startup")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? Startup { get; init; }
 
-    /// <summary>
-    /// Gets the catalog value.
-    /// </summary>
+    /// <inheritdoc cref="IMcpTimeout.Catalog" />
     [JsonPropertyName("catalog")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? Catalog { get; init; }
 
-    /// <summary>
-    /// Gets the execution value.
-    /// </summary>
+    /// <inheritdoc cref="IMcpTimeout.Execution" />
     [JsonPropertyName("execution")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? Execution { get; init; }

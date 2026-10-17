@@ -6,12 +6,12 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The body of &apos;session.prompt&apos; (POST /api/session/{sessionID}/prompt).
+/// A session input durably admitted to the inbox, scheduling agent-loop execution unless Resume is false.
 /// </summary>
 public sealed record SessionPromptRequest
 {
     /// <summary>
-    /// Gets the id value.
+    /// An optional message identifier starting with msg_.
     /// </summary>
     [JsonPropertyName("id")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -25,7 +25,7 @@ public sealed record SessionPromptRequest
     public required string Text { get; init; }
 
     /// <summary>
-    /// Gets the files value.
+    /// File attachments, each referencing a file by its Uri member.
     /// </summary>
     [JsonPropertyName("files")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -39,7 +39,7 @@ public sealed record SessionPromptRequest
     public IReadOnlyList<PromptAgentAttachment>? Agents { get; init; }
 
     /// <summary>
-    /// Gets the skills value.
+    /// Skills to attach by identifier.
     /// </summary>
     [JsonPropertyName("skills")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -53,7 +53,7 @@ public sealed record SessionPromptRequest
     public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
 
     /// <summary>
-    /// Gets the delivery value.
+    /// The input delivery mode; the pinned values are steer and queue.
     /// </summary>
     [JsonPropertyName("delivery")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -61,7 +61,7 @@ public sealed record SessionPromptRequest
     public Optional<SessionInboxDelivery?> Delivery { get; init; }
 
     /// <summary>
-    /// Gets the resume value.
+    /// Controls scheduling of agent-loop execution after durable admission: false omits that scheduling.
     /// </summary>
     [JsonPropertyName("resume")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]

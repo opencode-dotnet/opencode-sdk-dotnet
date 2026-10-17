@@ -18,13 +18,13 @@ public interface IDurableEnvelope
     public string AggregateId { get; }
 
     /// <summary>
-    /// Gets the seq value.
+    /// Position in one aggregate&apos;s durable log. Use only values from durable envelopes or synced markers as after cursors.
     /// </summary>
     [JsonPropertyName("seq")]
     public long Seq { get; }
 
     /// <summary>
-    /// Gets the version value.
+    /// Durable schema version of this event type, from the event definition that committed it.
     /// </summary>
     [JsonPropertyName("version")]
     public double Version { get; }

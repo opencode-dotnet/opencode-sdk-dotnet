@@ -6,6 +6,7 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Serialization;
 using OpenCode.Sdk.Tools.Tests.Generator.Binding.Support;
+using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions.Testing;
 using TUnit.Assertions.Enums;
@@ -16,6 +17,69 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 [ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
 public sealed class DescriptionCurationBinderTests(PinnedBinding pinned)
 {
+    [Test]
+    public async Task Apply_Should_Emit_A_Direct_Row_Without_Resolving_Conflicting_Owners()
+    {
+        var plan = EmitterPlanFixture.CreateHoistPlan();
+        var carrier = plan.HoistedInterfaces.Single();
+        var model = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "CreatedEventDurable");
+        plan = plan with
+        {
+            HoistedInterfaces = [carrier, carrier with { Name = "IAOwner" }],
+            Models = [model with { ImplementedHoistedInterfaceNames = [carrier.Name, "IAOwner"] }],
+        };
+        var errors = new BindingErrorCollector();
+
+        var bound = DescriptionCurationBinder.Apply(plan,
+        [
+            Description("IDurableEnvelope", "Seq", "The first owner summary."),
+            Description("IAOwner", "Seq", "The other owner summary."),
+            Description("CreatedEventDurable", "Seq", "The direct summary.", "The direct remarks."),
+        ], errors);
+
+        await Assert.That(errors.Snapshot()).IsEquivalentTo(Array.Empty<BindingError>(), CollectionOrdering.Matching);
+        var source = Unindented(Source(bound, "CreatedEventDurable"));
+        await Assert.That(source).Contains("/// <summary>\n/// The direct summary.\n/// </summary>\n/// <remarks>\n/// The direct remarks.\n/// </remarks>");
+        await Assert.That(source).DoesNotContain("<inheritdoc");
+    }
+
+    [Test]
+    [Arguments("summary")]
+    [Arguments("remarks")]
+    [Arguments("identical")]
+    public async Task Apply_Should_Refuse_Conflicting_Owners_Or_Select_The_Ordinal_First_Cref(string difference)
+    {
+        var plan = EmitterPlanFixture.CreateHoistPlan();
+        var carrier = plan.HoistedInterfaces.Single();
+        plan = plan with
+        {
+            HoistedInterfaces = [carrier, carrier with { Name = "IAOwner" }],
+            Models = [.. plan.Models.Select(model => model is ObjectModelPlan concrete && concrete.ImplementedHoistedInterfaceNames.Count > 0
+                ? concrete with { ImplementedHoistedInterfaceNames = [carrier.Name, "IAOwner"] } : model)],
+        };
+        var errors = new BindingErrorCollector();
+        var rows = new[]
+        {
+            Description("IDurableEnvelope", "Seq", "The owner summary.", "The owner remarks."),
+            Description("IAOwner", "Seq", difference == "summary" ? "Another summary." : "The owner summary.",
+                difference == "remarks" ? "Other remarks." : "The owner remarks."),
+        };
+
+        var bound = DescriptionCurationBinder.Apply(plan, rows, errors);
+
+        string[] subjects =
+        [
+            "CreatedEventDurable.Seq", "DeletedEventDurable.Seq", "PhaseEndedEventDurable.Seq", "PhaseStartedEventDurable.Seq",
+        ];
+        BindingError[] expected = difference == "identical" ? [] : [.. subjects.Select(static subject => new BindingError(BindingErrorCategory.Curation, subject,
+            "description has conflicting curated owners: IAOwner.Seq, IDurableEnvelope.Seq"))];
+        await Assert.That(errors.Snapshot()).IsEquivalentTo(expected, CollectionOrdering.Matching);
+        if (difference == "identical")
+        {
+            await Assert.That(Source(bound, "CreatedEventDurable")).Contains("/// <inheritdoc cref=\"IAOwner.Seq\" />");
+        }
+    }
+
     [Test]
     [Arguments("location", false, "location must be a packages/-relative path with a positive line")]
     [Arguments("excerpt", false, "excerpt must be non-empty")]
@@ -267,4 +331,42 @@ public sealed class DescriptionCurationBinderTests(PinnedBinding pinned)
 
     private static string Source(EmitPlan plan, string type) => Encoding.UTF8.GetString(ModelEmitter.Emit(plan)
         .Single(source => source.RelativePath.EndsWith("/" + type + ".cs", StringComparison.Ordinal)).Utf8Source.Span);
+    /// <summary>
+    /// The union emitter adds "an ordinary optional property may also be absent" to every curated
+    /// hoisted member, because HoistedMemberPlan carries no requiredness (#453). Until it does, no such
+    /// member may be required in any variant at the pin.
+    /// </summary>
+    [Test]
+    public async Task Pinned_Plan_Should_Keep_Every_Remarked_Hoisted_Member_Optional_In_Every_Variant()
+    {
+        await Assert.That(RequiredRemarkedHoistedMembers(pinned.Plan)).IsEmpty();
+    }
+
+    /// <summary>The guard above fails when a remarked member's source becomes required in one variant.</summary>
+    [Test]
+    public async Task RequiredRemarkedHoistedMembers_Should_Name_A_Member_Required_In_One_Variant()
+    {
+        var plan = pinned.Plan;
+        var union = plan.Unions.Single(static union => union.Name == "IMcp");
+        var variant = plan.Models.OfType<ObjectModelPlan>().Single(model => model.Name == union.Variants[0].TypeName);
+        var required = variant with
+        {
+            Properties = [.. variant.Properties.Select(static property => property.WireName == "codemode" ? property with { IsRequired = true } : property)],
+        };
+        plan = plan with { Models = [.. plan.Models.Select(model => ReferenceEquals(model, variant) ? required : model)] };
+
+        await Assert.That(RequiredRemarkedHoistedMembers(plan)).IsEquivalentTo(["IMcp.Codemode"], CollectionOrdering.Matching);
+    }
+
+    private static List<string> RequiredRemarkedHoistedMembers(EmitPlan plan)
+    {
+        var models = plan.Models.OfType<ObjectModelPlan>().ToDictionary(static model => model.Name, StringComparer.Ordinal);
+        return [.. plan.Unions
+            .SelectMany(static union => union.HoistedMembers
+                .Where(member => union.Documentation.Members.ContainsKey(member.Name))
+                .Select(member => (union, member)))
+            .Where(pair => pair.union.Variants.Any(variant => models.TryGetValue(variant.TypeName, out var model)
+                && model.Properties.Any(property => property.WireName == pair.member.WireName && property.IsRequired)))
+            .Select(static pair => pair.union.Name + "." + pair.member.Name)];
+    }
 }

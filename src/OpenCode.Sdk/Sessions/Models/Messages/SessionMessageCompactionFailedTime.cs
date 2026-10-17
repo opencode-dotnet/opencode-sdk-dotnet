@@ -8,9 +8,7 @@ namespace OpenCode.Sdk.Models;
 /// </summary>
 public sealed record SessionMessageCompactionFailedTime : ISessionMessageCompactionTime
 {
-    /// <summary>
-    /// Gets the created value.
-    /// </summary>
+    /// <inheritdoc cref="ISessionMessageCompactionTime.Created" />
     [JsonPropertyName("created")]
     public required double Created { get; init; }
 }

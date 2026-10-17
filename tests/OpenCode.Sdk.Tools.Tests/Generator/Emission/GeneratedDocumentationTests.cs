@@ -13,6 +13,50 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 public sealed class GeneratedDocumentationTests
 {
     [Test]
+    [Arguments("P:Owner.Member", false)]
+    [Arguments("P:Missing.Member", true)]
+    [Arguments("P:Implementer.Member", true)]
+    public async Task EffectiveSummary_Should_Resolve_Inheritance_Or_Refuse_Unresolved_And_Cyclic_Targets(string target, bool refuses)
+    {
+        var docs = new Dictionary<string, XElement>(StringComparer.Ordinal)
+        {
+            ["P:Implementer.Member"] = new("member", new XElement("inheritdoc", new XAttribute("cref", target))),
+            ["P:Owner.Member"] = new("member", new XElement("inheritdoc", new XAttribute("cref", "P:Root.Member"))),
+            ["P:Root.Member"] = new("member", new XElement("summary", "The effective owner summary.")),
+        };
+        if (refuses)
+        {
+            var exception = await Assert.That(() => EffectiveSummary("P:Implementer.Member", docs)).Throws<InvalidOperationException>();
+            await Assert.That(exception!.Message).IsEqualTo("Unresolved or cyclic documentation target: " + target);
+        }
+        else
+        {
+            await Assert.That(EffectiveSummary("P:Implementer.Member", docs)?.Value).IsEqualTo("The effective owner summary.");
+        }
+    }
+
+    private static XElement? EffectiveSummary(string id, Dictionary<string, XElement> docs)
+    {
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        while (visited.Add(id) && docs.TryGetValue(id, out var doc))
+        {
+            if (doc.Element("summary") is { } summary)
+            {
+                return summary;
+            }
+
+            if ((string?)doc.Element("inheritdoc")?.Attribute("cref") is not { } target)
+            {
+                return null;
+            }
+
+            id = target;
+        }
+
+        throw new InvalidOperationException("Unresolved or cyclic documentation target: " + id);
+    }
+
+    [Test]
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Summaries_Should_Keep_Shrink_Only_Placeholder_Ceilings_And_Reject_Grammar_Defects()
     {
@@ -54,8 +98,8 @@ public sealed class GeneratedDocumentationTests
         var helperFed = summaries.Where(pair => placeholders.Any(pattern => Matches(pair.Value, pattern)) ||
             Matches(pair.Value, @"^(?:Preserves an unknown [a-z0-9 ]+ payload\.$|The [a-z0-9 ]+\. The pinned server's values are the static properties;)")).ToArray();
         using var assertions = Assert.Multiple();
-        await Assert.That(100m * historical / summaries.Count).IsLessThanOrEqualTo(44.702440m);
-        await Assert.That(100m * broad / summaries.Count).IsLessThanOrEqualTo(61.073171m);
+        await Assert.That(100m * historical / summaries.Count).IsLessThanOrEqualTo(42.243903m);
+        await Assert.That(100m * broad / summaries.Count).IsLessThanOrEqualTo(58.575610m);
         foreach (var defect in defects)
         {
             var offenders = helperFed.Where(pair => Matches(pair.Value, defect)).ToArray();
@@ -78,6 +122,15 @@ public sealed class GeneratedDocumentationTests
             await fileSystem.File.ReadAllTextAsync(fileSystem.Path.Combine(root, path), CancellationToken.None), path: path)));
 
         var compilation = CSharpCompilation.Create("GeneratedDocumentation", trees);
+        var roots = await Task.WhenAll(trees.Select(static tree => tree.GetRootAsync()));
+        var docs = roots.SelectMany(static root => root.DescendantNodes().Where(static node => node is MemberDeclarationSyntax or VariableDeclaratorSyntax))
+            .Select(node => compilation.GetSemanticModel(node.SyntaxTree).GetDeclaredSymbol(node))
+            .OfType<ISymbol>().Where(static symbol => symbol is not INamespaceSymbol && IsPublic(symbol))
+            .ToDictionary(static symbol => symbol.GetDocumentationCommentId() ?? throw new InvalidOperationException("Missing documentation ID: " + symbol), static symbol =>
+            {
+                var xml = symbol.GetDocumentationCommentXml();
+                return string.IsNullOrWhiteSpace(xml) ? new XElement("member") : XElement.Parse(xml);
+            }, StringComparer.Ordinal);
         var summaries = new Dictionary<string, string>(StringComparer.Ordinal);
         var missing = new List<string>();
         foreach (var tree in trees)
@@ -93,8 +146,7 @@ public sealed class GeneratedDocumentationTests
                 }
 
                 var key = string.Create(CultureInfo.InvariantCulture, $"{tree.FilePath}:{declaration.GetLocation().GetLineSpan().StartLinePosition.Line + 1}: {symbol}");
-                var xml = symbol.GetDocumentationCommentXml();
-                var summary = string.IsNullOrWhiteSpace(xml) ? null : XElement.Parse(xml).Element("summary");
+                var summary = EffectiveSummary(symbol.GetDocumentationCommentId() ?? throw new InvalidOperationException("Missing documentation ID: " + symbol), docs);
                 foreach (var see in summary?.Descendants("see").ToArray() ?? [])
                 {
                     var cref = (string?)see.Attribute("cref");

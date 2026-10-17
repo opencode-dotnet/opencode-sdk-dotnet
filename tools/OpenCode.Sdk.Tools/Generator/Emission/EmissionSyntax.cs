@@ -89,15 +89,28 @@ internal static class EmissionSyntax
 
     /// <summary>Applies bound text to a type and its directly declared properties, without interpreting wire roles.</summary>
     public static T DocumentedType<T>(T declaration, TypeDocumentationPlan documentation,
-        IReadOnlyList<DocumentationRun>? existingRemarks = null) where T : TypeDeclarationSyntax
+        IReadOnlyList<DocumentationRun>? existingRemarks = null,
+        IReadOnlyDictionary<string, string>? inheritedMembers = null) where T : TypeDeclarationSyntax
     {
         ArgumentNullException.ThrowIfNull(declaration);
         ArgumentNullException.ThrowIfNull(documentation);
 
-        var members = declaration.Members.Select(member => member is PropertyDeclarationSyntax { ExplicitInterfaceSpecifier: null } property
-            && documentation.Members.TryGetValue(property.Identifier.ValueText, out var text)
-                ? property.WithLeadingTrivia(MemberDocumentation(text.Summary, [], remarks: ProseRemarks(text.Remarks)))
-                : member);
+        var members = declaration.Members.Select(member =>
+        {
+            if (member is not PropertyDeclarationSyntax { ExplicitInterfaceSpecifier: null } property)
+            {
+                return member;
+            }
+
+            if (documentation.Members.TryGetValue(property.Identifier.ValueText, out var text))
+            {
+                return property.WithLeadingTrivia(MemberDocumentation(text.Summary, [], remarks: ProseRemarks(text.Remarks)));
+            }
+
+            return inheritedMembers?.TryGetValue(property.Identifier.ValueText, out var owner) is true
+                ? property.WithLeadingTrivia(SyntaxFactory.Comment($"/// <inheritdoc cref=\"{EscapeXml(owner)}\" />"), LineFeed)
+                : member;
+        });
         var result = (T)declaration.WithMembers(SyntaxFactory.List(members));
         if (documentation.Summary is { } summary)
         {

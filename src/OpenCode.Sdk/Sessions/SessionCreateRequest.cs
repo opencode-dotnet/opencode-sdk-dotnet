@@ -6,12 +6,12 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The body of &apos;session.create&apos; (POST /api/session).
+/// A request to create a session at the requested location; ParentId links a child at its parent&apos;s location.
 /// </summary>
 public sealed record SessionCreateRequest
 {
     /// <summary>
-    /// Gets the id value.
+    /// An optional session identifier starting with ses.
     /// </summary>
     [JsonPropertyName("id")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -19,7 +19,7 @@ public sealed record SessionCreateRequest
     public Optional<string?> Id { get; init; }
 
     /// <summary>
-    /// Gets the parent id value.
+    /// Links a child session to its parent at the parent&apos;s location.
     /// </summary>
     [JsonPropertyName("parentID")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -43,7 +43,7 @@ public sealed record SessionCreateRequest
     public Optional<string?> Agent { get; init; }
 
     /// <summary>
-    /// Gets the model value.
+    /// A model reference identifying the provider, model and optional variant.
     /// </summary>
     [JsonPropertyName("model")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -51,7 +51,7 @@ public sealed record SessionCreateRequest
     public Optional<ModelRef?> Model { get; init; }
 
     /// <summary>
-    /// Gets the location value.
+    /// The requested location for a session; ParentId places a child at its parent&apos;s location.
     /// </summary>
     [JsonPropertyName("location")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
@@ -67,7 +67,7 @@ public sealed record SessionCreateRequest
     public Optional<IReadOnlyDictionary<string, JsonElement>?> Metadata { get; init; }
 
     /// <summary>
-    /// Gets the permissions value.
+    /// When at least one rule matches, the last matching rule wins; session rules are evaluated after the agent&apos;s rules.
     /// </summary>
     [JsonPropertyName("permissions")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]

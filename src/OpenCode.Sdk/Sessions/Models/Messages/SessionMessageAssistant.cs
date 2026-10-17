@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a session message assistant value.
+/// An assistant message with text, reasoning or tool-call output parts.
 /// </summary>
 public sealed record SessionMessageAssistant : ISessionMessageInfo
 {
@@ -47,7 +47,7 @@ public sealed record SessionMessageAssistant : ISessionMessageInfo
     public required ModelRef Model { get; init; }
 
     /// <summary>
-    /// Gets the content value.
+    /// Assistant output parts: text, reasoning and tool calls.
     /// </summary>
     [JsonPropertyName("content")]
     public required IReadOnlyList<ISessionMessageAssistantContent> Content { get; init; }
@@ -60,7 +60,7 @@ public sealed record SessionMessageAssistant : ISessionMessageInfo
     public SessionMessageAssistantSnapshot? Snapshot { get; init; }
 
     /// <summary>
-    /// Gets the finish value.
+    /// The finish reason; the pinned values are stop, length, tool-calls, content-filter, error and unknown.
     /// </summary>
     [JsonPropertyName("finish")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -81,14 +81,14 @@ public sealed record SessionMessageAssistant : ISessionMessageInfo
     public IReadOnlyDictionary<string, JsonElement>? ProviderState { get; init; }
 
     /// <summary>
-    /// Gets the cost value.
+    /// Cost in US dollars recorded on the assistant message.
     /// </summary>
     [JsonPropertyName("cost")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? Cost { get; init; }
 
     /// <summary>
-    /// Gets the tokens value.
+    /// Token usage with input, output, reasoning and cache read/write parts.
     /// </summary>
     [JsonPropertyName("tokens")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -102,7 +102,7 @@ public sealed record SessionMessageAssistant : ISessionMessageInfo
     public SessionStructuredError? Error { get; init; }
 
     /// <summary>
-    /// Gets the retry value.
+    /// Retry information containing an attempt number, time and error.
     /// </summary>
     [JsonPropertyName("retry")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
