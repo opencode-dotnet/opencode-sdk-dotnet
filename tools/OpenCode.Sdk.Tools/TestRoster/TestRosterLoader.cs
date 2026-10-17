@@ -52,11 +52,29 @@ internal sealed class TestRosterLoader(IFileSystem fileSystem)
     {
         foreach (var (passName, operatingSystems) in roster.Passes)
         {
+            if (operatingSystems is null)
+            {
+                throw new TestRosterException(
+                    $"Roster pass map under pass '{passName}' in '{rosterPath}' cannot be JSON null.");
+            }
+
             foreach (var (operatingSystem, modules) in operatingSystems)
             {
+                if (modules is null)
+                {
+                    throw new TestRosterException(
+                        $"Roster module list under pass '{passName}', OS '{operatingSystem}' in '{rosterPath}' cannot be JSON null.");
+                }
+
                 var seenModules = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var module in modules)
                 {
+                    if (module is null)
+                    {
+                        throw new TestRosterException(
+                            $"Roster module entry under pass '{passName}', OS '{operatingSystem}' in '{rosterPath}' cannot be JSON null.");
+                    }
+
                     if (!IsModuleEntry(module))
                     {
                         throw new TestRosterException(
