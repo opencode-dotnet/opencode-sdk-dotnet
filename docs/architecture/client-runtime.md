@@ -617,8 +617,11 @@ completion; only the absence of those outcomes is a readiness timeout. An early-
 drain still gives the first readiness line priority. Cancellation arriving during cleanup does not
 replace the failure already selected.
 
+Readiness, drain, both disposal ladders, background reap, reader release and tree-kill bounds run
+on `LauncherSeams.Time`, chosen once by the standalone launcher's composition root.
+
 Disposal is a ladder, bounded at every step so it never hangs the caller. On Windows it follows
-upstream's rungs on upstream's clock: the grace (`GracefulShutdownTimeout`, default 3 seconds — the
+upstream's rungs and timing: the grace (`GracefulShutdownTimeout`, default 3 seconds — the
 reference client's own force-kill window) starts with the first rung and bounds it.
 
 1. A root that already exited is left alone: `taskkill` finds only live processes, so on an exited
@@ -933,6 +936,9 @@ termination polls, and contender exit backoff run on it. Election deadline compa
 stamps read UTC, and handoff expiry reads UTC epoch milliseconds; neither is a monotonic
 elapsed-time policy. Each request deadline arms after probe headers, after ticket pipeline
 construction, or at entry to the separate shutdown fallback, respectively.
+
+`BannedSymbols.Clock.txt` bans the system clock in shipped src outside the five counted
+composition roots: launcher, client pipeline, Discover, Stop and Ensure.
 
 Where the SDK deliberately differs from the pinned chain, it differs here, each for a recorded
 reason (ADR-0031):

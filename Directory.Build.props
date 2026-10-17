@@ -118,6 +118,10 @@
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" Link="Properties/BannedSymbols.txt"/>
   </ItemGroup>
 
+  <ItemGroup Condition="'$(MSBuildProjectName)' == 'OpenCode.Sdk' Or '$(MSBuildProjectName)' == 'OpenCode.Sdk.Extensions'">
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.Clock.txt" Link="Properties/BannedSymbols.Clock.txt"/>
+  </ItemGroup>
+
   <!-- Downlevel support: Polyfill (source-only, internal) supplies the compiler attributes
        C# 14 needs on netstandard2.0/net472 plus BCL API polyfills (Stream Memory overloads,
        Task.WaitAsync, ...). Upstream guidance: reference it on ALL TFMs, not just downlevel. -->

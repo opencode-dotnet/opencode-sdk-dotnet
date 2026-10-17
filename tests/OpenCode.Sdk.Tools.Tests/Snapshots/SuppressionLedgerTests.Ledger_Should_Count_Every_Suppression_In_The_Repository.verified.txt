@@ -5,7 +5,7 @@ build-switch: 12
 editorconfig: 158
 globalconfig: 1
 no-warn: 18
-pragma: 21
+pragma: 26
 slopwatch-ignore: 7
 slopwatch-suppress: 31
 
@@ -201,12 +201,15 @@ no-warn tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj OPENCODE003
 pragma src/OpenCode.Sdk/Common/Internal/ExperimentalDiagnostics.cs S1075
 pragma src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Handoff/PtyHandoffSidecar.cs MA0045
 pragma src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Registration/StrictJson.cs S1244
+pragma src/OpenCode.Sdk/Hosting/BackgroundService/OpenCodeServer.BackgroundService.cs RS0030 x3
 pragma src/OpenCode.Sdk/Hosting/Internal/Platform/Posix/PosixChildExitWatch.cs VSTHRD003
 pragma src/OpenCode.Sdk/Hosting/Internal/Platform/Windows/WindowsExitWatch.cs S6640
 pragma src/OpenCode.Sdk/Hosting/Internal/Platform/Windows/WindowsExitWatch.cs VSTHRD003
+pragma src/OpenCode.Sdk/Hosting/Launcher/Internal/LauncherSeams.cs RS0030
 pragma src/OpenCode.Sdk/Hosting/Launcher/Internal/PipeLineReader.cs VSTHRD003
 pragma src/OpenCode.Sdk/Hosting/Launcher/Internal/WindowsServerChild.cs MA0045
 pragma src/OpenCode.Sdk/Internal/Terminal/TerminalReceivePump.cs VSTHRD003
+pragma src/OpenCode.Sdk/Internal/Transport/Pipeline.cs RS0030
 pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Ensure/ServiceEnsurerTests.cs MA0045
 pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Handoff/ServicePtyHandoffScenario.cs MA0045
 pragma tests/OpenCode.Sdk.Tests/Hosting/BackgroundService/Handoff/ServicePtyHandoffTests.cs MA0045

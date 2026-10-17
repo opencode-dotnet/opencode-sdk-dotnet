@@ -2,6 +2,7 @@ using System.Diagnostics;
 using NSubstitute;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Hosting.Launcher;
 
@@ -238,6 +239,111 @@ public sealed class PosixServerLadderTests
         await Assert.That(await ChildExitObservation.WithinAsync(watch, ExitObservationGuard)).IsEqualTo(Terminated);
     }
 
+    [Test]
+    public async Task RunAsync_Should_Spend_The_Root_Grace_On_The_Supplied_Clock()
+    {
+        var time = new ManualTimeProvider();
+        using var exits = new ScriptedChildExit();
+        var signals = Signals(exits, exitOnTerminate: false);
+        var watch = PosixChildExitWatch.Start(Pid, exits, signals, childrenReapedAutomatically: false);
+        var ladder = new PosixServerLadder(Pid, watch, signals, PosixServerLadder.ForcedExitTimeout, time);
+        var running = ladder.RunAsync(LongGrace);
+        try
+        {
+            await time.WaitForArmedAsync(LongGrace, HangGuard.Bound);
+            await Assert.That(time.ArmedIn(LongGrace)).IsEqualTo(1);
+            time.Advance(LongGrace - TimeSpan.FromTicks(1));
+            _ = signals.DidNotReceive().SignalGroup(Pid, ProcessSignal.Kill);
+            time.Advance(TimeSpan.FromTicks(1));
+            await running.WaitAsync(HangGuard.Bound);
+            await Assert.That(GroupSignals(signals)).IsEquivalentTo(
+                [ProcessSignal.Terminate, ProcessSignal.Kill], CollectionOrdering.Matching);
+            await Assert.That(await ChildExitObservation.WithinAsync(watch, ExitObservationGuard)).IsEqualTo(Killed);
+        }
+        finally
+        {
+            exits.Exit(Killed);
+            _ = await ChildExitObservation.WithinAsync(watch, ExitObservationGuard);
+            time.Advance(LongGrace + PosixServerLadder.ForcedExitTimeout);
+            await running.WaitAsync(HangGuard.Bound);
+        }
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Probe_Only_For_The_Grace_Remaining_On_The_Supplied_Clock()
+    {
+        var time = new ManualTimeProvider();
+        using var exits = new ScriptedChildExit();
+        var signals = Signals(exits);
+        var watch = PosixChildExitWatch.Start(Pid, exits, signals, childrenReapedAutomatically: false);
+        exits.Exit(new ChildExitStatus { ExitCode = 3 });
+        _ = await ChildExitObservation.WithinAsync(watch, ExitObservationGuard);
+        var groupAlive = true;
+        var firstProbe = true;
+        _ = signals.ProbeGroup(Pid).Returns(_ =>
+        {
+            if (firstProbe)
+            {
+                firstProbe = false;
+                time.Advance(LongGrace - TimeSpan.FromMilliseconds(1));
+            }
+
+            return groupAlive ? SignalDelivery.Delivered : SignalDelivery.NoSuchTarget;
+        });
+        var ladder = new PosixServerLadder(Pid, watch, signals, PosixServerLadder.ForcedExitTimeout, time);
+        var running = ladder.RunAsync(LongGrace);
+        try
+        {
+            await time.WaitForArmedAsync(TimeSpan.FromMilliseconds(1), HangGuard.Bound);
+            await Assert.That(time.ArmedIn(TimeSpan.FromMilliseconds(1))).IsEqualTo(1);
+            _ = signals.DidNotReceive().SignalGroup(Pid, ProcessSignal.Kill);
+            time.Advance(TimeSpan.FromMilliseconds(1));
+            await running.WaitAsync(HangGuard.Bound);
+            await Assert.That(GroupSignals(signals)).IsEquivalentTo(
+                [ProcessSignal.Terminate, ProcessSignal.Kill], CollectionOrdering.Matching);
+        }
+        finally
+        {
+            groupAlive = false;
+            time.Advance(LongGrace);
+            await running.WaitAsync(HangGuard.Bound);
+        }
+    }
+
+    [Test]
+    public async Task RunAsync_Should_Bound_The_Forced_Root_Wait_On_The_Supplied_Clock()
+    {
+        var time = new ManualTimeProvider();
+        using var exits = new ScriptedChildExit();
+        var signals = Substitute.For<IProcessGroupSignal>();
+        _ = signals.SignalGroup(Pid, Arg.Any<ProcessSignal>()).Returns(SignalDelivery.Delivered);
+        var watch = PosixChildExitWatch.Start(Pid, exits, signals, childrenReapedAutomatically: false);
+        var ladder = new PosixServerLadder(Pid, watch, signals, PosixServerLadder.ForcedExitTimeout, time);
+        var running = ladder.RunAsync(TimeSpan.Zero);
+        try
+        {
+            await time.WaitForArmedAsync(PosixServerLadder.ForcedExitTimeout, HangGuard.Bound);
+            await Assert.That(time.ArmedIn(PosixServerLadder.ForcedExitTimeout)).IsEqualTo(1);
+            time.Advance(PosixServerLadder.ForcedExitTimeout - TimeSpan.FromMilliseconds(1));
+            await Assert.That(running.IsCompleted).IsFalse();
+            time.Advance(TimeSpan.FromMilliseconds(1));
+            await running.WaitAsync(HangGuard.Bound);
+            await Assert.That(watch.Exited.IsCompleted).IsFalse();
+            await Assert.That(GroupSignals(signals)).IsEquivalentTo(
+                [ProcessSignal.Terminate, ProcessSignal.Kill], CollectionOrdering.Matching);
+        }
+        finally
+        {
+            exits.Exit(Killed);
+            _ = await ChildExitObservation.WithinAsync(watch, ExitObservationGuard);
+            await running.WaitAsync(HangGuard.Bound);
+        }
+    }
+
+    private static IEnumerable<ProcessSignal> GroupSignals(IProcessGroupSignal signals) =>
+        signals.ReceivedCalls().Where(call => call.GetMethodInfo().Name == nameof(IProcessGroupSignal.SignalGroup))
+            .Select(call => call.GetArguments().OfType<ProcessSignal>().Single());
+
     /// <summary>
     /// A substitute whose group and pid signals reach the scripted root: <c>SIGTERM</c> ends it with
     /// signal 15 unless <paramref name="exitOnTerminate"/> is false, and <c>SIGKILL</c> ends it with
@@ -268,6 +374,6 @@ public sealed class PosixServerLadderTests
     private static PosixServerLadder Ladder(ScriptedChildExit exits, IProcessGroupSignal signals, out PosixChildExitWatch watch)
     {
         watch = PosixChildExitWatch.Start(Pid, exits, signals, childrenReapedAutomatically: false);
-        return new PosixServerLadder(Pid, watch, signals, PosixServerLadder.ForcedExitTimeout);
+        return new PosixServerLadder(Pid, watch, signals, PosixServerLadder.ForcedExitTimeout, TimeProvider.System);
     }
 }

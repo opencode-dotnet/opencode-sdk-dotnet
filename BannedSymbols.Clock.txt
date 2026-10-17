@@ -1,0 +1,14 @@
+M:System.Threading.Tasks.Task.Delay(System.TimeSpan);Use the injected TimeProvider overload
+M:System.Threading.Tasks.Task.Delay(System.TimeSpan,System.Threading.CancellationToken);Use the injected TimeProvider overload
+M:System.Threading.Tasks.Task.Delay(System.Int32);Use the injected TimeProvider overload
+M:System.Threading.Tasks.Task.Delay(System.Int32,System.Threading.CancellationToken);Use the injected TimeProvider overload
+M:System.Threading.CancellationTokenSource.#ctor(System.TimeSpan);Use a cancellation deadline on the injected TimeProvider
+M:System.Threading.CancellationTokenSource.#ctor(System.Int32);Use a cancellation deadline on the injected TimeProvider
+M:System.Threading.CancellationTokenSource.CancelAfter(System.TimeSpan);Use a cancellation deadline on the injected TimeProvider
+M:System.Threading.CancellationTokenSource.CancelAfter(System.Int32);Use a cancellation deadline on the injected TimeProvider
+T:System.Diagnostics.Stopwatch;Use GetTimestamp and GetElapsedTime on the injected TimeProvider
+P:System.DateTime.UtcNow;Use the injected TimeProvider (GetUtcNow or GetTimestamp)
+P:System.DateTimeOffset.UtcNow;Use the injected TimeProvider (GetUtcNow or GetTimestamp)
+P:System.Environment.TickCount;Use the injected TimeProvider (GetUtcNow or GetTimestamp)
+P:System.Environment.TickCount64;Use the injected TimeProvider (GetUtcNow or GetTimestamp)
+P:System.TimeProvider.System;Choose the clock only at a counted composition root and inject it elsewhere

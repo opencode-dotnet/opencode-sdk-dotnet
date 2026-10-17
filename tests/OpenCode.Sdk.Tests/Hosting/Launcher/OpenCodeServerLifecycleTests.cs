@@ -635,7 +635,7 @@ public sealed class OpenCodeServerLifecycleTests
             holderRunningAtClose = ProcessObservation.IsRunning(holderId.Value);
             var clock = Stopwatch.StartNew();
             disposal = server.DisposeAsync().AsTask();
-            closed = await BoundedWait.CompletesWithinAsync(disposal, CloseHangGuard);
+            closed = await BoundedWait.CompletesWithinAsync(disposal, CloseHangGuard, TimeProvider.System);
             elapsed = clock.Elapsed;
             if (closed)
             {
@@ -667,7 +667,7 @@ public sealed class OpenCodeServerLifecycleTests
             else if (disposal is { IsCompleted: false })
             {
                 // A close still waiting for end-of-stream gets it from the holder's end and finishes.
-                _ = await BoundedWait.CompletesWithinAsync(disposal, CloseHangGuard);
+                _ = await BoundedWait.CompletesWithinAsync(disposal, CloseHangGuard, TimeProvider.System);
             }
         }
 

@@ -31,7 +31,7 @@ internal sealed record LauncherSeams
     /// <summary>Gets the POSIX exit status.</summary>
     public required IChildExitStatus Exits { get; init; }
 
-    /// <summary>Gets the clock for the readiness bound and the server's early-end drain.</summary>
+    /// <summary>Gets the clock for readiness, drain, both disposal ladders, background reap, reader release, and tree-kill bounds.</summary>
     public required TimeProvider Time { get; init; }
 
     /// <summary>Gets an optional token-bound readiness wait substitution; null uses the ordinary task wait.</summary>
@@ -49,16 +49,19 @@ internal sealed record LauncherSeams
     {
         var windowsSpawn = new WindowsSpawn();
         var windowsExits = new WindowsChildExit();
+#pragma warning disable RS0030 // The standalone launcher composition root chooses the system clock; child bounds receive this provider.
+        var time = TimeProvider.System;
+#pragma warning restore RS0030
         return new LauncherSeams
         {
             WindowsSpawn = windowsSpawn,
             Job = KillOnCloseJob.ForCurrentProcess,
             WindowsExits = windowsExits,
-            TreeKill = new TaskkillTreeKill(windowsSpawn, windowsExits),
+            TreeKill = new TaskkillTreeKill(windowsSpawn, windowsExits, time),
             Spawn = new PosixSpawn(),
             Signals = new ProcessGroupSignal(),
             Exits = new ChildExitStatusReader(),
-            Time = TimeProvider.System,
+            Time = time,
             HostEnvironment = SnapshotEnvironment(),
         };
     }

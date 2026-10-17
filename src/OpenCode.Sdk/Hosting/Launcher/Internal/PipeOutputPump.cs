@@ -13,7 +13,7 @@ internal sealed class PipeOutputPump
     /// covers a runtime whose pipe read neither the token nor the closed stream reaches, and a
     /// release never hangs its caller.
     /// </summary>
-    private static readonly TimeSpan ReleaseBound = TimeSpan.FromSeconds(5);
+    internal static readonly TimeSpan ReleaseBound = TimeSpan.FromSeconds(5);
 
     private readonly PipeLineReader _standardOutput;
     private readonly PipeLineReader? _standardError;
@@ -65,8 +65,9 @@ internal sealed class PipeOutputPump
     /// Ends every reader, whether or not its pipe reached end-of-stream, and closes the pipes.
     /// After it completes no reader is pending.
     /// </summary>
+    /// <param name="time">The owned child's clock for the release bound.</param>
     /// <returns>A task that completes once the readers are released.</returns>
-    public async Task ReleaseAsync()
+    public async Task ReleaseAsync(TimeProvider time)
     {
         await _standardOutput.DisposeAsync().ConfigureAwait(false);
         if (_standardError is not null)
@@ -74,7 +75,7 @@ internal sealed class PipeOutputPump
             await _standardError.DisposeAsync().ConfigureAwait(false);
         }
 
-        _ = await BoundedWait.CompletesWithinAsync(ReadersEnded, ReleaseBound).ConfigureAwait(false);
+        _ = await BoundedWait.CompletesWithinAsync(ReadersEnded, ReleaseBound, time).ConfigureAwait(false);
     }
 
     /// <summary>Whether an ended reader reached end-of-stream; one whose line handler failed did not.</summary>
