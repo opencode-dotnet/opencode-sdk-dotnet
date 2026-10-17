@@ -1,4 +1,5 @@
 using System.Reflection;
+using OpenCode.Sdk.Tests.Harness;
 using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Packaging;
@@ -11,6 +12,7 @@ namespace OpenCode.Sdk.Tools.Tests.Packaging;
 /// consumer meets both packages' warnings: each package states its own support, as the runtime's
 /// own packages do.
 /// </summary>
+[Category(TestCategories.Packaging)]
 [ClassDataSource<PackedConsumerFeed>(Shared = SharedType.PerTestSession)]
 public sealed class UnsupportedTargetFrameworkWarningTests(PackedConsumerFeed feed)
 {

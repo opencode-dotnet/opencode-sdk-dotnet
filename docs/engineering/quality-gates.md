@@ -91,6 +91,11 @@ dotnet test --project "$PWD/tests/OpenCode.Sdk.Tools.Tests/OpenCode.Sdk.Tools.Te
 dotnet test --project "$PWD/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj" --configuration Release --no-build -- --treenode-filter "/*/*/*/*[(Category!=ServiceElection)&(Category!=NativeAot)]"
 ```
 
+The `Packaging` category marks the Tools tests that pack the products and build packed consumers.
+They need the solution built first, which this check and every gate do, so they stay in the run
+above. A run over a bare test-project build, such as a dispatched task's verification, excludes
+both packing categories: `/*/*/*/*[(Category!=Packaging)&(Category!=NativeAot)]`.
+
 The full gate runs locally only when a handoff asks for it or a CI failure needs reproducing. Any
 local test run, check or gate, runs on an otherwise idle machine: several real-process tests have
 wall-clock bounds, and a concurrent build, package install or second gate on the same machine can
