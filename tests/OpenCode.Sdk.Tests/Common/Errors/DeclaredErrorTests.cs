@@ -6,8 +6,10 @@ using OpenCode.Sdk.Tests.Config;
 using OpenCode.Sdk.Tests.Credentials;
 using OpenCode.Sdk.Tests.Debug;
 using OpenCode.Sdk.Tests.Experimental;
+using OpenCode.Sdk.Tests.FileSystem;
 using OpenCode.Sdk.Tests.Forms;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Integrations;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.Tests.Worktrees;
 
@@ -23,6 +25,8 @@ public sealed class DeclaredErrorTests
         .. DebugDeclaredErrors.Rows(),
         .. ExperimentalDeclaredErrors.Rows(),
         .. FormsDeclaredErrors.Rows(),
+        .. FileSystemDeclaredErrors.Rows(),
+        .. IntegrationsDeclaredErrors.Rows(),
     ];
 
     [Test]
