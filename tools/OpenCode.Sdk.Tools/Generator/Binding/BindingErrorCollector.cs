@@ -8,12 +8,14 @@ internal sealed class BindingErrorCollector
 
     public int Count => _errors.Count;
 
-    public void Add(BindingErrorCategory category, string subject, string problem, BindingErrorKind kind = BindingErrorKind.Unspecified)
+    public BindingError Add(BindingErrorCategory category, string subject, string problem, BindingErrorKind kind = BindingErrorKind.Unspecified)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(subject);
         ArgumentException.ThrowIfNullOrWhiteSpace(problem);
 
-        _errors.Add(new BindingError(category, subject, problem) { Kind = kind });
+        var error = new BindingError(category, subject, problem) { Kind = kind };
+        _errors.Add(error);
+        return error;
     }
 
     public void ThrowIfAny()

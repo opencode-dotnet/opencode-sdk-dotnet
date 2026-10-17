@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// refinements of one primitive differ only in constraints this SDK does not enforce, so the
 /// union is that primitive — an open enum is the common case. An object-or-array pair is how
 /// Effect renders its object keyword, and neither branch says what the content is, so it
-/// is an object of unspecified content. Anything else stays a structural union and is refused.
+/// is carried losslessly as JsonElement. Anything else stays a structural union.
 /// </summary>
 internal static class UnstructuredUnionPolicy
 {
@@ -27,7 +27,7 @@ internal static class UnstructuredUnionPolicy
         return union.Branches.Count is 2
                && union.Branches.Count(static branch => branch is FreeFormObjectNode) is 1
                && union.Branches.Count(static branch => branch is ArrayNode { Item: UnrestrictedNode }) is 1
-            ? union.Branches.OfType<FreeFormObjectNode>().Single()
+            ? new UnrestrictedNode()
             : null;
     }
 

@@ -179,7 +179,7 @@ internal static class EnvelopeEmitter
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("status"))
                     .WithType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.IntKeyword))),
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("error"))
-                    .WithType(SyntaxFactory.NullableType(TypeSyntaxEmitter.EmitNamed("IOpenCodeError"))),
+                    .WithType(SyntaxFactory.NullableType(TypeSyntaxEmitter.EmitNamed(ErrorMarkerPolicy.InterfaceTypeName))),
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("rawBody"))
                     .WithType(SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)))),
             ])))

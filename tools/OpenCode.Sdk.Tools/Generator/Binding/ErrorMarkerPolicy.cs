@@ -1,4 +1,5 @@
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
+using OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
@@ -7,17 +8,24 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// binder, the per-status error map, and the emitted converter never spell it themselves: every
 /// typed error is tagged by a required literal <c>_tag</c>. A schema without one is refused by
 /// name, and a schema that carries a required literal <c>name</c> instead is refused as the
-/// <c>{name, data}</c> error dialect, which the generator does not admit. The same marker is
-/// spelled once more in <c>Ingestion/Projection/ErrorStyleClassifier</c>, which recognizes it
-/// from a schema's properties; the two must agree.
+/// <c>{name, data}</c> error dialect, which the generator does not admit.
 /// </summary>
 internal static class ErrorMarkerPolicy
 {
     /// <summary>The wire property every typed error carries its tag under.</summary>
-    public const string WireName = "_tag";
+    public const string WireName = ErrorStyleClassifier.WireName;
 
     /// <summary>The concept the error spine's union is named after; stream failure causes share the marker but not the concept.</summary>
     public const string ErrorConceptName = "OpenCodeError";
+
+    /// <summary>The C# property exposing the wire tag on every typed error.</summary>
+    public const string MarkerMemberName = "Tag";
+
+    /// <summary>The shared interface implemented by every admitted error variant.</summary>
+    public const string InterfaceTypeName = "I" + ErrorConceptName;
+
+    /// <summary>The carrier preserving errors whose tags this pin does not declare.</summary>
+    public const string UnknownTypeName = "Unknown" + ErrorConceptName;
 
     private const string NameDialectWireName = "name";
 

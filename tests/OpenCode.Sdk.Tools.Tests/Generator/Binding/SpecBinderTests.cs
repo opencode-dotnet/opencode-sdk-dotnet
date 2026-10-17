@@ -11,6 +11,156 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 public sealed class SpecBinderTests
 {
+    private static readonly string[] ParentScenarioLeaves = ["First", "Second", "Other", "Another"];
+
+    [Test]
+    public async Task Bind_Should_Keep_The_Error_Union_Independent_Of_A_Component_With_The_Same_Key()
+    {
+        var document = await IngestAsync(UnionScenario(spec =>
+        {
+            AddTaggedError(spec, "OpenCodeError", "first");
+            AddTaggedError(spec, "SecondError", "second");
+            spec.WithSchema("Feed", schema => schema.AnyOf(first => first.Ref("OpenCodeError"), second => second.Ref("SecondError")));
+        }));
+        var plan = new BindingTestHost().Bind(document, Selection("health.get"), Curation(Groups("health", RootGroup()),
+            schemaNames: [SchemaName("OpenCodeError", "FirstError")]));
+        var errorUnion = plan.Unions.Single(union => union.Name == "IOpenCodeError");
+
+        await Assert.That(errorUnion.BaseTypeName).IsNull();
+        await Assert.That(errorUnion.FixedMarker).IsNull();
+        await Assert.That(errorUnion.Variants.Select(variant => variant.TypeName))
+            .IsEquivalentTo(["FirstError", "SecondError"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(plan.Models.OfType<ObjectModelPlan>().Single(model => model.Name == "FirstError").ImplementedUnionNames)
+            .IsEquivalentTo(["IFeed", "IOpenCodeError"], StringComparer.Ordinal, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Bind_Should_Refuse_A_Stream_Cause_Union_With_A_Union_Parent_By_Name()
+    {
+        var nested = await IngestAsync(NestedParentScenario("Cause", twoParents: false));
+        var stream = await IngestAsync(new StreamOperationScenario());
+        var operation = stream.Operations.Single();
+        var document = nested with
+        {
+            Schemas = nested.Schemas.Concat(stream.Schemas).ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal),
+            Operations = [.. nested.Operations, operation with
+            {
+                Responses = [.. operation.Responses.Select(response => response.EffectStream is null ? response : response with
+                {
+                    EffectStream = response.EffectStream with { CauseSchema = new ArrayNode { Item = new RefNode { Target = "Cause" } } },
+                })],
+            }],
+        };
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document,
+            Selection("health.get", StreamOperationScenario.OperationId),
+            Curation(new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
+            {
+                ["health"] = RootGroup(),
+                ["example"] = RootGroup(),
+            })));
+
+        await Assert.That(exception.Errors)
+            .IsEquivalentTo([new BindingError(BindingErrorCategory.Schema, "Cause",
+                "nested union has multiple parents 'IOuterA' and 'IOpenCodeStreamFailureCause'")], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Bind_Should_Refuse_A_Nested_Union_With_Two_Parents_By_Name()
+    {
+        var document = await IngestAsync(NestedParentScenario("Inner", twoParents: true));
+        var exception = RefuseHealth(document);
+
+        await Assert.That(exception.Errors)
+            .IsEquivalentTo([new BindingError(BindingErrorCategory.Schema, "Inner",
+                "nested union has multiple parents 'IOuterA' and 'IOuterB'")], CollectionOrdering.Matching);
+    }
+
+    private static SpecScenario NestedParentScenario(string nestedKey, bool twoParents) => UnionScenario(spec =>
+    {
+        foreach (var name in ParentScenarioLeaves)
+        {
+            spec.WithSchema(name, schema => schema.Type("object")
+                .Property("type", property => property.Type("string").Enum(name), required: true));
+        }
+
+        spec.WithSchema(nestedKey, schema => schema.AnyOf(first => first.Ref("First"), second => second.Ref("Second")))
+            .WithSchema("OuterA", schema => schema.AnyOf(inner => inner.Ref(nestedKey), other => other.Ref("Other")))
+            .WithSchema("Feed", schema => schema.Type("object")
+                .Property("a", property => property.Ref("OuterA"), required: true));
+        if (twoParents)
+        {
+            spec.WithSchema("OuterB", schema => schema.AnyOf(inner => inner.Ref(nestedKey), other => other.Ref("Another")))
+                .WithSchema("Feed", schema => schema.Type("object")
+                    .Property("a", property => property.Ref("OuterA"), required: true)
+                    .Property("b", property => property.Ref("OuterB"), required: true));
+        }
+    });
+
+    [Test]
+    public async Task Bind_Should_Preserve_Marked_And_Error_Variant_Order()
+    {
+        var document = await IngestAsync(UnionScenario(spec =>
+        {
+            AddTaggedError(spec, "AError", "middle");
+            AddTaggedError(spec, "BError", "zebra");
+            AddTaggedError(spec, "CError", "apple");
+            spec.WithSchema("Feed", schema => schema.AnyOf(first => first.Ref("BError"), middle => middle.Ref("AError"), last => last.Ref("CError")));
+        }));
+        var plan = new BindingTestHost().Bind(document, Selection("health.get"), Curation(Groups("health", RootGroup()),
+            schemaNames: [SchemaName("AError", "ZuluError"), SchemaName("BError", "AlphaError"), SchemaName("CError", "MikeError")]));
+
+        await Assert.That(plan.Unions.Single(union => union.Name == "IFeed").Variants.Select(variant => variant.TypeName))
+            .IsEquivalentTo(["AlphaError", "ZuluError", "MikeError"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(plan.Unions.Single(union => union.Name == "IFeed").Variants.Select(variant => variant.Tag))
+            .IsEquivalentTo(["zebra", "middle", "apple"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(plan.Unions.Single(union => union.Name == "IOpenCodeError").Variants.Select(variant => variant.TypeName))
+            .IsEquivalentTo(["AlphaError", "MikeError", "ZuluError"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(plan.Unions.Single(union => union.Name == "IOpenCodeError").Variants.Select(variant => variant.Tag))
+            .IsEquivalentTo(["zebra", "apple", "middle"], StringComparer.Ordinal, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Bind_Should_Retain_Per_Schema_Error_Variants_And_Refusals()
+    {
+        var document = await IngestAsync(UnionScenario(spec =>
+        {
+            AddTaggedError(spec, "AAdmitted", "admitted");
+            AddTaggedError(spec, "BUnnamed", "unnamed");
+            AddTaggedError(spec, "CBadMarker", "bad");
+            spec.WithSchema("Feed", schema => schema.Type("object")
+                .Property("first", property => property.Ref("AAdmitted"))
+                .Property("second", property => property.Ref("BUnnamed"))
+                .Property("third", property => property.Ref("CBadMarker")));
+        }));
+        var schemas = document.Schemas.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        // Exercise the error binder's refusal contract over owned IR, after projection.
+        schemas["CBadMarker"] = (ObjectNode)schemas["CBadMarker"] with { LiteralMarkers = [] };
+        document = document with { Schemas = schemas };
+        var errors = new BindingErrorCollector();
+        var reachable = new ReachableSchemaCollector().Collect(document, document.Operations, errors);
+        var names = new Dictionary<string, string>(StringComparer.Ordinal) { ["AAdmitted"] = "AdmittedError", ["CBadMarker"] = "BadMarkerError" };
+        var result = new ErrorUnionBinder(new SchemaBindingContext(document, reachable,
+            reachable.ResponseRootKeys.ToHashSet(StringComparer.Ordinal), reachable.StreamCauseKeys.ToHashSet(StringComparer.Ordinal), names,
+            new TypePlanBinder(schemas, names, errors), new SchemaInhabitationPolicy(schemas), errors)).Bind();
+        var expectedRefusals = new Dictionary<string, BindingError>(StringComparer.Ordinal)
+        {
+            ["BUnnamed"] = new(BindingErrorCategory.Naming, "BUnnamed", "error schema has no unique C# type name"),
+            ["CBadMarker"] = new(BindingErrorCategory.Schema, "CBadMarker", "a tagged error must declare exactly one required '_tag' literal"),
+        };
+
+        await Assert.That(result.Variants).IsEquivalentTo(new Dictionary<string, UnionVariantPlan>(StringComparer.Ordinal)
+        {
+            ["AAdmitted"] = new() { TypeName = "AdmittedError", Tag = "admitted", MarkerWireName = "_tag" },
+        }, CollectionOrdering.Matching);
+        await Assert.That(result.Refusals).IsEquivalentTo(expectedRefusals, CollectionOrdering.Matching);
+        await Assert.That(Assert.Throws<BindingException>(errors.ThrowIfAny).Errors)
+            .IsEquivalentTo(expectedRefusals.Values, CollectionOrdering.Matching);
+    }
+
+    private static void AddTaggedError(SpecDocumentBuilder spec, string key, string tag) => spec
+        .WithSchema(key, schema => schema.Type("object")
+            .Property("_tag", property => property.Type("string").Enum(tag), required: true));
+
     public static IEnumerable<object?[]> GroupRefusals() => GroupRefusalRows().Select(static row => new[] { row.fault, row.row, row.expected });
 
     private static IEnumerable<(string fault, object? row, BindingError[] expected)> GroupRefusalRows() =>
@@ -1520,7 +1670,7 @@ public sealed class SpecBinderTests
     }
 
     [Test]
-    public async Task Bind_Should_Read_An_Object_Or_Array_Union_As_An_Unspecified_Object()
+    public async Task Bind_Should_Read_An_Object_Or_Array_Union_As_JsonElement()
     {
         var document = await IngestAsync(SpecScenario.Define(spec => spec
             .WithSchema("ItemInfo", schema => schema
@@ -1542,7 +1692,12 @@ public sealed class SpecBinderTests
 
         var item = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "ItemInfo");
         var data = item.Properties.Single(static property => property.WireName == "payload").Type;
-        await Assert.That(data).IsTypeOf<DictionaryTypeReferencePlan>();
+        await Assert.That(data).IsEqualTo(new NamedTypeReferencePlan
+        {
+            Name = "JsonElement",
+            IsNullable = false,
+            JsonNullRepresentation = JsonNullRepresentation.InBand,
+        });
     }
 
     [Test]

@@ -9,4 +9,6 @@ internal sealed record SchemaBindingResult
     public required IReadOnlyList<HoistedInterfacePlan> HoistedInterfaces { get; init; }
 
     public required RegistryPlan Registry { get; init; }
+
+    public required ErrorUnionBindingResult ErrorUnion { get; init; }
 }
