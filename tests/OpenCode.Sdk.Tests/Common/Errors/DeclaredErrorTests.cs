@@ -1,11 +1,15 @@
 using System.Globalization;
-using System.Net;
 using System.Text;
 using System.Text.Json;
-using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Common.Support;
+using OpenCode.Sdk.Tests.Config;
+using OpenCode.Sdk.Tests.Credentials;
+using OpenCode.Sdk.Tests.Debug;
+using OpenCode.Sdk.Tests.Experimental;
+using OpenCode.Sdk.Tests.Forms;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
+using OpenCode.Sdk.Tests.Worktrees;
 
 namespace OpenCode.Sdk.Tests.Common.Errors;
 
@@ -13,20 +17,12 @@ public sealed class DeclaredErrorTests
 {
     public static IEnumerable<Func<DeclaredErrorCase>> EveryDoor() =>
     [
-        static () => new(
-            "worktree.create:400:InvalidRequestError",
-            new DeclaredErrorDoor(
-                nameof(WorktreesClient.CreateWorktreeAsync),
-                "worktree.create",
-                "post",
-                "/api/worktree",
-                static async (client, options) => await client.Worktrees.CreateWorktreeAsync(
-                    new WorktreeCreateRequest { ProjectId = "prj_1", Directory = "/repo/feature" }, options)),
-            HttpStatusCode.BadRequest,
-            WireBodyData.InvalidRequestError,
-            "InvalidRequestError",
-            typeof(InvalidRequestError),
-            "#/paths/~1api~1worktree/post/responses/400/content/application~1json/schema/anyOf/1"),
+        .. WorktreesDeclaredErrors.Rows(),
+        .. ConfigDeclaredErrors.Rows(),
+        .. CredentialsDeclaredErrors.Rows(),
+        .. DebugDeclaredErrors.Rows(),
+        .. ExperimentalDeclaredErrors.Rows(),
+        .. FormsDeclaredErrors.Rows(),
     ];
 
     [Test]
