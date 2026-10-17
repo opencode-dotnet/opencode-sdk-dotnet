@@ -126,8 +126,11 @@ It refuses a run filtered to tests that start no server too: every gate and CI l
 checkout, so an unprepared one is named before it costs a run.
 
 One exception is explicit: `OPENCODE_SDK_TESTS_BUN_MISMATCH=allow` lets a gate host whose only Bun
-is another version run on it. It is for a host the maintainer has named, never a default, and CI
-never sets it; `setup-pinned-server` installs and verifies the exact pin. Such a host departs from
+is another version run on it. The maintainer's rule is one Bun per machine, so a local gate host runs
+its one Bun with this switch until the pin's `packageManager` names that version, and its result is
+local evidence only. The switch is set per command, never as a default, and CI never sets it
+(`CiPinnedBunTests`): `setup-pinned-server` installs and verifies the exact pin, so CI is the
+exact-pin authority. Such a host departs from
 the pin twice: its install and its gate both run on its own Bun. The frozen lockfile keeps the
 installed dependency tree identical to the pin's; the Bun that runs the server is what differs. The
 variable allows only a different version: a missing Bun, checkout or install is still refused, and
@@ -242,7 +245,7 @@ and the rows in flight are among those listed but not recorded.
 The detector ignores using directives; a baseline entry that matches no clone fails the gate like a new clone does.
 
 The lint job runs `dotnet run --file tools/opencode-tool.cs -- verify-clones`: the pinned jscpd in
-`tools/jscpd/`, installed with the pinned Bun from its own lockfile, at a 50-token minimum over four
+`tools/jscpd/`, installed with the machine's Bun from its own lockfile, at a 50-token minimum over four
 scopes. Hand-written `src/`, `tools/` and `tests/` are gated against the committed baselines in
 `tools/jscpd/`: a clone a baseline does not hold fails the job, `tools/` also fails above 3%
 duplicated lines, and `tests/` above 6%. The tests ceiling is the measurement plus 0.25 points,
