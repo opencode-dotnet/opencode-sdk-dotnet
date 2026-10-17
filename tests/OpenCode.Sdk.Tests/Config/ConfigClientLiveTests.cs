@@ -40,61 +40,19 @@ public sealed class ConfigClientLiveTests(SimulatedDriveServerFixture server)
             " acceptable=" + Number(response.Shells.Count(static shell => shell.Acceptable)));
     }
 
-    [Test]
-    [Timeout(60_000)]
-    public async Task UpdateConfigAsync_Should_Persist_And_Clear_The_Shell(CancellationToken cancellationToken)
-    {
-        using var client = server.CreateClient();
-        var shells = await client.Config.GetShellsAsync(cancellationToken: cancellationToken);
-        var shell = shells.Shells.First(static candidate => candidate.Acceptable).Path;
-        var cleanup = new OwnedCleanup(TimeSpan.FromSeconds(10));
-        var cleared = false;
-        Exception? failure = null;
-        cleanup.Own("clear isolated shell config", async token =>
-        {
-            if (!cleared)
-            {
-                _ = await client.Experimental.UpdateConfigAsync(
-                    new ExperimentalConfigUpdateRequest { Shell = null, }, cancellationToken: token);
-            }
-        });
-        try
-        {
-            var set = await client.Experimental.UpdateConfigAsync(
-                new ExperimentalConfigUpdateRequest { Shell = shell, }, cancellationToken: cancellationToken);
-            await Assert.That(set.Status).IsEqualTo(204);
-            var jsonOptions = new JsonDocumentOptions
-            {
-                AllowTrailingCommas = true,
-                CommentHandling = JsonCommentHandling.Skip,
-            };
-            using var afterSet = JsonDocument.Parse(await server.ReadGlobalConfigAsync(cancellationToken), jsonOptions);
-            await Assert.That(afterSet.RootElement.GetProperty("shell").GetString()).IsEqualTo(shell);
-
-            var clear = await client.Experimental.UpdateConfigAsync(
-                new ExperimentalConfigUpdateRequest { Shell = null, }, cancellationToken: cancellationToken);
-            await Assert.That(clear.Status).IsEqualTo(204);
-            using var afterClear = JsonDocument.Parse(await server.ReadGlobalConfigAsync(cancellationToken), jsonOptions);
-            await Assert.That(afterClear.RootElement.TryGetProperty("shell", out _)).IsFalse();
-            cleared = true;
-        }
-        catch (Exception exception)
-        {
-            failure = exception;
-        }
-
-        await cleanup.CompleteAsync(failure);
-    }
-
     /// <summary>
-    /// <c>config.get</c> answers the location's loaded configuration, and <c>experimental.config.update</c>
-    /// writes the global file and only requests a reload (debounced, asynchronous) that publishes
-    /// <c>config.updated</c> once the loaded entries change. So the read-back waits for that event,
-    /// never for a clock, and reads again after each one until the write shows.
+    /// <c>experimental.config.update</c> writes the global file and only requests a reload
+    /// (debounced, asynchronous) that publishes <c>config.updated</c> once the loaded entries
+    /// change, and <c>config.get</c> answers the loaded configuration. So each write is checked in
+    /// the file at once, and its read-back waits for that event, never for a clock, reading again
+    /// after each one until the write shows. This is the only test that writes the shared server's
+    /// configuration, and it ends only once the loaded state is back at its start: a write that
+    /// returns the file to the loaded state inside the debounce publishes nothing, so a second
+    /// writer that left a reload pending would starve the next one's event.
     /// </summary>
     [Test]
     [Timeout(180_000)]
-    public async Task GetConfigAsync_Should_Read_Back_The_Shell_UpdateConfig_Wrote(CancellationToken cancellationToken)
+    public async Task UpdateConfigAsync_Should_Persist_The_Shell_GetConfigAsync_Reads_Back_And_Clear_It(CancellationToken cancellationToken)
     {
         using var client = server.CreateClient();
         var shells = await client.Config.GetShellsAsync(cancellationToken: cancellationToken);
@@ -120,11 +78,26 @@ public sealed class ConfigClientLiveTests(SimulatedDriveServerFixture server)
             var set = await client.Experimental.UpdateConfigAsync(
                 new ExperimentalConfigUpdateRequest { Shell = shell, }, cancellationToken: cancellationToken);
             await Assert.That(set.Status).IsEqualTo(204);
+            var jsonOptions = new JsonDocumentOptions
+            {
+                AllowTrailingCommas = true,
+                CommentHandling = JsonCommentHandling.Skip,
+            };
+            using (var afterSet = JsonDocument.Parse(await server.ReadGlobalConfigAsync(cancellationToken), jsonOptions))
+            {
+                await Assert.That(afterSet.RootElement.GetProperty("shell").GetString()).IsEqualTo(shell);
+            }
+
             var reloaded = await WaitForShellsAsync(client, probe, after: null, shells => shells.Contains(shell, StringComparer.Ordinal), "the written shell", cancellationToken);
 
             var clear = await client.Experimental.UpdateConfigAsync(
                 new ExperimentalConfigUpdateRequest { Shell = null, }, cancellationToken: cancellationToken);
             await Assert.That(clear.Status).IsEqualTo(204);
+            using (var afterClear = JsonDocument.Parse(await server.ReadGlobalConfigAsync(cancellationToken), jsonOptions))
+            {
+                await Assert.That(afterClear.RootElement.TryGetProperty("shell", out _)).IsFalse();
+            }
+
             _ = await WaitForShellsAsync(client, probe, reloaded, shells => !shells.Contains(shell, StringComparer.Ordinal), "the cleared shell", cancellationToken);
             cleared = true;
         }
