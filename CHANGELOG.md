@@ -9,6 +9,20 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+## [0.9.0-preview.12] - 2026-10-17
+
+**Streams and automatic traversals take per-call options, and the public surface sheds its last
+loose names before 1.0.** `SubscribeAsync`, `ReadLogAsync` (formerly `GetLogAsync`),
+`EnumerateMessagesAsync` and `EnumerateSessionsAsync` accept `OpenCodeRequestOptions`, so a
+per-call `Location` reaches every connection attempt and page request, and
+`EventStreamIdleTimeout` sets the event bus's idle window. Query parameters take the types the
+server reads (`bool?`, `int?`, `long?`), generated enums work in `switch` and patterns through
+their `Values` constants, assistant content has one union type, PTY sizes share `PtySize`, and
+`OpenCodeRoutes` is internal. Cancellation reports your own token at every public async door,
+disposing the root client interrupts calls and streams with `ObjectDisposedException`, readiness
+timeouts keep an outcome recorded before them, IntelliSense states only what the API declares, and
+on .NET Framework and netstandard2.0 response bodies up to 16 MiB are pooled.
+
 ### 💥 Breaking changes
 
 - **Streams and automatic cursor traversals take per-call options before cancellation.**
@@ -1683,6 +1697,7 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[0.9.0-preview.12]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.12
 [0.9.0-preview.11]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.11
 [0.9.0-preview.10]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.10
 [0.9.0-preview.9]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.9
