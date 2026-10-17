@@ -180,7 +180,7 @@ internal static class StreamAdapterEmitter
 
         return SyntaxFactory
             .MethodDeclaration(
-                SyntaxFactory.NullableType(TypeSyntaxEmitter.EmitNamed("IOpenCodeError")),
+                SyntaxFactory.NullableType(TypeSyntaxEmitter.EmitNamed(ErrorMarkerPolicy.InterfaceTypeName)),
                 "ReadError")
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(

@@ -9,6 +9,21 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class UnionMemberHoistBinderTests
 {
     [Test]
+    public async Task Bind_Should_Keep_The_First_Carrier_Name_In_Depth_Then_Ordinal_Union_Order()
+    {
+        var plan = Hoist(
+            [Union("IBeta", Arm("CreatedEvent"), Arm("DeletedEvent")) with { BaseTypeName = "IZulu" },
+                Union("IAlpha", Arm("CreatedEvent"), Arm("DeletedEvent")) with { BaseTypeName = "IZulu" },
+                Union("IZulu", Arm("CreatedEvent"), Arm("DeletedEvent"))],
+            [Variant("CreatedEvent", "created", Property("durable", Named("CreatedEventDurable"), isRequired: true)),
+                Variant("DeletedEvent", "deleted", Property("durable", Named("DeletedEventDurable"), isRequired: true)),
+                Envelope("CreatedEventDurable", "1"), Envelope("DeletedEventDurable", "2")]);
+
+        await Assert.That(plan.Interfaces.Select(carrier => carrier.Name))
+            .IsEquivalentTo(["IZuluDurable"], StringComparer.Ordinal, CollectionOrdering.Matching);
+    }
+
+    [Test]
     [Arguments(null, "curation is null")]
     [Arguments("Owner", "curation names no owner")]
     [Arguments("Property", "curation names no property")]

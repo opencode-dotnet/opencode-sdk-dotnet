@@ -115,7 +115,7 @@ internal sealed class SchemaNameResolver
             {
                 if (!document.Schemas.TryGetValue(target, out var branchSchema)
                     || branchSchema is not ObjectNode objectNode
-                    || objectNode.LiteralMarkers.FirstOrDefault(static marker => marker.PropertyName is "_tag") is not { } marker)
+                    || objectNode.LiteralMarkers.FirstOrDefault(static marker => marker.PropertyName is ErrorMarkerPolicy.WireName) is not { } marker)
                 {
                     continue;
                 }

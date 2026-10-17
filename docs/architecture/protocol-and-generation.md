@@ -281,6 +281,10 @@ member makes its object branch uninhabitable. Tagged unions preserve such a bran
 impossible tag in their bound plan, emit no dead public variant for it, and refuse that tag during
 dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).
 
+An unmarked union of a free-form object and an array of unrestricted values binds to
+`JsonElement`, so both the object and the array that Effect's object keyword admits remain
+materializable.
+
 ## Version-skew tolerance
 
 - Every tagged union deserializes an unrecognized discriminator into that union's explicit unknown

@@ -1,11 +1,73 @@
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
+using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
 public sealed class ModelEmitterTests
 {
+    [Test]
+    [Arguments(false, "JsonElement")]
+    [Arguments(true, "FeedPayload")]
+    public async Task Emit_Should_Use_JsonElement_For_An_Object_Or_Array_Union(bool typed, string expectedType)
+    {
+        var document = await BindingTestHost.IngestAsync(UnionScenario(typed ? ArrangeTypedObjectOrArray : ArrangeUnrestrictedObjectOrArray));
+        var plan = new BindingTestHost().Bind(document, Selection("health.get"), Curation(Groups("health", RootGroup())));
+        var payload = plan.Models.OfType<ObjectModelPlan>().Single(model => model.Name == "Feed").Properties.Single();
+        var root = await CSharpSyntaxTree.ParseText(EmitterSnapshot.Create(ModelEmitter.Emit(plan))).GetRootAsync();
+        var property = root.DescendantNodes().OfType<RecordDeclarationSyntax>().Single(record => record.Identifier.ValueText == "Feed")
+            .Members.OfType<PropertyDeclarationSyntax>().Single(member => member.Identifier.ValueText == "Payload");
+
+        await Assert.That(((NamedTypeReferencePlan)payload.Type).Name).IsEqualTo(expectedType);
+        await Assert.That(property.Type.ToString()).IsEqualTo(expectedType);
+        await Assert.That(plan.Models.OfType<StructuralUnionModelPlan>().Select(model => model.Name))
+            .IsEquivalentTo(typed ? ["FeedPayload"] : [], StringComparer.Ordinal, CollectionOrdering.Matching);
+    }
+
+    private static void ArrangeTypedObjectOrArray(SpecDocumentBuilder spec) => spec
+        .WithSchema("Item", schema => schema.Type("object")
+            .Property("id", property => property.Type("string"), required: true))
+        .WithSchema("Feed", schema => schema.Type("object")
+            .Property("payload", property => property.AnyOf(
+                branch => branch.Ref("Item"), branch => branch.Type("array").Items(item => item.Ref("Item"))), required: true));
+
+    private static void ArrangeUnrestrictedObjectOrArray(SpecDocumentBuilder spec) => spec
+        .WithSchema("Feed", schema => schema.Type("object")
+            .Property("payload", property => property.AnyOf(
+                branch => branch.Type("object"), branch => branch.Type("array")), required: true));
+
+    [Test]
+    public async Task Emit_Should_Preserve_Binding_Union_Membership_Order_In_Record_Base_Lists()
+    {
+        var document = await BindingTestHost.IngestAsync(UnionScenario(spec => spec
+            .WithSchema("SharedError", schema => schema.Type("object")
+                .Property("_tag", property => property.Type("string").Enum("shared"), required: true))
+            .WithSchema("Other", schema => schema.Type("object")
+                .Property("_tag", property => property.Type("string").Enum("other"), required: true))
+            .WithSchema("AOuter", schema => schema.AnyOf(branch => branch.Ref("SharedError"), branch => branch.Ref("Other")))
+            .WithSchema("ZOuter", schema => schema.OneOf(branch => branch.Ref("SharedError"), branch => branch.Ref("Other")))
+            .WithSchema("Feed", schema => schema.Type("object")
+                .Property("first", property => property.Ref("AOuter"), required: true)
+                .Property("last", property => property.Ref("ZOuter"), required: true))));
+        var plan = new BindingTestHost().Bind(document, Selection("health.get"),
+            Curation(Groups("health", RootGroup()), schemaNames: [SchemaName("AOuter", "IZulu"), SchemaName("ZOuter", "IAlpha")]));
+        var model = plan.Models.OfType<ObjectModelPlan>().Single(model => model.Name == "SharedError");
+        var source = EmitterSnapshot.Create(ModelEmitter.Emit(plan));
+        var root = await CSharpSyntaxTree.ParseText(source).GetRootAsync();
+        var record = root.DescendantNodes().OfType<RecordDeclarationSyntax>()
+            .Single(record => record.Identifier.ValueText == "SharedError");
+
+        await Assert.That(record.BaseList!.Types.Select(type => type.Type.ToString()))
+            .IsEquivalentTo(["IZulu", "IAlpha", "IOpenCodeError"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(model.ImplementedUnionNames)
+            .IsEquivalentTo(["IZulu", "IAlpha", "IOpenCodeError"], StringComparer.Ordinal, CollectionOrdering.Matching);
+    }
+
     [Test]
     public async Task Emit_Should_Choose_The_Exact_First_Word_Article()
     {

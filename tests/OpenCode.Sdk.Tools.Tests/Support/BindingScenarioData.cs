@@ -6,6 +6,12 @@ namespace OpenCode.Sdk.Tools.Tests.Support;
 
 internal static class BindingScenarioData
 {
+    public static SpecScenario UnionScenario(Action<SpecDocumentBuilder> arrange) => SpecScenario.Define(spec =>
+    {
+        arrange(spec);
+        spec.WithOperation("health.get", configure: operation => operation.Response(200, "application/json", schema => schema.Ref("Feed")));
+    });
+
     public static async Task<BindingException> BindRefusalsAsync(SpecScenario scenario, GenerationCuration curation, params string[] operations)
     {
         var document = await BindingTestHost.IngestAsync(scenario);
