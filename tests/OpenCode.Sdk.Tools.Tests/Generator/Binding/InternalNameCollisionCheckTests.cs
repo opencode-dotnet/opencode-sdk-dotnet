@@ -114,7 +114,10 @@ public sealed class InternalNameCollisionCheckTests
             Operations = [ListOperation(names), StreamOperation(names)],
         };
 
-        InternalNameCollisionCheck.Check(candidates, [client], errors);
+        var inventory = GeneratedTypeNameInventory.Create(candidates, [client],
+            [new GeneratedTypeNameClaim(names.Hoisted, names.Union, GeneratedTypeNameInventory.ClaimRole.Hoisted, "data")],
+            new Dictionary<string, string>(StringComparer.Ordinal));
+        InternalNameCollisionCheck.Check(inventory, errors);
         return errors;
     }
 

@@ -10,6 +10,227 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 public sealed class OperationPlanBinderTests
 {
+    private static readonly string[] ClaimOrderModelNames = ["WidgetsClient", "WidgetListResponse", "WidgetStreamAdapter", "WidgetListRequest"];
+
+    [Test]
+    [Arguments("kind", "ShapeKind")]
+    [Arguments("unknown", "UnknownEvent")]
+    [Arguments("adapter", "WidgetListResponseAdapter")]
+    [Arguments("model", "SharedModel")]
+    public async Task CheckTypeNameCollisions_Should_Refuse_A_Model_Against_Another_Generated_Declaration(string declaration, string name)
+    {
+        var document = await BindingTestHost.IngestAsync(WidgetListScenario(static operation => operation.WithoutResponse(204)));
+        var clients = declaration == "adapter" ? BindWidgets(document).Clients : [];
+        ModelPlan[] models = [Support.OwnershipPlanData.Model(name)];
+        if (declaration == "kind")
+        {
+            models = [Support.OwnershipPlanData.StructuralUnion("Shape", name), .. models];
+        }
+        else if (declaration == "model")
+        {
+            models = [.. models, Support.OwnershipPlanData.Model(name)];
+        }
+        var candidates = new OwnershipCandidates
+        {
+            Models = models,
+            Unions = declaration == "unknown" ? [Support.OwnershipPlanData.Union("Event")] : [],
+            HoistedInterfaces = [],
+        };
+        await Assert.That(NameCollisions(candidates, clients)).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Naming, name, $"type name '{name}' collides with another generated type"),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Bind_Should_Preserve_The_Mixed_Request_Wall_After_A_Query_Facet_Refuses()
+    {
+        var document = await BindingTestHost.IngestAsync(MixedRequestScenario(static operation =>
+            operation.Parameter("broken", "query", static schema => schema.Type("integer"))));
+        var exception = Assert.Throws<BindingException>(() => BindWidgets(document, "widget.create", strings: ["search"]));
+
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Operation, "widget.create", "query parameter 'broken' has an unsupported schema shape"),
+            new BindingError(BindingErrorCategory.Operation, "widget.create", "operations mixing a request body and query parameters are supported only for the location selector"),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Bind_Should_Preserve_Enumeration_Naming_After_A_Query_Facet_Refuses()
+    {
+        var document = await BindingTestHost.IngestAsync(CursorListScenario(configure: static operation =>
+            CursorQuery(operation).Parameter("broken", "query", static schema => schema.Type("integer"))));
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("widget.list"),
+            Curation(Groups("widget", ClientGroup("Widgets", null, null)),
+                operationNames: [OperationName("widget.list", "BrowseWidgetsAsync")],
+                queryParameterTypes: [QueryParameterType("widget.list", "limit", "int")],
+                stringQueryParameters: [StringQueryParameter("widget.list", "cursor")])));
+
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Operation, "widget.list", "query parameter 'broken' has an unsupported schema shape"),
+            new BindingError(BindingErrorCategory.Naming, "widget.list", "cursor-list method 'BrowseWidgetsAsync' must be an asynchronous List method before its enumeration name can be derived"),
+        ], CollectionOrdering.Matching);
+    }
+
+    private static OperationBuilder CursorQuery(OperationBuilder operation) => operation
+        .Parameter("limit", "query", QueryScenarioData.NullableString)
+        .Parameter("order", "query", QueryScenarioData.NullableOrderEnum)
+        .Parameter("cursor", "query", QueryScenarioData.NullableString);
+
+    [Test]
+    public async Task CheckTypeNameCollisions_Should_Keep_An_Alias_Name_In_The_Schema_Claim_Phase()
+    {
+        var candidates = new OwnershipCandidates { Models = [], Unions = [], HoistedInterfaces = [] };
+        var names = new Dictionary<string, string>(StringComparer.Ordinal) { ["Alias"] = "ListCursor" };
+        await Assert.That(NameCollisions(candidates, [], names)).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Naming, "Alias", "model type name 'ListCursor' collides with the hand-written spine type 'ListCursor'"),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task CheckTypeNameCollisions_Should_Refuse_Two_Derived_Declarations_With_One_Name()
+    {
+        var candidates = new OwnershipCandidates
+        {
+            Models = [Support.OwnershipPlanData.StructuralUnion("Shape", "SharedKind")],
+            Unions = [Support.OwnershipPlanData.Union("Event") with { UnknownTypeName = "SharedKind" }],
+            HoistedInterfaces = [],
+        };
+        await Assert.That(NameCollisions(candidates, [],
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["Shape"] = "Shape", ["Event"] = "IEvent" })).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Naming, "IEvent", "type name 'SharedKind' collides with another generated type"),
+        ], CollectionOrdering.Matching);
+    }
+
+    private static IReadOnlyList<BindingError> NameCollisions(OwnershipCandidates candidates, IReadOnlyList<ClientPlan> clients,
+        IReadOnlyDictionary<string, string>? schemaNames = null)
+    {
+        var inventory = GeneratedTypeNameInventory.Create(candidates, clients, [], schemaNames ?? new Dictionary<string, string>(StringComparer.Ordinal));
+        var errors = new BindingErrorCollector();
+        new OperationPlanBinder().CheckTypeNameCollisions(inventory, clients, errors);
+        return errors.Snapshot();
+    }
+
+    [Test]
+    public async Task Bind_Should_Preserve_Type_Name_Claim_Order()
+    {
+        var document = await BindingTestHost.IngestAsync(WidgetListScenario(static operation => operation
+            .Parameter("count", "query", static schema => schema.Type("string").Enum("true", "false"))));
+        var plan = BindWidgets(document);
+        var client = plan.Clients.Single(static client => client.Role == ClientRole.Collection);
+        var first = client.Operations.Single();
+        var second = first with { OperationId = "widget.list.get" };
+        var stream = first with
+        {
+            OperationId = "widget.watch",
+            Envelope = null,
+            QueryRequest = null,
+            Stream = new StreamPlan { AdapterTypeName = "WidgetStreamAdapter", PayloadTypeName = "WidgetInfo", FailureEventName = "error", CauseTypeName = "WidgetCause[]" }
+        };
+        var clients = new[] { client with { Operations = [stream, second, first] } };
+        var candidates = new OwnershipCandidates
+        {
+            Models = [.. ClaimOrderModelNames
+            .Select(static name => new ObjectModelPlan { Name = name, Namespace = GeneratedNamespace.Models, Properties = [] })],
+            Unions = [],
+            HoistedInterfaces = []
+        };
+        var errors = new BindingErrorCollector();
+        new OperationPlanBinder().CheckTypeNameCollisions(GeneratedTypeNameInventory.Create(candidates, clients, [], new Dictionary<string, string>(StringComparer.Ordinal)), clients, errors);
+        await Assert.That(errors.Snapshot()).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Naming, "WidgetsClient", "client type name 'WidgetsClient' collides with another generated type"),
+            new BindingError(BindingErrorCategory.Naming, "widget.list", "multiple operations map to response type 'WidgetListResponse'"),
+            new BindingError(BindingErrorCategory.Naming, "widget.list.get", "multiple operations map to response type 'WidgetListResponse'"),
+            new BindingError(BindingErrorCategory.Naming, "widget.watch", "multiple operations map to stream adapter 'WidgetStreamAdapter'"),
+            new BindingError(BindingErrorCategory.Naming, "widget.list", "request type name 'WidgetListRequest' collides with another generated type"),
+            new BindingError(BindingErrorCategory.Naming, "widget.list.get", "request type name 'WidgetListRequest' collides with another generated type"),
+            new BindingError(BindingErrorCategory.Naming, "widget.list.get", "multiple operations map to route member 'Widgets.ListWidgets'"),
+            new BindingError(BindingErrorCategory.Naming, "widget.watch", "multiple operations map to route member 'Widgets.ListWidgets'"),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments("post")]
+    [Arguments("binary")]
+    [Arguments("route")]
+    public async Task Bind_Should_Omit_Only_The_Cursor_Companion_When_The_Signature_Is_Incompatible(string signature)
+    {
+        var document = await BindingTestHost.IngestAsync(CursorListScenario(configure: operation =>
+        {
+            CursorQuery(operation);
+            if (signature == "binary")
+            {
+                operation.RequestBody("application/octet-stream", static schema => schema.Type("string").Format("binary"), required: true);
+            }
+            if (signature == "route")
+            {
+                operation.Parameter("id", "path", static schema => schema.Type("string"), required: true);
+            }
+        }, method: signature == "route" ? "get" : "post", path: signature == "route" ? "/api/widget/{id}" : "/api/widget"));
+        var list = BindWidgetList(document);
+        await Assert.That(list.MethodName).IsEqualTo("ListWidgetsAsync");
+        await Assert.That(list.QueryRequest!.DerivesFromListRequest).IsTrue();
+        await Assert.That(list.QueryRequest.Properties.Select(static property => property.WireName))
+            .IsEquivalentTo(["limit", "order", "cursor"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(list.Pagination).IsNull();
+        if (signature == "binary")
+        {
+            await Assert.That(list.RequestBody!.IsBinary).IsTrue();
+        }
+        else
+        {
+            await Assert.That(list.RequestBody).IsNull();
+        }
+        await Assert.That(list.Parameters.Select(static parameter => parameter.WireName))
+            .IsEquivalentTo(signature == "route" ? ["id"] : [], StringComparer.Ordinal, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Bind_Should_Reject_A_Refused_Facet_Even_When_The_Error_Is_A_Missing_Row()
+    {
+        var document = await BindingTestHost.IngestAsync(WidgetListScenario(static operation => operation
+            .Parameter("search", "query", static schema => schema.Type("string"))));
+        var exception = Assert.Throws<BindingException>(() => BindWidgets(document));
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Curation, "widget.list:search",
+                "the query parameter is a plain string that no curation row classifies: add a queryParameterTypes row when upstream decodes it as a number, or a stringQueryParameters row that says why it stays a string") { Kind = BindingErrorKind.MissingRow },
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Bind_Should_Preserve_Independent_Facet_Refusals_In_Binder_Order()
+    {
+        var document = await BindingTestHost.IngestAsync(CursorListScenario(configure: static operation => CursorQuery(operation)
+            .Response(400, "text/plain", static schema => schema.Type("string"))));
+        var curation = Curation(Groups("widget", ClientGroup("Widgets", null, null)),
+            operationNames: [OperationName("widget.list", "BrowseWidgetsAsync")],
+            queryParameterTypes: [QueryParameterType("widget.list", "limit", "int")],
+            stringQueryParameters: [StringQueryParameter("widget.list", "cursor")]);
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("widget.list"), curation));
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Operation, "widget.list", "error responses must carry a JSON schema"),
+            new BindingError(BindingErrorCategory.Naming, "widget.list", "cursor-list method 'BrowseWidgetsAsync' must be an asynchronous List method before its enumeration name can be derived"),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Bind_Should_Refuse_A_Mixed_Body_And_Nonlocation_Query_Explicitly()
+    {
+        var document = await BindingTestHost.IngestAsync(MixedRequestScenario());
+        var exception = Assert.Throws<BindingException>(() => BindWidgets(document, "widget.create", strings: ["search"]));
+        await Assert.That(exception.Errors)
+            .IsEquivalentTo([new BindingError(BindingErrorCategory.Operation, "widget.create", "operations mixing a request body and query parameters are supported only for the location selector")], CollectionOrdering.Matching);
+    }
+
+    private static SpecScenario MixedRequestScenario(Action<OperationBuilder>? configure = null) => SpecScenario.Define(spec => spec
+        .WithOperation("widget.create", method: "post", configure: operation =>
+        {
+            operation.WithoutResponse(200).Response(204)
+                .Parameter("search", "query", static schema => schema.Type("string"))
+                .RequestBody("application/json", static schema => schema.Type("object")
+                    .Property("title", static property => property.Type("string"), required: true), required: true);
+            configure?.Invoke(operation);
+        }));
+
     private static void DefinePlaceInfo(SchemaBuilder schema) => _ = schema.Type("object")
         .Property("directory", property => property.Type("string"), required: true);
 
@@ -22,8 +243,8 @@ public sealed class OperationPlanBinderTests
         Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection("widget.item"),
             Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)))));
 
-    private static OperationPlan BindWidgetList(SpecDocument document) =>
-        BindWidgets(document, integers: ["limit"], strings: ["cursor"])
+    private static OperationPlan BindWidgetList(SpecDocument document, IReadOnlyList<string>? strings = null) =>
+        BindWidgets(document, integers: ["limit"], strings: strings ?? ["cursor"])
             .Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
 
     private static BindingException RefuseMergedGadget(SpecDocument document, IReadOnlyDictionary<string, GroupCuration> groups) =>
@@ -226,7 +447,11 @@ public sealed class OperationPlanBinderTests
         {
             if (variation == "invalid-binder")
             {
-                _ = new OperationPlanBinder().Bind(document, document.Operations, curation, new Dictionary<string, string>(StringComparer.Ordinal), errors);
+                var reachable = new ReachableSchemaCollector().Collect(document, document.Operations, errors);
+                var schemas = new SchemaPlanBinder(new StructuralUnionPlanBinder(), new UnionMembershipValidator(),
+                    new UnionDiscriminatorSelector(), new UnionMemberHoistBinder()).Bind(document, reachable, curation,
+                    new Dictionary<string, string>(StringComparer.Ordinal), errors);
+                _ = new OperationPlanBinder().Bind(document, document.Operations, curation, schemas, errors);
                 errors.ThrowIfAny();
             }
             else if (variation == "invalid")
@@ -1192,20 +1417,16 @@ public sealed class OperationPlanBinderTests
     }
 
     [Test]
-    public async Task Bind_Should_Refuse_Cursor_Pagination_When_A_Filter_Riding_The_Spine_Is_Required()
+    public async Task Bind_Should_Omit_Only_Cursor_Pagination_When_A_Filter_Riding_The_Spine_Is_Required()
     {
-        var document = await BindingTestHost.IngestAsync(CursorListScenario(configure: operation => operation
-            .Parameter("limit", "query", QueryScenarioData.NullableString)
-            .Parameter("order", "query", QueryScenarioData.NullableOrderEnum)
-            .Parameter("cursor", "query", QueryScenarioData.NullableString)
+        var document = await BindingTestHost.IngestAsync(CursorListScenario(configure: operation => CursorQuery(operation)
             .Parameter("search", "query", schema => schema.Type("string"), required: true)));
 
-        var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document, integers: ["limit"], strings: ["cursor", "search"]));
-
-        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Operation
-                                                       && error.Problem.Contains(
-                                                           "cursor pagination cannot continue a query that declares a required parameter",
-                                                           StringComparison.Ordinal));
+        var list = BindWidgetList(document, ["cursor", "search"]);
+        await Assert.That(list.MethodName).IsEqualTo("ListWidgetsAsync");
+        await Assert.That(list.QueryRequest!.Properties.Single(static property => property.WireName == "search").IsRequired).IsTrue();
+        await Assert.That(list.QueryRequest.HasRequiredMember).IsTrue();
+        await Assert.That(list.Pagination).IsNull();
     }
 
     [Test]
@@ -2142,27 +2363,27 @@ public sealed class OperationPlanBinderTests
     }
 
     [Test]
-    public async Task Bind_Should_Refuse_Cursor_Pagination_On_An_Operation_Declaring_A_Header()
+    public async Task Bind_Should_Omit_Only_Cursor_Pagination_On_An_Operation_Declaring_A_Header()
     {
-        var document = await BindingTestHost.IngestAsync(CursorListScenario(configure: static operation => operation
-            .Parameter("limit", "query", QueryScenarioData.NullableString)
-            .Parameter("order", "query", QueryScenarioData.NullableOrderEnum)
-            .Parameter("cursor", "query", QueryScenarioData.NullableString)
+        var document = await BindingTestHost.IngestAsync(CursorListScenario(configure: static operation => CursorQuery(operation)
             .Parameter("x-opencode-ticket", "header", QueryScenarioData.NullableString)));
 
-        var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(
+        var plan = new BindingTestHost().Bind(
             document,
             Selection("widget.list"),
             Curation(Groups(
                 "widget",
                 ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null, emission: EmissionMode.InternalRaw)),
             queryParameterTypes: [QueryParameterType("widget.list", "limit", "int")],
-            stringQueryParameters: [StringQueryParameter("widget.list", "cursor")])));
-
-        await Assert.That(exception.Errors).Contains(static error => error.Category == BindingErrorCategory.Operation
-                                                       && error.Problem.Contains(
-                                                           "cursor pagination cannot carry a declared header",
-                                                           StringComparison.Ordinal));
+            stringQueryParameters: [StringQueryParameter("widget.list", "cursor")]));
+        var client = plan.Clients.Single(static client => client.Role == ClientRole.Collection);
+        var list = client.Operations.Single();
+        await Assert.That(client.Name).IsEqualTo("WidgetsRawClient");
+        await Assert.That(list.MethodName).IsEqualTo("ListWidgetsAsync");
+        await Assert.That(list.DeclaredHeaders).IsEquivalentTo([
+            new DeclaredHeaderPlan { WireName = "x-opencode-ticket", Name = "xOpencodeTicket" },
+        ], CollectionOrdering.Matching);
+        await Assert.That(list.Pagination).IsNull();
     }
 
     [Test]
@@ -3164,7 +3385,7 @@ public sealed class OperationPlanBinderTests
             }));
 
     private static SpecScenario CursorListScenario(Action<SchemaBuilder>? cursor = null, Action<SchemaBuilder>? items = null,
-        Action<OperationBuilder>? configure = null) =>
+        Action<OperationBuilder>? configure = null, string method = "get", string path = "/api/widget") =>
         SpecScenario.Define(spec => spec
             .WithSchema("WidgetInfo", schema => schema
                 .Type("object")
@@ -3176,7 +3397,7 @@ public sealed class OperationPlanBinderTests
                     .Type("array")
                     .Items(items ?? (static item => item.Ref("WidgetInfo"))), required: true)
                 .Property("cursor", cursor ?? DefaultCursor, required: true))
-            .WithOperation("widget.list", path: "/api/widget", configure: operation =>
+            .WithOperation("widget.list", method: method, path: path, configure: operation =>
             {
                 configure?.Invoke(operation);
                 _ = operation.Response(200, "application/json", schema => schema.Ref("WidgetsResponse"));

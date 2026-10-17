@@ -6,14 +6,17 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// <summary>Binds the <see cref="OperationPlan.QueryRequest"/> facet from the operation's query parameters.</summary>
 internal sealed class QueryRequestFacetBinder(OperationFacetContext context)
 {
-    private readonly OperationFacetContext _context = context ?? throw new ArgumentNullException(nameof(context));
+    private readonly OperationFacetContext _context = context.CreateLocal();
 
-    public QueryRequestPlan? Bind()
+    /// <summary>Successfully classified properties for independent diagnostics, never an admission verdict.</summary>
+    public QueryRequestPlan? DiagnosticRequest { get; private set; }
+
+    public FacetResult<QueryRequestPlan?> Bind()
     {
         var query = _context.Operation.Parameters.Where(static parameter => parameter.Location is SpecParameterLocation.Query).ToArray();
         if (query.Length is 0 && !_context.Operation.HasWildcardPath)
         {
-            return null;
+            return new FacetResult<QueryRequestPlan?>.Bound(null);
         }
 
         var properties = new List<QueryPropertyPlan>(query.Length + 1);
@@ -22,12 +25,17 @@ internal sealed class QueryRequestFacetBinder(OperationFacetContext context)
             properties.Add(BindRouteTail(_context.Operation.Parameters));
         }
 
+        var refused = false;
         foreach (var parameter in query)
         {
             var property = parameter.IsDeepObject ? BindLocationSelector(parameter) : BindValue(parameter);
             if (property is not null)
             {
                 properties.Add(property);
+            }
+            else
+            {
+                refused = true;
             }
         }
 
@@ -40,7 +48,7 @@ internal sealed class QueryRequestFacetBinder(OperationFacetContext context)
                 BindingErrorCategory.Naming,
                 _context.Operation.OperationId,
                 $"multiple query parameters map to C# name '{duplicate.Key}'");
-            return null;
+            return _context.Refused<QueryRequestPlan?>();
         }
 
         var derivesFromListRequest = ListRequestSpinePolicy.CarriesSpine(properties);
@@ -57,12 +65,13 @@ internal sealed class QueryRequestFacetBinder(OperationFacetContext context)
             ];
         }
 
-        return new QueryRequestPlan
+        DiagnosticRequest = new QueryRequestPlan
         {
             TypeName = OperationNamePolicy.RequestTypeName(_context.Operation),
             DerivesFromListRequest = derivesFromListRequest,
             Properties = properties,
         };
+        return refused ? _context.Refused<QueryRequestPlan?>() : new FacetResult<QueryRequestPlan?>.Bound(DiagnosticRequest);
     }
 
     /// <summary>

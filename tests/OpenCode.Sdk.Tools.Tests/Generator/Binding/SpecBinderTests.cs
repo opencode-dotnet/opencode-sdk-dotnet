@@ -11,6 +11,49 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 public sealed class SpecBinderTests
 {
+    [Test]
+    public async Task Bind_Should_Preserve_The_Marker_Refusal_For_An_Unnamed_Error_Schema()
+    {
+        var document = await IngestAsync(SpecScenario.Define(static spec =>
+        {
+            AddTaggedError(spec, "AError", "A");
+            AddTaggedError(spec, "BError", "B");
+            spec.WithOperation("health.get", configure: static operation => operation.WithoutResponse(200).Response(204)
+                .Response(400, "application/json", static schema => schema.Ref("AError"))
+                .Response(500, "application/json", static schema => schema.Ref("BError")));
+        }));
+        var schemas = document.Schemas.ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal);
+        schemas["BError"] = (ObjectNode)schemas["BError"] with { LiteralMarkers = [] };
+        document = document with { Schemas = schemas };
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("health.get"),
+            Curation(Groups("health", RootGroup()), schemaNames: [SchemaName("AError", "SharedError"), SchemaName("BError", "SharedError")])));
+
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Naming, "BError", "C# type name 'SharedError' collides with schema 'AError'"),
+            new BindingError(BindingErrorCategory.Naming, "BError", "error schema has no unique C# type name"),
+            new BindingError(BindingErrorCategory.Operation, "health.get", "error responses must reference tagged error schemas: 'BError': a tagged error must declare exactly one required '_tag' literal"),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Bind_Should_Report_An_Unnamed_Error_Schema_Once()
+    {
+        var document = await IngestAsync(SpecScenario.Define(static spec => spec
+            .WithSchema("AError", static schema => schema.Type("object")
+                .Property("_tag", static property => property.Type("string").Enum("A"), required: true))
+            .WithSchema("BError", static schema => schema.Type("object")
+                .Property("_tag", static property => property.Type("string").Enum("B"), required: true))
+            .WithOperation("health.get", configure: static operation => operation.WithoutResponse(200).Response(204)
+                .Response(400, "application/json", static schema => schema.Ref("AError"))
+                .Response(500, "application/json", static schema => schema.Ref("BError")))));
+        var curation = Curation(Groups("health", RootGroup()), schemaNames: [SchemaName("AError", "SharedError"), SchemaName("BError", "SharedError")]);
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("health.get"), curation));
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Naming, "BError", "C# type name 'SharedError' collides with schema 'AError'"),
+            new BindingError(BindingErrorCategory.Naming, "BError", "error schema has no unique C# type name"),
+        ], CollectionOrdering.Matching);
+    }
+
     private static readonly string[] ParentScenarioLeaves = ["First", "Second", "Other", "Another"];
 
     [Test]
@@ -999,11 +1042,9 @@ public sealed class SpecBinderTests
     [Arguments(false, "ReviewedAsync", true, "missing.get", BindingErrorCategory.Curation, "curated operation does not exist in the spec")]
     [Arguments(false, "ReviewedAsync", true, "widget.other", BindingErrorCategory.Curation, "curated operation is not selected by the current profile")]
     [Arguments(false, "bad-nameAsync", true, "widget.list", BindingErrorCategory.Naming, "method name 'bad-nameAsync' must be a valid C# identifier ending in 'Async'")]
-    [Arguments(false, "Reviewed", true, "widget.list", BindingErrorCategory.Naming, "method name 'Reviewed' must be a valid C# identifier ending in 'Async'", "the operation's names cannot be derived mechanically: the group does not pluralize naively")]
-    [Arguments(false, "Async", true, "widget.list", BindingErrorCategory.Naming, "method name 'Async' must be a valid C# identifier ending in 'Async'", "the operation's names cannot be derived mechanically: the group does not pluralize naively")]
     [Arguments(false, "", true, "widget.run", BindingErrorCategory.Operation, "operation 'widget.run' closes with 'run', which is not a naming verb, and no operationNames row names it; the HTTP method is never a name source (ADR-0008)")]
     public async Task Bind_Should_Refuse_Invalid_Operation_Name_Rows(bool handle, string methodName, bool refused,
-        string operationId, BindingErrorCategory category, string? problem, string? operationProblem = null)
+        string operationId, BindingErrorCategory category, string? problem)
     {
         ArgumentNullException.ThrowIfNull(methodName);
         var document = await IngestAsync(SpecScenario.Define(spec =>
@@ -1030,25 +1071,30 @@ public sealed class SpecBinderTests
         {
             var selected = operationId == "widget.run" ? operationId : "widget.list";
             var exception = Assert.Throws<BindingException>(() => _ = new BindingTestHost().Bind(document, Selection(selected), curation));
-            if (operationProblem is not null)
-            {
-                await Assert.That(exception.Errors).IsEquivalentTo([
-                    new BindingError(category, operationId, problem!),
-                    new BindingError(BindingErrorCategory.Operation, operationId, operationProblem),
-                ], CollectionOrdering.Matching);
-            }
-            else
-            {
-                var error = operationId == "widget.list" && category == BindingErrorCategory.Curation ? exception.Errors.Single()
-                    : exception.Errors.Single(error => error.Category == category && error.Subject == operationId);
-                await Assert.That(error).IsEqualTo(new BindingError(category, operationId, problem!));
-            }
+            var error = operationId == "widget.list" && category == BindingErrorCategory.Curation ? exception.Errors.Single()
+                : exception.Errors.Single(error => error.Category == category && error.Subject == operationId);
+            await Assert.That(error).IsEqualTo(new BindingError(category, operationId, problem!));
         }
         else
         {
             var plan = new BindingTestHost().Bind(document, Selection("widget.list"), curation);
             await Assert.That(plan.Clients.SelectMany(static client => client.Operations).Single().MethodName).IsEqualTo(methodName);
         }
+    }
+
+    [Test]
+    [Arguments("Reviewed", "method name 'Reviewed' must be a valid C# identifier ending in 'Async'")]
+    [Arguments("Async", "method name 'Async' must be a valid C# identifier ending in 'Async'")]
+    public async Task Bind_Should_Report_Only_The_Invalid_Curated_Method_Name(string methodName, string problem)
+    {
+        var document = await IngestAsync(SpecScenario.Define(static spec => spec.WithOperation("widget.list",
+            configure: static operation => operation.WithoutResponse(200).Response(204))));
+        var curation = Curation(Groups("widget", ClientGroup("Widgets", null, null)),
+            operationNames: [OperationName("widget.list", methodName)]);
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("widget.list"), curation));
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Naming, "widget.list", problem),
+        ], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -1776,7 +1822,9 @@ public sealed class SpecBinderTests
     }
 
     [Test]
-    public async Task Bind_Should_Refuse_A_Tag_Owned_By_Two_Closure_Schemas()
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Bind_Should_Refuse_A_Tag_Owned_By_Two_Closure_Schemas(bool responseCollision)
     {
         var document = await IngestAsync(SpecScenario.Define(spec => spec
             .WithSchema("ItemInfo", schema => schema
@@ -1795,10 +1843,19 @@ public sealed class SpecBinderTests
                 .Response(404, "application/json", schema => schema.Ref("GoneError"))
                 .Response(410, "application/json", schema => schema.Ref("LostError")))));
 
-        var exception = RefuseHealth(document);
-
-        await Assert.That(exception.Errors).Contains(static error =>
-            error.Problem.Contains("multiple error schemas declare tag 'SharedError'", StringComparison.Ordinal));
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("health.get"),
+            Curation(Groups("health", RootGroup()), schemaNames: responseCollision ? [SchemaName("ItemInfo", "HealthResponse")] : [])));
+        BindingError[] expected = [
+            new(BindingErrorCategory.Schema, "OpenCodeError", "multiple error schemas declare tag 'SharedError' (GoneError, LostError)"),
+            new(BindingErrorCategory.Schema, "GoneError", "union membership references absent union 'IOpenCodeError'"),
+            new(BindingErrorCategory.Schema, "LostError", "union membership references absent union 'IOpenCodeError'"),
+        ];
+        if (responseCollision)
+        {
+            expected = [.. expected, new(BindingErrorCategory.Naming, "health.get", "multiple operations map to response type 'HealthResponse'")];
+        }
+        await Assert.That(exception.Errors).IsEquivalentTo(expected, CollectionOrdering.Matching)
+            .Because(string.Join(" | ", exception.Errors));
     }
 
     [Test]

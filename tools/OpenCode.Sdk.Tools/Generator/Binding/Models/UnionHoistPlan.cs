@@ -4,6 +4,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 /// promoted-record carriers gain their interfaces.</summary>
 internal sealed record UnionHoistPlan
 {
+    public required IReadOnlyList<GeneratedTypeNameClaim> Claims { get; init; }
+
     public required IReadOnlyList<UnionPlan> Unions
     {
         get;

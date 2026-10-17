@@ -61,7 +61,15 @@ internal sealed class SpecBinder(
         // consume the same map so neither can reinterpret a schema under another name.
         var typeNames = _schemaNames.Resolve(document, reachable, selected, curation, errors);
         var schemaResult = _schemaPlans.Bind(document, reachable, curation, typeNames, errors);
-        var clients = _operationPlans.Bind(document, selected, curation, typeNames, errors);
+        var clients = _operationPlans.Bind(document, selected, curation, schemaResult, errors);
+        var candidates = new OwnershipCandidates
+        {
+            Models = schemaResult.Models,
+            Unions = schemaResult.Unions,
+            HoistedInterfaces = schemaResult.HoistedInterfaces,
+        };
+        var inventory = GeneratedTypeNameInventory.Create(candidates, clients, schemaResult.HoistedClaims, typeNames);
+        var refusedHoists = _operationPlans.CheckTypeNameCollisions(inventory, clients, errors);
         var pending = PendingOperations(document, selected, curation);
 
         var models = AttachRequestQueryProperties(schemaResult.Models, clients, errors);
@@ -69,19 +77,14 @@ internal sealed class SpecBinder(
             curation, SchemaAliasApplier.Compose(collapse, curation.SchemaAliases), errors);
 
         var masked = SecretMemberPolicy.MaskUnknownPayloads(SecretMemberPolicy.Apply(models, curation, errors), schemaResult.Unions);
-        CheckDtoNameCollisions(schemaResult.Registry, clients, errors);
-        var candidates = new OwnershipCandidates
-        {
-            Models = masked.Models,
-            Unions = masked.Unions,
-            HoistedInterfaces = schemaResult.HoistedInterfaces,
-        };
-        InternalNameCollisionCheck.Check(candidates, clients, errors);
+        CheckDtoNameCollisions(inventory, errors);
+        candidates = candidates with { Models = masked.Models, Unions = masked.Unions, HoistedInterfaces = [.. candidates.HoistedInterfaces.Where(plan => !refusedHoists.Contains(plan.Name))] };
+        InternalNameCollisionCheck.Check(inventory, errors);
         // An unplaced model never refuses a bind: it is the generate command's wall, so the
         // pending-operation probe still judges bindability under its synthetic curation.
         var placement = ModelOwnershipPolicy.Place(candidates, clients, curation, errors);
         var reach = ModelReachCollector.Collect(_reachableSchemas, new ReachScope(document, selected, clients, typeNames), candidates, errors);
-        var experimental = ExperimentalModelPolicy.Collect(_reachableSchemas, new ReachScope(document, selected, clients, typeNames), candidates, errors);
+        var experimental = ExperimentalModelPolicy.Collect(_reachableSchemas, new ReachScope(document, selected, clients, typeNames), candidates, inventory, errors);
         errors.ThrowIfAny();
         var plan = new EmitPlan
         {
@@ -219,18 +222,14 @@ internal sealed class SpecBinder(
     /// same-namespace resolution and collapse two registry identities into one; both
     /// directions refuse before composition instead of hiding behind a Distinct.
     /// </summary>
-    private static void CheckDtoNameCollisions(RegistryPlan schemaRegistry, IReadOnlyList<ClientPlan> clients,
-        BindingErrorCollector errors)
+    private static void CheckDtoNameCollisions(GeneratedTypeNameInventory inventory, BindingErrorCollector errors)
     {
-        var modelNames = schemaRegistry.TypeNames.ToHashSet(StringComparer.Ordinal);
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var dtoName in clients
-                     .SelectMany(static client => client.Operations)
-                     .Select(static operation => operation.Envelope?.EnvelopeDtoTypeName)
-                     .OfType<string>()
-                     .OrderBy(static name => name, StringComparer.Ordinal))
+        foreach (var claim in inventory.Claims.Where(static claim => claim.Role is GeneratedTypeNameInventory.ClaimRole.EnvelopeDto)
+                     .OrderBy(static claim => claim.Name, StringComparer.Ordinal))
         {
-            if (modelNames.Contains(dtoName))
+            var dtoName = claim.Name;
+            if (inventory.OtherClaims(claim).Any(static other => other.Role is not (GeneratedTypeNameInventory.ClaimRole.EnvelopeDto or GeneratedTypeNameInventory.ClaimRole.Hoisted)))
             {
                 errors.Add(
                     BindingErrorCategory.Naming,

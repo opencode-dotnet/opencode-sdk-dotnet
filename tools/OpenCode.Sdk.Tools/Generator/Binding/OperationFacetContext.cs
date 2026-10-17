@@ -32,6 +32,32 @@ internal sealed class OperationFacetContext(
 
     public void Refuse(string problem) => Errors.Add(BindingErrorCategory.Operation, Operation.OperationId, problem);
 
+    public OperationFacetContext CreateLocal()
+    {
+        var localErrors = new BindingErrorCollector();
+        return new OperationFacetContext(Document, Operation, Curation, TypeNames, localErrors,
+            new TypePlanBinder(Document.Schemas, TypeNames, localErrors));
+    }
+
+    public FacetResult<T> Refused<T>() => new FacetResult<T>.Refused(Errors.Snapshot());
+
+    public FacetResult<T> RefuseFacet<T>(string problem)
+    {
+        Refuse(problem);
+        return Refused<T>();
+    }
+
+    public FacetResult<T> Publish<T>(FacetResult<T> result, IReadOnlyList<BindingError>? alreadyPublished = null)
+    {
+        if (result is FacetResult<T>.Refused refused)
+        {
+            // Only borrowed verdict objects are already published; unrelated equal errors remain independent.
+            Errors.Append(refused.Errors.Where(error => alreadyPublished is null
+                || !alreadyPublished.Any(original => ReferenceEquals(original, error))));
+        }
+        return result;
+    }
+
     public string? RefuseNull(string problem)
     {
         Refuse(problem);

@@ -13,7 +13,6 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 internal sealed class HoistedCarrierComposer(
     IReadOnlyDictionary<string, ObjectModelPlan> models,
     IReadOnlyList<HoistedMemberNameCuration> namingRows,
-    ISet<string> takenNames,
     HoistedMemberSatisfactionPolicy satisfaction,
     HoistedImplementationAccumulator implementations,
     BindingErrorCollector errors)
@@ -31,7 +30,9 @@ internal sealed class HoistedCarrierComposer(
         CurationRowContract.Validate(nameof(GenerationCuration.HoistedMemberNames),
             namingRows ?? throw new ArgumentNullException(nameof(namingRows)), errors) ? namingRows : [];
 
-    private readonly ISet<string> _takenNames = takenNames ?? throw new ArgumentNullException(nameof(takenNames));
+    private readonly List<GeneratedTypeNameClaim> _claims = [];
+
+    public IReadOnlyList<GeneratedTypeNameClaim> Claims => _claims.AsReadOnly();
 
     private readonly Dictionary<string, string> _byRecordSet = new(StringComparer.Ordinal);
 
@@ -59,22 +60,22 @@ internal sealed class HoistedCarrierComposer(
         }
 
         var name = curated ?? string.Concat("I", ownerConcept, property.Name);
-        if (!_takenNames.Add(name))
-        {
-            _errors.Add(BindingErrorCategory.Naming, owner,
-                $"hoisted member '{property.WireName}' resolves to '{name}', which already names another generated type");
-            return null;
-        }
-
-        _byRecordSet[key] = name;
-        _interfaces[name] = new HoistedInterfacePlan
+        _claims.Add(new GeneratedTypeNameClaim(name, owner, GeneratedTypeNameInventory.ClaimRole.Hoisted, property.WireName));
+        var plan = new HoistedInterfacePlan
         {
             Name = name,
             Namespace = GeneratedNamespace.Models,
             ImplementedBy = recordNames,
-            Members = ComposeMembers(name, recordNames),
+            Members = [],
             Description = $"Represents the shared {GeneratedDisplayName.Of(property.Name)} shape of every {GeneratedDisplayName.Of(ownerConcept)} variant.",
         };
+        if (!_interfaces.TryAdd(name, plan))
+        {
+            return null;
+        }
+        _byRecordSet[key] = name;
+        // Claim before recursion, so a nested carrier cannot build the same interface a second time.
+        _interfaces[name] = plan with { Members = ComposeMembers(name, recordNames) };
         foreach (var recordName in recordNames)
         {
             _implementations.AddCarrier(recordName, name);

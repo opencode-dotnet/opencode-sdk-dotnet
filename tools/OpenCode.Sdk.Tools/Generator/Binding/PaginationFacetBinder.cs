@@ -1,4 +1,5 @@
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
@@ -8,14 +9,13 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// </summary>
 internal sealed class PaginationFacetBinder(OperationFacetContext context)
 {
-    private readonly OperationFacetContext _context = context ?? throw new ArgumentNullException(nameof(context));
+    private readonly OperationFacetContext _context = context.CreateLocal();
 
-    public PaginationPlan? Bind(string methodName, IReadOnlyList<OperationParameterPlan>? parameters,
-        IReadOnlyList<DeclaredHeaderPlan> declaredHeaders, QueryRequestPlan? queryRequest, RequestBodyPlan? requestBody,
+    public FacetResult<PaginationPlan?> Bind(string methodName, IReadOnlyList<OperationParameterPlan>? parameters,
+        QueryRequestPlan? queryRequest, RequestBodyPlan? requestBody,
         EnvelopePlan? envelope)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(methodName);
-        ArgumentNullException.ThrowIfNull(declaredHeaders);
 
         if (queryRequest is not { DerivesFromListRequest: true, RidesRequestBody: false }
             || envelope is not
@@ -26,7 +26,7 @@ internal sealed class PaginationFacetBinder(OperationFacetContext context)
                 PayloadType: ListTypeReferencePlan { ElementType: NamedTypeReferencePlan { Name: { } itemTypeName } },
             })
         {
-            return null;
+            return new FacetResult<PaginationPlan?>.Bound(null);
         }
 
         if (!string.Equals(_context.Operation.Method, "get", StringComparison.Ordinal)
@@ -34,23 +34,21 @@ internal sealed class PaginationFacetBinder(OperationFacetContext context)
             || parameters is null
             || parameters.Any(static parameter => !parameter.IsHandleParameter))
         {
-            return _context.RefuseNull<PaginationPlan>(
-                "cursor pagination currently requires a GET operation with no body or unbound route parameters");
+            return new FacetResult<PaginationPlan?>.Bound(null);
         }
 
         // The traversal core takes the one-page method as a fixed three-argument delegate,
         // so an extra emitted parameter would break the method-group conversion.
-        if (declaredHeaders.Count > 0)
+        if (_context.Operation.Parameters.Any(static parameter => parameter.Location is SpecParameterLocation.Header))
         {
-            return _context.RefuseNull<PaginationPlan>("cursor pagination cannot carry a declared header parameter");
+            return new FacetResult<PaginationPlan?>.Bound(null);
         }
 
         // A continuation is the caller's first request with a new cursor, so the traversal must be
         // able to start one from no request at all; a required filter has no value to carry there.
         if (queryRequest.HasRequiredMember)
         {
-            return _context.RefuseNull<PaginationPlan>(
-                "cursor pagination cannot continue a query that declares a required parameter");
+            return new FacetResult<PaginationPlan?>.Bound(null);
         }
 
         var enumerationMethodName = OperationNamePolicy.EnumerationMethodName(methodName);
@@ -60,16 +58,16 @@ internal sealed class PaginationFacetBinder(OperationFacetContext context)
                 BindingErrorCategory.Naming,
                 _context.Operation.OperationId,
                 $"cursor-list method '{methodName}' must be an asynchronous List method before its enumeration name can be derived");
-            return null;
+            return _context.Refused<PaginationPlan?>();
         }
 
-        return new PaginationPlan
+        return new FacetResult<PaginationPlan?>.Bound(new PaginationPlan
         {
             MethodName = enumerationMethodName,
             RequestTypeName = queryRequest.TypeName,
             PageTypeName = pageTypeName,
             ItemTypeName = itemTypeName,
             PayloadName = payloadName,
-        };
+        });
     }
 }

@@ -1,5 +1,6 @@
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
+using OpenCode.Sdk.Tools.Tests.Support;
 using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 using static OpenCode.Sdk.Tools.Tests.Support.UnionHoistPlanData;
@@ -8,6 +9,78 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 public sealed class UnionMemberHoistBinderTests
 {
+    [Test]
+    public async Task Bind_Should_Refuse_Only_The_Second_Hoisted_Claim_To_One_Name()
+    {
+        var exception = await BindRefusalsAsync(UnionScenario(static spec =>
+        {
+            CarrierUnion(spec, "Event", "Created", "Deleted");
+            CarrierUnion(spec, "Phase", "Started", "Stopped");
+            spec.WithSchema("Feed", static schema => schema.Type("object")
+                .Property("event", static property => property.Ref("ExampleEvent"), required: true)
+                .Property("phase", static property => property.Ref("ExamplePhase"), required: true));
+        }),
+            Curation(Groups("health", ClientGroup("Example", null, null)), hoistedMemberNames: [
+                HoistedMemberName("IExampleEvent", "durable", "IExampleCarrier"),
+                HoistedMemberName("IExamplePhase", "durable", "IExampleCarrier"),
+            ], modelOwners: [Owner("IExampleCarrier", "Common")]), "health.get");
+
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Naming, "IExamplePhase", "hoisted member 'durable' resolves to 'IExampleCarrier', which already names another generated type"),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments("ExampleCreated")]
+    [Arguments("IExampleEvent")]
+    public async Task Bind_Should_Refuse_A_Carrier_Name_Before_Placing_The_Colliding_Declaration(string name)
+    {
+        var exception = await BindRefusalsAsync(UnionScenario(static spec =>
+        {
+            CarrierUnion(spec, "Event", "Created", "Deleted");
+            spec.WithSchema("Feed", static schema => schema.Type("object")
+                .Property("event", static property => property.Ref("ExampleEvent"), required: true));
+        }),
+            Curation(Groups("health", ClientGroup("Example", null, null)),
+                hoistedMemberNames: [HoistedMemberName("IExampleEvent", "durable", name)]), "health.get");
+
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Naming, "IExampleEvent", $"hoisted member 'durable' resolves to '{name}', which already names another generated type"),
+        ], CollectionOrdering.Matching);
+    }
+
+    private static void CarrierUnion(SpecDocumentBuilder spec, string concept, string first, string second) => spec
+        .WithSchema("Example" + first, schema => CarrierArm(schema, first.ToLowerInvariant()))
+        .WithSchema("Example" + second, schema => CarrierArm(schema, second.ToLowerInvariant()))
+        .WithSchema("Example" + concept, schema => schema.AnyOf(branch => branch.Ref("Example" + first), branch => branch.Ref("Example" + second)));
+
+    [Test]
+    [Arguments("WidgetsClient")]
+    [Arguments("ExampleValueKind")]
+    public async Task Bind_Should_Refuse_A_Carrier_Name_Already_Used_By_A_Structural_Kind_Or_Client(string name)
+    {
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(static spec => spec
+            .WithSchema("CreatedEvent", static schema => CarrierArm(schema, "created"))
+            .WithSchema("DeletedEvent", static schema => CarrierArm(schema, "deleted"))
+            .WithSchema("ExampleEvent", static schema => schema.AnyOf(static branch => branch.Ref("CreatedEvent"), static branch => branch.Ref("DeletedEvent")))
+            .WithSchema("ExampleValue", static schema => schema.AnyOf(static branch => branch.Type("string"), static branch => branch.Type("integer")))
+            .WithSchema("Feed", static schema => schema.Type("object")
+                .Property("event", static property => property.Ref("ExampleEvent"), required: true)
+                .Property("value", static property => property.Ref("ExampleValue"), required: true))
+            .WithOperation("widget.list", configure: static operation => operation.Response(200, "application/json", static schema => schema.Ref("Feed")))));
+        var curation = Curation(Groups("widget", ClientGroup("Widgets", null, null)),
+            hoistedMemberNames: [HoistedMemberName("IExampleEvent", "durable", name)]);
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("widget.list"), curation));
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Naming, "IExampleEvent", $"hoisted member 'durable' resolves to '{name}', which already names another generated type"),
+        ], CollectionOrdering.Matching);
+    }
+
+    private static void CarrierArm(SchemaBuilder schema, string tag) => schema.Type("object")
+        .Property("type", property => property.Type("string").Enum(tag), required: true)
+        .Property("durable", static property => property.Type("object")
+            .Property("seq", static member => member.Type("string"), required: true), required: true);
+
     [Test]
     public async Task Bind_Should_Keep_The_First_Carrier_Name_In_Depth_Then_Ordinal_Union_Order()
     {
@@ -375,6 +448,7 @@ public sealed class UnionMemberHoistBinderTests
     {
         var errors = new BindingErrorCollector();
         var plan = new UnionMemberHoistBinder().Bind(unions, models, curation ?? Curation(Groups()), errors);
+        CheckNames(plan, errors);
         errors.ThrowIfAny();
         return plan;
     }
