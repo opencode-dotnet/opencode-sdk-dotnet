@@ -45,16 +45,16 @@ internal sealed class TypePlanBinder(
         NeverNode => Refuse(subject, "never schemas cannot materialize a .NET value"),
         SpecialNumberNode => SpecialNumber(),
         NullableNode nullable => BindNullable(nullable, subject, aliases),
-        JsonStringNode => Refuse(subject, "JSON-encoded strings are not supported by the M1 emitter"),
+        JsonStringNode => Refuse(subject, "JSON-encoded strings are not supported by the emitter"),
         EncodedStringNode { ContentEncoding: "base64" } => Binary(),
         EncodedStringNode encoded => Refuse(
             subject,
             $"content encoding '{encoded.ContentEncoding}' is not supported by the emitter; only base64 materializes as bytes"),
-        TupleNode => Refuse(subject, "tuple schemas are not supported by the M1 emitter"),
+        TupleNode => Refuse(subject, "tuple schemas are not supported by the emitter"),
         UnionNode { Classification: UnionClassification.Structural } union
             when UnstructuredUnionPolicy.Collapse(union, _graph) is { } collapsed => BindCore(collapsed, subject, aliases),
         ObjectNode or EnumNode or UnionNode => Refuse(subject, "inline nominal schema was not promoted into the graph"),
-        _ => Refuse(subject, $"schema node '{schema.GetType().Name}' is not supported by the M1 emitter"),
+        _ => Refuse(subject, $"schema node '{schema.GetType().Name}' is not supported by the emitter"),
     };
 
     private TypeReferencePlan? BindReference(RefNode reference, string subject, HashSet<string> aliases)

@@ -30,7 +30,7 @@ internal sealed class OperationWireShapeWall(OperationFacetContext context, Emis
 
         if (operation.IsWebSocket)
         {
-            _context.Refuse("WebSocket operations are not supported in M1");
+            _context.Refuse("WebSocket operations are not supported");
         }
 
         // A GET body has no defined semantics on any origin server and stays refused. DELETE is

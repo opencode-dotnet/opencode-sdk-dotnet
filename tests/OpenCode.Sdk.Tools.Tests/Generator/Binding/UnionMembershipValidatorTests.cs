@@ -19,7 +19,7 @@ public sealed class UnionMembershipValidatorTests
         var unions = new[] { Union("IBooleanEvent", LiteralKind.Boolean), Union("IStringEvent", LiteralKind.String), };
         var errors = new BindingErrorCollector();
 
-        new UnionMembershipValidator().Validate([model], unions, errors);
+        UnionMembershipValidator.Validate([model], unions, errors);
         var exception = Assert.Throws<BindingException>(errors.ThrowIfAny);
 
         await Assert.That(exception.Errors.Single().Category).IsEqualTo(BindingErrorCategory.Schema);

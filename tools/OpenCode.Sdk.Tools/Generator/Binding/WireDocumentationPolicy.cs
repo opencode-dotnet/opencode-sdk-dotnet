@@ -31,7 +31,7 @@ internal static class WireDocumentationPolicy
                 continue;
             }
 
-            // An event record used anywhere besides its unions has a second role and keeps today's text.
+            // An event record used besides its unions keeps the fallback summary because its wire role is not unique.
             if (uses.GetValueOrDefault(model.Name) is 1)
             {
                 Add(candidates, model.Name, $"The '{tag}' event.");

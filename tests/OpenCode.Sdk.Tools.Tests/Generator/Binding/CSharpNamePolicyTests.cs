@@ -32,9 +32,8 @@ public sealed class CSharpNamePolicyTests
     }
 
     /// <summary>
-    /// A whole name that opens with a digit needs a letter prefix; a fragment appended to a
-    /// stem does not, and taking it there would spell an interior underscore the repository's
-    /// format pass rewrites out of the declaration without renaming the file it was written to.
+    /// A whole name that opens with a digit needs the Value prefix; a fragment appended to a
+    /// non-empty stem does not.
     /// </summary>
     [Test]
     [Arguments("0", "Value0", "0")]

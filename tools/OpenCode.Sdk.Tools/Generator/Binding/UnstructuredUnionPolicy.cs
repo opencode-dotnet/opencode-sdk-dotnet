@@ -15,7 +15,7 @@ internal static class UnstructuredUnionPolicy
     {
         ArgumentNullException.ThrowIfNull(union);
 
-        var kinds = union.Branches.Select(branch => PrimitiveKindOf(branch, graph, [])).ToArray();
+        var kinds = union.Branches.Select(branch => PrimitiveKindOf(branch, graph)).ToArray();
         if (kinds.Length > 1 && kinds[0] is { } first && Array.TrueForAll(kinds, kind => kind == first))
         {
             return new PrimitiveNode
@@ -31,12 +31,11 @@ internal static class UnstructuredUnionPolicy
             : null;
     }
 
-    private static PrimitiveKind? PrimitiveKindOf(SchemaNode branch, IReadOnlyDictionary<string, SchemaNode>? graph, HashSet<string> visited)
+    private static PrimitiveKind? PrimitiveKindOf(SchemaNode branch, IReadOnlyDictionary<string, SchemaNode>? graph)
     {
-        if (branch is RefNode reference && graph is not null && visited.Add(reference.Target)
-            && graph.TryGetValue(reference.Target, out var target))
+        if (graph is not null)
         {
-            return PrimitiveKindOf(target, graph, visited);
+            branch = RefChain.Resolve(branch, graph).Node;
         }
 
         return branch switch

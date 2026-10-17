@@ -14,18 +14,13 @@ internal sealed class UnionNormalizer
         "-Infinity",
     };
 
-    private readonly GraphKeyBuilder _keys;
-    private readonly LiteralClassifier _literalClassifier;
     private readonly SchemaProjector _schemaProjector;
     private readonly SchemaShapeClassifier _shapeClassifier;
 
-    public UnionNormalizer(SchemaProjector schemaProjector, GraphKeyBuilder keys, SchemaShapeClassifier shapeClassifier,
-        LiteralClassifier literalClassifier)
+    public UnionNormalizer(SchemaProjector schemaProjector, SchemaShapeClassifier shapeClassifier)
     {
         _schemaProjector = schemaProjector ?? throw new ArgumentNullException(nameof(schemaProjector));
-        _keys = keys ?? throw new ArgumentNullException(nameof(keys));
         _shapeClassifier = shapeClassifier ?? throw new ArgumentNullException(nameof(shapeClassifier));
-        _literalClassifier = literalClassifier ?? throw new ArgumentNullException(nameof(literalClassifier));
     }
 
     public SchemaNode? Project(OpenApiSchema schema, string root, string pointer, string location, ProjectionState state)
@@ -107,7 +102,7 @@ internal sealed class UnionNormalizer
         };
     }
 
-    private bool ValidateSpecialNumberBranches(IList<IOpenApiSchema> branches, string root, string pointer, string keyword, ProjectionState state)
+    private static bool ValidateSpecialNumberBranches(IList<IOpenApiSchema> branches, string root, string pointer, string keyword, ProjectionState state)
     {
         var errorCount = state.Errors.Count;
         for (var index = 0; index < branches.Count; index++)
@@ -117,7 +112,7 @@ internal sealed class UnionNormalizer
                 continue;
             }
 
-            var branchPointer = _keys.UnionBranch(pointer, keyword, index, marker: null);
+            var branchPointer = GraphKeyBuilder.UnionBranch(pointer, keyword, index, marker: null);
             SchemaWallPolicy.Check(branch, string.Concat(root, branchPointer), state.Errors);
             if (branch.AnyOf is not { Count: > 0 } nested)
             {
@@ -131,7 +126,7 @@ internal sealed class UnionNormalizer
                     continue;
                 }
 
-                var innerPointer = _keys.UnionBranch(branchPointer, "anyOf", innerIndex, marker: null);
+                var innerPointer = GraphKeyBuilder.UnionBranch(branchPointer, "anyOf", innerIndex, marker: null);
                 SchemaWallPolicy.Check(inner, string.Concat(root, innerPointer), state.Errors);
             }
         }
@@ -147,10 +142,10 @@ internal sealed class UnionNormalizer
         for (var index = 0; index < sourceBranches.Count; index++)
         {
             var source = sourceBranches[index];
-            var marker = _literalClassifier.FindFirstMarker(source);
-            var prefixMarker = marker is null ? _literalClassifier.FindFirstPrefixMarker(source) : null;
-            var isMarkedUnionReference = marker is null && IsMarkedUnionReference(source);
-            var branchPointer = _keys.UnionBranch(pointer, keyword, index, marker);
+            var marker = LiteralClassifier.FindFirstMarker(source);
+            var prefixMarker = marker is null ? LiteralClassifier.FindFirstPrefixMarker(source) : null;
+            var isMarkedUnionReference = marker is null && ReferencesMarkedUnion(source);
+            var branchPointer = GraphKeyBuilder.UnionBranch(pointer, keyword, index, marker);
             var branchLocation = string.Concat(root, branchPointer);
             if (source is OpenApiSchema { Type: JsonSchemaType.Null } concrete)
             {
@@ -187,11 +182,11 @@ internal sealed class UnionNormalizer
     /// of the referenced union is itself a marked object. The Binder validates that the
     /// nested variants contribute one uniform outer tag; this records only markedness.
     /// </summary>
-    private bool IsMarkedUnionReference(IOpenApiSchema source) =>
+    private static bool ReferencesMarkedUnion(IOpenApiSchema source) =>
         source is OpenApiSchemaReference { Target: OpenApiSchema target }
         && (IsPureAnyOfBranch(target) || IsPureOneOfBranch(target))
         && (target.AnyOf is { Count: > 1 } ? target.AnyOf : target.OneOf) is { Count: > 1 } nested
-        && nested.All(branch => _literalClassifier.FindFirstMarker(branch) is not null);
+        && nested.All(static branch => LiteralClassifier.FindFirstMarker(branch) is not null);
 
     /// <summary>The oneOf twin of <see cref="IsPureAnyOfBranch"/>; a nested marked union may use either keyword exclusively.</summary>
     private static bool IsPureOneOfBranch(OpenApiSchema schema) =>

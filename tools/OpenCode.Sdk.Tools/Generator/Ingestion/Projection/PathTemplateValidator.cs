@@ -2,11 +2,9 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
-internal sealed class PathTemplateValidator
+internal static class PathTemplateValidator
 {
-    private readonly StringComparer _comparer = StringComparer.Ordinal;
-
-    public void Check(string path, IReadOnlyList<SpecParameter> parameters, string location, IngestionErrorCollector errors)
+    public static void Check(string path, IReadOnlyList<SpecParameter> parameters, string location, IngestionErrorCollector errors)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(parameters);
@@ -17,14 +15,14 @@ internal sealed class PathTemplateValidator
         var declared = parameters
             .Where(static parameter => parameter.Location is SpecParameterLocation.Path)
             .Select(static parameter => parameter.Name)
-            .ToHashSet(_comparer);
+            .ToHashSet(StringComparer.Ordinal);
 
-        foreach (var token in tokens.Where(token => !declared.Contains(token)).Order(_comparer))
+        foreach (var token in tokens.Where(token => !declared.Contains(token)).Order(StringComparer.Ordinal))
         {
             errors.Add(location, $"path token '{token}' is not declared as a path parameter");
         }
 
-        foreach (var name in declared.Where(name => !tokens.Contains(name)).Order(_comparer))
+        foreach (var name in declared.Where(name => !tokens.Contains(name)).Order(StringComparer.Ordinal))
         {
             errors.Add(location, $"path parameter '{name}' is absent from the path template");
         }

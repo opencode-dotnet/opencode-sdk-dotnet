@@ -9,9 +9,9 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// duplicate. Container kinds without a rewrite rule pass through unchanged; a reference they
 /// might carry then dangles and fails reachability loudly.
 /// </summary>
-internal sealed class SchemaAliasApplier
+internal static class SchemaAliasApplier
 {
-    public SpecDocument Apply(SpecDocument document, StabilizeDuplicateCollapse collapse, IReadOnlyList<SchemaAlias> aliases)
+    public static SpecDocument Apply(SpecDocument document, StabilizeDuplicateCollapse collapse, IReadOnlyList<SchemaAlias> aliases)
     {
         ArgumentNullException.ThrowIfNull(document);
 
@@ -58,7 +58,7 @@ internal sealed class SchemaAliasApplier
         return map;
     }
 
-    private SpecOperation RewriteOperation(SpecOperation operation, Fold map) =>
+    private static SpecOperation RewriteOperation(SpecOperation operation, Fold map) =>
         operation with
         {
             Parameters =
@@ -84,7 +84,7 @@ internal sealed class SchemaAliasApplier
             ],
         };
 
-    private SpecEffectStreamContract? RewriteEffectStream(SpecEffectStreamContract? contract, Fold map)
+    private static SpecEffectStreamContract? RewriteEffectStream(SpecEffectStreamContract? contract, Fold map)
     {
         if (contract is null)
         {
@@ -100,7 +100,7 @@ internal sealed class SchemaAliasApplier
         };
     }
 
-    private SchemaNode Rewrite(SchemaNode node, Fold map) => node switch
+    private static SchemaNode Rewrite(SchemaNode node, Fold map) => node switch
     {
         RefNode reference when map.Targets.TryGetValue(reference.Target, out var target) => reference with
         {
@@ -141,7 +141,7 @@ internal sealed class SchemaAliasApplier
     };
 
     /// <summary>Collapsed branches can duplicate a reference; the duplicates fold away mechanically.</summary>
-    private UnionNode RewriteUnion(UnionNode union, Fold map)
+    private static UnionNode RewriteUnion(UnionNode union, Fold map)
     {
         var branches = new List<SchemaNode>(union.Branches.Count);
         var seen = new HashSet<string>(StringComparer.Ordinal);

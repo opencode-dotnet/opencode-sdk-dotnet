@@ -7,11 +7,11 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 /// Any other shape classifies as no error, and the binder refuses it wherever an error response
 /// references it.
 /// </summary>
-internal sealed class ErrorStyleClassifier
+internal static class ErrorStyleClassifier
 {
     public const string WireName = "_tag";
 
-    public ErrorStyle Classify(IReadOnlyList<SpecProperty> properties)
+    public static ErrorStyle Classify(IReadOnlyList<SpecProperty> properties)
     {
         ArgumentNullException.ThrowIfNull(properties);
 

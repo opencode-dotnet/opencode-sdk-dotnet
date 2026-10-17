@@ -5,6 +5,14 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
 internal static class MediaTypeProjector
 {
+    internal static MediaTypeProjection? ProjectMediaEntry(KeyValuePair<string, IOpenApiMediaType> mediaEntry, string root, string pointer,
+        ProjectionState state, out string mediaPointer)
+    {
+        mediaPointer = GraphKeyBuilder.Append(GraphKeyBuilder.Append(pointer, "content"), mediaEntry.Key);
+        var mediaLocation = string.Concat(root, mediaPointer);
+        return Project(mediaEntry.Key, mediaEntry.Value, mediaLocation, state.Errors);
+    }
+
     public static MediaTypeProjection? Project(string raw, IOpenApiMediaType media, string location, IngestionErrorCollector errors)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(raw);

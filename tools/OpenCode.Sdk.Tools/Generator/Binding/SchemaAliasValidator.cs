@@ -12,11 +12,9 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// needs the collapse, which is why it is its own validator rather than a sixth check inside
 /// <see cref="CurationValidator"/>.
 /// </summary>
-internal sealed class SchemaAliasValidator
+internal static class SchemaAliasValidator
 {
-    private readonly StringComparer _comparer = StringComparer.Ordinal;
-
-    public void Validate(SpecDocument document, ReachableSchemaSet reachable, GenerationCuration curation,
+    public static void Validate(SpecDocument document, ReachableSchemaSet reachable, GenerationCuration curation,
         StabilizeDuplicateCollapse collapse, BindingErrorCollector errors)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -25,8 +23,8 @@ internal sealed class SchemaAliasValidator
         ArgumentNullException.ThrowIfNull(collapse);
         ArgumentNullException.ThrowIfNull(errors);
 
-        var reachableKeys = reachable.GraphKeys.ToHashSet(_comparer);
-        var sources = curation.SchemaAliases.Select(static row => row.Schema).ToHashSet(_comparer);
+        var reachableKeys = reachable.GraphKeys.ToHashSet(StringComparer.Ordinal);
+        var sources = curation.SchemaAliases.Select(static row => row.Schema).ToHashSet(StringComparer.Ordinal);
         // Identity is judged on the graph as it will be bound, so one alias can be what makes
         // a second pair identical — the mechanical collapse included.
         // A duplicated source is refused by the row contract; Compose tolerates it.

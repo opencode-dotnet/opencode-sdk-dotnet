@@ -20,15 +20,16 @@ internal static class QueryParameterCurationValidator
         ArgumentNullException.ThrowIfNull(curation);
         ArgumentNullException.ThrowIfNull(errors);
 
-        var documentIds = document.Operations.Select(static operation => operation.OperationId).ToHashSet(StringComparer.Ordinal);
-        var operations = selected.ToDictionary(static operation => operation.OperationId, StringComparer.Ordinal);
+        var context = new QueryParameterValidationContext(document,
+            document.Operations.Select(static operation => operation.OperationId).ToHashSet(StringComparer.Ordinal),
+            selected.ToDictionary(static operation => operation.OperationId, StringComparer.Ordinal), errors);
         var typed = new HashSet<string>(StringComparer.Ordinal);
         foreach (var row in curation.QueryParameterTypes)
         {
             var subject = row.OperationId + ":" + row.Parameter;
             _ = typed.Add(subject);
 
-            ValidateSubject(document, documentIds, operations, row.OperationId, row.Parameter, subject, errors);
+            ValidateSubject(context, row.OperationId, row.Parameter, subject);
             ValidateTypedRow(row, subject, errors);
         }
 
@@ -41,7 +42,7 @@ internal static class QueryParameterCurationValidator
                     "the query parameter is classified twice: a queryParameterTypes row types it, so its stringQueryParameters row must go");
             }
 
-            ValidateSubject(document, documentIds, operations, row.OperationId, row.Parameter, subject, errors);
+            ValidateSubject(context, row.OperationId, row.Parameter, subject);
         }
     }
 
@@ -60,13 +61,12 @@ internal static class QueryParameterCurationValidator
         }
     }
 
-    private static void ValidateSubject(SpecDocument document, HashSet<string> documentIds,
-        Dictionary<string, SpecOperation> operations, string operationId, string parameterName, string subject,
-        BindingErrorCollector errors)
+    private static void ValidateSubject(QueryParameterValidationContext context, string operationId, string parameterName, string subject)
     {
-        if (!operations.TryGetValue(operationId, out var operation))
+        var errors = context.Errors;
+        if (!context.Operations.TryGetValue(operationId, out var operation))
         {
-            errors.Add(BindingErrorCategory.Curation, subject, documentIds.Contains(operationId)
+            errors.Add(BindingErrorCategory.Curation, subject, context.DocumentIds.Contains(operationId)
                 ? "curated operation is not selected by the current profile"
                 : "the operation no longer exists in the document; remove this row");
             return;
@@ -80,7 +80,7 @@ internal static class QueryParameterCurationValidator
             return;
         }
 
-        switch (ResolveValue(document, parameter.Schema))
+        switch (ResolveValue(context.Document, parameter.Schema))
         {
             case PrimitiveNode { Kind: PrimitiveKind.String, Format: null }:
                 return;
@@ -98,7 +98,10 @@ internal static class QueryParameterCurationValidator
     /// <summary>Follows references and one nullable wrapper to the value a query parameter carries, as the binder does.</summary>
     private static SchemaNode ResolveValue(SpecDocument document, SchemaNode schema)
     {
-        var resolved = OperationFacetContext.Resolve(document, schema);
-        return resolved is NullableNode { Format: null } nullable ? OperationFacetContext.Resolve(document, nullable.Inner) : resolved;
+        var resolved = RefChain.Resolve(schema, document.Schemas).Node;
+        return resolved is NullableNode { Format: null } nullable ? RefChain.Resolve(nullable.Inner, document.Schemas).Node : resolved;
     }
+
+    private sealed record QueryParameterValidationContext(SpecDocument Document, IReadOnlySet<string> DocumentIds,
+        IReadOnlyDictionary<string, SpecOperation> Operations, BindingErrorCollector Errors);
 }

@@ -6,25 +6,19 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
 internal sealed class SchemaProjector
 {
-    private readonly GraphKeyBuilder _keys;
-    private readonly EnumSchemaProjector _enumProjector;
     private readonly JsonStringSchemaProjector _jsonStringProjector;
-    private readonly LiteralClassifier _literalClassifier;
     private readonly ObjectSchemaProjector _objectProjector;
     private readonly PrefixItemsAdapter _prefixItemsAdapter;
     private readonly UnionNormalizer _unionNormalizer;
     private readonly SchemaShapeClassifier _shapeClassifier;
 
-    public SchemaProjector(GraphKeyBuilder keys)
+    public SchemaProjector()
     {
-        _keys = keys ?? throw new ArgumentNullException(nameof(keys));
         _shapeClassifier = new SchemaShapeClassifier();
-        _enumProjector = new EnumSchemaProjector();
-        _literalClassifier = new LiteralClassifier();
-        _jsonStringProjector = new JsonStringSchemaProjector(this, _keys);
-        _objectProjector = new ObjectSchemaProjector(this, _keys, new ErrorStyleClassifier());
-        _unionNormalizer = new UnionNormalizer(this, _keys, _shapeClassifier, _literalClassifier);
-        _prefixItemsAdapter = new PrefixItemsAdapter(this, _keys);
+        _jsonStringProjector = new JsonStringSchemaProjector(this);
+        _objectProjector = new ObjectSchemaProjector(this);
+        _unionNormalizer = new UnionNormalizer(this, _shapeClassifier);
+        _prefixItemsAdapter = new PrefixItemsAdapter(this);
     }
 
     public SchemaNode? Project(IOpenApiSchema schema, string root, string pointer, ProjectionState state)
@@ -78,8 +72,8 @@ internal sealed class SchemaProjector
             (CoreSchemaShape.Primitive, JsonSchemaType.Boolean) => CreatePrimitive(schema, PrimitiveKind.Boolean),
             (CoreSchemaShape.Array, _) => ProjectArray(schema, root, pointer, state),
             (CoreSchemaShape.Object, _) => _objectProjector.Project(schema, root, pointer, location, state),
-            (CoreSchemaShape.Enum, _) => _enumProjector.Project(schema, location, state.Errors),
-            (CoreSchemaShape.Literal, _) => _literalClassifier.Project(schema, location, state.Errors),
+            (CoreSchemaShape.Enum, _) => EnumSchemaProjector.Project(schema, location, state.Errors),
+            (CoreSchemaShape.Literal, _) => LiteralClassifier.Project(schema, location, state.Errors),
             (CoreSchemaShape.Union, _) => _unionNormalizer.Project(schema, root, pointer, location, state),
             (CoreSchemaShape.Null, _) => RefuseStandaloneNull(location, state),
             (CoreSchemaShape.Tuple, _) => _prefixItemsAdapter.Project(schema, root, pointer, location, state),
@@ -120,7 +114,12 @@ internal sealed class SchemaProjector
             };
         }
 
-        var item = Project(schema.Items, root, _keys.Append(pointer, "items"), state);
+        return ProjectArrayItems(schema, schema.Items, root, pointer, state);
+    }
+
+    internal ArrayNode? ProjectArrayItems(OpenApiSchema schema, IOpenApiSchema items, string root, string pointer, ProjectionState state)
+    {
+        var item = Project(items, root, GraphKeyBuilder.Append(pointer, "items"), state);
         return item is null
             ? null
             : new ArrayNode

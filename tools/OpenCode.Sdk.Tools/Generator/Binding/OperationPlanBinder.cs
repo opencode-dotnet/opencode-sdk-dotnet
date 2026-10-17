@@ -4,13 +4,11 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
-internal sealed class OperationPlanBinder
+internal static class OperationPlanBinder
 {
     private const string RootClientName = "OpenCodeClient";
 
-    private readonly StringComparer _comparer = StringComparer.Ordinal;
-
-    public IReadOnlyList<ClientPlan> Bind(SpecDocument document, IReadOnlyList<SpecOperation> selected,
+    public static IReadOnlyList<ClientPlan> Bind(SpecDocument document, IReadOnlyList<SpecOperation> selected,
         GenerationCuration curation, SchemaBindingResult schemas, BindingErrorCollector errors)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -22,7 +20,7 @@ internal sealed class OperationPlanBinder
         var typeNames = schemas.TypeNames;
         var typeBinder = new TypePlanBinder(document.Schemas, typeNames, errors);
         var bound = new List<BoundOperation>(selected.Count);
-        foreach (var operation in selected.OrderBy(static operation => operation.OperationId, _comparer))
+        foreach (var operation in selected.OrderBy(static operation => operation.OperationId, StringComparer.Ordinal))
         {
             var operationPlan = new SingleOperationBinder(new OperationFacetContext(document, operation, curation, typeNames, errors, typeBinder), schemas.ErrorUnion).Bind();
             if (operationPlan is not null)
@@ -41,12 +39,12 @@ internal sealed class OperationPlanBinder
         return clients;
     }
 
-    private List<ClientPlan> AssembleClients(List<BoundOperation> bound)
+    private static List<ClientPlan> AssembleClients(List<BoundOperation> bound)
     {
         var rootOperations = bound
             .Where(static operation => operation.Row.Placement is GroupPlacement.Root)
             .Select(static operation => operation.Plan)
-            .OrderBy(static plan => plan.MethodName, _comparer)
+            .OrderBy(static plan => plan.MethodName, StringComparer.Ordinal)
             .ToArray();
         var subClients = new List<ClientReferencePlan>();
         var clients = new List<ClientPlan>();
@@ -55,8 +53,8 @@ internal sealed class OperationPlanBinder
         // curation validator has already demanded identical handle declarations.
         foreach (var group in bound
                      .Where(static operation => operation.Row.Placement is GroupPlacement.Client)
-                     .GroupBy(static operation => operation.Row.ClientName!, _comparer)
-                     .OrderBy(static group => group.Key, _comparer))
+                     .GroupBy(static operation => operation.Row.ClientName!, StringComparer.Ordinal)
+                     .OrderBy(static group => group.Key, StringComparer.Ordinal))
         {
             var members = group.ToArray();
             var row = members[0].Row;
@@ -74,7 +72,7 @@ internal sealed class OperationPlanBinder
             Name = RootClientName,
             Namespace = GeneratedNamespace.Public,
             Role = ClientRole.Root,
-            SubClients = [.. subClients.OrderBy(static reference => reference.PropertyName, _comparer)],
+            SubClients = [.. subClients.OrderBy(static reference => reference.PropertyName, StringComparer.Ordinal)],
             Operations = rootOperations,
         });
 
@@ -95,16 +93,16 @@ internal sealed class OperationPlanBinder
     /// (ADR-0021): the public family name belongs to the hand-written door the root client
     /// keeps pointing at, so nothing generated may claim it.
     /// </summary>
-    private IEnumerable<ClientPlan> CreateGroupClients(IReadOnlyList<BoundOperation> group, GroupCuration row, string collectionName)
+    private static IEnumerable<ClientPlan> CreateGroupClients(IReadOnlyList<BoundOperation> group, GroupCuration row, string collectionName)
     {
         var handleOperations = group.Where(static operation => operation.IsHandleOperation).ToArray();
         var collectionOperations = group
             .Where(static operation => !operation.IsHandleOperation)
             .Select(static operation => operation.Plan)
-            .OrderBy(static plan => plan.MethodName, _comparer)
+            .OrderBy(static plan => plan.MethodName, StringComparer.Ordinal)
             .ToArray();
         var handleParameter = handleOperations
-            .OrderBy(static operation => operation.Plan.MethodName, _comparer)
+            .OrderBy(static operation => operation.Plan.MethodName, StringComparer.Ordinal)
             .SelectMany(static operation => operation.Plan.Parameters)
             .FirstOrDefault(static parameter => parameter.IsHandleParameter);
         var collectionTypeName = ClientTypeName(collectionName, row.Emission);
@@ -144,7 +142,7 @@ internal sealed class OperationPlanBinder
                 [
                     .. handleOperations
                         .Select(static operation => operation.Plan)
-                        .OrderBy(static plan => plan.MethodName, _comparer),
+                        .OrderBy(static plan => plan.MethodName, StringComparer.Ordinal),
                 ],
             };
         }
@@ -153,7 +151,7 @@ internal sealed class OperationPlanBinder
     private static string ClientTypeName(string familyName, EmissionMode emission) =>
         emission is EmissionMode.InternalRaw ? CSharpNamePolicy.ToRawClientName(familyName) : familyName;
 
-    private void CheckMemberCollisions(List<ClientPlan> clients, BindingErrorCollector errors)
+    private static void CheckMemberCollisions(List<ClientPlan> clients, BindingErrorCollector errors)
     {
         foreach (var client in clients)
         {
@@ -169,22 +167,22 @@ internal sealed class OperationPlanBinder
             }
 
             foreach (var member in members
-                         .GroupBy(static member => member, _comparer)
+                         .GroupBy(static member => member, StringComparer.Ordinal)
                          .Where(static member => member.Skip(1).Any())
-                         .OrderBy(static member => member.Key, _comparer))
+                         .OrderBy(static member => member.Key, StringComparer.Ordinal))
             {
                 errors.Add(BindingErrorCategory.Naming, client.Name, $"multiple members map to C# name '{member.Key}'");
             }
         }
     }
 
-    public IReadOnlySet<string> CheckTypeNameCollisions(GeneratedTypeNameInventory inventory, IReadOnlyList<ClientPlan> clients, BindingErrorCollector errors)
+    public static IReadOnlySet<string> CheckTypeNameCollisions(GeneratedTypeNameInventory inventory, IReadOnlyList<ClientPlan> clients, BindingErrorCollector errors)
     {
         ArgumentNullException.ThrowIfNull(inventory);
         ArgumentNullException.ThrowIfNull(clients);
         ArgumentNullException.ThrowIfNull(errors);
-        var refusedHoists = new HashSet<string>(_comparer);
-        var hoistedOwners = new HashSet<string>(_comparer);
+        var refusedHoists = new HashSet<string>(StringComparer.Ordinal);
+        var hoistedOwners = new HashSet<string>(StringComparer.Ordinal);
         foreach (var claim in inventory.Claims.Where(claim => claim.Role is GeneratedTypeNameInventory.ClaimRole.Hoisted
                      && (!hoistedOwners.Add(claim.Name) || inventory.OtherClaims(claim).Any(static other => other.Role is not GeneratedTypeNameInventory.ClaimRole.Hoisted))))
         {
@@ -197,7 +195,7 @@ internal sealed class OperationPlanBinder
         }
 
         // Spine names claim first, followed by models individually so a model/spine duplicate refuses.
-        var owners = new HashSet<string>(_comparer);
+        var owners = new HashSet<string>(StringComparer.Ordinal);
         owners.UnionWith(ReservedNamePolicy.SpineTypeNames);
         // Derived kit/adapter names reserve their declarations; their owning declaration reports duplicates.
         owners.UnionWith(inventory.Claims.Where(static claim => claim.Role is GeneratedTypeNameInventory.ClaimRole.Derived).Select(static claim => claim.Name));
@@ -227,9 +225,9 @@ internal sealed class OperationPlanBinder
             errors.Add(BindingErrorCategory.Naming, claim.Subject, problem);
         }
 
-        var derivedOwners = new HashSet<string>(ReservedNamePolicy.SpineTypeNames, _comparer);
+        var derivedOwners = new HashSet<string>(ReservedNamePolicy.SpineTypeNames, StringComparer.Ordinal);
         var responseNames = inventory.Claims.Where(static claim => claim.Role is GeneratedTypeNameInventory.ClaimRole.Response)
-            .ToDictionary(static claim => claim.Subject, static claim => claim.Name, _comparer);
+            .ToDictionary(static claim => claim.Subject, static claim => claim.Name, StringComparer.Ordinal);
         foreach (var claim in inventory.Claims.Where(claim => claim.Role is GeneratedTypeNameInventory.ClaimRole.Derived && !derivedOwners.Add(claim.Name)))
         {
             // Equal response declarations already refuse with their response-name diagnostic.
@@ -242,8 +240,8 @@ internal sealed class OperationPlanBinder
             errors.Add(BindingErrorCategory.Naming, claim.Subject, $"type name '{claim.Name}' collides with another generated type");
         }
 
-        var routeMembers = new HashSet<string>(_comparer);
-        var operations = clients.SelectMany(static client => client.Operations).OrderBy(static operation => operation.OperationId, _comparer).ToArray();
+        var routeMembers = new HashSet<string>(StringComparer.Ordinal);
+        var operations = clients.SelectMany(static client => client.Operations).OrderBy(static operation => operation.OperationId, StringComparer.Ordinal).ToArray();
         foreach (var operation in operations.Where(operation => !routeMembers.Add($"{operation.RouteContainerName}.{operation.RouteMemberName}")))
         {
             errors.Add(BindingErrorCategory.Naming, operation.OperationId,

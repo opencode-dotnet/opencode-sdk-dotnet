@@ -25,12 +25,10 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// ordinary curation and naming checks validate those rows after this policy resolves aliases. A
 /// row naming a candidate that folds is refused as redundant.
 /// </remarks>
-internal sealed class StabilizeDuplicatePolicy
+internal static class StabilizeDuplicatePolicy
 {
-    private readonly StringComparer _comparer = StringComparer.Ordinal;
-
     /// <summary>Resolves aliases and reports non-equivalent candidates without explicit names.</summary>
-    public StabilizeDuplicateCollapse Resolve(SpecDocument document, ReachableSchemaSet reachable,
+    public static StabilizeDuplicateCollapse Resolve(SpecDocument document, ReachableSchemaSet reachable,
         IReadOnlyList<SchemaNameCuration> schemaNames, BindingErrorCollector errors)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -44,8 +42,8 @@ internal sealed class StabilizeDuplicatePolicy
             return StabilizeDuplicateCollapse.Empty;
         }
 
-        var explicitlyNamed = schemaNames.Select(static row => row.Schema).ToHashSet(_comparer);
-        var responseRoots = reachable.ResponseRootKeys.ToHashSet(_comparer);
+        var explicitlyNamed = schemaNames.Select(static row => row.Schema).ToHashSet(StringComparer.Ordinal);
+        var responseRoots = reachable.ResponseRootKeys.ToHashSet(StringComparer.Ordinal);
         foreach (var (schema, baseKey) in ReduceToFixpoint(document, candidates))
         {
             // A reason-bearing name can preserve a distinct shape. The ordinary curation
@@ -67,7 +65,7 @@ internal sealed class StabilizeDuplicatePolicy
         // refresh that made the pair equivalent is the moment to retire it, so it is refused
         // rather than carried along silently (the schemaAliases validator treats a redundant
         // alias row the same way).
-        foreach (var (schema, baseKey) in candidates.OrderBy(static pair => pair.Key, _comparer))
+        foreach (var (schema, baseKey) in candidates.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
         {
             if (explicitlyNamed.Contains(schema))
             {
@@ -82,9 +80,9 @@ internal sealed class StabilizeDuplicatePolicy
     }
 
     /// <summary>Every reachable component spelled as a stabilize duplicate of a base the graph declares.</summary>
-    private Dictionary<string, string> CollectCandidates(SpecDocument document, ReachableSchemaSet reachable)
+    private static Dictionary<string, string> CollectCandidates(SpecDocument document, ReachableSchemaSet reachable)
     {
-        var candidates = new Dictionary<string, string>(_comparer);
+        var candidates = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var key in reachable.GraphKeys)
         {
             if (TryGetStabilizeBase(key, out var baseKey)
@@ -103,7 +101,7 @@ internal sealed class StabilizeDuplicatePolicy
     /// Drops every candidate that is not deeply equal to its base under the surviving map and
     /// repeats until nothing drops, so a refusal cascades into the pairs that leaned on it.
     /// </summary>
-    private IReadOnlyList<KeyValuePair<string, string>> ReduceToFixpoint(SpecDocument document,
+    private static IReadOnlyList<KeyValuePair<string, string>> ReduceToFixpoint(SpecDocument document,
         Dictionary<string, string> candidates)
     {
         var refused = new List<KeyValuePair<string, string>>();
@@ -111,7 +109,7 @@ internal sealed class StabilizeDuplicatePolicy
         do
         {
             dropped = false;
-            foreach (var candidate in candidates.OrderBy(static pair => pair.Key, _comparer).ToArray())
+            foreach (var candidate in candidates.OrderBy(static pair => pair.Key, StringComparer.Ordinal).ToArray())
             {
                 if (IsSpellingOfBase(document, candidate, candidates))
                 {
@@ -125,7 +123,7 @@ internal sealed class StabilizeDuplicatePolicy
         }
         while (dropped);
 
-        return [.. refused.OrderBy(static pair => pair.Key, _comparer)];
+        return [.. refused.OrderBy(static pair => pair.Key, StringComparer.Ordinal)];
     }
 
     private static bool IsSpellingOfBase(SpecDocument document, KeyValuePair<string, string> candidate,

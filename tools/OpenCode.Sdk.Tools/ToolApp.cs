@@ -39,18 +39,6 @@ public static class ToolApp
         services.AddSingleton<ISpecIngestion, SpecIngestion>();
         services.AddSingleton<OperationSelectionLoader>();
         services.AddSingleton<CurationLoader>();
-        services.AddSingleton<ReachableSchemaCollector>();
-        services.AddSingleton<StabilizeDuplicatePolicy>();
-        services.AddSingleton<CurationValidator>();
-        services.AddSingleton<SchemaAliasValidator>();
-        services.AddSingleton<SchemaAliasApplier>();
-        services.AddSingleton<SchemaNameResolver>();
-        services.AddSingleton<StructuralUnionPlanBinder>();
-        services.AddSingleton<UnionMembershipValidator>();
-        services.AddSingleton<UnionDiscriminatorSelector>();
-        services.AddSingleton<UnionMemberHoistBinder>();
-        services.AddSingleton<SchemaPlanBinder>();
-        services.AddSingleton<OperationPlanBinder>();
         services.AddSingleton<ISpecBinder, SpecBinder>();
         services.AddSingleton<PendingOperationBindabilityProbe>();
         services.AddSingleton<IProjectFormatter, CliWrapProjectFormatter>();

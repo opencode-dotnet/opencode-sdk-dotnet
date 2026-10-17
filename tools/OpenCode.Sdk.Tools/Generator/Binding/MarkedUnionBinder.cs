@@ -3,11 +3,10 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
-internal sealed class MarkedUnionBinder(SchemaBindingContext context, UnionDiscriminatorSelector discriminators)
+internal sealed class MarkedUnionBinder(SchemaBindingContext context)
 {
     private static readonly IReadOnlyList<PrefixMarker> NoPrefixMarkers = [];
     private readonly SchemaBindingContext _context = context;
-    private readonly UnionDiscriminatorSelector _discriminators = discriminators;
 
     public UnionBindingResult Bind(string key, string name, UnionNode union)
     {
@@ -24,7 +23,7 @@ internal sealed class MarkedUnionBinder(SchemaBindingContext context, UnionDiscr
             return null;
         }
 
-        var discriminator = _discriminators.Select(resolved);
+        var discriminator = UnionDiscriminatorSelector.Select(resolved);
         if (discriminator is null)
         {
             _context.Errors.Add(BindingErrorCategory.Schema, key, "marked union branches share no discriminating marker property");
@@ -288,7 +287,7 @@ internal sealed class MarkedUnionBinder(SchemaBindingContext context, UnionDiscr
                 IsNestedUnion: false, reference.Target, _context.Inhabitation.IsInhabited(leaf)));
         }
 
-        var arms = leaves.Count is 0 ? null : _discriminators.Select(leaves)?.PrefixBranches;
+        var arms = leaves.Count is 0 ? null : UnionDiscriminatorSelector.Select(leaves)?.PrefixBranches;
         return arms is { Count: > 0 } ? arms[0].TypeName : null;
     }
 

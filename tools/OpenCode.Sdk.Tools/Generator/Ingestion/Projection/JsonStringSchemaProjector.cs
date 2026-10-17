@@ -5,13 +5,11 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
 internal sealed class JsonStringSchemaProjector
 {
-    private readonly GraphKeyBuilder _keys;
     private readonly SchemaProjector _schemaProjector;
 
-    public JsonStringSchemaProjector(SchemaProjector schemaProjector, GraphKeyBuilder keys)
+    public JsonStringSchemaProjector(SchemaProjector schemaProjector)
     {
         _schemaProjector = schemaProjector ?? throw new ArgumentNullException(nameof(schemaProjector));
-        _keys = keys ?? throw new ArgumentNullException(nameof(keys));
     }
 
     public JsonStringNode? Project(OpenApiSchema schema, string root, string pointer, string location, ProjectionState state)
@@ -24,7 +22,7 @@ internal sealed class JsonStringSchemaProjector
 
         if (!string.Equals(schema.ContentMediaType, "application/json", StringComparison.Ordinal))
         {
-            state.Errors.Add(string.Concat(root, _keys.Append(pointer, "contentMediaType")), "contentMediaType must be 'application/json'");
+            state.Errors.Add(string.Concat(root, GraphKeyBuilder.Append(pointer, "contentMediaType")), "contentMediaType must be 'application/json'");
             return null;
         }
 
@@ -34,7 +32,7 @@ internal sealed class JsonStringSchemaProjector
             return null;
         }
 
-        var inner = _schemaProjector.Project(schema.ContentSchema, root, _keys.Append(pointer, "contentSchema"), state);
+        var inner = _schemaProjector.Project(schema.ContentSchema, root, GraphKeyBuilder.Append(pointer, "contentSchema"), state);
         return inner is null
             ? null
             : new JsonStringNode

@@ -7,20 +7,17 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
 internal sealed class OperationProjector
 {
-    private readonly GraphKeyBuilder _keys;
     private readonly ParameterProjector _parameters;
-    private readonly PathTemplateValidator _pathTemplates = new();
     private readonly RequestBodyProjector _requestBodies;
     private readonly ResponseProjector _responses;
 
-    public OperationProjector(SchemaProjector schemaProjector, GraphKeyBuilder keys)
+    public OperationProjector(SchemaProjector schemaProjector)
     {
         ArgumentNullException.ThrowIfNull(schemaProjector);
-        _keys = keys ?? throw new ArgumentNullException(nameof(keys));
 
-        _parameters = new ParameterProjector(schemaProjector, keys);
-        _requestBodies = new RequestBodyProjector(schemaProjector, keys);
-        _responses = new ResponseProjector(schemaProjector, keys, new EnvelopeClassifier());
+        _parameters = new ParameterProjector(schemaProjector);
+        _requestBodies = new RequestBodyProjector(schemaProjector);
+        _responses = new ResponseProjector(schemaProjector, new EnvelopeClassifier());
     }
 
     public IReadOnlyList<SpecOperation> Project(LoadedSpec loaded, ProjectionState state,
@@ -122,9 +119,9 @@ internal sealed class OperationProjector
             return;
         }
 
-        var root = _keys.Root($"op:{operationId}");
+        var root = GraphKeyBuilder.Root($"op:{operationId}");
         var parameters = _parameters.Project(operation, rawOperation, root, context.State);
-        _pathTemplates.Check(path, parameters, location, context.State.Errors);
+        PathTemplateValidator.Check(path, parameters, location, context.State.Errors);
         var requestBody = _requestBodies.Project(operation.RequestBody, root, context.State);
         var responses = _responses.Project(operation.Responses, root, context.State);
         if (context.State.Errors.Count != operationErrorCount)

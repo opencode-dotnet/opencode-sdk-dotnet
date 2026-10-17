@@ -7,13 +7,11 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
 internal sealed class ParameterProjector
 {
-    private readonly GraphKeyBuilder _keys;
     private readonly SchemaProjector _schemaProjector;
 
-    public ParameterProjector(SchemaProjector schemaProjector, GraphKeyBuilder keys)
+    public ParameterProjector(SchemaProjector schemaProjector)
     {
         _schemaProjector = schemaProjector ?? throw new ArgumentNullException(nameof(schemaProjector));
-        _keys = keys ?? throw new ArgumentNullException(nameof(keys));
     }
 
     public IReadOnlyList<SpecParameter> Project(OpenApiOperation operation, JsonObject rawOperation, string root, ProjectionState state)
@@ -38,7 +36,7 @@ internal sealed class ParameterProjector
         var identities = new HashSet<(string Name, ParameterLocation Location)>();
         for (var index = 0; index < parameters.Count; index++)
         {
-            var pointer = _keys.Append(_keys.Append(string.Empty, "parameters"), index.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            var pointer = GraphKeyBuilder.Append(GraphKeyBuilder.Append(string.Empty, "parameters"), index.ToString(System.Globalization.CultureInfo.InvariantCulture));
             var location = string.Concat(root, pointer);
             if (rawParameters[index] is not JsonObject rawParameter)
             {
@@ -70,7 +68,7 @@ internal sealed class ParameterProjector
                 continue;
             }
 
-            var schema = _schemaProjector.Project(parameter.Schema, root, _keys.Append(pointer, "schema"), state);
+            var schema = _schemaProjector.Project(parameter.Schema, root, GraphKeyBuilder.Append(pointer, "schema"), state);
             if (schema is null || state.Errors.Count != errorCount)
             {
                 continue;

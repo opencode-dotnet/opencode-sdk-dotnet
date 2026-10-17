@@ -118,7 +118,7 @@ public sealed class LiteralClassifierTests
             .Property("later", property => property.Type("string").Pattern("^x\\.[\\s\\S]*?$"))));
         var schema = await SchemaProjectionTestHost.LoadSchemaAsync(scenario, "Event");
 
-        var marker = new LiteralClassifier().FindFirstPrefixMarker(schema);
+        var marker = LiteralClassifier.FindFirstPrefixMarker(schema);
 
         await Assert.That(marker).IsNotNull();
         await Assert.That(marker.PropertyName).IsEqualTo("type");

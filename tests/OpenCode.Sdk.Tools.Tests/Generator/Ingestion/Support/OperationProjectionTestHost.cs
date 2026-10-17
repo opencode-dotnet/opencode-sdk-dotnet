@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Ingestion.Support;
 
 internal sealed class OperationProjectionTestHost
 {
-    private readonly GraphKeyBuilder _keys = new();
+    private readonly SchemaProjector _schemas = new();
 
     public async Task<OperationProjectionResult> ProjectAsync(SpecScenario scenario,
         IReadOnlyDictionary<string, string>? operationIdentities = null)
@@ -34,17 +34,16 @@ internal sealed class OperationProjectionTestHost
         var errors = new IngestionErrorCollector();
         try
         {
-            var loaded = await new SpecReader(context.FileSystem).LoadAsync(context.SpecPath, errors, CancellationToken.None);
-            var schemaProjector = new SchemaProjector(_keys);
+            var loaded = await SchemaProjectionTestHost.LoadAsync(context, errors);
             var state = new ProjectionState(errors, loaded.Document);
-            var operations = new OperationProjector(schemaProjector, _keys)
+            var operations = new OperationProjector(_schemas)
                 .Project(loaded, state, operationIdentities ?? new Dictionary<string, string>(StringComparer.Ordinal));
 
             if (loaded.Document.Components?.Schemas is not null)
             {
                 foreach (var (name, schema) in loaded.Document.Components.Schemas)
                 {
-                    _ = schemaProjector.Project(schema, _keys.Root(name), string.Empty, state);
+                    _ = _schemas.Project(schema, GraphKeyBuilder.Root(name), string.Empty, state);
                 }
             }
 

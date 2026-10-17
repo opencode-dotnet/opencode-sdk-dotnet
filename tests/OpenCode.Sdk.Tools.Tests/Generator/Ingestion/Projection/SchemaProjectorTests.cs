@@ -314,8 +314,7 @@ public sealed class SchemaProjectorTests
         var context = scenario.Build();
         var errors = new IngestionErrorCollector();
         var loaded = await new SpecReader(context.FileSystem).LoadAsync(context.SpecPath, errors, CancellationToken.None);
-        var keys = new GraphKeyBuilder();
-        var projector = new SchemaProjector(keys);
+        var projector = new SchemaProjector();
         var state = new ProjectionState(errors, loaded.Document);
 
         _ = projector.Project(loaded.Document.Components!.Schemas!["First"], "Shared", "/value", state);

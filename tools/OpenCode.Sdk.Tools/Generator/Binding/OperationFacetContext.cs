@@ -6,7 +6,7 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// <summary>
 /// Read-only per-operation state shared by the facet binders: the ingested document, the
 /// operation under bind, its curation, the resolved type-name map, and the error batch.
-/// It also owns the one ref-graph <see cref="Resolve(SchemaNode)"/> and the refusal helpers, so every
+/// It also provides reference resolution and refusal helpers, so every
 /// facet attributes its refusals to the same operation identically.
 /// </summary>
 internal sealed class OperationFacetContext(
@@ -71,21 +71,5 @@ internal sealed class OperationFacetContext(
         return null;
     }
 
-    public SchemaNode Resolve(SchemaNode schema) => Resolve(Document, schema);
-
-    /// <summary>Follows a reference chain through the document's components to the schema it ends at; a cycle or a missing target stops it.</summary>
-    public static SchemaNode Resolve(SpecDocument document, SchemaNode schema)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-
-        var visited = new HashSet<string>(StringComparer.Ordinal);
-        var current = schema;
-        while (current is RefNode reference && visited.Add(reference.Target)
-                                            && document.Schemas.TryGetValue(reference.Target, out var target))
-        {
-            current = target;
-        }
-
-        return current;
-    }
+    public SchemaNode Resolve(SchemaNode schema) => RefChain.Resolve(schema, Document.Schemas).Node;
 }

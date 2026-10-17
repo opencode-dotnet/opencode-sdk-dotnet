@@ -30,12 +30,8 @@ internal static class CSharpNamePolicy
 
     /// <summary>
     /// Pascal-cases a fragment that is appended to a non-empty stem — a JSON pointer segment, and
-    /// above all a promoted union branch's ordinal. A leading digit needs no identifier guard in
-    /// that position, and applying <see cref="ToPascalCase"/>'s guard would instead place an
-    /// interior underscore inside the finished name. That spelling does not survive: the
-    /// post-generation format pass rewrites it (IDE1006, and Sonar S101 reports it with no fix),
-    /// which renames the declared type without renaming the file the emitter wrote it to, so the
-    /// generated tree fails MA0048 rather than merely looking unusual.
+    /// above all a promoted union branch's ordinal. A leading digit in that position needs no
+    /// Value prefix, unlike the whole identifier that <see cref="ToPascalCase"/> produces.
     /// </summary>
     public static string ToPascalCaseFragment(string wireName) => PascalWords(wireName);
 

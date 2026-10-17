@@ -31,17 +31,16 @@ internal sealed class SpecIngestion : ISpecIngestion
         var errors = new IngestionErrorCollector();
         var loaded = await _reader.LoadAsync(specPath, errors, cancellationToken).ConfigureAwait(false);
 
-        var keys = new GraphKeyBuilder();
-        var schemaProjector = new SchemaProjector(keys);
+        var schemaProjector = new SchemaProjector();
         var state = new ProjectionState(errors, loaded.Document);
-        var operationProjector = new OperationProjector(schemaProjector, keys);
+        var operationProjector = new OperationProjector(schemaProjector);
 
         var operations = operationProjector.Project(loaded, state, operationIdentities);
         if (loaded.Document.Components?.Schemas is { } namedSchemas)
         {
             foreach (var (name, schema) in namedSchemas)
             {
-                _ = schemaProjector.Project(schema, keys.Root(name), string.Empty, state);
+                _ = schemaProjector.Project(schema, GraphKeyBuilder.Root(name), string.Empty, state);
             }
         }
 

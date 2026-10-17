@@ -69,7 +69,7 @@ public sealed class PendingOperationBindabilityProbeTests
         await Assert.That(marks.Count).IsEqualTo(1);
         await Assert.That(marks[0].OperationId).IsEqualTo("widget.connect");
         await Assert.That(marks[0].IsBindable).IsFalse();
-        await Assert.That(marks[0].RefusalMessage).IsEqualTo("WebSocket operations are not supported in M1");
+        await Assert.That(marks[0].RefusalMessage).IsEqualTo("WebSocket operations are not supported");
     }
 
     [Test]
@@ -83,7 +83,7 @@ public sealed class PendingOperationBindabilityProbeTests
         await Assert.That(marks.Count).IsEqualTo(1);
         await Assert.That(marks[0].IsBindable).IsFalse();
         await Assert.That(marks[0].RefusalMessage).IsEqualTo(
-            "WebSocket operations are not supported in M1; PUT operations must carry a request body");
+            "WebSocket operations are not supported; PUT operations must carry a request body");
     }
 
     [Test]

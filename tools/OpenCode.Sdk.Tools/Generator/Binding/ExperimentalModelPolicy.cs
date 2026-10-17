@@ -9,10 +9,9 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// </summary>
 internal static class ExperimentalModelPolicy
 {
-    public static IReadOnlyDictionary<string, string> Collect(ReachableSchemaCollector reachableSchemas, ReachScope scope,
+    public static IReadOnlyDictionary<string, string> Collect(ReachScope scope,
         OwnershipCandidates candidates, GeneratedTypeNameInventory inventory, BindingErrorCollector errors)
     {
-        ArgumentNullException.ThrowIfNull(reachableSchemas);
         ArgumentNullException.ThrowIfNull(scope);
         ArgumentNullException.ThrowIfNull(candidates);
         ArgumentNullException.ThrowIfNull(inventory);
@@ -20,14 +19,14 @@ internal static class ExperimentalModelPolicy
 
         var diagnostics = scope.Clients.SelectMany(static client => client.Operations)
             .ToDictionary(static operation => operation.OperationId, static operation => operation.ExperimentalDiagnostic, StringComparer.Ordinal);
-        var stable = ModelReachCollector.CollectSubset(reachableSchemas,
+        var stable = ModelReachCollector.CollectSubset(
             scope with { Selected = [.. scope.Selected.Where(static operation => !ExperimentalRoutePolicy.IsExperimental(operation.Path))] },
             candidates, errors);
         var reachedBy = new Dictionary<string, SortedSet<string>>(StringComparer.Ordinal);
         foreach (var subset in scope.Selected.Where(operation => diagnostics.GetValueOrDefault(operation.OperationId) is not null)
                      .GroupBy(operation => diagnostics[operation.OperationId]!, StringComparer.Ordinal))
         {
-            var reached = ModelReachCollector.CollectSubset(reachableSchemas, scope with { Selected = [.. subset] }, candidates, errors);
+            var reached = ModelReachCollector.CollectSubset(scope with { Selected = [.. subset] }, candidates, errors);
             foreach (var name in reached.Where(name => inventory.Names.Contains(name) && !stable.Contains(name)))
             {
                 if (!reachedBy.TryGetValue(name, out var ids))

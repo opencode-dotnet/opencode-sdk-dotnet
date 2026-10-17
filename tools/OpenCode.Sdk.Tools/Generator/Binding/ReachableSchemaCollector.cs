@@ -3,17 +3,15 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
-internal sealed class ReachableSchemaCollector
+internal static class ReachableSchemaCollector
 {
-    private readonly StringComparer _comparer = StringComparer.Ordinal;
-
-    public ReachableSchemaSet Collect(SpecDocument document, IReadOnlyList<SpecOperation> operations, BindingErrorCollector errors)
+    public static ReachableSchemaSet Collect(SpecDocument document, IReadOnlyList<SpecOperation> operations, BindingErrorCollector errors)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(operations);
         ArgumentNullException.ThrowIfNull(errors);
 
-        var traversal = new ReachabilityTraversal(document.Schemas, errors, _comparer);
+        var traversal = new ReachabilityTraversal(document.Schemas, errors);
         foreach (var operation in operations)
         {
             foreach (var parameter in operation.Parameters)
@@ -52,14 +50,13 @@ internal sealed class ReachableSchemaCollector
         };
     }
 
-    private sealed class ReachabilityTraversal(IReadOnlyDictionary<string, SchemaNode> graph, BindingErrorCollector errors, StringComparer comparer)
+    private sealed class ReachabilityTraversal(IReadOnlyDictionary<string, SchemaNode> graph, BindingErrorCollector errors)
     {
-        private readonly StringComparer _comparer = comparer ?? throw new ArgumentNullException(nameof(comparer));
         private readonly BindingErrorCollector _errors = errors ?? throw new ArgumentNullException(nameof(errors));
         private readonly IReadOnlyDictionary<string, SchemaNode> _graph = graph ?? throw new ArgumentNullException(nameof(graph));
-        private readonly HashSet<string> _keys = new(comparer);
-        private readonly HashSet<string> _responseRoots = new(comparer);
-        private readonly HashSet<string> _streamCauseKeys = new(comparer);
+        private readonly HashSet<string> _keys = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _responseRoots = new(StringComparer.Ordinal);
+        private readonly HashSet<string> _streamCauseKeys = new(StringComparer.Ordinal);
 
         public void VisitResponse(string operationId, SpecResponse response)
         {
@@ -192,9 +189,9 @@ internal sealed class ReachableSchemaCollector
         public ReachableSchemaSet Snapshot() =>
             new()
             {
-                GraphKeys = [.. _keys.Order(_comparer)],
-                ResponseRootKeys = [.. _responseRoots.Order(_comparer)],
-                StreamCauseKeys = [.. _streamCauseKeys.Order(_comparer)],
+                GraphKeys = [.. _keys.Order(StringComparer.Ordinal)],
+                ResponseRootKeys = [.. _responseRoots.Order(StringComparer.Ordinal)],
+                StreamCauseKeys = [.. _streamCauseKeys.Order(StringComparer.Ordinal)],
             };
 
         private void VisitReference(string target, bool isStreamCause)

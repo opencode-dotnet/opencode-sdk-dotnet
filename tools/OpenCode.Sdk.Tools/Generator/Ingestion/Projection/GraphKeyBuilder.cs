@@ -3,16 +3,16 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
-internal sealed class GraphKeyBuilder
+internal static class GraphKeyBuilder
 {
-    public string Root(string wireNameOrOpId)
+    public static string Root(string wireNameOrOpId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(wireNameOrOpId);
 
         return wireNameOrOpId;
     }
 
-    public string Append(string parentPointer, string segment)
+    public static string Append(string parentPointer, string segment)
     {
         ArgumentNullException.ThrowIfNull(parentPointer);
         ArgumentNullException.ThrowIfNull(segment);
@@ -24,7 +24,7 @@ internal sealed class GraphKeyBuilder
         return $"{parentPointer}/{escaped}";
     }
 
-    public string UnionBranch(string parentPointer, string keyword, int index, LiteralMarker? marker)
+    public static string UnionBranch(string parentPointer, string keyword, int index, LiteralMarker? marker)
     {
         ArgumentNullException.ThrowIfNull(parentPointer);
         ArgumentException.ThrowIfNullOrWhiteSpace(keyword);

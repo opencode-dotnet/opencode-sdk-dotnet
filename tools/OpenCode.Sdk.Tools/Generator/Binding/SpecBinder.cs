@@ -5,25 +5,8 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
-internal sealed class SpecBinder(
-    ReachableSchemaCollector reachableSchemas,
-    StabilizeDuplicatePolicy stabilizeDuplicates,
-    CurationValidator curationValidator,
-    SchemaAliasValidator schemaAliasValidator,
-    SchemaAliasApplier schemaAliases,
-    SchemaNameResolver schemaNames,
-    SchemaPlanBinder schemaPlans,
-    OperationPlanBinder operationPlans) : ISpecBinder
+internal sealed class SpecBinder : ISpecBinder
 {
-    private readonly CurationValidator _curationValidator = curationValidator ?? throw new ArgumentNullException(nameof(curationValidator));
-    private readonly OperationPlanBinder _operationPlans = operationPlans ?? throw new ArgumentNullException(nameof(operationPlans));
-    private readonly ReachableSchemaCollector _reachableSchemas = reachableSchemas ?? throw new ArgumentNullException(nameof(reachableSchemas));
-    private readonly SchemaAliasApplier _schemaAliases = schemaAliases ?? throw new ArgumentNullException(nameof(schemaAliases));
-    private readonly SchemaAliasValidator _schemaAliasValidator = schemaAliasValidator ?? throw new ArgumentNullException(nameof(schemaAliasValidator));
-    private readonly SchemaNameResolver _schemaNames = schemaNames ?? throw new ArgumentNullException(nameof(schemaNames));
-    private readonly SchemaPlanBinder _schemaPlans = schemaPlans ?? throw new ArgumentNullException(nameof(schemaPlans));
-    private readonly StabilizeDuplicatePolicy _stabilizeDuplicates = stabilizeDuplicates ?? throw new ArgumentNullException(nameof(stabilizeDuplicates));
-
     public EmitPlan Bind(SpecDocument document, OperationSelection selection, GenerationCuration curation)
     {
         ArgumentNullException.ThrowIfNull(document);
@@ -33,35 +16,36 @@ internal sealed class SpecBinder(
         var errors = new BindingErrorCollector();
         var operationsById = document.Operations.ToDictionary(static operation => operation.OperationId, StringComparer.Ordinal);
         var selected = SelectOperations(selection, operationsById, errors);
-        var reachable = _reachableSchemas.Collect(document, selected, errors);
+        var reachable = ReachableSchemaCollector.Collect(document, selected, errors);
         CurationRowContract.ValidateBeforeAliases(curation, errors);
         // Upstream stabilize's per-site duplicates collapse mechanically, ahead of curation:
         // curated rows are then judged against the graph as it will be bound, and a row that
         // repeats a mechanical fold is refused as redundant instead of shadowing it.
-        var collapse = _stabilizeDuplicates.Resolve(document, reachable, curation.SchemaNames, errors);
-        _curationValidator.Validate(document, selected, reachable, curation, errors);
-        _schemaAliasValidator.Validate(document, reachable, curation, collapse, errors);
+        var collapse = StabilizeDuplicatePolicy.Resolve(document, reachable, curation.SchemaNames, errors);
+        CurationValidator.Validate(document, selected, reachable, curation, errors);
+        SchemaAliasValidator.Validate(document, reachable, curation, collapse, errors);
 
         // Aliases are validated against the raw document above; the collapse happens before
         // names resolve so the rest of the pipeline never sees the duplicates. Reachability
         // recollects on the transformed document because an alias target's promoted inline
         // children only become reachable through the rewritten references.
-        var aliased = _schemaAliases.Apply(document, collapse, curation.SchemaAliases);
+        var aliased = SchemaAliasApplier.Apply(document, collapse, curation.SchemaAliases);
         if (!ReferenceEquals(aliased, document))
         {
             document = aliased;
             var aliasedById = document.Operations.ToDictionary(static operation => operation.OperationId, StringComparer.Ordinal);
             selected = Array.AsReadOnly([.. selected.Select(operation => aliasedById[operation.OperationId])]);
-            reachable = _reachableSchemas.Collect(document, selected, errors);
+            reachable = ReachableSchemaCollector.Collect(document, selected, errors);
         }
 
         CurationValidator.ValidateCollapsedSchemas(document, reachable, curation, collapse, errors);
 
         // Type names are resolved exactly once per bind; schema and operation binding
         // consume the same map so neither can reinterpret a schema under another name.
-        var typeNames = _schemaNames.Resolve(document, reachable, selected, curation, errors);
-        var schemaResult = _schemaPlans.Bind(document, reachable, curation, typeNames, errors);
-        var clients = _operationPlans.Bind(document, selected, curation, schemaResult, errors);
+        var typeNames = SchemaNameResolver.Resolve(document, reachable, selected, curation, errors);
+        var schemaContext = SchemaBindingContext.Create(document, reachable, typeNames, errors);
+        var schemaResult = new SchemaPlanBinder(schemaContext).Bind(curation);
+        var clients = OperationPlanBinder.Bind(document, selected, curation, schemaResult, errors);
         var candidates = new OwnershipCandidates
         {
             Models = schemaResult.Models,
@@ -69,22 +53,18 @@ internal sealed class SpecBinder(
             HoistedInterfaces = schemaResult.HoistedInterfaces,
         };
         var inventory = GeneratedTypeNameInventory.Create(candidates, clients, schemaResult.HoistedClaims, typeNames);
-        var refusedHoists = _operationPlans.CheckTypeNameCollisions(inventory, clients, errors);
+        var refusedHoists = OperationPlanBinder.CheckTypeNameCollisions(inventory, clients, errors);
         var pending = PendingOperations(document, selected, curation);
 
-        var models = AttachRequestQueryProperties(schemaResult.Models, clients, errors);
-        models = BindSessionScopedEvents(document, typeNames, schemaResult with { Models = models }, clients,
-            curation, SchemaAliasApplier.Compose(collapse, curation.SchemaAliases), errors);
-
-        var masked = SecretMemberPolicy.MaskUnknownPayloads(SecretMemberPolicy.Apply(models, curation, errors), schemaResult.Unions);
+        var masked = BindModelFacets(schemaContext, schemaResult, clients, curation, collapse);
         CheckDtoNameCollisions(inventory, errors);
         candidates = candidates with { Models = masked.Models, Unions = masked.Unions, HoistedInterfaces = [.. candidates.HoistedInterfaces.Where(plan => !refusedHoists.Contains(plan.Name))] };
         InternalNameCollisionCheck.Check(inventory, errors);
         // An unplaced model never refuses a bind: it is the generate command's wall, so the
         // pending-operation probe still judges bindability under its synthetic curation.
         var placement = ModelOwnershipPolicy.Place(candidates, clients, curation, errors);
-        var reach = ModelReachCollector.Collect(_reachableSchemas, new ReachScope(document, selected, clients, typeNames), candidates, errors);
-        var experimental = ExperimentalModelPolicy.Collect(_reachableSchemas, new ReachScope(document, selected, clients, typeNames), candidates, inventory, errors);
+        var reach = ModelReachCollector.Collect(new ReachScope(document, selected, clients, typeNames), candidates, errors);
+        var experimental = ExperimentalModelPolicy.Collect(new ReachScope(document, selected, clients, typeNames), candidates, inventory, errors);
         errors.ThrowIfAny();
         var plan = new EmitPlan
         {
@@ -104,6 +84,32 @@ internal sealed class SpecBinder(
         plan = DescriptionCurationBinder.Apply(WireDocumentationPolicy.Apply(plan), curation.Descriptions, errors);
         errors.ThrowIfAny();
         return plan;
+    }
+
+    /// <summary>Attaches operation-owned model properties and session-event roles before masking secret payloads.</summary>
+    private static UnknownPayloadMaskResult BindModelFacets(SchemaBindingContext context, SchemaBindingResult schemas,
+        IReadOnlyList<ClientPlan> clients, GenerationCuration curation, StabilizeDuplicateCollapse collapse)
+    {
+        var models = AttachRequestQueryProperties(schemas.Models, clients, context.Errors);
+        if (curation.SessionScopedEvent is { } row)
+        {
+            // The row's identifier is read through the same alias map the schemas were bound with,
+            // so a stabilized duplicate of the identifier schema is the identifier too.
+            var aliases = SchemaAliasApplier.Compose(collapse, curation.SchemaAliases);
+            var identifier = !string.IsNullOrWhiteSpace(row.Identifier) && aliases.TryGetValue(row.Identifier, out var target)
+                ? target
+                : row.Identifier;
+            models = SessionScopedEventBinder.Bind(new SessionScopedEventBindingContext
+            {
+                Document = context.Document,
+                TypeNames = context.TypeNames,
+                Schemas = schemas with { Models = models },
+                Clients = clients,
+                Row = row with { Identifier = identifier },
+            }, context.Errors);
+        }
+
+        return SecretMemberPolicy.MaskUnknownPayloads(SecretMemberPolicy.Apply(models, curation, context.Errors), schemas.Unions);
     }
 
     /// <summary>Declined operations retain their reviewed reasons in ordinal identity order.</summary>
@@ -148,33 +154,6 @@ internal sealed class SpecBinder(
     /// A merged operation's query properties ride its body model; the model plan gains
     /// them here because schema binding cannot see operation placement.
     /// </summary>
-    /// <summary>
-    /// Marks the session-scoped event records when the curation names the rule. The row's identifier
-    /// is read through the same alias map the schemas were bound with, so a stabilized duplicate of
-    /// the identifier schema is the identifier too.
-    /// </summary>
-    private static IReadOnlyList<ModelPlan> BindSessionScopedEvents(SpecDocument document,
-        IReadOnlyDictionary<string, string> typeNames, SchemaBindingResult schemas, IReadOnlyList<ClientPlan> clients,
-        GenerationCuration curation, IReadOnlyDictionary<string, string> aliases, BindingErrorCollector errors)
-    {
-        if (curation.SessionScopedEvent is not { } row)
-        {
-            return schemas.Models;
-        }
-
-        var identifier = !string.IsNullOrWhiteSpace(row.Identifier) && aliases.TryGetValue(row.Identifier, out var target)
-            ? target
-            : row.Identifier;
-        return SessionScopedEventBinder.Bind(new SessionScopedEventBindingContext
-        {
-            Document = document,
-            TypeNames = typeNames,
-            Schemas = schemas,
-            Clients = clients,
-            Row = row with { Identifier = identifier },
-        }, errors);
-    }
-
     private static IReadOnlyList<ModelPlan> AttachRequestQueryProperties(IReadOnlyList<ModelPlan> models,
         IReadOnlyList<ClientPlan> clients, BindingErrorCollector errors)
     {

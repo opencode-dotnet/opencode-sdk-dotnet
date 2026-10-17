@@ -4,35 +4,30 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
-internal sealed class StructuralUnionPlanBinder
+internal static class StructuralUnionPlanBinder
 {
-    private readonly StringComparer _comparer = StringComparer.Ordinal;
-
-    public StructuralUnionModelPlan? Bind(string key, string name, UnionNode union,
-        IReadOnlyDictionary<string, SchemaNode> graph, TypePlanBinder typeBinder, BindingErrorCollector errors)
+    public static StructuralUnionModelPlan? Bind(SchemaBindingContext context, string key, string name, UnionNode union)
     {
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(union);
-        ArgumentNullException.ThrowIfNull(graph);
-        ArgumentNullException.ThrowIfNull(typeBinder);
-        ArgumentNullException.ThrowIfNull(errors);
-
-        var scope = new ArmScope(key, typeBinder, errors);
-        var arms = new List<StructuralUnionArmPlan>(union.Branches.Count);
-        var claimedTokens = new HashSet<JsonTokenType>();
+        var graph = context.Document.Schemas;
+        var errors = context.Errors;
+        var scope = new ArmScope(key, context.Types, errors);
+        var arms = scope.Arms;
         var objectArms = new List<ObjectArm>();
         var inhabitableBranchCount = 0;
         foreach (var (branch, index) in union.Branches.Select(static (branch, index) => (branch, index)))
         {
-            var resolved = Resolve(branch, graph, []);
+            var resolved = RefChain.Resolve(branch, graph).Node;
             if (resolved is NeverNode)
             {
                 continue;
             }
 
             inhabitableBranchCount++;
-            var arm = BindArm(scope, branch, resolved, index, arms, claimedTokens, sharesObjectToken: objectArms.Count > 0);
+            var arm = BindArm(scope, branch, resolved, index, sharesObjectToken: objectArms.Count > 0);
             if (arm is null)
             {
                 continue;
@@ -44,7 +39,7 @@ internal sealed class StructuralUnionPlanBinder
             }
 
             arms.Add(arm);
-            claimedTokens.UnionWith(arm.Tokens);
+            scope.ClaimedTokens.UnionWith(arm.Tokens);
         }
 
         if (arms.Count < 2 || arms.Count != inhabitableBranchCount)
@@ -73,8 +68,8 @@ internal sealed class StructuralUnionPlanBinder
     /// a dictionary, a free-form object, a marked union - takes every object, so a neighbour
     /// there is ambiguous and stays refused.
     /// </summary>
-    private StructuralUnionArmPlan? BindArm(ArmScope scope, SchemaNode branch, SchemaNode resolved, int index,
-        IReadOnlyList<StructuralUnionArmPlan> arms, HashSet<JsonTokenType> claimedTokens, bool sharesObjectToken)
+    private static StructuralUnionArmPlan? BindArm(ArmScope scope, SchemaNode branch, SchemaNode resolved, int index,
+        bool sharesObjectToken)
     {
         var armNameSubject = index.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (!TryGetTokens(resolved, out var tokens))
@@ -87,13 +82,13 @@ internal sealed class StructuralUnionPlanBinder
         var firstMatch = resolved is ObjectNode && sharesObjectToken;
         var effective = firstMatch
             ? branch
-            : ResolveEffectiveBranch(branch, resolved, tokens, claimedTokens, scope.Key, index, scope.Errors);
+            : ResolveEffectiveBranch(scope, branch, resolved, tokens, index);
         if (effective is null)
         {
             return null;
         }
 
-        JsonTokenType[] effectiveTokens = firstMatch ? [.. tokens] : [.. tokens.Where(token => !claimedTokens.Contains(token))];
+        JsonTokenType[] effectiveTokens = firstMatch ? [.. tokens] : [.. tokens.Where(token => !scope.ClaimedTokens.Contains(token))];
         if (!ValidateSpecialNumberArm(resolved, effectiveTokens, scope.Key, scope.Errors))
         {
             return null;
@@ -106,7 +101,7 @@ internal sealed class StructuralUnionPlanBinder
         }
 
         var armName = ArmName(type);
-        return ValidateArmName(armName, arms, scope.Key, scope.Errors)
+        return ValidateArmName(armName, scope.Arms, scope.Key, scope.Errors)
             ? new StructuralUnionArmPlan { Name = armName, Type = type, Tokens = effectiveTokens }
             : null;
     }
@@ -176,7 +171,7 @@ internal sealed class StructuralUnionPlanBinder
         var valid = true;
         foreach (var property in objectArm.Node.Properties)
         {
-            switch (Resolve(property.Schema, graph, []))
+            switch (RefChain.Resolve(property.Schema, graph).Node)
             {
                 case LiteralNode { Kind: LiteralKind.Number }:
                     errors.Add(BindingErrorCategory.Schema, key, string.Create(
@@ -216,7 +211,11 @@ internal sealed class StructuralUnionPlanBinder
 
     private sealed record ObjectArm(int ArmIndex, int BranchIndex, ObjectNode Node);
 
-    private sealed record ArmScope(string Key, TypePlanBinder TypeBinder, BindingErrorCollector Errors);
+    private sealed record ArmScope(string Key, TypePlanBinder TypeBinder, BindingErrorCollector Errors)
+    {
+        public List<StructuralUnionArmPlan> Arms { get; } = [];
+        public HashSet<JsonTokenType> ClaimedTokens { get; } = [];
+    }
 
     private static StructuralUnionModelPlan CreatePlan(string name, UnionNode union,
         IReadOnlyList<StructuralUnionArmPlan> arms) =>
@@ -258,7 +257,7 @@ internal sealed class StructuralUnionPlanBinder
         return false;
     }
 
-    private bool ValidateArmName(string armName, IReadOnlyList<StructuralUnionArmPlan> arms, string key,
+    private static bool ValidateArmName(string armName, IReadOnlyList<StructuralUnionArmPlan> arms, string key,
         BindingErrorCollector errors)
     {
         if (armName is "Kind" or "Unknown")
@@ -268,7 +267,7 @@ internal sealed class StructuralUnionPlanBinder
             return false;
         }
 
-        if (!arms.Any(arm => _comparer.Equals(arm.Name, armName)))
+        if (!arms.Any(arm => StringComparer.Ordinal.Equals(arm.Name, armName)))
         {
             return true;
         }
@@ -278,17 +277,16 @@ internal sealed class StructuralUnionPlanBinder
         return false;
     }
 
-    private static SchemaNode? ResolveEffectiveBranch(SchemaNode original, SchemaNode resolved,
-        IReadOnlyList<JsonTokenType> tokens, HashSet<JsonTokenType> claimedTokens, string key, int index,
-        BindingErrorCollector errors)
+    private static SchemaNode? ResolveEffectiveBranch(ArmScope scope, SchemaNode original, SchemaNode resolved,
+        IReadOnlyList<JsonTokenType> tokens, int index)
     {
-        var overlap = tokens.Where(claimedTokens.Contains).ToArray();
+        var overlap = tokens.Where(scope.ClaimedTokens.Contains).ToArray();
         if (overlap.Length is 0)
         {
             return original;
         }
 
-        var remaining = tokens.Where(token => !claimedTokens.Contains(token)).ToArray();
+        var remaining = tokens.Where(token => !scope.ClaimedTokens.Contains(token)).ToArray();
         if (resolved is SpecialNumberNode
             && overlap is [JsonTokenType.String]
             && remaining is [JsonTokenType.Number])
@@ -302,20 +300,9 @@ internal sealed class StructuralUnionPlanBinder
         }
 
         var tokenNames = string.Join(", ", overlap.Order().Select(static token => token.ToString()));
-        errors.Add(BindingErrorCategory.Schema, key,
+        scope.Errors.Add(BindingErrorCategory.Schema, scope.Key,
             $"structural union branch {index.ToString(System.Globalization.CultureInfo.InvariantCulture)} overlaps earlier branch token kind(s): {tokenNames}");
         return null;
-    }
-
-    private static SchemaNode Resolve(SchemaNode node, IReadOnlyDictionary<string, SchemaNode> graph, HashSet<string> visited)
-    {
-        if (node is not RefNode reference || !visited.Add(reference.Target)
-                                          || !graph.TryGetValue(reference.Target, out var target))
-        {
-            return node;
-        }
-
-        return Resolve(target, graph, visited);
     }
 
     private static bool TryGetTokens(SchemaNode branch, out IReadOnlyList<JsonTokenType> tokens)

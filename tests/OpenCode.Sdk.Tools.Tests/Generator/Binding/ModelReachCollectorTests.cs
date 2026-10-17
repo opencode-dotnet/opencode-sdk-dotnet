@@ -157,11 +157,10 @@ public sealed class ModelReachCollectorTests
         var document = await BindingTestHost.IngestAsync(ReachScenario());
         var operationsById = document.Operations.ToDictionary(static operation => operation.OperationId, StringComparer.Ordinal);
         IReadOnlyList<SpecOperation> selected = [.. operationIds.Select(operationId => operationsById[operationId])];
-        var reachableSchemas = new ReachableSchemaCollector();
-        var reachable = reachableSchemas.Collect(document, selected, errors);
-        var typeNames = new SchemaNameResolver().Resolve(document, reachable, selected, Curation(Groups()), errors);
+        var reachable = ReachableSchemaCollector.Collect(document, selected, errors);
+        var typeNames = SchemaNameResolver.Resolve(document, reachable, selected, Curation(Groups()), errors);
 
-        var reach = ModelReachCollector.Collect(reachableSchemas, new ReachScope(document, selected, Clients(selected), typeNames),
+        var reach = ModelReachCollector.Collect(new ReachScope(document, selected, Clients(selected), typeNames),
             candidates, errors);
 
         errors.ThrowIfAny();

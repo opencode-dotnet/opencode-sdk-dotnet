@@ -14,12 +14,10 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// branch that also carries an unrelated prefix marker — a templated identifier, say — stays
 /// an ordinary variant, because that marker discriminates nothing.
 /// </remarks>
-internal sealed class UnionDiscriminatorSelector
+internal static class UnionDiscriminatorSelector
 {
-    private readonly StringComparer _comparer = StringComparer.Ordinal;
-
     /// <summary>Returns the discriminator every branch answers, or null when no candidate qualifies.</summary>
-    public UnionDiscriminator? Select(IReadOnlyList<ResolvedUnionBranch> branches)
+    public static UnionDiscriminator? Select(IReadOnlyList<ResolvedUnionBranch> branches)
     {
         ArgumentNullException.ThrowIfNull(branches);
 
@@ -49,15 +47,15 @@ internal sealed class UnionDiscriminatorSelector
     /// tags the property neither way disqualifies the candidate outright. Several prefix carriers
     /// still qualify, so the arity refusal can name them.
     /// </summary>
-    private UnionDiscriminator? Qualify(IReadOnlyList<ResolvedUnionBranch> branches, string property)
+    private static UnionDiscriminator? Qualify(IReadOnlyList<ResolvedUnionBranch> branches, string property)
     {
         var literalBranches = new List<ResolvedUnionBranch>(branches.Count);
         var prefixBranches = new List<ResolvedUnionBranch>();
-        var values = new HashSet<string>(_comparer);
+        var values = new HashSet<string>(StringComparer.Ordinal);
         LiteralMarker? marker = null;
         foreach (var branch in branches)
         {
-            var literal = branch.Markers.FirstOrDefault(candidate => _comparer.Equals(candidate.PropertyName, property));
+            var literal = branch.Markers.FirstOrDefault(candidate => StringComparer.Ordinal.Equals(candidate.PropertyName, property));
             if (literal is null)
             {
                 if (branch.PrefixMarkers.Count is 0)

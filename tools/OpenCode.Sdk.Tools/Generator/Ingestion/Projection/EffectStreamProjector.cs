@@ -8,13 +8,11 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 /// <summary>Projects the typed semantics carried by an <c>x-effect-stream</c> extension.</summary>
 internal sealed class EffectStreamProjector
 {
-    private readonly GraphKeyBuilder _keys;
     private readonly SchemaProjector _schemas;
 
-    public EffectStreamProjector(SchemaProjector schemas, GraphKeyBuilder keys)
+    public EffectStreamProjector(SchemaProjector schemas)
     {
         _schemas = schemas ?? throw new ArgumentNullException(nameof(schemas));
-        _keys = keys ?? throw new ArgumentNullException(nameof(keys));
     }
 
     public SpecEffectStreamContract? Project(JsonNode? source, string root, string mediaPointer, ProjectionState state)
@@ -28,7 +26,7 @@ internal sealed class EffectStreamProjector
             return null;
         }
 
-        var pointer = _keys.Append(mediaPointer, "x-effect-stream");
+        var pointer = GraphKeyBuilder.Append(mediaPointer, "x-effect-stream");
         var location = string.Concat(root, pointer);
         if (source is not JsonObject extension)
         {
@@ -52,7 +50,7 @@ internal sealed class EffectStreamProjector
             return null;
         }
 
-        var schemaPointer = _keys.Append(pointer, name);
+        var schemaPointer = GraphKeyBuilder.Append(pointer, name);
         var location = string.Concat(root, schemaPointer);
         if (raw is null)
         {
@@ -85,7 +83,7 @@ internal sealed class EffectStreamProjector
         return _schemas.Project(parsed, root, schemaPointer, state);
     }
 
-    private string? ReadString(JsonObject extension, string name, string root, string pointer, IngestionErrorCollector errors)
+    private static string? ReadString(JsonObject extension, string name, string root, string pointer, IngestionErrorCollector errors)
     {
         if (!extension.TryGetPropertyValue(name, out var raw))
         {
@@ -97,7 +95,7 @@ internal sealed class EffectStreamProjector
             return text;
         }
 
-        errors.Add(string.Concat(root, _keys.Append(pointer, name)), $"'{name}' must contain a string");
+        errors.Add(string.Concat(root, GraphKeyBuilder.Append(pointer, name)), $"'{name}' must contain a string");
         return null;
     }
 }
