@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Models;
 public enum McpRemoteConfigOAuthKind
 {
     /// <summary>
-    /// Represents the mcp o auth config arm.
+    /// Represents the MCP OAuth config arm.
     /// </summary>
     McpOAuthConfig,
     /// <summary>

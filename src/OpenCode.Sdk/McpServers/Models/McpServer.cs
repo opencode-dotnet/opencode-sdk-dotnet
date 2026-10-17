@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp server value.
+/// Represents an MCP server value.
 /// </summary>
 public sealed record McpServer
 {

@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp status pending value.
+/// Represents an MCP status pending value.
 /// </summary>
 public sealed record McpStatusPending : IMcpStatus
 {

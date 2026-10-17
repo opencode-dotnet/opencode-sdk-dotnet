@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp local config value.
+/// Represents an MCP local config value.
 /// </summary>
 public sealed record McpLocalConfig : IMcp
 {

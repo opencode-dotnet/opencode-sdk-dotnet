@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a config info mcp timeout value.
+/// Represents a config info MCP timeout value.
 /// </summary>
 public sealed record ConfigInfoMcpTimeout
 {

@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a integration command attempt status pending value.
+/// Represents an integration command attempt status pending value.
 /// </summary>
 public sealed record IntegrationCommandAttemptStatusPending : IIntegrationCommandAttemptStatus
 {

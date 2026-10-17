@@ -73,7 +73,7 @@ internal sealed class HoistedCarrierComposer(
             Namespace = GeneratedNamespace.Models,
             ImplementedBy = recordNames,
             Members = ComposeMembers(name, recordNames),
-            Description = $"Represents the shared {DisplayName(property.Name)} shape of every {DisplayName(ownerConcept)} variant.",
+            Description = $"Represents the shared {GeneratedDisplayName.Of(property.Name)} shape of every {GeneratedDisplayName.Of(ownerConcept)} variant.",
         };
         foreach (var recordName in recordNames)
         {
@@ -179,7 +179,4 @@ internal sealed class HoistedCarrierComposer(
     }
 
     private static string RowKey(string owner, string property) => string.Concat(owner, "\0", property);
-
-    private static string DisplayName(string name) =>
-        string.Join(' ', CSharpNamePolicy.SplitWords(name).Select(static word => word.ToLowerInvariant()));
 }

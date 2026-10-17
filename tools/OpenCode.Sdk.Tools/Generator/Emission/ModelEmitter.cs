@@ -65,7 +65,7 @@ internal static class ModelEmitter
                 .. EmitExtensionDataMembers(model),
                 .. EmitRedactingToString(model, chainMarkers),
             ]))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(model.Description ?? $"Represents a {GeneratedDisplayName.Of(model.Name)} value."));
+            .WithLeadingTrivia(EmissionSyntax.Documentation(model.Description ?? $"Represents {GeneratedDisplayName.WithIndefiniteArticle(model.Name)} value."));
         // A hoisted carrier joins the base list beside the unions the schema is a branch of: the
         // record keeps one identity per wire schema and answers one more contract (ADR-0011).
         var baseTypes = model.ImplementedUnionNames.Concat(model.ImplementedHoistedInterfaceNames)
@@ -150,7 +150,7 @@ internal static class ModelEmitter
         var declaration = SyntaxFactory
             .PropertyDeclaration(propertyType, memberName)
             .AddAttributeLists(EmissionSyntax.Attribute("JsonPropertyName", EmissionSyntax.StringArgument(property.WireName)))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(property.Description ?? $"Gets the {GeneratedDisplayName.Of(memberName)} value."));
+            .WithLeadingTrivia(EmissionSyntax.Documentation(property.Description ?? GeneratedDisplayName.MemberSummary(memberName)));
         if (ContainsSpecialNumber(property.Type))
         {
             declaration = declaration.AddAttributeLists(EmissionSyntax.Attribute(

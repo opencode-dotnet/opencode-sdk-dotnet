@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp resource template value.
+/// Represents an MCP resource template value.
 /// </summary>
 public sealed record McpResourceTemplate
 {

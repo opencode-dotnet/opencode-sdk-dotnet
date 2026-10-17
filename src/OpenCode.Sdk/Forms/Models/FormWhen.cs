@@ -21,7 +21,7 @@ public sealed record FormWhen
     public required FormWhenOp Op { get; init; }
 
     /// <summary>
-    /// Gets the value value.
+    /// Gets the value.
     /// </summary>
     [JsonPropertyName("value")]
     public required FormWhenValue Value { get; init; }

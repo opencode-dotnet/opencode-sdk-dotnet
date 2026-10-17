@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp remote config timeout value.
+/// Represents an MCP remote config timeout value.
 /// </summary>
 public sealed record McpRemoteConfigTimeout : IMcpTimeout
 {

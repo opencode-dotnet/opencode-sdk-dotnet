@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a instruction entry snapshot value.
+/// Represents an instruction entry snapshot value.
 /// </summary>
 public sealed record InstructionEntrySnapshot
 {

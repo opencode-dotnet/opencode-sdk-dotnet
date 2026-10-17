@@ -40,7 +40,7 @@ public sealed record SessionStatsToolUsage
     public required long Unfinished { get; init; }
 
     /// <summary>
-    /// Gets the duration p 50 value.
+    /// Gets the duration P50 value.
     /// </summary>
     [JsonPropertyName("durationP50")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

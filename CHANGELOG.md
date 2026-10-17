@@ -140,6 +140,8 @@ Nightly builds of `master` are on
 
 ### 🐛 Fixes
 
+- **Generated XML summaries use grammatical prose.** Articles and brand spellings are corrected,
+  digits stay attached to their words, and members named `Value` read "Gets the value."
 - **A background-service start failure no longer carries part of the PTY handoff ticket.** The
   contender's stderr tail redacts the ticket even where the 8 KiB cut or the end of the pipe splits
   it, so no fragment of it reaches `OpenCodeServerException` messages.

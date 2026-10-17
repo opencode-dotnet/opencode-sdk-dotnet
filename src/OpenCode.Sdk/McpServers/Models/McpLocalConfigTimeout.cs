@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp local config timeout value.
+/// Represents an MCP local config timeout value.
 /// </summary>
 public sealed record McpLocalConfigTimeout : IMcpTimeout
 {

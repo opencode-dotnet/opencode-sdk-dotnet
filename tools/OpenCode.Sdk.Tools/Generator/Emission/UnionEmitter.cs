@@ -62,7 +62,7 @@ internal static class UnionEmitter
                 SyntaxFactory.AttributeArgument(SyntaxFactory.TypeOfExpression(TypeSyntaxEmitter.EmitNamed(converterTypeName)))))
             .WithMembers(SyntaxFactory.List(members))
             .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
-                union.Description ?? $"Represents a {GeneratedDisplayName.Of(union.ConceptName)} union.",
+                union.Description ?? $"Represents {GeneratedDisplayName.WithIndefiniteArticle(union.ConceptName)} union.",
                 [],
                 remarks: PinBoundInterfaceRemarks.Runs));
         if (union.BaseTypeName is not null)
@@ -81,7 +81,7 @@ internal static class UnionEmitter
 
     private static PropertyDeclarationSyntax EmitHoistedMember(UnionPlan union, HoistedMemberPlan member)
     {
-        var summary = member.Description ?? $"Gets the {GeneratedDisplayName.Of(member.Name)} value.";
+        var summary = member.Description ?? GeneratedDisplayName.MemberSummary(member.Name);
         return SyntaxFactory
             .PropertyDeclaration(TypeSyntaxEmitter.Emit(member.Type), member.Name)
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))

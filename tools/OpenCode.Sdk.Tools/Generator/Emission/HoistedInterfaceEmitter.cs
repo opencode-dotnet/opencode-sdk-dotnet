@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Emission;
@@ -32,7 +33,7 @@ internal static class HoistedInterfaceEmitter
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([.. plan.Members.Select(EmitMember)]))
             .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
-                plan.Description ?? $"Represents a {plan.Name} value.",
+                plan.Description ?? $"Represents {GeneratedDisplayName.WithIndefiniteArticle(plan.Name)} value.",
                 [],
                 remarks: PinBoundInterfaceRemarks.Runs));
         declaration = EmissionSyntax.DocumentedType(declaration, plan.Documentation, PinBoundInterfaceRemarks.Runs);
@@ -50,7 +51,7 @@ internal static class HoistedInterfaceEmitter
                     .AccessorDeclaration(SyntaxKind.GetAccessorDeclaration)
                     .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)))))
             .WithLeadingTrivia(EmissionSyntax.Documentation(
-                member.Description ?? $"Gets the {GeneratedDisplayName.Of(member.Name)} value."));
+                member.Description ?? GeneratedDisplayName.MemberSummary(member.Name)));
 
     private static IReadOnlyList<string> CollectUsings(HoistedInterfacePlan plan)
     {

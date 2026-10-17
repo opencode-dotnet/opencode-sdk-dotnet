@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a config info mcp value.
+/// Represents a config info MCP value.
 /// </summary>
 public sealed record ConfigInfoMcp
 {

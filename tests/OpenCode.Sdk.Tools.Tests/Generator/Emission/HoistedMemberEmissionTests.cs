@@ -1,3 +1,4 @@
+using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
@@ -7,6 +8,20 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
 public sealed class HoistedMemberEmissionTests
 {
+    [Test]
+    public async Task Emit_Should_Render_The_Carrier_Fallback_And_Value_Grammatically()
+    {
+        var plan = EmitterPlanFixture.CreateHoistPlan();
+        var carrier = plan.HoistedInterfaces[0] with
+        {
+            Description = null,
+            Members = [new HoistedMemberPlan { Name = "Value", WireName = "value", Type = Named("string") }],
+        };
+        var source = EmitterSnapshot.Create(HoistedInterfaceEmitter.Emit([carrier], plan.Placement));
+        await Assert.That(source).Contains("Represents an i durable envelope value.");
+        await Assert.That(source).Contains(EmitterPlanFixture.ValueSummary);
+    }
+
     [Test]
     public async Task Emit_Should_Render_The_Hoisted_Carrier_And_Its_Implementations()
     {

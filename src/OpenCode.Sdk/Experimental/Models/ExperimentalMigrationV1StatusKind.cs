@@ -8,15 +8,15 @@ namespace OpenCode.Sdk.Models;
 public enum ExperimentalMigrationV1StatusKind
 {
     /// <summary>
-    /// Represents the experimental migration v 1 status idle arm.
+    /// Represents the experimental migration V1 status idle arm.
     /// </summary>
     ExperimentalMigrationV1StatusIdle,
     /// <summary>
-    /// Represents the experimental migration v 1 status running arm.
+    /// Represents the experimental migration V1 status running arm.
     /// </summary>
     ExperimentalMigrationV1StatusRunning,
     /// <summary>
-    /// Represents the experimental migration v 1 status error arm.
+    /// Represents the experimental migration V1 status error arm.
     /// </summary>
     ExperimentalMigrationV1StatusError,
     /// <summary>

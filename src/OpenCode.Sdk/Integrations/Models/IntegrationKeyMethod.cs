@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a integration key method value.
+/// Represents an integration key method value.
 /// </summary>
 public sealed record IntegrationKeyMethod : IIntegrationMethod
 {

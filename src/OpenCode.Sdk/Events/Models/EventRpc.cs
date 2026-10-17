@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a event rpc value.
+/// Represents an event rpc value.
 /// </summary>
 public sealed record EventRpc : IEvent
 {

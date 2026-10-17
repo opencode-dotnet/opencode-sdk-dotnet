@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
@@ -8,6 +9,20 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
 public sealed class StructuralUnionEmissionTests
 {
+    [Test]
+    public async Task Emit_Should_Render_The_Structural_Type_Factory_And_Value_Grammatically()
+    {
+        var plan = await EmitterPlanFixture.CreateStructuralUnionPlanAsync();
+        var union = (StructuralUnionModelPlan)plan.Models.Single(static model => model is StructuralUnionModelPlan);
+        union = union with { Name = "OAuthValue", Arms = [union.Arms[0] with { Name = "Value" }] };
+        plan = (plan with { Models = [union] }).WithSingleSlice();
+        var source = EmitterSnapshot.Create(StructuralUnionEmitter.Emit([union], plan.Placement));
+        await Assert.That(source).Contains("Represents an OAuth value structural union.");
+        await Assert.That(source).Contains("Creates an OAuth value from its value arm.");
+        await Assert.That(source).Contains("Represents the value arm.");
+        await Assert.That(source).Contains(EmitterPlanFixture.ValueSummary);
+    }
+
     [Test]
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Emit_Should_Source_Generate_And_Round_Trip_Every_Structural_Arm()

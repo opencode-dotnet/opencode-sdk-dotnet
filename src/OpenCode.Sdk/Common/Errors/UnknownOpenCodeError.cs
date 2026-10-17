@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Preserves an unknown open code error payload.
+/// Preserves an unknown OpenCode error payload.
 /// </summary>
 [JsonConverter(typeof(UnknownOpenCodeErrorJsonConverter))]
 public sealed record UnknownOpenCodeError : IOpenCodeError

@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a integration connect external request value.
+/// Represents an integration connect external request value.
 /// </summary>
 public sealed record IntegrationConnectExternalRequest
 {

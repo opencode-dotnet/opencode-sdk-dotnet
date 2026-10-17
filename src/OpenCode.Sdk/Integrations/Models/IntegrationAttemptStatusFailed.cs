@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a integration attempt status failed value.
+/// Represents an integration attempt status failed value.
 /// </summary>
 public sealed record IntegrationAttemptStatusFailed : IIntegrationAttemptStatus
 {

@@ -30,7 +30,7 @@ public sealed record ConfigInfoMediaImage
     public long? MaxHeight { get; init; }
 
     /// <summary>
-    /// Gets the max base 64 bytes value.
+    /// Gets the max Base64 bytes value.
     /// </summary>
     [JsonPropertyName("max_base64_bytes")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

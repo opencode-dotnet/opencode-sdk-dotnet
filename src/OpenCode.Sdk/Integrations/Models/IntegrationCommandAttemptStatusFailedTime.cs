@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a integration command attempt status failed time value.
+/// Represents an integration command attempt status failed time value.
 /// </summary>
 public sealed record IntegrationCommandAttemptStatusFailedTime : IIntegrationCommandAttemptStatusTime
 {

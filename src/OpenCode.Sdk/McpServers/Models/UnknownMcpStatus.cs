@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Preserves an unknown mcp status payload.
+/// Preserves an unknown MCP status payload.
 /// </summary>
 [JsonConverter(typeof(UnknownMcpStatusJsonConverter))]
 public sealed record UnknownMcpStatus : IMcpStatus

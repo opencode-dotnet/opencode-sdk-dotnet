@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a integration command attempt status expired value.
+/// Represents an integration command attempt status expired value.
 /// </summary>
 public sealed record IntegrationCommandAttemptStatusExpired : IIntegrationCommandAttemptStatus
 {

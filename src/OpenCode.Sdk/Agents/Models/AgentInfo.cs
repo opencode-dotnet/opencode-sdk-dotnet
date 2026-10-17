@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a agent info value.
+/// Represents an agent info value.
 /// </summary>
 public sealed record AgentInfo
 {

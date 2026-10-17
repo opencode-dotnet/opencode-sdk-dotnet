@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a mcp status failed value.
+/// Represents an MCP status failed value.
 /// </summary>
 public sealed record McpStatusFailed : IMcpStatus
 {
