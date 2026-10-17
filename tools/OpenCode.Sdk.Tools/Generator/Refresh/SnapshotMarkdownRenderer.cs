@@ -38,13 +38,13 @@ internal static partial class SnapshotMarkdownRenderer
         + @"\| Upstream release tag \| `[^`\r\n]+` \|\n\| Commit \| \S+ \|\n"
         + @"\| Upstream product channel \| npm `@opencode/cli@latest` \(channel `latest`\); this tag published as `[^`\r\n]+`, "
         + @"installing the `opencode` command \(plus the transitional `opencode2` alias\) \|$",
-        RegexOptions.Multiline, matchTimeoutMilliseconds: 1000)]
+        RegexOptions.Multiline, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex IdentityTableRegex();
 
     [GeneratedRegex(@"This pin is the release tag `[^`\r\n]+`, so\n`npm install -g @opencode/cli@[^`\r\n]+` installs a server built from exactly this commit; later",
-        RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+        RegexOptions.None, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex PinProseRegex();
 
-    [GeneratedRegex(@"^Date: \d{4}-\d{2}-\d{2}$", RegexOptions.Multiline, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"^Date: \d{4}-\d{2}-\d{2}$", RegexOptions.Multiline, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex DateLineRegex();
 }

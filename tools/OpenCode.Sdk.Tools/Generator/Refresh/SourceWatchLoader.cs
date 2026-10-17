@@ -110,6 +110,6 @@ internal sealed partial class SourceWatchLoader(IFileSystem fileSystem)
         }
     }
 
-    [GeneratedRegex("^[0-9a-f]{64}$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex("^[0-9a-f]{64}$", RegexOptions.None, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex Sha256Regex();
 }

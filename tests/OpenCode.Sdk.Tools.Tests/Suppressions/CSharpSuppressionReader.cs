@@ -192,9 +192,9 @@ internal static partial class CSharpSuppressionReader
         || trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia)
         || trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia);
 
-    [GeneratedRegex(@"^slopwatch-ignore(?:-start)?\s*:\s*(?<rule>SW\d{3})\b", RegexOptions.IgnoreCase, 1000)]
+    [GeneratedRegex(@"^slopwatch-ignore(?:-start)?\s*:\s*(?<rule>SW\d{3})\b", RegexOptions.IgnoreCase, Timeout.Infinite)]
     private static partial Regex SlopwatchIgnore();
 
-    [GeneratedRegex(@"^#:property\s+(?<name>[A-Za-z]+)\s*=(?<value>.*)$", RegexOptions.None, 1000)]
+    [GeneratedRegex(@"^#:property\s+(?<name>[A-Za-z]+)\s*=(?<value>.*)$", RegexOptions.None, Timeout.Infinite)]
     private static partial Regex PropertyDirective();
 }

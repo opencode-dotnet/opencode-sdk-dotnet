@@ -67,6 +67,6 @@ public sealed partial class NativeAotConsumerTests(PackedConsumerFeed feed)
     }
 
     /// <summary>The warning codes the trim analyzer (<c>IL2xxx</c>) and the AOT compiler (<c>IL3xxx</c>) emit.</summary>
-    [GeneratedRegex(@"\bIL[23]\d{3}\b", RegexOptions.None, 1000)]
+    [GeneratedRegex(@"\bIL[23]\d{3}\b", RegexOptions.None, Timeout.Infinite)]
     private static partial Regex AotWarningCodes();
 }

@@ -132,21 +132,23 @@ internal sealed partial class CommentResidueScan(IFileSystem fileSystem, IReadOn
         (ResearchLogNumber, ResearchLogPattern()),
     ];
 
-    [GeneratedRegex(@"\bTask [0-9]+\b", RegexOptions.None, 1000)]
+    [GeneratedRegex(@"\bTask [0-9]+\b", RegexOptions.None, Timeout.Infinite)]
     private static partial Regex TaskPattern();
 
-    [GeneratedRegex(@"\bdesign §", RegexOptions.None, 1000)]
+    [GeneratedRegex(@"\bdesign §", RegexOptions.None, Timeout.Infinite)]
     private static partial Regex DesignSectionPattern();
 
+    // Quadratic, so it keeps a finite match timeout: the path class also matches "docs/", so repeated prefixes without ".md" rescan the tail.
     [GeneratedRegex(@"\bdocs/[A-Za-z0-9_./-]*\.md\b", RegexOptions.None, 1000)]
     private static partial Regex DocumentationPathPattern();
 
-    [GeneratedRegex(@"\bQ[0-9]{3}\b", RegexOptions.None, 1000)]
+    [GeneratedRegex(@"\bQ[0-9]{3}\b", RegexOptions.None, Timeout.Infinite)]
     private static partial Regex ResearchLogPattern();
 
-    [GeneratedRegex(@"(?<![A-Za-z])auto_?verify(?![A-Za-z])", RegexOptions.IgnoreCase, 1000)]
+    [GeneratedRegex(@"(?<![A-Za-z])auto_?verify(?![A-Za-z])", RegexOptions.IgnoreCase, Timeout.Infinite)]
     private static partial Regex AutoAcceptWord();
 
+    // Quadratic, so it keeps a finite match timeout: each unanchored start of the marker retries the rest of a line that cannot reach the end anchor.
     [GeneratedRegex(@"\bStryker\s*disable(?<rest>.*)$", RegexOptions.IgnoreCase, 1000)]
     private static partial Regex StrykerDisable();
 }

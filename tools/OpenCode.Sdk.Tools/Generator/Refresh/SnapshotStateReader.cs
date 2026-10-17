@@ -55,7 +55,7 @@ internal sealed partial class SnapshotStateReader(IFileSystem fileSystem, IProce
     public static string SerializeReceipt(SnapshotReceipt receipt) =>
         JsonSerializer.Serialize(receipt, ToolJsonContext.Default.SnapshotReceipt) + "\n";
 
-    [GeneratedRegex("^[0-9a-f]{40}$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex("^[0-9a-f]{40}$", RegexOptions.None, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex FullShaRegex();
 
     private async Task<byte[]?> ReadOptionalAsync(string path, CancellationToken cancellationToken) =>
