@@ -50,6 +50,7 @@ public sealed class PinnedServerPrerequisitesTests
         await Assert.That(readiness.Problems).HasSingleItem();
         await Assert.That(readiness.Problems[0]).Contains("The bun on PATH is " + OtherBun);
         await Assert.That(readiness.Problems[0]).Contains("bun@" + PinnedBun);
+        await Assert.That(readiness.Problems[0]).Contains("set OPENCODE_SDK_TESTS_BUN_MISMATCH=allow");
         await Assert.That(readiness.AllowedMismatch).IsNull();
     }
 

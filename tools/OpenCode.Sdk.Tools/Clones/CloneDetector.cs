@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Tools.Clones;
 
 /// <summary>
 /// Runs the pinned jscpd over one clone scope: it writes the scope's jscpd config into a work
-/// folder, runs the detector through the pinned Bun from the repository root, and reads the totals of
+/// folder, runs the detector through Bun from the repository root, and reads the totals of
 /// the JSON report it writes. A gated scope runs against its baseline and fails on a new clone or
 /// stale baseline entry or above its threshold; with an update it rewrites the baseline instead. Every scope fails when it
 /// analyses no file. jscpd's own defaults stay: it honours .gitignore, follows no symbolic link, and
@@ -34,7 +34,7 @@ internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner proce
         if (!_fileSystem.File.Exists(_fileSystem.Path.Combine(root, RunnerPath)))
         {
             throw new CloneDetectorException(
-                "The clone detector is not installed. Run once, with the pinned Bun first on PATH: "
+                "The clone detector is not installed. Run once, with the machine's Bun: "
                 + "cd " + CloneScopes.DetectorFolder + " && bun install --frozen-lockfile --ignore-scripts");
         }
     }

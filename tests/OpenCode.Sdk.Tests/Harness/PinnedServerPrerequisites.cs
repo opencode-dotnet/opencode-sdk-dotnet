@@ -113,7 +113,8 @@ public static class PinnedServerPrerequisites
             {
                 problems.Add(
                     $"The bun on PATH is {bunVersion}, but the pin's packageManager is bun@{pinned.Version} "
-                    + $"('{pinned.PackageJson}'). Put bun {pinned.Version} first on PATH.");
+                    + $"('{pinned.PackageJson}'). A machine keeps one Bun: set {BunMismatchVariable}={AllowBunMismatch} "
+                    + "to run on it as local evidence only.");
             }
         }
 
@@ -135,7 +136,7 @@ public static class PinnedServerPrerequisites
     internal static string? MissingInstall(IFileSystem fileSystem, string submodule) =>
         fileSystem.Directory.Exists(fileSystem.Path.Combine(submodule, "node_modules"))
             ? null
-            : $"The pinned server dependencies are not installed under '{submodule}'. Run there, with the pinned bun: bun install --frozen-lockfile --ignore-scripts";
+            : $"The pinned server dependencies are not installed under '{submodule}'. Run there: bun install --frozen-lockfile --ignore-scripts";
 
     internal static string Submodule(IFileSystem fileSystem, string repositoryRoot) =>
         fileSystem.Path.Combine(repositoryRoot, "external", "opencode");

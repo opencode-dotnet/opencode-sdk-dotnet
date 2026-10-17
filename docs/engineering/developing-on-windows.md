@@ -4,8 +4,9 @@ Date: 2026-10-16
 
 Operational guidance for a Windows workstation. Everything here is about the developer's machine;
 the test suite's own isolation rules live in `testing-style.md` and the gates in `quality-gates.md`.
-A fresh worktree is prepared as `quality-gates.md` describes before its first gate; a workstation's
-own Bun is often not the pinned one, so the pinned Bun goes first on `PATH`.
+A fresh worktree is prepared as `quality-gates.md` describes before its first gate; a workstation
+keeps one Bun, and when that is not the pinned one the gate runs with the Bun mismatch switch that
+`quality-gates.md` describes.
 
 ## Native AOT publishing
 
