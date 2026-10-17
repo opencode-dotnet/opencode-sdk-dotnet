@@ -37,7 +37,7 @@ public sealed class TimedCancellationTests
 
 #if !NET
     [Test]
-    public async Task Create_Should_Ignore_An_In_Flight_Timer_Callback_After_Disposal()
+    public async Task Create_Should_Ignore_A_Timer_Callback_Queued_After_Disposal()
     {
         var time = new InFlightTimeProvider();
         using var deadline = TimedCancellation.Create(Timeout, time);
@@ -50,12 +50,14 @@ public sealed class TimedCancellationTests
 #endif
 
     [Test]
-    public async Task Create_Should_Allow_Timer_Cancellation_To_Race_With_Disposal()
+    public async Task Create_Should_Let_A_Timer_Callback_With_A_Registration_Race_Disposal()
     {
         for (var round = 0; round < 1_000; round++)
         {
             var time = new InFlightTimeProvider();
             using var deadline = TimedCancellation.Create(Timeout, time);
+            // A registration makes the callback's Cancel run work under the lock while Dispose contends for it.
+            using var registration = deadline.Token.Register(static () => { });
             using var barrier = new Barrier(2);
             var firing = Task.Run(() =>
             {
