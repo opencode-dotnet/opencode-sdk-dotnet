@@ -16,10 +16,14 @@ Nightly builds of `master` are on
   model that does not reason (`ConfigModelReasoningUnsupported`) from one that does
   (`ConfigModelReasoningSupported`, with its toggle, efforts and `ConfigModelReasoningBudget`);
   `ConfigModelCapabilities.Temperature` and `ModelCapabilities.Temperature` say whether a model
-  takes a temperature, and `ConfigModel.ReleaseDate` carries its release date. For a spawned
-  service, caller environment entries still win over the service-config `env` at spawn; a 2.0.32
-  service then re-applies its saved `env`, so a key set in both takes the saved value for
-  everything the service reads after startup.
+  takes a temperature, and `ConfigModel.ReleaseDate` carries its release date.
+
+### 🔧 Changes
+
+- **A spawned background service's saved `env` wins after startup.**
+  `OpenCodeServerEnsureOptions.Environment` entries still win over the channel's service-config
+  `env` at spawn, but a 2.0.32 service re-applies its saved `env` when it starts, so a key set in
+  both takes the saved value for everything the service reads after startup.
 
 ### 🐛 Fixes
 
