@@ -7,16 +7,18 @@ namespace OpenCode.Sdk.Tests.Forms;
 
 public static class FormsDeclaredErrors
 {
+    private static readonly DeclaredErrorDoor ListFormsDoor = new(
+        nameof(FormsClient.ListFormsAsync),
+        "form.list",
+        "get",
+        "/api/form",
+        static async (client, options) => await client.Forms.ListFormsAsync(requestOptions: options));
+
     public static IEnumerable<Func<DeclaredErrorCase>> Rows() =>
     [
         static () => new(
             "form.list:400:InvalidRequestError",
-            new DeclaredErrorDoor(
-                nameof(FormsClient.ListFormsAsync),
-                "form.list",
-                "get",
-                "/api/form",
-                static async (client, options) => await client.Forms.ListFormsAsync(requestOptions: options)),
+            ListFormsDoor,
             HttpStatusCode.BadRequest,
             WireBodyData.InvalidRequestError,
             "InvalidRequestError",
@@ -24,12 +26,7 @@ public static class FormsDeclaredErrors
             "#/paths/~1api~1form/get/responses/400/content/application~1json/schema"),
         static () => new(
             "form.list:401:UnauthorizedError",
-            new DeclaredErrorDoor(
-                nameof(FormsClient.ListFormsAsync),
-                "form.list",
-                "get",
-                "/api/form",
-                static async (client, options) => await client.Forms.ListFormsAsync(requestOptions: options)),
+            ListFormsDoor,
             HttpStatusCode.Unauthorized,
             WireBodyData.UnauthorizedError,
             "UnauthorizedError",
