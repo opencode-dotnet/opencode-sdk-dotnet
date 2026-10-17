@@ -12,7 +12,8 @@ using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
-public sealed class SourceEmitterTests
+[ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
+public sealed class SourceEmitterTests(PinnedBinding pinned)
 {
     [Test]
     public async Task Emit_Should_Return_Ordinal_Sorted_Byte_Identical_Source()
@@ -55,7 +56,7 @@ public sealed class SourceEmitterTests
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Emit_Should_Preserve_All_Bound_Union_And_Registry_Evidence_Through_Source_Generation_And_Compilation()
     {
-        var plan = await new BindingTestHost().BindPinnedAsync();
+        var plan = pinned.Plan;
         var sources = SourceEmitter.Emit(plan);
 
         foreach (var union in plan.Unions)
@@ -138,7 +139,7 @@ public sealed class SourceEmitterTests
     [Test]
     public async Task Emit_Should_Produce_Every_GeneratedSurfaceConsumers_RequiredEmission()
     {
-        var plan = await new BindingTestHost().BindPinnedAsync();
+        var plan = pinned.Plan;
         var sources = SourceEmitter.Emit(plan);
         var emittedPaths = sources.Select(static source => source.RelativePath).ToHashSet(StringComparer.Ordinal);
 
@@ -152,7 +153,7 @@ public sealed class SourceEmitterTests
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Emit_Should_Deserialize_A_Shared_Pinned_Leaf_Through_Both_Stream_Interfaces()
     {
-        var plan = await new BindingTestHost().BindPinnedAsync();
+        var plan = pinned.Plan;
         var sources = SourceEmitter.Emit(plan);
         var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(sources);
         var durableType = assembly.GetType("OpenCode.Sdk.Models.ISessionEventDurable", throwOnError: true)!;
@@ -181,7 +182,7 @@ public sealed class SourceEmitterTests
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Emit_Should_Preserve_An_Unclaimed_Pinned_Structural_Token_As_Unknown()
     {
-        var plan = await new BindingTestHost().BindPinnedAsync();
+        var plan = pinned.Plan;
         var sources = SourceEmitter.Emit(plan);
         var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(sources);
         var contextType = assembly.GetType("OpenCode.Sdk.Internal.OpenCodeJsonContext", throwOnError: true)!;

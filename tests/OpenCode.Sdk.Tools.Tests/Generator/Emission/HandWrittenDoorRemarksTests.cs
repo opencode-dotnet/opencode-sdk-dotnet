@@ -19,7 +19,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 /// Hand-written sources are recognized the way the compile probe recognizes them: generated
 /// sources carry the writer's header.
 /// </summary>
-public sealed partial class HandWrittenDoorRemarksTests
+[ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
+public sealed partial class HandWrittenDoorRemarksTests(PinnedBinding pinned)
 {
     /// <summary>The hand-written public door types (ADR-0021): every public operation method on them names its operation.</summary>
     private static readonly string[] DoorTypes = ["PtyClient", "PtysClient", "PersistentPtyClient", "PersistentPtysClient"];
@@ -27,7 +28,7 @@ public sealed partial class HandWrittenDoorRemarksTests
     [Test]
     public async Task HandWritten_Remarks_Should_Name_A_Pinned_Operation_By_Its_Method_And_Route()
     {
-        var document = await BindingTestHost.IngestPinnedAsync();
+        var document = pinned.Document;
         var operations = document.Operations.ToDictionary(static operation => operation.OperationId, StringComparer.Ordinal);
         var remarks = (await LoadHandWrittenMethodsAsync()).SelectMany(static method => method.Remarks).ToArray();
 

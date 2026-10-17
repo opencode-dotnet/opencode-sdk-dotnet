@@ -14,12 +14,14 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 /// nothing else keeps the two in step: every public type the family's folder declares by hand
 /// carries the attribute, and the id it names resolves to the one the family's curation row holds.
 /// </summary>
-public sealed class HandWrittenExperimentalDoorTests
+[ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
+public sealed class HandWrittenExperimentalDoorTests(PinnedBinding pinned)
 {
     [Test]
     public async Task HandWritten_Public_Types_Of_An_Experimental_Raw_Family_Should_Carry_Its_Id()
     {
-        var (document, _, curation) = await BindingTestHost.LoadPinnedInputsAsync();
+        var document = pinned.Document;
+        var curation = pinned.Curation;
         var families = curation.Groups
             .Where(pair => pair.Value is { Emission: EmissionMode.InternalRaw, ExperimentalDiagnostic: not null, ClientName: not null }
                            && document.Operations

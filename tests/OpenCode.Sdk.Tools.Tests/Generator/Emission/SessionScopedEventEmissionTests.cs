@@ -9,7 +9,8 @@ using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
-public sealed class SessionScopedEventEmissionTests
+[ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
+public sealed class SessionScopedEventEmissionTests(PinnedBinding pinned)
 {
     [Test]
     public async Task Emit_Should_Add_The_Interface_And_An_Explicit_Payload_Projection()
@@ -90,7 +91,7 @@ public sealed class SessionScopedEventEmissionTests
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Emit_Should_Compile_The_Pinned_Surface_And_A_Session_Routing_Consumer()
     {
-        var sources = SourceEmitter.Emit(await new BindingTestHost().BindPinnedAsync());
+        var sources = SourceEmitter.Emit(pinned.Plan);
 
         var generatedDiagnostics = await GeneratedSourceCompiler.CompileWithSdkCoreAsync(sources);
         var consumerDiagnostics = await GeneratedSourceCompiler.CompileConsumerAsync(
