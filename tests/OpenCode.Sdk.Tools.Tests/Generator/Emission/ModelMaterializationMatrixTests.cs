@@ -502,15 +502,10 @@ public sealed class ModelMaterializationMatrixTests
     public async Task Bind_Should_Compile_And_Roundtrip_An_Open_Models_Extension_Data()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("OpenSettings", schema => schema
-                .Type("object")
+            .WithObject("OpenSettings", schema => schema
                 .Property("timeout", property => property.Type("number"))
                 .AllOf(rest => rest.Type("object").AdditionalProperties(value => value.Unrestricted())))
-            .WithSchema("WidgetError", schema => schema
-                .Type("object")
-                .AdditionalPropertiesFalse()
-                .Property("_tag", property => property.Type("string").Enum("WidgetError"), required: true)
-                .Property("message", property => property.Type("string"), required: true))
+            .WithTaggedError("WidgetError", "WidgetError")
             .WithOperation("settings.get", path: "/api/settings", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("OpenSettings"))
                 .Response(400, "application/json", schema => schema.Ref("WidgetError")))));
@@ -689,14 +684,8 @@ public sealed class ModelMaterializationMatrixTests
     private static async Task<(EmitPlan Plan, OperationPlan Operation)> CreateSingleKeyEnvelopePlanAsync()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("WidgetInfo", schema => schema
-                .Type("object")
-                .Property("id", property => property.Type("string"), required: true))
-            .WithSchema("WidgetError", schema => schema
-                .Type("object")
-                .AdditionalPropertiesFalse()
-                .Property("_tag", property => property.Type("string").Enum("WidgetError"), required: true)
-                .Property("message", property => property.Type("string"), required: true))
+            .WithObject("WidgetInfo", SchemaPresets.RequiredId)
+            .WithTaggedError("WidgetError", "WidgetError")
             .WithOperation("widget.handoff", path: "/api/widget/handoff", configure: operation => operation
                 .Response(200, "application/json", schema => schema
                     .Type("object")
@@ -718,16 +707,9 @@ public sealed class ModelMaterializationMatrixTests
     private static async Task<(EmitPlan Plan, OperationPlan Operation)> CreateNullableDataEnvelopePlanAsync()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("WidgetInfo", schema => schema
-                .Type("object")
-                .Property("id", property => property.Type("string"), required: true))
-            .WithSchema("WidgetError", schema => schema
-                .Type("object")
-                .AdditionalPropertiesFalse()
-                .Property("_tag", property => property.Type("string").Enum("WidgetError"), required: true)
-                .Property("message", property => property.Type("string"), required: true))
-            .WithSchema("WidgetResponse", schema => schema
-                .Type("object")
+            .WithObject("WidgetInfo", SchemaPresets.RequiredId)
+            .WithTaggedError("WidgetError", "WidgetError")
+            .WithObject("WidgetResponse", schema => schema
                 .AdditionalPropertiesFalse()
                 .Property("data", property => property.AnyOf(
                     static branch => branch.Ref("WidgetInfo"),
@@ -772,17 +754,12 @@ public sealed class ModelMaterializationMatrixTests
     private static void DefinePlaceInfo(SchemaBuilder schema) => _ = schema.Type("object")
         .Property("directory", property => property.Type("string"), required: true);
 
-    private static void DefineWidgetError(SchemaBuilder schema) => _ = schema.Type("object").AdditionalPropertiesFalse()
-        .Property("_tag", property => property.Type("string").Enum("WidgetError"), required: true)
-        .Property("message", property => property.Type("string"), required: true);
-
     private static async Task<(EmitPlan Plan, OperationPlan Operation)> CreatePromotedDataLocationListPlanAsync()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
             .WithSchema("PlaceInfo", DefinePlaceInfo)
-            .WithSchema("WidgetError", DefineWidgetError)
-            .WithSchema("WidgetEnvelope", schema => schema
-                .Type("object")
+            .WithTaggedError("WidgetError", "WidgetError")
+            .WithObject("WidgetEnvelope", schema => schema
                 .AdditionalPropertiesFalse()
                 .Property("location", property => property.Ref("PlaceInfo"), required: true)
                 .Property("data", property => property
@@ -837,12 +814,11 @@ public sealed class ModelMaterializationMatrixTests
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
             .WithSchema("PlaceInfo", DefinePlaceInfo)
-            .WithSchema("WidgetError", DefineWidgetError)
+            .WithTaggedError("WidgetError", "WidgetError")
             .WithSchema("WidgetNameList", schema => schema
                 .Type("array")
                 .Items(static item => item.Type("string")))
-            .WithSchema("WidgetEnvelope", schema => schema
-                .Type("object")
+            .WithObject("WidgetEnvelope", schema => schema
                 .AdditionalPropertiesFalse()
                 .Property("location", property => property.Ref("PlaceInfo"), required: true)
                 .Property("data", property => property.Ref("WidgetNameList"), required: true))
@@ -862,14 +838,8 @@ public sealed class ModelMaterializationMatrixTests
     private static async Task<(EmitPlan Plan, OperationPlan Stats, OperationPlan Handoff)> CreatePromotedInlinePlanAsync()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("WidgetInfo", schema => schema
-                .Type("object")
-                .Property("id", property => property.Type("string"), required: true))
-            .WithSchema("WidgetError", schema => schema
-                .Type("object")
-                .AdditionalPropertiesFalse()
-                .Property("_tag", property => property.Type("string").Enum("WidgetError"), required: true)
-                .Property("message", property => property.Type("string"), required: true))
+            .WithObject("WidgetInfo", SchemaPresets.RequiredId)
+            .WithTaggedError("WidgetError", "WidgetError")
             // Both bodies carry a second, optional member: a one-member inline body is the
             // single-key facet's, and this plan is about promoted bare payloads.
             .WithOperation("widget.stats", path: "/api/widget/stats", configure: operation => operation
@@ -901,33 +871,23 @@ public sealed class ModelMaterializationMatrixTests
     private static async Task<(EmitPlan Plan, ContainerOperations Operations)> CreateContainerEnvelopePlanAsync()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("WidgetInfo", schema => schema
-                .Type("object")
-                .Property("id", property => property.Type("string"), required: true))
-            .WithSchema("WidgetListEnvelope", schema => schema
-                .Type("object")
+            .WithObject("WidgetInfo", SchemaPresets.RequiredId)
+            .WithObject("WidgetListEnvelope", schema => schema
                 .AdditionalPropertiesFalse()
                 .Property("data", property => property.Type("array").Items(item => item.Ref("WidgetInfo")), required: true))
-            .WithSchema("WidgetMapEnvelope", schema => schema
-                .Type("object")
+            .WithObject("WidgetMapEnvelope", schema => schema
                 .AdditionalPropertiesFalse()
                 .Property("data", property => property.Type("object").AdditionalProperties(value => value.Ref("WidgetInfo")),
                     required: true))
-            .WithSchema("WidgetError", schema => schema
-                .Type("object")
-                .AdditionalPropertiesFalse()
-                .Property("_tag", property => property.Type("string").Enum("WidgetError"), required: true)
-                .Property("message", property => property.Type("string"), required: true))
+            .WithTaggedError("WidgetError", "WidgetError")
             .WithOperation("widget.list", path: "/api/widget/list", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("WidgetListEnvelope"))
                 .Response(400, "application/json", schema => schema.Ref("WidgetError")))
-            .WithOperation("widget.map", path: "/api/widget/map", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("WidgetMapEnvelope")))
-            .WithOperation("widget.bareList", path: "/api/widget/bare-list", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Type("array").Items(item => item.Ref("WidgetInfo"))))
-            .WithOperation("widget.bareMap", path: "/api/widget/bare-map", configure: operation => operation
-                .Response(200, "application/json",
-                    schema => schema.Type("object").AdditionalProperties(value => value.Ref("WidgetInfo"))))));
+            .WithJsonOperation("widget.map", "/api/widget/map", schema => schema.Ref("WidgetMapEnvelope"))
+            .WithJsonOperation("widget.bareList", "/api/widget/bare-list",
+                schema => schema.Type("array").Items(item => item.Ref("WidgetInfo")))
+            .WithJsonOperation("widget.bareMap", "/api/widget/bare-map",
+                schema => schema.Type("object").AdditionalProperties(value => value.Ref("WidgetInfo")))));
 
         var plan = new BindingTestHost().Bind(
             document,

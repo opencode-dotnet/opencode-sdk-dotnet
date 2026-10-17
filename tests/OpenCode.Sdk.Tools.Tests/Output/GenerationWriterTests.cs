@@ -228,32 +228,6 @@ public sealed class GenerationWriterTests
     }
 
     [Test]
-    public async Task WriteAsync_Should_Refuse_A_Family_Folder_Taking_A_Reserved_Name_In_Another_Case()
-    {
-        var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = CreateWriter(fileSystem);
-
-        var exception = await Assert
-            .That(async () => await writer.WriteAsync(Request([], familyFolders: ["models"]), CancellationToken.None))
-            .Throws<OutputRefusalException>();
-
-        await Assert.That(exception!.Message).Contains("reserved");
-    }
-
-    [Test]
-    public async Task WriteAsync_Should_Refuse_A_Family_Folder_Named_Pagination()
-    {
-        var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = CreateWriter(fileSystem);
-
-        var exception = await Assert
-            .That(async () => await writer.WriteAsync(Request([], familyFolders: ["Pagination"]), CancellationToken.None))
-            .Throws<OutputRefusalException>();
-
-        await Assert.That(exception!.Message).Contains("reserved");
-    }
-
-    [Test]
     public async Task WriteAsync_Should_Refuse_Family_Folders_Duplicated_By_Case()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
@@ -266,53 +240,6 @@ public sealed class GenerationWriterTests
             .Throws<OutputRefusalException>();
 
         await Assert.That(exception!.Message).Contains("duplicated");
-    }
-
-    [Test]
-    public async Task WriteAsync_Should_Admit_Family_Folder_Sources()
-    {
-        var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = CreateWriter(fileSystem);
-
-        var result = await writer.WriteAsync(
-            Request(
-                [GenerationTestData.Source("Sessions/SessionsClient.cs", "client")],
-                familyFolders: ["Sessions"]),
-            CancellationToken.None);
-
-        await Assert.That(result.CreatedPaths).Contains("Sessions/SessionsClient.cs");
-    }
-
-    [Test]
-    public async Task WriteAsync_Should_Refuse_A_Source_Outside_The_Admitted_Family_Folders()
-    {
-        var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = CreateWriter(fileSystem);
-
-        var exception = await Assert.That(async () => await writer.WriteAsync(
-                Request(
-                    [GenerationTestData.Source("Widgets/WidgetsClient.cs", "client")],
-                    familyFolders: ["Sessions"]),
-                CancellationToken.None))
-            .Throws<OutputRefusalException>();
-
-        await Assert.That(exception!.Message).Contains("outside the owned source directories");
-    }
-
-    [Test]
-    public async Task WriteAsync_Should_Refuse_A_Nested_Family_Folder_Source()
-    {
-        var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = CreateWriter(fileSystem);
-
-        var exception = await Assert.That(async () => await writer.WriteAsync(
-                Request(
-                    [GenerationTestData.Source("Sessions/Deep/File.cs", "nested")],
-                    familyFolders: ["Sessions"]),
-                CancellationToken.None))
-            .Throws<OutputRefusalException>();
-
-        await Assert.That(exception!.Message).Contains("outside the owned source directories");
     }
 
     [Test]
@@ -335,21 +262,6 @@ public sealed class GenerationWriterTests
         await Assert.That(OwnedSourcePaths(fileSystem))
             .DoesNotContain(fileSystem.Path.GetFullPath(stalePath));
         await Assert.That(result.DeletedPaths).Contains("Widgets/Old.cs");
-    }
-
-    [Test]
-    public async Task WriteAsync_Should_Refuse_A_Family_Folder_Named_Models()
-    {
-        var fileSystem = GenerationTestData.CreateFileSystem();
-        var writer = CreateWriter(fileSystem);
-
-        var exception = await Assert.That(async () => await writer.WriteAsync(
-                Request([], familyFolders: ["Models"]),
-                CancellationToken.None))
-            .Throws<OutputRefusalException>();
-
-        await Assert.That(exception!.Message).Contains("Models");
-        await Assert.That(exception.Message).Contains("reserved");
     }
 
     [Test]
@@ -497,15 +409,20 @@ public sealed class GenerationWriterTests
     [Arguments("Internal")]
     [Arguments("Hosting")]
     [Arguments("Properties")]
+    [Arguments("models")]
+    [Arguments("Pagination")]
+    [Arguments("Models")]
     public async Task WriteAsync_Should_Refuse_A_Family_Folder_Shadowing_A_Reserved_Folder(string folder)
     {
-        var writer = CreateWriter(GenerationTestData.CreateFileSystem());
+        var fileSystem = GenerationTestData.CreateFileSystem();
+        var writer = CreateWriter(fileSystem);
 
         var exception = await Assert
             .That(async () => _ = await writer.WriteAsync(Request([], familyFolders: [folder]), CancellationToken.None))
             .Throws<OutputRefusalException>();
 
-        await Assert.That(exception!.Message).Contains("shadows");
+        await Assert.That(exception!.Message).Contains(folder).And.Contains("shadows").And.Contains("reserved");
+        await Assert.That(OwnedSourcePaths(fileSystem)).IsEmpty();
     }
 
     [Test]
@@ -540,6 +457,8 @@ public sealed class GenerationWriterTests
     [Arguments("Models/Widget.cs")]
     [Arguments("Internal/ResponseAdapters/WidgetAdapter.cs")]
     [Arguments("Internal/StreamAdapters/WidgetStreamAdapter.cs")]
+    [Arguments("Widgets/WidgetsClient.cs")]
+    [Arguments("Sessions/Deep/File.cs")]
     public async Task WriteAsync_Should_Refuse_A_Source_Outside_The_Owned_Layout(string relativePath)
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
