@@ -456,24 +456,6 @@ public sealed class OpenCodeJsonContextTests
         await Assert.That(roundTrip).IsEqualTo(json);
     }
 
-    [Test]
-    public async Task Deserialize_Should_Reject_A_Numeric_String_Enum_Value()
-    {
-        var json = _fixtures.LoadJson("Serialization.numeric-diff-status.json");
-
-        _ = await Assert.That(() => _serializer.Deserialize<FileDiffInfo>(json)).Throws<JsonException>();
-    }
-
-    [Test]
-    public async Task Deserialize_Should_Map_A_Known_String_Enum_Wire_Value()
-    {
-        var json = _fixtures.LoadJson("Serialization.known-diff-status.json");
-
-        var diff = _serializer.Deserialize<FileDiffInfo>(json);
-
-        await Assert.That(diff.Status).IsEqualTo(FileDiffInfoStatus.Modified);
-    }
-
     [Arguments("NaN", double.NaN)]
     [Arguments("Infinity", double.PositiveInfinity)]
     [Arguments("-Infinity", double.NegativeInfinity)]

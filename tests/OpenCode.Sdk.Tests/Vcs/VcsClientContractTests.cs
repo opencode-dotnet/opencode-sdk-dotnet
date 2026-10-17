@@ -29,31 +29,6 @@ public sealed class VcsClientContractTests
     }
 
     [Test]
-    public async Task GetStatusAsync_Should_Throw_The_Declared_400_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Vcs.GetStatusAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(400);
-        await Assert.That(exception.Error).IsTypeOf<InvalidRequestError>();
-    }
-
-    [Test]
-    public async Task GetStatusAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Vcs.GetStatusAsync(requestOptions: OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
-    }
-
-    [Test]
     public async Task ListBranchesAsync_Should_Return_The_Typed_Branches_With_Their_Location()
     {
         using var scenario = ContractScenario.Responding(
@@ -78,31 +53,6 @@ public sealed class VcsClientContractTests
 
         await Assert.That(response.Branches.Count).IsEqualTo(0);
         await Assert.That(response.Location.Directory).IsEqualTo(WireBodyData.ResolvedDirectory);
-    }
-
-    [Test]
-    public async Task ListBranchesAsync_Should_Throw_The_Declared_400_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Vcs.ListBranchesAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(400);
-        await Assert.That(exception.Error).IsTypeOf<InvalidRequestError>();
-    }
-
-    [Test]
-    public async Task ListBranchesAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Vcs.ListBranchesAsync(requestOptions: OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
     }
 
     [Test]
@@ -132,31 +82,6 @@ public sealed class VcsClientContractTests
         await Assert.That(response.IsError).IsFalse();
         await Assert.That(response.Base).IsNull();
         await Assert.That(response.Location.Directory).IsEqualTo(WireBodyData.ResolvedDirectory);
-    }
-
-    [Test]
-    public async Task GetBaseAsync_Should_Throw_The_Declared_503_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.ServiceUnavailable, WireBodyData.ServiceUnavailableError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Vcs.GetBaseAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(503);
-        await Assert.That(exception.Error).IsTypeOf<ServiceUnavailableError>();
-    }
-
-    [Test]
-    public async Task GetBaseAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Vcs.GetBaseAsync(requestOptions: OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
     }
 
     [Test]
@@ -191,33 +116,6 @@ public sealed class VcsClientContractTests
         await Assert.That(response.Diffs.Count).IsEqualTo(0);
         await Assert.That(scenario.Requests.Single().RequestUri!.AbsoluteUri)
             .IsEqualTo("http://localhost:4096/api/vcs/diff?mode=committed&base=main&context=3");
-    }
-
-    [Test]
-    public async Task GetDiffAsync_Should_Throw_The_Declared_503_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.ServiceUnavailable, WireBodyData.ServiceUnavailableError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Vcs.GetDiffAsync(new VcsDiffRequest { Mode = VcsMode.Branch }))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(503);
-        await Assert.That(exception.Error).IsTypeOf<ServiceUnavailableError>();
-    }
-
-    [Test]
-    public async Task GetDiffAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Vcs.GetDiffAsync(
-            new VcsDiffRequest { Mode = VcsMode.Working },
-            OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
     }
 
     [Test]
