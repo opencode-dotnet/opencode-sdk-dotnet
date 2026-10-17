@@ -3,12 +3,64 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 public sealed class OperationPlanBinderTests
 {
+    [Test]
+    [Arguments("vcs.changes.list", "none", "items", "operation 'vcs.changes.list' is a list whose last subject word 'Changes' ends in 's', which may already be plural; an operationNames row must name it (ADR-0008)")]
+    [Arguments("addresses.list", "none", "items", "operation 'addresses.list' is a list whose last subject word 'Addresses' ends in 's', which may already be plural; an operationNames row must name it (ADR-0008)")]
+    [Arguments("credential.settings.list", "method", "data", "operation 'credential.settings.list' is a list whose last subject word 'Settings' ends in 's', which may already be plural; an envelopePayloadNames row must name its payload member (ADR-0008)")]
+    public async Task Bind_Should_Refuse_An_Ambiguous_List_Subject_Without_Its_Row(string operationId, string rows, string wireName, string problem)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
+        var document = await ListDocumentAsync(operationId, wireName);
+        var curation = ListCuration(operationId, rows);
+
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection(operationId), curation));
+
+        await Assert.That(exception.Errors.Where(error => error.Category == BindingErrorCategory.Operation && error.Subject == operationId))
+            .IsEquivalentTo([new BindingError(BindingErrorCategory.Operation, operationId, problem)], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments("vcs.changes.list", "both", "data", "ListChangesAsync", "ListChanges", "Changes")]
+    [Arguments("vcs.changes.list", "method", "items", "ListChangesAsync", "ListChanges", "Items")]
+    [Arguments("boss.list", "none", "data", "ListBossesAsync", "ListBosses", "Bosses")]
+    public async Task Bind_Should_Name_A_List_From_Its_Rows_Or_By_The_Rule(string operationId, string rows, string wireName,
+        string methodName, string routeMemberName, string payloadName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
+        var document = await ListDocumentAsync(operationId, wireName);
+
+        var plan = new BindingTestHost().Bind(document, Selection(operationId), ListCuration(operationId, rows));
+
+        var bound = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
+        await Assert.That(bound.MethodName).IsEqualTo(methodName);
+        await Assert.That(bound.RouteMemberName).IsEqualTo(routeMemberName);
+        await Assert.That(bound.Envelope!.PayloadName).IsEqualTo(payloadName);
+    }
+
+    /// <summary>A handle list with no subject is <c>ListAsync</c>: it names no plural, so it needs no row.</summary>
+    [Test]
+    public async Task Bind_Should_Not_Require_A_Row_For_A_Handle_List_With_No_Subject()
+    {
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(static spec => spec
+            .WithOperation("alias.list", path: "/api/alias/{aliasID}/items", configure: static operation => operation
+                .Parameter("aliasID", "path", static schema => schema.Type("string"), required: true)
+                .Response(200, "application/json", static schema => schema.Type("object")
+                    .Property("items", static property => property.Type("array").Items(static item => item.Type("string")), required: true)))));
+
+        var plan = new BindingTestHost().Bind(document, Selection("alias.list"),
+            Curation(Groups("alias", ClientGroup(clientName: "Aliases", handleName: "AliasClient", handleParameter: "aliasID"))));
+
+        var bound = plan.Clients.Single(static client => client.Role == ClientRole.Handle).Operations.Single();
+        await Assert.That(bound.MethodName).IsEqualTo("ListAsync");
+    }
+
     [Test]
     [Arguments("member", "GadgetClient", "multiple members map to C# name 'GetPartAsync'")]
     [Arguments("response", "gadget.part.get", "multiple operations map to response type 'GadgetPartResponse'", "multiple operations map to route member 'Gadgets.GetPart'")]
@@ -49,7 +101,7 @@ public sealed class OperationPlanBinderTests
         BindingError[] expected = secondProblem is null ? [new(BindingErrorCategory.Naming, subject, problem)]
             : [new(BindingErrorCategory.Naming, subject, problem), new(BindingErrorCategory.Naming, subject, secondProblem)];
         await Assert.That(exception.Errors.Where(error => error.Category == BindingErrorCategory.Naming && error.Subject == subject))
-            .IsEquivalentTo(expected, TUnit.Assertions.Enums.CollectionOrdering.Matching)
+            .IsEquivalentTo(expected, CollectionOrdering.Matching)
             .Because(string.Join(" | ", exception.Errors.Select(static error => error.Subject + ": " + error.Problem)));
     }
 
@@ -3428,6 +3480,20 @@ public sealed class OperationPlanBinderTests
             }));
 
     /// <summary>The header-bearing family shape: a handle group whose connect-token call declares a wire header.</summary>
+    private static Task<SpecDocument> ListDocumentAsync(string operationId, string wireName) =>
+        BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
+            .WithOperation(operationId, configure: operation => operation
+                .Response(200, "application/json", schema => schema.Type("object")
+                    .Property(wireName, static property => property.Type("array").Items(static item => item.Type("string")), required: true)))));
+
+    private static GenerationCuration ListCuration(string operationId, string rows)
+    {
+        var curatedMethod = operationId == "credential.settings.list" ? "ListSettingsAsync" : "ListChangesAsync";
+        return Curation(Groups(operationId.Split('.')[0], ClientGroup("Examples", handleName: null, handleParameter: null)),
+            operationNames: rows == "none" ? [] : [OperationName(operationId, curatedMethod)],
+            envelopePayloadNames: rows == "both" ? [EnvelopePayloadName(operationId, "Changes")] : []);
+    }
+
     private static SpecScenario PtyScenario(bool headerRequired = false, string headerName = "x-opencode-ticket") =>
         SpecScenario.Define(spec => spec
             .WithSchema("PtyInfo", schema => schema

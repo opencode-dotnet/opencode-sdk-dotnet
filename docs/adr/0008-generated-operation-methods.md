@@ -1,6 +1,6 @@
 # All operation methods are generated; excluded operations are fingerprint-pinned
 
-Date: 2026-10-16
+Date: 2026-10-17
 
 Every operation method on the generated surface is generator-emitted
 as a one-line delegation into the hand-written behavior core; behavior (retry, error
@@ -63,6 +63,9 @@ envelope; `text/*` → `string`); an unknown content type breaks generation.
   its nested subject or group fallback for its method and envelope payload member: append `es`
   after `s`, `x`, `z`, `ch`, or `sh`, replace consonant-plus-`y` with `ies`, and otherwise append
   `s`. A closed irregular table gives `Pty` → `Ptys` and keeps `Inbox` and `Saved` invariant.
+  A last word that ends in a single `s` is ambiguous, so such a list needs an `operationNames` row
+  (a handle method with no subject is `ListAsync` and names no plural), and an
+  `envelopePayloadNames` row for a derived payload member.
   Request, response, and operation-derived payload type names are mechanical projections of the
   operation identity, never of an `operationNames` row; their stems retain the identity's subject
   and grammar verb (`SessionPromptResponse`, `PtyUpdateResponse`, `SessionListResponse`). A plural

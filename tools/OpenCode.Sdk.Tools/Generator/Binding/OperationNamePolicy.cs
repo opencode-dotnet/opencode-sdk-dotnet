@@ -88,6 +88,25 @@ internal static class OperationNamePolicy
                + "and no operationNames row names it; the HTTP method is never a name source (ADR-0008)";
     }
 
+    /// <summary>The refusal for a list whose last subject word may already be plural; a subjectless handle list names none.</summary>
+    public static string? AmbiguousPluralProblem(SpecOperation operation, bool payload = false, bool handle = false)
+    {
+        ArgumentNullException.ThrowIfNull(operation);
+        var subject = Subject(operation);
+        if (!string.Equals(Verb(operation), "List", StringComparison.Ordinal) || (subject.Length is 0 && handle && !payload))
+        {
+            return null;
+        }
+
+        var word = CSharpNamePolicy.SplitWords(subject.Length is 0 ? CSharpNamePolicy.ToPascalCase(operation.Segments[0]) : subject)[^1];
+        var rowRequired = payload ? "an envelopePayloadNames row must name its payload member (ADR-0008)"
+            : "an operationNames row must name it (ADR-0008)";
+        return word[^1] is 's' && !word.EndsWith("ss", StringComparison.Ordinal)
+            ? $"operation '{operation.OperationId}' is a list whose last subject word '{word}' ends in 's', which may already be plural; "
+              + rowRequired
+            : null;
+    }
+
     /// <summary>Replaces a list operation's verb with the reviewed automatic-traversal verb.</summary>
     public static string? EnumerationMethodName(string methodName)
     {
