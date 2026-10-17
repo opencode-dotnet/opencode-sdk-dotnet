@@ -238,8 +238,9 @@ The lint job runs `dotnet run --file tools/opencode-tool.cs -- verify-clones`: t
 `tools/jscpd/`, installed with the pinned Bun from its own lockfile, at a 50-token minimum over four
 scopes. Hand-written `src/`, `tools/` and `tests/` are gated against the committed baselines in
 `tools/jscpd/`: a clone a baseline does not hold fails the job, `tools/` also fails above 3%
-duplicated lines, and `tests/` above 6%. The tests threshold only falls: a change that removes
-test clones lowers it to its new measurement, rounded up to the next 0.5%. Generated output is
+duplicated lines, and `tests/` above 6%. The tests ceiling is the measurement plus 0.25 points,
+rounded up to the next 0.5%, and it only ever falls: a change that removes test clones lowers it
+to that value when it is lower than the current ceiling. Generated output is
 reported, not gated. The generator's manifest decides which `src/` files are generated, so the split
 needs no path convention. A failure names each new clone with its
 two `file:line` ranges and its size in tokens, and the job keeps the jscpd reports as an artifact. Locally the same command runs from the

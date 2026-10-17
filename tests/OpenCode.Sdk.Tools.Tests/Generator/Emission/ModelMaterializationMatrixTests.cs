@@ -501,16 +501,7 @@ public sealed class ModelMaterializationMatrixTests
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Bind_Should_Compile_And_Roundtrip_An_Open_Models_Extension_Data()
     {
-        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithObject("OpenSettings", schema => schema
-                .Property("timeout", property => property.Type("number"))
-                .AllOf(rest => rest.Type("object").AdditionalProperties(value => value.Unrestricted())))
-            .WithTaggedError("WidgetError", "WidgetError")
-            .WithOperation("settings.get", path: "/api/settings", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("OpenSettings"))
-                .Response(400, "application/json", schema => schema.Ref("WidgetError")))));
-        var plan = new BindingTestHost().Bind(document, Selection("settings.get"),
-            Curation(Groups("settings", RootGroup()), redactedOpenMembers: [OpenMembers("OpenSettings", redact: false)]));
+        var plan = await CreateObjectDtoPlanAsync();
 
         var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(SourceEmitter.Emit(plan));
         var typeInfo = ResolveTypeInfo(assembly, "OpenCode.Sdk.Models.OpenSettings");
@@ -559,7 +550,8 @@ public sealed class ModelMaterializationMatrixTests
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Bind_Should_Compile_And_Roundtrip_Container_Envelope_Payloads()
     {
-        var (plan, operations) = await CreateContainerEnvelopePlanAsync();
+        var plan = await CreateContainerPromotionPlanAsync();
+        var operations = GetContainerOperations(plan);
         await AssertContainerPayloadShapesAsync(operations);
 
         var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(SourceEmitter.Emit(plan));
@@ -582,7 +574,9 @@ public sealed class ModelMaterializationMatrixTests
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Bind_Should_Compile_And_Roundtrip_Promoted_Inline_Envelope_Payloads()
     {
-        var (plan, stats, handoff) = await CreatePromotedInlinePlanAsync();
+        var plan = await CreateContainerPromotionPlanAsync();
+        var stats = GetOperation(plan, "widget.stats");
+        var handoff = GetOperation(plan, "widget.handoff");
         await Assert.That(((NamedTypeReferencePlan)stats.Envelope!.PayloadType!).Name).IsEqualTo("WidgetStatsData");
         await Assert.That(((NamedTypeReferencePlan)handoff.Envelope!.PayloadType!).Name).IsEqualTo("WidgetHandoffData");
 
@@ -608,7 +602,9 @@ public sealed class ModelMaterializationMatrixTests
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Bind_Should_Materialize_A_Single_Key_Envelope_Under_Its_Own_Wire_Key()
     {
-        var (plan, operation) = await CreateSingleKeyEnvelopePlanAsync();
+        var plan = await CreateObjectDtoPlanAsync();
+        var operation = plan.Clients.SelectMany(static client => client.Operations)
+            .Single(static candidate => candidate.OperationId == "widget.handoff");
         await Assert.That(operation.Envelope!.PayloadName).IsEqualTo("Handoff");
 
         var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(SourceEmitter.Emit(plan));
@@ -633,7 +629,8 @@ public sealed class ModelMaterializationMatrixTests
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Bind_Should_Materialize_A_Nullable_Data_Envelope_Payload_By_Response_State()
     {
-        var (plan, operation) = await CreateNullableDataEnvelopePlanAsync();
+        var plan = await CreateContainerPromotionPlanAsync();
+        var operation = GetOperation(plan, "widget.nullable");
         await Assert.That(operation.Envelope!.PayloadType!.IsNullable).IsTrue();
 
         var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(SourceEmitter.Emit(plan));
@@ -675,17 +672,32 @@ public sealed class ModelMaterializationMatrixTests
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Bind_Should_Still_Fail_To_Materialize_A_Wire_Null_For_A_Non_Nullable_Data_Envelope_Payload()
     {
-        var (plan, operations) = await CreateContainerEnvelopePlanAsync();
+        var plan = await CreateContainerPromotionPlanAsync();
+        var operations = GetContainerOperations(plan);
         var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(SourceEmitter.Emit(plan));
 
         await AssertMissingDataFailsAsync(assembly, operations.DataList.Envelope!, """{"data":null}""");
     }
 
-    private static async Task<(EmitPlan Plan, OperationPlan Operation)> CreateSingleKeyEnvelopePlanAsync()
+    private static async Task<EmitPlan> CreateObjectDtoPlanAsync()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
+            .WithObject("OpenSettings", schema => schema
+                .Property("timeout", property => property.Type("number"))
+                .AllOf(rest => rest.Type("object").AdditionalProperties(value => value.Unrestricted())))
             .WithObject("WidgetInfo", SchemaPresets.RequiredId)
+            .WithSchema("PlaceInfo", DefinePlaceInfo)
+            .WithSchema("WidgetNameList", schema => schema
+                .Type("array")
+                .Items(static item => item.Type("string")))
+            .WithObject("WidgetEnvelope", schema => schema
+                .AdditionalPropertiesFalse()
+                .Property("location", property => property.Ref("PlaceInfo"), required: true)
+                .Property("data", property => property.Ref("WidgetNameList"), required: true))
             .WithTaggedError("WidgetError", "WidgetError")
+            .WithOperation("settings.get", path: "/api/settings", configure: operation => operation
+                .Response(200, "application/json", schema => schema.Ref("OpenSettings"))
+                .Response(400, "application/json", schema => schema.Ref("WidgetError")))
             .WithOperation("widget.handoff", path: "/api/widget/handoff", configure: operation => operation
                 .Response(200, "application/json", schema => schema
                     .Type("object")
@@ -693,38 +705,19 @@ public sealed class ModelMaterializationMatrixTests
                     .Property("handoff", property => property.AnyOf(
                         static branch => branch.Ref("WidgetInfo"),
                         static branch => branch.Type("null")), required: true))
-                .Response(400, "application/json", schema => schema.Ref("WidgetError")))));
-
-        var plan = new BindingTestHost().Bind(
-            document,
-            Selection("widget.handoff"),
-            Curation(Groups("widget", RootGroup())));
-
-        var operation = plan.Clients.SelectMany(static client => client.Operations).Single();
-        return (plan, operation);
-    }
-
-    private static async Task<(EmitPlan Plan, OperationPlan Operation)> CreateNullableDataEnvelopePlanAsync()
-    {
-        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithObject("WidgetInfo", SchemaPresets.RequiredId)
-            .WithTaggedError("WidgetError", "WidgetError")
-            .WithObject("WidgetResponse", schema => schema
-                .AdditionalPropertiesFalse()
-                .Property("data", property => property.AnyOf(
-                    static branch => branch.Ref("WidgetInfo"),
-                    static branch => branch.Type("null")), required: true))
+                .Response(400, "application/json", schema => schema.Ref("WidgetError")))
             .WithOperation("widget.list", path: "/api/widget", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("WidgetResponse"))
+                .Response(200, "application/json", schema => schema.Ref("WidgetEnvelope"))
                 .Response(400, "application/json", schema => schema.Ref("WidgetError")))));
 
-        var plan = new BindingTestHost().Bind(
+        var groups = Groups("settings", RootGroup());
+        groups.Add("widget", RootGroup());
+        return new BindingTestHost().Bind(
             document,
-            Selection("widget.list"),
-            Curation(Groups("widget", RootGroup())));
-
-        var operation = plan.Clients.SelectMany(static client => client.Operations).Single();
-        return (plan, operation);
+            Selection("settings.get", "widget.handoff", "widget.list"),
+            Curation(
+                groups,
+                redactedOpenMembers: [OpenMembers("OpenSettings", redact: false)]));
     }
 
     /// <summary>
@@ -735,7 +728,8 @@ public sealed class ModelMaterializationMatrixTests
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Bind_Should_Compile_And_Roundtrip_A_Promoted_Data_Location_List_Item()
     {
-        var (plan, operation) = await CreatePromotedDataLocationListPlanAsync();
+        var plan = await CreateContainerPromotionPlanAsync();
+        var operation = GetOperation(plan, "widget.list");
         await Assert.That(operation.Envelope!.Kind).IsEqualTo(EnvelopeKind.DataLocationList);
         var elementType = (NamedTypeReferencePlan)((ListTypeReferencePlan)operation.Envelope.PayloadType!).ElementType;
         await Assert.That(elementType.Name).IsEqualTo("WidgetListData");
@@ -754,32 +748,6 @@ public sealed class ModelMaterializationMatrixTests
     private static void DefinePlaceInfo(SchemaBuilder schema) => _ = schema.Type("object")
         .Property("directory", property => property.Type("string"), required: true);
 
-    private static async Task<(EmitPlan Plan, OperationPlan Operation)> CreatePromotedDataLocationListPlanAsync()
-    {
-        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("PlaceInfo", DefinePlaceInfo)
-            .WithTaggedError("WidgetError", "WidgetError")
-            .WithObject("WidgetEnvelope", schema => schema
-                .AdditionalPropertiesFalse()
-                .Property("location", property => property.Ref("PlaceInfo"), required: true)
-                .Property("data", property => property
-                    .Type("array")
-                    .Items(static item => item
-                        .Type("object")
-                        .Property("id", static inner => inner.Type("string"), required: true)), required: true))
-            .WithOperation("widget.list", path: "/api/widget", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("WidgetEnvelope"))
-                .Response(400, "application/json", schema => schema.Ref("WidgetError")))));
-
-        var plan = new BindingTestHost().Bind(
-            document,
-            Selection("widget.list"),
-            Curation(Groups("widget", RootGroup())));
-
-        var operation = plan.Clients.SelectMany(static client => client.Operations).Single();
-        return (plan, operation);
-    }
-
     /// <summary>
     /// The mechanism extension: a location envelope's 'data' member is a RefNode naming an
     /// ARRAY component directly (vcs.branches' exact shape, Vcs.BranchList =
@@ -792,7 +760,9 @@ public sealed class ModelMaterializationMatrixTests
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Bind_Should_Compile_And_Roundtrip_A_Data_Location_List_Ref_To_A_Named_Array_Component()
     {
-        var (plan, operation) = await CreateRefToNamedArrayDataLocationListPlanAsync();
+        var plan = await CreateObjectDtoPlanAsync();
+        var operation = plan.Clients.SelectMany(static client => client.Operations)
+            .Single(static candidate => candidate.OperationId == "widget.list");
         await Assert.That(operation.Envelope!.Kind).IsEqualTo(EnvelopeKind.DataLocationList);
         var elementType = (NamedTypeReferencePlan)((ListTypeReferencePlan)operation.Envelope.PayloadType!).ElementType;
         await Assert.That(elementType.Name).IsEqualTo("string");
@@ -810,36 +780,39 @@ public sealed class ModelMaterializationMatrixTests
         await Assert.That(GetProperty(location, "Directory")).IsEqualTo("widget-place");
     }
 
-    private static async Task<(EmitPlan Plan, OperationPlan Operation)> CreateRefToNamedArrayDataLocationListPlanAsync()
-    {
-        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("PlaceInfo", DefinePlaceInfo)
-            .WithTaggedError("WidgetError", "WidgetError")
-            .WithSchema("WidgetNameList", schema => schema
-                .Type("array")
-                .Items(static item => item.Type("string")))
-            .WithObject("WidgetEnvelope", schema => schema
-                .AdditionalPropertiesFalse()
-                .Property("location", property => property.Ref("PlaceInfo"), required: true)
-                .Property("data", property => property.Ref("WidgetNameList"), required: true))
-            .WithOperation("widget.list", path: "/api/widget", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("WidgetEnvelope"))
-                .Response(400, "application/json", schema => schema.Ref("WidgetError")))));
-
-        var plan = new BindingTestHost().Bind(
-            document,
-            Selection("widget.list"),
-            Curation(Groups("widget", RootGroup())));
-
-        var operation = plan.Clients.SelectMany(static client => client.Operations).Single();
-        return (plan, operation);
-    }
-
-    private static async Task<(EmitPlan Plan, OperationPlan Stats, OperationPlan Handoff)> CreatePromotedInlinePlanAsync()
+    private static async Task<EmitPlan> CreateContainerPromotionPlanAsync()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
             .WithObject("WidgetInfo", SchemaPresets.RequiredId)
             .WithTaggedError("WidgetError", "WidgetError")
+            .WithSchema("PlaceInfo", DefinePlaceInfo)
+            .WithObject("WidgetListEnvelope", schema => schema
+                .AdditionalPropertiesFalse()
+                .Property("data", property => property.Type("array").Items(item => item.Ref("WidgetInfo")), required: true))
+            .WithObject("WidgetMapEnvelope", schema => schema
+                .AdditionalPropertiesFalse()
+                .Property("data", property => property.Type("object").AdditionalProperties(value => value.Ref("WidgetInfo")),
+                    required: true))
+            .WithObject("WidgetResponse", schema => schema
+                .AdditionalPropertiesFalse()
+                .Property("data", property => property.AnyOf(
+                    static branch => branch.Ref("WidgetInfo"),
+                    static branch => branch.Type("null")), required: true))
+            .WithObject("WidgetEnvelope", schema => schema
+                .AdditionalPropertiesFalse()
+                .Property("location", property => property.Ref("PlaceInfo"), required: true)
+                .Property("data", property => property
+                    .Type("array")
+                    .Items(static item => item
+                        .Type("object")
+                        .Property("id", static inner => inner.Type("string"), required: true)), required: true))
+            .WithOperation("widget.containerList", path: "/api/widget/list",
+                configure: operation => DefineWidgetResponse(operation, "WidgetListEnvelope"))
+            .WithJsonOperation("widget.map", "/api/widget/map", schema => schema.Ref("WidgetMapEnvelope"))
+            .WithJsonOperation("widget.bareList", "/api/widget/bare-list",
+                schema => schema.Type("array").Items(item => item.Ref("WidgetInfo")))
+            .WithJsonOperation("widget.bareMap", "/api/widget/bare-map",
+                schema => schema.Type("object").AdditionalProperties(value => value.Ref("WidgetInfo")))
             // Both bodies carry a second, optional member: a one-member inline body is the
             // single-key facet's, and this plan is about promoted bare payloads.
             .WithOperation("widget.stats", path: "/api/widget/stats", configure: operation => operation
@@ -849,67 +822,44 @@ public sealed class ModelMaterializationMatrixTests
                     .Property("count", property => property.Type("integer"), required: true)
                     .Property("label", property => property.Type("string")))
                 .Response(400, "application/json", schema => schema.Ref("WidgetError")))
-            .WithOperation("widget.handoff", path: "/api/widget/handoff", configure: operation => operation
-                .Response(200, "application/json", schema => schema
-                    .Type("object")
-                    .AdditionalPropertiesFalse()
-                    .Property("handoff", property => property.Ref("WidgetInfo"), required: true)
-                    .Property("note", property => property.Type("string"))))));
-
-        var plan = new BindingTestHost().Bind(
-            document,
-            Selection("widget.stats", "widget.handoff"),
-            Curation(Groups("widget", RootGroup())));
-
-        var bound = plan.Clients.SelectMany(static client => client.Operations).ToArray();
-        return (
-            plan,
-            bound.Single(static operation => operation.MethodName == "GetStatsAsync"),
-            bound.Single(static operation => operation.MethodName == "GetHandoffAsync"));
-    }
-
-    private static async Task<(EmitPlan Plan, ContainerOperations Operations)> CreateContainerEnvelopePlanAsync()
-    {
-        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
-            .WithObject("WidgetInfo", SchemaPresets.RequiredId)
-            .WithObject("WidgetListEnvelope", schema => schema
+            .WithJsonOperation("widget.handoff", "/api/widget/handoff", schema => schema
+                .Type("object")
                 .AdditionalPropertiesFalse()
-                .Property("data", property => property.Type("array").Items(item => item.Ref("WidgetInfo")), required: true))
-            .WithObject("WidgetMapEnvelope", schema => schema
-                .AdditionalPropertiesFalse()
-                .Property("data", property => property.Type("object").AdditionalProperties(value => value.Ref("WidgetInfo")),
-                    required: true))
-            .WithTaggedError("WidgetError", "WidgetError")
-            .WithOperation("widget.list", path: "/api/widget/list", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("WidgetListEnvelope"))
-                .Response(400, "application/json", schema => schema.Ref("WidgetError")))
-            .WithJsonOperation("widget.map", "/api/widget/map", schema => schema.Ref("WidgetMapEnvelope"))
-            .WithJsonOperation("widget.bareList", "/api/widget/bare-list",
-                schema => schema.Type("array").Items(item => item.Ref("WidgetInfo")))
-            .WithJsonOperation("widget.bareMap", "/api/widget/bare-map",
-                schema => schema.Type("object").AdditionalProperties(value => value.Ref("WidgetInfo")))));
+                .Property("handoff", property => property.Ref("WidgetInfo"), required: true)
+                .Property("note", property => property.Type("string")))
+            .WithOperation("widget.nullable", path: "/api/widget/nullable",
+                configure: operation => DefineWidgetResponse(operation, "WidgetResponse"))
+            .WithOperation("widget.list", path: "/api/widget",
+                configure: operation => DefineWidgetResponse(operation, "WidgetEnvelope"))));
 
-        var plan = new BindingTestHost().Bind(
+        return new BindingTestHost().Bind(
             document,
-            Selection("widget.list", "widget.map", "widget.bareList", "widget.bareMap"),
+            Selection("widget.containerList", "widget.map", "widget.bareList", "widget.bareMap",
+                "widget.stats", "widget.handoff", "widget.nullable", "widget.list"),
             Curation(
                 Groups("widget", RootGroup()),
                 operationNames:
                 [
-                    OperationName("widget.list", "GetWidgetListAsync"),
+                    OperationName("widget.containerList", "GetWidgetListAsync"),
                     OperationName("widget.map", "GetWidgetMapAsync"),
                     OperationName("widget.bareList", "GetWidgetBareListAsync"),
                     OperationName("widget.bareMap", "GetWidgetBareMapAsync"),
                 ]));
-
-        var bound = plan.Clients.SelectMany(static client => client.Operations).ToArray();
-        var operations = new ContainerOperations(
-            DataList: bound.Single(static operation => operation.MethodName == "GetWidgetListAsync"),
-            DataMap: bound.Single(static operation => operation.MethodName == "GetWidgetMapAsync"),
-            BareList: bound.Single(static operation => operation.MethodName == "GetWidgetBareListAsync"),
-            BareMap: bound.Single(static operation => operation.MethodName == "GetWidgetBareMapAsync"));
-        return (plan, operations);
     }
+
+    private static void DefineWidgetResponse(OperationBuilder operation, string schemaName) => _ = operation
+        .Response(200, "application/json", schema => schema.Ref(schemaName))
+        .Response(400, "application/json", schema => schema.Ref("WidgetError"));
+
+    private static OperationPlan GetOperation(EmitPlan plan, string operationId) =>
+        plan.Clients.SelectMany(static client => client.Operations)
+            .Single(operation => operation.OperationId == operationId);
+
+    private static ContainerOperations GetContainerOperations(EmitPlan plan) => new(
+        DataList: GetOperation(plan, "widget.containerList"),
+        DataMap: GetOperation(plan, "widget.map"),
+        BareList: GetOperation(plan, "widget.bareList"),
+        BareMap: GetOperation(plan, "widget.bareMap"));
 
     private static async Task AssertContainerPayloadShapesAsync(ContainerOperations operations)
     {
