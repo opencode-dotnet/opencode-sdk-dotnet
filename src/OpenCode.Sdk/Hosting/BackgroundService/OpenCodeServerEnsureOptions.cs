@@ -58,9 +58,9 @@ public sealed class OpenCodeServerEnsureOptions
 
     /// <summary>
     /// Gets or sets extra environment entries layered onto a spawned contender after the channel's
-    /// service-config map and before the handoff variable. The pinned server re-applies its saved
-    /// service-config <c>env</c> when it starts, so a key set in both takes the saved value for
-    /// everything the server reads after startup.
+    /// service-config map and before the handoff variable. An opencode 2.0.32 service re-applies its
+    /// saved service-config <c>env</c> when it starts, so a key set in both takes the saved value for
+    /// everything the service reads after startup.
     /// </summary>
     public IReadOnlyDictionary<string, string>? Environment { get; set; }
 
