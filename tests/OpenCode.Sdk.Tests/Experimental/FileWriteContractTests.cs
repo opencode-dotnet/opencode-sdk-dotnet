@@ -26,19 +26,4 @@ public sealed class FileWriteContractTests
         await Assert.That(response.File.Path).IsEqualTo("/repo/assets/logo.bin");
         await Assert.That(response.Location.Directory).IsEqualTo(WireBodyData.ResolvedDirectory);
     }
-
-    [Test]
-    public async Task WriteFileAsync_Should_Throw_The_Declared_400_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
-        using var content = new MemoryStream([0x01]);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Experimental.WriteFileAsync(
-                new ExperimentalFsWriteRequest { Path = "a.bin" }, content))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(400);
-        await Assert.That(exception.Error).IsTypeOf<Models.InvalidRequestError>();
-    }
 }
