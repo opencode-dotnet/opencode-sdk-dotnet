@@ -12,6 +12,25 @@ public sealed class VcsClientLiveTests(SimulatedDriveServerFixture server)
 {
     [Test]
     [Timeout(60_000)]
+    public async Task InitializeRepositoryAsync_Should_Refuse_Reinitialization_When_The_First_Call_Initialized_Git(
+        CancellationToken cancellationToken)
+    {
+        using var workspace = server.CreateWorkspace();
+        using var client = server.CreateClient(new LocationSelector { Directory = workspace.Path });
+        var location = await client.GetLocationAsync(cancellationToken: cancellationToken);
+        var request = new VcsInitRequest { Provider = "git" };
+
+        var initialized = await client.Vcs.InitializeRepositoryAsync(request, cancellationToken: cancellationToken);
+        await Assert.That(initialized.Status).IsEqualTo(204);
+        var repeated = await client.Vcs.InitializeRepositoryAsync(request, OpenCodeRequestOptions.NoThrow, cancellationToken);
+
+        await Assert.That(repeated.Status).IsEqualTo(409);
+        await Assert.That(repeated.Error).IsTypeOf<ConflictError>();
+        await Assert.That(((ConflictError)repeated.Error!).Resource).IsEqualTo(location.ResolvedLocation.Project.Directory);
+    }
+
+    [Test]
+    [Timeout(60_000)]
     public async Task GetVcsAsync_ListBranchesAsync_And_GetBaseAsync_Should_Report_The_Initialized_Main_Branch(
         CancellationToken cancellationToken)
     {
