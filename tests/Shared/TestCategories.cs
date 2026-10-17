@@ -19,4 +19,11 @@ internal static class TestCategories
     /// completion gate runs these tests in a pass of their own, after every other test.
     /// </summary>
     public const string NativeAot = "NativeAot";
+
+    /// <summary>
+    /// The tests that pack the products and build packed consumers. Packing reads the Release outputs
+    /// of the whole solution, so these tests need the solution built first; a run over a bare
+    /// test-project build cannot pass them.
+    /// </summary>
+    public const string Packaging = "Packaging";
 }

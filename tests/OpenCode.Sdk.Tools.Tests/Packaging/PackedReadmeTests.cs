@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions;
 using TUnit.Assertions.Enums;
@@ -13,6 +14,7 @@ namespace OpenCode.Sdk.Tools.Tests.Packaging;
 /// repository's README links master; only the packed copy is rewritten. CI status badges keep
 /// pointing at master, because they report master's state rather than link a file.
 /// </summary>
+[Category(TestCategories.Packaging)]
 [ClassDataSource<PackedConsumerFeed>(Shared = SharedType.PerTestSession)]
 public sealed partial class PackedReadmeTests(PackedConsumerFeed feed)
 {
