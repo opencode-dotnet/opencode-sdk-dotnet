@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-10-16
+Date: 2026-10-18
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **global event bus** for everything happening in the server
@@ -59,6 +59,127 @@ await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: win
 The form events are not among them: a form's session id can be `"global"` rather than a session,
 and `form.created` carries it inside the form. Read `Data.SessionId` on `FormCancelled` and
 `FormReplied`, and `Data.Form.SessionId` on `FormCreated`.
+
+### 🙋 Answering permissions and questions
+
+Upstream's built-in permission actions are `shell` for shell commands, `edit` for file edits,
+and `question` for the question tool itself. A wildcard `*` Ask rule gates questions too: that
+permission must be answered before `FormCreated` arrives. Use explicit action rules when you
+want questions answered without a permission ask, as below.
+
+With `OpenCode.Sdk` and `OpenCode.Sdk.Models` imported, pass a client, a catalog `ModelRef`,
+a prompt, and a cancellation token to this method. It creates a fresh session in the server's
+working directory and returns its observed events. This demonstration approves shell calls
+`Once`, rejects edits, and answers non-multiple questions with `green`; replace those choices
+with your host's approval and input UI. Start listening before prompting, including the
+`server.connected` barrier, and route form events separately from session-scoped events.
+
+`SessionFormReplyRequest.Answer` is an `IReadOnlyDictionary<string, FormValue>`, keyed by the
+form's fields. `IFormField.Key` and other members read through a union interface are nullable:
+the unknown-arm carrier has no typed values. Fail explicitly for a missing key or an unsupported
+field rather than using `!` or silently omitting it; this recipe handles `FormStringField` only.
+
+Reject settles every pending ask of the session (`packages/core/src/permission.ts:276-295`);
+without feedback, the turn is interrupted once the step's tools settle. This recipe answers what
+is still pending and treats a sibling its Reject already settled as done, as upstream's client
+does, but tolerates typed not-found only after its own earlier Reject in that session: a
+genuinely new ask after that Reject is still pending, so its reply succeeds and never needs the
+tolerance. Pass an empty `replies` list to record successful and absorbed replies.
+
+```csharp
+static async Task<IReadOnlyList<IEvent>> AnswerAsksAsync(
+    OpenCodeClient client, ModelRef model, string prompt, CancellationToken token,
+    List<(string Id, string Outcome)> replies)
+{
+    var created = await client.Sessions.CreateSessionAsync(new SessionCreateRequest
+    {
+        Model = model,
+        Permissions = new List<PermissionRule>
+        {
+            new() { Action = "shell", Resource = "*", Effect = PermissionEffect.Ask },
+            new() { Action = "edit", Resource = "*", Effect = PermissionEffect.Ask },
+            new() { Action = "question", Resource = "*", Effect = PermissionEffect.Allow },
+        },
+    }, cancellationToken: token).ConfigureAwait(false);
+    var session = client.Sessions.GetSessionClient(created.Session.Id);
+    var events = client.Events.SubscribeAsync(cancellationToken: token).GetAsyncEnumerator(token);
+    await using var eventLifetime = events.ConfigureAwait(false);
+    if (!await events.MoveNextAsync().ConfigureAwait(false) || events.Current is not EventServerConnected)
+    {
+        throw new InvalidOperationException("The bus did not start with server.connected.");
+    }
+    await session.PromptAsync(new SessionPromptRequest { Text = prompt }, cancellationToken: token).ConfigureAwait(false);
+    var observed = new List<IEvent>();
+    var pending = new HashSet<string>();
+    var rejectedSessions = new HashSet<string>();
+    while (await events.MoveNextAsync().ConfigureAwait(false))
+    {
+        var current = events.Current;
+        var belongs = current switch
+        {
+            FormCreated form => form.Data.Form.SessionId == created.Session.Id,
+            FormReplied form => form.Data.SessionId == created.Session.Id,
+            ISessionScopedEvent scoped => scoped.SessionId == created.Session.Id,
+            _ => false,
+        };
+        if (!belongs)
+        {
+            continue;
+        }
+        observed.Add(current);
+        switch (current)
+        {
+            case PermissionReplied reply:
+                pending.Remove(reply.Data.RequestId);
+                break;
+            case PermissionAsked ask:
+                pending.Add(ask.Data.Id);
+                pending.ExceptWith(observed.OfType<PermissionReplied>().Select(reply => reply.Data.RequestId));
+                if (!pending.Contains(ask.Data.Id))
+                {
+                    break;
+                }
+                try
+                {
+                    await session.ReplyToPermissionAsync(ask.Data.Id, new SessionPermissionReplyRequest
+                    {
+                        Decision = ask.Data.Action == "shell" ? PermissionReply.Once : PermissionReply.Reject,
+                    }, cancellationToken: token).ConfigureAwait(false);
+                    if (ask.Data.Action != "shell")
+                    {
+                        rejectedSessions.Add(created.Session.Id);
+                    }
+                    replies.Add((ask.Data.Id, "succeeded"));
+                }
+                catch (OpenCodeApiException error) when (error.Error is PermissionNotFoundError
+                    && rejectedSessions.Contains(created.Session.Id))
+                {
+                    // Reject settles every pending ask of the session (permission.ts:276-295); like upstream's client (packages/client/src/solid/data.ts:1809-1815), a sibling it settled answers not found.
+                    replies.Add((ask.Data.Id, "absorbed"));
+                }
+                break;
+            case FormCreated form:
+                var detail = await session.GetFormAsync(form.Data.Form.Id, cancellationToken: token).ConfigureAwait(false);
+                var answer = new Dictionary<string, FormValue>();
+                foreach (var field in detail.Form.Fields)
+                {
+                    var key = field.Key ?? throw new InvalidOperationException("A form field has no answer key.");
+                    if (field is not FormStringField)
+                    {
+                        throw new InvalidOperationException($"This recipe needs a string field, not {field.Type}.");
+                    }
+                    answer.Add(key, FormValue.FromText("green"));
+                }
+                await session.ReplyToFormAsync(form.Data.Form.Id,
+                    new SessionFormReplyRequest { Answer = answer }, cancellationToken: token).ConfigureAwait(false);
+                break;
+            case SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted:
+                return observed;
+        }
+    }
+    throw new InvalidOperationException("The bus ended before the turn ended.");
+}
+```
 
 ### ⏳ Waiting for a turn to end
 

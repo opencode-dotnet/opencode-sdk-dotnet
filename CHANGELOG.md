@@ -42,6 +42,9 @@ Nightly builds of `master` are on
 - **A stopped service's files unlock a moment after `StopAsync` on Windows.** The connection-modes
   guide now says that the daemon's `opencode.db-shm` and `-wal` stay locked for a few tens of
   milliseconds after the call returns, so deleting an isolated data directory right away can fail.
+- **The streaming guide answers permission asks and question forms.** One recipe covers explicit
+  tool-action rules, one-time approval or rejection, and field-keyed text answers with nullable
+  union-member handling; the requests guide links to it from session permissions.
 
 ## [0.9.0-preview.12] - 2026-10-17
 

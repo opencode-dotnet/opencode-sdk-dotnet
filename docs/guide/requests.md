@@ -1,6 +1,6 @@
 # 📝 Requests
 
-Date: 2026-10-16
+Date: 2026-10-18
 
 Every operation that sends anything takes one request record. They are plain immutable records you
 fill with an object initializer — with one twist worth knowing before you write your first `PATCH`:
@@ -258,6 +258,9 @@ comes from upstream's implementation at the pin (`v2.0.32`) rather than from the
 it says so.
 
 ### Session permissions
+
+For model tool calls, see [answering permissions and questions](streaming.md#-answering-permissions-and-questions)
+for a complete event-bus recipe.
 
 A session's permission rules travel in `Permissions` on `SessionCreateRequest` and
 `SessionUpdateRequest`. An update **replaces the whole ruleset**, so send every rule the session
