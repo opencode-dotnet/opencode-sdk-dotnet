@@ -87,10 +87,17 @@ public sealed class ServiceContenderSpawnerTests
             var fileSystem = new TestablyServiceFileSystem(files);
             var registration = await ServiceRegistrationReader.TryReadAsync(fileSystem, path, cancellationToken);
             var timing = ServiceTiming.Default;
-            var pending = new ServiceTerminator(fileSystem, new ServiceProcessControl(new ChildExitStatusReader()), timing, clockB).TerminateAsync(registration!, path, caller.Token);
+            var control = new ServiceProcessControl(new ChildExitStatusReader());
+            var pending = new ServiceTerminator(fileSystem, control, timing, clockB).TerminateAsync(registration!, path, caller.Token);
             if (OperatingSystem.IsWindows())
             {
-                while (!pending.IsCompleted)
+                // TerminateProcess returns before the process leaves the table, and this clock moves
+                // only when the test advances it: each advance waits until the terminator's own
+                // snapshot reads the process gone, or the rungs' polls would all run in no time and
+                // outrun it. An exited process stays enumerable for a moment on .NET Framework, so
+                // its exit alone does not mean the snapshot is gone yet, and a look that still sees
+                // it re-arms: the loop drives every armed poll until the stop completes.
+                while (true)
                 {
                     var armed = clockB.WaitForArmedAsync(timing.StopPollInterval, ExitBound);
                     if (await Task.WhenAny(pending, armed) == pending)
@@ -98,9 +105,13 @@ public sealed class ServiceContenderSpawnerTests
                         break;
                     }
 
+                    await armed;
+                    _ = await LiveReadiness.WaitAsync(_ => Task.FromResult(control.TrySnapshot(contender.ProcessId)),
+                        static identity => identity is null, "the terminator's snapshot to read the process gone", cancellationToken);
                     clockB.Advance(timing.StopPollInterval);
                 }
-                await pending;
+
+                await pending.WaitAsync(ExitBound, cancellationToken);
                 await Assert.That(ProcessObservation.IsRunning(contender.ProcessId)).IsFalse();
                 Console.WriteLine("branch: Windows — the stopped contender left the process table: " + contender.ProcessId.ToString(CultureInfo.InvariantCulture));
                 return;
