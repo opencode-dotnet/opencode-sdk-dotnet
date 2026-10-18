@@ -285,30 +285,6 @@ public sealed class PersistentPtysClientContractTests
     }
 
     [Test]
-    [MethodDataSource(nameof(EveryDoor))]
-    public async Task Every_Door_Should_Throw_The_Declared_401_Error((string Name, Func<OpenCodeClient, Task> Door) door)
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var exception = await Assert.That(async () => await door.Door(scenario.Client)).Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(401);
-        await Assert.That(exception.Error).IsTypeOf<UnauthorizedError>();
-    }
-
-    [Test]
-    [MethodDataSource(nameof(EveryDoor))]
-    public async Task Every_Door_Should_Throw_The_Declared_400_Error((string Name, Func<OpenCodeClient, Task> Door) door)
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
-
-        var exception = await Assert.That(async () => await door.Door(scenario.Client)).Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(400);
-        await Assert.That(exception.Error).IsTypeOf<InvalidRequestError>();
-    }
-
-    [Test]
     public async Task GetPersistentPtyClient_Should_Refuse_A_Dot_Segment_Route_Value()
     {
         using var scenario = ContractScenario.Responding();

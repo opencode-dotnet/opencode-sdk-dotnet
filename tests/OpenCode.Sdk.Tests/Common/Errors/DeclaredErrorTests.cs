@@ -41,6 +41,9 @@ public sealed class DeclaredErrorTests
         .. ServerDeclaredErrors.Rows(),
         .. PersistentPtysDeclaredErrors.Rows(),
         .. PersistentPtysDeclaredErrors.Rows2(),
+        .. PersistentPtysDeclaredErrors.Rows3(),
+        .. PersistentPtysDeclaredErrors.Rows4(),
+        .. PersistentPtysDeclaredErrors.Rows5(),
     ];
 
     [Test]
