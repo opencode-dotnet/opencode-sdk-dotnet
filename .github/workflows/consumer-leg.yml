@@ -82,10 +82,10 @@ jobs:
 
       # spec/SNAPSHOT.md's identity table is the single owner of the pin, and its "Upstream release
       # tag" row is what `refresh-spec --apply` rewrites. The npm version is that tag without its
-      # leading "v" - SNAPSHOT.md says so in prose beside the table ("This pin is the release tag
-      # `v2.0.3`, so `npm install -g @opencode/cli@2.0.3` installs a server built from exactly this
-      # commit"). The dispatch input overrides it, which is how a candidate build is tried without
-      # editing the pin.
+      # leading "v" - SNAPSHOT.md says so in prose beside the table, as it read at the v2.0.3 pin
+      # ("This pin is the release tag `v2.0.3`, so `npm install -g @opencode/cli@2.0.3` installs a
+      # server built from exactly this commit"). The dispatch input overrides it, which is how a
+      # candidate build is tried without editing the pin.
       - name: Resolve the distributed build version
         id: cli
         shell: pwsh
