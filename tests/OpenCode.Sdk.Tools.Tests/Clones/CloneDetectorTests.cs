@@ -1,7 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using OpenCode.Sdk.Tools.Clones;
+using OpenCode.Sdk.Tools.Generator.Refresh;
 using OpenCode.Sdk.Tools.Tests.Support;
+using Testably.Abstractions;
 using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Clones;
@@ -14,6 +16,10 @@ public sealed class CloneDetectorTests
     private const string HandWrittenClient = "src/OpenCode.Sdk/OpenCodeClient.cs";
     private const string Fingerprints = "--fail-on-new-clones";
     private const string FailOnEmpty = "--fail-on-empty";
+    private const string Assignment = "_field = collaborator ?? throw new ArgumentNullException(nameof(collaborator));";
+    private const string NullGuard = "ArgumentNullException.ThrowIfNull(node);";
+    private const string TextGuard = "ArgumentException.ThrowIfNullOrWhiteSpace(name);";
+    private readonly RealFileSystem _guardFiles = new();
 
     [Test]
     public async Task ReadSourceSplitAsync_Should_Refuse_A_Null_Files_Member()
@@ -42,7 +48,12 @@ public sealed class CloneDetectorTests
 
         await Assert.That(document.RootElement.TryGetProperty("ignorePattern", out var patterns)).IsTrue();
         await Assert.That(patterns.EnumerateArray().Select(static pattern => pattern.GetString()!))
-            .IsEquivalentTo([@"(?m)^[ \t]*(global[ \t]+)?using[ \t]+(static[ \t]+)?([A-Za-z_][A-Za-z0-9_]*[ \t]*=[ \t]*)?[A-Za-z_][A-Za-z0-9_.]*[ \t]*;"], CollectionOrdering.Matching);
+            .IsEquivalentTo([
+                @"(?m)^[ \t]*(global[ \t]+)?using[ \t]+(static[ \t]+)?([A-Za-z_][A-Za-z0-9_]*[ \t]*=[ \t]*)?[A-Za-z_][A-Za-z0-9_.]*[ \t]*;",
+                @"(?m)^[ \t]*_[A-Za-z_][A-Za-z0-9_]*[ \t]*=[ \t]*[A-Za-z_][A-Za-z0-9_]*[ \t]*\?\?[ \t]*throw[ \t]+new[ \t]+ArgumentNullException\(nameof\([A-Za-z_][A-Za-z0-9_]*\)\);[ \t]*$",
+                @"(?m)^[ \t]*ArgumentNullException\.ThrowIfNull\([A-Za-z_][A-Za-z0-9_]*\);[ \t]*$",
+                @"(?m)^[ \t]*ArgumentException\.ThrowIfNullOrWhiteSpace\([A-Za-z_][A-Za-z0-9_]*\);[ \t]*$",
+            ], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -52,6 +63,37 @@ public sealed class CloneDetectorTests
 
         await Assert.That(result.ExitCode).IsEqualTo(0);
         await Assert.That(result.Clones).IsEqualTo(0);
+    }
+
+    [Test]
+    [Arguments(Assignment, 3)]
+    [Arguments(NullGuard, 8)]
+    [Arguments(TextGuard, 8)]
+    public async Task RunAsync_Should_Apply_Each_Guard_Ignore_Pattern(string statement, int repetitions)
+    {
+        var reports = await DetectGuardPairAsync(string.Join('\n', Enumerable.Repeat(statement, repetitions)), string.Empty);
+
+        await Assert.That(reports.Select(static report => report.GetProperty("statistics").GetProperty("total").GetProperty("clones").GetInt32()))
+            .IsEquivalentTo([0, 1], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments("", 0, 1, "")]
+    [Arguments("var total = node.GetHashCode(); total += name.Length; total *= 17; return total.ToString();", 1, 2, "3-14")]
+    [Arguments("ArgumentNullException.ThrowIfNull(node); Record(node);", 1, 3, "3-15")]
+    [Arguments("_field = collaborator.Value ?? throw new ArgumentNullException(nameof(collaborator));", 1, 3, "3-15")]
+    [Arguments("_field = collaborator ?? throw new InvalidOperationException(nameof(collaborator));", 1, 3, "3-15")]
+    public async Task RunAsync_Should_Keep_Only_Code_After_An_Anchored_Guard_Prelude(string body, int clones, int repetitions, string range)
+    {
+        var reports = await DetectGuardPairAsync(NullGuard + "\n" + TextGuard, string.Join('\n', Enumerable.Repeat(body, repetitions)));
+
+        await Assert.That(reports[0].GetProperty("statistics").GetProperty("total").GetProperty("clones").GetInt32()).IsEqualTo(clones);
+        string[] expected = clones == 0 ? [] : ["First.cs:" + range, "Second.cs:" + range];
+        await Assert.That(reports[0].GetProperty("duplicates").EnumerateArray()
+            .SelectMany(static clone => new[] { clone.GetProperty("firstFile"), clone.GetProperty("secondFile") })
+            .Select(static file => string.Create(System.Globalization.CultureInfo.InvariantCulture,
+                $"{file.GetProperty("name").GetString()}:{file.GetProperty("start").GetInt32()}-{file.GetProperty("end").GetInt32()}")))
+            .IsEquivalentTo(expected, CollectionOrdering.Matching);
     }
 
     [Test]
@@ -194,6 +236,50 @@ public sealed class CloneDetectorTests
     }
 
     private static CloneScope Scope(string name) => CloneScopes.All.Single(scope => scope.Name == name);
+
+    private async Task<IReadOnlyList<JsonElement>> DetectGuardPairAsync(string prelude, string body)
+    {
+        var files = _guardFiles;
+        var root = new RepositoryRoot(files).Locate();
+        var work = files.Path.Combine(files.Path.GetTempPath(), "opencode-guard-clones-" + Guid.NewGuid().ToString("N"));
+        var sources = files.Path.Combine(work, "sources");
+        files.Directory.CreateDirectory(sources);
+        try
+        {
+            foreach (var name in new[] { "First", "Second" })
+            {
+                var unique = name == "First"
+                    ? "class Values { " + string.Join('\n', Enumerable.Range(0, 20).Select(static index => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"public int Value{index} => {index};"))) + " }"
+                    : "enum Members { " + string.Join(',', Enumerable.Range(0, 20).Select(static index => "Member" + index.ToString(System.Globalization.CultureInfo.InvariantCulture))) + " }";
+                await files.File.WriteAllTextAsync(files.Path.Combine(sources, name + ".cs"),
+                    $"class {name}\n{{\npublic {name}(object collaborator)\n{{\n{Assignment}\n}}\npublic string Project(object node, string name, object owner, string pointer, string container, bool required)\n{{\n{prelude}\n{body}\n}}\n}}\n{unique}");
+            }
+
+            var runner = new CliWrapProcessRunner();
+            var detector = new CloneDetector(files, runner);
+            var scope = new CloneScope("guard-pair", sources, CloneScopeFilter.None, [], Baseline: null, Threshold: null);
+            var result = await detector.RunAsync(root, scope, new CloneSourceSplit([], []), work, updateBaseline: false, CancellationToken.None);
+            await Assert.That(result.ExitCode).IsEqualTo(0).Because(result.StandardError);
+            using var ignored = JsonDocument.Parse(await files.File.ReadAllTextAsync(detector.ReportPath(work, scope)));
+            var config = files.Path.Combine(work, scope.Name + ".json");
+            var document = JsonNode.Parse(await files.File.ReadAllTextAsync(config))!;
+            var patterns = document["ignorePattern"]!.AsArray();
+            while (patterns.Count > 1)
+            {
+                patterns.RemoveAt(1);
+            }
+
+            await files.File.WriteAllTextAsync(config, document.ToJsonString());
+            var unignoredResult = await runner.RunAsync("bun", CloneDetector.Arguments(scope, config, updateBaseline: false), root, CancellationToken.None);
+            await Assert.That(unignoredResult.ExitCode).IsEqualTo(0).Because(unignoredResult.StandardError);
+            using var unignored = JsonDocument.Parse(await files.File.ReadAllTextAsync(detector.ReportPath(work, scope)));
+            return [ignored.RootElement.Clone(), unignored.RootElement.Clone()];
+        }
+        finally
+        {
+            files.Directory.Delete(work, recursive: true);
+        }
+    }
 
     private static CloneDetector Detector(CloneScenario scenario) => new(scenario.FileSystem, scenario.Runner);
 
