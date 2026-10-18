@@ -57,6 +57,68 @@ public sealed class ServiceStopperTests
     }
 
     [Test]
+    [Arguments("reaped")]
+    [Arguments("reused")]
+    [Arguments("leaked")]
+    [Arguments("cancelled")]
+    public async Task TerminateAsync_Should_Respect_Unreaped_Children(string outcome)
+    {
+        SeedModern();
+        var time = new ManualTimeProvider();
+        var timing = Timing with { StopPollAttempts = 1 };
+        _processControl.TrySnapshot(RegisteredPid).Returns(Live, outcome == "reused" ? Live with { StartTimeUtc = Live.StartTimeUtc.AddHours(1) } : null);
+        _processControl.TrySignal(Live, Arg.Any<ProcessSignal>()).Returns(false);
+        _processControl.IsUnreapedChild(RegisteredPid).Returns(true);
+        var fileSystem = new TestablyServiceFileSystem(_fileSystem);
+        var registration = await ServiceRegistrationReader.TryReadAsync(fileSystem, SharedRegistrationPath(), CancellationToken.None);
+        using var caller = new CancellationTokenSource();
+        var pending = new ServiceTerminator(fileSystem, _processControl, timing, time).TerminateAsync(registration!, SharedRegistrationPath(), caller.Token);
+        try
+        {
+            if (outcome == "reused")
+            {
+                await Assert.That(await Task.WhenAny(pending, time.WaitForArmedAsync(timing.StopPollInterval, TimeSpan.FromSeconds(10))))
+                    .IsSameReferenceAs(pending).Because("a reused identity reads as gone without a peek");
+                _ = _processControl.DidNotReceiveWithAnyArgs().IsUnreapedChild(default);
+                await AssertSharedRegistrationAbsentAsync();
+                return;
+            }
+
+            var armed = time.WaitForArmedAsync(timing.StopPollInterval, TimeSpan.FromSeconds(10));
+            await Assert.That(await Task.WhenAny(pending, armed)).IsSameReferenceAs(armed).Because("an unreaped child must keep the poll running");
+            if (outcome == "leaked")
+            {
+                time.Advance(timing.StopPollInterval);
+                var killPoll = time.WaitForArmedAsync(timing.StopPollInterval, TimeSpan.FromSeconds(10));
+                await Assert.That(await Task.WhenAny(pending, killPoll)).IsSameReferenceAs(killPoll);
+                time.Advance(timing.StopPollInterval);
+                var failure = await Assert.That(pending).Throws<OpenCodeServerException>();
+                await Assert.That(failure!.Message).IsEqualTo($"The registered background service (pid 48213) is still running after the kill rung; its registration at '{SharedRegistrationPath()}' was left in place.");
+                _ = _processControl.Received(1).TrySignal(Live, ProcessSignal.Kill);
+                await AssertSharedRegistrationPresentAsync();
+            }
+            else if (outcome == "cancelled")
+            {
+                await caller.CancelOnWorkerAsync();
+                _ = await Assert.That(pending).Throws<OperationCanceledException>();
+                await AssertSharedRegistrationPresentAsync();
+            }
+            else
+            {
+                _processControl.IsUnreapedChild(RegisteredPid).Returns(false);
+                time.Advance(timing.StopPollInterval);
+                await pending.WaitAsync(TimeSpan.FromSeconds(10));
+                _ = _processControl.DidNotReceive().TrySignal(Live, ProcessSignal.Kill);
+                await AssertSharedRegistrationAbsentAsync();
+            }
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+        }
+    }
+
+    [Test]
     [Arguments(false)]
     [Arguments(true)]
     public async Task TerminateAsync_Should_Poll_Each_Rung_On_The_Injected_Clock(bool killRung)

@@ -1,10 +1,12 @@
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Hosting.BackgroundService.Registration;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
 using TUnit.Assertions.Enums;
@@ -60,6 +62,100 @@ public sealed class ServiceContenderSpawnerTests
 
     /// <summary>The shipped spawner over the shipped spawns; it holds no per-spawn state.</summary>
     private static readonly ServiceContenderSpawner Spawner = new(new PosixSpawn(), new WindowsSpawn(), TimeProvider.System);
+
+    [Test]
+    [Timeout(120_000)]
+    public async Task TerminateAsync_Should_Wait_For_The_Contenders_Reaper(CancellationToken cancellationToken)
+    {
+        var clockA = new ManualTimeProvider();
+        var clockB = new ManualTimeProvider();
+        using var caller = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var contender = new ServiceContenderSpawner(new PosixSpawn(), new WindowsSpawn(), clockA)
+            .Start(FixtureProbe("contender-probe", "daemon-sleep"));
+        try
+        {
+            await WaitForReadyAsync(contender, "the daemon-sleep ready line", cancellationToken);
+            var files = new Testably.Abstractions.Testing.MockFileSystem();
+            _ = files.Directory.CreateDirectory(files.Path.GetTempPath());
+            var path = files.Path.Combine(files.Path.GetTempPath(), "service.json");
+            var document = ServiceRegistrationDocument.Compose("reap", "local", new Uri("http://127.0.0.1:1"), contender.ProcessId, ServiceRegistrationData.Password);
+#if NET
+            await files.File.WriteAllTextAsync(path, document, cancellationToken);
+#else
+            files.File.WriteAllText(path, document);
+#endif
+            var fileSystem = new TestablyServiceFileSystem(files);
+            var registration = await ServiceRegistrationReader.TryReadAsync(fileSystem, path, cancellationToken);
+            var timing = ServiceTiming.Default;
+            var pending = new ServiceTerminator(fileSystem, new ServiceProcessControl(new ChildExitStatusReader()), timing, clockB).TerminateAsync(registration!, path, caller.Token);
+            if (OperatingSystem.IsWindows())
+            {
+                while (!pending.IsCompleted)
+                {
+                    var armed = clockB.WaitForArmedAsync(timing.StopPollInterval, ExitBound);
+                    if (await Task.WhenAny(pending, armed) == pending)
+                    {
+                        break;
+                    }
+
+                    clockB.Advance(timing.StopPollInterval);
+                }
+                await pending;
+                await Assert.That(ProcessObservation.IsRunning(contender.ProcessId)).IsFalse();
+                Console.WriteLine("branch: Windows — the stopped contender left the process table: " + contender.ProcessId.ToString(CultureInfo.InvariantCulture));
+                return;
+            }
+
+            var first = clockB.WaitForArmedAsync(timing.StopPollInterval, ExitBound);
+            await Assert.That(await Task.WhenAny(pending, first)).IsSameReferenceAs(first).Because("Stop returned while its child was unreaped");
+            var state = await LiveReadiness.WaitAsync(_ => ProcessStateAsync(contender.ProcessId),
+                static state => state.Length == 0 || state[0] == 'Z', "the child to become a zombie or leave", cancellationToken);
+            await Assert.That(state).StartsWith("Z").Because("the stopped child must stay an unreaped zombie until its reaper takes it");
+            clockB.Advance(timing.StopPollInterval);
+            var rearmed = clockB.WaitForArmedAsync(timing.StopPollInterval, ExitBound);
+            await Assert.That(await Task.WhenAny(pending, rearmed)).IsSameReferenceAs(rearmed).Because("Stop returned while its child was unreaped");
+            await Assert.That(new ProcessGroupSignal().ProbeProcess(contender.ProcessId)).IsEqualTo(SignalDelivery.Delivered);
+            await clockA.WaitForArmedAsync(TimeSpan.FromMilliseconds(1), ExitBound);
+            clockA.Advance(TimeSpan.FromMilliseconds(1));
+            _ = await LiveReadiness.WaitAsync(_ => Task.FromResult(new ProcessGroupSignal().ProbeProcess(contender.ProcessId)),
+                static result => result == SignalDelivery.NoSuchTarget, "the contender's watch to reap", cancellationToken);
+            clockB.Advance(timing.StopPollInterval);
+            await pending.WaitAsync(ExitBound, cancellationToken);
+            await Assert.That(new ProcessGroupSignal().ProbeProcess(contender.ProcessId)).IsEqualTo(SignalDelivery.NoSuchTarget);
+            await Assert.That(contender.TryGetFailure()!.Message).Contains("terminated on signal 15");
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+            ProcessObservation.KillIfRunning(contender.ProcessId);
+            clockA.Advance(TimeSpan.FromSeconds(1));
+            _ = await WaitForTheProbeAsync(contender, "the contender to finish during cleanup", CancellationToken.None).WaitAsync(ExitBound, CancellationToken.None);
+        }
+    }
+
+    private static async Task WaitForReadyAsync(ServiceContender contender, string description, CancellationToken cancellationToken) =>
+        _ = await LiveReadiness.WaitAsync(_ => Task.FromResult(contender.Stderr), tail => ReadyPid(tail) == contender.ProcessId,
+            description, cancellationToken);
+
+    private static async Task<string> ProcessStateAsync(int processId)
+    {
+        using var ps = Process.Start(new ProcessStartInfo("/bin/ps",
+            "-o stat= -p " + processId.ToString(CultureInfo.InvariantCulture))
+        { RedirectStandardOutput = true, UseShellExecute = false })!;
+        try
+        {
+            var state = await ps.StandardOutput.ReadToEndAsync();
+            await ps.WaitForExitAsync(CancellationToken.None);
+            return state.Trim();
+        }
+        finally
+        {
+            if (!ps.HasExited)
+            {
+                ps.Kill();
+            }
+        }
+    }
 
     [Test]
     [Timeout(120_000)]
@@ -655,12 +751,8 @@ public sealed class ServiceContenderSpawnerTests
         using var contender = Spawner.Start(FixtureProbe("contender-probe", "daemon-sleep"));
         try
         {
-            _ = await LiveReadiness.WaitAsync(
-                _ => Task.FromResult(contender.Stderr),
-                tail => ReadyPid(tail) == contender.ProcessId,
-                "the daemon-sleep ready line",
-                cancellationToken);
-            var control = new ServiceProcessControl();
+            await WaitForReadyAsync(contender, "the daemon-sleep ready line", cancellationToken);
+            var control = new ServiceProcessControl(new ChildExitStatusReader());
             var identity = control.TrySnapshot(contender.ProcessId);
             await Assert.That(identity).IsNotNull();
             await Assert.That(control.TrySignal(identity!.Value, ProcessSignal.Kill)).IsTrue();
@@ -696,14 +788,10 @@ public sealed class ServiceContenderSpawnerTests
         using var contender = Spawner.Start(FixtureProbe("contender-probe", "daemon-sleep"));
         try
         {
-            _ = await LiveReadiness.WaitAsync(
-                _ => Task.FromResult(contender.Stderr),
-                tail => ReadyPid(tail) == contender.ProcessId,
-                "the daemon-sleep ready line",
-                cancellationToken);
+            await WaitForReadyAsync(contender, "the daemon-sleep ready line", cancellationToken);
             contender.Release();
 
-            var control = new ServiceProcessControl();
+            var control = new ServiceProcessControl(new ChildExitStatusReader());
             var identity = control.TrySnapshot(contender.ProcessId);
             await Assert.That(identity).IsNotNull();
             await Assert.That(control.TrySignal(identity!.Value, ProcessSignal.Terminate)).IsTrue();
@@ -714,6 +802,31 @@ public sealed class ServiceContenderSpawnerTests
         finally
         {
             ProcessObservation.KillIfRunning(contender.ProcessId);
+        }
+    }
+
+    [Test]
+    [Timeout(120_000)]
+    public async Task Disposed_Contender_Should_Be_Reaped_When_It_Exits_Without_Anyone_Polling(CancellationToken cancellationToken)
+    {
+        using var contender = Spawner.Start(FixtureProbe("contender-probe", "daemon-sleep"));
+        try
+        {
+            await WaitForReadyAsync(contender, "the contender to be ready before disposal", cancellationToken);
+            contender.Dispose();
+            await Assert.That(await ProcessObservation.ObserveExitWithinAsync(contender.ProcessId, SurvivalBound, cancellationToken)).IsFalse();
+            var control = new ServiceProcessControl(new ChildExitStatusReader());
+            await Assert.That(control.TrySignal(control.TrySnapshot(contender.ProcessId)!.Value, ProcessSignal.Terminate)).IsTrue();
+            await Assert.That(await ProcessObservation.ObserveExitWithinAsync(contender.ProcessId, ExitBound, cancellationToken)).IsTrue()
+                .Because("disposal must leave the Unix watch reaping without any contender observation");
+        }
+        finally
+        {
+            ProcessObservation.KillIfRunning(contender.ProcessId);
+            if (!OperatingSystem.IsWindows())
+            {
+                _ = PosixInterop.WaitPid(contender.ProcessId, out _, 0);
+            }
         }
     }
 
@@ -746,7 +859,7 @@ public sealed class ServiceContenderSpawnerTests
 
             // End it the way the stop door does — the terminate rung, which Windows makes a hard
             // kill of — proving the probe's own signal-exit contract.
-            var control = new ServiceProcessControl();
+            var control = new ServiceProcessControl(new ChildExitStatusReader());
             var identity = control.TrySnapshot(daemonPid.Value);
             await Assert.That(identity).IsNotNull();
             await Assert.That(control.TrySignal(identity!.Value, ProcessSignal.Terminate)).IsTrue();

@@ -25,4 +25,6 @@ internal sealed class ProbeOnlyChildExit : IChildExitStatus
     }
 
     public ChildExitStatus? Reap(int processId) => _real.Reap(processId);
+
+    public bool IsUnreapedChild(int processId) => _real.IsUnreapedChild(processId);
 }

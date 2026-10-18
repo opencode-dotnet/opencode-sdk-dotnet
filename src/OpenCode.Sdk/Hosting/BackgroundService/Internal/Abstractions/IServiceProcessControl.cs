@@ -1,9 +1,9 @@
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// The two process primitives the stop lifecycle needs and nothing more: identify a process and
+/// The process primitives the stop lifecycle needs: identify a process, peek at child ownership and
 /// signal it. Waiting is the orchestration's job — the pinned client's own schedule over these
-/// two. Behind a seam so the orchestration is tested against scripted answers and the shipped
+/// primitives. Behind a seam so the orchestration is tested against scripted answers and the shipped
 /// implementation is proven against real processes of its own.
 /// </summary>
 internal interface IServiceProcessControl
@@ -16,6 +16,11 @@ internal interface IServiceProcessControl
     /// <param name="processId">The pid.</param>
     /// <returns>The identity, or null.</returns>
     public ProcessIdentity? TrySnapshot(int processId);
+
+    /// <summary>True when the pid is a child of this process that has not been reaped (exited or not); it never reaps.</summary>
+    /// <param name="processId">The pid.</param>
+    /// <returns>Whether the child has not been reaped.</returns>
+    public bool IsUnreapedChild(int processId);
 
     /// <summary>
     /// Sends one rung to exactly the process the identity names: the live identity is compared

@@ -27,6 +27,10 @@ Nightly builds of `master` are on
 
 ### 🐛 Fixes
 
+- **Stopping a background service waits for its child process to be reaped.** On Linux and macOS,
+  `OpenCodeServer.StopAsync` no longer returns while the daemon it stopped is still an unreaped
+  zombie of the calling process.
+
 - **IntelliSense reaches implementing members and restores declared halves.** Properties that
   implement a documented interface member (durable envelopes' `Seq` and `Version`, the MCP
   timeouts and `Codemode`, inbox and compaction `Created` times) show that member's documentation,

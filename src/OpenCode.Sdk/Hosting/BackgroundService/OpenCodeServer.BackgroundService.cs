@@ -79,7 +79,7 @@ public partial class OpenCodeServer
     /// </summary>
     /// <param name="options">The stop options; null stops the shared release registration.</param>
     /// <param name="cancellationToken">The caller's token. Cancellation before the first signal prevents it; after a signal it ends the bounded wait and leaves the registration in place.</param>
-    /// <returns>A task that completes when the registered process is gone or there was none to stop.</returns>
+    /// <returns>A task that completes when the registered process is gone (reaped, when it is a child of this process) or there was none to stop.</returns>
     /// <exception cref="ArgumentException">An option is blank, the registration path is relative, or the options contradict one another.</exception>
     /// <exception cref="OpenCodeServerException">No user home directory resolves for an XDG fallback, or the registered process is still running after the hard kill.</exception>
     public static Task StopAsync(
@@ -98,7 +98,7 @@ public partial class OpenCodeServer
             PlatformProbe(timing, time),
             ptyShutdown,
             new ServicePtyHandoff(fileSystem, time, ptyShutdown),
-            new ServiceProcessControl(),
+            new ServiceProcessControl(new ChildExitStatusReader()),
             timing,
             time);
         return stopper.StopAsync(options, cancellationToken);
@@ -160,7 +160,7 @@ public partial class OpenCodeServer
             PlatformProbe(timing, time),
             spawner,
             new ServicePtyHandoff(fileSystem, time, new ServicePtyShutdown()),
-            new ServiceProcessControl(),
+            new ServiceProcessControl(new ChildExitStatusReader()),
             time,
             new ExecutableResolver(ExecutableSearchEnvironment.ForCurrentProcess()),
             timing);

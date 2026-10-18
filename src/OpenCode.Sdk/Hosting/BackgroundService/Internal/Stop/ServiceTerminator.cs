@@ -12,8 +12,9 @@ namespace OpenCode.Sdk.Internal;
 /// The poll is the pinned client's own schedule (<c>stopPollInterval</c> × <c>stopPollAttempts</c>,
 /// 50 ms and 100 at the pin), and the SDK's addition is what it looks at: the process identity, so
 /// the pid is signalled only while the process under it is the one first seen, and a pid that was
-/// reused reads as the registered process being gone. The one failure is a process still running
-/// after the kill rung; the registration then stays.
+/// reused reads as the registered process being gone, while an unreaped child of this process is
+/// waited for until reaped. The one failure is a process still running after the kill rung; the
+/// registration then stays.
 /// </summary>
 internal sealed class ServiceTerminator(IServiceFileSystem fileSystem, IServiceProcessControl processControl, ServiceTiming timing, TimeProvider time)
 {
@@ -73,14 +74,15 @@ internal sealed class ServiceTerminator(IServiceFileSystem fileSystem, IServiceP
     /// one look, then up to <c>stopPollAttempts</c> more, <c>stopPollInterval</c> apart. Each look
     /// reads the process identity, so the process is gone when its identity is — because it
     /// exited, or because the operating system gave its pid to a newer process. The caller's
-    /// cancellation ends the poll between looks.
+    /// cancellation ends the poll between looks; an unreaped child of this process keeps it polling.
     /// </summary>
     /// <returns>True when the process is gone; false when it is still there at the last look.</returns>
     private async Task<bool> WaitForExitAsync(ProcessIdentity target, CancellationToken cancellationToken)
     {
         for (var attempt = 0; attempt <= timing.StopPollAttempts; attempt++)
         {
-            if (processControl.TrySnapshot(target.ProcessId) != target)
+            var seen = processControl.TrySnapshot(target.ProcessId);
+            if (seen != target && (seen is not null || !processControl.IsUnreapedChild(target.ProcessId)))
             {
                 return true;
             }

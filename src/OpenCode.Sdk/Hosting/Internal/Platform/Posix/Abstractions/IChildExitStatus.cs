@@ -22,6 +22,15 @@ internal interface IChildExitStatus
     /// <returns>True once the child has exited; false on any other failure, <c>ECHILD</c> among them (the pid is not, or no longer, an unreaped child of this process).</returns>
     public bool WaitUntilExited(int processId);
 
+    /// <summary>
+    /// Peeks with <c>waitid(P_PID, pid, WEXITED | WNOHANG | WNOWAIT)</c>, repeated on
+    /// <c>EINTR</c>. True when the pid is an unreaped child of this process, exited or not;
+    /// never reaps.
+    /// </summary>
+    /// <param name="processId">The pid.</param>
+    /// <returns>True while the pid is an unreaped child of this process.</returns>
+    public bool IsUnreapedChild(int processId);
+
     /// <summary>Reaps the child if it has exited: <c>waitpid(pid, WNOHANG)</c>.</summary>
     /// <param name="processId">The child's pid.</param>
     /// <returns>The decoded status; null while the child runs; <see cref="ChildExitStatus.Unknown"/> when the pid is not an unreaped child of this process.</returns>

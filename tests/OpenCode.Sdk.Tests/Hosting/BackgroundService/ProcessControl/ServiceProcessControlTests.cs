@@ -29,10 +29,42 @@ public sealed class ServiceProcessControlTests
 
     [Test]
     [Timeout(60_000)]
+    public async Task IsUnreapedChild_Should_Peek_Without_Consuming_The_Child(CancellationToken cancellationToken)
+    {
+        var control = Control();
+        if (OperatingSystem.IsWindows())
+        {
+            await Assert.That(control.IsUnreapedChild(Environment.ProcessId)).IsFalse();
+            Console.WriteLine("branch: Windows — no POSIX child peek: " + Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
+            return;
+        }
+
+        var pid = SpawnUnreaped("/bin/sleep", "60");
+        try
+        {
+            await Assert.That(control.IsUnreapedChild(pid)).IsTrue();
+            await Assert.That(control.IsUnreapedChild(1)).IsFalse();
+            await Assert.That(control.TrySignal(control.TrySnapshot(pid)!.Value, ProcessSignal.Kill)).IsTrue();
+            _ = await WaitForTheTableAsync(control, pid, cancellationToken);
+            await Assert.That(new ProcessGroupSignal().ProbeProcess(pid)).IsEqualTo(SignalDelivery.Delivered);
+            await Assert.That(control.IsUnreapedChild(pid)).IsTrue();
+            await Assert.That(new ProcessGroupSignal().ProbeProcess(pid)).IsEqualTo(SignalDelivery.Delivered);
+            await Assert.That(WaitPid(pid, out _, 0)).IsEqualTo(pid);
+            await Assert.That(control.IsUnreapedChild(pid)).IsFalse();
+        }
+        finally
+        {
+            ProcessObservation.KillIfRunning(pid);
+            _ = WaitPid(pid, out _, 0);
+        }
+    }
+
+    [Test]
+    [Timeout(60_000)]
     public async Task TrySnapshot_Should_Identify_A_Running_Process_Stably(CancellationToken cancellationToken)
     {
         await using var lingering = await ServiceFixtureProcess.StartAsync(FileSystem, "idle", cancellationToken);
-        var control = new ServiceProcessControl();
+        var control = Control();
 
         var first = control.TrySnapshot(lingering.ProcessId);
         var second = control.TrySnapshot(lingering.ProcessId);
@@ -49,7 +81,7 @@ public sealed class ServiceProcessControlTests
     {
         await using var lingering = await ServiceFixtureProcess.StartAsync(FileSystem, "idle", cancellationToken);
         var processId = lingering.ProcessId;
-        var control = new ServiceProcessControl();
+        var control = Control();
         await lingering.DisposeAsync();
 
         var afterwards = await WaitForTheTableAsync(control, processId, cancellationToken);
@@ -62,7 +94,7 @@ public sealed class ServiceProcessControlTests
     public async Task TrySignal_Should_Refuse_A_Stale_Identity_And_Leave_The_Process_Running(CancellationToken cancellationToken)
     {
         await using var lingering = await ServiceFixtureProcess.StartAsync(FileSystem, "idle", cancellationToken);
-        var control = new ServiceProcessControl();
+        var control = Control();
         var live = control.TrySnapshot(lingering.ProcessId)!.Value;
         var stale = live with { StartTimeUtc = live.StartTimeUtc.AddHours(-1) };
 
@@ -78,7 +110,7 @@ public sealed class ServiceProcessControlTests
     public async Task TrySignal_Should_End_A_Process_With_The_Terminate_Rung(CancellationToken cancellationToken)
     {
         await using var lingering = await ServiceFixtureProcess.StartAsync(FileSystem, "idle", cancellationToken);
-        var control = new ServiceProcessControl();
+        var control = Control();
         var live = control.TrySnapshot(lingering.ProcessId)!.Value;
 
         var sent = control.TrySignal(live, ProcessSignal.Terminate);
@@ -93,7 +125,7 @@ public sealed class ServiceProcessControlTests
     public async Task TrySignal_Should_Reach_The_Kill_Rung_For_A_Process_That_Ignores_Terminate(CancellationToken cancellationToken)
     {
         await using var lingering = await ServiceFixtureProcess.StartAsync(FileSystem, "ignore-sigterm", cancellationToken);
-        var control = new ServiceProcessControl();
+        var control = Control();
         var live = control.TrySnapshot(lingering.ProcessId)!.Value;
 
         await Assert.That(control.TrySignal(live, ProcessSignal.Terminate)).IsTrue();
@@ -120,7 +152,7 @@ public sealed class ServiceProcessControlTests
     [Timeout(60_000)]
     public async Task TrySnapshot_Should_Read_An_Unreaped_Zombie_As_Gone(CancellationToken cancellationToken)
     {
-        var control = new ServiceProcessControl();
+        var control = Control();
         if (OperatingSystem.IsWindows())
         {
             // Windows has no zombie state: a process leaves the table once it ends and its last
@@ -151,6 +183,8 @@ public sealed class ServiceProcessControlTests
             _ = WaitPid(processId, out _, 0);
         }
     }
+
+    private static ServiceProcessControl Control() => new(new ChildExitStatusReader());
 
     private static int SpawnUnreaped(string file, string argument)
     {
