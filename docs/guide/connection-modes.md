@@ -301,6 +301,12 @@ in the SDK that reads the environment. It reads exactly four variables, all of t
 | `OPENCODE_CONFIG_DIR` | replaces the whole config root when set, with no `opencode` segment beneath it |
 | the user profile | `USERPROFILE` first on Windows, `HOME` elsewhere; the fallback root when an XDG variable is unset |
 
+When you isolate a background service, give `XDG_STATE_HOME` and `XDG_CONFIG_HOME` different
+directories. The registration (`<state>/opencode/service.json`) and the CLI's service configuration
+(`<config>/opencode/service.json`) share a file name, so one folder for both roots makes them the
+same file. `EnsureAsync` then fails now and then on Windows, because the CLI's atomic rename of its
+new registration is refused with `EPERM`.
+
 No credential is ever read from the environment: the password comes from the registration file the
 daemon wrote, which is why the file is created readable by its owner only.
 
