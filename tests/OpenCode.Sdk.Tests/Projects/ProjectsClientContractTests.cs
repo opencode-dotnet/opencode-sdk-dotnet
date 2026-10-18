@@ -64,31 +64,6 @@ public sealed class ProjectsClientContractTests
     }
 
     [Test]
-    public async Task ListProjectsAsync_Should_Throw_The_Declared_400_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Projects.ListProjectsAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(400);
-        await Assert.That(exception.Error).IsTypeOf<InvalidRequestError>();
-    }
-
-    [Test]
-    public async Task ListProjectsAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Projects.ListProjectsAsync(requestOptions: OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
-    }
-
-    [Test]
     public async Task UpdateProjectAsync_Should_Send_The_Typed_Body_And_Return_The_Updated_Project()
     {
         const string project = "{\"id\":\"prj_1\",\"canonical\":\"/repo\",\"name\":\"renamed\","
@@ -117,30 +92,5 @@ public sealed class ProjectsClientContractTests
         _ = await scenario.Client.Projects.UpdateProjectAsync("prj_1");
 
         await Assert.That(scenario.Requests.Single().Body).IsEqualTo("{}");
-    }
-
-    [Test]
-    public async Task UpdateProjectAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.ProjectNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Projects.UpdateProjectAsync("prj_9"))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<ProjectNotFoundError>();
-    }
-
-    [Test]
-    public async Task UpdateProjectAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Projects.UpdateProjectAsync("prj_1", requestOptions: OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
     }
 }

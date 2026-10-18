@@ -227,7 +227,7 @@ internal sealed class CloneScenario
                     tokens.AddRange(!_baselines || updateBaseline ? ["--update-baseline"] : scope switch
                     {
                         "tools" => ["--fail-on-new-clones", "--threshold", "3"],
-                        "tests" => ["--fail-on-new-clones", "--threshold", "5.5"],
+                        "tests" => ["--fail-on-new-clones", "--threshold", "5"],
                         _ => ["--fail-on-new-clones"],
                     });
                 }
