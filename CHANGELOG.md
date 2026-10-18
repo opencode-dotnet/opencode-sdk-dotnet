@@ -33,6 +33,13 @@ Nightly builds of `master` are on
   and 26 summaries that preview.12 dropped as partly implementation-only return with the part
   upstream declares. SDK types and runtime behavior are unchanged.
 
+### 📚 Documentation
+
+- **Isolating a background service needs separate state and config roots.** The connection-modes
+  guide now says to give `XDG_STATE_HOME` and `XDG_CONFIG_HOME` different directories: the
+  registration and the CLI's service configuration are both named `service.json`, so one folder for
+  both makes them the same file, and `EnsureAsync` then fails now and then on Windows with `EPERM`.
+
 ## [0.9.0-preview.12] - 2026-10-17
 
 **Streams and automatic traversals take per-call options, and the public surface sheds its last
