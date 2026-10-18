@@ -9,6 +9,15 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+## [0.9.0-preview.13] - 2026-10-18
+
+**The SDK speaks opencode 2.0.32.** The pinned server moves from 2.0.29 to 2.0.32. The upgrade
+brings an experimental voice session, typed reasoning and temperature capabilities on models, and
+a background service whose saved `env` wins after startup. On Linux and macOS, `StopAsync` now
+returns only once the stopped daemon has been reaped. IntelliSense reaches the members that
+implement a documented interface. The guides gain a recipe for answering permission asks and
+question forms, plus the notes that isolating and cleaning up a background service needs.
+
 ### ✨ Added
 
 - **The SDK speaks opencode 2.0.32.** `ExperimentalClient.CreateVoiceSessionAsync` opens an
@@ -30,7 +39,6 @@ Nightly builds of `master` are on
 - **Stopping a background service waits for its child process to be reaped.** On Linux and macOS,
   `OpenCodeServer.StopAsync` no longer returns while the daemon it stopped is still an unreaped
   zombie of the calling process.
-
 - **IntelliSense reaches implementing members and restores declared halves.** Properties that
   implement a documented interface member (durable envelopes' `Seq` and `Version`, the MCP
   timeouts and `Codemode`, inbox and compaction `Created` times) show that member's documentation,
@@ -1738,6 +1746,7 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[0.9.0-preview.13]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.13
 [0.9.0-preview.12]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.12
 [0.9.0-preview.11]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.11
 [0.9.0-preview.10]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.10
