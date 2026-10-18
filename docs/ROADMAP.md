@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-10-15
+Date: 2026-10-18
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -17,8 +17,8 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 - **Protocol pin** — generation reads an accepted snapshot of upstream's OpenAPI document taken at
   a release tag, never a live branch, and refreshes are receipt-governed (ADR-0020).
   `../spec/SNAPSHOT.md` owns the exact commit and the refresh procedure.
-- **Coverage** — **140 of 142 operations selected** across 27 client families, none declined, and
-  2 transport-owned that hand-written WebSocket doors cover, so all 142 are usable; `src/OpenCode.Sdk/.generation-incomplete` is
+- **Coverage** — **141 of 143 operations selected** across 27 client families, none declined, and
+  2 transport-owned that hand-written WebSocket doors cover, so all 143 are usable; `src/OpenCode.Sdk/.generation-incomplete` is
   the committed marker and names every one. One-shot calls, server-sent event streams (the global
   bus and the per-session log), PTY and persistent-PTY WebSocket sessions, cursor pagination, typed
   errors with `NoThrow`, and the standalone launcher (`OpenCodeServer.StartAsync`) are landed.
@@ -30,23 +30,17 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   targets. Linux and macOS live verification also passed on net8/net9/net10, including the persistent daemon
   round trip and normal PTY reuse after read cancellation. `architecture/client-runtime.md` and
   ADR-0023 own the contract.
-- **2.0.29 refresh** — the accepted pin follows upstream's release tags, now `v2.0.29`, with no
-  compatibility layer between them. 2.0.29 adds and changes no operation: the configuration
-  carries top-level `policies`, which supersede the deprecated `experimental.policies`.
-  Upstream generates with Effect 4.0.1: the stream failure frame is
-  `effect/http-api/stream/failure`, a struct with no declared fields renders as
-  `not: {"type":"null"}`, branded identifiers are named components that bind as their strings, and
-  the SSE frame's `id` is optional; the union first-match oracle reproduces its verdicts under
-  4.0.1. Upstream's committed OpenAPI document matches its own generator at this tag; the snapshot
-  is still produced by upstream's pinned generator, never copied (ADR-0020). Every watched input
-  under the hand-written doors was reviewed; the seven that moved — three package manifests'
-  version bumps, the PTY, persistent-PTY, and server protocol groups, which now export their
-  connect route paths, and the authorization middleware, which now recognizes ticketed terminal
-  connects and pairing links by the route it dispatches to instead of by a URL pattern — leave the
-  behaviour the doors read unchanged.
-  Each refresh's CI run qualifies every leg at its pin: Windows on `net472`, `net10.0`, and
-  `net11.0`, Linux and macOS on `net10.0` and `net11.0`, with regeneration and receipt verification
-  passing.
+- **2.0.32 refresh** — the accepted pin follows upstream's release tags, now `v2.0.32`, with no
+  compatibility layer between them. 2.0.32 adds one operation, `experimental.voice.session`, which
+  the SDK exposes as `ExperimentalClient.CreateVoiceSessionAsync` behind the existing experimental
+  diagnostic, and removes or changes none. Its configuration gains typed reasoning and temperature
+  capabilities on models. A service started in service mode re-applies its saved `env` after
+  startup, so a key set both there and in the caller's spawn environment takes the saved value for
+  everything the service reads afterwards; the guides say so. The restore patch for SSE payloads
+  still applies. Every watched input under the hand-written doors was reviewed, and the eleven that
+  moved leave the behaviour the doors read unchanged apart from that `env` precedence. Each
+  refresh's CI run qualifies every leg at its pin: Windows on `net472`, `net10.0`, and `net11.0`,
+  Linux and macOS on `net10.0` and `net11.0`, with regeneration and receipt verification passing.
 - **Upstream 2.x** — the upstream team launched the 2.x line publicly on 2026-09-26. It ships as
   the `@opencode/cli` npm package, the one this SDK pins and its guides install; the 1.x line
   continues beside it as `opencode-ai` (`1.18.33` on 2026-09-28), and upstream's GitHub Releases page
@@ -55,7 +49,7 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 - **Packages** — the two packages publish as `OpenCodeDotNet.Sdk` and
   `OpenCodeDotNet.Sdk.Extensions` (the assemblies stay `OpenCode.Sdk`) and pack at the
   single-sourced `VersionPrefix 0.9.0`. Every `master` push publishes a `0.9.0-nightly.*` build to
-  the organization's GitHub Packages feed, and `0.9.0-preview.12` is on NuGet.org, owned by
+  the organization's GitHub Packages feed, and `0.9.0-preview.13` is on NuGet.org, owned by
   `OpenCode.NET` and pushed through the manual lane over Trusted Publishing. The ids carry
   `OpenCodeDotNet` because nuget.org reserves the `OpenCode.` prefix for an unrelated owner. The
   earlier ids, `OpenCodeAI.Sdk` and `OpenCodeAI.Sdk.Extensions`, receive no further versions.
