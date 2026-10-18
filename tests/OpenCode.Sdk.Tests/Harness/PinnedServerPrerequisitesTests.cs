@@ -1,5 +1,6 @@
 using Testably.Abstractions.Testing;
 using Testably.Abstractions.Testing.Initializer;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Harness;
 
@@ -12,6 +13,8 @@ public sealed class PinnedServerPrerequisitesTests
 {
     private const string PinnedBun = "1.4.2";
     private const string OtherBun = "1.4.3";
+    private const string RecordedCommit = "1111111111111111111111111111111111111111";
+    private const string OtherCommit = "2222222222222222222222222222222222222222";
     private const string PinnedPackageJson = "{\"packageManager\":\"bun@" + PinnedBun + "\"}";
 
     [Test]
@@ -20,7 +23,7 @@ public sealed class PinnedServerPrerequisitesTests
         var fileSystem = new MockFileSystem();
         var root = Root(fileSystem);
 
-        var readiness = await PinnedServerPrerequisites.FindAsync(fileSystem, root, PinnedBun, bunMismatch: null, CancellationToken.None);
+        var readiness = await FindWithMatchingCommitsAsync(fileSystem, root, PinnedBun, bunMismatch: null);
 
         await Assert.That(readiness.Problems).HasSingleItem();
         await Assert.That(readiness.Problems[0]).Contains("git submodule update --init --depth 1 external/opencode");
@@ -33,7 +36,7 @@ public sealed class PinnedServerPrerequisitesTests
         var root = Root(fileSystem);
         CheckOut(fileSystem, root, PinnedPackageJson);
 
-        var readiness = await PinnedServerPrerequisites.FindAsync(fileSystem, root, PinnedBun, bunMismatch: null, CancellationToken.None);
+        var readiness = await FindWithMatchingCommitsAsync(fileSystem, root, PinnedBun, bunMismatch: null);
 
         await Assert.That(readiness.Problems).HasSingleItem();
         await Assert.That(readiness.Problems[0]).Contains("bun install --frozen-lockfile --ignore-scripts");
@@ -45,7 +48,7 @@ public sealed class PinnedServerPrerequisitesTests
         var fileSystem = new MockFileSystem();
         var root = Prepared(fileSystem);
 
-        var readiness = await PinnedServerPrerequisites.FindAsync(fileSystem, root, OtherBun, bunMismatch: null, CancellationToken.None);
+        var readiness = await FindWithMatchingCommitsAsync(fileSystem, root, OtherBun, bunMismatch: null);
 
         await Assert.That(readiness.Problems).HasSingleItem();
         await Assert.That(readiness.Problems[0]).Contains("The bun on PATH is " + OtherBun);
@@ -60,7 +63,7 @@ public sealed class PinnedServerPrerequisitesTests
         var fileSystem = new MockFileSystem();
         var root = Prepared(fileSystem);
 
-        var readiness = await PinnedServerPrerequisites.FindAsync(fileSystem, root, bunVersion: null, bunMismatch: null, CancellationToken.None);
+        var readiness = await FindWithMatchingCommitsAsync(fileSystem, root, bunVersion: null, bunMismatch: null);
 
         await Assert.That(readiness.Problems).HasSingleItem();
         await Assert.That(readiness.Problems[0]).Contains("No bun is on PATH. Install bun " + PinnedBun);
@@ -74,7 +77,7 @@ public sealed class PinnedServerPrerequisitesTests
         CheckOut(fileSystem, root, "{\"packageManager\":\"pnpm@9.0.0\"}");
         Install(fileSystem, root);
 
-        var readiness = await PinnedServerPrerequisites.FindAsync(fileSystem, root, PinnedBun, bunMismatch: null, CancellationToken.None);
+        var readiness = await FindWithMatchingCommitsAsync(fileSystem, root, PinnedBun, bunMismatch: null);
 
         await Assert.That(readiness.Problems).HasSingleItem();
         await Assert.That(readiness.Problems[0]).Contains("names no bun@ packageManager");
@@ -86,7 +89,7 @@ public sealed class PinnedServerPrerequisitesTests
         var fileSystem = new MockFileSystem();
         var root = Prepared(fileSystem);
 
-        var readiness = await PinnedServerPrerequisites.FindAsync(fileSystem, root, PinnedBun, bunMismatch: null, CancellationToken.None);
+        var readiness = await FindWithMatchingCommitsAsync(fileSystem, root, PinnedBun, bunMismatch: null);
 
         await Assert.That(readiness.Problems).IsEmpty();
         await Assert.That(readiness.AllowedMismatch).IsNull();
@@ -98,8 +101,8 @@ public sealed class PinnedServerPrerequisitesTests
         var fileSystem = new MockFileSystem();
         var root = Prepared(fileSystem);
 
-        var readiness = await PinnedServerPrerequisites.FindAsync(
-            fileSystem, root, OtherBun, PinnedServerPrerequisites.AllowBunMismatch, CancellationToken.None);
+        var readiness = await FindWithMatchingCommitsAsync(
+            fileSystem, root, OtherBun, PinnedServerPrerequisites.AllowBunMismatch);
 
         await Assert.That(readiness.Problems).IsEmpty();
         await Assert.That(readiness.AllowedMismatch)
@@ -113,8 +116,8 @@ public sealed class PinnedServerPrerequisitesTests
         var fileSystem = new MockFileSystem();
         var root = Prepared(fileSystem);
 
-        var readiness = await PinnedServerPrerequisites.FindAsync(
-            fileSystem, root, bunVersion: null, PinnedServerPrerequisites.AllowBunMismatch, CancellationToken.None);
+        var readiness = await FindWithMatchingCommitsAsync(
+            fileSystem, root, bunVersion: null, PinnedServerPrerequisites.AllowBunMismatch);
 
         await Assert.That(readiness.Problems).HasSingleItem();
         await Assert.That(readiness.Problems[0]).Contains("No bun is on PATH. Install bun " + PinnedBun);
@@ -128,8 +131,8 @@ public sealed class PinnedServerPrerequisitesTests
         var root = Root(fileSystem);
         CheckOut(fileSystem, root, PinnedPackageJson);
 
-        var readiness = await PinnedServerPrerequisites.FindAsync(
-            fileSystem, root, OtherBun, PinnedServerPrerequisites.AllowBunMismatch, CancellationToken.None);
+        var readiness = await FindWithMatchingCommitsAsync(
+            fileSystem, root, OtherBun, PinnedServerPrerequisites.AllowBunMismatch);
 
         await Assert.That(readiness.Problems).HasSingleItem();
         await Assert.That(readiness.Problems[0]).Contains("bun install --frozen-lockfile --ignore-scripts");
@@ -141,8 +144,8 @@ public sealed class PinnedServerPrerequisitesTests
         var fileSystem = new MockFileSystem();
         var root = Prepared(fileSystem);
 
-        var readiness = await PinnedServerPrerequisites.FindAsync(
-            fileSystem, root, PinnedBun, PinnedServerPrerequisites.AllowBunMismatch, CancellationToken.None);
+        var readiness = await FindWithMatchingCommitsAsync(
+            fileSystem, root, PinnedBun, PinnedServerPrerequisites.AllowBunMismatch);
 
         await Assert.That(readiness.Problems).IsEmpty();
         await Assert.That(readiness.AllowedMismatch).IsNull();
@@ -161,7 +164,7 @@ public sealed class PinnedServerPrerequisitesTests
         var fileSystem = new MockFileSystem();
         var root = Prepared(fileSystem);
 
-        var readiness = await PinnedServerPrerequisites.FindAsync(fileSystem, root, PinnedBun, value, CancellationToken.None);
+        var readiness = await FindWithMatchingCommitsAsync(fileSystem, root, PinnedBun, value);
 
         await Assert.That(readiness.Problems).HasSingleItem();
         await Assert.That(readiness.Problems[0])
@@ -174,7 +177,7 @@ public sealed class PinnedServerPrerequisitesTests
         var fileSystem = new MockFileSystem();
         var root = Prepared(fileSystem);
 
-        var readiness = await PinnedServerPrerequisites.FindAsync(fileSystem, root, OtherBun, "yes", CancellationToken.None);
+        var readiness = await FindWithMatchingCommitsAsync(fileSystem, root, OtherBun, "yes");
 
         await Assert.That(readiness.Problems).Count().IsEqualTo(2);
         await Assert.That(readiness.Problems[0]).Contains("the only value it takes is 'allow'");
@@ -191,6 +194,72 @@ public sealed class PinnedServerPrerequisitesTests
         await Assert.That(message).StartsWith("OpenCode.Sdk.Tests on .NET 10.0.0 cannot run: the pinned server its tests start is not prepared in '/repo'.");
         await Assert.That(message).EndsWith(Environment.NewLine + "  - first" + Environment.NewLine + "  - second");
     }
+
+    [Test]
+    public async Task FindAsync_Should_Name_A_Wrong_Checkout_Before_A_Missing_Install()
+    {
+        var fileSystem = new MockFileSystem();
+        var root = Root(fileSystem);
+        CheckOut(fileSystem, root, PinnedPackageJson);
+        var submodule = fileSystem.Path.Combine(root, "external", "opencode");
+
+        var readiness = await PinnedServerPrerequisites.FindAsync(
+            fileSystem, root, PinnedBun, bunMismatch: null, RecordedCommit, OtherCommit, CancellationToken.None);
+
+        await Assert.That(readiness.Problems).IsEquivalentTo([
+            $"The pin's checkout at '{submodule}' is 2222222222222222222222222222222222222222, but this repository records 1111111111111111111111111111111111111111. Run: git submodule update --init --depth 1 external/opencode",
+            $"The pinned server dependencies are not installed under '{submodule}'. Run there: bun install --frozen-lockfile --ignore-scripts",
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments(null, RecordedCommit, "recorded gitlink")]
+    [Arguments(RecordedCommit, null, "checked-out HEAD")]
+    public async Task FindAsync_Should_Refuse_An_Unreadable_Commit(string? recorded, string? checkedOut, string unreadable)
+    {
+        var fileSystem = new MockFileSystem();
+        var root = Prepared(fileSystem);
+        var submodule = fileSystem.Path.Combine(root, "external", "opencode");
+
+        var readiness = await PinnedServerPrerequisites.FindAsync(
+            fileSystem, root, PinnedBun, bunMismatch: null, recorded, checkedOut, CancellationToken.None);
+
+        await Assert.That(readiness.Problems).IsEquivalentTo(
+            [$"Cannot read the pin's {unreadable} at '{submodule}'. Run: git submodule update --init --depth 1 external/opencode"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task FindAsync_Should_Not_Add_Commit_Problems_When_Source_Is_Missing()
+    {
+        var fileSystem = new MockFileSystem();
+        var root = Root(fileSystem);
+        var entry = fileSystem.Path.Combine(root, "external", "opencode", "packages", "cli", "src", "index.ts");
+
+        var readiness = await PinnedServerPrerequisites.FindAsync(
+            fileSystem, root, PinnedBun, bunMismatch: null, recordedCommit: null, checkedOutCommit: null, CancellationToken.None);
+
+        await Assert.That(readiness.Problems).IsEquivalentTo(
+            [$"The pinned server source is missing at '{entry}'. Run: git submodule update --init --depth 1 external/opencode"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task FindAsync_Should_Name_A_Mismatch_Typo_Before_Missing_Source()
+    {
+        var fileSystem = new MockFileSystem();
+        var root = Root(fileSystem);
+        var entry = fileSystem.Path.Combine(root, "external", "opencode", "packages", "cli", "src", "index.ts");
+
+        var readiness = await FindWithMatchingCommitsAsync(fileSystem, root, PinnedBun, "Allow");
+
+        await Assert.That(readiness.Problems).IsEquivalentTo([
+            "OPENCODE_SDK_TESTS_BUN_MISMATCH is 'Allow', but the only value it takes is 'allow'. Unset it to require the pinned bun.",
+            $"The pinned server source is missing at '{entry}'. Run: git submodule update --init --depth 1 external/opencode",
+        ], CollectionOrdering.Matching);
+    }
+
+    private static Task<PinnedServerPrerequisites.Readiness> FindWithMatchingCommitsAsync(
+        MockFileSystem fileSystem, string root, string? bunVersion, string? bunMismatch) =>
+        PinnedServerPrerequisites.FindAsync(fileSystem, root, bunVersion, bunMismatch, RecordedCommit, RecordedCommit, CancellationToken.None);
 
     private static string Root(MockFileSystem fileSystem) =>
         fileSystem.Path.Combine(fileSystem.Path.GetTempPath(), "repository");
