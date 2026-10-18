@@ -80,7 +80,7 @@ public sealed class CloneDetectorTests
     [Test]
     [Arguments("", 0, 1, "")]
     [Arguments("var total = node.GetHashCode(); total += name.Length; total *= 17; return total.ToString();", 1, 2, "3-14")]
-    [Arguments("ArgumentNullException.ThrowIfNull(node); Record(node);", 1, 4, "3-16")]
+    [Arguments("ArgumentNullException.ThrowIfNull(node); Record(node);", 1, 3, "3-15")]
     [Arguments("_field = collaborator.Value ?? throw new ArgumentNullException(nameof(collaborator));", 1, 3, "3-15")]
     [Arguments("_field = collaborator ?? throw new InvalidOperationException(nameof(collaborator));", 1, 3, "3-15")]
     public async Task RunAsync_Should_Keep_Only_Code_After_An_Anchored_Guard_Prelude(string body, int clones, int repetitions, string range)
