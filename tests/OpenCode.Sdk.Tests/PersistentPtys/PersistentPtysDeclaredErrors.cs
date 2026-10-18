@@ -158,4 +158,195 @@ public static class PersistentPtysDeclaredErrors
             typeof(PtyNotFoundError),
             "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}~1connect-token/post/responses/404/content/application~1json/schema"),
     ];
+
+    private static readonly DeclaredErrorDoor CreatePersistentPtyDoor = new(
+        nameof(PersistentPtysClient.CreatePersistentPtyAsync),
+        "server.experimental.persistentPty.create",
+        "post",
+        "/api/experimental/session/{sessionID}/terminal",
+        static async (client, options) => await client.PersistentPtys.CreatePersistentPtyAsync("ses_1", new PersistentPtyCreateRequest
+        {
+            Args = ["-l"],
+            Title = "sdk terminal",
+            Env = new Dictionary<string, string>(StringComparer.Ordinal),
+        }, options));
+
+    private static readonly DeclaredErrorDoor ReadDefaultDoor = new(
+        nameof(PersistentPtysClient.ReadAsync),
+        "server.experimental.persistentPty.read",
+        "get",
+        "/api/experimental/session/{sessionID}/terminal/read",
+        static async (client, options) => await client.PersistentPtys.ReadAsync("ses_1", requestOptions: options));
+
+    public static IEnumerable<Func<DeclaredErrorCase>> Rows3() =>
+    [
+        static () => new(
+            "server.experimental.persistentPty.list:401:UnauthorizedError:default",
+            ListPersistentPtysDoor,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1experimental~1session~1{sessionID}~1terminal/get/responses/401/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.create:401:UnauthorizedError:default",
+            CreatePersistentPtyDoor,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1experimental~1session~1{sessionID}~1terminal/post/responses/401/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.read:401:UnauthorizedError:default",
+            ReadDefaultDoor,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1experimental~1session~1{sessionID}~1terminal~1read/get/responses/401/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.handoff:401:UnauthorizedError:default",
+            HandoffDoor,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1experimental~1persistent-pty~1handoff/post/responses/401/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.shutdown:401:UnauthorizedError:default",
+            ShutdownDoor,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1experimental~1persistent-pty~1shutdown/post/responses/401/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.get:401:UnauthorizedError:default",
+            GetDoor,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}/get/responses/401/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.update:401:UnauthorizedError:default",
+            UpdateDoor,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}/put/responses/401/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.remove:401:UnauthorizedError:default",
+            RemoveDoor,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}/delete/responses/401/content/application~1json/schema"),
+    ];
+
+    public static IEnumerable<Func<DeclaredErrorCase>> Rows4() =>
+    [
+        static () => new(
+            "server.experimental.persistentPty.snapshot:401:UnauthorizedError:default",
+            GetSnapshotDoor,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}~1snapshot/get/responses/401/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.connectToken:401:UnauthorizedError:default",
+            CreateConnectTokenDoor,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}~1connect-token/post/responses/401/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.list:400:InvalidRequestError:default",
+            ListPersistentPtysDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1experimental~1session~1{sessionID}~1terminal/get/responses/400/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.create:400:InvalidRequestError:default",
+            CreatePersistentPtyDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1experimental~1session~1{sessionID}~1terminal/post/responses/400/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.read:400:InvalidRequestError:default",
+            ReadDefaultDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1experimental~1session~1{sessionID}~1terminal~1read/get/responses/400/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.handoff:400:InvalidRequestError:default",
+            HandoffDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1experimental~1persistent-pty~1handoff/post/responses/400/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.shutdown:400:InvalidRequestError:default",
+            ShutdownDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1experimental~1persistent-pty~1shutdown/post/responses/400/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.get:400:InvalidRequestError:default",
+            GetDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}/get/responses/400/content/application~1json/schema"),
+    ];
+
+    public static IEnumerable<Func<DeclaredErrorCase>> Rows5() =>
+    [
+        static () => new(
+            "server.experimental.persistentPty.update:400:InvalidRequestError:default",
+            UpdateDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}/put/responses/400/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.remove:400:InvalidRequestError:default",
+            RemoveDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}/delete/responses/400/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.snapshot:400:InvalidRequestError:default",
+            GetSnapshotDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}~1snapshot/get/responses/400/content/application~1json/schema"),
+        static () => new(
+            "server.experimental.persistentPty.connectToken:400:InvalidRequestError:default",
+            CreateConnectTokenDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}~1connect-token/post/responses/400/content/application~1json/schema"),
+    ];
 }
