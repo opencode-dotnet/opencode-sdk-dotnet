@@ -246,9 +246,9 @@ The detector ignores using directives and three anchored argument-guard lines: t
 constructor assignment `_name = name ?? throw new ArgumentNullException(nameof(name));`,
 `ArgumentNullException.ThrowIfNull(name);` and `ArgumentException.ThrowIfNullOrWhiteSpace(name);`.
 They carry no logic, so a guard prelude alone is never a clone, while a duplicated body around it
-still is. jscpd skips an invalid ignore pattern without failing (it rejects backreferences), so a
-detector test proves each pattern takes effect. A baseline entry that matches no clone fails the
-gate like a new clone does.
+still is. jscpd skips an ignore pattern it cannot compile (it rejects backreferences) without
+failing, so the detector's tests prove that each pattern takes effect in a real run. A baseline
+entry that matches no clone fails the gate like a new clone does.
 
 The lint job runs `dotnet run --file tools/opencode-tool.cs -- verify-clones`: the pinned jscpd in
 `tools/jscpd/`, installed with the machine's Bun from its own lockfile, at a 50-token minimum over four
