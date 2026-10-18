@@ -210,9 +210,10 @@ Console.WriteLine($"opencode {info.ServerInfo.Version} (pid {info.ServerInfo.Pid
 ```
 
 That bounded info call is the whole validation recipe for *reaching* the server, and it is
-deliberately yours to write: the SDK carries no version comparand of its own and no network-timeout
-knob yet, so a `CancellationTokenSource` is the honest timeout and your own expectation is the
-honest version check. It is liveness only — a server answering status can still have an empty model catalog
+deliberately yours to write: the SDK carries no version comparand of its own, and its `NetworkTimeout`
+bounds a call that stops making progress (no response headers, or no new body bytes), not the whole
+call, so a `CancellationTokenSource` is the honest deadline and your own expectation is the honest
+version check. It is liveness only — a server answering status can still have an empty model catalog
 for a second or two while its plugins activate, which
 [choosing a model](getting-started.md#choosing-a-model) covers.
 
