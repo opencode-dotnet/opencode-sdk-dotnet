@@ -201,6 +201,9 @@ internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner proce
             writer.WriteEndArray();
             writer.WriteStartArray("ignorePattern");
             writer.WriteStringValue(@"(?m)^[ \t]*(global[ \t]+)?using[ \t]+(static[ \t]+)?([A-Za-z_][A-Za-z0-9_]*[ \t]*=[ \t]*)?[A-Za-z_][A-Za-z0-9_.]*[ \t]*;");
+            writer.WriteStringValue(@"(?m)^[ \t]*_[A-Za-z_][A-Za-z0-9_]*[ \t]*=[ \t]*[A-Za-z_][A-Za-z0-9_]*[ \t]*\?\?[ \t]*throw[ \t]+new[ \t]+ArgumentNullException\(nameof\([A-Za-z_][A-Za-z0-9_]*\)\);[ \t]*$");
+            writer.WriteStringValue(@"(?m)^[ \t]*ArgumentNullException\.ThrowIfNull\([A-Za-z_][A-Za-z0-9_]*\);[ \t]*$");
+            writer.WriteStringValue(@"(?m)^[ \t]*ArgumentException\.ThrowIfNullOrWhiteSpace\([A-Za-z_][A-Za-z0-9_]*\);[ \t]*$");
             writer.WriteEndArray();
             writer.WriteStartArray("format");
             writer.WriteStringValue("csharp");
