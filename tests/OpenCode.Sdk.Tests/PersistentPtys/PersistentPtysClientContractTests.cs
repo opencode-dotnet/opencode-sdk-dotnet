@@ -58,19 +58,6 @@ public sealed class PersistentPtysClientContractTests
     }
 
     [Test]
-    public async Task ListPersistentPtysAsync_Should_Throw_The_Declared_503_Daemon_Arm()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.ServiceUnavailable, WireBodyData.ServiceUnavailableError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.PersistentPtys.ListPersistentPtysAsync("ses_1"))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(503);
-        await Assert.That(exception.Error).IsTypeOf<ServiceUnavailableError>();
-    }
-
-    [Test]
     public async Task CreatePersistentPtyAsync_Should_Send_The_Typed_Body_And_Return_The_Typed_Terminal()
     {
         var payload = new FixtureLoader().LoadJson("Serialization.known-persistent-pty.json");
@@ -160,19 +147,6 @@ public sealed class PersistentPtysClientContractTests
     }
 
     [Test]
-    public async Task ReadAsync_Should_Throw_The_Declared_400_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.PersistentPtys.ReadAsync("ses_1", new PersistentPtyReadRequest { Lines = 0 }))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(400);
-        await Assert.That(exception.Error).IsTypeOf<InvalidRequestError>();
-    }
-
-    [Test]
     public async Task HandoffAsync_Should_Materialize_A_Null_Payload_When_This_Server_Owns_No_Daemon()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, "{\"handoff\":null}");
@@ -201,19 +175,6 @@ public sealed class PersistentPtysClientContractTests
     }
 
     [Test]
-    public async Task HandoffAsync_Should_Throw_The_Declared_503_Daemon_Arm()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.ServiceUnavailable, WireBodyData.ServiceUnavailableError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.PersistentPtys.HandoffAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(503);
-        await Assert.That(exception.Error).IsTypeOf<ServiceUnavailableError>();
-    }
-
-    [Test]
     public async Task ShutdownAsync_Should_Answer_204_Even_When_No_Daemon_Is_Running()
     {
         using var scenario = ContractScenario.Responding(static _ => new HttpResponseMessage(HttpStatusCode.NoContent));
@@ -229,20 +190,7 @@ public sealed class PersistentPtysClientContractTests
     }
 
     [Test]
-    public async Task ShutdownAsync_Should_Throw_The_Declared_503_Daemon_Arm()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.ServiceUnavailable, WireBodyData.ServiceUnavailableError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.PersistentPtys.ShutdownAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(503);
-        await Assert.That(exception.Error).IsTypeOf<ServiceUnavailableError>();
-    }
-
-    [Test]
-    public async Task GetPersistentPtyAsync_Should_Materialize_The_Bound_Terminal()
+    public async Task GetAsync_Should_Materialize_The_Bound_Terminal()
     {
         var payload = new FixtureLoader().LoadJson("Serialization.known-persistent-pty.json");
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.Envelope(payload));
@@ -256,20 +204,7 @@ public sealed class PersistentPtysClientContractTests
     }
 
     [Test]
-    public async Task GetPersistentPtyAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.PtyNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.PersistentPtys.GetPersistentPtyClient(PtyId).GetAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<PtyNotFoundError>();
-    }
-
-    [Test]
-    public async Task UpdatePersistentPtyAsync_Should_Send_The_Resize_Body()
+    public async Task UpdateAsync_Should_Send_The_Resize_Body()
     {
         var payload = new FixtureLoader().LoadJson("Serialization.known-persistent-pty.json");
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.Envelope(payload));
@@ -285,21 +220,7 @@ public sealed class PersistentPtysClientContractTests
     }
 
     [Test]
-    public async Task UpdatePersistentPtyAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.PtyNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.PersistentPtys.GetPersistentPtyClient(PtyId)
-                .UpdateAsync(UpdateRequest()))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<PtyNotFoundError>();
-    }
-
-    [Test]
-    public async Task RemovePersistentPtyAsync_Should_Answer_204_On_The_Delete_Route()
+    public async Task RemoveAsync_Should_Answer_204_On_The_Delete_Route()
     {
         using var scenario = ContractScenario.Responding(static _ => new HttpResponseMessage(HttpStatusCode.NoContent));
 
@@ -310,19 +231,6 @@ public sealed class PersistentPtysClientContractTests
         var request = scenario.Requests.Single();
         await Assert.That(request.Method).IsEqualTo(HttpMethod.Delete);
         await Assert.That(request.RequestUri).IsEqualTo(Terminal);
-    }
-
-    [Test]
-    public async Task RemovePersistentPtyAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.PtyNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.PersistentPtys.GetPersistentPtyClient(PtyId).RemoveAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<PtyNotFoundError>();
     }
 
     [Test]
@@ -338,19 +246,6 @@ public sealed class PersistentPtysClientContractTests
         await Assert.That(response.Snapshot.Info.Size.Cols).IsEqualTo(80);
         await Assert.That(scenario.Requests.Single().RequestUri)
             .IsEqualTo(new Uri($"http://localhost:4096/api/experimental/persistent-pty/{PtyId}/snapshot"));
-    }
-
-    [Test]
-    public async Task GetSnapshotAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.PtyNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.PersistentPtys.GetPersistentPtyClient(PtyId).GetSnapshotAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<PtyNotFoundError>();
     }
 
     [Test]
@@ -370,32 +265,6 @@ public sealed class PersistentPtysClientContractTests
             .IsEqualTo(new Uri($"http://localhost:4096/api/experimental/persistent-pty/{PtyId}/connect-token"));
         await Assert.That(request.Headers[TicketHeader]).IsEqualTo("1");
         await Assert.That(request.Body).IsNull();
-    }
-
-    [Test]
-    public async Task CreateConnectTokenAsync_Should_Throw_The_Declared_403_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Forbidden, WireBodyData.ForbiddenError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.PersistentPtys.GetPersistentPtyClient(PtyId).CreateConnectTokenAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(403);
-        await Assert.That(exception.Error).IsTypeOf<ForbiddenError>();
-    }
-
-    [Test]
-    public async Task CreateConnectTokenAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.PtyNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.PersistentPtys.GetPersistentPtyClient(PtyId).CreateConnectTokenAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<PtyNotFoundError>();
     }
 
     /// <summary>

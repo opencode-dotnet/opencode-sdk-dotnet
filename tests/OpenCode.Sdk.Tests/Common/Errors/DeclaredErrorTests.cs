@@ -12,6 +12,7 @@ using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Integrations;
 using OpenCode.Sdk.Tests.LanguageModels;
 using OpenCode.Sdk.Tests.Permissions;
+using OpenCode.Sdk.Tests.PersistentPtys;
 using OpenCode.Sdk.Tests.Projects;
 using OpenCode.Sdk.Tests.Server;
 using OpenCode.Sdk.Tests.Support;
@@ -38,6 +39,8 @@ public sealed class DeclaredErrorTests
         .. PermissionsDeclaredErrors.Rows(),
         .. ProjectsDeclaredErrors.Rows(),
         .. ServerDeclaredErrors.Rows(),
+        .. PersistentPtysDeclaredErrors.Rows(),
+        .. PersistentPtysDeclaredErrors.Rows2(),
     ];
 
     [Test]
