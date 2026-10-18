@@ -45,6 +45,8 @@ internal sealed class ScriptedChildExit : IChildExitStatus, IDisposable
 
     public ChildExitStatus? Reap(int processId) => Volatile.Read(ref _status);
 
+    public bool IsUnreapedChild(int processId) => throw new InvalidOperationException("IsUnreapedChild was not scripted.");
+
     public void Dispose()
     {
         _exited.Set();

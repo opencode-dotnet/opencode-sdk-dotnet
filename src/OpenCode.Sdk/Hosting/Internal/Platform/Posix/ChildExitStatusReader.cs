@@ -78,12 +78,19 @@ internal sealed class ChildExitStatusReader : IChildExitStatus
     }
 
     /// <inheritdoc />
-    public bool WaitUntilExited(int processId)
+    public bool WaitUntilExited(int processId) =>
+        WaitForChild(processId, ExitedChildren | (PosixPlatform.IsMacOS ? MacNoWait : LinuxNoWait));
+
+    /// <inheritdoc />
+    public bool IsUnreapedChild(int processId) =>
+        WaitForChild(processId, ExitedChildren | NoHang | (PosixPlatform.IsMacOS ? MacNoWait : LinuxNoWait));
+
+    private static bool WaitForChild(int processId, int options)
     {
         var info = Marshal.AllocHGlobal(SignalInfoCapacity);
         try
         {
-            var options = ExitedChildren | (PosixPlatform.IsMacOS ? MacNoWait : LinuxNoWait);
+            Marshal.Copy(new byte[SignalInfoCapacity], 0, info, SignalInfoCapacity);
             while (true)
             {
                 if (PosixInterop.WaitId(ByProcessId, processId, info, options) == 0)

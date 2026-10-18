@@ -137,6 +137,11 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
             new OpenCodeServerStopOptions { RegistrationFilePath = release.RegistrationFile },
             cancellationToken);
 
+        if (!OperatingSystem.IsWindows())
+        {
+            await Assert.That(new ProcessGroupSignal().ProbeProcess(server.ProcessId)).IsEqualTo(SignalDelivery.NoSuchTarget);
+        }
+
         await Assert.That(release.RegistrationFile).Satisfies(path => !FileSystem.File.Exists(path));
         await Assert.That(await ProcessObservation.ObserveExitWithinAsync(server.ProcessId, ExitBound, cancellationToken)).IsTrue()
             .Because("the published build's daemon should leave once Stop ends it");

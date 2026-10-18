@@ -21,7 +21,7 @@ namespace OpenCode.Sdk.Internal;
 /// <see cref="Process.Kill()"/> (<c>TerminateProcess</c>), which is what libuv does with a
 /// <c>SIGTERM</c> there.
 /// </summary>
-internal sealed class ServiceProcessControl : IServiceProcessControl
+internal sealed class ServiceProcessControl(IChildExitStatus childExitStatus) : IServiceProcessControl
 {
     private const int Sigterm = 15;
     private const int Sigkill = 9;
@@ -51,6 +51,8 @@ internal sealed class ServiceProcessControl : IServiceProcessControl
             return null;
         }
     }
+
+    public bool IsUnreapedChild(int processId) => !IsWindows && childExitStatus.IsUnreapedChild(processId);
 
     public bool TrySignal(ProcessIdentity target, ProcessSignal signal)
     {
