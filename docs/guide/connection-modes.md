@@ -414,6 +414,13 @@ still running after the hard kill — the registration is then left in place; an
 `OperationCanceledException` for your own token, where cancelling before a signal prevents it and
 cancelling after one ends the wait without undoing the signal.
 
+On Windows, the service's files can stay locked for a few tens of milliseconds after `StopAsync`
+returns. The call completes once the process has exited, the same moment `opencode service stop`
+waits for, but Windows releases the daemon's database files (`opencode.db-shm` and `-wal`) a moment
+later; runs measured the gap between 12 and 38 ms. Deleting an isolated data directory right after
+the stop can therefore fail with an `IOException` naming one of those files. Code that removes the
+directory should be ready to retry the deletion for a short bound of its own.
+
 ### 🟢 Ensuring the background service
 
 `OpenCodeServer.EnsureAsync` is what the CLI does before it connects: reuse the registered service

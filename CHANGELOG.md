@@ -39,6 +39,9 @@ Nightly builds of `master` are on
   guide now says to give `XDG_STATE_HOME` and `XDG_CONFIG_HOME` different directories: the
   registration and the CLI's service configuration are both named `service.json`, so one folder for
   both makes them the same file, and `EnsureAsync` then fails now and then on Windows with `EPERM`.
+- **A stopped service's files unlock a moment after `StopAsync` on Windows.** The connection-modes
+  guide now says that the daemon's `opencode.db-shm` and `-wal` stay locked for a few tens of
+  milliseconds after the call returns, so deleting an isolated data directory right away can fail.
 
 ## [0.9.0-preview.12] - 2026-10-17
 
