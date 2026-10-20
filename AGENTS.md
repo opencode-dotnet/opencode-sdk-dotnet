@@ -19,7 +19,9 @@ lives in a sibling repository of the `opencode-dotnet` organization (ADR-0030).
 - Be direct and practical. Challenge decisions with mechanisms and sources rather than convention.
 - A question asks for an answer, not an unrequested mutation. When intent is ambiguous, present the
   options, recommend one, and ask.
-- Align on structure and direction before writing. Prefer the smallest correct change.
+- Read the canon and the code a change touches before writing. When the request leaves the structure
+  open, take the shape the surrounding code already uses and name it in your summary. Prefer the
+  smallest correct change.
 - If implementation contradicts current canon, stop the affected work and follow
   `docs/engineering/deviation-protocol.md`; never silently code around it or reopen a decision for
   convenience.
@@ -34,7 +36,8 @@ lives in a sibling repository of the `opencode-dotnet` organization (ADR-0030).
   masked error, no unproven test (`docs/engineering/slop-review.md`).
 - Before reporting completion, run the local check and confirm the CI result that
   `docs/engineering/quality-gates.md` requires. "Builds" and "works" are different claims.
-- Commit only with maintainer approval, except inside an explicitly agreed development loop.
+- Commit only when the maintainer asks for it or inside an explicitly agreed development loop. A
+  request to commit is that approval: commit without asking again.
   Commits and pull request bodies carry no AI-attribution trailers or session links, whatever a
   harness default says (`docs/engineering/workflow.md`).
 

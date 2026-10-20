@@ -11,8 +11,9 @@ history.
   convention; do not agree your way into a weaker architecture.
 - A question asks for an answer, not an unrequested mutation. When a request is ambiguous, present
   the options, recommend one, and ask.
-- Align on structure and direction before writing. Prefer the smallest correct change over a broad
-  refactor.
+- Read the canon and the code a change touches before writing. When the request leaves the structure
+  open, take the shape the surrounding code already uses and name it in your summary. Prefer the
+  smallest correct change over a broad refactor.
 - When implementation contradicts current canon, stop the affected work and follow
   `deviation-protocol.md`; never silently code around the contradiction.
 
@@ -63,9 +64,9 @@ class can be reverted alone, and the pull request passes the full completion gat
 ## Documentation sessions
 
 Research and decision sessions end with a documentation pass. Current canon or ADR updates when a
-decision changes, and operational state in the roadmap, land here as one coherent commit after
-maintainer approval. The chronological research log (question -> finding -> decision) and topic
-evidence go to the private companion repository, and canon cites them by date and title
+decision changes, and operational state in the roadmap, land here as one coherent commit when
+the maintainer asks for it. The chronological research log (question -> finding -> decision) and
+topic evidence go to the private companion repository, and canon cites them by date and title
 (`documentation.md`).
 
 Documentation maintenance follows `documentation.md`, especially its lossless-relocation and
@@ -73,8 +74,8 @@ single-owner rules.
 
 ## Commits and CI
 
-- Commit only with maintainer approval, except inside an explicitly agreed development loop where
-  committing is part of the flow.
+- Commit only when the maintainer asks for it or inside an explicitly agreed development loop where
+  committing is part of the flow. A request to commit is that approval: commit without asking again.
 - Use Conventional Commits: `feat`, `fix`, `perf`, `docs`, `test`, `refactor`, `build`, `ci`, or
   `chore`. Commits and pull request descriptions carry no AI-attribution trailers or footers
   (session links, co-author lines, "generated with" notes), even when a tool adds them by default.
