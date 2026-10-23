@@ -10,7 +10,8 @@ Nightly builds of `master` are on
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
 **The SDK speaks opencode 2.1.x.** The pin moves from 2.0.32 to 2.1.4.
-0.9.0-preview.13 cannot read compaction payloads from a 2.1.x server; upgrade the SDK.
+0.9.0-preview.13 against a 2.1.x server fails reading compaction messages and loses bus events around
+them; upgrade the SDK.
 
 ### 💥 Breaking changes
 
