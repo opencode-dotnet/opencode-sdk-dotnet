@@ -1,6 +1,6 @@
 # 📑 Pagination
 
-Date: 2026-10-16
+Date: 2026-10-23
 
 Two operations in the API return more than fits in one response, and both use the same opaque
 cursor envelope: **listing a session's messages** and **listing sessions**. Both can be paged by
@@ -12,6 +12,7 @@ hand or walked for you. Everything else returns its whole answer at once.
 - [♾️ Or let the SDK page for you](#️-or-let-the-sdk-page-for-you)
 - [📄 The same walk, one page at a time](#-the-same-walk-one-page-at-a-time)
 - [⚖️ Which one to use](#️-which-one-to-use)
+- [⏪ Replaying a session](#-replaying-a-session)
 
 ## 🧾 The cursor envelope
 
@@ -56,12 +57,25 @@ Three channels do the paging, and both request types carry all three:
 
 `SessionMessageListRequest` and `SessionListRequest` both inherit all three from the shared abstract
 `ListRequest`. A request may also carry filters of its own beside them: `SessionListRequest` adds
-`Search`, `Project`, `Directory`, `Subpath`, and `ParentId`.
+`Search`, `Project`, `Directory`, `Subpath`, `ParentId`, and `Archived`.
 
-> **🧭 `Order` belongs to the first request.** The order is fixed when the walk starts; a
-> continuation carries `Limit`, `Cursor`, and every filter — but not `Order`. Paging by hand, that
-> is yours to get right, and the snippets below drop it deliberately. Paging automatically, the SDK
-> does it for you.
+For message listings, `Limit` accepts 1–200 and defaults to 50. `Order` cannot be combined with a
+cursor. The manual snippets below drop it on continuation; the SDK's automatic walks do that for you.
+
+### Scoping a session listing
+
+An unfiltered session listing spans every session in the profile's session store, across projects
+and directories, including children, forks, and archived sessions. Upstream returns 50 by default,
+ordered by most recently **updated** first, not most recently created. `Archived = true` lists only
+archived sessions; `Archived = false` excludes them. Omit it to include both.
+
+Scope a listing with `Directory`, or with `Project` optionally narrowed by `Subpath`. `Subpath` is
+ignored without `Project`. `Directory` matches the stored directory exactly: no descendants, no
+case folding, and no trailing-slash trimming. The only normalization is `\` to `/` on Windows.
+
+> **🧭 Session-list continuations use the cursor's scope.** The server takes the filters and order
+> from the cursor, not from the request; only `Limit` is read again, so keep sending it. To change
+> filters or order, start a new walk without a cursor.
 
 ## 🔁 Paging by hand
 
@@ -209,3 +223,32 @@ exactly as it does for items.
 Reach for `Enumerate*Async` when you just want the messages or the sessions, and for its `Pages`
 when you want the walk handled but the envelope kept. Reach for `List*Async` when you own the walk:
 a paged UI, `Cursor.Previous`, or treating a failed page as data.
+
+## ⏪ Replaying a session
+
+Use the message walk above to select a `boundaryMessageId`, then choose a fork or an in-place revert:
+
+1. **Fork without changing the source.** `Before` copies messages strictly before the named message;
+   omit it to copy through the newest. Unfinished messages are skipped, and copies get new ids.
+
+   ```csharp
+   var fork = await session.ForkAsync(new SessionForkRequest { Before = boundaryMessageId }).ConfigureAwait(false);
+   var replay = client.Sessions.GetSessionClient(fork.Fork.Id);
+   ```
+
+   A fork is not a child: its `ParentId` is null, and `Fork.SessionId` identifies the source.
+   Deleting the source leaves its forks.
+
+2. **Revert in place.** Stage restores files changed by assistant turns after the boundary, unless
+   `Files = false`, and deletes no message:
+
+   ```csharp
+   await session.StageRevertAsync(new SessionRevertStageRequest { MessageId = boundaryMessageId }).ConfigureAwait(false);
+   ```
+
+   `ClearRevertAsync` undoes the stage. `CommitRevertAsync` deletes the boundary message and everything
+   after it, keeping the staged file state. The next prompt or compaction commits a staged revert
+   implicitly.
+
+For a transcript instead, `client.Experimental.GetSessionExportAsync(sessionId)` returns the session
+and every settled message in `SessionExport`, in ascending order, without paging.
