@@ -278,6 +278,22 @@ jobs:
           path: ~/.nuget/packages
           key: ${{ steps.nuget-cache.outputs.cache-primary-key }}
 
+      # On Windows the test passes keep the owned servers' run roots and the temp directory on the
+      # runner's temp disk, not on the OS disk. The OS disk (C:), where the default run roots and the
+      # user's temp directory live, stalls writes for up to seconds while the servers write their
+      # state, and every test waiting on a server stretches with it (#466). runner.temp lies outside
+      # the repository and the user profile, so TestRunRootLocation accepts it (quality-gates.md).
+      - name: Keep test run roots and temp on the runner's temp disk
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $runRoots = Join-Path $env:RUNNER_TEMP 'run-roots'
+          $temp = Join-Path $env:RUNNER_TEMP 'tmp'
+          New-Item -ItemType Directory -Force -Path $runRoots, $temp | Out-Null
+          "OPENCODE_SDK_TESTS_RUN_ROOT=$runRoots" | Add-Content -LiteralPath $env:GITHUB_ENV
+          "TEMP=$temp" | Add-Content -LiteralPath $env:GITHUB_ENV
+          "TMP=$temp" | Add-Content -LiteralPath $env:GITHUB_ENV
+
       # TUnit's always-on HTML report self-uploads as a workflow artifact, but only if these
       # runtime vars (normally JS/Docker-action-only) are re-exported to run steps.
       - name: Enable TUnit report artifact upload

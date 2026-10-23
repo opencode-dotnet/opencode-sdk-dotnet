@@ -211,6 +211,17 @@ a test whose hang guard a loaded host can still reach — a real server's own bo
 measured in seconds — carries the keyless `[NotInParallel]`
 (`tests/OpenCode.Sdk.Tests/Harness/ParallelConstraintKeys.cs`).
 
+On Windows, CI sets `OPENCODE_SDK_TESTS_RUN_ROOT`, `TEMP` and `TMP` to directories under
+`runner.temp` before the test passes. The hosted runner's OS disk (C:) holds the default run roots
+(the machine-wide application data root) and the user's temp directory. While the owned servers
+write their state it stalls writes for up to about 1.5 s with a queue of up to 18, and every test
+waiting on such a server stretches with it (#466). `runner.temp` is on the runner's local temp disk
+(D:). In paired runs, three attempts each (run 40012694190 on C:, run 40019772282 with the
+override), the D: arm had a C: write-latency p99 of 7-13 ms instead of 91-302 ms. The worst stretch
+of a test whose usual duration is at least half a second fell from ×10-15 to ×3-6, and the main
+pass took about a sixth less time. `runner.temp` lies outside the repository and the user profile,
+so `TestRunRootLocation` accepts it (`testing-style.md`).
+
 The suite runs in three passes, locally and in CI. The main pass runs every test except two
 categories. The background-service election classes carry the `ServiceElection` category
 (`tests/Shared/TestCategories.cs`) and run in a pass of their own, one host at a time, after every
