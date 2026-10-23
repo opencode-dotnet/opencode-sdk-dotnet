@@ -4,10 +4,10 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a voice session response data Session0 value.
+/// Represents a voice session reference value.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
-public sealed record VoiceSessionResponseDataSession0
+public sealed record VoiceSessionReference
 {
     /// <summary>
     /// Gets the id value.
