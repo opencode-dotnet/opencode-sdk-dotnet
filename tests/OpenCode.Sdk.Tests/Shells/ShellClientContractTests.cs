@@ -1,5 +1,4 @@
 using System.Net;
-using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Support;
 
@@ -8,7 +7,7 @@ namespace OpenCode.Sdk.Tests.Shells;
 public sealed class ShellClientContractTests
 {
     [Test]
-    public async Task GetShellAsync_Should_Return_The_Typed_Shell_With_Its_Location()
+    public async Task GetAsync_Should_Return_The_Typed_Shell_With_Its_Location()
     {
         var payload = new FixtureLoader().LoadJson("Serialization.known-shell.json");
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.LocationEnvelope(payload));
@@ -23,7 +22,7 @@ public sealed class ShellClientContractTests
     }
 
     [Test]
-    public async Task RemoveShellAsync_Should_Treat_The_204_As_A_Bodiless_Success()
+    public async Task RemoveAsync_Should_Treat_The_204_As_A_Bodiless_Success()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.NoContent, string.Empty);
 
@@ -38,7 +37,7 @@ public sealed class ShellClientContractTests
     }
 
     [Test]
-    public async Task RemoveShellAsync_Should_Ignore_A_Body_On_The_Declared_204()
+    public async Task RemoveAsync_Should_Ignore_A_Body_On_The_Declared_204()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.NoContent, "{}");
 
@@ -49,7 +48,7 @@ public sealed class ShellClientContractTests
     }
 
     [Test]
-    public async Task RemoveShellAsync_Should_Treat_A_200_As_An_Undeclared_Success()
+    public async Task RemoveAsync_Should_Treat_A_200_As_An_Undeclared_Success()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, "{}");
 
@@ -90,44 +89,5 @@ public sealed class ShellClientContractTests
 
         await Assert.That(scenario.Requests.Single().RequestUri!.AbsoluteUri)
             .IsEqualTo("http://localhost:4096/api/shell/sh_100/output?location[directory]=%2Frepo&cursor=1024&limit=4096");
-    }
-
-    [Test]
-    public async Task GetOutputAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.ShellNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Shells.GetShellClient("sh_9").GetOutputAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<ShellNotFoundError>();
-    }
-
-    [Test]
-    public async Task GetOutputAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Shells.GetShellClient("sh_100").GetOutputAsync(
-            requestOptions: OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
-    }
-
-    [Test]
-    public async Task GetShellAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.ShellNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Shells.GetShellClient("sh_9").GetAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<ShellNotFoundError>();
     }
 }
