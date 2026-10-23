@@ -66,6 +66,8 @@ starts, a server you already run, and the background service that the opencode C
 `OpenCodeClient` exposes one sub-client per area of the API. Every sub-client is also injectable on
 its own when you use dependency injection.
 
+The HTTP API has no file-content search: `FileSystemClient.FindEntriesAsync` ranks file and directory paths by fuzzy match; it does not search contents.
+
 | Area | Entry point | Guide |
 |---|---|---|
 | Sessions, messages, prompts, session logs | `client.Sessions` | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md), [Pagination](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/pagination.md) |
@@ -295,9 +297,9 @@ has the two properties to set.
 | Category | Platform/Type | Status | Description |
 |----------|---------------|--------|-------------|
 | **🔧 Build** | Cross-Platform | [![CI](https://github.com/opencode-dotnet/opencode-sdk-dotnet/actions/workflows/ci.yml/badge.svg)](https://github.com/opencode-dotnet/opencode-sdk-dotnet/actions/workflows/ci.yml) | Matrix: Windows, Linux, macOS |
-| **🧪 Tests** | Linux | [![Linux Tests](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Ftests%2Flinux%2Fopencode-dotnet%2Fopencode-sdk-dotnet%2Fmaster)](https://api.localstackfor.net/redirect/test-results/linux/opencode-dotnet/opencode-sdk-dotnet/master) | `net8.0`, `net9.0`, `net10.0` |
+| **🧪 Tests** | Linux | [![Linux Tests](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Ftests%2Flinux%2Fopencode-dotnet%2Fopencode-sdk-dotnet%2Fmaster)](https://api.localstackfor.net/redirect/test-results/linux/opencode-dotnet/opencode-sdk-dotnet/master) | `net10.0`, `net11.0` |
 | **🧪 Tests** | Windows | [![Windows Tests](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Ftests%2Fwindows%2Fopencode-dotnet%2Fopencode-sdk-dotnet%2Fmaster)](https://api.localstackfor.net/redirect/test-results/windows/opencode-dotnet/opencode-sdk-dotnet/master) | `net472` plus every modern target |
-| **🧪 Tests** | macOS | [![macOS Tests](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Ftests%2Fmacos%2Fopencode-dotnet%2Fopencode-sdk-dotnet%2Fmaster)](https://api.localstackfor.net/redirect/test-results/macos/opencode-dotnet/opencode-sdk-dotnet/master) | `net8.0`, `net9.0`, `net10.0` |
+| **🧪 Tests** | macOS | [![macOS Tests](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Ftests%2Fmacos%2Fopencode-dotnet%2Fopencode-sdk-dotnet%2Fmaster)](https://api.localstackfor.net/redirect/test-results/macos/opencode-dotnet/opencode-sdk-dotnet/master) | `net10.0`, `net11.0` |
 | **📡 Consumer leg** | Linux, Windows | [![Consumer leg](https://github.com/opencode-dotnet/opencode-sdk-dotnet/actions/workflows/consumer-leg.yml/badge.svg)](https://github.com/opencode-dotnet/opencode-sdk-dotnet/actions/workflows/consumer-leg.yml) | Weekly and on demand: the same suite against the published `@opencode/cli` build for the pin |
 
 ### 📦 Package Status

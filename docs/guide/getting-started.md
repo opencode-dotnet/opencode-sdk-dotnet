@@ -1,6 +1,6 @@
 # 🚀 Getting started
 
-Date: 2026-10-16
+Date: 2026-10-23
 
 Install the package, point a client at a server, and make three calls. Ten minutes, and the last
 one talks to a model.
@@ -170,14 +170,20 @@ call, without the bus. Upstream serves it as an experimental route, so it needs 
 
 ### Choosing a model
 
-The calls above let the server pick a model. To pick one yourself, read the current catalog:
+Leave `Model` unset on the session to let the server choose at turn time. A session
+with no model prefers the selected agent's configured model and variant when that model is
+available; otherwise it uses the location-default resolver. `client.LanguageModels.GetDefaultAsync()`
+reads only the location default, so its result can differ from the model an unset session uses.
+
+To pick one yourself, read the current catalog. `ListModelsAsync` returns only enabled models
+available to this server, so filtering on `Enabled` adds nothing:
 
 ```csharp
 var providers = await client.Providers.ListProvidersAsync();
 var models = await client.LanguageModels.ListModelsAsync();
 Console.WriteLine($"{providers.Providers.Count} providers, {models.Models.Count} models");
 
-var model = models.Models.FirstOrDefault(candidate => candidate.Enabled);
+var model = models.Models.FirstOrDefault();
 if (model is not null)
 {
     var created = await client.Sessions.CreateSessionAsync(new SessionCreateRequest
@@ -191,6 +197,9 @@ if (model is not null)
 
 - **`ModelRef.Id` takes `ModelInfo.Id`, never `ModelInfo.ModelId`.** The former is the catalog
   identity; the latter is the provider's own model id. They can differ for an aliased model.
+- **Enabled does not mean usable.** A turn can still fail with `provider.quota`, or
+  `provider.free-limit` when a free tier's limit is reached. No HTTP route checks an account's
+  usability ahead of a turn.
 - **Catalogs are observations during asynchronous plugin activation.** A successful status call
   does not make them complete, and the server exposes no activation barrier: when your application
   expects a particular provider or model, wait for that identity under a caller-owned cancellation
@@ -220,12 +229,12 @@ if (model is not null)
       }
   }
   ```
-- **The VCS summary settles the same way, per location.** `client.Vcs.GetVcsAsync()` for a
-  directory the server has not served before can answer before that location's git plugin has
-  reported: `Vcs.Provider` is `null` and both branch values are `null`, which means *not known
-  yet*, not "no branch". Wait for a non-null `Provider` under a caller-owned deadline. Once
-  `Provider` is set, a `null` `Branch.Current` means a detached HEAD. Observed on
-  `@opencode/cli@2.0.15`.
+- **The VCS summary can start empty, per location.** Right after start,
+  `client.Vcs.GetVcsAsync()` can return a null `Provider` and null branches until the location's
+  git plugin has refreshed. Outside a repository, `Provider` stays null, so do not use a non-null
+  provider as a general readiness condition. With a provider set, a null `Branch.Current` can
+  mean a detached HEAD or a failed Git call. `VcsBranchUpdated` fires only when the current
+  branch changes; it is not a provider-readiness signal.
 - **Neither create nor prompt validates the ref.** A wrong provider/catalog-id pair surfaces later
   as a failed turn rather than a typed model error at the call.
 
@@ -239,8 +248,9 @@ another. Creating a session is different: its directory comes from the request b
 And **provider inventory is the machine's ambient opencode configuration**, not something the SDK
 or the launcher supplies. A host with no provider credentials configured lists nothing, and
 `OpenCodeServer.StartAsync` does not change that — it starts a fresh process, not a fresh machine.
-If you have no preference at all, `client.LanguageModels.GetDefaultAsync()` answers with the
-location's default model, whose `Default` payload is legitimately `null` on such a host.
+`GetDefaultAsync()` can legitimately return a null `Default` on such a host.
+
+To change an existing session's model, use `SessionClient.SwitchModelAsync` through `client.Sessions.GetSessionClient(id)`; it affects later turns, and an unavailable model is reported only when a turn runs.
 
 ### Export a session transcript
 
