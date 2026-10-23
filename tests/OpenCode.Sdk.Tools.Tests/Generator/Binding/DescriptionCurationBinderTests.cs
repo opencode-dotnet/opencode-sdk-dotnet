@@ -81,9 +81,9 @@ public sealed class DescriptionCurationBinderTests(PinnedBinding pinned)
     }
 
     [Test]
-    [Arguments("location", false, "location must be a packages/-relative path with a positive line")]
+    [Arguments("location", false, "must declare exactly one of location or canon")]
     [Arguments("excerpt", false, "excerpt must be non-empty")]
-    [Arguments("location", true, "location must be a packages/-relative path with a positive line")]
+    [Arguments("location", true, "must declare exactly one of location or canon")]
     [Arguments("excerpt", true, "excerpt must be non-empty")]
     public async Task Apply_Should_Name_Missing_And_Null_Source_Fields(string field, bool explicitNull, string problem)
     {

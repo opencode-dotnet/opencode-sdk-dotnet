@@ -46,16 +46,22 @@ internal static partial class DescriptionCurationBinder
             Clients = [.. plan.Clients.Select(client => client with
             {
                 Documentation = Bind(client.Name, client.Documentation, byType),
-                Operations = [.. client.Operations.Select(operation => operation with
+                Operations = [.. client.Operations.Select(operation =>
                 {
-                    Envelope = operation.Envelope is { } envelope ? envelope with
+                    var row = byType.GetValueOrDefault(client.Name)?.SingleOrDefault(row => row.Member == operation.MethodName);
+                    return operation with
                     {
-                        Documentation = Bind(envelope.ResponseTypeName, envelope.Documentation, byType),
-                    } : null,
-                    QueryRequest = operation.QueryRequest is { RidesRequestBody: false } query ? query with
-                    {
-                        Documentation = Bind(query.TypeName, query.Documentation, byType),
-                    } : operation.QueryRequest,
+                        CuratedSummary = row?.Summary,
+                        CuratedRemarks = row?.Remarks,
+                        Envelope = operation.Envelope is { } envelope ? envelope with
+                        {
+                            Documentation = Bind(envelope.ResponseTypeName, envelope.Documentation, byType),
+                        } : null,
+                        QueryRequest = operation.QueryRequest is { RidesRequestBody: false } query ? query with
+                        {
+                            Documentation = Bind(query.TypeName, query.Documentation, byType),
+                        } : operation.QueryRequest,
+                    };
                 })],
             })],
         };
@@ -163,11 +169,19 @@ internal static partial class DescriptionCurationBinder
             {
                 problem = "must declare a source entry";
             }
-            else if (source.Location is null || !SourceLocation().IsMatch(source.Location))
+            else if ((source.Location is null) == (source.Canon is null))
+            {
+                problem = "must declare exactly one of location or canon";
+            }
+            else if (source.Canon is { } canon && (canon.Contains("..", StringComparison.Ordinal) || !CanonLocation().IsMatch(canon)))
+            {
+                problem = "canon must be a docs/architecture/-relative .md path with a heading slug and no '..'";
+            }
+            else if (source.Location is { } declared && !SourceLocation().IsMatch(declared))
             {
                 problem = "location must be a packages/-relative path with a positive line";
             }
-            else if (!locations.Add(source.Location))
+            else if (source.Location is { } location && !locations.Add(location))
             {
                 problem = $"repeats location '{source.Location}'";
             }
@@ -195,6 +209,10 @@ internal static partial class DescriptionCurationBinder
     [System.Text.RegularExpressions.GeneratedRegex(@"\Apackages/(?:(?!\.{1,2}(?:/|:))[^/\\:\s]+/)*(?!\.{1,2}:)[^/\\:\s]+:[1-9][0-9]*\z",
         System.Text.RegularExpressions.RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial System.Text.RegularExpressions.Regex SourceLocation();
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"\Adocs/architecture/(?:[^/\\:#\s]+/)*[^/\\:#\s]+\.md#[\p{L}\p{M}\p{N}_-]+\z",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
+    private static partial System.Text.RegularExpressions.Regex CanonLocation();
 
     private static ModelPlan BindModel(ModelPlan model, IReadOnlyDictionary<string, DescriptionCuration[]> byType)
     {

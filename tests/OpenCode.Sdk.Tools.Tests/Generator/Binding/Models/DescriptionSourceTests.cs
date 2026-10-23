@@ -13,6 +13,19 @@ public sealed class DescriptionSourceTests
     private const string Declaration = "An explicit upstream declaration.";
 
     [Test]
+    public async Task Sources_Should_Leave_Canon_To_The_Canon_Proof()
+    {
+        var fileSystem = new MockFileSystem();
+        DescriptionCuration[] rows = [new()
+        {
+            Type = "EventsClient", Member = "SubscribeAsync", Summary = "The stream.", Reason = "Verify source routing.",
+            Sources = [new() { Canon = "docs/architecture/example.md#contract", Excerpt = "Keep the stream alive." }],
+        }];
+        await Assert.That(await CheckAsync(fileSystem, fileSystem.Directory.GetCurrentDirectory(), rows))
+            .IsEquivalentTo(Array.Empty<string>(), CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task Sources_Should_Quote_The_Pinned_Upstream_Tree()
     {
         var fileSystem = new RealFileSystem();
@@ -77,6 +90,7 @@ public sealed class DescriptionSourceTests
             // The assertions above require the shape the binder validates before generation.
             foreach (var source in row.Sources!)
             {
+                if (source is { Location: null, Canon: not null, Excerpt: not null }) { continue; }
                 if (source is not { Location: { } location, Excerpt: { } excerpt })
                 {
                     throw new InvalidOperationException("The binder must validate source fields before the evidence oracle.");
