@@ -16,6 +16,7 @@ using OpenCode.Sdk.Tests.PersistentPtys;
 using OpenCode.Sdk.Tests.Projects;
 using OpenCode.Sdk.Tests.Ptys;
 using OpenCode.Sdk.Tests.Server;
+using OpenCode.Sdk.Tests.Sessions;
 using OpenCode.Sdk.Tests.Shells;
 using OpenCode.Sdk.Tests.Support;
 using OpenCode.Sdk.Tests.Vcs;
@@ -48,6 +49,8 @@ public sealed class DeclaredErrorTests
         .. PersistentPtysDeclaredErrors.Rows5(),
         .. PtysDeclaredErrors.Rows(),
         .. ShellsDeclaredErrors.Rows(),
+        .. SessionsDeclaredErrors.Rows(),
+        .. SessionsDeclaredErrors.Rows2(),
     ];
 
     [Test]
