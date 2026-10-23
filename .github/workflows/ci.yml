@@ -309,7 +309,7 @@ jobs:
       - name: Test
         id: test
         timeout-minutes: 35
-        run: dotnet test --configuration Release --no-build --max-parallel-test-modules ${{ matrix.test-modules }} -- --report-trx --results-directory "${{ github.workspace }}/test-results/main" --treenode-filter "/*/*/*/*[(Category!=ServiceElection)&(Category!=NativeAot)]" --minimum-expected-tests 1 --timeout 25m
+        run: dotnet test --configuration Release --no-build --max-parallel-test-modules ${{ matrix.test-modules }} -- --report-trx --results-directory "${{ github.workspace }}/test-results/main" --treenode-filter "/*/*/*/*[(Category!=ServiceElection)&(Category!=NativeAot)]" --minimum-expected-tests 1 --timeout 25m --hangdump --hangdump-timeout 15m --hangdump-type Mini
         env:
           TUNIT_ARTIFACT_RETENTION_DAYS: 7
 
@@ -320,7 +320,7 @@ jobs:
       - name: Test (service elections)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         timeout-minutes: 35
-        run: dotnet test --project "${{ github.workspace }}/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --report-trx --results-directory "${{ github.workspace }}/test-results/service-elections" --treenode-filter "/*/*/*/*[Category=ServiceElection]" --minimum-expected-tests 1 --timeout 25m
+        run: dotnet test --project "${{ github.workspace }}/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --report-trx --results-directory "${{ github.workspace }}/test-results/service-elections" --treenode-filter "/*/*/*/*[Category=ServiceElection]" --minimum-expected-tests 1 --timeout 25m --hangdump --hangdump-timeout 15m --hangdump-type Mini
         env:
           TUNIT_ARTIFACT_RETENTION_DAYS: 7
           TUNIT_DISABLE_ARTIFACT_UPLOAD: true
@@ -331,7 +331,7 @@ jobs:
       - name: Test (native AOT)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         timeout-minutes: 35
-        run: dotnet test --project "${{ github.workspace }}/tests/OpenCode.Sdk.Tools.Tests/OpenCode.Sdk.Tools.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --report-trx --results-directory "${{ github.workspace }}/test-results/native-aot" --treenode-filter "/*/*/*/*[Category=NativeAot]" --minimum-expected-tests 1 --timeout 25m
+        run: dotnet test --project "${{ github.workspace }}/tests/OpenCode.Sdk.Tools.Tests/OpenCode.Sdk.Tools.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --report-trx --results-directory "${{ github.workspace }}/test-results/native-aot" --treenode-filter "/*/*/*/*[Category=NativeAot]" --minimum-expected-tests 1 --timeout 25m --hangdump --hangdump-timeout 15m --hangdump-type Mini
         env:
           TUNIT_ARTIFACT_RETENTION_DAYS: 7
           TUNIT_DISABLE_ARTIFACT_UPLOAD: true
