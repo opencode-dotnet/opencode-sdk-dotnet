@@ -183,8 +183,7 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
         var callerDirectory = context.Environment["OPENCODE_CONFIG_DIR"];
         var savedDirectory = FileSystem.Path.Combine(context.RunRoot, "saved-config");
         var channelFile = FileSystem.Path.GetFileName(context.RegistrationFile);
-        var ports = LoopbackPortReservation.ReservePair();
-        var savedPort = EnsureServiceContext.RefuseRealDaemonPort(ports.First != context.Port ? ports.First : ports.Second);
+        var savedPort = EnsureServiceContext.ReserveUnguardedPort(LoopbackPortReservation.Hold, context.Port);
 
         await SeedAsync(FileSystem.Path.Combine(callerDirectory, channelFile), new JsonObject
         {

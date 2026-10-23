@@ -13,20 +13,26 @@ internal static class LoopbackPortReservation
 {
     public static int Reserve()
     {
+        using var held = Hold();
+        return held.Port;
+    }
+
+    /// <summary>
+    /// Binds a free loopback port and keeps it bound until the returned hold is disposed, so the OS
+    /// cannot hand the same port to another reservation while it is held.
+    /// </summary>
+    public static HeldLoopbackPort Hold()
+    {
         var listener = new TcpListener(IPAddress.Loopback, 0);
-        listener.Start();
         try
         {
-            return ((IPEndPoint)listener.LocalEndpoint).Port;
+            listener.Start();
+            return new HeldLoopbackPort(((IPEndPoint)listener.LocalEndpoint).Port, () => Release(listener));
         }
-        finally
+        catch
         {
-            listener.Stop();
-#if NET
-            // TcpListener implements IDisposable from .NET 8 on; Stop() alone does not satisfy
-            // CA2000 there. Downlevel targets have no Dispose — Stop() is their full release.
-            listener.Dispose();
-#endif
+            Release(listener);
+            throw;
         }
     }
 
@@ -39,30 +45,18 @@ internal static class LoopbackPortReservation
     /// </summary>
     public static (int First, int Second) ReservePair()
     {
-        var first = new TcpListener(IPAddress.Loopback, 0);
-        try
-        {
-            first.Start();
-            var second = new TcpListener(IPAddress.Loopback, 0);
-            try
-            {
-                second.Start();
-                return (((IPEndPoint)first.LocalEndpoint).Port, ((IPEndPoint)second.LocalEndpoint).Port);
-            }
-            finally
-            {
-                second.Stop();
+        using var first = Hold();
+        using var second = Hold();
+        return (first.Port, second.Port);
+    }
+
+    private static void Release(TcpListener listener)
+    {
+        listener.Stop();
 #if NET
-                second.Dispose();
+        // TcpListener implements IDisposable from .NET 8 on; Stop() alone does not satisfy
+        // CA2000 there. Downlevel targets have no Dispose — Stop() is their full release.
+        listener.Dispose();
 #endif
-            }
-        }
-        finally
-        {
-            first.Stop();
-#if NET
-            first.Dispose();
-#endif
-        }
     }
 }
