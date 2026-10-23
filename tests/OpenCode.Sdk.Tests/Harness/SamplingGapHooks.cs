@@ -21,8 +21,12 @@ internal static class SamplingGapHooks
     [AfterEvery(Test)]
     public static void Report(TestContext context)
     {
-        var start = context.StateBag[WindowStart] is long timestamp
-            ? timestamp : throw new InvalidOperationException("the sampling-gap test window was not opened");
+        // A test that failed before its BeforeEvery hook ran has no window to attribute a gap to.
+        if (!context.StateBag.TryGetValue<long>(WindowStart, out var start))
+        {
+            return;
+        }
+
         Detector.Report(start, gap => context.Output.WriteLine(gap.Format(ProcessId, ImageOs, ImageVersion)));
     }
 

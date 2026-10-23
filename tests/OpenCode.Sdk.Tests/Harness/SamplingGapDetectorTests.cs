@@ -186,6 +186,25 @@ public sealed class SamplingGapDetectorTests
         await Assert.That(scenario.Detector.Worker.IsAlive).IsFalse();
     }
 
+    /// <summary>The final sample comes after the bounded join, so a worker stuck holding the lock cannot keep the join from being reached.</summary>
+    [Test]
+    public async Task EndSession_Should_Join_Before_Its_Final_Sample()
+    {
+        using var scenario = new Scenario();
+        scenario.Wait = _ =>
+        {
+            scenario.Stop.Wait();
+            return true;
+        };
+        scenario.Start();
+        var readsBefore = scenario.Gc.Reads;
+        var readsAtJoin = -1;
+        var join = new RecordingJoin { OnJoin = () => readsAtJoin = scenario.Gc.Reads };
+        _ = scenario.Detector.EndSession(scenario.Stop, join);
+        await Assert.That(readsAtJoin).IsEqualTo(readsBefore);
+        await Assert.That(scenario.Gc.Reads).IsEqualTo(readsBefore + 1);
+    }
+
     [Test]
     public async Task EndSession_Should_Fail_When_The_Join_Times_Out()
     {
@@ -225,9 +244,11 @@ public sealed class SamplingGapDetectorTests
         public int Calls { get; private set; }
         public Thread? Thread { get; private set; }
         public TimeSpan Bound { get; private set; }
+        public Action? OnJoin { get; init; }
 
         public override bool Join(Thread thread, TimeSpan bound)
         {
+            OnJoin?.Invoke();
             Calls++;
             Thread = thread;
             Bound = bound;
@@ -322,9 +343,11 @@ public sealed class SamplingGapDetectorTests
     {
         public GcReading Reading { get; set; } = new(0, 0, 0, TimeSpan.Zero);
         public Exception? Failure { get; set; }
+        public int Reads { get; private set; }
 
         public GcReading Read()
         {
+            Reads++;
             if (Failure is { } failure)
             {
                 Failure = null;

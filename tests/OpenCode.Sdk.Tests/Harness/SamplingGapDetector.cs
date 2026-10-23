@@ -43,16 +43,8 @@ internal sealed class SamplingGapDetector(TimeProvider time, Func<TimeSpan, bool
 
     public string EndSession(ManualResetEventSlim stop, DetectorThreadJoin join)
     {
-        ExceptionDispatchInfo? sampleFault = null;
-        try
-        {
-            Sample();
-        }
-        catch (Exception exception)
-        {
-            sampleFault = ExceptionDispatchInfo.Capture(exception);
-        }
-
+        // Stop and join before the final sample: a worker stuck inside Sample holds the lock, and the
+        // bounded join must still be reached and report it.
         stop.Set();
         if (!join.Join(Worker, TimeSpan.FromSeconds(JoinSeconds)))
         {
@@ -60,7 +52,7 @@ internal sealed class SamplingGapDetector(TimeProvider time, Func<TimeSpan, bool
         }
 
         _fault?.Throw();
-        sampleFault?.Throw();
+        Sample();
         return Summary;
     }
 
