@@ -33,4 +33,12 @@ public sealed record SessionUpdateRequest
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     [JsonConverter(typeof(OptionalOfPermissionRuleListJsonConverter))]
     public Optional<IReadOnlyList<PermissionRule>?> Permissions { get; init; }
+
+    /// <summary>
+    /// Archive the session with true or restore it with false. Repeating the current state is a no-op.
+    /// </summary>
+    [JsonPropertyName("archived")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [JsonConverter(typeof(OptionalOfBooleanJsonConverter))]
+    public Optional<bool?> Archived { get; init; }
 }

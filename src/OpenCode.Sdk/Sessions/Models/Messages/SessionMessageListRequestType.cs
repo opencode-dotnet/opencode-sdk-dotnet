@@ -66,6 +66,10 @@ public readonly struct SessionMessageListRequestType : IEquatable<SessionMessage
         /// The &apos;compaction&apos; wire spelling.
         /// </summary>
         public const string Compaction = "compaction";
+        /// <summary>
+        /// The &apos;idle&apos; wire spelling.
+        /// </summary>
+        public const string Idle = "idle";
     }
 
     /// <summary>
@@ -109,13 +113,17 @@ public readonly struct SessionMessageListRequestType : IEquatable<SessionMessage
     /// </summary>
     public static SessionMessageListRequestType Compaction { get; } = new(Values.Compaction);
     /// <summary>
+    /// Gets the &apos;idle&apos; wire value.
+    /// </summary>
+    public static SessionMessageListRequestType Idle { get; } = new(Values.Idle);
+    /// <summary>
     /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
     /// </summary>
     public string Value => _value ?? string.Empty;
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is Values.AgentSwitched or Values.ModelSwitched or Values.LocationSwitched or Values.User or Values.Synthetic or Values.System or Values.Skill or Values.Shell or Values.Assistant or Values.Compaction;
+    public bool IsKnown => _value is Values.AgentSwitched or Values.ModelSwitched or Values.LocationSwitched or Values.User or Values.Synthetic or Values.System or Values.Skill or Values.Shell or Values.Assistant or Values.Compaction or Values.Idle;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

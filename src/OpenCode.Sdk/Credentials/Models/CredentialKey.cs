@@ -30,14 +30,7 @@ public sealed record CredentialKey : ICredentialValue
     public IReadOnlyDictionary<string, JsonElement>? Metadata { get; init; }
 
     /// <summary>
-    /// Gets the configuration value.
-    /// </summary>
-    [JsonPropertyName("configuration")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyDictionary<string, FormValue>? Configuration { get; init; }
-
-    /// <summary>
     /// Prints the record&apos;s members with its secret members masked.
     /// </summary>
-    public override string ToString() => RecordPrinter.Format(nameof(CredentialKey), ("Type", Type), ("Key", RecordPrinter.Redact(Key)), ("Metadata", Metadata), ("Configuration", Configuration));
+    public override string ToString() => RecordPrinter.Format(nameof(CredentialKey), ("Type", Type), ("Key", RecordPrinter.Redact(Key)), ("Metadata", Metadata));
 }

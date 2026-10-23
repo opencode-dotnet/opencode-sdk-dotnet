@@ -35,11 +35,11 @@ public sealed record SessionStepEndedData
     public string? RawFinish { get; init; }
 
     /// <summary>
-    /// Gets the provider state value.
+    /// Gets the native value.
     /// </summary>
-    [JsonPropertyName("providerState")]
+    [JsonPropertyName("native")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyDictionary<string, JsonElement>? ProviderState { get; init; }
+    public IReadOnlyDictionary<string, JsonElement>? Native { get; init; }
 
     /// <summary>
     /// Gets the cost value.

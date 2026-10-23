@@ -254,7 +254,7 @@ Both members take a value above zero and at most `int.MaxValue` milliseconds, or
 
 Most generated members say no more than "Gets the action value", because the pinned API document
 describes no more. Three families need more than their types to use correctly. Where a rule below
-comes from upstream's implementation at the pin (`v2.0.32`) rather than from the pinned contract,
+comes from upstream's implementation at the pin (`v2.1.4`) rather than from the pinned contract,
 it says so.
 
 ### Session permissions

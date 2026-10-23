@@ -11,7 +11,7 @@ namespace OpenCode.Sdk.Tests.Harness;
 /// </summary>
 public sealed class PinnedServerPrerequisitesTests
 {
-    private const string PinnedBun = "1.4.2";
+    private const string PinnedBun = "1.4.4";
     private const string OtherBun = "1.4.3";
     private const string RecordedCommit = "1111111111111111111111111111111111111111";
     private const string OtherCommit = "2222222222222222222222222222222222222222";

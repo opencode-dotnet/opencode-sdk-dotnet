@@ -33,4 +33,11 @@ public sealed record SessionStructuredError
     [JsonPropertyName("response")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public SessionStructuredErrorResponse? Response { get; init; }
+
+    /// <summary>
+    /// Gets the retry after ms value.
+    /// </summary>
+    [JsonPropertyName("retryAfterMs")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? RetryAfterMs { get; init; }
 }

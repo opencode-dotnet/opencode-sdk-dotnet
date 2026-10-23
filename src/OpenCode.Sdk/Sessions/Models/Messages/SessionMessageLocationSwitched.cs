@@ -2,7 +2,6 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
@@ -59,7 +58,6 @@ public sealed record SessionMessageLocationSwitched : ISessionMessageInfo
     /// Gets the previous value.
     /// </summary>
     [JsonPropertyName("previous")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-    [JsonConverter(typeof(OptionalOfSessionMessageLocationSwitchedPreviousJsonConverter))]
-    public Optional<SessionMessageLocationSwitchedPrevious?> Previous { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SessionMessageLocationSwitchedPrevious? Previous { get; init; }
 }

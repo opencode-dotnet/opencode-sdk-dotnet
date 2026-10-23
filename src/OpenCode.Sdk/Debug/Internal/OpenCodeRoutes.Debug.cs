@@ -31,5 +31,22 @@ internal static partial class OpenCodeRoutes
         /// The &apos;GET /api/debug/location&apos; route.
         /// </summary>
         public const string ListLocations = "/api/debug/location";
+        /// <summary>
+        /// Builds the &apos;/api/debug/heap-dump&apos; route.
+        /// </summary>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string WriteHeapSnapshot(DebugHeapDumpRequest? request = null)
+        {
+            var path = "/api/debug/heap-dump";
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddText("directory", request.Directory);
+            return path + query.Value;
+        }
     }
 }

@@ -21,12 +21,6 @@ public sealed record SessionCompactionStartedData
     public required SessionCompactionStartedDataReason Reason { get; init; }
 
     /// <summary>
-    /// Gets the recent value.
-    /// </summary>
-    [JsonPropertyName("recent")]
-    public required string Recent { get; init; }
-
-    /// <summary>
     /// Gets the input id value.
     /// </summary>
     [JsonPropertyName("inputID")]

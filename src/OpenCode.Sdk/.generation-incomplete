@@ -1,7 +1,7 @@
 Generation is complete at the declared coverage; packages may be published.
-Selected operations: 141
+Selected operations: 145
 Pending operations: 0
-Declined operations: 0
+Declined operations: 2
 Transport-owned operations: 2
 Selected:
 - agent.get
@@ -14,6 +14,7 @@ Selected:
 - credential.list
 - credential.remove
 - credential.update
+- debug.heapDump
 - debug.location.evict
 - debug.location.list
 - event.subscribe
@@ -34,6 +35,8 @@ Selected:
 - experimental.session.skill
 - experimental.session.stats
 - experimental.session.wait
+- experimental.voice.instructions
+- experimental.voice.models
 - experimental.voice.session
 - form.list
 - fs.find
@@ -59,6 +62,7 @@ Selected:
 - permission.request.list
 - permission.saved.list
 - permission.saved.remove
+- permission.saved.update
 - persistentPty.connectToken
 - persistentPty.create
 - persistentPty.get
@@ -147,6 +151,8 @@ Selected:
 - worktree.remove
 Pending:
 Declined:
+- experimental.mcp.client [declined: Deferred and built before 1.0 in #529: the WebSocket attach needs a client-hosted MCP runtime channel.] [refused: WebSocket operations are not supported]
+- experimental.mcp.client.token [declined: Deferred and built before 1.0 in #529: the x-opencode-ticket header has no runtime channel for the client MCP attach.] [refused: header parameter 'x-opencode-ticket' has no runtime channel]
 Transport-owned:
 - persistentPty.connect [fingerprint-pinned]
 - pty.connect [fingerprint-pinned]

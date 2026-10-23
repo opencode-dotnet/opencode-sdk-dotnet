@@ -12,6 +12,7 @@ internal sealed class SessionEventDurableJsonConverter : JsonConverter<ISessionE
     private static readonly FrozenDictionary<string, Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
     {
         ["session.agent.selected"] = typeof(SessionAgentSelected),
+        ["session.archived"] = typeof(SessionArchived),
         ["session.compaction.ended"] = typeof(SessionCompactionEnded),
         ["session.compaction.failed"] = typeof(SessionCompactionFailed),
         ["session.compaction.started"] = typeof(SessionCompactionStarted),
@@ -54,6 +55,7 @@ internal sealed class SessionEventDurableJsonConverter : JsonConverter<ISessionE
         ["session.tool.input.ended"] = typeof(SessionToolInputEnded),
         ["session.tool.input.started"] = typeof(SessionToolInputStarted),
         ["session.tool.success"] = typeof(SessionToolSuccess),
+        ["session.unarchived"] = typeof(SessionUnarchived),
         ["session.usage.recorded"] = typeof(SessionUsageRecorded),
         ["session.viewed"] = typeof(SessionViewed)
     }.ToFrozenDictionary(StringComparer.Ordinal);

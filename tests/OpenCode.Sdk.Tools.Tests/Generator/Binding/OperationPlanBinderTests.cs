@@ -686,15 +686,15 @@ public sealed class OperationPlanBinderTests
 
     /// <summary>
     /// The committed curation against the pinned spec: every operation outside the transport-owned
-    /// pair binds, so nothing is declined and nothing is pending, which is what opens the packing
-    /// wall — a declined row added back must fail here rather than drift.
+    /// pair and the deferred client MCP pair binds; nothing remains pending.
     /// </summary>
     [Test]
-    public async Task Bind_Should_Decline_Nothing_At_The_Pin()
+    public async Task Bind_Should_Decline_Only_The_Client_Mcp_Pair_At_The_Pin()
     {
         var plan = await new BindingTestHost().BindPinnedAsync();
 
-        await Assert.That(plan.DeclinedOperations).IsEmpty();
+        await Assert.That(plan.DeclinedOperations.Select(static operation => operation.OperationId))
+            .IsEquivalentTo(["experimental.mcp.client", "experimental.mcp.client.token"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(plan.PendingOperations).IsEmpty();
     }
 
@@ -763,7 +763,7 @@ public sealed class OperationPlanBinderTests
         await Assert.That(list.QueryRequest!.TypeName).IsEqualTo("SessionListRequest");
         await Assert.That(list.QueryRequest.DerivesFromListRequest).IsTrue();
         await Assert.That(list.QueryRequest.Properties.Select(static property => property.PropertyName))
-            .IsEquivalentTo(["Limit", "Order", "Search", "ParentId", "Directory", "Project", "Subpath", "Cursor"], StringComparer.Ordinal, CollectionOrdering.Matching);
+            .IsEquivalentTo(["Limit", "Order", "Search", "ParentId", "Archived", "Directory", "Project", "Subpath", "Cursor"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(list.QueryRequest.Properties.Where(static property => property.IsInherited).Select(static property => property.PropertyName))
             .IsEquivalentTo(["Limit", "Order", "Cursor"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(list.Envelope!.Kind).IsEqualTo(EnvelopeKind.CursorList);

@@ -30,6 +30,8 @@ public sealed class UpstreamClientQueryTypeTests
     {
         // The message id brand; the document names the same string component Session.Message.ID.
         ["SessionMessage.ID"] = false,
+        // The session list cursor brand; the document names the same string component SessionsCursor.
+        ["Session.ListCursor"] = false,
     };
 
     [Test]

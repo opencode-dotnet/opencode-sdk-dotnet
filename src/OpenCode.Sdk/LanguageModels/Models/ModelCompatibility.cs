@@ -51,6 +51,13 @@ public sealed record ModelCompatibility
     public bool? SupportsPromptCacheKey { get; init; }
 
     /// <summary>
+    /// Gets the stream usage value.
+    /// </summary>
+    [JsonPropertyName("streamUsage")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? StreamUsage { get; init; }
+
+    /// <summary>
     /// Gets the cache format value.
     /// </summary>
     [JsonPropertyName("cacheFormat")]

@@ -138,12 +138,12 @@
     },
     {
       "type": "SessionTextEndedData",
-      "member": "State",
+      "member": "Native",
       "summary": "Opaque provider state for the text part.",
       "reason": "Retain the declared opaque state without promising future-request reuse.",
       "sources": [
-        { "location": "packages/schema/src/session-event.ts:423", "excerpt": "      state: SessionMessage.ProviderState.pipe(optional)," },
-        { "location": "packages/schema/src/session-message.ts:39", "excerpt": "export const ProviderState = Schema.Record(Schema.String, Schema.Unknown).annotate({" }
+        { "location": "packages/schema/src/session-message.ts:38", "excerpt": " * Provider-owned replay data, keyed by the producing provider's metadata fields and echoed back verbatim. A tool's" },
+        { "location": "packages/schema/src/session-message.ts:41", "excerpt": "export const Native = Schema.Record(Schema.String, Schema.Unknown).annotate({" }
       ]
     },
     {
@@ -151,8 +151,8 @@
       "summary": "A session input durably admitted to the inbox, scheduling agent-loop execution unless Resume is false.",
       "reason": "Retain the route's admission and scheduling contract without inferring response-before-model timing.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:405", "excerpt": "        success: Schema.Struct({ data: SessionInbox.User })," },
-        { "location": "packages/protocol/src/groups/session.ts:413", "excerpt": "            description: \"Durably admit one session input and schedule agent-loop execution unless resume is false.\"," }
+        { "location": "packages/protocol/src/groups/session.ts:344", "excerpt": "        success: Schema.Struct({ data: SessionInbox.User })," },
+        { "location": "packages/protocol/src/groups/session.ts:352", "excerpt": "            description: \"Durably admit one session input and schedule agent-loop execution unless resume is false.\"," }
       ]
     },
     {
@@ -171,7 +171,7 @@
       "summary": "File attachments, each referencing a file by its Uri member.",
       "reason": "Retain the declared attachment reference without inventing URI schemes, size limits or file-reading policy.",
       "sources": [
-        { "location": "packages/schema/src/prompt-input.ts:31", "excerpt": "  files: Schema.Array(FileAttachment).pipe(optional)," },
+        { "location": "packages/schema/src/prompt-input.ts:25", "excerpt": "  files: Schema.Array(FileAttachment).pipe(optional)," },
         { "location": "packages/schema/src/prompt-input.ts:10", "excerpt": "  uri: Schema.String," }
       ]
     },
@@ -181,8 +181,8 @@
       "summary": "Skills to attach by identifier.",
       "reason": "Retain the declared attachment role without inferring text placement or unknown-identifier errors.",
       "sources": [
-        { "location": "packages/schema/src/prompt-input.ts:33", "excerpt": "  skills: Schema.Array(SkillAttachment).pipe(optional)," },
-        { "location": "packages/schema/src/prompt-input.ts:25", "excerpt": "  id: Skill.ID," }
+        { "location": "packages/schema/src/prompt-input.ts:27", "excerpt": "  skills: Schema.Array(SkillAttachment).pipe(optional)," },
+        { "location": "packages/schema/src/prompt-input.ts:19", "excerpt": "  id: Skill.ID," }
       ]
     },
     {
@@ -201,7 +201,7 @@
       "summary": "Controls scheduling of agent-loop execution after durable admission: false omits that scheduling.",
       "reason": "Retain the route's scheduling qualification without inferring a true default or pending-input lifecycle.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:413", "excerpt": "            description: \"Durably admit one session input and schedule agent-loop execution unless resume is false.\"," }
+        { "location": "packages/protocol/src/groups/session.ts:352", "excerpt": "            description: \"Durably admit one session input and schedule agent-loop execution unless resume is false.\"," }
       ]
     },
     {
@@ -209,7 +209,7 @@
       "summary": "A request to create a session at the requested location; ParentId links a child at its parent's location.",
       "reason": "Retain the route's create and parent-location roles without inferring existing-identifier adoption.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:239", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
+        { "location": "packages/protocol/src/groups/session.ts:174", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
       ]
     },
     {
@@ -218,7 +218,7 @@
       "summary": "Links a child session to its parent at the parent's location.",
       "reason": "Retain the declared parent-location relationship without inferring metadata, permission, agent or model inheritance.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:239", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
+        { "location": "packages/protocol/src/groups/session.ts:174", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
       ]
     },
     {
@@ -227,7 +227,7 @@
       "summary": "The requested location for a session; ParentId places a child at its parent's location.",
       "reason": "Retain the declared parent-location qualification without inferring a process-working-directory default.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:239", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
+        { "location": "packages/protocol/src/groups/session.ts:174", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
       ]
     },
     {
@@ -237,7 +237,7 @@
       "reason": "Retain the declared ordering and precedence without implying what happens when no rule matches.",
       "sources": [
         { "location": "packages/schema/src/session.ts:56", "excerpt": "  /** Evaluated after the agent's rules; the last matching rule wins. */" },
-        { "location": "packages/protocol/src/groups/session.ts:230", "excerpt": "          permissions: Permission.Ruleset.pipe(Schema.optional)," }
+        { "location": "packages/protocol/src/groups/session.ts:165", "excerpt": "          permissions: Permission.Ruleset.pipe(Schema.optional)," }
       ]
     },
     {
@@ -265,7 +265,7 @@
       "reason": "Retain the declared identifier prefix without inferring existing-session adoption.",
       "sources": [
         { "location": "packages/schema/src/session-id.ts:5", "excerpt": "export const SessionID = Schema.String.check(Schema.isStartingWith(\"ses\")).pipe(" },
-        { "location": "packages/protocol/src/groups/session.ts:223", "excerpt": "          id: Session.ID.pipe(Schema.optional)," }
+        { "location": "packages/protocol/src/groups/session.ts:158", "excerpt": "          id: Session.ID.pipe(Schema.optional)," }
       ]
     },
     {
@@ -308,7 +308,7 @@
       "summary": "A model reference identifying the provider, model and optional variant.",
       "reason": "Retain the declared model-reference structure without inferring defaults or validation timing.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:227", "excerpt": "          model: Model.Ref.pipe(Schema.optional)," },
+        { "location": "packages/protocol/src/groups/session.ts:162", "excerpt": "          model: Model.Ref.pipe(Schema.optional)," },
         { "location": "packages/schema/src/model.ts:19", "excerpt": "export const Ref = Schema.Struct({" },
         { "location": "packages/schema/src/model.ts:21", "excerpt": "  providerID: Provider.ID," },
         { "location": "packages/schema/src/model.ts:22", "excerpt": "  variant: VariantID.pipe(optional)," }
@@ -320,8 +320,8 @@
       "summary": "The start of the aggregated time range.",
       "reason": "Retain the declared time-range role without inferring a unit or bound inclusion.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:204", "excerpt": "          from: Schema.NumberFromString.pipe(Schema.optional)," },
-        { "location": "packages/protocol/src/groups/session.ts:216", "excerpt": "          description: \"Aggregate local session activity, usage, and tool reliability for a time range.\"," }
+        { "location": "packages/protocol/src/groups/session.ts:139", "excerpt": "          from: Schema.NumberFromString.pipe(Schema.optional)," },
+        { "location": "packages/protocol/src/groups/session.ts:151", "excerpt": "          description: \"Aggregate local session activity, usage, and tool reliability for a time range.\"," }
       ]
     },
     {
@@ -330,8 +330,8 @@
       "summary": "The end of the aggregated time range.",
       "reason": "Retain the declared time-range role without inferring a unit or bound inclusion.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:205", "excerpt": "          to: Schema.NumberFromString.pipe(Schema.optional)," },
-        { "location": "packages/protocol/src/groups/session.ts:216", "excerpt": "          description: \"Aggregate local session activity, usage, and tool reliability for a time range.\"," }
+        { "location": "packages/protocol/src/groups/session.ts:140", "excerpt": "          to: Schema.NumberFromString.pipe(Schema.optional)," },
+        { "location": "packages/protocol/src/groups/session.ts:151", "excerpt": "          description: \"Aggregate local session activity, usage, and tool reliability for a time range.\"," }
       ]
     },
     {
@@ -1226,7 +1226,7 @@
       "reason": "The projection omits the declared documentation for this setting.",
       "sources": [
         {
-          "location": "packages/schema/src/config/experimental.ts:12",
+          "location": "packages/schema/src/config/experimental.ts:19",
           "excerpt": "    description: \"Maximum subagent nesting depth. Defaults to 1.\","
         }
       ]
@@ -1796,11 +1796,11 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/debug.ts:14",
+          "location": "packages/protocol/src/groups/debug.ts:50",
           "excerpt": "        description: \"List locations currently loaded by the server.\","
         },
         {
-          "location": "packages/protocol/src/groups/debug.ts:28",
+          "location": "packages/protocol/src/groups/debug.ts:64",
           "excerpt": "          description: \"Dispose the requested location's cached services so its next use boots them fresh.\","
         }
       ]
@@ -1813,11 +1813,11 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/debug.ts:14",
+          "location": "packages/protocol/src/groups/debug.ts:50",
           "excerpt": "        description: \"List locations currently loaded by the server.\","
         },
         {
-          "location": "packages/protocol/src/groups/debug.ts:28",
+          "location": "packages/protocol/src/groups/debug.ts:64",
           "excerpt": "          description: \"Dispose the requested location's cached services so its next use boots them fresh.\","
         }
       ]
@@ -1834,7 +1834,7 @@
           "excerpt": "    HttpApiEndpoint.post(\"generate.text\", \"/api/experimental/generate\", {"
         },
         {
-          "location": "packages/protocol/src/groups/session.ts:202",
+          "location": "packages/protocol/src/groups/session.ts:137",
           "excerpt": "      HttpApiEndpoint.get(\"session.stats\", \"/api/experimental/session/stats\", {"
         },
         {
@@ -1842,7 +1842,7 @@
           "excerpt": "    HttpApiEndpoint.post(\"integration.wellknown.add\", \"/api/experimental/integration/wellknown\", {"
         },
         {
-          "location": "packages/protocol/src/groups/mcp.ts:24",
+          "location": "packages/protocol/src/groups/mcp.ts:40",
           "excerpt": "    HttpApiEndpoint.put(\"mcp.add\", \"/api/experimental/mcp/:server\", {"
         }
       ]
@@ -1859,7 +1859,7 @@
           "excerpt": "    HttpApiEndpoint.post(\"generate.text\", \"/api/experimental/generate\", {"
         },
         {
-          "location": "packages/protocol/src/groups/session.ts:202",
+          "location": "packages/protocol/src/groups/session.ts:137",
           "excerpt": "      HttpApiEndpoint.get(\"session.stats\", \"/api/experimental/session/stats\", {"
         },
         {
@@ -1867,7 +1867,7 @@
           "excerpt": "    HttpApiEndpoint.post(\"integration.wellknown.add\", \"/api/experimental/integration/wellknown\", {"
         },
         {
-          "location": "packages/protocol/src/groups/mcp.ts:24",
+          "location": "packages/protocol/src/groups/mcp.ts:40",
           "excerpt": "    HttpApiEndpoint.put(\"mcp.add\", \"/api/experimental/mcp/:server\", {"
         }
       ]
@@ -1948,11 +1948,11 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/mcp.ts:19",
+          "location": "packages/protocol/src/groups/mcp.ts:35",
           "excerpt": "          description: \"Retrieve configured MCP servers and their connection status.\","
         },
         {
-          "location": "packages/protocol/src/groups/mcp.ts:99",
+          "location": "packages/protocol/src/groups/mcp.ts:115",
           "excerpt": "          description: \"Retrieve resources and resource templates from connected MCP servers.\","
         }
       ]
@@ -1965,11 +1965,11 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/mcp.ts:19",
+          "location": "packages/protocol/src/groups/mcp.ts:35",
           "excerpt": "          description: \"Retrieve configured MCP servers and their connection status.\","
         },
         {
-          "location": "packages/protocol/src/groups/mcp.ts:99",
+          "location": "packages/protocol/src/groups/mcp.ts:115",
           "excerpt": "          description: \"Retrieve resources and resource templates from connected MCP servers.\","
         }
       ]
@@ -1982,15 +1982,15 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/permission.ts:32",
+          "location": "packages/protocol/src/groups/permission.ts:38",
           "excerpt": "            description: \"Retrieve pending permission requests for a location.\","
         },
         {
-          "location": "packages/protocol/src/groups/permission.ts:44",
+          "location": "packages/protocol/src/groups/permission.ts:50",
           "excerpt": "          description: \"Retrieve saved permissions, optionally filtered by project.\","
         },
         {
-          "location": "packages/protocol/src/groups/permission.ts:56",
+          "location": "packages/protocol/src/groups/permission.ts:80",
           "excerpt": "          description: \"Remove a saved permission by ID.\","
         }
       ]
@@ -2003,15 +2003,15 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/permission.ts:32",
+          "location": "packages/protocol/src/groups/permission.ts:38",
           "excerpt": "            description: \"Retrieve pending permission requests for a location.\","
         },
         {
-          "location": "packages/protocol/src/groups/permission.ts:44",
+          "location": "packages/protocol/src/groups/permission.ts:50",
           "excerpt": "          description: \"Retrieve saved permissions, optionally filtered by project.\","
         },
         {
-          "location": "packages/protocol/src/groups/permission.ts:56",
+          "location": "packages/protocol/src/groups/permission.ts:80",
           "excerpt": "          description: \"Remove a saved permission by ID.\","
         }
       ]
@@ -2066,11 +2066,11 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/session.ts:180",
+          "location": "packages/protocol/src/groups/session.ts:115",
           "excerpt": "  HttpApiGroup.make(\"server.session\")"
         },
         {
-          "location": "packages/protocol/src/groups/session.ts:396",
+          "location": "packages/protocol/src/groups/session.ts:335",
           "excerpt": "      HttpApiEndpoint.post(\"session.prompt\", \"/api/session/:sessionID/prompt\", {"
         },
         {
@@ -2078,7 +2078,7 @@
           "excerpt": "    HttpApiEndpoint.get(\"session.messages\", \"/api/session/:sessionID/message\", {"
         },
         {
-          "location": "packages/protocol/src/groups/permission.ts:63",
+          "location": "packages/protocol/src/groups/permission.ts:87",
           "excerpt": "      HttpApiEndpoint.post(\"session.permission.create\", \"/api/session/:sessionID/permission\", {"
         }
       ]
@@ -2091,11 +2091,11 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/session.ts:180",
+          "location": "packages/protocol/src/groups/session.ts:115",
           "excerpt": "  HttpApiGroup.make(\"server.session\")"
         },
         {
-          "location": "packages/protocol/src/groups/session.ts:396",
+          "location": "packages/protocol/src/groups/session.ts:335",
           "excerpt": "      HttpApiEndpoint.post(\"session.prompt\", \"/api/session/:sessionID/prompt\", {"
         },
         {
@@ -2103,7 +2103,7 @@
           "excerpt": "    HttpApiEndpoint.get(\"session.messages\", \"/api/session/:sessionID/message\", {"
         },
         {
-          "location": "packages/protocol/src/groups/permission.ts:63",
+          "location": "packages/protocol/src/groups/permission.ts:87",
           "excerpt": "      HttpApiEndpoint.post(\"session.permission.create\", \"/api/session/:sessionID/permission\", {"
         }
       ]
@@ -2326,6 +2326,21 @@
     }
   ],
   "operationNames": [
+    {
+      "operationId": "debug.heapDump",
+      "methodName": "WriteHeapSnapshotAsync",
+      "reason": "The operation writes a heap snapshot; heapDump is not a naming verb."
+    },
+    {
+      "operationId": "experimental.voice.models",
+      "methodName": "ListVoiceModelsAsync",
+      "reason": "The operation lists voice models; models alone does not express the collection action."
+    },
+    {
+      "operationId": "experimental.voice.instructions",
+      "methodName": "SetVoiceSessionInstructionsAsync",
+      "reason": "The operation replaces voice session instructions; Set matches the session instructions entry vocabulary."
+    },
     {
       "operationId": "experimental.voice.session",
       "methodName": "CreateVoiceSessionAsync",
@@ -2786,6 +2801,11 @@
     }
   ],
   "stringQueryParameters": [
+    {
+      "operationId": "debug.heapDump",
+      "parameter": "directory",
+      "reason": "An absolute server-local directory for the snapshot; upstream's client takes a string."
+    },
     {
       "operationId": "session.list",
       "parameter": "search",
@@ -3370,7 +3390,16 @@
       "reason": "The session lifecycle events, with their data and durable companions."
     }
   ],
-  "declined": [],
+  "declined": [
+    {
+      "operationId": "experimental.mcp.client",
+      "reason": "Deferred and built before 1.0 in #529: the WebSocket attach needs a client-hosted MCP runtime channel."
+    },
+    {
+      "operationId": "experimental.mcp.client.token",
+      "reason": "Deferred and built before 1.0 in #529: the x-opencode-ticket header has no runtime channel for the client MCP attach."
+    }
+  ],
   "envelopePayloadNames": [
     { "operationId": "mcp.list", "name": "McpServers", "reason": "The data array contains Mcp.Server records; McpServers names those servers rather than the mechanical group plural Mcps." },
     { "operationId": "vcs.status", "name": "Changes", "reason": "The data array contains Vcs.FileStatus records; Changes names the collection of file-status entries rather than making Status look like a single status value." },

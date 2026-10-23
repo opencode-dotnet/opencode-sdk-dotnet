@@ -784,7 +784,7 @@ public sealed class OpenCodeJsonContextTests
     }
 
     [Test]
-    public async Task State_Should_Retain_The_Caller_Owned_Collection_Reference()
+    public async Task Native_Should_Retain_The_Caller_Owned_Collection_Reference()
     {
         using var document = JsonDocument.Parse("null");
         var nullValue = document.RootElement.Clone();
@@ -795,13 +795,13 @@ public sealed class OpenCodeJsonContextTests
         var model = new SessionMessageAssistantReasoning
         {
             Text = "reasoning",
-            State = state,
+            Native = state,
         };
 
         state.Add("mutation", nullValue);
 
-        await Assert.That(model.State).ContainsKey("mutation");
-        await Assert.That(model.State).ContainsKey("original");
+        await Assert.That(model.Native).ContainsKey("mutation");
+        await Assert.That(model.Native).ContainsKey("original");
     }
 
     [Test]

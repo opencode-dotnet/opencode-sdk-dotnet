@@ -20,6 +20,8 @@ ConfigInfoCompaction owner=Config reached-by=Config
 ConfigInfoCompactionKeep owner=Config reached-by=Config
 ConfigInfoEnterprise owner=Config reached-by=Config
 ConfigInfoExperimental owner=Config reached-by=Config
+ConfigInfoExperimentalLocationIdleTimeout owner=Config reached-by=Config
+ConfigInfoExperimentalLocationIdleTimeoutKind owner=Config reached-by=Config
 ConfigInfoExperimentalPolicies owner=Config reached-by=Config
 ConfigInfoExperimentalPoliciesAction owner=Config reached-by=Config
 ConfigInfoExperimentalPoliciesEffect owner=Config reached-by=Config
@@ -82,7 +84,7 @@ ConfigUpdated owner=Config reached-by=Events
 ConfigWarming owner=Config reached-by=Config
 ConfigWebSearchInfo owner=Config reached-by=Config
 ConfigWorktree owner=Config reached-by=Config
-ConflictError owner=Common reached-by=Credentials,Experimental,Sessions,Vcs
+ConflictError owner=Common reached-by=Credentials,Experimental,Permissions,Sessions,Vcs
 ConnectionCredentialInfo owner=Integrations reached-by=Integrations
 ConnectionCredentialInfoMethod owner=Integrations reached-by=Integrations
 ConnectionEnvInfo owner=Integrations reached-by=Integrations
@@ -96,6 +98,8 @@ CredentialSwitched owner=Credentials reached-by=Events
 CredentialSwitchedData owner=Credentials reached-by=Events
 CredentialUpdateRequest owner=Credentials reached-by=Credentials
 CredentialUpdated owner=Credentials reached-by=Events
+DebugHeapDumpData owner=Debug reached-by=Debug
+DebugHeapDumpMemory owner=Debug reached-by=Debug
 EventLogSynced owner=Events reached-by=Sessions
 EventRpc owner=Events reached-by=Events
 EventServerConnected owner=Events reached-by=Events
@@ -115,6 +119,8 @@ ExperimentalSessionImportRequest owner=Experimental reached-by=Experimental
 ExperimentalSessionInstructionsEntryPutRequest owner=Experimental reached-by=Experimental
 ExperimentalSessionSkillRequest owner=Experimental reached-by=Experimental
 ExperimentalSessionStatsRequestTools owner=Experimental reached-by=Experimental
+ExperimentalVoiceInstructionsRequest owner=Experimental reached-by=Experimental
+ExperimentalVoiceModelsData owner=Experimental reached-by=Experimental
 ExperimentalVoiceSessionData owner=Experimental reached-by=Experimental
 ExperimentalVoiceSessionRequest owner=Experimental reached-by=Experimental
 FileDiffInfo owner=Vcs reached-by=Events,Experimental,Sessions,Vcs
@@ -149,8 +155,8 @@ FormStateCancelled owner=Forms reached-by=Sessions
 FormStatePending owner=Forms reached-by=Sessions
 FormStringField owner=Forms reached-by=Events,Forms,Integrations,Sessions
 FormStringFieldFormat owner=Forms reached-by=Events,Forms,Integrations,Sessions
-FormValue owner=Forms reached-by=Credentials,Events,Integrations,Sessions
-FormValueKind owner=Forms reached-by=Credentials,Events,Integrations,Sessions
+FormValue owner=Forms reached-by=Events,Integrations,Sessions
+FormValueKind owner=Forms reached-by=Events,Integrations,Sessions
 FormWhen owner=Forms reached-by=Events,Forms,Integrations,Sessions
 FormWhenOp owner=Forms reached-by=Events,Forms,Integrations,Sessions
 FormWhenValue owner=Forms reached-by=Events,Forms,Integrations,Sessions
@@ -298,6 +304,8 @@ PermissionRequest owner=Permissions reached-by=Permissions,Sessions
 PermissionRule owner=Permissions reached-by=Agents,Config,Events,Experimental,Sessions
 PermissionSavedInfo owner=Permissions reached-by=Permissions
 PermissionSavedInfoTime owner=Permissions reached-by=Permissions
+PermissionSavedNotFoundError owner=Permissions reached-by=Permissions
+PermissionSavedUpdateRequest owner=Permissions reached-by=Permissions
 PermissionSourceTool owner=Permissions reached-by=Events,Permissions,Sessions
 PersistentPtyAdded owner=PersistentPtys reached-by=Events
 PersistentPtyAddedData owner=PersistentPtys reached-by=Events
@@ -391,6 +399,9 @@ SessionActive owner=Sessions reached-by=Sessions
 SessionAgentSelected owner=Sessions reached-by=Events,Sessions
 SessionAgentSelectedData owner=Sessions reached-by=Events,Sessions
 SessionAgentSelectedDurable owner=Sessions reached-by=Events,Sessions
+SessionArchived owner=Sessions reached-by=Events,Sessions
+SessionArchivedData owner=Sessions reached-by=Events,Sessions
+SessionArchivedDurable owner=Sessions reached-by=Events,Sessions
 SessionBusyError owner=Sessions reached-by=Sessions
 SessionCommandRequest owner=Sessions reached-by=Sessions
 SessionCompactRequest owner=Sessions reached-by=Sessions
@@ -546,8 +557,6 @@ SessionPermissions owner=Sessions reached-by=Events,Sessions
 SessionPermissionsData owner=Sessions reached-by=Events,Sessions
 SessionPermissionsDurable owner=Sessions reached-by=Events,Sessions
 SessionPromptRequest owner=Sessions reached-by=Sessions
-SessionProviderContext owner=Sessions reached-by=Events,Experimental,Sessions
-SessionProviderContextProvenance owner=Sessions reached-by=Events,Experimental,Sessions
 SessionReasoningDelta owner=Sessions reached-by=Events
 SessionReasoningDeltaData owner=Sessions reached-by=Events
 SessionReasoningEnded owner=Sessions reached-by=Events,Sessions
@@ -648,6 +657,9 @@ SessionToolSuccess owner=Sessions reached-by=Events,Sessions
 SessionToolSuccessData owner=Sessions reached-by=Events,Sessions
 SessionToolSuccessDurable owner=Sessions reached-by=Events,Sessions
 SessionTransferData owner=Sessions reached-by=Experimental
+SessionUnarchived owner=Sessions reached-by=Events,Sessions
+SessionUnarchivedData owner=Sessions reached-by=Events,Sessions
+SessionUnarchivedDurable owner=Sessions reached-by=Events,Sessions
 SessionUpdateRequest owner=Sessions reached-by=Sessions
 SessionUsageRecorded owner=Sessions reached-by=Sessions
 SessionUsageRecordedData owner=Sessions reached-by=Sessions
@@ -695,7 +707,7 @@ UnknownConfigEntry owner=Config reached-by=Config
 UnknownConfigModelReasoning owner=Config reached-by=Config
 UnknownConnectionInfo owner=Integrations reached-by=Integrations
 UnknownCredentialValue owner=Credentials reached-by=Credentials
-UnknownError owner=Common reached-by=Experimental,Sessions
+UnknownError owner=Common reached-by=Debug,Experimental,Sessions
 UnknownEvent owner=Events reached-by=Events,Sessions
 UnknownFormField owner=Forms reached-by=Events,Forms,Integrations,Sessions
 UnknownFormState owner=Forms reached-by=Sessions
@@ -735,6 +747,9 @@ VcsFileStatusStatus owner=Vcs reached-by=Vcs
 VcsInfo owner=Vcs reached-by=Vcs
 VcsInitNotSupportedError owner=Vcs reached-by=Vcs
 VcsMode owner=Vcs reached-by=Vcs
+VoiceModel owner=Experimental reached-by=Experimental
+VoiceSessionResponseDataSession0 owner=Experimental reached-by=Experimental
+VoiceTransportType owner=Experimental reached-by=Experimental
 VoiceWebRtcTransport owner=Experimental reached-by=Experimental
 VoiceWebRtcTransportInput owner=Experimental reached-by=Experimental
 VoiceWebSocketTransport owner=Experimental reached-by=Experimental

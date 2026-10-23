@@ -32,7 +32,7 @@ namespace OpenCode.Sdk.Tests.Harness;
 /// about the owned path is unchanged, so the same suite runs against another build of the same
 /// server (see <see cref="PinnedServerCommandOverride"/>).</item>
 /// <item><c>OPENCODE_SDK_TESTS_PTY_DAEMON=0|1</c> - overrides <see cref="PersistentPtyDaemonGate"/>'s
-/// platform default (see its own remarks).</item>
+/// default (see its own remarks).</item>
 /// </list>
 /// External-endpoint mode (a server started outside the test host, such as one under WSL2): when <c>OPENCODE_SDK_TESTS_ENDPOINT</c>/
 /// <c>OPENCODE_SDK_TESTS_PASSWORD</c> name an operator-supplied server - or the internal

@@ -9,8 +9,32 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+**The SDK speaks opencode 2.1.x.** The pin moves from 2.0.32 to 2.1.4.
+0.9.0-preview.13 against a 2.1.x server fails reading compaction messages and loses bus events around
+them; upgrade the SDK.
+
+### 💥 Breaking changes
+
+- **Protocol model changes.** `Recent` is removed from compaction messages and event data.
+  `ProviderState`, `State`, `ResultState` and `ProviderResultState` become `Native` across assistant
+  messages, parts and turn events. `SessionProviderContext` and `SessionProviderContextProvenance`
+  are deleted, along with `ProviderContext` on completed compaction messages and compaction-ended data;
+  `CredentialKey.Configuration` is removed. `ExperimentalSessionImportRequest.Messages` now takes
+  `IReadOnlyList<JsonElement>`; `ToolFileContent.Name` and `SessionMessageLocationSwitched.Previous` lose `Optional<>`.
+
+### ✨ Added
+
+- **New protocol doors and members.** `DebugClient.WriteHeapSnapshotAsync`,
+  `PermissionsClient.UpdateSavedAsync`, and experimental `ListVoiceModelsAsync` and
+  `SetVoiceSessionInstructionsAsync` join the surface. Sessions gain `Archived` filters and updates
+  and archived/unarchived events; models and provider compatibility gain `StreamUsage`, structured
+  errors gain `RetryAfterMs`, and experimental config gains `Todo`, `BackgroundCompaction` and `LocationIdleTimeout`.
+- **Persistent PTYs work on Windows hosts.** opencode 2.1.x ships the `opencode-pty` daemon for
+  win32 too, so `create` no longer answers the daemon-absent 503 there.
+
 ### 🔧 Changes
 
+- **The Windows default background-service port is now 28894.** It replaces 45278 for released CLI channels.
 - **The SDK's own transport drops a connection that sat idle for three seconds**, as upstream's
   client does. On .NET Framework, an idle connection used to be kept for 100 seconds, long after
   the server closed it, so a request could pick up a socket the server had already closed. Modern
