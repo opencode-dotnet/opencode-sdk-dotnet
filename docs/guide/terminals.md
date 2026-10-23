@@ -1,6 +1,6 @@
 # 🖥️ Terminals
 
-Date: 2026-10-16
+Date: 2026-10-23
 
 opencode has two terminal families, and they are genuinely different animals:
 
@@ -125,9 +125,16 @@ var removed = await pty.RemoveAsync(null, OpenCodeRequestOptions.NoThrow);
 Console.WriteLine($"removed: status={removed.Status} isError={removed.IsError}");
 ```
 
-Removing a PTY while a read is in flight ends that read as a **normal close**, not as a fault. An
-abnormal close, or a PTY that had already exited, throws `OpenCodeTransportException` naming the
-reason.
+When the PTY's process exits, the server closes the socket with 1000, and `ReadAsync` completes
+normally after yielding the frames already received. Removing the PTY while a read is in flight
+does the same. The exit code is not on the socket: `GetAsync` reports status `exited` and the exit
+code, and the bus carries `PtyExited` with the PTY id and exit code. An abnormal close throws
+`OpenCodeTransportException` naming the reason.
+
+Connecting again to an exited PTY still succeeds **while the server retains it** — the 25 most
+recent exited PTYs. The first read then throws `OpenCodeTransportException` (close 4404,
+"session exited"). Once that PTY is evicted or removed, `ConnectAsync` itself throws
+`OpenCodeTransportException` (HTTP 404 on the upgrade).
 
 ## ♻️ Resuming with a cursor
 
