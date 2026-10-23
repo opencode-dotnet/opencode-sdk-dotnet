@@ -15,6 +15,7 @@ public sealed class ServerStartupTreeHandshakeTests
     private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
 
     [Test]
+    [Timeout(60_000)]
     public async Task CaptureAndAcknowledgeAsync_Should_Name_Its_Bound_And_Step_When_No_Root_Connects(CancellationToken cancellationToken)
     {
         var time = new ManualTimeProvider();
@@ -31,6 +32,7 @@ public sealed class ServerStartupTreeHandshakeTests
     }
 
     [Test]
+    [Timeout(60_000)]
     public async Task CaptureAndAcknowledgeAsync_Should_Surface_The_Callers_Cancellation_As_Cancellation(CancellationToken cancellationToken)
     {
         var time = new ManualTimeProvider();

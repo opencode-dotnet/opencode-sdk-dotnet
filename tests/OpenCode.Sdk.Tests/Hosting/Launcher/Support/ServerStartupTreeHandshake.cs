@@ -133,14 +133,29 @@ internal sealed class ServerStartupTreeHandshake : IDisposable
 #endif
     }
 
-    private Task<TcpClient> AcceptTcpClientAsync(CancellationToken cancellationToken)
-    {
 #if NET
-        return Listener.AcceptTcpClientAsync(cancellationToken).AsTask();
+    private Task<TcpClient> AcceptTcpClientAsync(CancellationToken cancellationToken) =>
+        Listener.AcceptTcpClientAsync(cancellationToken).AsTask();
 #else
-        return Listener.AcceptTcpClientAsync().WaitAsync(cancellationToken);
-#endif
+    /// <summary>
+    /// .NET Framework's accept takes no token, so cancellation stops the listener, and the accept
+    /// itself is awaited until it ends: no accept outlives the handshake that started it.
+    /// </summary>
+    private async Task<TcpClient> AcceptTcpClientAsync(CancellationToken cancellationToken)
+    {
+        var listener = Listener;
+        using var stop = cancellationToken.Register(static state => ((TcpListener)state).Stop(), listener);
+        try
+        {
+            return await listener.AcceptTcpClientAsync();
+        }
+        catch (Exception exception) when (cancellationToken.IsCancellationRequested
+            && exception is ObjectDisposedException or SocketException or InvalidOperationException)
+        {
+            throw new OperationCanceledException("The accept was canceled.", exception, cancellationToken);
+        }
     }
+#endif
 
     /// <summary>
     /// Turns a cancellation that only <see cref="HandshakeTimeout"/> caused into a
