@@ -1,7 +1,9 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO.Abstractions;
 using System.Net;
 using System.Net.Sockets;
+using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Tests.Hosting.Launcher.Support;
 
@@ -11,14 +13,28 @@ namespace OpenCode.Sdk.Tests.Hosting.Launcher.Support;
 /// </summary>
 internal sealed class ServerStartupTreeHandshake : IDisposable
 {
-    private static readonly TimeSpan HandshakeTimeout = TimeSpan.FromSeconds(15);
+    /// <summary>How long the root and its child have to connect back, authenticate and be acknowledged.</summary>
+    public static readonly TimeSpan HandshakeTimeout = TimeSpan.FromSeconds(15);
 
     private TcpListener? _listener;
     private ServerStartupTreeLease? _child;
     private ServerStartupTreeLease? _root;
     private readonly IFileSystem _fileSystem;
+    private readonly TimeProvider _time;
 
-    public ServerStartupTreeHandshake(IFileSystem fileSystem) => _fileSystem = fileSystem;
+    public ServerStartupTreeHandshake(IFileSystem fileSystem)
+        : this(fileSystem, TimeProvider.System)
+    {
+    }
+
+    /// <summary>Creates a handshake whose bound runs on <paramref name="time"/>.</summary>
+    /// <param name="fileSystem">The file system the leases read process details from.</param>
+    /// <param name="time">The clock that drives <see cref="HandshakeTimeout"/>.</param>
+    public ServerStartupTreeHandshake(IFileSystem fileSystem, TimeProvider time)
+    {
+        _fileSystem = fileSystem;
+        _time = time;
+    }
 
     public Process ChildProcess => Child.Process;
 
@@ -45,16 +61,28 @@ internal sealed class ServerStartupTreeHandshake : IDisposable
         Port = ((IPEndPoint)Listener.LocalEndpoint).Port;
     }
 
+    /// <summary>
+    /// Accepts and authenticates the root, then its child, and acknowledges both. When
+    /// <see cref="HandshakeTimeout"/> runs out first, the failure is a <see cref="TimeoutException"/>
+    /// naming the bound and the step it was waiting for; the caller's own cancellation stays an
+    /// <see cref="OperationCanceledException"/>.
+    /// </summary>
+    /// <param name="acknowledge">False rejects the tree before the acknowledgement, for cleanup verification.</param>
+    /// <param name="cancellationToken">The caller's cancellation.</param>
+    /// <returns>A task that completes once both leases are acknowledged.</returns>
     public async Task CaptureAndAcknowledgeAsync(bool acknowledge, CancellationToken cancellationToken)
     {
-        using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        bound.CancelAfter(HandshakeTimeout);
-        _root = new ServerStartupTreeLease(await AcceptTcpClientAsync(bound.Token), _fileSystem);
+        using var deadline = TimedCancellation.Create(HandshakeTimeout, _time);
+        using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
+        var step = new HandshakeStep(deadline, cancellationToken);
+        _root = new ServerStartupTreeLease(
+            await step.WithinBoundAsync(() => AcceptTcpClientAsync(bound.Token), "the root to connect back"), _fileSystem);
         try
         {
-            var childPid = await Root.AuthenticateAsync(Nonce, "root", bound.Token);
-            _child = new ServerStartupTreeLease(await AcceptTcpClientAsync(bound.Token), _fileSystem);
-            _ = await Child.AuthenticateAsync(Nonce, "child", bound.Token);
+            var childPid = await step.WithinBoundAsync(() => Root.AuthenticateAsync(Nonce, "root", bound.Token), "the root to authenticate");
+            _child = new ServerStartupTreeLease(
+                await step.WithinBoundAsync(() => AcceptTcpClientAsync(bound.Token), "the child to connect back"), _fileSystem);
+            _ = await step.WithinBoundAsync(() => Child.AuthenticateAsync(Nonce, "child", bound.Token), "the child to authenticate");
             if (RootProcess.Id == ChildProcess.Id || childPid != ChildProcess.Id
                 || RootProcess.HasExited || ChildProcess.HasExited)
             {
@@ -67,8 +95,8 @@ internal sealed class ServerStartupTreeHandshake : IDisposable
                     "The child-tree handshake was intentionally rejected for cleanup verification.");
             }
 
-            await Child.AcknowledgeAsync(bound.Token);
-            await Root.AcknowledgeAsync(bound.Token);
+            await step.WithinBoundAsync(() => Child.AcknowledgeAsync(bound.Token), "the child's acknowledgement");
+            await step.WithinBoundAsync(() => Root.AcknowledgeAsync(bound.Token), "the root's acknowledgement");
         }
         catch
         {
@@ -112,5 +140,45 @@ internal sealed class ServerStartupTreeHandshake : IDisposable
 #else
         return Listener.AcceptTcpClientAsync().WaitAsync(cancellationToken);
 #endif
+    }
+
+    /// <summary>
+    /// Turns a cancellation that only <see cref="HandshakeTimeout"/> caused into a
+    /// <see cref="TimeoutException"/> naming the step it was waiting for.
+    /// </summary>
+    private readonly struct HandshakeStep(CancellationTokenSource deadline, CancellationToken caller)
+    {
+        public async Task<T> WithinBoundAsync<T>(Func<Task<T>> step, string waitingFor)
+        {
+            try
+            {
+                return await step();
+            }
+            catch (OperationCanceledException exception) when (TimedOut)
+            {
+                throw Timeout(waitingFor, exception);
+            }
+        }
+
+        public async Task WithinBoundAsync(Func<Task> step, string waitingFor)
+        {
+            try
+            {
+                await step();
+            }
+            catch (OperationCanceledException exception) when (TimedOut)
+            {
+                throw Timeout(waitingFor, exception);
+            }
+        }
+
+        private bool TimedOut => deadline.IsCancellationRequested && !caller.IsCancellationRequested;
+
+        private static TimeoutException Timeout(string waitingFor, OperationCanceledException exception) =>
+            new(
+                "The child-tree handshake did not complete within "
+                + HandshakeTimeout.TotalSeconds.ToString(CultureInfo.InvariantCulture)
+                + " s while waiting for " + waitingFor + ".",
+                exception);
     }
 }
