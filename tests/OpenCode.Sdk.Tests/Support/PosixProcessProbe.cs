@@ -1,13 +1,14 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
+using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Tests.Support;
 
 /// <summary>
 /// Test-only C library bindings for reading where a process sits in the POSIX process tree and for
 /// sending a signal the SDK itself never sends. Linux and macOS give these calls the same fixed
-/// signatures and the same numbers.
+/// signatures and the same numbers, except the job-control signals, whose numbers differ.
 /// </summary>
 internal static class PosixProcessProbe
 {
@@ -21,6 +22,66 @@ internal static class PosixProcessProbe
     public const ulong StandardSignals = 0x7FFF_FFFF;
 
     private const int LinkCapacity = 4096;
+
+    /// <summary><c>P_PID</c>, the same on Linux and macOS.</summary>
+    private const int ByProcessId = 1;
+
+    /// <summary><c>EINTR</c>, the same on Linux and macOS.</summary>
+    private const int Interrupted = 4;
+
+    /// <summary>The <c>siginfo_t</c> size on both kernels.</summary>
+    private const int SignalInfoCapacity = 128;
+
+    /// <summary><c>WSTOPPED</c> on Linux.</summary>
+    private const int LinuxStopped = 0x2;
+
+    /// <summary><c>WSTOPPED</c> on macOS.</summary>
+    private const int MacStopped = 0x8;
+
+    /// <summary><c>WNOWAIT</c> on Linux.</summary>
+    private const int LinuxNoWait = 0x0100_0000;
+
+    /// <summary><c>WNOWAIT</c> on macOS.</summary>
+    private const int MacNoWait = 0x20;
+
+    /// <summary>Gets <c>SIGSTOP</c>: 17 on macOS, 19 on Linux.</summary>
+    public static int Stop => OperatingSystem.IsMacOS() ? 17 : 19;
+
+    /// <summary>Gets <c>SIGCONT</c>: 19 on macOS, 18 on Linux.</summary>
+    public static int Continue => OperatingSystem.IsMacOS() ? 19 : 18;
+
+    /// <summary>
+    /// Blocks until the kernel reports a child of this process stopped:
+    /// <c>waitid(P_PID, pid, WSTOPPED | WNOWAIT)</c>, repeated on <c>EINTR</c>, through the SDK's own
+    /// binding. <c>WNOWAIT</c> leaves the report for every other wait, and nothing is reaped.
+    /// </summary>
+    /// <param name="processId">A child of this process.</param>
+    /// <returns>True once the stop was reported; false when the wait failed, as for a pid that is no child of this process.</returns>
+    public static bool WaitUntilStopped(int processId)
+    {
+        var options = OperatingSystem.IsMacOS() ? MacStopped | MacNoWait : LinuxStopped | LinuxNoWait;
+        var info = Marshal.AllocHGlobal(SignalInfoCapacity);
+        try
+        {
+            Marshal.Copy(new byte[SignalInfoCapacity], 0, info, SignalInfoCapacity);
+            while (true)
+            {
+                if (PosixInterop.WaitId(ByProcessId, processId, info, options) == 0)
+                {
+                    return true;
+                }
+
+                if (Marshal.GetLastWin32Error() != Interrupted)
+                {
+                    return false;
+                }
+            }
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(info);
+        }
+    }
 
     /// <summary>Gets the session id of a process: <c>getsid</c>; zero names the caller.</summary>
     /// <param name="processId">The process.</param>

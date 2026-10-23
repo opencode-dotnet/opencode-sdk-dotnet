@@ -6,8 +6,8 @@ namespace OpenCode.Sdk.Internal;
 /// then reaps under the lock that <see cref="SignalRootWhileUnreaped"/> takes. That signal path
 /// first asks <c>waitpid</c> without hanging whether the pid is still an unreaped child of this
 /// process, under the same lock, so a signal sent to the pid through this class never reaches a
-/// process that reused it, even when something else reaped the child first. Nothing polls and no
-/// process-wide signal handler is installed. The watch reports the child's own exit, never the end
+/// process that reused it, even when something else reaped the child first. Apart from the probe
+/// described below, nothing polls, and no process-wide signal handler is installed. The watch reports the child's own exit, never the end
 /// of its output, which a descendant can hold open.
 /// </summary>
 /// <remarks>
@@ -16,7 +16,9 @@ namespace OpenCode.Sdk.Internal;
 /// every child of the process is gone. The watch then probes instead, at most
 /// <see cref="ProbeInterval"/> apart: <c>kill(pid, 0)</c> reports a child the kernel already reaped
 /// as gone, and a <c>waitpid</c> without hanging reaps a zombie that an inherited ignore on macOS
-/// still leaves. An exit the watch could not read is reported as
+/// still leaves. macOS also ends the blocked <c>waitid</c> when the child only stops or continues,
+/// as .NET's whole-tree kill stops it before its <c>SIGKILL</c>; the reap then finds no exit, and
+/// the watch probes from there the same way. An exit the watch could not read is reported as
 /// <see cref="ChildExitStatus.Unknown"/>, never invented. A runtime that reaps every child (the
 /// .NET runtime does when it runs as pid 1) can take the status first; the wait then fails and the
 /// exit is unknown as well.
@@ -159,9 +161,21 @@ internal sealed class PosixChildExitWatch
                 return _reapedBySignalPath ?? ChildExitStatus.Unknown;
             }
 
-            _reaped = true;
-            return observed ? _exits.Reap(_processId) ?? ChildExitStatus.Unknown : ChildExitStatus.Unknown;
+            if (!observed)
+            {
+                _reaped = true;
+                return ChildExitStatus.Unknown;
+            }
+
+            if (_exits.Reap(_processId) is { } status)
+            {
+                _reaped = true;
+                return status;
+            }
         }
+
+        // The wait reported a child that has not exited: on macOS it only stopped or continued.
+        return ProbeUntilGone();
     }
 
     private ChildExitStatus ProbeUntilGone()

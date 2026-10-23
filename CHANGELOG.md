@@ -17,6 +17,14 @@ Nightly builds of `master` are on
   .NET already retired it after four seconds, following the server's `Keep-Alive` hint, and now
   does so after three. The `netstandard2.0` asset on a modern .NET runtime keeps the four seconds.
 
+### 🐛 Fixes
+
+- **A server ended with `Process.Kill(entireProcessTree: true)` is reaped on macOS.** That kill
+  stops the server before it kills it, and the launcher took the stop for the exit: the server
+  stayed a zombie of the calling process, a `Process` wait on its pid never ended, and the launcher
+  reported an unknown exit while the server was only stopped. The launcher now reports the server's
+  real exit and reaps it.
+
 ## [0.9.0-preview.13] - 2026-10-18
 
 **The SDK speaks opencode 2.0.32.** The pinned server moves from 2.0.29 to 2.0.32. The upgrade
