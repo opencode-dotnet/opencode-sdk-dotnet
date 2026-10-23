@@ -1,5 +1,5 @@
-using TUnit.Assertions.Enums;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tests.Harness.SamplingGapDetector;
 
 namespace OpenCode.Sdk.Tests.Harness;
