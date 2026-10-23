@@ -30,6 +30,13 @@ public sealed class ServicePtyHandoffTests
     private static readonly JsonElement Ticket = LoadTicket();
 
     private readonly ServicePtyHandoffScenario _scenario = new();
+
+    /// <summary>
+    /// Bounds a wait for an event; it decides no verdict. A ticket request's arrival is awaited under it
+    /// too: the preparation's own bound runs on the scenario's manual clock, which these tests never
+    /// advance, so only this guard ends a wait for a request that never arrives, and the arrival
+    /// assertion after it names the miss.
+    /// </summary>
     private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(10);
 
     [Test]
@@ -288,9 +295,8 @@ public sealed class ServicePtyHandoffTests
         var registration = ServicePtyHandoffScenario.Registration(server.Endpoint);
 
         var pending = Handoff().PrepareAsync(_scenario.RegistrationPath(), registration, RequestTimeout, CancellationToken.None);
-        // The arrival or the preparation's end, whichever comes first; the preparation's own bound
-        // ends a request that never arrives, so no timer of the test's decides.
-        _ = await Task.WhenAny(arrived.Task, pending);
+        Task[] arrival = [arrived.Task, pending];
+        _ = await BoundedWait.CompletesWithinAsync(Task.WhenAny(arrival), HangGuard, TimeProvider.System);
         await Assert.That(arrived.Task.IsCompleted).IsTrue();
         Seed(_scenario.SidecarPath(), Sidecar(registration, Ticket, NowMilliseconds + 60_000).ToUtf8Json());
         server.ReleaseResponses();
@@ -469,9 +475,8 @@ public sealed class ServicePtyHandoffTests
         using var caller = new CancellationTokenSource();
 
         var pending = Handoff().PrepareAsync(_scenario.RegistrationPath(), ServicePtyHandoffScenario.Registration(server.Endpoint), RequestTimeout, caller.Token);
-        // The arrival or the preparation's end, whichever comes first; the preparation's own bound
-        // ends a request that never arrives, so no timer of the test's decides.
-        _ = await Task.WhenAny(arrived.Task, pending);
+        Task[] arrival = [arrived.Task, pending];
+        _ = await BoundedWait.CompletesWithinAsync(Task.WhenAny(arrival), HangGuard, TimeProvider.System);
         await Assert.That(arrived.Task.IsCompleted).IsTrue();
         await caller.CancelOnWorkerAsync();
 
