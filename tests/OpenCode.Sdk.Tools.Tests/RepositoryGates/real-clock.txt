@@ -24,7 +24,6 @@ tests/OpenCode.Sdk.Tests/Hosting/Launcher/OpenCodeServerProcessGroupTests.cs	5
 tests/OpenCode.Sdk.Tests/Hosting/Launcher/PosixServerLadderTests.cs	4
 tests/OpenCode.Sdk.Tests/Hosting/Launcher/Support/LadderTree.cs	2
 tests/OpenCode.Sdk.Tests/Hosting/Launcher/Support/RecordingTreeKill.cs	2
-tests/OpenCode.Sdk.Tests/Hosting/Launcher/Support/ServerStartupTreeHandshake.cs	1
 tests/OpenCode.Sdk.Tests/Hosting/Launcher/Support/ServerStartupTreeScenario.cs	3
 tests/OpenCode.Sdk.Tests/Hosting/Platform/Windows/TaskkillTreeKillTests.cs	1
 tests/OpenCode.Sdk.Tests/Hosting/Platform/Windows/WindowsExitWatchTests.cs	2
