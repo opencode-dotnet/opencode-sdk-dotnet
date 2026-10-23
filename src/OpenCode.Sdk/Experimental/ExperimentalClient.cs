@@ -104,7 +104,7 @@ public class ExperimentalClient
     }
 
     /// <summary>
-    /// Create voice session. Create a server-brokered voice session using the server&apos;s configured provider credentials and return the WebRTC SDP answer or WebSocket ephemeral token.
+    /// Create voice session. Create a server-brokered voice session using the server&apos;s configured provider credentials, or the connected OpenCode Console when it hosts the model, and return the WebRTC SDP answer or WebSocket ephemeral token.
     /// </summary>
     /// <param name = "request">The request body.</param>
     /// <param name = "requestOptions">The per-call options.</param>
@@ -211,7 +211,7 @@ public class ExperimentalClient
     }
 
     /// <summary>
-    /// Import session. Import a projected session transcript at the requested location. If parentID is supplied, the parent session must already exist; import parents before children.
+    /// Import session. Import a projected session transcript at the requested location. Accepts transcripts exported by earlier releases. If parentID is supplied, the parent session must already exist; import parents before children.
     /// </summary>
     /// <param name = "request">The request body.</param>
     /// <param name = "requestOptions">The per-call options.</param>
@@ -244,6 +244,22 @@ public class ExperimentalClient
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
         return Pipeline.ExecuteAsync("experimental.session.instructions.entry.list", HttpMethod.Get, OpenCodeRoutes.Experimental.ListSessionInstructionsEntries(sessionId), ExperimentalSessionInstructionsEntryListResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// List voice models. List supported voice models, their transports, whether the server has a usable API key for each provider or the connected OpenCode Console hosts the model, and the Console workspace a hosted model bills to.
+    /// </summary>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalVoiceModelsResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.voice.models</c>: <c>GET /api/experimental/voice/models</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalVoiceModelsResponse> ListVoiceModelsAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        return Pipeline.ExecuteAsync("experimental.voice.models", HttpMethod.Get, OpenCodeRoutes.Experimental.ListVoiceModels, ExperimentalVoiceModelsResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -305,6 +321,26 @@ public class ExperimentalClient
         ArgumentException.ThrowIfNullOrEmpty(key);
         ArgumentNullException.ThrowIfNull(request);
         return Pipeline.ExecuteAsync("experimental.session.instructions.entry.put", HttpMethod.Put, OpenCodeRoutes.Experimental.SetSessionInstructionsEntry(sessionId, key), request, OpenCodeJsonContext.Default.ExperimentalSessionInstructionsEntryPutRequest, ExperimentalSessionInstructionsEntryPutResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Replace voice session instructions. Replace the backend instructions of a running session the connected OpenCode Console hosts, whose data channel can&apos;t change them.
+    /// </summary>
+    /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>
+    /// <param name = "request">The request body.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalVoiceInstructionsResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.voice.instructions</c>: <c>POST /api/experimental/voice/session/{sessionID}/instructions</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalVoiceInstructionsResponse> SetVoiceSessionInstructionsAsync(string sessionId, ExperimentalVoiceInstructionsRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(sessionId);
+        ArgumentNullException.ThrowIfNull(request);
+        return Pipeline.ExecuteAsync("experimental.voice.instructions", HttpMethod.Post, OpenCodeRoutes.Experimental.SetVoiceSessionInstructions(sessionId), request, OpenCodeJsonContext.Default.ExperimentalVoiceInstructionsRequest, ExperimentalVoiceInstructionsResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>

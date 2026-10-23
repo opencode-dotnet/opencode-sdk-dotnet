@@ -38,4 +38,6 @@ public sealed record UnknownSessionMessageAssistantContent : ISessionMessageAssi
     /// Gets the preserved raw JSON payload.
     /// </summary>
     public JsonElement Payload { get; }
+
+    IReadOnlyDictionary<string, JsonElement>? ISessionMessageAssistantContent.Native => null;
 }

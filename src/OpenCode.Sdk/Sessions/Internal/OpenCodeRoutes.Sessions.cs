@@ -449,6 +449,7 @@ internal static partial class OpenCodeRoutes
             query.AddOrder("order", request.Order);
             query.AddText("search", request.Search);
             query.AddParentFilter("parentID", request.ParentId);
+            query.AddBoolean("archived", request.Archived);
             query.AddText("directory", request.Directory);
             query.AddText("project", request.Project);
             query.AddText("subpath", request.Subpath);

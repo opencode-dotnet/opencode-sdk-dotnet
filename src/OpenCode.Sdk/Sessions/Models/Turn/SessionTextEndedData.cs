@@ -36,7 +36,7 @@ public sealed record SessionTextEndedData
     /// <summary>
     /// Opaque provider state for the text part.
     /// </summary>
-    [JsonPropertyName("state")]
+    [JsonPropertyName("native")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyDictionary<string, JsonElement>? State { get; init; }
+    public IReadOnlyDictionary<string, JsonElement>? Native { get; init; }
 }

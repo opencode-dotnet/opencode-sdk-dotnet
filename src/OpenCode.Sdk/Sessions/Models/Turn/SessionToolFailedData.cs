@@ -54,9 +54,9 @@ public sealed record SessionToolFailedData
     public required bool Executed { get; init; }
 
     /// <summary>
-    /// Gets the result state value.
+    /// Gets the native value.
     /// </summary>
-    [JsonPropertyName("resultState")]
+    [JsonPropertyName("native")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyDictionary<string, JsonElement>? ResultState { get; init; }
+    public IReadOnlyDictionary<string, JsonElement>? Native { get; init; }
 }

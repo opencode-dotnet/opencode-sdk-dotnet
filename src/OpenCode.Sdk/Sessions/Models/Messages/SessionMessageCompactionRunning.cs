@@ -52,11 +52,5 @@ public sealed record SessionMessageCompactionRunning : ISessionMessageCompaction
     [JsonPropertyName("summary")]
     public required string Summary { get; init; }
 
-    /// <summary>
-    /// Gets the recent value.
-    /// </summary>
-    [JsonPropertyName("recent")]
-    public required string Recent { get; init; }
-
     ISessionMessageCompactionTime? ISessionMessageCompaction.Time => Time;
 }

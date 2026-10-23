@@ -8,6 +8,7 @@ credential.create
 credential.list
 credential.remove
 credential.update
+debug.heapDump
 debug.location.evict
 debug.location.list
 event.subscribe
@@ -28,6 +29,8 @@ experimental.session.instructions.entry.remove
 experimental.session.skill
 experimental.session.stats
 experimental.session.wait
+experimental.voice.instructions
+experimental.voice.models
 experimental.voice.session
 form.list
 fs.find
@@ -53,6 +56,7 @@ model.list
 permission.request.list
 permission.saved.list
 permission.saved.remove
+permission.saved.update
 persistentPty.connectToken
 persistentPty.create
 persistentPty.get

@@ -28,9 +28,9 @@ public sealed record SessionReasoningStartedData
     public required long Ordinal { get; init; }
 
     /// <summary>
-    /// Gets the state value.
+    /// Gets the native value.
     /// </summary>
-    [JsonPropertyName("state")]
+    [JsonPropertyName("native")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyDictionary<string, JsonElement>? State { get; init; }
+    public IReadOnlyDictionary<string, JsonElement>? Native { get; init; }
 }

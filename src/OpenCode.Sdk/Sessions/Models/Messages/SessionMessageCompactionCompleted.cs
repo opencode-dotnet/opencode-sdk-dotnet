@@ -54,30 +54,17 @@ public sealed record SessionMessageCompactionCompleted : ISessionMessageCompacti
     public ModelRef? Model { get; init; }
 
     /// <summary>
-    /// Gets the provider state value.
+    /// Gets the native value.
     /// </summary>
-    [JsonPropertyName("providerState")]
+    [JsonPropertyName("native")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyDictionary<string, JsonElement>? ProviderState { get; init; }
+    public IReadOnlyDictionary<string, JsonElement>? Native { get; init; }
 
     /// <summary>
     /// Gets the summary value.
     /// </summary>
     [JsonPropertyName("summary")]
     public required string Summary { get; init; }
-
-    /// <summary>
-    /// Gets the recent value.
-    /// </summary>
-    [JsonPropertyName("recent")]
-    public required string Recent { get; init; }
-
-    /// <summary>
-    /// Gets the provider context value.
-    /// </summary>
-    [JsonPropertyName("providerContext")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public SessionProviderContext? ProviderContext { get; init; }
 
     /// <summary>
     /// Gets the cost value.

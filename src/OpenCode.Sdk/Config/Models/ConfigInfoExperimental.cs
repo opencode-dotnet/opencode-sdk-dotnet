@@ -16,11 +16,32 @@ public sealed record ConfigInfoExperimental
     public bool? PortableShellScanner { get; init; }
 
     /// <summary>
+    /// Gets the todo value.
+    /// </summary>
+    [JsonPropertyName("todo")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Todo { get; init; }
+
+    /// <summary>
+    /// Gets the background compaction value.
+    /// </summary>
+    [JsonPropertyName("background_compaction")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? BackgroundCompaction { get; init; }
+
+    /// <summary>
     /// Maximum subagent nesting depth. Defaults to 1.
     /// </summary>
     [JsonPropertyName("subagent_depth")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? SubagentDepth { get; init; }
+
+    /// <summary>
+    /// Gets the location idle timeout value.
+    /// </summary>
+    [JsonPropertyName("location_idle_timeout")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ConfigInfoExperimentalLocationIdleTimeout? LocationIdleTimeout { get; init; }
 
     /// <summary>
     /// Gets the policies value.

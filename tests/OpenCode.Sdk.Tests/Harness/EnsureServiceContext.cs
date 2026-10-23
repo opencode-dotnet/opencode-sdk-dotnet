@@ -22,7 +22,8 @@ namespace OpenCode.Sdk.Tests.Harness;
 internal sealed class EnsureServiceContext : IAsyncDisposable
 {
     private const int RealDaemonPort = 49374;
-    private const int WindowsReleasePort = 45278;
+    private const int WindowsReleasePort = 28894;
+    private const int LegacyWindowsReleasePort = 45278;
     private const int LogTailLines = 40;
     private static readonly TimeSpan ExitBound = TimeSpan.FromSeconds(15);
 
@@ -307,7 +308,7 @@ internal sealed class EnsureServiceContext : IAsyncDisposable
 
     internal static int RefuseRealDaemonPort(int port)
     {
-        if (port is WindowsReleasePort or RealDaemonPort)
+        if (port is WindowsReleasePort or LegacyWindowsReleasePort or RealDaemonPort)
         {
             throw new InvalidOperationException(
                 $"The reserved loopback port is {port.ToString(CultureInfo.InvariantCulture)} and could belong to a real daemon "

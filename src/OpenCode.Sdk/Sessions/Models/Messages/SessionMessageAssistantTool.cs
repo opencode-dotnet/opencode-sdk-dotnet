@@ -35,18 +35,11 @@ public sealed record SessionMessageAssistantTool : ISessionMessageAssistantConte
     public bool? Executed { get; init; }
 
     /// <summary>
-    /// Gets the provider state value.
+    /// Gets the native value.
     /// </summary>
-    [JsonPropertyName("providerState")]
+    [JsonPropertyName("native")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyDictionary<string, JsonElement>? ProviderState { get; init; }
-
-    /// <summary>
-    /// Gets the provider result state value.
-    /// </summary>
-    [JsonPropertyName("providerResultState")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyDictionary<string, JsonElement>? ProviderResultState { get; init; }
+    public IReadOnlyDictionary<string, JsonElement>? Native { get; init; }
 
     /// <summary>
     /// Gets the state value.

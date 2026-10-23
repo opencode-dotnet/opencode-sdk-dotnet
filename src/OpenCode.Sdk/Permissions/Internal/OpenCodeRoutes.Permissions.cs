@@ -60,5 +60,21 @@ internal static partial class OpenCodeRoutes
 
             return "/api/permission/saved/" + RouteValuePolicy.Escape(savedPermissionId, nameof(savedPermissionId));
         }
+
+        /// <summary>
+        /// Builds the &apos;/api/permission/saved/{id}&apos; route.
+        /// </summary>
+        /// <param name = "id">The &apos;id&apos; route value.</param>
+        /// <returns>The escaped route.</returns>
+        public static string UpdateSaved(string id)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(id);
+            if (id is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(id));
+            }
+
+            return "/api/permission/saved/" + RouteValuePolicy.Escape(id, nameof(id));
+        }
     }
 }

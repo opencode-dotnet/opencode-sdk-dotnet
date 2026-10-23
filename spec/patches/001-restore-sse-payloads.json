@@ -1,7 +1,7 @@
 {
   "patch": "001-restore-sse-payloads.patch",
-  "sha256": "989352b7919fcf64d7d5609613e3890e50bca5eeed8855e3b6f8260588c3b93a",
-  "upstreamReport": "https://github.com/anomalyco/opencode/pull/45182",
+  "sha256": "73035bd637082a15d1dfc682a399b77e8245241820d3380576691428a0142bc6",
+  "upstreamReport": "https://github.com/anomalyco/opencode/issues/44911",
   "order": 1,
   "touches": [
     "packages/protocol/script/generate-openapi.ts",
@@ -12,5 +12,5 @@
     "components": ["V2EventEncoded", "SessionLogItemEncoded"],
     "keyword": "contentSchema"
   },
-  "retirement": "Raw upstream openapi.json links both stream payload envelopes through contentSchema (anomalyco/opencode#45182 merged or equivalent); prepare then refuses this patch and an empty-patch refresh retires it."
+  "retirement": "Raw upstream openapi.json links both stream payload envelopes through contentSchema (offered fix PR #45182 or equivalent); prepare then refuses this patch and an empty-patch refresh retires it."
 }

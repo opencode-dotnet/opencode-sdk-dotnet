@@ -14,4 +14,11 @@ public sealed record ExperimentalVoiceSessionData
     /// </summary>
     [JsonPropertyName("transport")]
     public required IVoiceTransport Transport { get; init; }
+
+    /// <summary>
+    /// Gets the session value.
+    /// </summary>
+    [JsonPropertyName("session")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public VoiceSessionResponseDataSession0? Session { get; init; }
 }

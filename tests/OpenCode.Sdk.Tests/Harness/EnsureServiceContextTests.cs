@@ -5,6 +5,7 @@ namespace OpenCode.Sdk.Tests.Harness;
 public sealed class EnsureServiceContextTests
 {
     [Test]
+    [Arguments(28894)]
     [Arguments(45278)]
     [Arguments(49374)]
     public async Task RefuseRealDaemonPort_Should_Refuse_A_Port_That_Could_Belong_To_A_Real_Daemon(int port)

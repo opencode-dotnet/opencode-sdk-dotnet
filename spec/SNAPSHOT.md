@@ -1,6 +1,6 @@
 # OpenAPI Snapshot
 
-Date: 2026-10-17
+Date: 2026-10-23
 
 `openapi.json` is the accepted snapshot of the upstream opencode OpenAPI 3.1 document
 (ADR-0005). The SDK is built against this snapshot, never against a live branch; the pin is
@@ -13,13 +13,13 @@ their hash-pinned manifests.
 | Fact | Value |
 |---|---|
 | Upstream file | `packages/protocol/openapi.json` |
-| Upstream release tag | `v2.0.32` |
-| Commit | `843a6c514e606b436a7fe713422ace0a93ad3d61` |
-| Upstream product channel | npm `@opencode/cli@latest` (channel `latest`); this tag published as `2.0.32`, installing the `opencode` command (plus the transitional `opencode2` alias) |
+| Upstream release tag | `v2.1.4` |
+| Commit | `68bc26b7da1990ce10ffecfbc1e09eb13aa5d824` |
+| Upstream product channel | npm `@opencode/cli@latest` (channel `latest`); this tag published as `2.1.4`, installing the `opencode` command (plus the transitional `opencode2` alias) |
 
 Upstream publishes from the `@opencode/cli` npm scope on the `latest` channel, versioned as
-semver release tags (`v2.0.0`…). This pin is the release tag `v2.0.32`, so
-`npm install -g @opencode/cli@2.0.32` installs a server built from exactly this commit; later
+semver release tags (`v2.0.0`…). This pin is the release tag `v2.1.4`, so
+`npm install -g @opencode/cli@2.1.4` installs a server built from exactly this commit; later
 releases usually work but are not what this repository tests. `beta` and `dev` tags still exist
 upstream but are not the release channel. The former `@opencode-ai/cli` scope is frozen: its
 `next` and `latest` tags stopped at `0.0.0-beta-17823` (published 2026-08-21) and the scope

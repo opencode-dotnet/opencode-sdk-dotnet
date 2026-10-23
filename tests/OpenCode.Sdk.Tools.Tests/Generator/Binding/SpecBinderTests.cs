@@ -526,6 +526,7 @@ public sealed class SpecBinderTests
         "McpServerNotFoundError",
         "MessageNotFoundError",
         "PermissionNotFoundError",
+        "PermissionSavedNotFoundError",
         "ProjectNotFoundError",
         "ProviderNotFoundError",
         "PtyNotFoundError",

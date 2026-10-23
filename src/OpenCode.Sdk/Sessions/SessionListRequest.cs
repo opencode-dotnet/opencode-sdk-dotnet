@@ -18,6 +18,10 @@ public sealed record SessionListRequest : ListRequest
     /// </summary>
     public SessionParentFilter? ParentId { get; init; }
     /// <summary>
+    /// Gets the &apos;archived&apos; query value; the server default applies when unset.
+    /// </summary>
+    public bool? Archived { get; init; }
+    /// <summary>
     /// Gets the &apos;directory&apos; query value; the server default applies when unset.
     /// </summary>
     public string? Directory { get; init; }

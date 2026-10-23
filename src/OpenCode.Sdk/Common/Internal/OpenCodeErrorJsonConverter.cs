@@ -30,6 +30,7 @@ internal sealed class OpenCodeErrorJsonConverter : JsonConverter<IOpenCodeError>
         ["McpServerNotFoundError"] = typeof(McpServerNotFoundError),
         ["MessageNotFoundError"] = typeof(MessageNotFoundError),
         ["PermissionNotFoundError"] = typeof(PermissionNotFoundError),
+        ["PermissionSavedNotFoundError"] = typeof(PermissionSavedNotFoundError),
         ["ProjectNotFoundError"] = typeof(ProjectNotFoundError),
         ["ProviderNotFoundError"] = typeof(ProviderNotFoundError),
         ["PtyNotFoundError"] = typeof(PtyNotFoundError),

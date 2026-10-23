@@ -56,4 +56,21 @@ public class DebugClient
     {
         return Pipeline.ExecuteAsync("debug.location.list", HttpMethod.Get, OpenCodeRoutes.Debug.ListLocations, DebugLocationListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
+
+    /// <summary>
+    /// Write a heap snapshot. Write a JavaScript heap snapshot of the server process into its log directory, or the requested directory, and return the server-local path once the file is complete. Pauses the server while the heap serializes and can temporarily increase its memory use. The snapshot can contain credentials, prompts, and file contents.
+    /// </summary>
+    /// <param name = "request">The request shaping the query.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;DebugHeapDumpResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 500) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>debug.heapDump</c>: <c>POST /api/debug/heap-dump</c>.
+    /// </remarks>
+    public virtual Task<DebugHeapDumpResponse> WriteHeapSnapshotAsync(DebugHeapDumpRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        return Pipeline.ExecuteAsync("debug.heapDump", HttpMethod.Post, OpenCodeRoutes.Debug.WriteHeapSnapshot(request), DebugHeapDumpResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
 }

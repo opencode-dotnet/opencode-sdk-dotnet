@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Text.Json;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tests.Sessions.Support;
@@ -324,7 +326,8 @@ public sealed class SessionsClientLiveTests(SimulatedDriveServerFixture server)
         new()
         {
             Info = exported.Info,
-            Messages = exported.Messages,
+            Messages = [.. exported.Messages.Select(static message =>
+                JsonSerializer.SerializeToElement(message, OpenCodeJsonContext.Default.ISessionMessageInfo))],
             Location = new LocationPublicRef { Directory = destination },
         };
 

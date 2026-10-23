@@ -200,6 +200,10 @@ internal static partial class OpenCodeRoutes
         }
 
         /// <summary>
+        /// The &apos;GET /api/experimental/voice/models&apos; route.
+        /// </summary>
+        public const string ListVoiceModels = "/api/experimental/voice/models";
+        /// <summary>
         /// Builds the &apos;/api/experimental/mcp/{server}&apos; route.
         /// </summary>
         /// <param name = "server">The &apos;server&apos; route value.</param>
@@ -268,6 +272,22 @@ internal static partial class OpenCodeRoutes
             }
 
             return "/api/experimental/session/" + RouteValuePolicy.Escape(sessionId, nameof(sessionId)) + "/instructions/entries/" + RouteValuePolicy.Escape(key, nameof(key));
+        }
+
+        /// <summary>
+        /// Builds the &apos;/api/experimental/voice/session/{sessionID}/instructions&apos; route.
+        /// </summary>
+        /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>
+        /// <returns>The escaped route.</returns>
+        public static string SetVoiceSessionInstructions(string sessionId)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+            if (sessionId is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(sessionId));
+            }
+
+            return "/api/experimental/voice/session/" + RouteValuePolicy.Escape(sessionId, nameof(sessionId)) + "/instructions";
         }
 
         /// <summary>
