@@ -22,6 +22,7 @@ public sealed class OwnedTransportTests
         var socketsHandler = (SocketsHttpHandler)handler;
         await Assert.That(socketsHandler.AllowAutoRedirect).IsFalse();
         await Assert.That(socketsHandler.PooledConnectionLifetime).IsEqualTo(TimeSpan.FromSeconds(120));
+        await Assert.That(socketsHandler.PooledConnectionIdleTimeout).IsEqualTo(TimeSpan.FromSeconds(3));
     }
 #endif
 
@@ -137,9 +138,16 @@ public sealed class OwnedTransportTests
         using var pipeline = Pipeline.Create(new OpenCodeClientOptions { Endpoint = server.Endpoint });
         var servicePoint = ServicePointManager.FindServicePoint(server.Endpoint, WebRequest.DefaultWebProxy);
 
+        await AssertOwnedServicePointPolicyAsync(servicePoint);
+        await Assert.That(ServicePointManager.DefaultConnectionLimit).IsEqualTo(defaultConnectionLimit);
+    }
+
+    /// <summary>The owned transport's per-endpoint policy: unbounded connections, a 120 s lease, a 3 s idle time.</summary>
+    private static async Task AssertOwnedServicePointPolicyAsync(ServicePoint servicePoint)
+    {
         await Assert.That(servicePoint.ConnectionLimit).IsEqualTo(int.MaxValue);
         await Assert.That(servicePoint.ConnectionLeaseTimeout).IsEqualTo(120_000);
-        await Assert.That(ServicePointManager.DefaultConnectionLimit).IsEqualTo(defaultConnectionLimit);
+        await Assert.That(servicePoint.MaxIdleTime).IsEqualTo(3_000);
     }
 
     [Test]
@@ -166,8 +174,7 @@ public sealed class OwnedTransportTests
             var servicePoint = ServicePointManager.FindServicePoint(endpoint, proxy);
 
             await Assert.That(response.Status).IsEqualTo(200);
-            await Assert.That(servicePoint.ConnectionLimit).IsEqualTo(int.MaxValue);
-            await Assert.That(servicePoint.ConnectionLeaseTimeout).IsEqualTo(120_000);
+            await AssertOwnedServicePointPolicyAsync(servicePoint);
         }
         finally
         {

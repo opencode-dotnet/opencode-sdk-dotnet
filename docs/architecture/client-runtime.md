@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-10-17
+Date: 2026-10-23
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -20,12 +20,32 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
 - The SDK owns a singleton-friendly transport and disables automatic redirects on every owned
   handler. A surfaced 3xx is an undeclared protocol response, never a route, authority, method, or
   credential transition the SDK follows implicitly. Modern targets use `SocketsHttpHandler` with a
-  120-second pooled connection lifetime. Downlevel targets configure the endpoint-and-proxy
-  `ServicePoint` with an effectively unbounded connection limit and the same 120-second connection
-  lease before construction and each owned send, avoiding both long-lived stream starvation and
-  stale endpoint retention without mutating process-global defaults. The endpoint-scoped
-  `ServicePoint` itself is process-shared, so this policy also governs other process traffic to the
-  same endpoint-and-proxy pair (ADR-0010).
+  120-second pooled connection lifetime and a 3-second pooled idle timeout. Downlevel targets
+  configure the endpoint-and-proxy `ServicePoint` with an effectively unbounded connection limit,
+  the same 120-second connection lease and the same 3-second `MaxIdleTime` before construction and
+  each owned send, avoiding both long-lived stream starvation and stale endpoint retention without
+  mutating process-global defaults. The endpoint-scoped `ServicePoint` itself is process-shared, so
+  this policy also governs other process traffic to the same endpoint-and-proxy pair (ADR-0010).
+- The idle timeout keeps the transport from reusing a socket the server has already closed. The
+  pinned server sends `Keep-Alive: timeout=5` and closes an idle connection about six seconds after
+  its last response. Upstream's two first-party clients avoid that close by different mechanisms:
+  - undici, the `fetch` under Node, stops reusing a connection at the server's hint minus a
+    2-second threshold, which is 3 s here;
+  - Bun's `fetch` ignores the hint and instead evicts a pooled socket as soon as the server's FIN
+    arrives.
+
+  The SDK sets undici's value for this server's hint, 3 seconds, as a fixed idle timeout on every
+  target. A live test pins the hint, so a pin refresh that changes it names this value for
+  re-derivation.
+  - **.NET Framework is where the timer matters.** It ignores the hint, so without `MaxIdleTime`
+    the `ServicePoint` kept an idle connection for its 100-second default, well past the server's
+    close.
+  - **Modern .NET** already avoids the close on its own: `SocketsHttpHandler` stops reusing a
+    connection at the hint minus one second, 4 s here, and before it reuses a pooled connection it
+    checks whether the server has already closed it. The explicit 3 seconds align it with undici.
+  - The `netstandard2.0` asset running on a modern .NET runtime can't take the explicit setting,
+    because its `HttpClientHandler` exposes no idle timeout and ignores `ServicePoint`. It keeps
+    that built-in hint-minus-one-second limit (4 s here). No CI leg runs that combination.
 - The `(HttpClient, options)` constructor is internal friend-assembly surface for this repository's
   tests and benchmarks. There is no public transport-injection constructor (ADR-0010).
 - `OpenCode.Sdk.Extensions` registers one singleton root client and every sub-client, each only when

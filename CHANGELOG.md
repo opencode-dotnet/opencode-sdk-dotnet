@@ -9,6 +9,14 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 🔧 Changes
+
+- **The SDK's own transport drops a connection that sat idle for three seconds**, as upstream's
+  client does. On .NET Framework, an idle connection used to be kept for 100 seconds, long after
+  the server closed it, so a request could pick up a socket the server had already closed. Modern
+  .NET already retired it after four seconds, following the server's `Keep-Alive` hint, and now
+  does so after three. The `netstandard2.0` asset on a modern .NET runtime keeps the four seconds.
+
 ## [0.9.0-preview.13] - 2026-10-18
 
 **The SDK speaks opencode 2.0.32.** The pinned server moves from 2.0.29 to 2.0.32. The upgrade
