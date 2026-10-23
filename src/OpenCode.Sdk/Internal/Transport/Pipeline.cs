@@ -471,7 +471,7 @@ internal sealed class Pipeline : IDisposable
         ThrowIfDisposed();
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetimeToken);
         using var message = CreateStreamMessage(operationId, method, route, perCallLocation, networkTimeout, cancellationToken);
-        await SendThroughPoliciesAsync(message).ConfigureAwait(false);
+        await SendStreamThroughPoliciesAsync(message, attempt).ConfigureAwait(false);
         var response = message.Response!;
         var status = (int)response.StatusCode;
         switch (adapter.Classify(status))
@@ -544,6 +544,21 @@ internal sealed class Pipeline : IDisposable
 
             attempt?.OnFrame(frames.Current);
             yield return FrameDispatch.ReadPayload(frames.Current, adapter);
+        }
+    }
+
+    private async ValueTask SendStreamThroughPoliciesAsync(PipelineMessage message, StreamAttempt? attempt)
+    {
+        try
+        {
+            await SendThroughPoliciesAsync(message).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (message.Response is not null)
+            {
+                attempt?.OnResponse();
+            }
         }
     }
 

@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
@@ -487,8 +488,68 @@ public sealed class EventsClientReconnectTests
         server.Time.Advance(OneTick);
 
         var exception = await Assert.That(first.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
-        await Assert.That(exception!.Message).Contains("did not connect within 2 seconds");
+        await Assert.That(exception!.Message).IsEqualTo("The opencode server did not answer the event stream request within 2 seconds.");
         await Assert.That(server.RequestCount).IsEqualTo(20);
+    }
+
+    /// <summary>An answered attempt that sends no event names that silence when its last reconnect delay reaches the give-up.</summary>
+    [Test]
+    public async Task A_Server_That_Answers_Without_An_Event_Should_Throw_The_Connect_Bound_At_Give_Up()
+    {
+        using var body = new BlockingContent();
+        body.Headers.ContentType = new MediaTypeHeaderValue("text/event-stream");
+        using var server = new ScriptedEventServer(number => number < 58
+            ? ScriptedEventServer.Status(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError)
+            : new HttpResponseMessage(HttpStatusCode.OK) { Content = body });
+        await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
+        var first = PendingNext(events);
+
+        // The final attempt starts at 57 s: its connect bound ends at 59 s, then the delay
+        // and give-up fall due together. Wait for its body read so the headers are known to be in.
+        for (var second = 0; second < 57; second++)
+        {
+            await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
+            server.Time.Advance(Delay);
+        }
+
+        await body.ReadStarted.WaitAsync(HangGuard.Bound);
+        await server.Time.WaitForArmedAsync(ConnectBound, HangGuard.Bound);
+        server.Time.Advance(ConnectBound);
+        await FailEveryAttemptUntilTheMinuteAsync(server, first, cyclesBefore: 0);
+
+        var exception = await Assert.That(first.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
+        await Assert.That(exception!.Message).IsEqualTo("The opencode server answered the event stream request but sent no event within 2 seconds.");
+        await Assert.That(server.RequestCount).IsEqualTo(58);
+        await Assert.That(body.IsDisposed).IsTrue();
+    }
+
+    /// <summary>Error headers count as an answer even when buffering their body never completes.</summary>
+    [Test]
+    [Arguments(HttpStatusCode.Unauthorized)]
+    [Arguments(HttpStatusCode.InternalServerError)]
+    public async Task A_Server_Whose_Error_Body_Stalls_Should_Report_An_Answer_At_Give_Up(HttpStatusCode status)
+    {
+        using var stalled = new BlockingContent();
+        using var server = new ScriptedEventServer(number => number == 58
+            ? new HttpResponseMessage(status) { Content = stalled }
+            : ScriptedEventServer.Status(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError));
+        await using var subscription = server.Events.SubscribeAsync().GetAsyncEnumerator();
+        var pending = PendingNext(subscription);
+        for (var number = 1; number < 58; number++)
+        {
+            await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
+            server.Time.Advance(Delay);
+        }
+
+        await stalled.ReadStarted.WaitAsync(HangGuard.Bound);
+        await server.Time.WaitForArmedAsync(ConnectBound, HangGuard.Bound);
+        server.Time.Advance(ConnectBound);
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound, count: 2);
+        server.Time.Advance(Delay);
+
+        var failure = await Assert.That(pending.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
+        await Assert.That(failure!.Message).IsEqualTo("The opencode server answered the event stream request but sent no event within 2 seconds.");
+        await Assert.That(stalled.IsDisposed).IsTrue();
     }
 
     /// <summary>A connection resets the minute; the next minute runs from the moment that connection drops.</summary>

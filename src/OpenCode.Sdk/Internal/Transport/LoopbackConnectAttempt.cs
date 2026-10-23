@@ -3,7 +3,7 @@ using System.Net.Sockets;
 
 namespace OpenCode.Sdk.Internal;
 
-/// <summary>One loopback connect the probe's transport is about to make; the transport owns the socket.</summary>
+/// <summary>One loopback connect an owned transport is about to make; the transport owns the socket.</summary>
 /// <param name="Socket">The socket to connect.</param>
 /// <param name="EndPoint">The endpoint to connect it to.</param>
 /// <param name="SynRetransmissionDisabled">Whether the transport provider accepted the no-SYN-retransmission option on this socket; false on a platform that does not take it.</param>

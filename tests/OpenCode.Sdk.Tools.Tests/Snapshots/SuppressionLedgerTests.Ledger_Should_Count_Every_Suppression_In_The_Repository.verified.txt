@@ -220,7 +220,6 @@ slopwatch-ignore tests/OpenCode.Sdk.Extensions.Tests/OpenCode.Sdk.Extensions.Tes
 slopwatch-ignore tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj SW005 x2
 slopwatch-ignore tests/OpenCode.Sdk.Sandbox/OpenCode.Sdk.Sandbox.csproj SW005
 slopwatch-ignore tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj SW005
-slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Discovery/LoopbackTransport.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Ensure/ServiceElection.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Handoff/ServicePtyHandoff.cs SW003 x3
 slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Registration/ServiceMigration.cs SW003
@@ -232,6 +231,7 @@ slopwatch-suppress src/OpenCode.Sdk/Hosting/Internal/Platform/Windows/WindowsExi
 slopwatch-suppress src/OpenCode.Sdk/Hosting/Launcher/Internal/PipeLineReader.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/Launcher/Internal/PosixServerChild.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Internal/Terminal/TerminalSendQueue.cs SW003
+slopwatch-suppress src/OpenCode.Sdk/Internal/Transport/LoopbackConnect.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Internal/Transport/ProgressWindow.cs SW003
 slopwatch-suppress tests/OpenCode.Sdk.Sandbox/ModelSelectionWalkthrough.cs SW004
 slopwatch-suppress tests/OpenCode.Sdk.ServiceFixture/ContenderProbe.cs SW003

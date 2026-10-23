@@ -98,12 +98,7 @@ internal sealed class TransportPolicy : PipelinePolicy, IDisposable
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 #if NET
-        return new SocketsHttpHandler
-        {
-            AllowAutoRedirect = false,
-            PooledConnectionLifetime = TimeSpan.FromMilliseconds(ConnectionLifetimeMilliseconds),
-            PooledConnectionIdleTimeout = TimeSpan.FromMilliseconds(ConnectionIdleMilliseconds),
-        };
+        return CreateOwnedHttpHandler(endpoint, new LoopbackSocketConnector());
 #else
         ConfigureDownlevelServicePoint(endpoint);
         return new HttpClientHandler
@@ -112,6 +107,24 @@ internal sealed class TransportPolicy : PipelinePolicy, IDisposable
         };
 #endif
     }
+
+#if NET
+    internal static HttpMessageHandler CreateOwnedHttpHandler(Uri endpoint, ILoopbackSocketConnector connector)
+    {
+        var handler = new SocketsHttpHandler
+        {
+            AllowAutoRedirect = false,
+            PooledConnectionLifetime = TimeSpan.FromMilliseconds(ConnectionLifetimeMilliseconds),
+            PooledConnectionIdleTimeout = TimeSpan.FromMilliseconds(ConnectionIdleMilliseconds),
+        };
+        if (endpoint.IsLoopback && OperatingSystem.IsWindows())
+        {
+            handler.ConnectCallback = new LoopbackConnect(connector).ConnectWithoutSynRetransmissionAsync;
+        }
+
+        return handler;
+    }
+#endif
 
 #if !NET
     private static void ConfigureDownlevelServicePoint(Uri endpoint)

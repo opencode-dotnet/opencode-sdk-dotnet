@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// The socket connect under the probe's loopback transport. Behind a seam so a test sees each
+/// The socket connect under an owned loopback transport. Behind a seam so a test sees each
 /// socket the transport connects, with whether it took the loopback option, and decides when a
 /// connect completes and how.
 /// </summary>
