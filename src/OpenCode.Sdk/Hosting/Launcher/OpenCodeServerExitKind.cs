@@ -16,6 +16,9 @@ public enum OpenCodeServerExitKind
     /// <summary>The server exited with a code, <see cref="OpenCodeServerExit.ExitCode"/>.</summary>
     Exited = 1,
 
-    /// <summary>A signal ended the server, <see cref="OpenCodeServerExit.Signal"/>; never on Windows.</summary>
+    /// <summary>An unhandled signal ended the server, such as <c>SIGKILL</c>; never on Windows.
+    /// The server handles <c>SIGTERM</c>/<c>SIGINT</c>: Linux/macOS disposal normally reports
+    /// <see cref="Exited"/> with code 130. Windows disposal reports <see cref="Exited"/> with code 1.
+    /// </summary>
     Signaled = 2,
 }

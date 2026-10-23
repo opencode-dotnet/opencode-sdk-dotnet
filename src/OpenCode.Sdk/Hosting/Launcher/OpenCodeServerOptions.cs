@@ -33,8 +33,9 @@ public sealed class OpenCodeServerOptions
     /// On Windows the started process is placed in a job that ends it when its owner ends, however
     /// the owner ends. A batch shim's own child, the real server, is outside that job: it ends with a
     /// crashed owner only through its stdin lease. The default <c>opencode</c> of an npm install is
-    /// such a shim, so a host that needs the full guarantee names the path of <c>opencode.exe</c>
-    /// itself.
+    /// such a shim, so a host that needs the guarantee names the path of <c>opencode.exe</c> itself.
+    /// When Windows refuses the job assignment, the started process stays outside the job and ends
+    /// with a crashed owner only through its stdin lease.
     /// </para>
     /// </summary>
     public IReadOnlyList<string> Command { get; set; } = ["opencode", "serve"];
