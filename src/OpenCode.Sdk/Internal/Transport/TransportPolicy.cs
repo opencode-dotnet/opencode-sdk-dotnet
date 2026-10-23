@@ -17,6 +17,15 @@ internal sealed class TransportPolicy : PipelinePolicy, IDisposable
 {
     internal const int ConnectionLifetimeMilliseconds = 120_000;
 
+    /// <summary>
+    /// How long an idle pooled connection may wait for reuse: the pinned server's
+    /// <c>Keep-Alive: timeout=5</c> hint minus the 2-second threshold upstream's client takes off it
+    /// (undici's <c>keepAliveTimeoutThreshold</c>), so a socket the server is about to close is
+    /// never picked up for a request. Modern handlers already stop at the hint minus one second;
+    /// .NET Framework ignores the hint, so there this is the only limit below the server's close.
+    /// </summary>
+    internal const int ConnectionIdleMilliseconds = 3_000;
+
     private readonly HttpClient _httpClient;
     private readonly bool _ownsHttpClient;
 
@@ -93,6 +102,7 @@ internal sealed class TransportPolicy : PipelinePolicy, IDisposable
         {
             AllowAutoRedirect = false,
             PooledConnectionLifetime = TimeSpan.FromMilliseconds(ConnectionLifetimeMilliseconds),
+            PooledConnectionIdleTimeout = TimeSpan.FromMilliseconds(ConnectionIdleMilliseconds),
         };
 #else
         ConfigureDownlevelServicePoint(endpoint);
@@ -109,6 +119,7 @@ internal sealed class TransportPolicy : PipelinePolicy, IDisposable
         var servicePoint = ServicePointManager.FindServicePoint(endpoint, WebRequest.DefaultWebProxy);
         servicePoint.ConnectionLimit = int.MaxValue;
         servicePoint.ConnectionLeaseTimeout = ConnectionLifetimeMilliseconds;
+        servicePoint.MaxIdleTime = ConnectionIdleMilliseconds;
     }
 #endif
 
