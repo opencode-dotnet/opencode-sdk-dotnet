@@ -307,7 +307,7 @@
     "Experimental/Models/UnknownVoiceTransport.cs",
     "Experimental/Models/UnknownVoiceTransportInput.cs",
     "Experimental/Models/VoiceModel.cs",
-    "Experimental/Models/VoiceSessionResponseDataSession0.cs",
+    "Experimental/Models/VoiceSessionReference.cs",
     "Experimental/Models/VoiceTransportType.cs",
     "Experimental/Models/VoiceWebRtcTransport.cs",
     "Experimental/Models/VoiceWebRtcTransportInput.cs",

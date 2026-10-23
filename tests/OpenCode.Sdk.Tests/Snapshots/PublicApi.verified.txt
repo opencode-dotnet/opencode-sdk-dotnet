@@ -3600,7 +3600,7 @@ namespace OpenCode.Sdk.Models
         public ExperimentalVoiceSessionData() { }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("session")]
-        public OpenCode.Sdk.Models.VoiceSessionResponseDataSession0? Session { get; init; }
+        public OpenCode.Sdk.Models.VoiceSessionReference? Session { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("transport")]
         public required OpenCode.Sdk.Models.IVoiceTransport Transport { get; init; }
     }
@@ -12051,9 +12051,9 @@ namespace OpenCode.Sdk.Models
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode001")]
-    public sealed class VoiceSessionResponseDataSession0 : System.IEquatable<OpenCode.Sdk.Models.VoiceSessionResponseDataSession0>
+    public sealed class VoiceSessionReference : System.IEquatable<OpenCode.Sdk.Models.VoiceSessionReference>
     {
-        public VoiceSessionResponseDataSession0() { }
+        public VoiceSessionReference() { }
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public required string Id { get; init; }
     }

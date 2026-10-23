@@ -2979,6 +2979,11 @@
       "reason": "Name the previous-location object by its domain role; the nullable anyOf branch ordinal is a schema pointer detail."
     },
     {
+      "schema": "VoiceSessionResponse#/properties/data/properties/session/anyOf/0",
+      "dotnetName": "VoiceSessionReference",
+      "reason": "The nullable session member identifies the voice session the response belongs to; name the reference rather than its anyOf position."
+    },
+    {
       "schema": "ServerInfo#/properties/capabilities/anyOf/0",
       "dotnetName": "ServerInfoCapabilities",
       "reason": "Name the optional server capabilities object by its domain role; the nullable anyOf branch ordinal is a schema pointer detail."

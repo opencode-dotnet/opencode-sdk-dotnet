@@ -748,7 +748,7 @@ VcsInfo owner=Vcs reached-by=Vcs
 VcsInitNotSupportedError owner=Vcs reached-by=Vcs
 VcsMode owner=Vcs reached-by=Vcs
 VoiceModel owner=Experimental reached-by=Experimental
-VoiceSessionResponseDataSession0 owner=Experimental reached-by=Experimental
+VoiceSessionReference owner=Experimental reached-by=Experimental
 VoiceTransportType owner=Experimental reached-by=Experimental
 VoiceWebRtcTransport owner=Experimental reached-by=Experimental
 VoiceWebRtcTransportInput owner=Experimental reached-by=Experimental

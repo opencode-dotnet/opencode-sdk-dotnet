@@ -811,7 +811,7 @@ namespace OpenCode.Sdk.Internal;
 [JsonSerializable(typeof(VcsResponseEnvelope))]
 [JsonSerializable(typeof(VcsStatusResponseEnvelope))]
 [JsonSerializable(typeof(VoiceModel))]
-[JsonSerializable(typeof(VoiceSessionResponseDataSession0))]
+[JsonSerializable(typeof(VoiceSessionReference))]
 [JsonSerializable(typeof(VoiceTransportType))]
 [JsonSerializable(typeof(VoiceWebRtcTransport))]
 [JsonSerializable(typeof(VoiceWebRtcTransportInput))]

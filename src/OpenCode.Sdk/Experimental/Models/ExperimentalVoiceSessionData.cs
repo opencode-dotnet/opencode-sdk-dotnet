@@ -20,5 +20,5 @@ public sealed record ExperimentalVoiceSessionData
     /// </summary>
     [JsonPropertyName("session")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public VoiceSessionResponseDataSession0? Session { get; init; }
+    public VoiceSessionReference? Session { get; init; }
 }
