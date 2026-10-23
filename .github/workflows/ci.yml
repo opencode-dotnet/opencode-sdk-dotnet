@@ -308,18 +308,26 @@ jobs:
       # (quality-gates.md).
       # Experiment for #466, never merged: 1-s machine-wide counters beside the main pass. The
       # sampler starts from a launcher file in a hidden window so it inherits none of the step's
-      # handles, and the stop step below ends only its own process tree. Attempt 2 runs without it
-      # (the overhead control).
+      # handles, and the stop step below ends only its own process tree. Arm A: the owned servers'
+      # run roots and the temp directory move from the OS disk (C:) to the runner's temp on D:.
+      - name: Move run roots and temp to D (experiment arm A, #466)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $runRoots = Join-Path $env:RUNNER_TEMP 'run-roots'
+          $temp = Join-Path $env:RUNNER_TEMP 'tmp'
+          New-Item -ItemType Directory -Force -Path $runRoots, $temp | Out-Null
+          "OPENCODE_SDK_TESTS_RUN_ROOT=$runRoots" | Add-Content -LiteralPath $env:GITHUB_ENV
+          "TEMP=$temp" | Add-Content -LiteralPath $env:GITHUB_ENV
+          "TMP=$temp" | Add-Content -LiteralPath $env:GITHUB_ENV
+          "arm A: OPENCODE_SDK_TESTS_RUN_ROOT=$runRoots TEMP=TMP=$temp"
+
       - name: Start resource sampler (experiment, #466)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $results = Join-Path '${{ github.workspace }}' 'test-results'
           New-Item -ItemType Directory -Force -Path $results | Out-Null
-          if ('${{ github.run_attempt }}' -eq '2') {
-            'resource-sampler: attempt 2, sampler off (overhead control)' | Set-Content -LiteralPath (Join-Path $results 'resource-sampler.txt')
-            return
-          }
           $dir = Join-Path $env:RUNNER_TEMP 'resource-sampler'
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
           $out = Join-Path $results 'resource-samples.csv'
@@ -353,7 +361,7 @@ jobs:
           )
           $sampler = Start-Process -FilePath $launcher -WindowStyle Hidden -PassThru
           "SAMPLER_PID=$($sampler.Id)" | Add-Content -LiteralPath $env:GITHUB_ENV
-          "resource-sampler: attempt ${{ github.run_attempt }}, sampler on, pid $($sampler.Id)" | Set-Content -LiteralPath (Join-Path $results 'resource-sampler.txt')
+          "resource-sampler: arm A, attempt ${{ github.run_attempt }}, sampler on, pid $($sampler.Id), run root $env:OPENCODE_SDK_TESTS_RUN_ROOT, temp $env:TEMP" | Set-Content -LiteralPath (Join-Path $results 'resource-sampler.txt')
           "started the sampler (pid $($sampler.Id)), writing $out"
 
       - name: Test
