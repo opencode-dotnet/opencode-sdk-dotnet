@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="TUnit"/>
+    <PackageReference Include="Microsoft.Testing.Extensions.HangDump"/>
     <PackageReference Include="NSubstitute"/>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp"/>
     <PackageReference Include="PublicApiGenerator"/>

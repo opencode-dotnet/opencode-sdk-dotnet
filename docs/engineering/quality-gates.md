@@ -238,11 +238,16 @@ measured module (`OpenCode.Sdk.Tests` on net472 on Windows, under six minutes), 
 fails inside its step instead of at the job timeout. That timeout runs inside the test host, and a
 hang that stops the host's own timer stops it too. So each test step also carries
 `timeout-minutes: 35`, which the runner enforces from outside the host: a hung pass fails its step
-within 35 minutes, before the merge queue's 60-minute check timeout drops the pull request. An
-expired session exits with code 7 and keeps the TRX of the rows that finished, but it does not name
-the rows still in flight. When the main
-pass fails, the job also writes that pass's test listing to `test-results/main/listed-tests.txt`,
-and the rows in flight are among those listed but not recorded.
+within 35 minutes, before the merge queue's 60-minute check timeout drops the pull request.
+
+A test host that runs for 15 minutes is taken as hung. Microsoft.Testing.Platform's hang-dump
+extension (`--hangdump --hangdump-timeout 15m --hangdump-type Mini`), whose controller is a process
+of its own, then lists the tests still running, writes a mini dump of the host into the pass's
+results directory, which the job uploads, and ends the host. A normal module takes under ten
+minutes. An expired session exits with code 7 and keeps the TRX of the rows that finished, but it
+doesn't name the rows still in flight. When the main pass fails, the job also writes that pass's
+test listing to `test-results/main/listed-tests.txt`, and the rows in flight are among those listed
+but not recorded.
 
 ## Clone gate
 

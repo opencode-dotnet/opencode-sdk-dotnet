@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="Testably.Abstractions.Testing" />
     <PackageReference Include="TUnit" />
+    <PackageReference Include="Microsoft.Testing.Extensions.HangDump" />
     <PackageReference Include="Spectre.Console.Cli.Testing" />
     <PackageReference Include="Verify.TUnit" />
   </ItemGroup>

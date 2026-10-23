@@ -43,6 +43,7 @@
     <PackageVersion Include="Spectre.Console.Cli.Testing" Version="0.57.2" />
     <PackageVersion Include="Testably.Abstractions.Testing" Version="7.1.1" />
     <PackageVersion Include="TUnit" Version="1.75.0" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.HangDump" Version="2.5.1" />
     <PackageVersion Include="PublicApiGenerator" Version="11.5.4" />
     <PackageVersion Include="System.Reflection.MetadataLoadContext" Version="10.0.13" />
     <PackageVersion Include="Verify.TUnit" Version="33.3.3" />
