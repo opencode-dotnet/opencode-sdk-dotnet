@@ -1,1 +1,2 @@
 # Type[.Member] - reason for retaining a row whose target has an upstream projected description.
+EventsClient.SubscribeAsync - the SDK's reconnect contract is appended as remarks; upstream's summary stays

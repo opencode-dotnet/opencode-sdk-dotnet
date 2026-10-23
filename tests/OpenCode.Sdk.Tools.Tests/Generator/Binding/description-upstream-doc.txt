@@ -12,6 +12,7 @@ SessionCreateRequest.Model
 SessionTextDelta
 SessionTextEnded
 SessionInfoTime.Archived
+SessionViewRequest.Idle
 SessionMessageAssistantReasoningTime.Created
 SessionMessageAssistantReasoningTime.Completed
 SessionMessageAssistantRetry.At

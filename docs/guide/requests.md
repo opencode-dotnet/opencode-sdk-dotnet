@@ -1,6 +1,6 @@
 # 📝 Requests
 
-Date: 2026-10-18
+Date: 2026-10-24
 
 Every operation that sends anything takes one request record. They are plain immutable records you
 fill with an object initializer — with one twist worth knowing before you write your first `PATCH`:
@@ -253,7 +253,7 @@ Both members take a value above zero and at most `int.MaxValue` milliseconds, or
 ## 🧾 Members the schema does not explain
 
 Most generated members say no more than "Gets the action value", because the pinned API document
-describes no more. Three families need more than their types to use correctly. Where a rule below
+describes no more. Some members need more than their types to use correctly. Where a rule below
 comes from upstream's implementation at the pin (`v2.1.4`) rather than from the pinned contract,
 it says so.
 
@@ -337,6 +337,26 @@ generated name; and when the path already exists, the server tries the name with
 `-10` appended before it refuses with 400 "Worktree destination already exists". Removing a
 worktree has its own pitfalls — see
 [when a worktree remove is refused](errors-and-responses.md#when-a-worktree-remove-is-refused).
+
+### File-system entry paths
+
+`ListEntriesAsync` paths are relative to the requested location, use the server OS's native
+separators, and directories carry a trailing native separator. `FindEntriesAsync` paths join their
+segments with `/`, but a directory entry may end with the server OS's separator (`/`, or `\` on a
+Windows server), so trim either separator before comparing paths. Files carry no trailing
+separator. These formats come from upstream's implementation at the pin.
+
+### Timestamps
+
+The time members whose XML states a unit are milliseconds since the Unix epoch. Other timestamp
+members are also epoch milliseconds as upstream's writers produce them at the pin: event `Created`,
+`ProjectTime` members, integration attempt `Created` and `Expires`, `CredentialOAuth.Expires`,
+`SessionStepStartedData.Started`, and `SessionRetryScheduledData.At`. Each keeps its generated type
+(`double` or `long`, as the schema declares).
+
+`VoiceWebSocketTransport.ExpiresAt` is provider-specific in upstream's implementation at the pin
+(for Gemini it is seconds).
+`PersistentPtyHandoff.ExpiresAt`'s unit is not established.
 
 ### Shell timeout
 

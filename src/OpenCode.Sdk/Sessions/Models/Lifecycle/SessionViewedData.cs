@@ -15,7 +15,7 @@ public sealed record SessionViewedData
     public required string SessionId { get; init; }
 
     /// <summary>
-    /// Gets the idle value.
+    /// Observed idle watermark in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("idle")]
     public required double Idle { get; init; }

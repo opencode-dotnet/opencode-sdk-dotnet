@@ -12,7 +12,7 @@ internal sealed record DescriptionCuration : IReasonedRow
     public string? Member { get; init; }
 
     [JsonPropertyName("summary")]
-    public required string Summary { get; init; }
+    public string? Summary { get; init; }
 
     [JsonPropertyName("remarks")]
     public string? Remarks { get; init; }

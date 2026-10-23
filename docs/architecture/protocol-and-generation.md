@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-10-23
+Date: 2026-10-24
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -153,26 +153,28 @@ Curation may:
 - declare that a family emits an internal raw layer rather than a public surface, where
   hand-written code owns that family's public doors (ADR-0021);
 - document a generated type or one of its members where the wire says too little, through a
-  reason-bearing `descriptions` row keyed by the generated C# type and optional member: its
-  summary replaces the generated one and its remarks join any the type already carries. A row
-  wins over a schema description, which wins over the summary the generator derives from an
-  unambiguous wire role (an event, its exclusive payload, an operation's exclusive body, response
-  or query record, an error of the error spine); a record with two roles keeps the plain
-  placeholder. A row whose type or member is gone, a duplicate, or an empty summary or reason fails
-  generation. A documentation-only `descriptions` row documents either an upstream fact or behaviour
-  the SDK owns. An upstream fact (a unit, sentinel, default, format or meaning) cites upstream's
-  explicit declaration as `packages/<path>:<line>` with a verbatim excerpt, proven against the
-  pinned tree; a fact inferred only from upstream's implementation is not curated: it is reported
-  upstream, and stated in the consumer guides where consumers need it. Behaviour the SDK implements
-  itself, such as the event stream's reconnect contract, cites the canon section that owns it as
-  `docs/architecture/<file>.md#<heading>` with a verbatim excerpt from that section, proven against
-  the repository. A row may target a generated type, one of its declared members, or a generated
-  client's operation method. Two committed inventories list the rows whose target upstream describes
-  in the OpenAPI projection, and the rows whose cited declaration upstream does not describe; a
-  refresh that changes either fails the Tools tests until the list is reviewed. A `descriptions` row
-  never changes protocol semantics (ADR-0013). A curated interface member's documentation reaches
-  each implementing public property without its own row through `<inheritdoc cref>`; different
-  curated documentation from two owners for such a property refuses generation;
+  reason-bearing `descriptions` row keyed by the generated C# type and optional member: its summary
+  replaces the generated one and its remarks join any the type already carries; a row on an
+  operation method may omit its summary when it carries remarks, so upstream's summary stays and the
+  remarks follow the route remark. A row wins over a schema description, which wins over the summary
+  the generator derives from an unambiguous wire role (an event, its exclusive payload, an
+  operation's exclusive body, response or query record, an error of the error spine); a record with
+  two roles keeps the plain placeholder. A row whose type or member is gone, a duplicate, or an
+  empty summary or reason fails generation. A documentation-only `descriptions` row documents either
+  an upstream fact or behaviour the SDK owns. An upstream fact (a unit, sentinel, default, format or
+  meaning) cites upstream's explicit declaration as `packages/<path>:<line>` with a verbatim
+  excerpt, proven against the pinned tree; a fact inferred only from upstream's implementation is
+  not curated: it is reported upstream, and stated in the consumer guides where consumers need it.
+  Behaviour the SDK implements itself, such as the event stream's reconnect contract, cites the
+  canon section that owns it as `docs/architecture/<file>.md#<heading>` with a verbatim excerpt from
+  that section, proven against the repository. A row may target a generated type, one of its
+  declared members, or a generated client's operation method. Two committed inventories list the
+  rows whose target upstream describes in the OpenAPI projection, and the rows whose cited
+  declaration upstream does not describe; a refresh that changes either fails the Tools tests until
+  the list is reviewed. A `descriptions` row never changes protocol semantics (ADR-0013). A curated
+  interface member's documentation reaches each implementing public property without its own row
+  through `<inheritdoc cref>`; different curated documentation from two owners for such a property
+  refuses generation;
 - place a model in a slice where its name carries no family prefix, through a reason-bearing
   `modelOwners` row; a family's prefixes are its name, its singular, its group key and the
   group's `prefixAliases`, and a model with no prefix and no row fails generation. A
