@@ -354,12 +354,26 @@ var pending = Channel.CreateBounded<IEvent>(new BoundedChannelOptions(256)
 {
     FullMode = BoundedChannelFullMode.Wait,
 });
+var gapDetected = 0;
+
+_ = Task.Run(async () =>
+{
+    await foreach (var queued in pending.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+    {
+        if (Interlocked.Exchange(ref gapDetected, 0) == 1)
+        {
+            // An event never reached this loop: refresh the state you care about.
+        }
+
+        // Slow work for `queued` goes here.
+    }
+}, cancellationToken);
 
 await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
 {
     if (!pending.Writer.TryWrite(@event))
     {
-        throw new InvalidOperationException("Event gap: the hand-off channel is full; refresh state.");
+        Interlocked.Exchange(ref gapDetected, 1);
     }
 }
 ```
