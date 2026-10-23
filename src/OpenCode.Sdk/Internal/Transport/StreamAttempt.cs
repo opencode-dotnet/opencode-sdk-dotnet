@@ -12,6 +12,8 @@ internal sealed class StreamAttempt : IDisposable
     private readonly ProgressWindow _window;
     private readonly TimeSpan _idleWindow;
     private bool? _startedConnected;
+    // A plain field: the send's continuation writes it, and Describe reads it only after awaiting
+    // the attempt's enumeration that ran that send, so the await orders the write before the read.
     private bool _responseReceived;
 
     /// <summary>Starts an attempt; its connect bound runs from now.</summary>

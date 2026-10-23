@@ -9,6 +9,24 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 🔧 Changes
+
+- **The event stream's connect-bound failure names its case.** Before any response it says "The
+  opencode server did not answer the event stream request within 2 seconds."; when headers arrived
+  but no first event followed it says "The opencode server answered the event stream request but
+  sent no event within 2 seconds." Both replace "The opencode event stream did not connect within 2
+  seconds."
+
+### 🐛 Fixes
+
+- **On Windows, an event stream to a refused loopback port reports the refusal.** A .NET connect
+  to a closed loopback port is refused there only after about two seconds, so every attempt ran into
+  the stream's two-second connect bound, and the subscription gave up with "did not connect within 2
+  seconds", which reads like a slow server. On .NET 5 and later the SDK's own transport now
+  connects loopback targets without SYN retransmission, as upstream's runtime does, and the give-up
+  says "The opencode server could not be reached." with the refusal inside; on .NET Framework the
+  connect keeps its retransmissions and reports through the "did not answer" text.
+
 ## [0.9.0-preview.14] - 2026-10-23
 
 **The SDK speaks opencode 2.1.x.** The pinned server moves from 2.0.32 to 2.1.4.
