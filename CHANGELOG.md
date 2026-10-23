@@ -33,8 +33,8 @@ fixes reuse of a closed socket on .NET Framework, and on macOS a server ended wi
 
 - **New protocol doors and members.** `DebugClient.WriteHeapSnapshotAsync`,
   `PermissionsClient.UpdateSavedAsync`, and experimental `ListVoiceModelsAsync` and
-  `SetVoiceSessionInstructionsAsync` join the surface; experimental voice session responses name
-  their session reference `VoiceSessionReference`. Sessions gain `Archived` filters and updates
+  `SetVoiceSessionInstructionsAsync` join the surface, and experimental voice session responses gain
+  `Session`, a `VoiceSessionReference`. Sessions gain `Archived` filters and updates
   and archived/unarchived events; models and provider compatibility gain `StreamUsage`, structured
   errors gain `RetryAfterMs`, and experimental config gains `Todo`, `BackgroundCompaction` and `LocationIdleTimeout`.
 - **Persistent PTYs work on Windows hosts.** opencode 2.1.x ships the `opencode-pty` daemon for
