@@ -2,7 +2,7 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
-/// <summary>The generated types and directly declared properties the documentation channel can address.</summary>
+/// <summary>The generated types, directly declared properties and operation methods the documentation channel can address.</summary>
 internal static class DescriptionTargetCatalog
 {
     public static IReadOnlyDictionary<string, IReadOnlySet<string>> Create(EmitPlan plan)
@@ -37,7 +37,8 @@ internal static class DescriptionTargetCatalog
 
         foreach (var client in plan.Clients)
         {
-            targets.Add(client.Name, client.SubClients.Select(static reference => reference.PropertyName).ToHashSet(StringComparer.Ordinal));
+            targets.Add(client.Name, client.SubClients.Select(static reference => reference.PropertyName)
+                .Concat(client.Operations.Select(static operation => operation.MethodName)).ToHashSet(StringComparer.Ordinal));
             foreach (var operation in client.Operations)
             {
                 if (operation.QueryRequest is { RidesRequestBody: false } query)

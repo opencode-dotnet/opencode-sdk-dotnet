@@ -72,4 +72,8 @@ internal sealed record OperationPlan
     public string? Summary { get; init; }
 
     public string? Description { get; init; }
+
+    public string? CuratedSummary { get; init; }
+
+    public string? CuratedRemarks { get; init; }
 }
