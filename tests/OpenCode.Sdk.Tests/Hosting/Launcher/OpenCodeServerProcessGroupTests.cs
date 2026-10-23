@@ -495,8 +495,8 @@ public sealed class OpenCodeServerProcessGroupTests
     /// A stopped server has not exited. macOS reports the stop to the exit watch's wait, and the watch
     /// then probes and reports no exit while the server stays stopped; Linux reports no stop to that
     /// wait at all. After <c>SIGCONT</c> the normal close ends the server, and its real exit is
-    /// reported and reaped. The verdict waits for the watch's probe on macOS and for the stopped state
-    /// on Linux, never for a clock. Windows has no job-control stop to send.
+    /// reported and reaped. The verdict waits for the kernel's stop report and, on macOS, for the
+    /// watch's probe, never for a clock. Windows has no job-control stop to send.
     /// </summary>
     [Test]
     [Timeout(120_000)]
@@ -517,19 +517,19 @@ public sealed class OpenCodeServerProcessGroupTests
             cancellationToken);
         try
         {
+            bool stopReported;
             bool exitedWhileStopped;
             bool waitReportedTheStop;
             await Assert.That(PosixProcessProbe.SignalProcess(server.ProcessId, PosixProcessProbe.Stop)).IsTrue();
             try
             {
+                // The kernel's own stop report says when the server is stopped.
+                var pid = server.ProcessId;
+                stopReported = await Task.Run(() => PosixProcessProbe.WaitUntilStopped(pid), cancellationToken).WaitAsync(ObservationBound, cancellationToken);
                 if (OperatingSystem.IsMacOS())
                 {
-                    // The stop ends the watch's wait; the verdict waits for the watch to act on it, by ending or by probing.
+                    // The same stop ends the watch's wait; the verdict waits for the watch to act on it, by ending or by probing.
                     _ = await Task.WhenAny(server.ChildExited, probed.Task).WaitAsync(ObservationBound, cancellationToken);
-                }
-                else
-                {
-                    await StoppedOnLinuxAsync(server.ProcessId, cancellationToken);
                 }
 
                 exitedWhileStopped = server.ChildExited.IsCompleted;
@@ -543,6 +543,7 @@ public sealed class OpenCodeServerProcessGroupTests
             await server.DisposeAsync();
             var exit = await ChildExitObservation.WithinAsync(server, ObservationBound);
 
+            await Assert.That(stopReported).IsTrue();
             await Assert.That(exitedWhileStopped).IsFalse();
             await Assert.That(waitReportedTheStop).IsEqualTo(OperatingSystem.IsMacOS());
             await Assert.That(exit.Signal).IsEqualTo(Terminate);
@@ -585,18 +586,6 @@ public sealed class OpenCodeServerProcessGroupTests
             return observed;
         });
         return recording;
-    }
-
-    /// <summary>Waits until Linux shows the process stopped (state <c>T</c>), under the observation bound as a hang guard.</summary>
-    private static async Task StoppedOnLinuxAsync(int processId, CancellationToken cancellationToken)
-    {
-        using var guard = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        guard.CancelAfter(ObservationBound);
-        var fileSystem = new RealFileSystem();
-        while (await PosixProcessProbe.LinuxStateOfAsync(fileSystem, processId, guard.Token) != 'T')
-        {
-            await Task.Delay(TimeSpan.FromMilliseconds(10), guard.Token);
-        }
     }
 
     /// <summary>The shipped group signal behind a substitute that records every call it forwards.</summary>

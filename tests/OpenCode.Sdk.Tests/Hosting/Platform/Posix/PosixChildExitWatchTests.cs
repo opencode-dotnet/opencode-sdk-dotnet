@@ -56,9 +56,7 @@ public sealed class PosixChildExitWatchTests
 
         exits.Release();
 
-        await Assert.That(await ChildExitObservation.WithinAsync(watch, ProbeBound)).IsEqualTo(ChildExitStatus.Unknown);
-        await Assert.That(watch.SignalRootWhileUnreaped(ProcessSignal.Kill)).IsEqualTo(SignalDelivery.NoSuchTarget);
-        _ = signals.DidNotReceive().SignalProcess(Arg.Any<int>(), Arg.Any<ProcessSignal>());
+        await AssertEndedWithoutSignalAsync(watch, signals, ChildExitStatus.Unknown);
     }
 
     /// <summary>
@@ -90,9 +88,7 @@ public sealed class PosixChildExitWatchTests
             exits.Exit(new ChildExitStatus { Signal = 9 });
         }
 
-        await Assert.That(await ChildExitObservation.WithinAsync(watch, ProbeBound)).IsEqualTo(new ChildExitStatus { Signal = 9 });
-        await Assert.That(watch.SignalRootWhileUnreaped(ProcessSignal.Kill)).IsEqualTo(SignalDelivery.NoSuchTarget);
-        _ = signals.DidNotReceive().SignalProcess(Arg.Any<int>(), Arg.Any<ProcessSignal>());
+        await AssertEndedWithoutSignalAsync(watch, signals, new ChildExitStatus { Signal = 9 });
     }
 
     /// <summary>
@@ -281,6 +277,14 @@ public sealed class PosixChildExitWatchTests
 
         await Assert.That(delivery).IsEqualTo(SignalDelivery.Delivered);
         _ = signals.Received(1).SignalProcess(Pid, ProcessSignal.Terminate);
+    }
+
+    /// <summary>The watch reported <paramref name="expected"/>, and the pid fallback sends nothing to the pid after it.</summary>
+    private static async Task AssertEndedWithoutSignalAsync(PosixChildExitWatch watch, IProcessGroupSignal signals, ChildExitStatus expected)
+    {
+        await Assert.That(await ChildExitObservation.WithinAsync(watch, ProbeBound)).IsEqualTo(expected);
+        await Assert.That(watch.SignalRootWhileUnreaped(ProcessSignal.Kill)).IsEqualTo(SignalDelivery.NoSuchTarget);
+        _ = signals.DidNotReceive().SignalProcess(Arg.Any<int>(), Arg.Any<ProcessSignal>());
     }
 
     /// <summary>
