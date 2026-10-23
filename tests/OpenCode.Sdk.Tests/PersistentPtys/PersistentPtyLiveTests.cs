@@ -27,6 +27,13 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
     /// <summary>The rows the live resize asks for; the create default is 24.</summary>
     private const int ResizedRows = 30;
 
+    /// <summary>
+    /// How many back-to-back screen reads the round trip makes, before the resize, for the server's
+    /// screen to show the echoed marker the stream already carried. An attempt count, not a timer, so
+    /// the read result decides and the test fails on its screen assertion rather than a timeout.
+    /// </summary>
+    private const int ScreenReadAttempts = 200;
+
     private const string SessionTitle = "persistent pty live";
 
     private const string TerminalTitle = "sdk persistent pty live";
@@ -278,7 +285,7 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
     /// <summary>
     /// Drives the terminal over its live socket: attach, echo, resize, and the HTTP read the
     /// controller attach selected this terminal for. Every wait is bounded by the test's own
-    /// token, so an unanswered terminal ends as the test's timeout rather than a private timer.
+    /// token, and the screen read also by <see cref="ScreenReadAttempts"/>.
     /// </summary>
     private static async Task<TerminalDrive> DriveTerminalAsync(
         OpenCodeClient client,
@@ -296,18 +303,24 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
         var echoed = await ReadUntilMarkerAsync(session, EchoMarker, cancellationToken);
         await Assert.That(echoed).Contains(EchoMarker);
 
+        // The read route answers from the session's most recently controlled terminal, and this
+        // connection's controller attach is what selected it - so a payload here is the selection
+        // observed, not merely the terminal's existence.
+        var screen = string.Empty;
+        for (var attempt = 0; attempt < ScreenReadAttempts && !screen.Contains(EchoMarker, StringComparison.Ordinal); attempt++)
+        {
+            var read = await client.PersistentPtys.ReadAsync(sessionId, cancellationToken: cancellationToken);
+            await Assert.That(read.IsError).IsFalse();
+            await Assert.That(read.Read).IsNotNull();
+            screen = read.Read!.Screen.Text;
+        }
+
+        await Assert.That(screen).Contains(EchoMarker).Because("Last server screen: " + screen);
+
         await session.ResizeAsync(ResizedCols, ResizedRows, cancellationToken);
         var resized = await ReadFirstResizeAsync(session, cancellationToken);
         await Assert.That(resized.Cols).IsEqualTo(ResizedCols);
         await Assert.That(resized.Rows).IsEqualTo(ResizedRows);
-
-        // The read route answers from the session's most recently controlled terminal, and this
-        // connection's controller attach is what selected it - so a payload here is the selection
-        // observed, not merely the terminal's existence.
-        var read = await client.PersistentPtys.ReadAsync(sessionId, cancellationToken: cancellationToken);
-        await Assert.That(read.IsError).IsFalse();
-        await Assert.That(read.Read).IsNotNull();
-        await Assert.That(read.Read!.Screen.Text).Contains(EchoMarker);
 
         return new TerminalDrive
         {
@@ -316,7 +329,7 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
             Cols = resized.Cols,
             Rows = resized.Rows,
             Echoed = echoed,
-            Screen = read.Read.Screen.Text,
+            Screen = screen,
         };
     }
 
