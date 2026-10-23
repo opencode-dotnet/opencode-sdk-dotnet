@@ -471,7 +471,6 @@ public sealed class OpenCodeServerProcessGroupTests
 #endif
             var foreignEnded = await ProcessObservation.ObserveExitWithinAsync(foreign, ObservationBound, cancellationToken);
             var exit = await ChildExitObservation.WithinAsync(server, ObservationBound);
-            await server.DisposeAsync();
 
             await Assert.That(foreignEnded).IsTrue();
             if (OperatingSystem.IsWindows())
@@ -487,6 +486,7 @@ public sealed class OpenCodeServerProcessGroupTests
         }
         finally
         {
+            await server.DisposeAsync();
             await AssertEveryReportedProcessEndedAsync(output);
         }
     }
@@ -496,18 +496,13 @@ public sealed class OpenCodeServerProcessGroupTests
     /// then probes and reports no exit while the server stays stopped; Linux reports no stop to that
     /// wait at all. After <c>SIGCONT</c> the normal close ends the server, and its real exit is
     /// reported and reaped. The verdict waits for the kernel's stop report and, on macOS, for the
-    /// watch's probe, never for a clock. Windows has no job-control stop to send.
+    /// watch's probe, never for a clock. Windows has no job-control stop to send; there the arm it
+    /// can reach is asserted: no exit is reported while the server runs, and disposal's tree kill is.
     /// </summary>
     [Test]
     [Timeout(120_000)]
     public async Task ChildExited_Should_Wait_For_A_Stopped_Server_And_Report_Its_Later_Exit(CancellationToken cancellationToken)
     {
-        if (OperatingSystem.IsWindows())
-        {
-            Console.WriteLine("branch: " + Platform() + " — no job-control stop to send");
-            return;
-        }
-
         var output = new OpenCodeServerOutput();
         var waitReturned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var probed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -517,41 +512,57 @@ public sealed class OpenCodeServerProcessGroupTests
             cancellationToken);
         try
         {
-            bool stopReported;
-            bool exitedWhileStopped;
-            bool waitReportedTheStop;
-            await Assert.That(PosixProcessProbe.SignalProcess(server.ProcessId, PosixProcessProbe.Stop)).IsTrue();
-            try
+            var stopReported = false;
+            var waitReportedTheStop = false;
+            bool exitedBeforeDisposal;
+            if (OperatingSystem.IsWindows())
             {
-                // The kernel's own stop report says when the server is stopped.
-                var pid = server.ProcessId;
-                stopReported = await Task.Run(() => PosixProcessProbe.WaitUntilStopped(pid), cancellationToken).WaitAsync(ObservationBound, cancellationToken);
-                if (OperatingSystem.IsMacOS())
-                {
-                    // The same stop ends the watch's wait; the verdict waits for the watch to act on it, by ending or by probing.
-                    _ = await Task.WhenAny(server.ChildExited, probed.Task).WaitAsync(ObservationBound, cancellationToken);
-                }
-
-                exitedWhileStopped = server.ChildExited.IsCompleted;
-                waitReportedTheStop = waitReturned.Task.IsCompleted;
+                exitedBeforeDisposal = server.ChildExited.IsCompleted;
             }
-            finally
+            else
             {
-                _ = PosixProcessProbe.SignalProcess(server.ProcessId, PosixProcessProbe.Continue);
+                await Assert.That(PosixProcessProbe.SignalProcess(server.ProcessId, PosixProcessProbe.Stop)).IsTrue();
+                try
+                {
+                    // The kernel's own stop report says when the server is stopped.
+                    var pid = server.ProcessId;
+                    stopReported = await Task.Run(() => PosixProcessProbe.WaitUntilStopped(pid), cancellationToken).WaitAsync(ObservationBound, cancellationToken);
+                    if (OperatingSystem.IsMacOS())
+                    {
+                        // The same stop ends the watch's wait; the verdict waits for the watch to act on it, by ending or by probing.
+                        _ = await Task.WhenAny(server.ChildExited, probed.Task).WaitAsync(ObservationBound, cancellationToken);
+                    }
+
+                    exitedBeforeDisposal = server.ChildExited.IsCompleted;
+                    waitReportedTheStop = waitReturned.Task.IsCompleted;
+                }
+                finally
+                {
+                    _ = PosixProcessProbe.SignalProcess(server.ProcessId, PosixProcessProbe.Continue);
+                }
             }
 
             await server.DisposeAsync();
             var exit = await ChildExitObservation.WithinAsync(server, ObservationBound);
 
-            await Assert.That(stopReported).IsTrue();
-            await Assert.That(exitedWhileStopped).IsFalse();
-            await Assert.That(waitReportedTheStop).IsEqualTo(OperatingSystem.IsMacOS());
-            await Assert.That(exit.Signal).IsEqualTo(Terminate);
+            await Assert.That(exitedBeforeDisposal).IsFalse();
             await Assert.That(ProcessObservation.IsRunning(server.ProcessId)).IsFalse();
-            Console.WriteLine("branch: " + (OperatingSystem.IsMacOS() ? "macOS — the wait reported the stop, the watch probed" : "Linux — the wait reported no stop") + "; after SIGCONT the root " + exit.Describe());
+            if (OperatingSystem.IsWindows())
+            {
+                await Assert.That(exit.ExitCode).IsEqualTo(WindowsForcedExitCode);
+                Console.WriteLine("branch: Windows — no job-control stop to send; no exit was reported while the root ran, and disposal's tree kill ended it (" + exit.Describe() + ")");
+            }
+            else
+            {
+                await Assert.That(stopReported).IsTrue();
+                await Assert.That(waitReportedTheStop).IsEqualTo(OperatingSystem.IsMacOS());
+                await Assert.That(exit.Signal).IsEqualTo(Terminate);
+                Console.WriteLine("branch: " + (OperatingSystem.IsMacOS() ? "macOS — the wait reported the stop, the watch probed" : "Linux — the wait reported no stop") + "; after SIGCONT the root " + exit.Describe());
+            }
         }
         finally
         {
+            await server.DisposeAsync();
             await AssertEveryReportedProcessEndedAsync(output);
         }
     }
