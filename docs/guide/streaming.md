@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-10-18
+Date: 2026-10-23
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **global event bus** for everything happening in the server
@@ -337,6 +337,44 @@ await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: can
 
     connectedBefore |= @event is EventServerConnected;
     // ...
+}
+```
+
+The SDK reads the bus only when your loop asks for the next event. While your code holds an event,
+nothing reads the connection and the idle window is stopped. A server lost then is noticed only when
+a later pull reads the connection again, after the events already received have been yielded: a clean
+loss fails that read at once and the SDK reconnects 1 second later; a half-open connection takes a full
+idle window (45 seconds by default) from that read to detect. If your handler
+is slow, hand each event off so the loop keeps reading, and process `pending.Reader` on a separate
+task. A repeated `EventServerConnected` still means events were missed; an event dropped or refused
+by a full channel is a gap too: refresh the state you care about. With `System.Threading.Channels` imported:
+
+```csharp
+var pending = Channel.CreateBounded<IEvent>(new BoundedChannelOptions(256)
+{
+    FullMode = BoundedChannelFullMode.Wait,
+});
+var gapDetected = 0;
+
+_ = Task.Run(async () =>
+{
+    await foreach (var queued in pending.Reader.ReadAllAsync(cancellationToken).ConfigureAwait(false))
+    {
+        if (Interlocked.Exchange(ref gapDetected, 0) == 1)
+        {
+            // An event never reached this loop: refresh the state you care about.
+        }
+
+        // Slow work for `queued` goes here.
+    }
+}, cancellationToken);
+
+await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: cancellationToken).ConfigureAwait(false))
+{
+    if (!pending.Writer.TryWrite(@event))
+    {
+        Interlocked.Exchange(ref gapDetected, 1);
+    }
 }
 ```
 
