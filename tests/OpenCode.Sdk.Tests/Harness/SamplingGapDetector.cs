@@ -11,8 +11,11 @@ internal sealed class SamplingGapDetector(TimeProvider time, Func<TimeSpan, bool
     internal const int ThresholdSeconds = 2;
     /// <summary>The maximum number of sampled intervals retained for attribution.</summary>
     internal const int Capacity = 1000;
-    /// <summary>The maximum wait for the detector's worker to end, in seconds.</summary>
-    internal const int JoinSeconds = 5;
+    /// <summary>
+    /// The maximum wait for the detector's worker to end, in seconds: above the 15-29 s runner
+    /// stalls seen on CI, so a stall at session end does not read as a leaked thread.
+    /// </summary>
+    internal const int JoinSeconds = 60;
 
     private readonly Lock _gate = new();
     private readonly Queue<Gap> _gaps = new();
@@ -30,6 +33,9 @@ internal sealed class SamplingGapDetector(TimeProvider time, Func<TimeSpan, bool
 
     public Thread Worker => _thread ?? throw new InvalidOperationException("the detector has not started");
 
+    /// <summary>Gets whether the worker thread exists and is still running; false when it never started.</summary>
+    public bool IsRunning => _thread is { IsAlive: true };
+
     public void Start()
     {
         Sample();
@@ -46,6 +52,12 @@ internal sealed class SamplingGapDetector(TimeProvider time, Func<TimeSpan, bool
         // Stop and join before the final sample: a worker stuck inside Sample holds the lock, and the
         // bounded join must still be reached and report it.
         stop.Set();
+        if (_thread is null)
+        {
+            // Start never ran (its own failure is already the session's): nothing to join or sample.
+            return Summary;
+        }
+
         if (!join.Join(Worker, TimeSpan.FromSeconds(JoinSeconds)))
         {
             throw new InvalidOperationException("the stall detector's thread did not end");
@@ -87,7 +99,7 @@ internal sealed class SamplingGapDetector(TimeProvider time, Func<TimeSpan, bool
             var pause = Gc.Pause is { } duration
                 ? string.Format(CultureInfo.InvariantCulture, "+{0:F2} s", duration.TotalSeconds) : "n/a (net472)";
             return string.Format(CultureInfo.InvariantCulture,
-                "sampling-gap: elapsed {0:F2} s (excess {1:F2} s over the {2} ms tick, threshold {3} s), interval {4:yyyy-MM-ddTHH:mm:ss.ffZ} to {5:HH:mm:ss.ffZ} overlaps this test; gc gen0 +{6} gen1 +{7} gen2 +{8}, pause {9}; host pid {10}; image {11}",
+                "sampling-gap: elapsed {0:F2} s (excess {1:F2} s over the {2} ms tick, threshold {3} s), interval {4:yyyy-MM-ddTHH:mm:ss.ffZ} to {5:yyyy-MM-ddTHH:mm:ss.ffZ} overlaps this test; gc gen0 +{6} gen1 +{7} gen2 +{8}, pause {9}; host pid {10}; image {11}",
                 Elapsed.TotalSeconds, Excess.TotalSeconds, TickMilliseconds, ThresholdSeconds, Start.Utc, End.Utc,
                 Gc.Gen0, Gc.Gen1, Gc.Gen2, pause, pid, image);
         }

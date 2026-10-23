@@ -135,7 +135,7 @@ public sealed class SamplingGapDetectorTests
     }
 
     [Test]
-    public async Task Report_Should_Leave_The_Test_Outcome_Unchanged()
+    public async Task Report_Should_Hand_A_Gap_Only_To_The_Writer_And_Not_Throw()
     {
         using var scenario = new Scenario();
         scenario.Clock.Advance(TimeSpan.FromTicks(50000000));
@@ -162,7 +162,7 @@ public sealed class SamplingGapDetectorTests
         scenario.Clock.Advance(TimeSpan.FromTicks(173300000));
         scenario.Detector.Sample();
         await Assert.That(scenario.Detector.Gaps[0].Format(1234, os, version)).IsEqualTo(
-            "sampling-gap: elapsed 17.33 s (excess 17.08 s over the 250 ms tick, threshold 2 s), interval 2026-10-17T20:10:04.44Z to 20:10:21.77Z overlaps this test; gc gen0 +0 gen1 +0 gen2 +0, pause "
+            "sampling-gap: elapsed 17.33 s (excess 17.08 s over the 250 ms tick, threshold 2 s), interval 2026-10-17T20:10:04.44Z to 2026-10-17T20:10:21.77Z overlaps this test; gc gen0 +0 gen1 +0 gen2 +0, pause "
             + PauseText + "; host pid 1234; image " + image);
     }
 
@@ -182,7 +182,7 @@ public sealed class SamplingGapDetectorTests
         _ = scenario.Detector.EndSession(scenario.Stop, join);
         await Assert.That(join.Calls).IsEqualTo(1);
         await Assert.That(join.Thread).IsSameReferenceAs(scenario.Detector.Worker);
-        await Assert.That(join.Bound).IsEqualTo(TimeSpan.FromTicks(50000000));
+        await Assert.That(join.Bound).IsEqualTo(TimeSpan.FromSeconds(60));
         await Assert.That(scenario.Detector.Worker.IsAlive).IsFalse();
     }
 
@@ -203,6 +203,18 @@ public sealed class SamplingGapDetectorTests
         _ = scenario.Detector.EndSession(scenario.Stop, join);
         await Assert.That(readsAtJoin).IsEqualTo(readsBefore);
         await Assert.That(scenario.Gc.Reads).IsEqualTo(readsBefore + 1);
+    }
+
+    /// <summary>A session whose Start never ran ends with its summary, not with a second exception over Start's own.</summary>
+    [Test]
+    public async Task EndSession_Should_Return_The_Summary_When_The_Detector_Never_Started()
+    {
+        using var scenario = new Scenario();
+        var join = new RecordingJoin();
+        var summary = scenario.Detector.EndSession(scenario.Stop, join);
+        await Assert.That(summary).IsEqualTo("sampling-gap summary: count 0; longest 0.00 s; retained 0");
+        await Assert.That(join.Calls).IsEqualTo(0);
+        await Assert.That(scenario.Detector.IsRunning).IsFalse();
     }
 
     [Test]

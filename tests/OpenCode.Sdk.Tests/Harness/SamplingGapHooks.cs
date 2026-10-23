@@ -1,4 +1,7 @@
+using System.Globalization;
+using System.Runtime.InteropServices;
 using OpenCode.Sdk.Tests.Support;
+using Testably.Abstractions;
 using static OpenCode.Sdk.Tests.Harness.SamplingGapDetector;
 
 namespace OpenCode.Sdk.Tests.Harness;
@@ -31,19 +34,39 @@ internal static class SamplingGapHooks
     }
 
     [After(TestSession)]
-    public static void EndSession()
+    public static async Task EndSession()
     {
         try
         {
-            Console.WriteLine(Detector.EndSession(Stop, new DetectorThreadJoin()));
+            var summary = Detector.EndSession(Stop, new DetectorThreadJoin());
+            Console.WriteLine(summary);
+            await WriteSummaryAsync(summary);
         }
         finally
         {
-            if (!Detector.Worker.IsAlive)
+            if (!Detector.IsRunning)
             {
                 Stop.Dispose();
             }
         }
+    }
+
+    /// <summary>
+    /// `dotnet test` does not show a session hook's console output, so the summary also goes to the
+    /// results directory, which CI uploads with the run's other test results.
+    /// </summary>
+    private static async Task WriteSummaryAsync(string summary)
+    {
+        var fileSystem = new RealFileSystem();
+        var directory = new TestResultsDirectory(fileSystem).Resolve(Environment.GetCommandLineArgs());
+        _ = fileSystem.Directory.CreateDirectory(directory);
+        var path = fileSystem.Path.Combine(directory, "sampling-gap-summary-" + ProcessId.ToString(CultureInfo.InvariantCulture) + ".txt");
+        var text = summary + " (" + RuntimeInformation.FrameworkDescription + ")" + Environment.NewLine;
+#if NET
+        await fileSystem.File.WriteAllTextAsync(path, text);
+#else
+        await Task.Run(() => fileSystem.File.WriteAllText(path, text));
+#endif
     }
 
     private static bool WaitTick(TimeSpan tick)
