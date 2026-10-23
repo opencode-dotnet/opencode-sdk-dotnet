@@ -174,6 +174,40 @@ await using var server = await OpenCodeServer.StartAsync(new OpenCodeServerOptio
 });
 ```
 
+Stored provider credentials live in the same database as sessions, under the server's data root.
+**A separate data root is a separate database**: redirecting `XDG_DATA_HOME`, or selecting a fresh
+database with `OPENCODE_DB`, gives the server none of your existing sessions and no stored login.
+An absolute `OPENCODE_DB` still pointing at the shared database defeats data-root isolation.
+On its first start, a fresh database imports legacy credentials from `<data>/opencode/auth.json`
+if that file exists. Provider keys inherited through the environment still work.
+
+Even after redirecting all four roots, a private launch still inherits:
+
+- `OPENCODE_CONFIG` and `OPENCODE_CONFIG_CONTENT`, if set; `OPENCODE_CONFIG_DIR` also overrides
+  the redirected global config directory.
+- The system config directory, which is always read and is not moved by XDG redirection.
+- The project config walk from the location directory upward to the filesystem root:
+  `opencode.json(c)` and `.opencode/`, unless project discovery is disabled.
+- Project/ancestor `AGENTS.md` within the instruction walk's home/project boundary, and configured
+  instruction sources. Access-denied instruction files are skipped; this is not the config walk.
+- Home-based `~/.claude/skills` and `~/.agents/skills`, which follow `HOME` (`USERPROFILE` on
+  Windows), not XDG. Scanning skips hidden entries and dependency/cache directories, descends at
+  most six levels, and stops descending a directory once it finds `SKILL.md`.
+- Enabled MCP servers from every loaded config. They connect asynchronously when a location first
+  initializes; startup skips entries already settled by a concurrent connect/disconnect.
+
+The default location is the server's working directory, so `WorkingDirectory` matters. Redirecting
+the roots is state separation, not a guarantee of configuration or tool isolation.
+
+### Configuration updates across locations
+
+`client.Experimental.UpdateConfigAsync` writes the global config and schedules a reload only of
+the calling location, after a short debounce. It returns before that reload runs. Other loaded
+locations reload only through their file watchers, which can be disabled or unavailable.
+To make every loaded location see the change, call `client.ReloadLocationsAsync()`: it rebuilds
+them, cancelling pending permissions and forms; running sessions continue with fresh services at
+the next step boundary.
+
 ### Clients from a started server
 
 `CreateClient(Action<OpenCodeClientOptions>? configure = null)` builds a client already pinned to
@@ -376,6 +410,62 @@ new registration is refused with `EPERM`.
 
 No credential is ever read from the environment: the password comes from the registration file the
 daemon wrote, which is why the file is created readable by its owner only.
+
+### An isolated background service
+
+Use a released CLI and four separate roots. This recipe assumes `OPENCODE_DB` and
+`OPENCODE_CONFIG_DIR` are unset. Choose a free fixed port distinct from the user's service;
+the released CLI's default is 49374, or 28894 on Windows. The example pins 49375 through
+`<config>/opencode/service.json`, not through `Command` arguments.
+
+Set `RegistrationFilePath` to `<state>/opencode/service.json` on **every Ensure, Discover and Stop
+call**. The SDK finds the registration from its own process environment, not the options'
+`Environment`. Without the explicit path, Ensure can reuse the user's shared service or wait for
+a registration in the wrong place. **A parameterless `StopAsync()` ends the user's shared service.**
+
+```csharp
+using OpenCode.Sdk;
+
+var root = Path.Combine(Path.GetTempPath(), "my-service", Guid.NewGuid().ToString("N"));
+var state = Path.Combine(root, "state");
+var config = Path.Combine(root, "config");
+var registration = Path.Combine(state, "opencode", "service.json");
+var serviceConfig = Path.Combine(config, "opencode");
+Directory.CreateDirectory(serviceConfig);
+await File.WriteAllTextAsync(Path.Combine(serviceConfig, "service.json"), """{"port": 49375}""").ConfigureAwait(false);
+
+try
+{
+    var server = await OpenCodeServer.EnsureAsync(new OpenCodeServerEnsureOptions
+    {
+        RegistrationFilePath = registration,
+        Environment = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["XDG_DATA_HOME"] = Path.Combine(root, "data"),
+            ["XDG_STATE_HOME"] = state,
+            ["XDG_CACHE_HOME"] = Path.Combine(root, "cache"),
+            ["XDG_CONFIG_HOME"] = config,
+        },
+    }).ConfigureAwait(false);
+    var discovered = await OpenCodeServer.DiscoverAsync(new OpenCodeServerDiscoverOptions
+    {
+        RegistrationFilePath = registration,
+    }).ConfigureAwait(false);
+    Console.WriteLine($"ensured {server.Endpoint}; discovered {discovered?.Endpoint}");
+    // Use server.CreateClient() here. Both handles are non-owning; disposal does not stop the service.
+}
+finally
+{
+    await OpenCodeServer.StopAsync(new OpenCodeServerStopOptions
+    {
+        RegistrationFilePath = registration,
+    }).ConfigureAwait(false);
+}
+```
+
+The [inheritance limits above](#what-startasync-does-not-isolate) still apply. Service mode only
+tries to change to the home directory; if that fails, it logs a warning and keeps its launch
+working directory. That resulting directory is the default location for requests without one.
 
 ### Shaping the lookup
 
