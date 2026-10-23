@@ -9,9 +9,16 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
-**The SDK speaks opencode 2.1.x.** The pin moves from 2.0.32 to 2.1.4.
+## [0.9.0-preview.14] - 2026-10-23
+
+**The SDK speaks opencode 2.1.x.** The pinned server moves from 2.0.32 to 2.1.4.
 0.9.0-preview.13 against a 2.1.x server fails reading compaction messages and loses bus events around
-them; upgrade the SDK.
+them, so a wait for the end of a turn can hang; upgrade the SDK. The upgrade changes several
+generated protocol models (listed below), adds a heap-snapshot door, saved-permission updates,
+experimental voice models and instructions, and archived sessions, and makes persistent PTYs work
+on Windows hosts. The SDK's own transport now drops a connection idle for three seconds, which
+fixes reuse of a closed socket on .NET Framework, and on macOS a server ended with a whole-tree
+`Process.Kill` is now reaped instead of staying a zombie.
 
 ### 💥 Breaking changes
 
@@ -1787,6 +1794,7 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[0.9.0-preview.14]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.14
 [0.9.0-preview.13]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.13
 [0.9.0-preview.12]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.12
 [0.9.0-preview.11]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.11
