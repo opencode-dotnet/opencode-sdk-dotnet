@@ -287,6 +287,26 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN']);
             core.exportVariable('ACTIONS_RESULTS_URL', process.env['ACTIONS_RESULTS_URL']);
 
+      # EXPERIMENT for #466 (do not merge). The arm follows the run attempt, so both arms run the same
+      # commit and workflow: odd attempts are the control arm (status logged, nothing changed), even
+      # attempts turn Defender real-time monitoring off. Both log the resulting status, so a refused
+      # change shows as "treatment not applied" rather than a false negative.
+      - name: Defender experiment arm (#466)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $attempt = [int]'${{ github.run_attempt }}'
+          $arm = if ($attempt % 2 -eq 0) { 'treatment' } else { 'control' }
+          $note = 'unchanged'
+          if ($arm -eq 'treatment') {
+            try { Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction Stop; $note = 'Set-MpPreference applied' }
+            catch { $note = "Set-MpPreference failed: $($_.Exception.Message)" }
+          }
+          $status = Get-MpComputerStatus
+          $line = "defender-experiment: attempt $attempt arm $arm ($note) RealTimeProtectionEnabled=$($status.RealTimeProtectionEnabled) IsTamperProtected=$($status.IsTamperProtected) AMProductVersion=$($status.AMProductVersion)"
+          New-Item -ItemType Directory -Force "$env:GITHUB_WORKSPACE/test-results" | Out-Null
+          $line | Tee-Object -FilePath "$env:GITHUB_WORKSPACE/test-results/defender-experiment.txt"
+
       # The number of test modules at once is the matrix's test-modules value, measured per runner
       # rather than left to MTP's processor-count default: Windows 4, Linux 4, macOS 3 (four saves
       # only about 3% there).
