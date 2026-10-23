@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-10-18
+Date: 2026-10-23
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -235,8 +235,12 @@ target framework updates it in the same change.
 
 Every CI test pass runs under a 25-minute session `--timeout`, about four times the slowest
 measured module (`OpenCode.Sdk.Tests` on net472 on Windows, under six minutes), so a hung module
-fails inside its step instead of at the job timeout. An expired session exits with code 7 and keeps
-the TRX of the rows that finished, but it does not name the rows still in flight. When the main
+fails inside its step instead of at the job timeout. That timeout runs inside the test host, and a
+hang that stops the host's own timer stops it too. So each test step also carries
+`timeout-minutes: 35`, which the runner enforces from outside the host: a hung pass fails its step
+within 35 minutes, before the merge queue's 60-minute check timeout drops the pull request. An
+expired session exits with code 7 and keeps the TRX of the rows that finished, but it does not name
+the rows still in flight. When the main
 pass fails, the job also writes that pass's test listing to `test-results/main/listed-tests.txt`,
 and the rows in flight are among those listed but not recorded.
 

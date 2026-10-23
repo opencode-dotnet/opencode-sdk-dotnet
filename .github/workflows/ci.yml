@@ -302,10 +302,13 @@ jobs:
       # every pass, and they leave the HTML report upload to the first pass, whose artifact names
       # (assembly, OS, framework) they would repeat.
       #
-      # Every pass ends a hung module inside its step under a session --timeout; the listing below,
-      # written only when the main pass fails, narrows the rows in flight (quality-gates.md).
+      # Every pass runs under a session --timeout inside the test host, and under the step's
+      # timeout-minutes outside it, which also ends a hang that stops the host's own timer; the
+      # listing below, written only when the main pass fails, narrows the rows in flight
+      # (quality-gates.md).
       - name: Test
         id: test
+        timeout-minutes: 35
         run: dotnet test --configuration Release --no-build --max-parallel-test-modules ${{ matrix.test-modules }} -- --report-trx --results-directory "${{ github.workspace }}/test-results/main" --treenode-filter "/*/*/*/*[(Category!=ServiceElection)&(Category!=NativeAot)]" --minimum-expected-tests 1 --timeout 25m
         env:
           TUNIT_ARTIFACT_RETENTION_DAYS: 7
@@ -316,6 +319,7 @@ jobs:
 
       - name: Test (service elections)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        timeout-minutes: 35
         run: dotnet test --project "${{ github.workspace }}/tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --report-trx --results-directory "${{ github.workspace }}/test-results/service-elections" --treenode-filter "/*/*/*/*[Category=ServiceElection]" --minimum-expected-tests 1 --timeout 25m
         env:
           TUNIT_ARTIFACT_RETENTION_DAYS: 7
@@ -326,6 +330,7 @@ jobs:
       # host's native toolchain and runs the host's own runtime identifier.
       - name: Test (native AOT)
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        timeout-minutes: 35
         run: dotnet test --project "${{ github.workspace }}/tests/OpenCode.Sdk.Tools.Tests/OpenCode.Sdk.Tools.Tests.csproj" --configuration Release --no-build --max-parallel-test-modules 1 -- --report-trx --results-directory "${{ github.workspace }}/test-results/native-aot" --treenode-filter "/*/*/*/*[Category=NativeAot]" --minimum-expected-tests 1 --timeout 25m
         env:
           TUNIT_ARTIFACT_RETENTION_DAYS: 7
