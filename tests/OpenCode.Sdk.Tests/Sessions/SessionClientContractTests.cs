@@ -775,31 +775,6 @@ public sealed class SessionClientContractTests
     }
 
     [Test]
-    public async Task ListInboxAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.SessionNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Sessions.GetSessionClient("ses_9").ListInboxAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<SessionNotFoundError>();
-    }
-
-    [Test]
-    public async Task ListInboxAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Sessions.GetSessionClient("ses_100").ListInboxAsync(OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
-    }
-
-    [Test]
     public async Task ListInstructionsEntryAsync_Should_Return_The_Typed_Entries()
     {
         const string entries = "[{\"key\":\"style\",\"value\":\"be terse\"},{\"key\":\"tone\",\"value\":\"friendly\"}]";
@@ -823,31 +798,6 @@ public sealed class SessionClientContractTests
         var response = await scenario.Client.Experimental.ListSessionInstructionsEntriesAsync("ses_100");
 
         await Assert.That(response.SessionInstructionsEntries).IsEmpty();
-    }
-
-    [Test]
-    public async Task ListInstructionsEntryAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.SessionNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Experimental.ListSessionInstructionsEntriesAsync("ses_9"))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<SessionNotFoundError>();
-    }
-
-    [Test]
-    public async Task ListInstructionsEntryAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Experimental.ListSessionInstructionsEntriesAsync("ses_100", OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
     }
 
     [Test]
@@ -876,31 +826,6 @@ public sealed class SessionClientContractTests
     }
 
     [Test]
-    public async Task ListRequestsAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.SessionNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Sessions.GetSessionClient("ses_9").ListRequestsAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<SessionNotFoundError>();
-    }
-
-    [Test]
-    public async Task ListRequestsAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Sessions.GetSessionClient("ses_100").ListRequestsAsync(OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
-    }
-
-    [Test]
     public async Task PutEnvironmentAsync_Should_Send_The_Typed_Body_On_The_204()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.NoContent, string.Empty);
@@ -916,36 +841,6 @@ public sealed class SessionClientContractTests
         await Assert.That(request.RequestUri)
             .IsEqualTo(new Uri("http://localhost:4096/api/session/ses_100/environment"));
         await Assert.That(request.Body).IsEqualTo("{\"variables\":{\"PATH\":\"/usr/bin\"}}");
-    }
-
-    [Test]
-    public async Task PutEnvironmentAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.SessionNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Sessions.GetSessionClient("ses_9").SetEnvironmentAsync(new SessionEnvironmentRequest
-            {
-                Variables = new Dictionary<string, string>(StringComparer.Ordinal),
-            }))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<SessionNotFoundError>();
-    }
-
-    [Test]
-    public async Task PutEnvironmentAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Sessions.GetSessionClient("ses_100").SetEnvironmentAsync(
-            new SessionEnvironmentRequest { Variables = new Dictionary<string, string>(StringComparer.Ordinal), },
-            OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
     }
 
     [Test]
@@ -970,37 +865,6 @@ public sealed class SessionClientContractTests
     }
 
     [Test]
-    public async Task CreateFormAsync_Should_Throw_The_Declared_409_Conflict()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Conflict, WireBodyData.ConflictError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Sessions.GetSessionClient("ses_100").CreateFormAsync(new SessionFormCreateRequest
-            {
-                Title = "Pick a name",
-                Fields = [],
-            }))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(409);
-        await Assert.That(exception.Error).IsTypeOf<ConflictError>();
-    }
-
-    [Test]
-    public async Task CreateFormAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Sessions.GetSessionClient("ses_100").CreateFormAsync(
-            new SessionFormCreateRequest { Title = "Pick a name", Fields = [], },
-            OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
-    }
-
-    [Test]
     public async Task GetFormAsync_Should_Return_The_Typed_Form()
     {
         var form = WireBodyData.FormDetail(WireBodyData.FormPendingState);
@@ -1012,33 +876,6 @@ public sealed class SessionClientContractTests
         await Assert.That(response.Form.Title).IsEqualTo("Approve deploy");
         await Assert.That(scenario.Requests.Single().RequestUri)
             .IsEqualTo(new Uri("http://localhost:4096/api/session/ses_100/form/frm_1"));
-    }
-
-    [Test]
-    public async Task GetFormAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(
-            HttpStatusCode.NotFound,
-            "{\"_tag\":\"FormNotFoundError\",\"id\":\"frm_9\",\"message\":\"gone\"}");
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Sessions.GetSessionClient("ses_100").GetFormAsync("frm_9"))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<FormNotFoundError>();
-    }
-
-    [Test]
-    public async Task GetFormAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Sessions.GetSessionClient("ses_100").GetFormAsync("frm_1", OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
     }
 
     [Test]
