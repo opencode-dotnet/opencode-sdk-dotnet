@@ -9,11 +9,15 @@ namespace OpenCode.Sdk.Tests.Hosting.Platform.Posix;
 /// The exit watch against scripted seams, with no process: the status a reap decodes, the unknown
 /// status of a wait that fails or throws, the pid fallback that signals only an unreaped child
 /// (asked of <c>waitpid</c> without hanging, so a child something else reaped is never signalled),
-/// and the probe the watch falls back to when the kernel reaps children itself.
+/// and the probe the watch falls back to when the kernel reaps children itself or the wait reports
+/// a child that only stopped.
 /// </summary>
 public sealed class PosixChildExitWatchTests
 {
     private const int Pid = 4242;
+
+    /// <summary>How many probes a stopped child must answer before a test reads that no exit was reported.</summary>
+    private const int StoppedProbeRounds = 3;
 
     private static readonly TimeSpan ProbeBound = TimeSpan.FromSeconds(10);
 
@@ -55,6 +59,79 @@ public sealed class PosixChildExitWatchTests
         await Assert.That(await ChildExitObservation.WithinAsync(watch, ProbeBound)).IsEqualTo(ChildExitStatus.Unknown);
         await Assert.That(watch.SignalRootWhileUnreaped(ProcessSignal.Kill)).IsEqualTo(SignalDelivery.NoSuchTarget);
         _ = signals.DidNotReceive().SignalProcess(Arg.Any<int>(), Arg.Any<ProcessSignal>());
+    }
+
+    /// <summary>
+    /// macOS also ends the blocked wait when the child only stops, as .NET's whole-tree kill stops it
+    /// before its <c>SIGKILL</c>. The reap then finds no exit, so the watch probes on, and it reaps
+    /// and reports the real exit once that comes.
+    /// </summary>
+    [Test]
+    public async Task Exited_Should_Report_The_Real_Exit_After_A_Stop_Report()
+    {
+        using var exits = new ScriptedChildExit();
+        var probed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var signals = Substitute.For<IProcessGroupSignal>();
+        _ = signals.ProbeProcess(Pid).Returns(call =>
+        {
+            _ = probed.TrySetResult();
+            return SignalDelivery.Delivered;
+        });
+        var watch = PosixChildExitWatch.Start(Pid, exits, signals, childrenReapedAutomatically: false);
+
+        exits.Stop();
+        try
+        {
+            // The child exits only once the watch acted on the stop report, by ending or by probing.
+            _ = await Task.WhenAny(watch.Exited, probed.Task).WaitAsync(ProbeBound);
+        }
+        finally
+        {
+            exits.Exit(new ChildExitStatus { Signal = 9 });
+        }
+
+        await Assert.That(await ChildExitObservation.WithinAsync(watch, ProbeBound)).IsEqualTo(new ChildExitStatus { Signal = 9 });
+        await Assert.That(watch.SignalRootWhileUnreaped(ProcessSignal.Kill)).IsEqualTo(SignalDelivery.NoSuchTarget);
+        _ = signals.DidNotReceive().SignalProcess(Arg.Any<int>(), Arg.Any<ProcessSignal>());
+    }
+
+    /// <summary>
+    /// A stopped child has not exited: after the stop report the watch probes, reports nothing for
+    /// as many rounds as the child stays stopped, and reports the exit that comes later. The verdict
+    /// waits for the probe rounds, not for a clock.
+    /// </summary>
+    [Test]
+    public async Task Exited_Should_Stay_Pending_While_The_Child_Is_Only_Stopped()
+    {
+        using var exits = new ScriptedChildExit();
+        var probes = 0;
+        var probedWhileStopped = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var signals = Substitute.For<IProcessGroupSignal>();
+        _ = signals.ProbeProcess(Pid).Returns(call =>
+        {
+            if (Interlocked.Increment(ref probes) >= StoppedProbeRounds)
+            {
+                _ = probedWhileStopped.TrySetResult();
+            }
+
+            return SignalDelivery.Delivered;
+        });
+        var watch = PosixChildExitWatch.Start(Pid, exits, signals, childrenReapedAutomatically: false);
+        bool pendingWhileStopped;
+
+        exits.Stop();
+        try
+        {
+            _ = await Task.WhenAny(watch.Exited, probedWhileStopped.Task).WaitAsync(ProbeBound);
+            pendingWhileStopped = !watch.Exited.IsCompleted;
+        }
+        finally
+        {
+            exits.Exit(new ChildExitStatus { ExitCode = 3 });
+        }
+
+        await Assert.That(pendingWhileStopped).IsTrue();
+        await Assert.That(await ChildExitObservation.WithinAsync(watch, ProbeBound)).IsEqualTo(new ChildExitStatus { ExitCode = 3 });
     }
 
     [Test]

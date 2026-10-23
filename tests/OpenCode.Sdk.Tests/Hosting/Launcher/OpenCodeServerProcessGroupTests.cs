@@ -47,6 +47,9 @@ public sealed class OpenCodeServerProcessGroupTests
     /// <summary>The code a Windows tree kill or its fallback gives every process it ends, upstream's own.</summary>
     private const int WindowsForcedExitCode = 1;
 
+    /// <summary>The code <c>Process.Kill</c> gives on Windows: it calls <c>TerminateProcess</c> with -1.</summary>
+    private const int WindowsProcessKillExitCode = -1;
+
     [Test]
     [Timeout(120_000)]
     public async Task StartAsync_Should_Place_The_Server_In_A_Session_And_Group_Of_Its_Own(CancellationToken cancellationToken)
@@ -443,7 +446,158 @@ public sealed class OpenCodeServerProcessGroupTests
         }
     }
 
+    /// <summary>
+    /// A consumer ends the server the way .NET ends a whole tree, through a <c>Process</c> of its own
+    /// for the server's pid. On Linux and macOS that kill stops the tree before it kills it, and macOS
+    /// reports the stop to the exit watch's wait. The watch still reports the <c>SIGKILL</c> and reaps
+    /// the server, so the consumer's own wait ends: that <c>Process</c> did not start the server, so it
+    /// asks <c>kill(pid, 0)</c>, which a zombie still answers.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    public async Task Kill_Of_The_Whole_Tree_Should_Reap_The_Server_For_A_Foreign_Process(CancellationToken cancellationToken)
+    {
+        var output = new OpenCodeServerOutput();
+        var server = await OpenCodeServer.StartAsync(LadderTree.Options(output, Grace), cancellationToken);
+        try
+        {
+            using var foreign = Process.GetProcessById(server.ProcessId);
+#if NET
+            foreign.Kill(entireProcessTree: true);
+#else
+            // .NET Framework runs on Windows only and has no whole-tree kill of its own; the
+            // stand-in has no children for one to reach.
+            foreign.Kill();
+#endif
+            var foreignEnded = await ProcessObservation.ObserveExitWithinAsync(foreign, ObservationBound, cancellationToken);
+            var exit = await ChildExitObservation.WithinAsync(server, ObservationBound);
+            await server.DisposeAsync();
+
+            await Assert.That(foreignEnded).IsTrue();
+            if (OperatingSystem.IsWindows())
+            {
+                await Assert.That(exit.ExitCode).IsEqualTo(WindowsProcessKillExitCode);
+            }
+            else
+            {
+                await Assert.That(exit.Signal).IsEqualTo(Kill);
+            }
+
+            Console.WriteLine("branch: " + Platform() + " — the whole-tree kill ended the root (" + exit.Describe() + "), and the consumer's own wait ended");
+        }
+        finally
+        {
+            await AssertEveryReportedProcessEndedAsync(output);
+        }
+    }
+
+    /// <summary>
+    /// A stopped server has not exited. macOS reports the stop to the exit watch's wait, and the watch
+    /// then probes and reports no exit while the server stays stopped; Linux reports no stop to that
+    /// wait at all. After <c>SIGCONT</c> the normal close ends the server, and its real exit is
+    /// reported and reaped. The verdict waits for the watch's probe on macOS and for the stopped state
+    /// on Linux, never for a clock. Windows has no job-control stop to send.
+    /// </summary>
+    [Test]
+    [Timeout(120_000)]
+    public async Task ChildExited_Should_Wait_For_A_Stopped_Server_And_Report_Its_Later_Exit(CancellationToken cancellationToken)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            Console.WriteLine("branch: " + Platform() + " — no job-control stop to send");
+            return;
+        }
+
+        var output = new OpenCodeServerOutput();
+        var waitReturned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var probed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var server = await OpenCodeServer.StartWithSeamsAsync(
+            LadderTree.Options(output, Grace),
+            LauncherSeams.ForCurrentProcess() with { Signals = ProbeRecordingSignals(probed), Exits = WaitRecordingExits(waitReturned) },
+            cancellationToken);
+        try
+        {
+            bool exitedWhileStopped;
+            bool waitReportedTheStop;
+            await Assert.That(PosixProcessProbe.SignalProcess(server.ProcessId, PosixProcessProbe.Stop)).IsTrue();
+            try
+            {
+                if (OperatingSystem.IsMacOS())
+                {
+                    // The stop ends the watch's wait; the verdict waits for the watch to act on it, by ending or by probing.
+                    _ = await Task.WhenAny(server.ChildExited, probed.Task).WaitAsync(ObservationBound, cancellationToken);
+                }
+                else
+                {
+                    await StoppedOnLinuxAsync(server.ProcessId, cancellationToken);
+                }
+
+                exitedWhileStopped = server.ChildExited.IsCompleted;
+                waitReportedTheStop = waitReturned.Task.IsCompleted;
+            }
+            finally
+            {
+                _ = PosixProcessProbe.SignalProcess(server.ProcessId, PosixProcessProbe.Continue);
+            }
+
+            await server.DisposeAsync();
+            var exit = await ChildExitObservation.WithinAsync(server, ObservationBound);
+
+            await Assert.That(exitedWhileStopped).IsFalse();
+            await Assert.That(waitReportedTheStop).IsEqualTo(OperatingSystem.IsMacOS());
+            await Assert.That(exit.Signal).IsEqualTo(Terminate);
+            await Assert.That(ProcessObservation.IsRunning(server.ProcessId)).IsFalse();
+            Console.WriteLine("branch: " + (OperatingSystem.IsMacOS() ? "macOS — the wait reported the stop, the watch probed" : "Linux — the wait reported no stop") + "; after SIGCONT the root " + exit.Describe());
+        }
+        finally
+        {
+            await AssertEveryReportedProcessEndedAsync(output);
+        }
+    }
+
     private static string Platform() => OperatingSystem.IsWindows() ? "Windows" : "POSIX";
+
+    /// <summary>The shipped group signal behind a substitute that completes <paramref name="probed"/> at the exit watch's first probe.</summary>
+    private static IProcessGroupSignal ProbeRecordingSignals(TaskCompletionSource probed)
+    {
+        var real = new ProcessGroupSignal();
+        var recording = RecordingSignals();
+        _ = recording.ProbeProcess(Arg.Any<int>()).Returns(call =>
+        {
+            _ = probed.TrySetResult();
+            return real.ProbeProcess(call.Arg<int>());
+        });
+        return recording;
+    }
+
+    /// <summary>The shipped exit reader behind a substitute that completes <paramref name="waitReturned"/> when the exit watch's blocking wait returns.</summary>
+    private static IChildExitStatus WaitRecordingExits(TaskCompletionSource waitReturned)
+    {
+        var real = new ChildExitStatusReader();
+        var recording = Substitute.For<IChildExitStatus>();
+        _ = recording.AreChildrenReapedAutomatically().Returns(_ => real.AreChildrenReapedAutomatically());
+        _ = recording.IsUnreapedChild(Arg.Any<int>()).Returns(call => real.IsUnreapedChild(call.Arg<int>()));
+        _ = recording.Reap(Arg.Any<int>()).Returns(call => real.Reap(call.Arg<int>()));
+        _ = recording.WaitUntilExited(Arg.Any<int>()).Returns(call =>
+        {
+            var observed = real.WaitUntilExited(call.Arg<int>());
+            _ = waitReturned.TrySetResult();
+            return observed;
+        });
+        return recording;
+    }
+
+    /// <summary>Waits until Linux shows the process stopped (state <c>T</c>), under the observation bound as a hang guard.</summary>
+    private static async Task StoppedOnLinuxAsync(int processId, CancellationToken cancellationToken)
+    {
+        using var guard = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        guard.CancelAfter(ObservationBound);
+        var fileSystem = new RealFileSystem();
+        while (await PosixProcessProbe.LinuxStateOfAsync(fileSystem, processId, guard.Token) != 'T')
+        {
+            await Task.Delay(TimeSpan.FromMilliseconds(10), guard.Token);
+        }
+    }
 
     /// <summary>The shipped group signal behind a substitute that records every call it forwards.</summary>
     private static IProcessGroupSignal RecordingSignals()
