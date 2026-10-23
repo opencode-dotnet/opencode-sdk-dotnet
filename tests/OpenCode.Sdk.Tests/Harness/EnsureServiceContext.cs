@@ -28,6 +28,12 @@ internal sealed class EnsureServiceContext : IAsyncDisposable
     private static readonly TimeSpan ExitBound = TimeSpan.FromSeconds(15);
 
     /// <summary>
+    /// Bounds <see cref="ReserveUnguardedPort"/>: three guarded ports and the caller's own port can be
+    /// refused, each at most once because a refused port stays held, so the fifth reservation is free.
+    /// </summary>
+    internal const int ReservationAttempts = 5;
+
+    /// <summary>
     /// The bound the pinned CLI's election test gives its losers to leave
     /// (<c>concurrent service processes elect one server</c> in <c>packages/cli/test/service.test.ts</c>).
     /// </summary>
@@ -296,7 +302,7 @@ internal sealed class EnsureServiceContext : IAsyncDisposable
     {
         _runRoot = new TestRunRoot(_fileSystem);
         _isolation = ServerIsolation.For(_fileSystem, _runRoot.Path);
-        _port = RefuseRealDaemonPort(LoopbackPortReservation.Reserve());
+        _port = ReserveUnguardedPort(LoopbackPortReservation.Hold);
         _registrationFile = _fileSystem.Path.Combine(
             Environment["XDG_STATE_HOME"], "opencode", _channelFile!);
         await SeedConfigAsync(cancellationToken).ConfigureAwait(false);
@@ -304,6 +310,50 @@ internal sealed class EnsureServiceContext : IAsyncDisposable
         _ledgerPath = _fileSystem.Path.Combine(_runRoot.Path, "contenders.ledger");
         _ledger = new ContenderLedger(_fileSystem, _ledgerPath);
         _shimPath = await OpenCodeCommandShim.WriteAsync(_fileSystem, _shimDirectory, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Reserves a free loopback port that no real daemon could own. The OS chooses the port, and
+    /// Windows chooses from a dynamic range (49152-65535) that contains <see cref="RealDaemonPort"/>,
+    /// so a clean host can be handed a guarded port: that is a reservation to take again, not a
+    /// contaminated environment. Every refused reservation stays held until this returns, so the OS
+    /// cannot hand the same port back; <see cref="RefuseRealDaemonPort"/> refuses the run only when
+    /// every attempt lands on a guarded port.
+    /// </summary>
+    /// <param name="hold">Binds and holds one OS-chosen loopback port.</param>
+    /// <param name="except">A port the caller already uses, refused the same way; 0 for none.</param>
+    /// <returns>The reserved port, released for the caller to bind.</returns>
+    internal static int ReserveUnguardedPort(Func<HeldLoopbackPort> hold, int except = 0)
+    {
+        var refused = new List<HeldLoopbackPort>();
+        try
+        {
+            while (true)
+            {
+                var held = hold();
+                if (held.Port != except && held.Port is not (WindowsReleasePort or LegacyWindowsReleasePort or RealDaemonPort))
+                {
+                    held.Dispose();
+                    return held.Port;
+                }
+
+                refused.Add(held);
+                if (refused.Count == ReservationAttempts)
+                {
+                    _ = RefuseRealDaemonPort(held.Port);
+                    throw new InvalidOperationException(
+                        $"Every one of {ReservationAttempts.ToString(CultureInfo.InvariantCulture)} reserved loopback ports was refused; "
+                        + $"the last was {held.Port.ToString(CultureInfo.InvariantCulture)}, the port the caller already uses.");
+                }
+            }
+        }
+        finally
+        {
+            foreach (var held in refused)
+            {
+                held.Dispose();
+            }
+        }
     }
 
     internal static int RefuseRealDaemonPort(int port)
