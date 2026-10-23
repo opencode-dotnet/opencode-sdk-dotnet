@@ -28,6 +28,8 @@ Nightly builds of `master` are on
   `SetVoiceSessionInstructionsAsync` join the surface. Sessions gain `Archived` filters and updates
   and archived/unarchived events; models and provider compatibility gain `StreamUsage`, structured
   errors gain `RetryAfterMs`, and experimental config gains `Todo`, `BackgroundCompaction` and `LocationIdleTimeout`.
+- **Persistent PTYs work on Windows hosts.** opencode 2.1.x ships the `opencode-pty` daemon for
+  win32 too, so `create` no longer answers the daemon-absent 503 there.
 
 ### 🔧 Changes
 

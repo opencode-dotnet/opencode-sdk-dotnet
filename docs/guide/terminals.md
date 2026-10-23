@@ -12,7 +12,7 @@ opencode has two terminal families, and they are genuinely different animals:
 | Output on the wire | text frames | raw bytes |
 | Input | `SubmitAsync(string)`, or raw `WriteAsync(string)` | `SubmitAsync(string)`, or raw `WriteAsync(ReadOnlyMemory<byte>)` |
 | Resize | `PtyClient.UpdateAsync` with `Size`, over HTTP | `ResizeAsync` on the session, over the socket |
-| Available on Windows | ✅ yes | ❌ no — [see the platform note](#-the-windows-platform-note) |
+| Available on Windows | ✅ yes | ✅ yes, from opencode 2.1.x — [when the daemon is unavailable](#-when-the-daemon-is-unavailable) |
 
 Both live sessions ride a **WebSocket**, not the HTTP pipeline. They are the only two doors in the
 SDK that do, and they are hand-written for exactly that reason — a socket upgrade cannot be
@@ -22,7 +22,7 @@ generated from an OpenAPI document.
 - [♻️ Resuming with a cursor](#️-resuming-with-a-cursor)
 - [🧷 Persistent PTYs](#-persistent-ptys)
 - [🛑 Cancellation, deadlines, and disposal](#-cancellation-deadlines-and-disposal)
-- [🪟 The Windows platform note](#-the-windows-platform-note)
+- [🪟 When the daemon is unavailable](#-when-the-daemon-is-unavailable)
 - [🎫 Connect tokens](#-connect-tokens)
 
 ## 🧵 A normal PTY, end to end
@@ -312,15 +312,16 @@ and moves when a `ResizeAsync` send succeeds. A `PersistentPtyResizedFrame` tell
 server is rendering — it does not overwrite what you asked for, and every input you send carries a
 size coherent with its place in the send order.
 
-## 🪟 The Windows platform note
+## 🪟 When the daemon is unavailable
 
-**Persistent PTYs do not work on Windows hosts.** At the pinned snapshot, upstream's `opencode-pty`
-daemon ships `darwin` and `linux` platform packages only — that is the whole root cause. The
-server says so up front: `Server.GetInfoAsync()` reports `Capabilities.PersistentPty` as `false` on
-a Windows host and `true` elsewhere; a server that predates the flag leaves `Capabilities` null.
+**Persistent PTYs work on Windows, macOS and Linux hosts.** From the pinned 2.1.x snapshot on,
+upstream's `opencode-pty` daemon ships a `win32` binary as well as `darwin` and `linux` ones; an
+older server on Windows has none. The server says up front whether it can run the daemon:
+`Server.GetInfoAsync()` reports `Capabilities.PersistentPty`, and a server that predates the flag
+leaves `Capabilities` null.
 
-`create` is the one route that starts the daemon, so on Windows it answers the API's declared
-**HTTP 503** with a `ServiceUnavailableError` whose `Service` is `opencode-pty`. Every other route
+`create` is the one route that starts the daemon, so where the daemon is unavailable it answers the
+API's declared **HTTP 503** with a `ServiceUnavailableError` whose `Service` is `opencode-pty`. Every other route
 takes its daemon-absent arm rather than erroring: `list` returns an empty list, `read` a null
 payload, the id-keyed reads and writes a 404 they share with an unknown id, `shutdown` a 204, and
 `connect` closes with 4404.

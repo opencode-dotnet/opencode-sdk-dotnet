@@ -19,21 +19,13 @@ public sealed class PersistentPtyDaemonGateTests
     }
 
     /// <summary>
-    /// The expectation is spelled per platform rather than re-derived from the production
-    /// expression: mirroring the formula would pass whatever the formula became. The pinned
-    /// upstream ships darwin and linux daemon packages only, so Windows is the daemon-absent leg
-    /// and every other platform is the daemon-present one.
+    /// From the pinned 2.1.x upstream on, the daemon package ships a win32 binary as well as darwin
+    /// and linux ones, so an unset override expects the daemon on every platform, Windows included.
     /// </summary>
     [Test]
-    public async Task Resolve_Should_Return_The_Platform_Default_When_The_Override_Is_Unset()
+    public async Task Resolve_Should_Expect_The_Daemon_When_The_Override_Is_Unset()
     {
         var result = PersistentPtyDaemonGate.Resolve(static _ => null);
-
-        if (OperatingSystem.IsWindows())
-        {
-            await Assert.That(result).IsFalse();
-            return;
-        }
 
         await Assert.That(result).IsTrue();
     }
