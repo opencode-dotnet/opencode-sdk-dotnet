@@ -25,7 +25,7 @@
       "behavior": "A non-empty ticket query on a request routed to the PTY or persistent-PTY connect endpoint and the client MCP attach, and a request routed to the pairing link /auth/connect/:code, skip the credential check, so the hand-written door authenticates the WebSocket upgrade with the ticket alone and a pairing code is redeemed with no other credential.",
       "anchor": {
         "type": "contains",
-        "text": "route.route.path === MCP_CLIENT_PATH) \u0026\u0026"
+        "text": "route.route.path === PTY_CONNECT_PATH ||"
       }
     },
     {
@@ -368,6 +368,15 @@
       "anchor": {
         "type": "contains",
         "text": "export const SessionsQuery = Schema.Struct({"
+      }
+    },
+    {
+      "path": "packages/schema/src/session.ts",
+      "sha256": "3a7d100a8627b62d8530cd99af835cbb756881651382c1461a89eec2746ddcb5",
+      "behavior": "Session.ListFilter declares the session list order for the first page only (desc newest first, asc oldest first); a continuation takes its order and filters from the opaque cursor, which the cursor-list spine and CursorSequence depend on.",
+      "anchor": {
+        "type": "contains",
+        "text": "Session order for the first page"
       }
     },
     {

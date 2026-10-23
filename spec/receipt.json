@@ -242,6 +242,11 @@
       "anchorMatched": true
     },
     {
+      "path": "packages/schema/src/session.ts",
+      "sha256": "3a7d100a8627b62d8530cd99af835cbb756881651382c1461a89eec2746ddcb5",
+      "anchorMatched": true
+    },
+    {
       "path": "packages/protocol/src/errors.ts",
       "sha256": "41f93874d85d8fad1225eb30366b3ea56bef1f09a17929bf67aa095b3e99d5ee",
       "anchorMatched": true

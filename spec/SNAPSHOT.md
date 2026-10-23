@@ -52,6 +52,10 @@ The `refresh-spec` synchronizer owns refreshes (ADR-0020):
    receipt and its date from the injected `TimeProvider`'s UTC date at apply time, moves the
    `external/opencode` submodule checkout to the same commit, re-pins `spec/source-watch.json`
    for any watched hash that moved, and writes `spec/receipt.json`; it stages and commits nothing.
+   Until the moved submodule gitlink is staged or committed, the Sdk tests refuse to start: their
+   pinned-server prerequisite compares the gitlink recorded in the index with the checked-out
+   submodule. A fresh worktree on a commit that carries the new gitlink passes after
+   `git submodule update --init --depth 1 external/opencode`.
 
 Prepare also observes every entry of `spec/source-watch.json` at the candidate commit and records
 its hash and anchor verdict in the receipt's `watchedSources`; verify checks those pins against the
