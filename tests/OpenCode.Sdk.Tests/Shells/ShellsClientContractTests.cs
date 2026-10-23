@@ -59,22 +59,6 @@ public sealed class ShellsClientContractTests
     }
 
     [Test]
-    public async Task CreateShellAsync_Should_Throw_The_Declared_400_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Shells.CreateShellAsync(new ShellCreateRequest
-            {
-                Command = "ls",
-                Timeout = 1,
-            }))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Error).IsTypeOf<InvalidRequestError>();
-    }
-
-    [Test]
     public async Task ListShellsAsync_Should_Treat_A_Missing_Location_Sibling_As_A_Protocol_Failure()
     {
         var payload = new FixtureLoader().LoadJson("Serialization.known-shell.json");

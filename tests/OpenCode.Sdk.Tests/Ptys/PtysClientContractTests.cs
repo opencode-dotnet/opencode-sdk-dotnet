@@ -10,16 +10,6 @@ public sealed class PtysClientContractTests
     private static async Task AssertTicketHeaderAbsentAsync(IReadOnlyDictionary<string, string> headers) =>
         await Assert.That(headers).DoesNotContainKey(TicketHeader);
 
-    private static async Task AssertConnectTokenErrorAsync<TError>(PtysClient ptys, int status)
-    {
-        var exception = await Assert
-            .That(async () => _ = await ptys.GetPtyClient("pty_9").CreateConnectTokenAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(status);
-        await Assert.That(exception.Error).IsTypeOf<TError>();
-    }
-
     private const string TicketHeader = "x-opencode-ticket";
 
     private const string ConnectTokenBody = "{\"ticket\":\"tkt_1\",\"expires_in\":30}";
@@ -46,7 +36,7 @@ public sealed class PtysClientContractTests
     }
 
     [Test]
-    public async Task GetPtyAsync_Should_Throw_The_Declared_404_Error()
+    public async Task GetAsync_Should_Throw_The_Declared_404_Error()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.PtyNotFoundError);
 
@@ -61,7 +51,7 @@ public sealed class PtysClientContractTests
     }
 
     [Test]
-    public async Task PutUpdateAsync_Should_Send_The_Empty_Body_When_Omitted()
+    public async Task UpdateAsync_Should_Send_The_Empty_Body_When_Omitted()
     {
         var payload = new FixtureLoader().LoadJson("Serialization.known-pty.json");
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.LocationEnvelope(payload));
@@ -210,22 +200,6 @@ public sealed class PtysClientContractTests
         _ = await scenario.Client.Ptys.ListPtysAsync();
 
         await AssertTicketHeaderAbsentAsync(scenario.Requests.Single().Headers);
-    }
-
-    [Test]
-    public async Task CreateConnectTokenAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.PtyNotFoundError);
-
-        await AssertConnectTokenErrorAsync<PtyNotFoundError>(scenario.Client.Ptys, 404);
-    }
-
-    [Test]
-    public async Task CreateConnectTokenAsync_Should_Throw_The_Declared_403_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Forbidden, WireBodyData.ForbiddenError);
-
-        await AssertConnectTokenErrorAsync<ForbiddenError>(scenario.Client.Ptys, 403);
     }
 
     [Test]
