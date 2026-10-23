@@ -51,6 +51,8 @@ public sealed class DeclaredErrorTests
         .. ShellsDeclaredErrors.Rows(),
         .. SessionsDeclaredErrors.Rows(),
         .. SessionsDeclaredErrors.Rows2(),
+        .. SessionsDeclaredErrors.Rows3(),
+        .. SessionsDeclaredErrors.Rows4(),
     ];
 
     [Test]
