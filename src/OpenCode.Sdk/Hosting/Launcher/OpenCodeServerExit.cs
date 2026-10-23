@@ -6,6 +6,9 @@ namespace OpenCode.Sdk;
 /// <summary>
 /// How an owned server ended, as <see cref="OpenCodeServer.Exited"/> reports it: an exit code, a
 /// terminating signal, or an unknown status. Exactly the members <see cref="Kind"/> names are set.
+/// The server handles <c>SIGTERM</c>/<c>SIGINT</c>: Linux/macOS disposal normally reports
+/// <see cref="OpenCodeServerExitKind.Exited"/> with code 130 (Windows: code 1).
+/// Only unhandled signals, such as <c>SIGKILL</c>, report <see cref="OpenCodeServerExitKind.Signaled"/>.
 /// </summary>
 public sealed record OpenCodeServerExit
 {
@@ -32,7 +35,7 @@ public sealed record OpenCodeServerExit
     public int? ExitCode { get; }
 
     /// <summary>
-    /// Gets the terminating signal's name, such as <c>SIGTERM</c>, the name upstream reports, when
+    /// Gets the terminating signal's name, such as <c>SIGKILL</c>, the name upstream reports, when
     /// <see cref="Kind"/> is <see cref="OpenCodeServerExitKind.Signaled"/>. It is
     /// <see langword="null"/> for a signal the host's operating system gives no standard name, such
     /// as a Linux real-time signal; <see cref="SignalNumber"/> still carries it.
@@ -73,7 +76,7 @@ public sealed record OpenCodeServerExit
     /// <summary>
     /// Describes the end: <c>exited with code 1</c>; on Windows a negative code with its
     /// hexadecimal form, <c>exited with code -1073741819 (0xC0000005)</c>;
-    /// <c>terminated on signal SIGTERM (15)</c>, or <c>terminated on signal 40</c> for a signal
+    /// <c>terminated on signal SIGKILL (9)</c>, or <c>terminated on signal 40</c> for a signal
     /// without a name; <c>exited with an unknown status</c>.
     /// </summary>
     /// <returns>The description.</returns>

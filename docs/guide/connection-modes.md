@@ -1,6 +1,6 @@
 # 🔌 Connection modes
 
-Date: 2026-10-18
+Date: 2026-10-23
 
 There are three ways to get a client bound to a running opencode server: **let the SDK start one**,
 **point it at one you already have**, or **discover the background service the opencode CLI runs
@@ -49,7 +49,7 @@ it started:
 `Exited` lets you notice a server that dies under you. It is a task, not an event, and it never
 faults: a signal that ends the server is a value, not an exception. `Kind` says which members are
 set. `ExitCode` is the code; on Windows it is the full 32-bit code, as `Process.ExitCode` gives it.
-`Signal` is the signal's name, such as `SIGTERM`, and `SignalNumber` is its number on the host.
+`Signal` is the signal's name, such as `SIGKILL`, and `SignalNumber` is its number on the host.
 `Unknown` means the exit status could not be read, for example because something other than the
 launcher reaped the server.
 
@@ -60,6 +60,12 @@ if (exit.Kind == OpenCodeServerExitKind.Signaled)
     Console.WriteLine($"opencode was ended by {exit.Signal ?? "signal " + exit.SignalNumber}");
 }
 ```
+
+The server handles `SIGTERM` and `SIGINT` itself and normally exits with code **130** (a failed
+finalizer changes the code). Disposal on Linux and macOS therefore reports `Exited` with code 130,
+not `Signaled`, on a normal shutdown. `Signaled` appears only for a signal the server does not
+handle, such as the `SIGKILL` disposal sends when the server outlives `GracefulShutdownTimeout`.
+On Windows, disposal reports `Exited` with code 1.
 
 It completes once the exit is observed and the server's output has ended, or one second after the
 exit when a process the server started still holds the output open. A handle from `DiscoverAsync`
@@ -96,8 +102,14 @@ await using var server = await OpenCodeServer.StartAsync(new OpenCodeServerOptio
 `Command[0]` is resolved **before** anything is spawned, following the same rules a shell does.
 This is not a detail you normally think about — until you install the CLI with npm on Windows,
 where npm writes shim files (`opencode`, `opencode.cmd`, `opencode.ps1`) and keeps the real
-binary inside `node_modules`. There is no `opencode.exe` anywhere, and a raw `Process.Start` only
-ever appends `.exe`. Resolving first is what makes the shipped default work there.
+binary inside `node_modules`. No `opencode.exe` is on `PATH` there, only the shims; a raw
+`Process.Start` only ever appends `.exe`. Resolving first is what makes the shipped default work there.
+
+The `@opencode/cli` npm package keeps its executable at `<package>/bin/opencode.exe` on every OS,
+including the `.exe` name on Linux and macOS. With a global install, the package is at
+`<prefix>/lib/node_modules/@opencode/cli` on Linux and macOS and
+`<prefix>\node_modules\@opencode\cli` on Windows, where `<prefix>` is what `npm prefix -g` prints.
+See [npm's folders page](https://docs.npmjs.com/cli/v11/configuring-npm/folders) for that layout.
 
 The rules, in full:
 
@@ -123,8 +135,14 @@ exists, naming how many directories were searched and which extensions were trie
 >
 > - **`ProcessId` is then the `cmd.exe` host**, not the server itself — the shim's own child. The
 >   stdin ownership lease and the stdout readiness line pass straight through it, and disposal's
->   whole-tree kill covers the server underneath, so nothing else about the lifecycle changes. Ask
->   the server for its own pid (`info.ServerInfo.Pid`) if you need that one.
+>   whole-tree kill covers the server underneath, so disposal is unchanged. If your process dies
+>   without disposing, the job ends only `cmd.exe`: the real server ends when it sees its stdin
+>   lease close, after its own graceful shutdown, which upstream does not bound. It can outlive your
+>   process for some seconds; upstream's own test expects exit within 5 s on an idle server.
+>   Name the full path of the package's `opencode.exe` in `Command` to put the server itself in the
+>   job, so it ends with your process; if Windows refuses that job assignment, it too waits for its
+>   stdin lease. Ask the server for its own pid
+>   (`info.ServerInfo.Pid`) if you need that one.
 > - **Arguments carrying `cmd` metacharacters are refused**, not escaped. `cmd.exe` re-parses the
 >   line it is handed, so any leading argument of yours containing `&`, `|`, `<`, `>`, `^`, `%`,
 >   `!`, `"`, a carriage return, or a line feed fails the start with `OpenCodeServerException`
@@ -179,13 +197,20 @@ process dies before disposal runs, the server still ends: on Windows the job the
 in ends it with your process (a batch shim's server, which runs outside that job, ends through the
 lease), and on Linux and macOS the operating system closes the lease and the server exits.
 
+To delete a temp directory the server used while it still runs, evict its location first with
+`Debug.EvictLocationAsync` (see [location eviction](errors-and-responses.md#when-a-worktree-remove-is-refused)),
+or dispose the server first. On Windows, retry the delete a few times: Windows can release a file
+a moment after the process that held it exits. Upstream's own test helper retries deletes for this
+reason.
+
 Startup failures throw `OpenCodeServerException`, carrying a bounded tail of the child's stderr
 whenever a child actually ran — see
 [errors and responses](errors-and-responses.md#-when-a-local-server-door-fails).
 
-A caller token already canceled at the pre-launch check prevents process creation. Cancellation
-observed during the readiness wait ends the child before throwing `OperationCanceledException`
-carrying that token; cancellation arriving only during teardown does not replace an earlier failure.
+A caller token already canceled at the pre-launch check prevents process creation. A `StartAsync`
+that throws `OperationCanceledException` ends the child it started, if any, before throwing the
+exception with that token. Cancellation during teardown does not replace an earlier failure. A
+cancellation that arrives after readiness returns a running server, which you dispose.
 See the [launcher contract](../architecture/client-runtime.md#launcher) for readiness arbitration
 and bounded cleanup.
 
@@ -231,6 +256,47 @@ in the snippet above is your application's choice; a configuration section or a 
 exactly as well. The one door that does read the environment is
 [background-service discovery](#️-discovering-the-background-service), and it reads exactly the four
 variables that section names — never a credential.
+
+### An app-owned server on a fixed endpoint
+
+For a restartable endpoint, start `opencode serve --hostname 127.0.0.1 --port <N>` yourself, with
+`OPENCODE_PASSWORD` in its environment. Connect to that endpoint with username `opencode` and the
+same password. A fixed port in use fails the start, so make sure the previous instance has exited.
+Without `--port`, the server takes the first free port from 4096 upward.
+
+For readiness, wait for the stdout line `server listening on http://127.0.0.1:<N>`, or retry
+`Server.GetInfoAsync` until it succeeds. Retry on any failure until a deadline, without depending
+on which exception a boot-window failure produces. With `port`, `password`, `readinessTimeout`
+and `retryInterval` supplied by your application:
+
+```csharp
+using var client = new OpenCodeClient(new OpenCodeClientOptions
+{
+    Endpoint = new Uri($"http://127.0.0.1:{port}"),
+    Username = "opencode",
+    Password = password,
+});
+
+using var deadline = new CancellationTokenSource(readinessTimeout);
+while (true)
+{
+    try
+    {
+        var info = await client.Server.GetInfoAsync(cancellationToken: deadline.Token).ConfigureAwait(false);
+        Console.WriteLine($"opencode {info.ServerInfo.Version} (pid {info.ServerInfo.Pid})");
+        break;
+    }
+    catch (Exception failure) when (!deadline.IsCancellationRequested)
+    {
+        await Console.Error.WriteLineAsync($"Waiting for server: {failure.Message}").ConfigureAwait(false);
+        await Task.Delay(retryInterval, deadline.Token).ConfigureAwait(false);
+    }
+}
+```
+
+Add `--stdio` when the server must end with your process: it prints `{"url":"..."}` instead and
+exits when its stdin closes, so keep the stdin pipe open for its lifetime. Without `--stdio`, it
+outlives your process.
 
 ### 🤝 Pairing another client
 
