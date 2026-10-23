@@ -220,7 +220,13 @@ waiting on such a server stretches with it (#466). `runner.temp` is on the runne
 override), the D: arm had a C: write-latency p99 of 7-13 ms instead of 91-302 ms. The worst stretch
 of a test whose usual duration is at least half a second fell from ×10-15 to ×3-6, and the main
 pass took about a sixth less time. `runner.temp` lies outside the repository and the user profile,
-so `TestRunRootLocation` accepts it (`testing-style.md`).
+so `TestRunRootLocation` accepts it (`testing-style.md`). Beside the sampling-gap detector, which
+sees only stalls of the test host itself, CI samples machine-wide counters once a second through
+the Windows main pass: per-disk write and read latency, queue and idle time, the processor queue and
+CPU, available memory and paging. They go to `test-results/resource-samples.csv` in the uploaded
+test artifacts, so a stretch in a run can be matched to the disk or the CPU. The sampler never
+fails the job: one that doesn't start is logged and the tests run without it, and its stop step
+ends only its own process tree.
 
 The suite runs in three passes, locally and in CI. The main pass runs every test except two
 categories. The background-service election classes carry the `ServiceElection` category

@@ -303,6 +303,58 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN']);
             core.exportVariable('ACTIONS_RESULTS_URL', process.env['ACTIONS_RESULTS_URL']);
 
+      # The machine-wide counters beside the sampling-gap detector (#466): every second of the main
+      # pass, per-disk write and read latency, queue and idle time, the processor queue and CPU,
+      # available memory and paging, into test-results/resource-samples.csv, which uploads with the
+      # test artifacts. The sampler starts from a launcher file in a hidden window, so it inherits
+      # none of the step's handles and cannot keep the step alive. The stop step after the main pass
+      # ends only its own process tree. A sampler that fails to start is logged, and the job goes on.
+      - name: Start resource sampler
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          try {
+              $results = Join-Path '${{ github.workspace }}' 'test-results'
+              New-Item -ItemType Directory -Force -Path $results | Out-Null
+              $dir = Join-Path $env:RUNNER_TEMP 'resource-sampler'
+              New-Item -ItemType Directory -Force -Path $dir | Out-Null
+              $out = Join-Path $results 'resource-samples.csv'
+              Set-Content -LiteralPath (Join-Path $dir 'sampler.ps1') -Value @'
+          param([string]$Out)
+          $counters = @(
+              '\PhysicalDisk(*)\Avg. Disk sec/Write',
+              '\PhysicalDisk(*)\Avg. Disk sec/Read',
+              '\PhysicalDisk(*)\Current Disk Queue Length',
+              '\PhysicalDisk(*)\% Idle Time',
+              '\System\Processor Queue Length',
+              '\Processor(_Total)\% Processor Time',
+              '\Memory\Available MBytes',
+              '\Memory\Pages/sec'
+          )
+          $invariant = [Globalization.CultureInfo]::InvariantCulture
+          $header = $false
+          Get-Counter -Counter $counters -SampleInterval 1 -Continuous | ForEach-Object {
+              $samples = $_.CounterSamples
+              if (-not $header) {
+                  'utc,' + (($samples | ForEach-Object { '"' + $_.Path + '"' }) -join ',') | Add-Content -LiteralPath $Out
+                  $header = $true
+              }
+              $_.Timestamp.ToUniversalTime().ToString('o') + ',' + (($samples | ForEach-Object { $_.CookedValue.ToString($invariant) }) -join ',') | Add-Content -LiteralPath $Out
+          }
+          '@
+              $launcher = Join-Path $dir 'sampler.cmd'
+              Set-Content -LiteralPath $launcher -Value @(
+                  '@echo off',
+                  ('pwsh -NoProfile -NonInteractive -File "{0}" -Out "{1}" > "{2}" 2>&1' -f (Join-Path $dir 'sampler.ps1'), $out, (Join-Path $dir 'sampler.log'))
+              )
+              $sampler = Start-Process -FilePath $launcher -WindowStyle Hidden -PassThru
+              "SAMPLER_PID=$($sampler.Id)" | Add-Content -LiteralPath $env:GITHUB_ENV
+              "started the resource sampler (pid $($sampler.Id)), writing $out"
+          } catch {
+              "the resource sampler did not start; the tests run without it: $($_.Exception.Message)"
+          }
+          exit 0
+
       # The number of test modules at once is the matrix's test-modules value, measured per runner
       # rather than left to MTP's processor-count default: Windows 4, Linux 4, macOS 3 (four saves
       # only about 3% there).
@@ -328,6 +380,25 @@ jobs:
         run: dotnet test --configuration Release --no-build --max-parallel-test-modules ${{ matrix.test-modules }} -- --report-trx --results-directory "${{ github.workspace }}/test-results/main" --treenode-filter "/*/*/*/*[(Category!=ServiceElection)&(Category!=NativeAot)]" --minimum-expected-tests 1 --timeout 25m --hangdump --hangdump-timeout 15m --hangdump-type Mini
         env:
           TUNIT_ARTIFACT_RETENTION_DAYS: 7
+
+      - name: Stop resource sampler
+        if: always() && runner.os == 'Windows' && env.SAMPLER_PID != ''
+        shell: pwsh
+        run: |
+          try {
+              $sampler = Get-Process -Id $env:SAMPLER_PID -ErrorAction SilentlyContinue
+              if ($sampler -and $sampler.ProcessName -eq 'cmd') {
+                  taskkill /PID $env:SAMPLER_PID /T /F | Out-Host
+              } else {
+                  "the resource sampler (pid $env:SAMPLER_PID) had already exited"
+              }
+              Get-Content -LiteralPath (Join-Path $env:RUNNER_TEMP 'resource-sampler/sampler.log') -ErrorAction SilentlyContinue | Select-Object -Last 20
+              $csv = Join-Path '${{ github.workspace }}' 'test-results/resource-samples.csv'
+              if (Test-Path -LiteralPath $csv) { "samples: $((Get-Content -LiteralPath $csv).Count - 1)" } else { 'no samples file' }
+          } catch {
+              "the resource sampler's stop step could not finish: $($_.Exception.Message)"
+          }
+          exit 0
 
       - name: List tests (main, after a failed pass)
         if: ${{ !cancelled() && steps.test.outcome == 'failure' }}
