@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Runtime.InteropServices;
 using OpenCode.Sdk.Tests.Support;
 using Testably.Abstractions;
@@ -53,20 +52,15 @@ internal static class SamplingGapHooks
 
     /// <summary>
     /// `dotnet test` does not show a session hook's console output, so the summary also goes to the
-    /// results directory, which CI uploads with the run's other test results.
+    /// results directory, which CI uploads with the run's other test results. A failed write is
+    /// reported on stderr and never fails the session.
     /// </summary>
     private static async Task WriteSummaryAsync(string summary)
     {
         var fileSystem = new RealFileSystem();
         var directory = new TestResultsDirectory(fileSystem).Resolve(Environment.GetCommandLineArgs());
-        _ = fileSystem.Directory.CreateDirectory(directory);
-        var path = fileSystem.Path.Combine(directory, "sampling-gap-summary-" + ProcessId.ToString(CultureInfo.InvariantCulture) + ".txt");
         var text = summary + " (" + RuntimeInformation.FrameworkDescription + ")" + Environment.NewLine;
-#if NET
-        await fileSystem.File.WriteAllTextAsync(path, text);
-#else
-        await Task.Run(() => fileSystem.File.WriteAllText(path, text));
-#endif
+        _ = await SamplingGapSummaryFile.WriteAsync(fileSystem, directory, ProcessId, text, Console.Error);
     }
 
     private static bool WaitTick(TimeSpan tick)
