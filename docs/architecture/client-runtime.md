@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-10-17
+Date: 2026-10-23
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -34,14 +34,15 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   - Bun's `fetch` ignores the hint and instead evicts a pooled socket as soon as the server's FIN
     arrives.
 
-  .NET evicts no pooled connection on a FIN, so a timer is the only way to reach the same outcome,
-  and the 3 seconds are undici's value for this server's hint. A live test pins the hint, so a pin
-  refresh that changes it names this value for re-derivation.
+  The SDK sets undici's value for this server's hint, 3 seconds, as a fixed idle timeout on every
+  target. A live test pins the hint, so a pin refresh that changes it names this value for
+  re-derivation.
   - **.NET Framework is where the timer matters.** It ignores the hint, so without `MaxIdleTime`
     the `ServicePoint` kept an idle connection for its 100-second default, well past the server's
     close.
-  - **Modern .NET** already honours the hint on its own: `SocketsHttpHandler` stops reusing a
-    connection at the hint minus one second, 4 s here. The explicit 3 seconds align it with undici.
+  - **Modern .NET** already avoids the close on its own: `SocketsHttpHandler` stops reusing a
+    connection at the hint minus one second, 4 s here, and before it reuses a pooled connection it
+    checks whether the server has already closed it. The explicit 3 seconds align it with undici.
   - The `netstandard2.0` asset running on a modern .NET runtime can't take the explicit setting,
     because its `HttpClientHandler` exposes no idle timeout and ignores `ServicePoint`. It keeps
     that built-in hint-minus-one-second limit (4 s here). No CI leg runs that combination.
