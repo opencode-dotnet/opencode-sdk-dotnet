@@ -1,31 +1,17 @@
+#if !NET
 using System.Net.Sockets;
+#endif
 
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
 /// The discovery probe's own transport: the non-redirecting handler for one info exchange against
-/// the registered endpoint, with two loopback rules the pipeline's transport does not
-/// carry. A loopback endpoint is never routed through a proxy, because an environment proxy
-/// without <c>NO_PROXY</c> would hide a live daemon. On Windows a loopback connect disables SYN
-/// retransmission (<c>SIO_TCP_INITIAL_RTO</c>), because the default connect reports a refused
-/// port only after about two seconds — past the pinned probe bound — where Linux, macOS, and the
-/// pinned client's own runtime refuse at once; libuv, Go, Bun, curl, and Chromium set the same
-/// option for loopback. A closed loopback port is therefore refused at once on every host, and the
-/// probe classifies the refusal as no service. Separate from <see cref="TransportPolicy"/> so
-/// neither rule reaches a public client.
+/// the registered endpoint. A loopback endpoint is never routed through a proxy, because an
+/// environment proxy without <c>NO_PROXY</c> would hide a live daemon. The connect uses
+/// <see cref="LoopbackConnect"/> so a refused loopback port reaches the probe before its bound.
 /// </summary>
 internal sealed class LoopbackTransport(ILoopbackSocketConnector connector) : IServiceProbeTransport
 {
-    /// <summary><c>_WSAIOW(IOC_VENDOR, 17)</c>, the Winsock control code for <c>TCP_INITIAL_RTO_PARAMETERS</c>.</summary>
-    private const int SioTcpInitialRto = unchecked((int)0x98000011);
-
-    /// <summary>
-    /// <c>TCP_INITIAL_RTO_PARAMETERS { Rtt = TCP_INITIAL_RTO_UNSPECIFIED_RTT (0xFFFF),
-    /// MaxSynRetransmissions = TCP_INITIAL_RTO_NO_SYN_RETRANSMISSIONS (0xFE) }</c>, little-endian
-    /// with its trailing padding byte; Windows 10 1709 and later honour the no-retransmission value.
-    /// </summary>
-    private static readonly byte[] NoSynRetransmissions = [0xFF, 0xFF, 0xFE, 0x00];
-
     /// <summary>Creates the probe's handler: no proxy for loopback, no redirect, and on Windows the loopback connect below.</summary>
     public HttpMessageHandler CreateHandler(Uri endpoint)
     {
@@ -38,7 +24,7 @@ internal sealed class LoopbackTransport(ILoopbackSocketConnector connector) : IS
         };
         if (endpoint.IsLoopback && OperatingSystem.IsWindows())
         {
-            handler.ConnectCallback = ConnectWithoutSynRetransmissionAsync;
+            handler.ConnectCallback = new LoopbackConnect(connector).ConnectWithoutSynRetransmissionAsync;
         }
 
         return handler;
@@ -51,25 +37,7 @@ internal sealed class LoopbackTransport(ILoopbackSocketConnector connector) : IS
 #endif
     }
 
-#if NET
-    /// <summary>The default connect of <see cref="SocketsHttpHandler"/>, on a socket that took the loopback option first.</summary>
-    private async ValueTask<Stream> ConnectWithoutSynRetransmissionAsync(SocketsHttpConnectionContext context, CancellationToken cancellationToken)
-    {
-        var attempt = Prepare(context.DnsEndPoint);
-        var socket = attempt.Socket;
-        try
-        {
-            await connector.ConnectAsync(attempt, cancellationToken).ConfigureAwait(false);
-            var stream = new NetworkStream(socket, ownsSocket: true);
-            socket = null;
-            return stream;
-        }
-        finally
-        {
-            socket?.Dispose();
-        }
-    }
-#else
+#if !NET
     /// <summary>
     /// The downlevel answer to a refused loopback port: <see cref="HttpClientHandler"/> has no connect
     /// seam, so the probe learns a refusal first over a raw socket that disables SYN retransmission,
@@ -85,7 +53,7 @@ internal sealed class LoopbackTransport(ILoopbackSocketConnector connector) : IS
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        var attempt = Prepare(new System.Net.DnsEndPoint(endpoint.IdnHost, endpoint.Port));
+        var attempt = LoopbackConnect.Prepare(new System.Net.DnsEndPoint(endpoint.IdnHost, endpoint.Port));
         using var socket = attempt.Socket;
         using var abort = cancellationToken.Register(static state => ((Socket)state).Dispose(), socket);
         try
@@ -125,49 +93,4 @@ internal sealed class LoopbackTransport(ILoopbackSocketConnector connector) : IS
         return false;
     }
 #endif
-
-    /// <summary>The one socket setup both loopback connects share: a new socket that took the loopback option where the platform offers it.</summary>
-    private static LoopbackConnectAttempt Prepare(System.Net.DnsEndPoint endPoint)
-    {
-        Socket? socket = null;
-        try
-        {
-            socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
-            var attempt = new LoopbackConnectAttempt(socket, endPoint, DisableSynRetransmission(socket));
-            socket = null;
-            return attempt;
-        }
-        finally
-        {
-            socket?.Dispose();
-        }
-    }
-
-    /// <summary>
-    /// Applies the no-retransmission parameters on Windows; where the transport provider refuses
-    /// them (Windows before 10 1709) the default connect and its delay remain.
-    /// The vendor control code throws on Unix, so the platform check is the guard, not the catch.
-    /// </summary>
-    /// <returns>True when the transport provider accepted the parameters; false on another platform or when it refused them.</returns>
-    [SlopwatchSuppress(
-        "SW003",
-        "The option is best effort wherever it is set (libuv, Go, the pinned client's runtime): a Windows build that refuses it keeps the default retransmissions, and the connect still runs under the probe's bound.")]
-    internal static bool DisableSynRetransmission(Socket socket)
-    {
-        if (!OperatingSystem.IsWindows())
-        {
-            return false;
-        }
-
-        try
-        {
-            _ = socket.IOControl(SioTcpInitialRto, NoSynRetransmissions, optionOutValue: null);
-            return true;
-        }
-        catch (SocketException)
-        {
-            // Best effort: the default retransmissions remain, bounded by the probe's timeout.
-            return false;
-        }
-    }
 }

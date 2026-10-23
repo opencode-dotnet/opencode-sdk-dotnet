@@ -361,7 +361,10 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
 - `event.subscribe` reconnects as upstream's first-party client does (`client/src/solid/connection.ts`
   at the pin), and no other stream reconnects:
   - Each attempt has 2 s to answer and deliver `server.connected` as its first event, or it fails.
-    The first open runs the same check.
+    The first open runs the same check. If the connect bound passes before response headers arrive,
+    the failure says "The opencode server did not answer the event stream request within 2 seconds."
+    If headers arrived but no first event followed, it says "The opencode server answered the event
+    stream request but sent no event within 2 seconds."
   - A connected stream that receives no byte for its idle window is cut: 45 s, or
     `OpenCodeClientOptions.EventStreamIdleTimeout`, as upstream's `idleTimeout` option sets it. The
     option accepts any window above zero and at most `int.MaxValue` milliseconds, but no window
@@ -845,12 +848,16 @@ URL is kept verbatim for identity.
 The info probe is a raw authenticated `GET /api/info` through an owned non-redirecting handler with a
 two-second bound: it rides neither the pipeline's decoration policy nor its progress window, and
 `ServiceInfoProbe` owns its transport and path, while `ServiceProbeResponseClassifier` decodes
-only the required first-party pid/version evidence. That transport (`LoopbackTransport`) carries
-two loopback rules the pipeline's transport does not: a loopback endpoint is never routed through
-a proxy, so an environment proxy without `NO_PROXY` cannot hide a live daemon, and on Windows a
-loopback connect disables SYN retransmission (`SIO_TCP_INITIAL_RTO`, the option libuv, Go, and the
-pinned client's own runtime set for loopback), so a refused port is reported at once instead of
-after the retransmissions that would outlast the bound. A failed exchange is classified refusal
+only the required first-party pid/version evidence. Every owned loopback connect on Windows
+(.NET 5 and later), in both the probe's transport (`LoopbackTransport`) and the pipeline's owned
+handler, disables SYN retransmission (`SIO_TCP_INITIAL_RTO`, the option libuv, Go, and the pinned
+client's own runtime set for loopback), so a refused port is reported at once instead of after the
+retransmissions that would outlast the bound. The no-proxy rule stays the probe's own: a loopback
+endpoint is never routed through a proxy, so an environment proxy without `NO_PROXY` cannot hide a
+live daemon. On .NET Framework, the pipeline's owned handler keeps Windows' default SYN
+retransmissions, so a refused loopback port reports through the connect bound's "did not answer"
+text, not as a refusal: `HttpClientHandler` has no connect seam, and a refusal check before each
+attempt would add a second mechanism to the hot path. A failed exchange is classified refusal
 first. The caller's cancellation propagates before anything else. A refused connection anywhere in
 the failure's chain of inner exceptions is no service, whatever the bound says: the runtime keeps
 the refusal as the inner exception of the cancellation it rethrows when the bound expired

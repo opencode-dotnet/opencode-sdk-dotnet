@@ -3,17 +3,16 @@ using System.Globalization;
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// One connection attempt of a reconnecting stream and the window it runs under. Until the attempt
-/// is established it has <see cref="StreamReconnect.ConnectBound"/> to answer and deliver its first
-/// event, whatever arrives meanwhile; once established, every byte starts the client's idle window
-/// again. The window is linked over the give-up window, so the caller's token and the give-up both
-/// cut the attempt too.
+/// One reconnecting stream attempt: before establishment the connect bound distinguishes no response
+/// from a response without a first event; once established, every byte restarts the idle window.
+/// The give-up window and caller's token cut the attempt too.
 /// </summary>
 internal sealed class StreamAttempt : IDisposable
 {
     private readonly ProgressWindow _window;
     private readonly TimeSpan _idleWindow;
     private bool? _startedConnected;
+    private bool _responseReceived;
 
     /// <summary>Starts an attempt; its connect bound runs from now.</summary>
     /// <param name="time">The clock the windows run on.</param>
@@ -31,6 +30,9 @@ internal sealed class StreamAttempt : IDisposable
 
     /// <summary>Gets whether the attempt has been established on its <c>server.connected</c>.</summary>
     public bool IsEstablished { get; private set; }
+
+    /// <summary>Records that the server answered, even when no first event follows its headers.</summary>
+    public void OnResponse() => _responseReceived = true;
 
     /// <summary>Reports a frame the attempt received; only the first decides whether it can be established.</summary>
     /// <param name="frame">The frame, as the wire wrote it.</param>
@@ -78,9 +80,13 @@ internal sealed class StreamAttempt : IDisposable
     {
         var window = IsEstablished ? _idleWindow : StreamReconnect.ConnectBound;
         var seconds = window.TotalSeconds.ToString("0.#######", CultureInfo.InvariantCulture);
-        return new OpenCodeTransportException(IsEstablished
-            ? $"The opencode event stream received nothing for {seconds} seconds."
-            : $"The opencode event stream did not connect within {seconds} seconds.", cancellation);
+        var description = (IsEstablished, _responseReceived) switch
+        {
+            (true, _) => $"The opencode event stream received nothing for {seconds} seconds.",
+            (_, true) => $"The opencode server answered the event stream request but sent no event within {seconds} seconds.",
+            _ => $"The opencode server did not answer the event stream request within {seconds} seconds.",
+        };
+        return new OpenCodeTransportException(description, cancellation);
     }
 
     public void Dispose() => _window.Dispose();

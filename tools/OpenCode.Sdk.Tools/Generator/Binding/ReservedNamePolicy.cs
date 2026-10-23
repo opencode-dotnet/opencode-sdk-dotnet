@@ -174,6 +174,7 @@ internal static class ReservedNamePolicy
             "KillOnCloseJob",
             "LauncherSeams",
             "LocationMerge",
+            "LoopbackConnect",
             "LoopbackConnectAttempt",
             "LoopbackSocketConnector",
             "LoopbackTransport",
