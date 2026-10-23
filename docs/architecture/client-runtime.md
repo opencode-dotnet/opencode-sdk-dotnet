@@ -600,6 +600,9 @@ probes for the exit instead, at most 100 ms apart, with `kill(pid, 0)` and a `wa
 not hang. On Linux, and on macOS when the host set the ignore itself, something other than the
 launcher reaps the child, and the exit is reported with an unknown status. On macOS an ignore the
 host inherited across `exec` still leaves a zombie; the probe reaps it and reports its real status.
+macOS also ends the blocked wait when the child only stops or continues, as .NET's
+`Process.Kill(entireProcessTree: true)` stops a tree before it kills it; the reap then finds no exit,
+and the watch probes the same way until the child is reaped, so a stop is never reported as an exit.
 A runtime that reaps every child first (the .NET runtime does when it runs as pid 1) leaves no
 status to read either, and that exit is also reported as unknown rather than invented.
 
