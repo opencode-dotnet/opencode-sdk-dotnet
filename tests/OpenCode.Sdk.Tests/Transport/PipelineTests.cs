@@ -72,14 +72,12 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Decorate_Basic_Auth_From_The_Explicit_Password()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, password: "secret");
+        using var scenario = PipelineScenario.Decorating(password: "secret");
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         var expected = $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes("opencode:secret"))}";
-        await Assert.That(handler.Requests.Single().Authorization).IsEqualTo(expected);
+        await Assert.That(scenario.Requests.Single().Authorization).IsEqualTo(expected);
     }
 
     [Test]
@@ -126,14 +124,12 @@ public sealed class PipelineTests
     [Arguments("\t")]
     public async Task ExecuteAsync_Should_Send_A_Blank_Explicit_Password_As_Written(string password)
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, password: password);
+        using var scenario = PipelineScenario.Decorating(password: password);
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         var expected = $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes("opencode:" + password))}";
-        await Assert.That(handler.Requests.Single().Authorization).IsEqualTo(expected);
+        await Assert.That(scenario.Requests.Single().Authorization).IsEqualTo(expected);
     }
 
     [Test]
@@ -175,30 +171,26 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Let_The_Explicit_Password_Win_Over_A_Default_Authorization()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "foreign-token");
-        using var pipeline = CreatePipeline(httpClient, password: "secret");
+        using var scenario = PipelineScenario.Decorating(password: "secret");
+        scenario.HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "foreign-token");
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         var expected = $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes("opencode:secret"))}";
-        await Assert.That(handler.Requests.Single().Authorization).IsEqualTo(expected);
+        await Assert.That(scenario.Requests.Single().Authorization).IsEqualTo(expected);
     }
 
     [Test]
     public async Task ExecuteAsync_Should_Decorate_The_Ambient_Location_Headers()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, location: new LocationSelector
+        using var scenario = PipelineScenario.Decorating(location: new LocationSelector
         {
             Directory = "/repo"
         });
 
-        await ExecuteInfoAsync(pipeline);
+        await ExecuteInfoAsync(scenario.Pipeline);
 
-        var request = handler.Requests.Single();
+        var request = scenario.Requests.Single();
         await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo("%2Frepo");
         await Assert.That(request.Headers).DoesNotContainKey("x-opencode-workspace");
     }
@@ -206,48 +198,42 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Send_No_Location_Header_For_An_Empty_Selector()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, location: new LocationSelector());
+        using var scenario = PipelineScenario.Decorating(location: new LocationSelector());
 
-        await ExecuteInfoAsync(pipeline);
+        await ExecuteInfoAsync(scenario.Pipeline);
 
-        await AssertLocationHeadersAbsentAsync(handler.Requests.Single());
+        await AssertLocationHeadersAbsentAsync(scenario.Requests.Single());
     }
 
     [Test]
     public async Task ExecuteAsync_Should_Escape_A_Directory_Whose_Name_Contains_A_Percent_Sequence()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, location: new LocationSelector
+        using var scenario = PipelineScenario.Decorating(location: new LocationSelector
         {
             Directory = "/data/reports%20q3",
         });
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         // The server decodes this header, so an unescaped '%20' would arrive as a space and
         // silently address a different directory.
-        await Assert.That(handler.Requests.Single().Headers["x-opencode-directory"])
+        await Assert.That(scenario.Requests.Single().Headers["x-opencode-directory"])
             .IsEqualTo("%2Fdata%2Freports%2520q3");
     }
 
     [Test]
     public async Task ExecuteAsync_Should_Send_A_Non_Ascii_Directory_As_Ascii()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, location: new LocationSelector
+        using var scenario = PipelineScenario.Decorating(location: new LocationSelector
         {
             Directory = "/workspace/café",
         });
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         // Header values above Latin-1 are unsendable, so the escape is what keeps a
         // non-ASCII path on the wire at all.
-        await Assert.That(handler.Requests.Single().Headers["x-opencode-directory"])
+        await Assert.That(scenario.Requests.Single().Headers["x-opencode-directory"])
             .IsEqualTo("%2Fworkspace%2Fcaf%C3%A9");
     }
 
@@ -292,14 +278,12 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Never_Touch_The_Client_Defaults()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, password: "secret");
+        using var scenario = PipelineScenario.Decorating(password: "secret");
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
-        await Assert.That(httpClient.BaseAddress).IsNull();
-        await Assert.That(httpClient.DefaultRequestHeaders).IsEmpty();
+        await Assert.That(scenario.HttpClient.BaseAddress).IsNull();
+        await Assert.That(scenario.HttpClient.DefaultRequestHeaders).IsEmpty();
     }
 
     [Test]
