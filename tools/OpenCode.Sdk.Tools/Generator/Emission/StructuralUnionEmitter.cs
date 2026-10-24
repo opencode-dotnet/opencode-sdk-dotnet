@@ -167,7 +167,7 @@ internal static class StructuralUnionEmitter
         SyntaxFactory
             .PropertyDeclaration(TypeSyntaxEmitter.EmitNamed(union.KindTypeName), "Kind")
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
-            .WithAccessorList(GetOnlyAccessors())
+            .WithAccessorList(EmissionSyntax.GetOnlyAccessors())
             .WithLeadingTrivia(EmissionSyntax.Documentation("Gets the active structural union arm."));
 
     private static PropertyDeclarationSyntax EmitArmProperty(StructuralUnionModelPlan union, StructuralUnionArmPlan arm) =>
@@ -296,11 +296,6 @@ internal static class StructuralUnionEmitter
                     SyntaxFactory.IdentifierName("_value")))));
     }
 
-    private static AccessorListSyntax GetOnlyAccessors() => SyntaxFactory.AccessorList(SyntaxFactory.SingletonList(
-        SyntaxFactory
-            .AccessorDeclaration(SyntaxKind.GetAccessorDeclaration)
-            .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))));
-
     private static MemberAccessExpressionSyntax KindMember(StructuralUnionModelPlan union, string name) =>
         EmissionSyntax.MemberAccess(TypeSyntaxEmitter.EmitNamed(union.KindTypeName), name);
 
@@ -366,11 +361,11 @@ internal static class StructuralUnionEmitter
                             SyntaxFactory
                                 .Argument(SyntaxFactory.IdentifierName("reader"))
                                 .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword)))
-                        : SyntaxFactory.ThrowExpression(JsonException(
+                        : SyntaxFactory.ThrowExpression(EmissionSyntax.JsonException(
                             $"JSON token '{token}' cannot start this structural union value.")))))
             .Append(SyntaxFactory.SwitchExpressionArm(
                 SyntaxFactory.DiscardPattern(),
-                SyntaxFactory.ThrowExpression(JsonException("The JSON token kind is not recognized."))))
+                SyntaxFactory.ThrowExpression(EmissionSyntax.JsonException("The JSON token kind is not recognized."))))
             .ToArray();
         var tokenType = EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("reader"), "TokenType");
         var body = new List<StatementSyntax>();
@@ -397,7 +392,7 @@ internal static class StructuralUnionEmitter
         NamedTypeReferencePlan { Name: "string" } => SyntaxFactory.BinaryExpression(
             SyntaxKind.CoalesceExpression,
             EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("reader"), "GetString")),
-            SyntaxFactory.ThrowExpression(JsonException("The string arm materialized null."))),
+            SyntaxFactory.ThrowExpression(EmissionSyntax.JsonException("The string arm materialized null."))),
         NamedTypeReferencePlan { Name: "double" } =>
             EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("reader"), "GetDouble")),
         NamedTypeReferencePlan { Name: "long" } =>
@@ -441,7 +436,7 @@ internal static class StructuralUnionEmitter
                 .SwitchSection()
                 .WithLabels(SyntaxFactory.SingletonList<SwitchLabelSyntax>(SyntaxFactory.DefaultSwitchLabel()))
                 .WithStatements(SyntaxFactory.SingletonList<StatementSyntax>(SyntaxFactory.ThrowStatement(
-                    JsonException("The structural union kind is not recognized.")))))
+                    EmissionSyntax.JsonException("The structural union kind is not recognized.")))))
             .ToArray();
         var body = new List<StatementSyntax>();
         body.AddRange(EmissionSyntax.ArgumentNullGuard("writer"));
@@ -534,7 +529,7 @@ internal static class StructuralUnionEmitter
                     .WithVariables(SyntaxFactory.SingletonSeparatedList(
                         SyntaxFactory.VariableDeclarator("document").WithInitializer(SyntaxFactory.EqualsValueClause(parse)))))
                 .WithUsingKeyword(SyntaxFactory.Token(SyntaxKind.UsingKeyword)),
-            Local("root", EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("document"), "RootElement")),
+            EmissionSyntax.Local("root", EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("document"), "RootElement")),
         };
         var unconditional = false;
         foreach (var arm in union.Arms.Where(static arm => arm.Claim is not null))
@@ -643,13 +638,13 @@ internal static class StructuralUnionEmitter
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
             .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList(parameter)))
             .WithBody(SyntaxFactory.Block(
-                Local("typeInfo", getTypeInfo),
-                Local("result", deserialize),
+                EmissionSyntax.Local("typeInfo", getTypeInfo),
+                EmissionSyntax.Local("result", deserialize),
                 SyntaxFactory.IfStatement(
                     SyntaxFactory.IsPatternExpression(
                         SyntaxFactory.IdentifierName("result"),
                         SyntaxFactory.ConstantPattern(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))),
-                    SyntaxFactory.ThrowStatement(JsonException("The structural union arm materialized null."))),
+                    SyntaxFactory.ThrowStatement(EmissionSyntax.JsonException("The structural union arm materialized null."))),
                 SyntaxFactory.ReturnStatement(SyntaxFactory.CastExpression(
                     SyntaxFactory.IdentifierName("T"),
                     SyntaxFactory.IdentifierName("result")))));
@@ -677,7 +672,7 @@ internal static class StructuralUnionEmitter
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("value")).WithType(SyntaxFactory.IdentifierName("T")),
             ])))
             .WithBody(SyntaxFactory.Block(
-                Local("typeInfo", GetTypeInfo()),
+                EmissionSyntax.Local("typeInfo", GetTypeInfo()),
                 SyntaxFactory.ExpressionStatement(serialize)));
     }
 
@@ -689,7 +684,7 @@ internal static class StructuralUnionEmitter
         return SyntaxFactory.BinaryExpression(
             SyntaxKind.CoalesceExpression,
             get,
-            SyntaxFactory.ThrowExpression(JsonException("The generated context has no structural union arm metadata.")));
+            SyntaxFactory.ThrowExpression(EmissionSyntax.JsonException("The generated context has no structural union arm metadata.")));
     }
 
     private static MethodDeclarationSyntax EmitReadUnknown(StructuralUnionModelPlan union)
@@ -745,17 +740,4 @@ internal static class StructuralUnionEmitter
             SyntaxFactory.Parameter(SyntaxFactory.Identifier("options")).WithType(SyntaxFactory.IdentifierName("JsonSerializerOptions")),
         ]));
 
-    private static LocalDeclarationStatementSyntax Local(string name, ExpressionSyntax value) =>
-        SyntaxFactory.LocalDeclarationStatement(SyntaxFactory
-            .VariableDeclaration(SyntaxFactory.IdentifierName("var"))
-            .WithVariables(SyntaxFactory.SingletonSeparatedList(
-                SyntaxFactory.VariableDeclarator(name).WithInitializer(SyntaxFactory.EqualsValueClause(value)))));
-
-    private static ObjectCreationExpressionSyntax JsonException(string message) => SyntaxFactory
-        .ObjectCreationExpression(
-            SyntaxFactory.IdentifierName("JsonException"))
-        .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
-            SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
-                SyntaxKind.StringLiteralExpression,
-                SyntaxFactory.Literal(message))))));
 }

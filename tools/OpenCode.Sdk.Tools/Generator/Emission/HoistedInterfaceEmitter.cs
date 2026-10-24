@@ -46,10 +46,7 @@ internal static class HoistedInterfaceEmitter
             .PropertyDeclaration(TypeSyntaxEmitter.Emit(member.Type), member.Name)
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .AddAttributeLists(EmissionSyntax.Attribute("JsonPropertyName", EmissionSyntax.StringArgument(member.WireName)))
-            .WithAccessorList(SyntaxFactory.AccessorList(SyntaxFactory.SingletonList(
-                SyntaxFactory
-                    .AccessorDeclaration(SyntaxKind.GetAccessorDeclaration)
-                    .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)))))
+            .WithAccessorList(EmissionSyntax.GetOnlyAccessors())
             .WithLeadingTrivia(EmissionSyntax.Documentation(
                 member.Description ?? GeneratedDisplayName.MemberSummary(member.Name)));
 

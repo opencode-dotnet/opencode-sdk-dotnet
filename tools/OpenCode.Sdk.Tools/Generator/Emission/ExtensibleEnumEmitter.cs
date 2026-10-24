@@ -113,7 +113,7 @@ internal static class ExtensibleEnumEmitter
         .WithModifiers(SyntaxFactory.TokenList(
             SyntaxFactory.Token(SyntaxKind.PublicKeyword),
             SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
-        .WithAccessorList(GetOnly())
+        .WithAccessorList(EmissionSyntax.GetOnlyAccessors())
         .WithInitializer(SyntaxFactory.EqualsValueClause(SyntaxFactory
             .ImplicitObjectCreationExpression()
             .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
@@ -137,7 +137,7 @@ internal static class ExtensibleEnumEmitter
                 .VariableDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)))
                 .WithVariables(SyntaxFactory.SingletonSeparatedList(SyntaxFactory
                     .VariableDeclarator(value.Name)
-                    .WithInitializer(SyntaxFactory.EqualsValueClause(StringLiteral(value.WireValue))))))
+                    .WithInitializer(SyntaxFactory.EqualsValueClause(EmissionSyntax.StringLiteral(value.WireValue))))))
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.ConstKeyword)))
@@ -306,7 +306,7 @@ internal static class ExtensibleEnumEmitter
                         SyntaxKind.NotEqualsExpression,
                         EmissionSyntax.MemberAccess(reader, "TokenType"),
                         EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonTokenType"), "String")),
-                    SyntaxFactory.Block(SyntaxFactory.ThrowStatement(JsonException(SyntaxFactory.InterpolatedStringExpression(
+                    SyntaxFactory.Block(SyntaxFactory.ThrowStatement(EmissionSyntax.JsonException(SyntaxFactory.InterpolatedStringExpression(
                         SyntaxFactory.Token(SyntaxKind.InterpolatedStringStartToken),
                         SyntaxFactory.List<InterpolatedStringContentSyntax>(
                         [
@@ -340,8 +340,8 @@ internal static class ExtensibleEnumEmitter
                         SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
                             SyntaxKind.DefaultLiteralExpression,
                             SyntaxFactory.Token(SyntaxKind.DefaultKeyword)))),
-                    SyntaxFactory.Block(SyntaxFactory.ThrowStatement(JsonException(
-                        StringLiteral($"A default {model.Name} has no wire value."))))),
+                    SyntaxFactory.Block(SyntaxFactory.ThrowStatement(EmissionSyntax.JsonException(
+                        EmissionSyntax.StringLiteral($"A default {model.Name} has no wire value."))))),
                 SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(
                     EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("writer"), "WriteStringValue"),
                     SyntaxFactory.Argument(
@@ -369,10 +369,6 @@ internal static class ExtensibleEnumEmitter
         .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
             SyntaxFactory.Argument(SyntaxFactory.IdentifierName(ValueParameter)))));
 
-    private static ObjectCreationExpressionSyntax JsonException(ExpressionSyntax message) => SyntaxFactory
-        .ObjectCreationExpression(TypeSyntaxEmitter.EmitNamed("JsonException"))
-        .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(SyntaxFactory.Argument(message))));
-
     private static InterpolatedStringTextSyntax InterpolatedText(string text) => SyntaxFactory.InterpolatedStringText(
         SyntaxFactory.Token(SyntaxFactory.TriviaList(), SyntaxKind.InterpolatedStringTextToken, text, text, SyntaxFactory.TriviaList()));
 
@@ -386,13 +382,8 @@ internal static class ExtensibleEnumEmitter
     private static MemberAccessExpressionSyntax OrdinalComparison() =>
         EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("StringComparison"), "Ordinal");
 
-    private static AccessorListSyntax GetOnly() => SyntaxFactory.AccessorList(SyntaxFactory.SingletonList(
-        SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))));
-
     /// <summary>A pinned value's constant, as the struct's own members name it.</summary>
     private static MemberAccessExpressionSyntax ValueConstant(EnumValuePlan value) =>
         EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(ExtensibleEnumMemberPolicy.Values), value.Name);
 
-    private static LiteralExpressionSyntax StringLiteral(string value) =>
-        SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(value));
 }
