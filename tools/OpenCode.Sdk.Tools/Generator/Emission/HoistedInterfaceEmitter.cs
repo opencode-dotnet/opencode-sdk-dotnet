@@ -31,7 +31,8 @@ internal static class HoistedInterfaceEmitter
             .InterfaceDeclaration(plan.Name)
             .AddAttributeLists(ExperimentalAttributeSyntax.Emit(plan.ExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
-            .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([.. plan.Members.Select(EmitMember)]))
+            .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([.. plan.Members.Select(member =>
+                MemberProperty(member, member.Description ?? GeneratedDisplayName.MemberSummary(member.Name)))]))
             .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
                 plan.Description ?? $"Represents {GeneratedDisplayName.WithIndefiniteArticle(plan.Name)} value.",
                 [],
@@ -41,14 +42,13 @@ internal static class HoistedInterfaceEmitter
         return EmissionSyntax.CreateSource(relativePath, unit);
     }
 
-    private static PropertyDeclarationSyntax EmitMember(HoistedMemberPlan member) =>
+    internal static PropertyDeclarationSyntax MemberProperty(HoistedMemberPlan member, string summary) =>
         SyntaxFactory
             .PropertyDeclaration(TypeSyntaxEmitter.Emit(member.Type), member.Name)
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .AddAttributeLists(EmissionSyntax.Attribute("JsonPropertyName", EmissionSyntax.StringArgument(member.WireName)))
             .WithAccessorList(EmissionSyntax.GetOnlyAccessors())
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
-                member.Description ?? GeneratedDisplayName.MemberSummary(member.Name)));
+            .WithLeadingTrivia(EmissionSyntax.Documentation(summary));
 
     private static IReadOnlyList<string> CollectUsings(HoistedInterfacePlan plan)
     {

@@ -96,14 +96,9 @@ internal static class UnionEmitter
     private static PropertyDeclarationSyntax EmitHoistedMember(UnionPlan union, HoistedMemberPlan member)
     {
         var summary = member.Description ?? GeneratedDisplayName.MemberSummary(member.Name);
-        return SyntaxFactory
-            .PropertyDeclaration(TypeSyntaxEmitter.Emit(member.Type), member.Name)
-            .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
-            .AddAttributeLists(EmissionSyntax.Attribute("JsonPropertyName", EmissionSyntax.StringArgument(member.WireName)))
-            .WithAccessorList(EmissionSyntax.GetOnlyAccessors())
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
-                summary + " Every declared variant carries it; the value is null when the payload is an "
-                + $"unrecognized variant preserved as {union.UnknownTypeName}."));
+        return HoistedInterfaceEmitter.MemberProperty(member,
+            summary + " Every declared variant carries it; the value is null when the payload is an "
+            + $"unrecognized variant preserved as {union.UnknownTypeName}.");
     }
 
     /// <summary>The members a carrier of this union must answer, including the ones its outer unions promise.</summary>
