@@ -13,11 +13,31 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding.Models;
 public sealed partial class CanonDescriptionSourceTests
 {
     [Test]
+    [Arguments(0)]
+    [Arguments(1)]
+    [Arguments(2)]
+    [Arguments(3)]
+    public async Task Sources_Should_Prove_Each_Committed_Reconnect_Source(int index)
+    {
+        var fileSystem = new RealFileSystem();
+        var (_, _, curation) = await BindingTestHost.LoadPinnedInputsAsync();
+        var row = curation.Descriptions.Single(static row => row.Type == "EventsClient" && row.Member == "SubscribeAsync");
+        await Assert.That(row.Sources).Count().IsEqualTo(4);
+        var sources = row.Sources!.ToArray(); // The assertion requires the committed four-source contract.
+        sources[index] = sources[index]! with { Excerpt = "This quotation is not in the canon." };
+
+        await Assert.That(await CheckAsync(fileSystem, new RepositoryRoot(fileSystem).Locate(), [row with { Sources = sources }]))
+            .IsEquivalentTo(
+            [
+                "EventsClient.SubscribeAsync: docs/architecture/client-runtime.md#server-sent-events: excerpt not found in heading section",
+            ], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task Sources_Should_Quote_The_Owning_Canon_Section()
     {
         var fileSystem = new RealFileSystem();
         var (_, _, curation) = await BindingTestHost.LoadPinnedInputsAsync();
-        // No committed row uses canon yet; this proof currently passes vacuously.
         await Assert.That(await CheckAsync(fileSystem, new RepositoryRoot(fileSystem).Locate(), curation.Descriptions)).IsEmpty();
     }
 

@@ -714,6 +714,15 @@
       ]
     },
     {
+      "type": "SessionListRequest",
+      "member": "Archived",
+      "summary": "Filter by archive state: true returns only archived sessions, false excludes them, and omitting it includes both.",
+      "reason": "The declared archive-filter description does not reach the OpenAPI parameter.",
+      "sources": [
+        { "location": "packages/schema/src/session.ts:96", "excerpt": "Filter by archive state. Use true to return only archived sessions or false to exclude them. Omit to include both." }
+      ]
+    },
+    {
       "type": "SessionInfoTime",
       "member": "Created",
       "summary": "Creation time in milliseconds since the Unix epoch.",
@@ -796,6 +805,27 @@
           "location": "packages/schema/src/schema.ts:39",
           "excerpt": "    encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value)),"
         }
+      ]
+    },
+    {
+      "type": "SessionViewRequest",
+      "member": "Idle",
+      "summary": "Idle time in milliseconds since the Unix epoch.",
+      "reason": "The named schema codec declares the encoded timestamp unit.",
+      "sources": [
+        { "location": "packages/protocol/src/groups/session.ts:829", "excerpt": "payload: Schema.Struct({ idle: DateTimeUtcFromMillis })," },
+        { "location": "packages/schema/src/schema.ts:36", "excerpt": "export const DateTimeUtcFromMillis = Schema.Finite.pipe(" },
+        { "location": "packages/schema/src/schema.ts:39", "excerpt": "encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value))," }
+      ]
+    },
+    {
+      "type": "SessionViewedData",
+      "member": "Idle",
+      "summary": "Observed idle watermark in milliseconds since the Unix epoch.",
+      "reason": "The declared doc comment states the unit; OpenAPI keeps only the number.",
+      "sources": [
+        { "location": "packages/schema/src/session-event.ts:127", "excerpt": "/** Epoch-millisecond idle watermark the viewer observed; projection never marks a newer idle transition viewed. */" },
+        { "location": "packages/schema/src/session-event.ts:128", "excerpt": "idle: Schema.Finite," }
       ]
     },
     {
@@ -1354,6 +1384,18 @@
           "location": "packages/protocol/src/groups/event.ts:55",
           "excerpt": "      .annotateMerge(OpenApi.annotations({ title: \"event\", description: \"Experimental event stream routes.\" })),"
         }
+      ]
+    },
+    {
+      "type": "EventsClient",
+      "member": "SubscribeAsync",
+      "remarks": "The stream reconnects after a failure, with a new attempt 1 s later and no backoff. It does not complete on its own; caller cancellation or root-client disposal ends it. After 1 minute in which every attempt fails, it throws the last failure. A repeated server.connected event means events published in between were missed; refresh authoritative state.",
+      "reason": "The SDK owns the reconnect and termination contract; upstream's operation description stays.",
+      "sources": [
+        { "canon": "docs/architecture/client-runtime.md#server-sent-events", "excerpt": "Every failure is followed by a new attempt 1 s later, with no backoff." },
+        { "canon": "docs/architecture/client-runtime.md#server-sent-events", "excerpt": "Nothing else ends it except the give-up window." },
+        { "canon": "docs/architecture/client-runtime.md#server-sent-events", "excerpt": "A stream that has failed every attempt for 1 minute gives up and throws the last failure." },
+        { "canon": "docs/architecture/client-runtime.md#server-sent-events", "excerpt": "Each connection yields its own `server.connected`, so a second one tells the consumer that events published in between are gone and authoritative state should be refreshed." }
       ]
     },
     {

@@ -16,6 +16,11 @@ Nightly builds of `master` are on
   but no first event followed it says "The opencode server answered the event stream request but
   sent no event within 2 seconds." Both replace "The opencode event stream did not connect within 2
   seconds."
+- **IntelliSense explains the event stream and session members.** `EventsClient.SubscribeAsync`'s
+  XML now states the reconnect and termination contract; the session list's archive filter and the
+  two idle timestamps now state their meaning or unit.
+- **The guides explain file-system entry path formats and timestamp units**, including
+  provider-specific voice expiry and the unestablished persistent-PTY expiry unit.
 
 ### 🐛 Fixes
 

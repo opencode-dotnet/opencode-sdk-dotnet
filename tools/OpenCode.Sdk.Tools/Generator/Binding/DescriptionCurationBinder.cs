@@ -23,7 +23,7 @@ internal static partial class DescriptionCurationBinder
             return plan;
         }
 
-        Validate(DescriptionTargetCatalog.Create(plan), rows, errors);
+        Validate(plan, rows, errors);
         if (errors.Count != priorErrors)
         {
             return plan;
@@ -122,9 +122,10 @@ internal static partial class DescriptionCurationBinder
         return result;
     }
 
-    private static void Validate(IReadOnlyDictionary<string, IReadOnlySet<string>> targets,
+    private static void Validate(EmitPlan plan,
         IReadOnlyList<DescriptionCuration> rows, BindingErrorCollector errors)
     {
+        var targets = DescriptionTargetCatalog.Create(plan);
         foreach (var row in rows)
         {
             var subject = row.Type + (row.Member is null ? string.Empty : "." + row.Member);
@@ -134,10 +135,19 @@ internal static partial class DescriptionCurationBinder
             }
             else if (row.Member is not null && !members.Contains(row.Member))
             {
-                errors.Add(BindingErrorCategory.Curation, subject, "description member does not exist as a declared property on the generated type");
+                errors.Add(BindingErrorCategory.Curation, subject, "description member does not exist as a declared property or operation method on the generated type");
             }
 
-            if (string.IsNullOrWhiteSpace(row.Summary))
+            if (row.Summary is null)
+            {
+                if (string.IsNullOrWhiteSpace(row.Remarks) || !plan.Clients.Any(client => client.Name == row.Type
+                    && client.Operations.Any(operation => operation.MethodName == row.Member)))
+                {
+                    errors.Add(BindingErrorCategory.Curation, subject,
+                        "description curation must declare a summary unless an operation method carries non-empty remarks");
+                }
+            }
+            else if (string.IsNullOrWhiteSpace(row.Summary))
             {
                 errors.Add(BindingErrorCategory.Curation, subject, "description curation must declare a non-empty summary");
             }
@@ -236,8 +246,9 @@ internal static partial class DescriptionCurationBinder
         {
             Summary = type?.Summary ?? prior.Summary,
             Remarks = AppendRemarks(prior.Remarks, type?.Remarks),
-            Members = rows.Where(static row => row.Member is not null).ToDictionary(static row => row.Member!,
-                static row => new DocumentationPlan(row.Summary, row.Remarks), StringComparer.Ordinal),
+            Members = rows.Where(static row => row.Member is not null && row.Summary is not null).ToDictionary(static row => row.Member!,
+                // The filter proves the summary; remarks-only operations bind separately.
+                static row => new DocumentationPlan(row.Summary!, row.Remarks), StringComparer.Ordinal),
         };
     }
 

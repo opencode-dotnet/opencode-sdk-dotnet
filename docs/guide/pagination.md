@@ -1,6 +1,6 @@
 # 📑 Pagination
 
-Date: 2026-10-23
+Date: 2026-10-24
 
 Two operations in the API return more than fits in one response, and both use the same opaque
 cursor envelope: **listing a session's messages** and **listing sessions**. Both can be paged by
@@ -69,9 +69,11 @@ and directories, including children, forks, and archived sessions. Upstream retu
 ordered by most recently **updated** first, not most recently created. `Archived = true` lists only
 archived sessions; `Archived = false` excludes them. Omit it to include both.
 
-Scope a listing with `Directory`, or with `Project` optionally narrowed by `Subpath`. `Subpath` is
-ignored without `Project`. `Directory` matches the stored directory exactly: no descendants, no
-case folding, and no trailing-slash trimming. The only normalization is `\` to `/` on Windows.
+Scope a listing with `Directory`, or with `Project` optionally narrowed by `Subpath`. `Subpath`
+applies only with `Project`; both match by equality. `Directory` matches the stored directory
+exactly: no descendants, no case folding, and no trailing-slash trimming. Dot segments and symlinks
+are not resolved. The only normalization is `\` to `/` on Windows. These matching rules come from
+upstream's implementation at the pin.
 
 > **🧭 Session-list continuations use the cursor's scope.** The server takes the filters and order
 > from the cursor, not from the request; only `Limit` is read again, so keep sending it. To change

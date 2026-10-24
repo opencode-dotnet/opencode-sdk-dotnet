@@ -18,7 +18,7 @@ public sealed record SessionListRequest : ListRequest
     /// </summary>
     public SessionParentFilter? ParentId { get; init; }
     /// <summary>
-    /// Gets the &apos;archived&apos; query value; the server default applies when unset.
+    /// Filter by archive state: true returns only archived sessions, false excludes them, and omitting it includes both.
     /// </summary>
     public bool? Archived { get; init; }
     /// <summary>

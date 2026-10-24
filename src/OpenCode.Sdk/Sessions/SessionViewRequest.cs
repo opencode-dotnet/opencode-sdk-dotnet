@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Models;
 public sealed record SessionViewRequest
 {
     /// <summary>
-    /// Gets the idle value.
+    /// Idle time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("idle")]
     public required double Idle { get; init; }
