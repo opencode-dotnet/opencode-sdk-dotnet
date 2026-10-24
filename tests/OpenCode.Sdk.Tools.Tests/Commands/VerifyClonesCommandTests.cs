@@ -1,4 +1,5 @@
 using System.IO.Abstractions;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
 using OpenCode.Sdk.Tools.Tests.Support;
@@ -145,9 +146,15 @@ public sealed class VerifyClonesCommandTests
         await Assert.That(result.ExitCode).IsEqualTo(1);
         // This checks the complete inventory, not its enumeration order.
         await Assert.That(scenario.FileSystem.Directory.EnumerateFiles(reports).Select(path => scenario.FileSystem.Path.GetFileName(path)))
-            .IsEquivalentTo(["src.json", "tools.json", "tests.json", "generated.json"], CollectionOrdering.Any);
+            .IsEquivalentTo(["src.json", "src.sarif", "tools.json", "tools.sarif", "tests.json", "tests.sarif", "generated.json", "generated.sarif"], CollectionOrdering.Any);
         await Assert.That(await scenario.FileSystem.File.ReadAllTextAsync(scenario.FileSystem.Path.Combine(reports, "src.json")))
             .Contains("\"isNew\": true");
+        var sarif = await scenario.FileSystem.File.ReadAllBytesAsync(scenario.FileSystem.Path.Combine(reports, "src.sarif"));
+        await Assert.That(sarif).IsEquivalentTo(scenario.SarifReports["src"], CollectionOrdering.Matching);
+        using var document = JsonDocument.Parse(sarif);
+        await Assert.That(document.RootElement.GetProperty("runs")[0].GetProperty("results")[0]
+                .GetProperty("partialFingerprints").GetProperty("jscpdCloneHash/v1").GetString())
+            .IsEqualTo(CloneScenario.KnownFingerprint);
     }
 
     [Test]

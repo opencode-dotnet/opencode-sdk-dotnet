@@ -116,7 +116,7 @@ internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCom
         return string.Create(CultureInfo.InvariantCulture, $"  new clone ({location.Tokens} tokens): {location.First} <-> {location.Second}");
     }
 
-    /// <summary>Copies a scope's report into the directory the caller asked for, named after the scope, so CI can keep it as an artifact.</summary>
+    /// <summary>Copies a scope's reports into the directory the caller asked for, named after the scope, so CI can keep them as artifacts.</summary>
     private void KeepReport(string work, CloneScope scope, string? reportDirectory)
     {
         if (string.IsNullOrEmpty(reportDirectory))
@@ -126,6 +126,7 @@ internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCom
 
         _fileSystem.Directory.CreateDirectory(reportDirectory);
         _fileSystem.File.Copy(_detector.ReportPath(work, scope), _fileSystem.Path.Combine(reportDirectory, scope.Name + ".json"), overwrite: true);
+        _fileSystem.File.Copy(_detector.SarifReportPath(work, scope), _fileSystem.Path.Combine(reportDirectory, scope.Name + ".sarif"), overwrite: true);
     }
 
     /// <summary>jscpd's own verdict lines from its standard error (it also logs which config it read there), or all of it when it gave none.</summary>
@@ -170,7 +171,7 @@ internal sealed partial class VerifyClonesCommand : AsyncCommand<VerifyClonesCom
         public bool UpdateBaseline { get; init; }
 
         [CommandOption("--report-directory <DIRECTORY>")]
-        [Description("Also keep each scope's jscpd JSON report in this directory, as <scope>.json, for example to upload it from CI.")]
+        [Description("Also keep each scope's jscpd JSON and SARIF reports in this directory, as <scope>.json and <scope>.sarif, for example to upload them from CI.")]
         public string? ReportDirectory { get; init; }
     }
 }
