@@ -4,6 +4,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 internal sealed record UnionPlan
 {
+    public required IReadOnlyList<UnionChainLink> Chain { get; init; }
+
     public TypeDocumentationPlan Documentation { get; init; } = new();
 
     public TypeDocumentationPlan UnknownDocumentation { get; init; } = new();

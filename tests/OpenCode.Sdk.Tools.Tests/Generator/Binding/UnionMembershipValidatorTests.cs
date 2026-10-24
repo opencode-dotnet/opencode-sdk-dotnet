@@ -1,6 +1,7 @@
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
+using OpenCode.Sdk.Tools.Tests.Support;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
@@ -16,7 +17,7 @@ public sealed class UnionMembershipValidatorTests
             Properties = [],
             ImplementedUnionNames = ["IBooleanEvent", "IStringEvent"],
         };
-        var unions = new[] { Union("IBooleanEvent", LiteralKind.Boolean), Union("IStringEvent", LiteralKind.String), };
+        var unions = UnionChainFixture.Build([Union("IBooleanEvent", LiteralKind.Boolean), Union("IStringEvent", LiteralKind.String)]);
         var errors = new BindingErrorCollector();
 
         UnionMembershipValidator.Validate([model], unions, errors);
@@ -31,6 +32,7 @@ public sealed class UnionMembershipValidatorTests
     private static UnionPlan Union(string name, LiteralKind markerKind) =>
         new()
         {
+            Chain = [],
             Name = name,
             ConceptName = name[1..],
             Namespace = "OpenCode.Sdk.Models",

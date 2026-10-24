@@ -10,17 +10,18 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 internal static class StructuralUnionEmitter
 {
-    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<StructuralUnionModelPlan> unions, ModelPlacement placement)
+    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<StructuralUnionModelPlan> unions, ModelPlacement placement, GeneratedNamespacePlan namespaces)
     {
         ArgumentNullException.ThrowIfNull(unions);
         ArgumentNullException.ThrowIfNull(placement);
+        ArgumentNullException.ThrowIfNull(namespaces);
 
         var result = new List<GeneratedSource>(unions.Count * 3);
         foreach (var union in unions.OrderBy(static union => union.Name, StringComparer.Ordinal))
         {
             result.Add(EmitKind(union, GeneratedPlacement.ModelPathOf(placement, union.KindTypeName)));
-            result.Add(EmitCarrier(union, GeneratedPlacement.ModelPathOf(placement, union.Name)));
-            result.Add(EmitConverter(union, GeneratedPlacement.ConverterPathOf(placement, union.Name, $"{union.Name}JsonConverter")));
+            result.Add(EmitCarrier(union, GeneratedPlacement.ModelPathOf(placement, union.Name), namespaces));
+            result.Add(EmitConverter(union, GeneratedPlacement.ConverterPathOf(placement, union.Name, $"{union.Name}JsonConverter"), namespaces));
         }
 
         return Array.AsReadOnly([.. result]);
@@ -45,7 +46,7 @@ internal static class StructuralUnionEmitter
         return EmissionSyntax.CreateSource(relativePath, unit);
     }
 
-    private static GeneratedSource EmitCarrier(StructuralUnionModelPlan union, string relativePath)
+    private static GeneratedSource EmitCarrier(StructuralUnionModelPlan union, string relativePath, GeneratedNamespacePlan namespaces)
     {
         var members = new List<MemberDeclarationSyntax>
         {
@@ -83,7 +84,7 @@ internal static class StructuralUnionEmitter
         var unit = EmissionSyntax.CompilationUnit(
             union.Namespace,
             [
-                GeneratedNamespace.Internal,
+                namespaces.Internal,
                 "System",
                 "System.Collections.Generic",
                 "System.Text.Json",
@@ -303,7 +304,7 @@ internal static class StructuralUnionEmitter
     private static MemberAccessExpressionSyntax KindMember(StructuralUnionModelPlan union, string name) =>
         EmissionSyntax.MemberAccess(TypeSyntaxEmitter.EmitNamed(union.KindTypeName), name);
 
-    private static GeneratedSource EmitConverter(StructuralUnionModelPlan union, string relativePath)
+    private static GeneratedSource EmitConverter(StructuralUnionModelPlan union, string relativePath, GeneratedNamespacePlan namespaces)
     {
         var declaration = SyntaxFactory
             .ClassDeclaration($"{union.Name}JsonConverter")
@@ -316,9 +317,9 @@ internal static class StructuralUnionEmitter
                     TypeSyntaxEmitter.EmitNamed(union.Name))))))
             .WithMembers(SyntaxFactory.List(ConverterMembers(union)));
         var unit = EmissionSyntax.CompilationUnit(
-            GeneratedNamespace.Internal,
+            namespaces.Internal,
             [
-                GeneratedNamespace.Models,
+                namespaces.Models,
                 "System",
                 "System.Text.Json",
                 "System.Text.Json.Serialization",

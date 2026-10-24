@@ -1,7 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Emission;
@@ -12,9 +11,10 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 /// </summary>
 internal static class QueryRequestEmitter
 {
-    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients)
+    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients, GeneratedNamespacePlan namespaces)
     {
         ArgumentNullException.ThrowIfNull(clients);
+        ArgumentNullException.ThrowIfNull(namespaces);
 
         return Array.AsReadOnly(
         [
@@ -22,11 +22,11 @@ internal static class QueryRequestEmitter
                 .SelectMany(static client => client.Operations)
                 .Where(static operation => operation.QueryRequest is { RidesRequestBody: false })
                 .OrderBy(static operation => operation.QueryRequest!.TypeName, StringComparer.Ordinal)
-                .Select(static operation => EmitQueryRequest(operation)),
+                .Select(operation => EmitQueryRequest(operation, namespaces)),
         ]);
     }
 
-    private static GeneratedSource EmitQueryRequest(OperationPlan operation)
+    private static GeneratedSource EmitQueryRequest(OperationPlan operation, GeneratedNamespacePlan namespaces)
     {
         var queryRequest = operation.QueryRequest!;
         var declaration = SyntaxFactory.RecordDeclaration(SyntaxFactory.Token(SyntaxKind.RecordKeyword), queryRequest.TypeName)
@@ -52,10 +52,10 @@ internal static class QueryRequestEmitter
         // Every other query kind is a spine type in the client namespace; only a generated
         // enum lives with the models.
         var usings = queryRequest.Properties.Any(static property => property.Kind is QueryValueKind.Enum)
-            ? new[] { GeneratedNamespace.Models, }
+            ? new[] { namespaces.Models, }
             : [];
         declaration = EmissionSyntax.DocumentedType(declaration, queryRequest.Documentation);
-        var unit = EmissionSyntax.CompilationUnit(GeneratedNamespace.Public, usings, [declaration]);
+        var unit = EmissionSyntax.CompilationUnit(namespaces.Public, usings, [declaration]);
         return EmissionSyntax.CreateSource(
             GeneratedPlacement.PathOf(GeneratedKind.OperationRecord, TypeHome.Family(operation.RouteContainerName), queryRequest.TypeName),
             unit);

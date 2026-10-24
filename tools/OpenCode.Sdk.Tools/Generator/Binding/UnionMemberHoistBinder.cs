@@ -26,7 +26,7 @@ internal static class UnionMemberHoistBinder
 
         var context = CreateContext(unions, models, curation, errors);
         var hoisted = new Dictionary<string, IReadOnlyList<HoistedMemberPlan>>(StringComparer.Ordinal);
-        foreach (var union in OrderByChainDepth(unions, context.Unions))
+        foreach (var union in OrderByChainDepth(unions))
         {
             hoisted[union.Name] = HoistUnion(union, context, hoisted);
         }
@@ -67,7 +67,7 @@ internal static class UnionMemberHoistBinder
         if (ResolveMembers(union, context) is { } members)
         {
             var dispatched = UnionDispatchPropertyPolicy.Collect(union, context.Unions);
-            var inherited = InheritedNames(union, context.Unions, hoisted);
+            var inherited = InheritedNames(union, hoisted);
             foreach (var candidate in members[0].Properties)
             {
                 if (dispatched.Contains(candidate.WireName) || inherited.Contains(candidate.Name))
@@ -187,12 +187,11 @@ internal static class UnionMemberHoistBinder
         }
     }
 
-    private static HashSet<string> InheritedNames(UnionPlan union, IReadOnlyDictionary<string, UnionPlan> unions,
+    private static HashSet<string> InheritedNames(UnionPlan union,
         IReadOnlyDictionary<string, IReadOnlyList<HoistedMemberPlan>> hoisted)
     {
         var result = new HashSet<string>(StringComparer.Ordinal) { union.MarkerName };
-        for (var current = union.BaseTypeName; current is not null && unions.TryGetValue(current, out var outer);
-             current = outer.BaseTypeName)
+        foreach (var outer in union.Chain.Skip(1).Where(static link => !link.IsTerminal))
         {
             _ = result.Add(outer.MarkerName);
             if (hoisted.TryGetValue(outer.Name, out var members))
@@ -204,23 +203,10 @@ internal static class UnionMemberHoistBinder
         return result;
     }
 
-    private static IEnumerable<UnionPlan> OrderByChainDepth(IReadOnlyList<UnionPlan> unions,
-        IReadOnlyDictionary<string, UnionPlan> byName) =>
+    private static IEnumerable<UnionPlan> OrderByChainDepth(IReadOnlyList<UnionPlan> unions) =>
         unions
-            .OrderBy(union => ChainDepth(union, byName))
+            .OrderBy(static union => union.Chain.Skip(1).Count(static link => !link.IsTerminal))
             .ThenBy(static union => union.Name, StringComparer.Ordinal);
-
-    private static int ChainDepth(UnionPlan union, IReadOnlyDictionary<string, UnionPlan> byName)
-    {
-        var depth = 0;
-        for (var current = union.BaseTypeName; current is not null && byName.TryGetValue(current, out var outer) && depth < byName.Count;
-             current = outer.BaseTypeName)
-        {
-            depth++;
-        }
-
-        return depth;
-    }
 
     private sealed record HoistContext(
         IReadOnlyDictionary<string, UnionPlan> Unions,

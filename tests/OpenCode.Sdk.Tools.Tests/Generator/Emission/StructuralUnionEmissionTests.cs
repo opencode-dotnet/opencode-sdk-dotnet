@@ -16,7 +16,7 @@ public sealed class StructuralUnionEmissionTests
         var union = (StructuralUnionModelPlan)plan.Models.Single(static model => model is StructuralUnionModelPlan);
         union = union with { Name = "OAuthValue", Arms = [union.Arms[0] with { Name = "Value" }] };
         plan = (plan with { Models = [union] }).WithSingleSlice();
-        var source = EmitterSnapshot.Create(StructuralUnionEmitter.Emit([union], plan.Placement));
+        var source = EmitterSnapshot.Create(StructuralUnionEmitter.Emit([union], plan.Placement, plan.Namespaces));
         await Assert.That(source).Contains("Represents an OAuth value structural union.");
         await Assert.That(source).Contains("Creates an OAuth value from its value arm.");
         await Assert.That(source).Contains("Represents the value arm.");

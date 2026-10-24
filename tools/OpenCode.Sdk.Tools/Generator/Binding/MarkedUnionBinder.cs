@@ -61,6 +61,7 @@ internal sealed class MarkedUnionBinder(SchemaBindingContext context)
         var conceptName = CSharpNamePolicy.ToUnionConceptName(name);
         return new UnionPlan
         {
+            Chain = [],
             Name = name,
             ConceptName = conceptName,
             Namespace = GeneratedNamespace.Models,

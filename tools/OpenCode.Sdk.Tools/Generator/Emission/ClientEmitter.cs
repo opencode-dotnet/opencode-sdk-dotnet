@@ -8,14 +8,15 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 internal static class ClientEmitter
 {
-    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients)
+    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients, GeneratedNamespacePlan namespaces)
     {
         ArgumentNullException.ThrowIfNull(clients);
+        ArgumentNullException.ThrowIfNull(namespaces);
 
-        return Array.AsReadOnly([.. clients.Select(static client => EmitClient(client))]);
+        return Array.AsReadOnly([.. clients.Select(client => EmitClient(client, namespaces))]);
     }
 
-    private static GeneratedSource EmitClient(ClientPlan client)
+    private static GeneratedSource EmitClient(ClientPlan client, GeneratedNamespacePlan namespaces)
     {
         var members = new List<MemberDeclarationSyntax>();
         members.AddRange(EmitFields(client));
@@ -68,7 +69,7 @@ internal static class ClientEmitter
         }
 
         declaration = EmissionSyntax.DocumentedType(declaration, client.Documentation);
-        var unit = EmissionSyntax.CompilationUnit(client.Namespace, EmitUsings(client), [declaration]);
+        var unit = EmissionSyntax.CompilationUnit(client.Namespace, EmitUsings(client, namespaces), [declaration]);
         return EmissionSyntax.CreateSource(PathOf(client), unit);
     }
 
@@ -84,7 +85,7 @@ internal static class ClientEmitter
     }
 
     /// <summary>Collection and I/O namespaces exist only where an operation kind needs one.</summary>
-    private static List<string> EmitUsings(ClientPlan client)
+    private static List<string> EmitUsings(ClientPlan client, GeneratedNamespacePlan namespaces)
     {
         var usings = new List<string>
         {
@@ -92,8 +93,8 @@ internal static class ClientEmitter
             "System.Net.Http",
             "System.Threading",
             "System.Threading.Tasks",
-            GeneratedNamespace.Internal,
-            GeneratedNamespace.Models,
+            namespaces.Internal,
+            namespaces.Models,
         };
         if (client.Operations.Any(static operation =>
                 operation.Stream is not null || operation.Pagination is not null || operation.DeclaredHeaders.Count > 0))

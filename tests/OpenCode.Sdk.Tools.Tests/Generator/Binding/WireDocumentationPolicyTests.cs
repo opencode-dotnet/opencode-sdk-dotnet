@@ -80,7 +80,7 @@ public sealed class WireDocumentationPolicyTests(PinnedBinding pinned)
 
         await Assert.That(plan.Clients.SelectMany(static client => client.Operations).Single().Envelope!.Documentation.Summary)
             .IsEqualTo("The response of 'widget.get' (GET /api/widgets).");
-        var source = Encoding.UTF8.GetString(EnvelopeEmitter.Emit(plan.Clients).Single().Utf8Source.Span);
+        var source = Encoding.UTF8.GetString(EnvelopeEmitter.Emit(plan.Clients, plan.Namespaces).Single().Utf8Source.Span);
         await Assert.That(source).Contains("The response of &apos;widget.get&apos; (GET /api/widgets).");
     }
 
@@ -96,7 +96,7 @@ public sealed class WireDocumentationPolicyTests(PinnedBinding pinned)
 
         await Assert.That(plan.Clients.SelectMany(static client => client.Operations).Single().QueryRequest!.Documentation.Summary)
             .IsEqualTo("The query of 'widget.get' (GET /api/widgets).");
-        var source = Encoding.UTF8.GetString(QueryRequestEmitter.Emit(plan.Clients).Single().Utf8Source.Span);
+        var source = Encoding.UTF8.GetString(QueryRequestEmitter.Emit(plan.Clients, plan.Namespaces).Single().Utf8Source.Span);
         await Assert.That(source).Contains("The query of &apos;widget.get&apos; (GET /api/widgets).");
     }
 
@@ -167,7 +167,7 @@ public sealed class WireDocumentationPolicyTests(PinnedBinding pinned)
                     .Property("text", static member => member.Type("string"), required: true), required: true)))));
         var plan = new BindingTestHost().Bind(document, Selection("widget.get"), Curation(Groups("widget", RootGroup())));
 
-        var source = Encoding.UTF8.GetString(EnvelopeEmitter.Emit(plan.Clients).Single().Utf8Source.Span);
+        var source = Encoding.UTF8.GetString(EnvelopeEmitter.Emit(plan.Clients, plan.Namespaces).Single().Utf8Source.Span);
 
         await Assert.That(source).Contains("The described response wrapper.");
         await Assert.That(source).DoesNotContain("The response of &apos;widget.get&apos;");

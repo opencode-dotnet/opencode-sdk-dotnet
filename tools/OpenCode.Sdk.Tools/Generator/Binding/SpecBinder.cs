@@ -22,8 +22,9 @@ internal sealed class SpecBinder : ISpecBinder
         // curated rows are then judged against the graph as it will be bound, and a row that
         // repeats a mechanical fold is refused as redundant instead of shadowing it.
         var collapse = StabilizeDuplicatePolicy.Resolve(document, reachable, curation.SchemaNames, errors);
-        CurationValidator.Validate(document, selected, reachable, curation, errors);
-        SchemaAliasValidator.Validate(document, reachable, curation, collapse, errors);
+        var context = new BindingContext(document, reachable, curation, errors);
+        CurationValidator.Validate(context, selected);
+        SchemaAliasValidator.Validate(context, collapse);
 
         // Aliases are validated against the raw document above; the collapse happens before
         // names resolve so the rest of the pipeline never sees the duplicates. Reachability
@@ -36,9 +37,10 @@ internal sealed class SpecBinder : ISpecBinder
             var aliasedById = document.Operations.ToDictionary(static operation => operation.OperationId, StringComparer.Ordinal);
             selected = Array.AsReadOnly([.. selected.Select(operation => aliasedById[operation.OperationId])]);
             reachable = ReachableSchemaCollector.Collect(document, selected, errors);
+            context = context with { Document = document, Reachable = reachable };
         }
 
-        CurationValidator.ValidateCollapsedSchemas(document, reachable, curation, collapse, errors);
+        CurationValidator.ValidateCollapsedSchemas(context, collapse);
 
         // Type names are resolved exactly once per bind; schema and operation binding
         // consume the same map so neither can reinterpret a schema under another name.
@@ -68,6 +70,7 @@ internal sealed class SpecBinder : ISpecBinder
         errors.ThrowIfAny();
         var plan = new EmitPlan
         {
+            Namespaces = new(GeneratedNamespace.Public, GeneratedNamespace.Models, GeneratedNamespace.Internal),
             SelectedOperationIds = selection.OperationIds,
             Models = [.. masked.Models.Select(model => model with { ExperimentalDiagnostic = experimental.GetValueOrDefault(model.Name) })],
             Unions = [.. masked.Unions.Select(union => union with { ExperimentalDiagnostic = experimental.GetValueOrDefault(union.Name) })],
@@ -81,9 +84,37 @@ internal sealed class SpecBinder : ISpecBinder
             Placement = placement,
             ModelReach = reach,
         };
-        plan = DescriptionCurationBinder.Apply(WireDocumentationPolicy.Apply(plan), curation.Descriptions, errors);
+        plan = DescriptionCurationBinder.Apply(WireDocumentationPolicy.Apply(ResolveEmissionData(plan)), curation.Descriptions, errors);
         errors.ThrowIfAny();
         return plan;
+    }
+
+    public static EmitPlan ResolveEmissionData(EmitPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        var enums = plan.Models.OfType<EnumModelPlan>().ToDictionary(static model => model.Name, StringComparer.Ordinal);
+        var resolved = new Dictionary<string, IReadOnlyList<EnumModelPlan>>(StringComparer.Ordinal);
+        foreach (var container in plan.Clients.SelectMany(static client => client.Operations)
+                     .GroupBy(static operation => operation.RouteContainerName, StringComparer.Ordinal))
+        {
+            var models = new SortedDictionary<string, EnumModelPlan>(StringComparer.Ordinal);
+            foreach (var property in container.SelectMany(static operation => operation.QueryRequest?.Properties ?? []))
+            {
+                if (property.Kind is not QueryValueKind.Enum)
+                {
+                    continue;
+                }
+
+                var name = property.EnumTypeName ?? throw new InvalidOperationException(
+                    $"Query property '{property.PropertyName}' has no enum type name.");
+                models[name] = enums.TryGetValue(name, out var model) ? model
+                    : throw new InvalidOperationException($"Query enum '{name}' has no generated model.");
+            }
+
+            resolved.Add(container.Key, Array.AsReadOnly(models.Values.ToArray()));
+        }
+
+        return UnionChainBuilder.Resolve(plan) with { QueryEnumModels = resolved };
     }
 
     /// <summary>Attaches operation-owned model properties and session-event roles before masking secret payloads.</summary>

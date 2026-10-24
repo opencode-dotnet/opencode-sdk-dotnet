@@ -22,41 +22,14 @@ internal static class QueryEnumWireValueEmitter
     /// root, so every family's nested container reaches them, and the routes emitter names each
     /// enum once so an enum two families share is converted in exactly one place.
     /// </summary>
-    public static IReadOnlyList<MemberDeclarationSyntax> Emit(IReadOnlyList<string> enumTypeNames,
-        IReadOnlyList<ModelPlan> models)
+    public static IReadOnlyList<MemberDeclarationSyntax> Emit(IReadOnlyList<EnumModelPlan> models)
     {
-        ArgumentNullException.ThrowIfNull(enumTypeNames);
         ArgumentNullException.ThrowIfNull(models);
 
-        var enums = models.OfType<EnumModelPlan>().ToDictionary(static model => model.Name, StringComparer.Ordinal);
         return Array.AsReadOnly<MemberDeclarationSyntax>(
         [
-            // Unreachable through the binder: QueryRequestFacetBinder refuses a query enum whose
-            // model the type-name map does not carry, so an operation reaching emission always
-            // has one. It stays a throw rather than a skip because the alternative is emitting a
-            // converter set that silently omits one enum, which fails at run time in the caller's
-            // process instead of here.
-            .. enumTypeNames.Order(StringComparer.Ordinal).Select(typeName => EmitConverter(
-                enums.TryGetValue(typeName, out var model)
-                    ? model
-                    : throw new InvalidOperationException($"Query enum '{typeName}' has no generated model."))),
+            .. models.Select(EmitConverter),
         ]);
-    }
-
-    /// <summary>Gets every enum type name the operations' query members are typed with, once each, ordered.</summary>
-    public static IEnumerable<string> EnumTypeNames(IReadOnlyList<OperationPlan> operations)
-    {
-        ArgumentNullException.ThrowIfNull(operations);
-
-        return operations
-            .Where(static operation => operation.QueryRequest is not null)
-            .SelectMany(static operation => operation.QueryRequest!.Properties)
-            .Where(static property => property.Kind is QueryValueKind.Enum)
-            .Select(static property => property.EnumTypeName
-                                       ?? throw new InvalidOperationException(
-                                           $"Query property '{property.PropertyName}' has no enum type name."))
-            .Distinct(StringComparer.Ordinal)
-            .Order(StringComparer.Ordinal);
     }
 
     private static MethodDeclarationSyntax EmitConverter(EnumModelPlan model)
