@@ -26,18 +26,21 @@ internal static class UnionMembershipValidator
         var visited = new HashSet<string>(StringComparer.Ordinal);
         foreach (var implementedName in model.ImplementedUnionNames)
         {
-            var currentName = implementedName;
-            var isDeclaredMembership = true;
-            while (visited.Add(currentName))
+            if (!unions.TryGetValue(implementedName, out var union))
             {
-                if (!unions.TryGetValue(currentName, out var current))
+                if (visited.Add(implementedName))
                 {
-                    if (isDeclaredMembership)
-                    {
-                        errors.Add(BindingErrorCategory.Schema, model.Name,
-                            $"union membership references absent union '{currentName}'");
-                    }
+                    errors.Add(BindingErrorCategory.Schema, model.Name,
+                        $"union membership references absent union '{implementedName}'");
+                }
 
+                continue;
+            }
+
+            foreach (var current in union.Chain)
+            {
+                if (!visited.Add(current.Name) || current.IsTerminal)
+                {
                     break;
                 }
 
@@ -50,13 +53,6 @@ internal static class UnionMembershipValidator
                 }
 
                 markers[current.MarkerWireName] = current.MarkerKind;
-                if (current.BaseTypeName is null)
-                {
-                    break;
-                }
-
-                currentName = current.BaseTypeName;
-                isDeclaredMembership = false;
             }
         }
     }

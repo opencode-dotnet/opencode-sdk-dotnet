@@ -9,24 +9,24 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 internal static class UnionEmitter
 {
-    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<UnionPlan> unions, ModelPlacement placement)
+    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<UnionPlan> unions, ModelPlacement placement, GeneratedNamespacePlan namespaces)
     {
         ArgumentNullException.ThrowIfNull(unions);
         ArgumentNullException.ThrowIfNull(placement);
-        var byName = unions.ToDictionary(static union => union.Name, StringComparer.Ordinal);
+        ArgumentNullException.ThrowIfNull(namespaces);
         var result = new List<GeneratedSource>(unions.Count * 4);
         foreach (var union in unions.OrderBy(static union => union.Name, StringComparer.Ordinal))
         {
-            result.Add(EmitBase(union, byName, GeneratedPlacement.ModelPathOf(placement, union.Name)));
-            result.Add(EmitUnknown(union, byName, GeneratedPlacement.ModelPathOf(placement, union.UnknownTypeName)));
-            result.Add(EmitConverter(union, placement));
-            result.Add(EmitCarrierConverter(union, placement));
+            result.Add(EmitBase(union, GeneratedPlacement.ModelPathOf(placement, union.Name), namespaces));
+            result.Add(EmitUnknown(union, GeneratedPlacement.ModelPathOf(placement, union.UnknownTypeName), namespaces));
+            result.Add(EmitConverter(union, placement, namespaces));
+            result.Add(EmitCarrierConverter(union, placement, namespaces));
         }
 
         return Array.AsReadOnly([.. result]);
     }
 
-    private static GeneratedSource EmitBase(UnionPlan union, IReadOnlyDictionary<string, UnionPlan> unions, string relativePath)
+    private static GeneratedSource EmitBase(UnionPlan union, string relativePath, GeneratedNamespacePlan namespaces)
     {
         var converterTypeName = $"{union.ConceptName}JsonConverter";
 
@@ -43,7 +43,7 @@ internal static class UnionEmitter
             .WithLeadingTrivia(EmissionSyntax.Documentation($"Gets the '{union.MarkerWireName}' union marker."));
         // A union inherits a matching discriminator from its generated parent or the stream-cause
         // marker; redeclaring it would hide the member its base already promises.
-        var declaresMarker = !InheritsMarker(union, unions);
+        var declaresMarker = !InheritsMarker(union);
         // Every member declares the hoisted properties in the same shape, so the interface can
         // promise them; each is nullable because the unknown carrier materializes none of them.
         var members = new List<MemberDeclarationSyntax>();
@@ -91,7 +91,7 @@ internal static class UnionEmitter
         declaration = EmissionSyntax.DocumentedType(declaration, documentation, PinBoundInterfaceRemarks.Runs);
         var unit = EmissionSyntax.CompilationUnit(
             union.Namespace,
-            HoistedUsings(union.HoistedMembers, [GeneratedNamespace.Internal, "System.Text.Json.Serialization"]),
+            HoistedUsings(union.HoistedMembers, [namespaces.Internal, "System.Text.Json.Serialization"]),
             [declaration]);
         return EmissionSyntax.CreateSource(relativePath, unit);
     }
@@ -113,21 +113,12 @@ internal static class UnionEmitter
     }
 
     /// <summary>The members a carrier of this union must answer, including the ones its outer unions promise.</summary>
-    private static List<HoistedChainMember> ChainHoistedMembers(UnionPlan union, IReadOnlyDictionary<string, UnionPlan> unions)
-    {
-        var result = new List<HoistedChainMember>();
-        for (var current = union; current is not null;)
-        {
-            var declaring = current;
-            result.AddRange(declaring
-                .HoistedMembers.Where(member =>
-                    !result.Exists(entry => string.Equals(entry.Member.Name, member.Name, StringComparison.Ordinal)))
-                .Select(member => new HoistedChainMember(declaring.Name, member)));
-            current = current.BaseTypeName is not null && unions.TryGetValue(current.BaseTypeName, out var outer) ? outer : null;
-        }
-
-        return result;
-    }
+    private static List<HoistedChainMember> ChainHoistedMembers(UnionPlan union) =>
+    [
+        .. union.Chain.Where(static link => !link.IsTerminal)
+            .SelectMany(static link => link.HoistedMembers.Select(member => new HoistedChainMember(link.Name, member)))
+            .DistinctBy(static entry => entry.Member.Name, StringComparer.Ordinal),
+    ];
 
     private static string[] HoistedUsings(IEnumerable<HoistedMemberPlan> members, IEnumerable<string> seed)
     {
@@ -143,28 +134,13 @@ internal static class UnionEmitter
     /// <summary>One hoisted member together with the interface that declares it.</summary>
     private sealed record HoistedChainMember(string InterfaceName, HoistedMemberPlan Member);
 
-    private static bool InheritsMarker(UnionPlan union, IReadOnlyDictionary<string, UnionPlan> unions)
+    private static bool InheritsMarker(UnionPlan union) => union.Chain.Skip(1).Any(link =>
+        string.Equals(link.MarkerWireName, union.MarkerWireName, StringComparison.Ordinal)
+        && link.MarkerKind == union.MarkerKind);
+
+    private static GeneratedSource EmitUnknown(UnionPlan union, string relativePath, GeneratedNamespacePlan namespaces)
     {
-        var current = union.BaseTypeName;
-        while (current is not null && unions.TryGetValue(current, out var outer))
-        {
-            if (string.Equals(outer.MarkerWireName, union.MarkerWireName, StringComparison.Ordinal)
-                && outer.MarkerKind == union.MarkerKind)
-            {
-                return true;
-            }
-
-            current = outer.BaseTypeName;
-        }
-
-        return string.Equals(current, EffectStreamTypeNamePolicy.CauseMarkerInterface, StringComparison.Ordinal)
-            && string.Equals(union.MarkerWireName, ErrorMarkerPolicy.WireName, StringComparison.Ordinal)
-            && union.MarkerKind == LiteralKind.String;
-    }
-
-    private static GeneratedSource EmitUnknown(UnionPlan union, IReadOnlyDictionary<string, UnionPlan> unions, string relativePath)
-    {
-        var chain = ChainHoistedMembers(union, unions);
+        var chain = ChainHoistedMembers(union);
         var markerType = TypeSyntaxEmitter.EmitMarker(union.MarkerKind);
         var members = new List<MemberDeclarationSyntax>
         {
@@ -207,8 +183,8 @@ internal static class UnionEmitter
             .WithMembers(SyntaxFactory.List(members))
             .WithLeadingTrivia(EmissionSyntax.Documentation($"Preserves an unknown {GeneratedDisplayName.Of(union.ConceptName)} payload."));
         var usingNames = union.MarkerKind is LiteralKind.String
-            ? new[] { "System", "System.Text.Json", "System.Text.Json.Serialization", GeneratedNamespace.Internal, }
-            : ["System.Text.Json", "System.Text.Json.Serialization", GeneratedNamespace.Internal];
+            ? new[] { "System", "System.Text.Json", "System.Text.Json.Serialization", namespaces.Internal, }
+            : ["System.Text.Json", "System.Text.Json.Serialization", namespaces.Internal];
         declaration = EmissionSyntax.DocumentedType(declaration, union.UnknownDocumentation);
         var unit = EmissionSyntax.CompilationUnit(
             union.Namespace,
@@ -250,7 +226,7 @@ internal static class UnionEmitter
     /// The carrier's own converter: reading reproduces the base converter's fallback arm,
     /// writing replays the preserved document.
     /// </summary>
-    private static GeneratedSource EmitCarrierConverter(UnionPlan union, ModelPlacement placement)
+    private static GeneratedSource EmitCarrierConverter(UnionPlan union, ModelPlacement placement, GeneratedNamespacePlan namespaces)
     {
         var converterName = $"{union.UnknownTypeName}JsonConverter";
         var readStatements = new List<StatementSyntax>();
@@ -318,9 +294,9 @@ internal static class UnionEmitter
                     TypeSyntaxEmitter.EmitNamed(union.UnknownTypeName))))))
             .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([read, write]));
         var unit = EmissionSyntax.CompilationUnit(
-            GeneratedNamespace.Internal,
+            namespaces.Internal,
             [
-                GeneratedNamespace.Models,
+                namespaces.Models,
                 "System",
                 "System.Text.Json",
                 "System.Text.Json.Serialization",
@@ -506,7 +482,7 @@ internal static class UnionEmitter
                     .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)))))
             .WithLeadingTrivia(EmissionSyntax.Documentation("Gets the preserved raw JSON payload."));
 
-    private static GeneratedSource EmitConverter(UnionPlan union, ModelPlacement placement)
+    private static GeneratedSource EmitConverter(UnionPlan union, ModelPlacement placement, GeneratedNamespacePlan namespaces)
     {
         var converterName = $"{union.ConceptName}JsonConverter";
         var declaration = SyntaxFactory
@@ -524,9 +500,9 @@ internal static class UnionEmitter
                 EmitWrite(union),
             ]));
         var unit = EmissionSyntax.CompilationUnit(
-            GeneratedNamespace.Internal,
+            namespaces.Internal,
             [
-                GeneratedNamespace.Models,
+                namespaces.Models,
                 "System",
                 "System.Collections.Frozen",
                 "System.Collections.Generic",

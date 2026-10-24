@@ -156,7 +156,7 @@ public sealed class EnumMemberNameCurationTests
         var plan = new BindingTestHost().Bind(document, Selection("mode.get"), Curation(Groups("mode", RootGroup())));
         var mode = plan.Models.OfType<EnumModelPlan>().Single(static model => model.Name == "Mode");
 
-        var source = Encoding.UTF8.GetString(ExtensibleEnumEmitter.Emit(mode, plan.Placement)[0].Utf8Source.Span);
+        var source = Encoding.UTF8.GetString(ExtensibleEnumEmitter.Emit(mode, plan.Placement, plan.Namespaces)[0].Utf8Source.Span);
 
         await Assert.That(source).Contains("public const string None = \"none\";");
         await Assert.That(source).Contains("public const string NoneValue = \"none-value\";");

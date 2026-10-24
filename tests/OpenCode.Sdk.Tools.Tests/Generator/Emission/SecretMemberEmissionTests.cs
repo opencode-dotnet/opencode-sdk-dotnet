@@ -93,7 +93,7 @@ public sealed class SecretMemberEmissionTests
     public async Task Emit_Should_Override_ToString_Only_On_A_Flagged_Unknown_Carrier()
     {
         UnionPlan[] unions = [.. EmitterPlanFixture.CreateUnionSnapshot().Select(static union => MaskUnknown(union, "IExamplePhase"))];
-        var sources = UnionEmitter.Emit(unions, ModelPlacementFixture.SingleSlice(unions));
+        var sources = UnionEmitter.Emit(unions, ModelPlacementFixture.SingleSlice(unions), EmitterPlanFixture.Create().Namespaces);
 
         await Assert.That(EmitterSnapshot.Content(sources, "Example/Models/UnknownExamplePhase.cs")).Contains(
             "public override string ToString() => RecordPrinter.Format(nameof(UnknownExamplePhase), (\"Status\", Status), (\"Type\", Type), (\"Payload\", RecordPrinter.Redact(Payload)));");
@@ -107,8 +107,8 @@ public sealed class SecretMemberEmissionTests
 
         StructuralUnionModelPlan[] maskedUnions = [.. MaskStructural(plan).Models.OfType<StructuralUnionModelPlan>()];
         StructuralUnionModelPlan[] plainUnions = [.. plan.Models.OfType<StructuralUnionModelPlan>()];
-        var masked = StructuralUnionEmitter.Emit(maskedUnions, ModelPlacementFixture.SingleSlice(maskedUnions));
-        var plain = StructuralUnionEmitter.Emit(plainUnions, ModelPlacementFixture.SingleSlice(plainUnions));
+        var masked = StructuralUnionEmitter.Emit(maskedUnions, ModelPlacementFixture.SingleSlice(maskedUnions), plan.Namespaces);
+        var plain = StructuralUnionEmitter.Emit(plainUnions, ModelPlacementFixture.SingleSlice(plainUnions), plan.Namespaces);
 
         await Assert.That(EmitterSnapshot.Content(masked, "Example/Models/StructuralValue.cs")).Contains(
             "StructuralUnionPrinter.Format(nameof(StructuralValue), Kind.ToString(), Kind is StructuralValueKind.Unknown ? RecordPrinter.Redacted : _value);");

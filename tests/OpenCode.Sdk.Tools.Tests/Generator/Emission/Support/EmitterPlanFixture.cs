@@ -50,6 +50,7 @@ internal static class EmitterPlanFixture
 
         var plan = new EmitPlan
         {
+            Namespaces = new(GeneratedNamespace.Public, GeneratedNamespace.Models, GeneratedNamespace.Internal),
             ImplicitAliases = StabilizeDuplicateCollapse.Empty,
             SelectedOperationIds = ["example.get"],
             Models = models,
@@ -83,7 +84,7 @@ internal static class EmitterPlanFixture
             DeclinedOperations = [],
             TransportOwnedOperationIds = [],
         }.WithSingleSlice();
-        return WireDocumentationPolicy.Apply(plan);
+        return UnionChainFixture.Resolve(WireDocumentationPolicy.Apply(plan));
     }
 
     public static IReadOnlyList<ClientPlan> CreateClientPlans() =>
@@ -776,12 +777,13 @@ internal static class EmitterPlanFixture
             EmitsExtensionData = true,
         };
 
-    public static IReadOnlyList<UnionPlan> CreateUnionSnapshot() => [CreateExampleEvent(), CreateExamplePhase()];
+    public static IReadOnlyList<UnionPlan> CreateUnionSnapshot() => UnionChainFixture.Build([CreateExampleEvent(), CreateExamplePhase()]);
 
     /// <summary>A nested union whose outer tag is fixed; both converters must enforce it.</summary>
     private static UnionPlan CreateExamplePhase() =>
         new()
         {
+            Chain = [],
             Name = "IExamplePhase",
             ConceptName = "ExamplePhase",
             Namespace = "OpenCode.Sdk.Models",
@@ -906,6 +908,7 @@ internal static class EmitterPlanFixture
     private static UnionPlan CreateExampleEvent() =>
         new()
         {
+            Chain = [],
             Name = "IExampleEvent",
             ConceptName = "ExampleEvent",
             Namespace = "OpenCode.Sdk.Models",
@@ -940,6 +943,7 @@ internal static class EmitterPlanFixture
     private static UnionPlan CreateOpenCodeError() =>
         new()
         {
+            Chain = [],
             Name = "IOpenCodeError",
             ConceptName = "IOpenCodeError",
             Namespace = "OpenCode.Sdk.Models",
@@ -1038,10 +1042,11 @@ internal static class EmitterPlanFixture
         };
         var unions = new[] { CreateHoistEvent(), CreateHoistPhase(), };
         var errors = new BindingErrorCollector();
-        var hoisted = UnionMemberHoistBinder.Bind(unions, models, HoistCuration(), errors);
+        var hoisted = UnionMemberHoistBinder.Bind(UnionChainFixture.Build(unions), models, HoistCuration(), errors);
         errors.ThrowIfAny();
-        return new EmitPlan
+        return UnionChainFixture.Resolve(new EmitPlan
         {
+            Namespaces = new(GeneratedNamespace.Public, GeneratedNamespace.Models, GeneratedNamespace.Internal),
             ImplicitAliases = StabilizeDuplicateCollapse.Empty,
             SelectedOperationIds = [],
             Models = hoisted.Models,
@@ -1061,7 +1066,7 @@ internal static class EmitterPlanFixture
             PendingOperations = [],
             DeclinedOperations = [],
             TransportOwnedOperationIds = [],
-        }.WithSingleSlice();
+        }.WithSingleSlice());
     }
 
     private static GenerationCuration HoistCuration() =>
@@ -1130,6 +1135,7 @@ internal static class EmitterPlanFixture
     private static UnionPlan CreateHoistEvent() =>
         new()
         {
+            Chain = [],
             Name = "IExampleEvent",
             ConceptName = "ExampleEvent",
             Namespace = "OpenCode.Sdk.Models",
@@ -1149,6 +1155,7 @@ internal static class EmitterPlanFixture
     private static UnionPlan CreateHoistPhase() =>
         new()
         {
+            Chain = [],
             Name = "IExamplePhase",
             ConceptName = "ExamplePhase",
             Namespace = "OpenCode.Sdk.Models",

@@ -472,9 +472,9 @@ public sealed class UnionMemberHoistBinderTests
         GenerationCuration? curation = null)
     {
         var errors = new BindingErrorCollector();
-        var plan = UnionMemberHoistBinder.Bind(unions, models, curation ?? Curation(Groups()), errors);
+        var plan = UnionMemberHoistBinder.Bind(UnionChainFixture.Build(unions), models, curation ?? Curation(Groups()), errors);
         CheckNames(plan, errors);
         errors.ThrowIfAny();
-        return plan;
+        return plan with { Unions = UnionChainFixture.Build(plan.Unions) };
     }
 }

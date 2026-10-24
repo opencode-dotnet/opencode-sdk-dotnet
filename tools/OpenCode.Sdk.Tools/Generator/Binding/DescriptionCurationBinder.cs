@@ -14,7 +14,7 @@ internal static partial class DescriptionCurationBinder
 
         if (rows.Count is 0)
         {
-            return plan;
+            return ResolveOwners(plan, errors);
         }
 
         var priorErrors = errors.Count;
@@ -65,9 +65,17 @@ internal static partial class DescriptionCurationBinder
                 })],
             })],
         };
-        _ = InheritedMemberOwners(bound, bound.Unions.ToDictionary(static union => union.Name, StringComparer.Ordinal), errors);
+        return ResolveOwners(bound, errors);
+    }
 
-        return bound;
+    private static EmitPlan ResolveOwners(EmitPlan plan, BindingErrorCollector errors)
+    {
+        var owners = InheritedMemberOwners(plan, plan.Unions.ToDictionary(static union => union.Name, StringComparer.Ordinal), errors);
+        return plan with
+        {
+            Models = [.. plan.Models.Select(model => model is ObjectModelPlan concrete
+                ? concrete with { InheritedMemberOwners = owners[model.Name] } : model)],
+        };
     }
 
     public static IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> InheritedMemberOwners(EmitPlan plan,
@@ -82,16 +90,17 @@ internal static partial class DescriptionCurationBinder
             var owners = plan.HoistedInterfaces.Where(carrier => carrier.ImplementedBy.Contains(model.Name, StringComparer.Ordinal)
                     || model.ImplementedHoistedInterfaceNames.Contains(carrier.Name, StringComparer.Ordinal))
                 .ToDictionary(static carrier => carrier.Name, static carrier => carrier.Documentation, StringComparer.Ordinal);
-            var pending = new Queue<string>(model.ImplementedUnionNames.Concat(plan.Unions
+            var pending = new Queue<(IReadOnlyList<UnionChainLink> Chain, int Index)>(model.ImplementedUnionNames.Concat(plan.Unions
                 .Where(union => union.Variants.Any(variant => string.Equals(variant.TypeName, model.Name, StringComparison.Ordinal))
                     || string.Equals(union.PrefixVariant?.TypeName, model.Name, StringComparison.Ordinal))
-                .Select(static union => union.Name)));
-            while (pending.TryDequeue(out var name))
+                .Select(static union => union.Name)).Where(unions.ContainsKey).Select(name => (unions[name].Chain, 0)));
+            while (pending.TryDequeue(out var position))
             {
-                if (unions.TryGetValue(name, out var union) && owners.TryAdd(name, union.Documentation)
-                    && union.BaseTypeName is { } parent)
+                var link = position.Chain[position.Index];
+                if (!link.IsTerminal && owners.TryAdd(link.Name, unions[link.Name].Documentation)
+                    && position.Index + 1 < position.Chain.Count)
                 {
-                    pending.Enqueue(parent);
+                    pending.Enqueue((position.Chain, position.Index + 1));
                 }
             }
 

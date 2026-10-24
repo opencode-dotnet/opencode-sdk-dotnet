@@ -14,10 +14,12 @@ internal static class RoutesEmitter
     /// (ordinal) whose operations use it, so an enum two families share is still converted in
     /// exactly one place.
     /// </summary>
-    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients, IReadOnlyList<ModelPlan> models)
+    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients,
+        IReadOnlyDictionary<string, IReadOnlyList<EnumModelPlan>> queryEnumModels, GeneratedNamespacePlan namespaces)
     {
         ArgumentNullException.ThrowIfNull(clients);
-        ArgumentNullException.ThrowIfNull(models);
+        ArgumentNullException.ThrowIfNull(queryEnumModels);
+        ArgumentNullException.ThrowIfNull(namespaces);
 
         var containers = clients
             .SelectMany(static client => client.Operations)
@@ -28,20 +30,20 @@ internal static class RoutesEmitter
         var result = new List<GeneratedSource>(containers.Length);
         foreach (var container in containers)
         {
-            var ownedEnums = QueryEnumWireValueEmitter.EnumTypeNames([.. container]).Where(convertedEnums.Add).ToArray();
-            result.Add(EmitPart(container, ownedEnums, models, documented: result.Count is 0));
+            var enums = queryEnumModels[container.Key];
+            var ownedEnums = enums.Where(model => convertedEnums.Add(model.Name)).ToArray();
+            result.Add(EmitPart(container, ownedEnums, enums.Count > 0, namespaces, documented: result.Count is 0));
         }
 
         return Array.AsReadOnly([.. result]);
     }
 
-    private static GeneratedSource EmitPart(IGrouping<string, OperationPlan> container, string[] ownedEnums,
-        IReadOnlyList<ModelPlan> models, bool documented)
+    private static GeneratedSource EmitPart(IGrouping<string, OperationPlan> container, IReadOnlyList<EnumModelPlan> ownedEnums,
+        bool hasQueryEnums, GeneratedNamespacePlan namespaces, bool documented)
     {
         var operations = container.ToArray();
-        var hasQueryEnums = ownedEnums.Length > 0 || QueryEnumWireValueEmitter.EnumTypeNames(operations).Any();
         var members = new List<MemberDeclarationSyntax> { EmitContainer(container) };
-        members.AddRange(QueryEnumWireValueEmitter.Emit(ownedEnums, models));
+        members.AddRange(QueryEnumWireValueEmitter.Emit(ownedEnums));
         var declaration = SyntaxFactory.ClassDeclaration("OpenCodeRoutes")
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.InternalKeyword),
@@ -70,10 +72,10 @@ internal static class RoutesEmitter
         // member types its converter with the generated enum.
         if (hasQueryEnums || operations.Any(static operation => operation.QueryRequest is { RidesRequestBody: true }))
         {
-            usings.Add(GeneratedNamespace.Models);
+            usings.Add(namespaces.Models);
         }
 
-        var unit = EmissionSyntax.CompilationUnit(GeneratedNamespace.Internal, usings, [declaration]);
+        var unit = EmissionSyntax.CompilationUnit(namespaces.Internal, usings, [declaration]);
         return EmissionSyntax.CreateSource(
             GeneratedPlacement.PathOf(GeneratedKind.Routes, TypeHome.Family(container.Key), "OpenCodeRoutes"),
             unit);

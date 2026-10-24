@@ -1,6 +1,7 @@
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
+using OpenCode.Sdk.Tools.Tests.Support;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding.Support;
@@ -104,6 +105,7 @@ internal static class OwnershipPlanData
     public static UnionPlan Union(string conceptName) =>
         new()
         {
+            Chain = [],
             Name = $"I{conceptName}",
             ConceptName = conceptName,
             Namespace = ModelNamespace,
@@ -163,7 +165,7 @@ internal static class OwnershipPlanData
         var candidates = new OwnershipCandidates
         {
             Models = models,
-            Unions = unions ?? [],
+            Unions = UnionChainFixture.Build(unions ?? []),
             HoistedInterfaces = hoistedInterfaces ?? [],
         };
         return ModelOwnershipPolicy.Place(candidates, [client], ownership, errors);

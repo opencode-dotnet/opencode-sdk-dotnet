@@ -64,7 +64,7 @@ internal sealed class UnionInheritanceGraph
             graph._memberships[key] = Array.AsReadOnly(names.Where(name => !refusedNames.Contains(name)).ToArray());
         }
 
-        graph.Unions = unions.AsReadOnly();
+        graph.Unions = UnionChainBuilder.Build(unions);
         return graph;
     }
 }

@@ -456,8 +456,8 @@ public sealed class OperationPlanBinderTests
             }
             else if (variation == "invalid")
             {
-                CurationValidator.Validate(document, document.Operations,
-                    ReachableSchemaCollector.Collect(document, document.Operations, errors), curation, errors);
+                CurationValidator.Validate(new BindingContext(document,
+                    ReachableSchemaCollector.Collect(document, document.Operations, errors), curation, errors), document.Operations);
                 errors.ThrowIfAny();
             }
             else

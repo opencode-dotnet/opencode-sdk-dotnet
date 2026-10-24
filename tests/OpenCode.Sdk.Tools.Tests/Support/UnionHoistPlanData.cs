@@ -16,14 +16,14 @@ internal static class UnionHoistPlanData
         var errors = new BindingErrorCollector();
         var arms = new[] { (Name: "CreatedEvent", Tag: "created", Version: "1"), (Name: "DeletedEvent", Tag: "deleted", Version: "2") };
         var result = UnionMemberHoistBinder.Bind(
-            [Union("IExampleEvent", [.. arms.Select(static arm => Arm(arm.Name))])],
+            UnionChainFixture.Build([Union("IExampleEvent", [.. arms.Select(static arm => Arm(arm.Name))])]),
             [
                 .. arms.Select(static arm => Variant(arm.Name, arm.Tag, Property("durable", Named(arm.Name + "Durable"), isRequired: true))),
                 .. arms.Select(static arm => Envelope(arm.Name + "Durable", arm.Version)),
             ], curation, errors);
         CheckNames(result, errors);
         errors.ThrowIfAny();
-        return result;
+        return result with { Unions = UnionChainFixture.Build(result.Unions) };
     }
 
     public static UnionPlan Union(string name, params UnionVariantPlan[] variants)
@@ -32,6 +32,7 @@ internal static class UnionHoistPlanData
         ArgumentNullException.ThrowIfNull(variants);
         return new UnionPlan
         {
+            Chain = [],
             Name = name,
             ConceptName = name[1..],
             Namespace = "OpenCode.Sdk.Models",
@@ -152,11 +153,12 @@ internal static class UnionHoistPlanData
         ArgumentNullException.ThrowIfNull(curation);
 
         var errors = new BindingErrorCollector();
-        var hoisted = UnionMemberHoistBinder.Bind(unions, models, curation, errors);
+        var hoisted = UnionMemberHoistBinder.Bind(UnionChainFixture.Build(unions), models, curation, errors);
         CheckNames(hoisted, errors);
         errors.ThrowIfAny();
-        return new EmitPlan
+        return UnionChainFixture.Resolve(new EmitPlan
         {
+            Namespaces = new(GeneratedNamespace.Public, GeneratedNamespace.Models, GeneratedNamespace.Internal),
             ImplicitAliases = StabilizeDuplicateCollapse.Empty,
             SelectedOperationIds = [],
             Models = hoisted.Models,
@@ -176,7 +178,7 @@ internal static class UnionHoistPlanData
             PendingOperations = [],
             DeclinedOperations = [],
             TransportOwnedOperationIds = [],
-        }.WithSingleSlice();
+        }.WithSingleSlice());
     }
 
     private static string PascalCase(string wireName) =>

@@ -10,20 +10,20 @@ internal static class SourceEmitter
         ArgumentNullException.ThrowIfNull(plan);
         var sources = new List<GeneratedSource>();
         sources.AddRange(ModelEmitter.Emit(plan));
-        sources.AddRange(OptionalConverterEmitter.Emit(plan.Models));
-        sources.AddRange(StructuralUnionEmitter.Emit([.. plan.Models.OfType<StructuralUnionModelPlan>()], plan.Placement));
-        sources.AddRange(UnionEmitter.Emit(plan.Unions, plan.Placement));
+        sources.AddRange(OptionalConverterEmitter.Emit(plan.Models, plan.Namespaces));
+        sources.AddRange(StructuralUnionEmitter.Emit([.. plan.Models.OfType<StructuralUnionModelPlan>()], plan.Placement, plan.Namespaces));
+        sources.AddRange(UnionEmitter.Emit(plan.Unions, plan.Placement, plan.Namespaces));
         sources.AddRange(HoistedInterfaceEmitter.Emit(plan.HoistedInterfaces, plan.Placement));
-        sources.AddRange(RegistryEmitter.Emit(plan.Registry));
+        sources.AddRange(RegistryEmitter.Emit(plan.Registry, plan.Namespaces));
         if (plan.Clients.Count > 0)
         {
-            sources.AddRange(RoutesEmitter.Emit(plan.Clients, plan.Models));
-            sources.AddRange(QueryRequestEmitter.Emit(plan.Clients));
-            sources.AddRange(EnvelopeDtoEmitter.Emit(plan.Clients));
-            sources.AddRange(EnvelopeEmitter.Emit(plan.Clients));
-            sources.AddRange(ResponseAdapterEmitter.Emit(plan.Clients));
-            sources.AddRange(StreamAdapterEmitter.Emit(plan.Clients));
-            sources.AddRange(ClientEmitter.Emit(plan.Clients));
+            sources.AddRange(RoutesEmitter.Emit(plan.Clients, plan.QueryEnumModels, plan.Namespaces));
+            sources.AddRange(QueryRequestEmitter.Emit(plan.Clients, plan.Namespaces));
+            sources.AddRange(EnvelopeDtoEmitter.Emit(plan.Clients, plan.Namespaces));
+            sources.AddRange(EnvelopeEmitter.Emit(plan.Clients, plan.Namespaces));
+            sources.AddRange(ResponseAdapterEmitter.Emit(plan.Clients, plan.Namespaces));
+            sources.AddRange(StreamAdapterEmitter.Emit(plan.Clients, plan.Namespaces));
+            sources.AddRange(ClientEmitter.Emit(plan.Clients, plan.Namespaces));
         }
 
         var duplicate = sources

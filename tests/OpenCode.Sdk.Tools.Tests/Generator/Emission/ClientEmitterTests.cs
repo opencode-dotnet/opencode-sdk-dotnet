@@ -10,7 +10,7 @@ public sealed class ClientEmitterTests
     [Test]
     public async Task Emit_Should_Produce_Virtual_Delegating_Clients()
     {
-        var sources = ClientEmitter.Emit(EmitterPlanFixture.CreateClientPlans());
+        var sources = ClientEmitter.Emit(EmitterPlanFixture.CreateClientPlans(), EmitterPlanFixture.Create().Namespaces);
 
         await Verify(EmitterSnapshot.Create(sources));
     }
@@ -18,7 +18,7 @@ public sealed class ClientEmitterTests
     [Test]
     public async Task Emit_Should_Produce_Internal_Raw_Clients()
     {
-        var sources = ClientEmitter.Emit(EmitterPlanFixture.CreateInternalRawClientPlans());
+        var sources = ClientEmitter.Emit(EmitterPlanFixture.CreateInternalRawClientPlans(), EmitterPlanFixture.Create().Namespaces);
 
         await Verify(EmitterSnapshot.Create(sources));
     }
@@ -91,7 +91,7 @@ public sealed class ClientEmitterTests
 
     private static string EmitSource(IReadOnlyList<ClientPlan> plans, string relativePath) =>
         Encoding.UTF8.GetString(ClientEmitter
-            .Emit(plans)
+            .Emit(plans, EmitterPlanFixture.Create().Namespaces)
             .Single(source => string.Equals(source.RelativePath, relativePath, StringComparison.Ordinal))
             .Utf8Source.Span);
 }

@@ -263,7 +263,7 @@ public sealed class DescriptionCurationBinderTests(PinnedBinding pinned)
             Description("IEvents", summary: "The notification interface.", remarks: "Read the notification type."),
             Description("IEvents", "Type", "The notification's wire type.")));
 
-        var source = Encoding.UTF8.GetString(UnionEmitter.Emit(plan.Unions, plan.Placement)
+        var source = Encoding.UTF8.GetString(UnionEmitter.Emit(plan.Unions, plan.Placement, plan.Namespaces)
             .Single(static source => source.RelativePath.EndsWith("/IEvents.cs", StringComparison.Ordinal)).Utf8Source.Span);
 
         await Assert.That(source).Contains("The notification interface.");
