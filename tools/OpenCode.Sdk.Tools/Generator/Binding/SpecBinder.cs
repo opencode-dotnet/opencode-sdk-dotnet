@@ -22,8 +22,9 @@ internal sealed class SpecBinder : ISpecBinder
         // curated rows are then judged against the graph as it will be bound, and a row that
         // repeats a mechanical fold is refused as redundant instead of shadowing it.
         var collapse = StabilizeDuplicatePolicy.Resolve(document, reachable, curation.SchemaNames, errors);
-        CurationValidator.Validate(document, selected, reachable, curation, errors);
-        SchemaAliasValidator.Validate(document, reachable, curation, collapse, errors);
+        var context = new BindingContext(document, reachable, curation, errors);
+        CurationValidator.Validate(context, selected);
+        SchemaAliasValidator.Validate(context, collapse);
 
         // Aliases are validated against the raw document above; the collapse happens before
         // names resolve so the rest of the pipeline never sees the duplicates. Reachability
@@ -36,9 +37,10 @@ internal sealed class SpecBinder : ISpecBinder
             var aliasedById = document.Operations.ToDictionary(static operation => operation.OperationId, StringComparer.Ordinal);
             selected = Array.AsReadOnly([.. selected.Select(operation => aliasedById[operation.OperationId])]);
             reachable = ReachableSchemaCollector.Collect(document, selected, errors);
+            context = context with { Document = document, Reachable = reachable };
         }
 
-        CurationValidator.ValidateCollapsedSchemas(document, reachable, curation, collapse, errors);
+        CurationValidator.ValidateCollapsedSchemas(context, collapse);
 
         // Type names are resolved exactly once per bind; schema and operation binding
         // consume the same map so neither can reinterpret a schema under another name.

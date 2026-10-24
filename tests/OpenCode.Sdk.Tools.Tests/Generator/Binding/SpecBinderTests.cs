@@ -289,7 +289,8 @@ public sealed class SpecBinderTests
                 experimentalDiagnostic: fault == "shared-diagnostic" ? "OPENCODE001" : null);
         }
         var errors = new BindingErrorCollector();
-        CurationValidator.Validate(document, selected, ReachableSchemaCollector.Collect(document, selected, errors), Curation(groups), errors);
+        CurationValidator.Validate(new BindingContext(document, ReachableSchemaCollector.Collect(document, selected, errors),
+            Curation(groups), errors), selected);
         var identity = expected[0];
         await Assert.That(Assert.Throws<BindingException>(errors.ThrowIfAny).Errors
             .Where(error => error.Category == identity.Category && error.Subject == identity.Subject))
@@ -325,8 +326,8 @@ public sealed class SpecBinderTests
         var errors = new BindingErrorCollector();
         var selected = document.Operations.Where(operation => operation.OperationId == "health.get" || fault == "selected").ToArray();
         var declared = fault switch { "malformed" => "bad", "fingerprint" => new string('0', 64), _ => hash };
-        CurationValidator.Validate(document, selected, ReachableSchemaCollector.Collect(document, selected, errors),
-            Curation(Groups("health", RootGroup()), transportOwned: [TransportOwned(subject, declared)]), errors);
+        CurationValidator.Validate(new BindingContext(document, ReachableSchemaCollector.Collect(document, selected, errors),
+            Curation(Groups("health", RootGroup()), transportOwned: [TransportOwned(subject, declared)]), errors), selected);
         var expected = new BindingError(BindingErrorCategory.Curation, subject, problem);
         var exception = Assert.Throws<BindingException>(errors.ThrowIfAny);
         await Assert.That(exception.Errors.Single(error => error.Category == expected.Category && error.Subject == expected.Subject))

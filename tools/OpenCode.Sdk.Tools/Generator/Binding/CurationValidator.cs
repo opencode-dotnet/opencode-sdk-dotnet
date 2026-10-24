@@ -5,37 +5,32 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 
 internal static class CurationValidator
 {
-    public static void Validate(SpecDocument document, IReadOnlyList<SpecOperation> selected, ReachableSchemaSet reachable,
-        GenerationCuration curation, BindingErrorCollector errors)
+    public static void Validate(BindingContext context, IReadOnlyList<SpecOperation> selected)
     {
-        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(selected);
-        ArgumentNullException.ThrowIfNull(reachable);
-        ArgumentNullException.ThrowIfNull(curation);
-        ArgumentNullException.ThrowIfNull(errors);
 
         var selectedIds = selected.Select(static operation => operation.OperationId).ToHashSet(StringComparer.Ordinal);
         var selectedGroups = selected.Select(GetGroup).ToHashSet(StringComparer.Ordinal);
-        var documentIds = document.Operations.Select(static operation => operation.OperationId).ToHashSet(StringComparer.Ordinal);
-        var documentGroups = document.Operations.Select(GetGroup).ToHashSet(StringComparer.Ordinal);
-        ValidateGroups(selected, selectedGroups, documentGroups, curation, errors);
-        ValidateOperationNames(selected, documentIds, curation, errors);
-        ValidateParameterNames(selected, curation, errors);
-        QueryParameterCurationValidator.Validate(document, selected, curation, errors);
-        ValidateEnvelopeNames(selectedIds, documentIds, curation, errors);
-        ValidateTransportOwned(document, selectedIds, curation, errors);
-        ValidateDeclined(documentIds, selectedIds, curation, errors);
+        var documentIds = context.Document.Operations.Select(static operation => operation.OperationId).ToHashSet(StringComparer.Ordinal);
+        var documentGroups = context.Document.Operations.Select(GetGroup).ToHashSet(StringComparer.Ordinal);
+        ValidateGroups(selected, selectedGroups, documentGroups, context.Curation, context.Errors);
+        ValidateOperationNames(selected, documentIds, context.Curation, context.Errors);
+        ValidateParameterNames(selected, context.Curation, context.Errors);
+        QueryParameterCurationValidator.Validate(context.Document, selected, context.Curation, context.Errors);
+        ValidateEnvelopeNames(selectedIds, documentIds, context.Curation, context.Errors);
+        ValidateTransportOwned(context.Document, selectedIds, context.Curation, context.Errors);
+        ValidateDeclined(documentIds, selectedIds, context.Curation, context.Errors);
     }
 
-    public static void ValidateCollapsedSchemas(SpecDocument document, ReachableSchemaSet reachable,
-        GenerationCuration curation, StabilizeDuplicateCollapse collapse, BindingErrorCollector errors)
+    public static void ValidateCollapsedSchemas(BindingContext context, StabilizeDuplicateCollapse collapse)
     {
         // Mechanical folds already refuse their schema-name rows as redundant, not missing.
-        ValidateSchemaNames(document, reachable, curation with
+        ValidateSchemaNames(context.Document, context.Reachable, context.Curation with
         {
-            SchemaNames = [.. curation.SchemaNames.Where(row => !collapse.Aliases.ContainsKey(row.Schema))],
-        }, errors);
-        ValidateEnumMemberNames(document, reachable, curation, errors);
+            SchemaNames = [.. context.Curation.SchemaNames.Where(row => !collapse.Aliases.ContainsKey(row.Schema))],
+        }, context.Errors);
+        ValidateEnumMemberNames(context.Document, context.Reachable, context.Curation, context.Errors);
     }
 
     private static void ValidateSchemaNames(SpecDocument document, ReachableSchemaSet reachable,

@@ -1,5 +1,4 @@
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
-using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
@@ -14,60 +13,56 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// </summary>
 internal static class SchemaAliasValidator
 {
-    public static void Validate(SpecDocument document, ReachableSchemaSet reachable, GenerationCuration curation,
-        StabilizeDuplicateCollapse collapse, BindingErrorCollector errors)
+    public static void Validate(BindingContext context, StabilizeDuplicateCollapse collapse)
     {
-        ArgumentNullException.ThrowIfNull(document);
-        ArgumentNullException.ThrowIfNull(reachable);
-        ArgumentNullException.ThrowIfNull(curation);
+        ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(collapse);
-        ArgumentNullException.ThrowIfNull(errors);
 
-        var reachableKeys = reachable.GraphKeys.ToHashSet(StringComparer.Ordinal);
-        var sources = curation.SchemaAliases.Select(static row => row.Schema).ToHashSet(StringComparer.Ordinal);
+        var reachableKeys = context.Reachable.GraphKeys.ToHashSet(StringComparer.Ordinal);
+        var sources = context.Curation.SchemaAliases.Select(static row => row.Schema).ToHashSet(StringComparer.Ordinal);
         // Identity is judged on the graph as it will be bound, so one alias can be what makes
         // a second pair identical — the mechanical collapse included.
         // A duplicated source is refused by the row contract; Compose tolerates it.
-        var aliasTargets = SchemaAliasApplier.Compose(collapse, curation.SchemaAliases);
-        foreach (var alias in curation.SchemaAliases)
+        var aliasTargets = SchemaAliasApplier.Compose(collapse, context.Curation.SchemaAliases);
+        foreach (var alias in context.Curation.SchemaAliases)
         {
             if (collapse.Aliases.TryGetValue(alias.Schema, out var implied))
             {
-                errors.Add(BindingErrorCategory.Curation, alias.Schema,
+                context.Errors.Add(BindingErrorCategory.Curation, alias.Schema,
                     $"schema alias is redundant: the stabilize-duplicate collapse already folds it into '{implied}'");
                 continue;
             }
 
             if (string.Equals(alias.Schema, alias.AliasOf, StringComparison.Ordinal))
             {
-                errors.Add(BindingErrorCategory.Curation, alias.Schema, "schema alias cannot target itself");
+                context.Errors.Add(BindingErrorCategory.Curation, alias.Schema, "schema alias cannot target itself");
                 continue;
             }
 
-            if (!document.Schemas.TryGetValue(alias.Schema, out var source))
+            if (!context.Document.Schemas.TryGetValue(alias.Schema, out var source))
             {
-                errors.Add(BindingErrorCategory.Curation, alias.Schema, "aliased schema does not exist in the spec");
+                context.Errors.Add(BindingErrorCategory.Curation, alias.Schema, "aliased schema does not exist in the spec");
                 continue;
             }
 
-            if (!document.Schemas.TryGetValue(alias.AliasOf, out var target))
+            if (!context.Document.Schemas.TryGetValue(alias.AliasOf, out var target))
             {
-                errors.Add(BindingErrorCategory.Curation, alias.Schema, $"alias target '{alias.AliasOf}' does not exist in the spec");
+                context.Errors.Add(BindingErrorCategory.Curation, alias.Schema, $"alias target '{alias.AliasOf}' does not exist in the spec");
                 continue;
             }
 
             if (!reachableKeys.Contains(alias.Schema))
             {
-                errors.Add(BindingErrorCategory.Curation, alias.Schema, "aliased schema is not referenced by the selected profile");
+                context.Errors.Add(BindingErrorCategory.Curation, alias.Schema, "aliased schema is not referenced by the selected profile");
             }
 
-            if (!SchemaNodeComparer.DeepEquals(source, target, document.Schemas, aliasTargets))
+            if (!SchemaNodeComparer.DeepEquals(source, target, context.Document.Schemas, aliasTargets))
             {
-                errors.Add(BindingErrorCategory.Curation, alias.Schema, "aliased schemas must be structurally identical");
+                context.Errors.Add(BindingErrorCategory.Curation, alias.Schema, "aliased schemas must be structurally identical");
             }
         }
 
-        ValidateAliasChains(curation, collapse, sources, errors);
+        ValidateAliasChains(context.Curation, collapse, sources, context.Errors);
     }
 
     /// <summary>
