@@ -8,9 +8,9 @@ internal sealed class PipelineScenario : IDisposable
     private readonly RecordingHttpHandler _handler;
     private readonly HttpClient _httpClient;
 
-    private PipelineScenario(Func<HttpRequestMessage, HttpResponseMessage> responder, TimeSpan? networkTimeout, TimeProvider? time)
+    private PipelineScenario(Func<HttpRequestMessage, HttpResponseMessage>? responder, TimeSpan? networkTimeout, TimeProvider? time)
     {
-        _handler = new RecordingHttpHandler(responder);
+        _handler = responder is null ? new RecordingHttpHandler() : new RecordingHttpHandler(responder);
         HttpClient? httpClient = null;
         try
         {
@@ -28,10 +28,12 @@ internal sealed class PipelineScenario : IDisposable
 
     public Pipeline Pipeline { get; }
 
+    public IReadOnlyList<RecordedRequest> Requests => _handler.Requests;
+
     public bool IsDisposed => _handler.IsDisposed;
 
     public static PipelineScenario Responding(
-        Func<HttpRequestMessage, HttpResponseMessage> responder,
+        Func<HttpRequestMessage, HttpResponseMessage>? responder = null,
         TimeSpan? networkTimeout = null,
         TimeProvider? time = null) => new(responder, networkTimeout, time);
 
