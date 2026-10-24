@@ -857,16 +857,10 @@ public sealed class PipelineTests
     public async Task ExecuteAsync_Should_Fail_A_Body_That_Stalls_Past_The_Progress_Window()
     {
         using var caller = new CancellationTokenSource();
-        var time = new ManualTimeProvider();
         using var content = new BlockingContent();
-        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = content,
-        });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, networkTimeout: Window, time: time);
+        using var scenario = CreateStalledScenario(content, HttpStatusCode.OK, out var time);
 
-        var execution = pipeline.ExecuteAsync(OperationId,
+        var execution = scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get,
                 "/api/info",
                 new RecordingResponseAdapter(),
@@ -938,16 +932,10 @@ public sealed class PipelineTests
     public async Task ExecuteAsync_Should_Fail_A_Stalled_Error_Body_At_The_Progress_Window_Under_NoThrow()
     {
         using var caller = new CancellationTokenSource();
-        var time = new ManualTimeProvider();
         using var content = new BlockingContent();
-        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
-        {
-            Content = content,
-        });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, networkTimeout: Window, time: time);
+        using var scenario = CreateStalledScenario(content, HttpStatusCode.Unauthorized, out var time);
 
-        var execution = pipeline.ExecuteAsync(OperationId,
+        var execution = scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get,
                 "/api/info",
                 new RecordingResponseAdapter(),
@@ -1048,16 +1036,10 @@ public sealed class PipelineTests
     public async Task ExecuteAsync_Should_Classify_A_Fault_The_Interruption_Caused_As_A_Transport_Failure_At_The_Progress_Window()
     {
         using var caller = new CancellationTokenSource();
-        var time = new ManualTimeProvider();
         using var content = new InterruptedBufferingContent();
-        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = content,
-        });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, networkTimeout: Window, time: time);
+        using var scenario = CreateStalledScenario(content, HttpStatusCode.OK, out var time);
 
-        var execution = pipeline.ExecuteAsync(OperationId,
+        var execution = scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get,
                 "/api/info",
                 new RecordingResponseAdapter(),
@@ -1220,6 +1202,15 @@ public sealed class PipelineTests
 
         await Assert.That(informational).IsNotNull();
         await Assert.That(product).IsEqualTo($"OpenCode.Sdk/{informational!.Split('+')[0]}");
+    }
+
+    private static PipelineScenario CreateStalledScenario(HttpContent content, HttpStatusCode status, out ManualTimeProvider time)
+    {
+        time = new ManualTimeProvider();
+        return PipelineScenario.Responding(_ => new HttpResponseMessage(status)
+        {
+            Content = content,
+        }, networkTimeout: Window, time: time);
     }
 
     private static GatedStream CreateGatedBody(out StreamContent content, out ManualTimeProvider time, out PipelineScenario scenario)
