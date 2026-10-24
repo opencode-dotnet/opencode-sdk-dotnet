@@ -14,7 +14,7 @@ internal static partial class DescriptionCurationBinder
 
         if (rows.Count is 0)
         {
-            return plan;
+            return ResolveOwners(plan, errors);
         }
 
         var priorErrors = errors.Count;
@@ -65,9 +65,17 @@ internal static partial class DescriptionCurationBinder
                 })],
             })],
         };
-        _ = InheritedMemberOwners(bound, bound.Unions.ToDictionary(static union => union.Name, StringComparer.Ordinal), errors);
+        return ResolveOwners(bound, errors);
+    }
 
-        return bound;
+    private static EmitPlan ResolveOwners(EmitPlan plan, BindingErrorCollector errors)
+    {
+        var owners = InheritedMemberOwners(plan, plan.Unions.ToDictionary(static union => union.Name, StringComparer.Ordinal), errors);
+        return plan with
+        {
+            Models = [.. plan.Models.Select(model => model is ObjectModelPlan concrete
+                ? concrete with { InheritedMemberOwners = owners[model.Name] } : model)],
+        };
     }
 
     public static IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> InheritedMemberOwners(EmitPlan plan,

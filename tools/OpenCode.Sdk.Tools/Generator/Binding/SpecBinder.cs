@@ -68,6 +68,7 @@ internal sealed class SpecBinder : ISpecBinder
         errors.ThrowIfAny();
         var plan = new EmitPlan
         {
+            Namespaces = new(GeneratedNamespace.Public, GeneratedNamespace.Models, GeneratedNamespace.Internal),
             SelectedOperationIds = selection.OperationIds,
             Models = [.. masked.Models.Select(model => model with { ExperimentalDiagnostic = experimental.GetValueOrDefault(model.Name) })],
             Unions = [.. masked.Unions.Select(union => union with { ExperimentalDiagnostic = experimental.GetValueOrDefault(union.Name) })],
@@ -81,9 +82,37 @@ internal sealed class SpecBinder : ISpecBinder
             Placement = placement,
             ModelReach = reach,
         };
-        plan = DescriptionCurationBinder.Apply(WireDocumentationPolicy.Apply(plan), curation.Descriptions, errors);
+        plan = DescriptionCurationBinder.Apply(WireDocumentationPolicy.Apply(ResolveEmissionData(plan)), curation.Descriptions, errors);
         errors.ThrowIfAny();
         return plan;
+    }
+
+    public static EmitPlan ResolveEmissionData(EmitPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        var enums = plan.Models.OfType<EnumModelPlan>().ToDictionary(static model => model.Name, StringComparer.Ordinal);
+        var resolved = new Dictionary<string, IReadOnlyList<EnumModelPlan>>(StringComparer.Ordinal);
+        foreach (var container in plan.Clients.SelectMany(static client => client.Operations)
+                     .GroupBy(static operation => operation.RouteContainerName, StringComparer.Ordinal))
+        {
+            var models = new SortedDictionary<string, EnumModelPlan>(StringComparer.Ordinal);
+            foreach (var property in container.SelectMany(static operation => operation.QueryRequest?.Properties ?? []))
+            {
+                if (property.Kind is not QueryValueKind.Enum)
+                {
+                    continue;
+                }
+
+                var name = property.EnumTypeName ?? throw new InvalidOperationException(
+                    $"Query property '{property.PropertyName}' has no enum type name.");
+                models[name] = enums.TryGetValue(name, out var model) ? model
+                    : throw new InvalidOperationException($"Query enum '{name}' has no generated model.");
+            }
+
+            resolved.Add(container.Key, Array.AsReadOnly(models.Values.ToArray()));
+        }
+
+        return UnionChainBuilder.Resolve(plan) with { QueryEnumModels = resolved };
     }
 
     /// <summary>Attaches operation-owned model properties and session-event roles before masking secret payloads.</summary>

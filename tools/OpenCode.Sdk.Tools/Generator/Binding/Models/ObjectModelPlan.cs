@@ -2,6 +2,11 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 internal sealed record ObjectModelPlan : ModelPlan
 {
+    public IReadOnlyList<ChainMarkerPlan> ChainMarkers { get; init; } = [];
+
+    public IReadOnlyDictionary<string, string> InheritedMemberOwners { get; init; } =
+        new Dictionary<string, string>(StringComparer.Ordinal);
+
     /// <summary>Gets the session identifier projection, only for a qualifying event record.</summary>
     public SessionScopedEventPlan? SessionScopedEvent { get; init; }
 

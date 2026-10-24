@@ -69,7 +69,7 @@ internal sealed class SchemaPlanBinder(SchemaBindingContext context)
         // registry because no converter or source-generated metadata materializes them.
         var hoisted = UnionMemberHoistBinder.Bind(orderedUnions, orderedModels, curation, errors);
         orderedModels = [.. hoisted.Models];
-        orderedUnions = [.. hoisted.Unions];
+        orderedUnions = [.. UnionChainBuilder.Build(hoisted.Unions)];
         return new SchemaBindingResult
         {
             TypeNames = typeNames,

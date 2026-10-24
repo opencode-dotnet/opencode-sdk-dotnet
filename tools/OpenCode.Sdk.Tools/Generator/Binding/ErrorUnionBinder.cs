@@ -57,6 +57,7 @@ internal sealed class ErrorUnionBinder(SchemaBindingContext context)
         {
             plan = new UnionPlan
             {
+                Chain = [],
                 Name = ErrorMarkerPolicy.InterfaceTypeName,
                 ConceptName = ErrorMarkerPolicy.ErrorConceptName,
                 Namespace = GeneratedNamespace.Models,

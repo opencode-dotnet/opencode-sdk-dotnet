@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
+using OpenCode.Sdk.Tools.Tests.Support;
 using TUnit.Assertions.Enums;
 using static OpenCode.Sdk.Tools.Tests.Support.BindingScenarioData;
 using static OpenCode.Sdk.Tools.Tests.Support.UnionHoistPlanData;
@@ -69,7 +70,7 @@ public sealed class HoistedMemberEmissionTests
                 Documentation = new() { Members = new Dictionary<string, DocumentationPlan>(StringComparer.Ordinal) { ["Seq"] = new("Direct summary.", null) } },
             } : model)],
         };
-        var sources = SourceEmitter.Emit(plan);
+        var sources = SourceEmitter.Emit(UnionChainFixture.Resolve(plan));
         var roots = await Task.WhenAll(sources.Select(source => CSharpSyntaxTree.ParseText(System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)).GetRootAsync()));
         var inherited = roots.SelectMany(root => root.DescendantNodes().OfType<PropertyDeclarationSyntax>()
             .Where(static property => property.GetLeadingTrivia().ToFullString().Contains("<inheritdoc", StringComparison.Ordinal))

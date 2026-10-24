@@ -2,6 +2,11 @@ namespace OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 internal sealed record EmitPlan
 {
+    public required GeneratedNamespacePlan Namespaces { get; init; }
+
+    public IReadOnlyDictionary<string, IReadOnlyList<EnumModelPlan>> QueryEnumModels { get; init; } =
+        new Dictionary<string, IReadOnlyList<EnumModelPlan>>(StringComparer.Ordinal);
+
     public required IReadOnlyList<string> SelectedOperationIds
     {
         get;
