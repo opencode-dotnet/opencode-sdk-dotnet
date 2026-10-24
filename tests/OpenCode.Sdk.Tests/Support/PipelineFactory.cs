@@ -6,7 +6,7 @@ namespace OpenCode.Sdk.Tests.Support;
 /// <summary>Builds a pipeline over a test transport; the endpoint every pipeline test shares.</summary>
 internal static class PipelineFactory
 {
-    public static readonly Uri Endpoint = new("http://localhost:4096");
+    public static readonly Uri Endpoint = ContractScenario.Endpoint;
 
     public static Pipeline Create(
         HttpClient httpClient,

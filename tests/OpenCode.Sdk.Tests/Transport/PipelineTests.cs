@@ -35,30 +35,26 @@ public sealed class PipelineTests
     [Arguments("\t")]
     public async Task ExecuteAsync_Should_Refuse_A_Blank_Operation_Id(string operationId)
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding();
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(operationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(operationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<ArgumentException>();
 
         await Assert.That(exception!.ParamName).IsEqualTo(nameof(operationId));
-        await Assert.That(handler.Requests).IsEmpty();
+        await Assert.That(scenario.Requests).IsEmpty();
     }
 
     [Test]
     public async Task ExecuteAsync_Should_Join_The_Route_Onto_The_Endpoint()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding();
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
-        await Assert.That(handler.Requests.Single().Method).IsEqualTo(HttpMethod.Get);
-        await Assert.That(handler.Requests.Single().RequestUri).IsEqualTo(new Uri("http://localhost:4096/api/info"));
+        await Assert.That(scenario.Requests.Single().Method).IsEqualTo(HttpMethod.Get);
+        await Assert.That(scenario.Requests.Single().RequestUri).IsEqualTo(new Uri("http://localhost:4096/api/info"));
     }
 
     [Test]
@@ -169,13 +165,11 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Send_Anonymously_When_No_Password_Is_Set()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding();
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
-        await Assert.That(handler.Requests.Single().Authorization).IsNull();
+        await Assert.That(scenario.Requests.Single().Authorization).IsNull();
     }
 
     [Test]
@@ -260,13 +254,11 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Omit_The_Location_Headers_Without_An_Ambient_Location()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding();
 
-        await ExecuteInfoAsync(pipeline);
+        await ExecuteInfoAsync(scenario.Pipeline);
 
-        await AssertLocationHeadersAbsentAsync(handler.Requests.Single());
+        await AssertLocationHeadersAbsentAsync(scenario.Requests.Single());
     }
 
     [Test]
@@ -290,13 +282,11 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Decorate_The_User_Agent_Per_Request()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding();
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
-        await Assert.That(handler.Requests.Single().UserAgent).IsEqualTo(UserAgentPolicy.Resolve().ToString());
+        await Assert.That(scenario.Requests.Single().UserAgent).IsEqualTo(UserAgentPolicy.Resolve().ToString());
     }
 
     [Test]
@@ -315,11 +305,9 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Send_The_Json_Body_With_The_Json_Content_Type()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding();
 
-        _ = await pipeline.ExecuteAsync(OperationId,
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId,
             HttpMethod.Post,
             "/api/session",
             new TestBody { Value = "created" },
@@ -328,59 +316,53 @@ public sealed class PipelineTests
             options: null,
             CancellationToken.None);
 
-        await Assert.That(handler.Requests.Single().Method).IsEqualTo(HttpMethod.Post);
-        await Assert.That(handler.Requests.Single().ContentType).IsEqualTo("application/json");
-        await Assert.That(handler.Requests.Single().Body).IsEqualTo("""{"value":"created"}""");
+        await Assert.That(scenario.Requests.Single().Method).IsEqualTo(HttpMethod.Post);
+        await Assert.That(scenario.Requests.Single().ContentType).IsEqualTo("application/json");
+        await Assert.That(scenario.Requests.Single().Body).IsEqualTo("""{"value":"created"}""");
     }
 
     [Test]
     public async Task ExecuteAsync_Should_Keep_The_Bodyless_Path_Body_Free()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding();
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
-        await Assert.That(handler.Requests.Single().Body).IsNull();
-        await Assert.That(handler.Requests.Single().ContentType).IsNull();
+        await Assert.That(scenario.Requests.Single().Body).IsNull();
+        await Assert.That(scenario.Requests.Single().ContentType).IsNull();
     }
 
     [Test]
     public async Task ExecuteAsync_Should_Guard_The_Body_Arguments()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding();
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Post, "/api/session", null!, TestBodyJsonContext.Default.TestBody,
                 new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<ArgumentNullException>();
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Post, "/api/session", new TestBody { Value = "created" }, bodyTypeInfo: null!,
                 new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<ArgumentNullException>();
-        await Assert.That(handler.Requests).IsEmpty();
+        await Assert.That(scenario.Requests).IsEmpty();
     }
 
     [Test]
     public async Task ExecuteAsync_Should_Guard_The_Route_On_The_Body_Path()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding();
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Post, "api/session", new TestBody { Value = "created" }, TestBodyJsonContext.Default.TestBody,
                 new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<ArgumentException>();
 
         await Assert.That(exception!.Message).Contains("Routes must start with '/'");
-        await Assert.That(handler.Requests).IsEmpty();
+        await Assert.That(scenario.Requests).IsEmpty();
     }
 
     [Test]
@@ -746,17 +728,15 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Refuse_An_Undefined_Error_Behavior_Before_Sending()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding();
         var options = new OpenCodeRequestOptions { ErrorBehavior = (ErrorBehavior)2 };
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options, CancellationToken.None))
             .Throws<ArgumentOutOfRangeException>();
 
-        await Assert.That(handler.Requests).IsEmpty();
+        await Assert.That(scenario.Requests).IsEmpty();
     }
 
     [Test]
@@ -1139,13 +1119,11 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Refuse_After_Dispose()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        var pipeline = CreatePipeline(httpClient);
-        pipeline.Dispose();
+        using var scenario = PipelineScenario.Responding();
+        scenario.Pipeline.Dispose();
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<ObjectDisposedException>();
     }
@@ -1153,12 +1131,10 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Refuse_A_Route_Without_A_Leading_Slash()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding();
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "api/health", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<ArgumentException>();
     }
