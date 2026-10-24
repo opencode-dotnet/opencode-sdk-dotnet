@@ -146,12 +146,8 @@ internal sealed class Pipeline : IDisposable
 
     public Task<TResponse> ExecuteAsync<TResponse>(string operationId, HttpMethod method, string route, ResponseAdapter<TResponse> adapter,
         OpenCodeRequestOptions? options, CancellationToken cancellationToken)
-        where TResponse : OpenCodeResponse
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
-        return ExecuteCoreAsync<object, TResponse>(operationId, method, route, body: null, bodyTypeInfo: null, adapter, options,
-            declaredHeaders: null, cancellationToken);
-    }
+        where TResponse : OpenCodeResponse =>
+        ExecuteAsync(operationId, method, route, adapter, options, declaredHeaders: null, cancellationToken);
 
     /// <summary>
     /// The bodiless overload a generated internal-raw method calls when its operation declares
@@ -166,8 +162,9 @@ internal sealed class Pipeline : IDisposable
         where TResponse : OpenCodeResponse
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
-        return ExecuteCoreAsync<object, TResponse>(operationId, method, route, body: null, bodyTypeInfo: null, adapter, options,
-            declaredHeaders, cancellationToken);
+        var request = OperationRequest.Describe<object>(operationId, method, route, body: null, bodyTypeInfo: null,
+            content: null, options, declaredHeaders);
+        return ExecuteCoreAsync(request, adapter, cancellationToken);
     }
 
     public Task<TResponse> ExecuteAsync<TBody, TResponse>(string operationId, HttpMethod method, string route, TBody body,
@@ -179,7 +176,8 @@ internal sealed class Pipeline : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
         ArgumentNullException.ThrowIfNull(body);
         ArgumentNullException.ThrowIfNull(bodyTypeInfo);
-        return ExecuteCoreAsync(operationId, method, route, body, bodyTypeInfo, adapter, options, declaredHeaders: null, cancellationToken);
+        var request = OperationRequest.Describe(operationId, method, route, body, bodyTypeInfo, content: null, options, declaredHeaders: null);
+        return ExecuteCoreAsync(request, adapter, cancellationToken);
     }
 
     /// <summary>
@@ -192,8 +190,9 @@ internal sealed class Pipeline : IDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
         ArgumentNullException.ThrowIfNull(content);
-        return ExecuteCoreAsync<object, TResponse>(operationId, method, route, body: null, bodyTypeInfo: null, adapter, options,
-            declaredHeaders: null, cancellationToken, content);
+        var request = OperationRequest.Describe<object>(operationId, method, route, body: null, bodyTypeInfo: null,
+            content, options, declaredHeaders: null);
+        return ExecuteCoreAsync(request, adapter, cancellationToken);
     }
 
     /// <summary>
@@ -210,13 +209,11 @@ internal sealed class Pipeline : IDisposable
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
-        ValidateRequest(method, route);
+        ThrowIfDisposed();
+        var request = OperationRequest.Describe<object>(operationId, method, route, body: null, bodyTypeInfo: null,
+            content: null, requestOptions, declaredHeaders: null);
+        request.Validate();
         ArgumentNullException.ThrowIfNull(adapter);
-
-        if (route[0] is not '/')
-        {
-            throw new ArgumentException("Routes must start with '/'.", nameof(route));
-        }
 
         ErrorBehaviorPolicy.RefuseNoThrow(requestOptions, "Streams");
 
@@ -227,8 +224,8 @@ internal sealed class Pipeline : IDisposable
         }
 
         return reconnecting
-            ? ExecuteReconnectingStreamAsync(operationId, method, route, adapter, requestOptions?.Location, cancellationToken)
-            : ExecuteStreamCoreAsync(operationId, method, route, adapter, requestOptions?.Location, requestOptions?.NetworkTimeout, attempt: null, cancellationToken);
+            ? ExecuteReconnectingStreamAsync(request, adapter, cancellationToken)
+            : ExecuteStreamCoreAsync(request, adapter, attempt: null, cancellationToken);
     }
 
     public void Dispose()
@@ -256,31 +253,20 @@ internal sealed class Pipeline : IDisposable
         }
     }
 
-    private async Task<TResponse> ExecuteCoreAsync<TBody, TResponse>(string operationId, HttpMethod method, string route, TBody? body,
-        JsonTypeInfo<TBody>? bodyTypeInfo, ResponseAdapter<TResponse> adapter, OpenCodeRequestOptions? options,
-        IReadOnlyList<DeclaredHeader>? declaredHeaders, CancellationToken cancellationToken, Stream? content = null)
-        where TBody : class
+    private async Task<TResponse> ExecuteCoreAsync<TResponse>(OperationRequest request, ResponseAdapter<TResponse> adapter,
+        CancellationToken cancellationToken)
         where TResponse : OpenCodeResponse
     {
-        ValidateRequest(method, route);
+        ThrowIfDisposed();
+        request.Validate();
         ArgumentNullException.ThrowIfNull(adapter);
 
-        if (route[0] is not '/')
-        {
-            throw new ArgumentException("Routes must start with '/'.", nameof(route));
-        }
-
         // Refused before sending: an undefined value must never silently pick an error channel.
-        var errorBehavior = ErrorBehaviorPolicy.Resolve(options);
+        var errorBehavior = ErrorBehaviorPolicy.Resolve(request.Options);
 
         TResponse adapted;
-        using (var message = CreateMessage(operationId, method, route, body, bodyTypeInfo, options?.Location, options?.NetworkTimeout, declaredHeaders, cancellationToken))
+        using (var message = CreateMessage(request, bufferBody: true, request.Options?.NetworkTimeout, cancellationToken))
         {
-            if (content is not null)
-            {
-                message.Request.Content = new CallerStreamContent(content, message);
-            }
-
             await SendThroughPoliciesAsync(message).ConfigureAwait(false);
             adapted = ResponseMaterializer.Materialize(message, adapter);
         }
@@ -288,13 +274,6 @@ internal sealed class Pipeline : IDisposable
         return adapted.IsError && errorBehavior is ErrorBehavior.Default
             ? throw CreateApiException(adapted)
             : adapted;
-    }
-
-    private void ValidateRequest(HttpMethod method, string route)
-    {
-        ThrowIfDisposed();
-        ArgumentNullException.ThrowIfNull(method);
-        ArgumentException.ThrowIfNullOrWhiteSpace(route);
     }
 
     private void ThrowIfDisposed()
@@ -314,8 +293,7 @@ internal sealed class Pipeline : IDisposable
     /// once an attempt connects, and when it passes it cuts whatever is in flight and throws the
     /// last failure. The caller's token and a disposed client end the stream at once.
     /// </summary>
-    private async IAsyncEnumerable<TPayload> ExecuteReconnectingStreamAsync<TPayload, TCause>(string operationId, HttpMethod method,
-        string route, IStreamAdapter<TPayload, TCause> adapter, LocationSelector? perCallLocation,
+    private async IAsyncEnumerable<TPayload> ExecuteReconnectingStreamAsync<TPayload, TCause>(OperationRequest request, IStreamAdapter<TPayload, TCause> adapter,
         [EnumeratorCancellation] CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
@@ -328,7 +306,7 @@ internal sealed class Pipeline : IDisposable
             ThrowIfDisposed();
             var established = false;
             Exception failure;
-            var frames = ExecuteAttemptAsync(operationId, method, route, adapter, perCallLocation, giveUp, cancellationToken).GetAsyncEnumerator(cancellationToken);
+            var frames = ExecuteAttemptAsync(request, adapter, giveUp, cancellationToken).GetAsyncEnumerator(cancellationToken);
             await using (frames.ConfigureAwait(false))
             {
                 while (true)
@@ -368,13 +346,13 @@ internal sealed class Pipeline : IDisposable
     /// is, and ends when its connection ends. A window of its own passing surfaces as a transport
     /// failure; the give-up window and the caller's token pass through as cancellation.
     /// </summary>
-    private async IAsyncEnumerable<TPayload> ExecuteAttemptAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
-        IStreamAdapter<TPayload, TCause> adapter, LocationSelector? perCallLocation, ProgressWindow giveUp,
+    private async IAsyncEnumerable<TPayload> ExecuteAttemptAsync<TPayload, TCause>(OperationRequest request,
+        IStreamAdapter<TPayload, TCause> adapter, ProgressWindow giveUp,
         [EnumeratorCancellation] CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
         using var attempt = new StreamAttempt(_time, _eventStreamIdleWindow, giveUp.Token);
-        var frames = ExecuteStreamCoreAsync(operationId, method, route, adapter, perCallLocation, Timeout.InfiniteTimeSpan, attempt, attempt.Token)
+        var frames = ExecuteStreamCoreAsync(request, adapter, attempt, attempt.Token)
             .GetAsyncEnumerator(cancellationToken);
         await using var enumeration = frames.ConfigureAwait(false);
         while (true)
@@ -463,14 +441,15 @@ internal sealed class Pipeline : IDisposable
         }
     }
 
-    private async IAsyncEnumerable<TPayload> ExecuteStreamCoreAsync<TPayload, TCause>(string operationId, HttpMethod method, string route,
-        IStreamAdapter<TPayload, TCause> adapter, LocationSelector? perCallLocation, TimeSpan? networkTimeout, StreamAttempt? attempt,
+    private async IAsyncEnumerable<TPayload> ExecuteStreamCoreAsync<TPayload, TCause>(OperationRequest request,
+        IStreamAdapter<TPayload, TCause> adapter, StreamAttempt? attempt,
         [EnumeratorCancellation] CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
         ThrowIfDisposed();
         using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetimeToken);
-        using var message = CreateStreamMessage(operationId, method, route, perCallLocation, networkTimeout, cancellationToken);
+        using var message = CreateMessage(request, bufferBody: false,
+            attempt is null ? request.Options?.NetworkTimeout : Timeout.InfiniteTimeSpan, cancellationToken);
         await SendStreamThroughPoliciesAsync(message, attempt).ConfigureAwait(false);
         var response = message.Response!;
         var status = (int)response.StatusCode;
@@ -565,30 +544,34 @@ internal sealed class Pipeline : IDisposable
     private ValueTask SendThroughPoliciesAsync(PipelineMessage message) =>
         _policies[0].ProcessAsync(message, _policies.AsMemory(1));
 
-    private PipelineMessage CreateMessage<TBody>(string operationId, HttpMethod method, string route, TBody? body,
-        JsonTypeInfo<TBody>? bodyTypeInfo, LocationSelector? perCallLocation, TimeSpan? perCallNetworkTimeout,
-        IReadOnlyList<DeclaredHeader>? declaredHeaders, CancellationToken cancellationToken)
-        where TBody : class
+    private PipelineMessage CreateMessage(OperationRequest operation, bool bufferBody, TimeSpan? perCallNetworkTimeout,
+        CancellationToken cancellationToken)
     {
-        var request = new HttpRequestMessage(method, new Uri(_endpointBase + route, UriKind.Absolute));
+        var request = new HttpRequestMessage(operation.Method, new Uri(_endpointBase + operation.Route, UriKind.Absolute));
         try
         {
-            if (body is not null)
+            var message = new PipelineMessage
             {
-                request.Content = CreateJsonContent(body, bodyTypeInfo!);
-            }
-
-            return new PipelineMessage
-            {
-                OperationId = operationId,
+                OperationId = operation.OperationId,
                 Request = request,
                 CancellationToken = cancellationToken,
                 LifetimeToken = _lifetimeToken,
                 NetworkToken = cancellationToken,
-                NetworkTimeout = NetworkTimeouts.Resolve(operationId, perCallNetworkTimeout, _clientNetworkTimeout),
-                PerCallLocation = perCallLocation,
-                DeclaredHeaders = declaredHeaders,
+                NetworkTimeout = NetworkTimeouts.Resolve(operation.OperationId, perCallNetworkTimeout, _clientNetworkTimeout),
+                PerCallLocation = operation.Options?.Location,
+                DeclaredHeaders = operation.DeclaredHeaders,
+                BufferBody = bufferBody,
             };
+            if (operation.Content is { } content)
+            {
+                request.Content = new CallerStreamContent(content, message);
+            }
+            else if (operation.BodyTypeInfo is { } bodyTypeInfo)
+            {
+                request.Content = CreateJsonContent(operation.Body, bodyTypeInfo);
+            }
+
+            return message;
         }
         catch
         {
@@ -597,21 +580,7 @@ internal sealed class Pipeline : IDisposable
         }
     }
 
-    private PipelineMessage CreateStreamMessage(string operationId, HttpMethod method, string route, LocationSelector? perCallLocation,
-        TimeSpan? perCallNetworkTimeout, CancellationToken cancellationToken) =>
-        new()
-        {
-            OperationId = operationId,
-            Request = new HttpRequestMessage(method, new Uri(_endpointBase + route, UriKind.Absolute)),
-            CancellationToken = cancellationToken,
-            LifetimeToken = _lifetimeToken,
-            NetworkToken = cancellationToken,
-            NetworkTimeout = NetworkTimeouts.Resolve(operationId, perCallNetworkTimeout, _clientNetworkTimeout),
-            PerCallLocation = perCallLocation,
-            BufferBody = false,
-        };
-
-    private static ByteArrayContent CreateJsonContent<TBody>(TBody body, JsonTypeInfo<TBody> bodyTypeInfo)
+    private static ByteArrayContent CreateJsonContent(object? body, JsonTypeInfo bodyTypeInfo)
     {
         var content = new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(body, bodyTypeInfo));
         content.Headers.ContentType = JsonMediaType;
