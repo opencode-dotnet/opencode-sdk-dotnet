@@ -53,6 +53,8 @@ public sealed class DeclaredErrorTests
         .. SessionsDeclaredErrors.Rows2(),
         .. SessionsDeclaredErrors.Rows3(),
         .. SessionsDeclaredErrors.Rows4(),
+        .. SessionsDeclaredErrors.Rows5(),
+        .. SessionsDeclaredErrors.Rows6(),
     ];
 
     [Test]

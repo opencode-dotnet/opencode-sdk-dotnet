@@ -103,8 +103,6 @@ public sealed class SessionClientContractTests
         }
     }
 
-    private static readonly SessionUpdateRequest EmptyRuleset = new() { Permissions = new Optional<IReadOnlyList<PermissionRule>?>([]), };
-
     private static Task<bool> ReadNextLogAsync(IAsyncEnumerator<ISessionLogItem> log) => log.MoveNextAsync().AsTask();
 
     [Test]
@@ -920,39 +918,6 @@ public sealed class SessionClientContractTests
     }
 
     [Test]
-    public async Task PostFormReplyAsync_Should_Throw_The_Declared_400_Invalid_Answer()
-    {
-        using var scenario = ContractScenario.Responding(
-            HttpStatusCode.BadRequest,
-            "{\"_tag\":\"FormInvalidAnswerError\",\"id\":\"frm_1\",\"message\":\"wrong shape\"}");
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Sessions.GetSessionClient("ses_100").ReplyToFormAsync("frm_1", new SessionFormReplyRequest
-            {
-                Answer = new Dictionary<string, FormValue>(StringComparer.Ordinal) { ["q1"] = FormValue.FromText("blue"), },
-            }))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(400);
-        await Assert.That(exception.Error).IsTypeOf<FormInvalidAnswerError>();
-    }
-
-    [Test]
-    public async Task PostFormReplyAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Sessions.GetSessionClient("ses_100").ReplyToFormAsync(
-            "frm_1",
-            new SessionFormReplyRequest { Answer = new Dictionary<string, FormValue>(StringComparer.Ordinal), },
-            OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
-    }
-
-    [Test]
     public async Task PostViewAsync_Should_Send_The_Typed_Body_On_The_204()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.NoContent, string.Empty);
@@ -968,33 +933,6 @@ public sealed class SessionClientContractTests
         await Assert.That(request.RequestUri)
             .IsEqualTo(new Uri("http://localhost:4096/api/session/ses_100/view"));
         await Assert.That(request.Body).IsEqualTo("{\"idle\":5}");
-    }
-
-    [Test]
-    public async Task PostViewAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.SessionNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Sessions.GetSessionClient("ses_9").MarkViewedAsync(new SessionViewRequest { Idle = 1, }))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<SessionNotFoundError>();
-    }
-
-    [Test]
-    public async Task PostViewAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Sessions.GetSessionClient("ses_100").MarkViewedAsync(
-            new SessionViewRequest { Idle = 1, },
-            OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
     }
 
     [Test]
@@ -1044,45 +982,4 @@ public sealed class SessionClientContractTests
             + "{\"action\":\"edit\",\"resource\":\"**/*.cs\",\"effect\":\"allow\"}]}");
     }
 
-    [Test]
-    public async Task UpdateSessionAsync_Should_Throw_The_Declared_400_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Sessions.GetSessionClient("ses_100").UpdateAsync(
-                EmptyRuleset))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(400);
-        await Assert.That(exception.Error).IsTypeOf<InvalidRequestError>();
-    }
-
-    [Test]
-    public async Task UpdateSessionAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.SessionNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Sessions.GetSessionClient("ses_9").UpdateAsync(
-                EmptyRuleset))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<SessionNotFoundError>();
-    }
-
-    [Test]
-    public async Task UpdateSessionAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Sessions.GetSessionClient("ses_100").UpdateAsync(
-            EmptyRuleset,
-            OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
-    }
 }
