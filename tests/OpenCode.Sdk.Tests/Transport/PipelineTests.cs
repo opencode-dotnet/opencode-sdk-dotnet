@@ -896,25 +896,20 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Keep_A_Trickling_Body_That_Outlives_The_Window()
     {
-        var payload = Encoding.UTF8.GetBytes("{\"healthy\":true}");
-        var time = new ManualTimeProvider();
-        var started = time.GetUtcNow();
-        using var body = new GatedStream(payload, chunkCount: 4);
-        using var content = new StreamContent(body);
-        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        using var body = CreateGatedBody(out var content, out var time, out var scenario);
+        using (content)
+        using (scenario)
         {
-            Content = content,
-        });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, networkTimeout: Window, time: time);
-        var adapter = new RecordingResponseAdapter();
+            var started = time.GetUtcNow();
+            var adapter = new RecordingResponseAdapter();
 
-        var delivering = body.DeliverAsync(() => time.Advance(Window - TimeSpan.FromTicks(1)), HangGuard.Bound);
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None).WaitAsync(HangGuard.Bound);
-        await delivering;
+            var delivering = body.DeliverAsync(() => time.Advance(Window - TimeSpan.FromTicks(1)), HangGuard.Bound);
+            _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None).WaitAsync(HangGuard.Bound);
+            await delivering;
 
-        await Assert.That(adapter.AdaptedRawBody).IsEqualTo("{\"healthy\":true}");
-        await Assert.That(time.GetUtcNow() - started).IsGreaterThan(TimeSpan.FromTicks(Window.Ticks * 3));
+            await Assert.That(adapter.AdaptedRawBody).IsEqualTo("{\"healthy\":true}");
+            await Assert.That(time.GetUtcNow() - started).IsGreaterThan(TimeSpan.FromTicks(Window.Ticks * 3));
+        }
     }
 
     /// <summary>
@@ -924,25 +919,19 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Fail_A_Body_Read_That_Waits_Out_The_Window()
     {
-        var payload = Encoding.UTF8.GetBytes("{\"healthy\":true}");
-        var time = new ManualTimeProvider();
-        using var body = new GatedStream(payload, chunkCount: 4);
-        using var content = new StreamContent(body);
-        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        using var body = CreateGatedBody(out var content, out var time, out var scenario);
+        using (content)
+        using (scenario)
         {
-            Content = content,
-        });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient, networkTimeout: Window, time: time);
+            var execution = scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+            await body.WaitForReadAsync(HangGuard.Bound);
+            body.Release();
+            await body.WaitForReadAsync(HangGuard.Bound);
+            time.Advance(Window);
 
-        var execution = pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
-        await body.WaitForReadAsync(HangGuard.Bound);
-        body.Release();
-        await body.WaitForReadAsync(HangGuard.Bound);
-        time.Advance(Window);
-
-        var exception = await Assert.That(execution.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
-        await Assert.That(exception!.Message).IsEqualTo("The opencode response body could not be read.");
+            var exception = await Assert.That(execution.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
+            await Assert.That(exception!.Message).IsEqualTo("The opencode response body could not be read.");
+        }
     }
 
     [Test]
@@ -1231,6 +1220,20 @@ public sealed class PipelineTests
 
         await Assert.That(informational).IsNotNull();
         await Assert.That(product).IsEqualTo($"OpenCode.Sdk/{informational!.Split('+')[0]}");
+    }
+
+    private static GatedStream CreateGatedBody(out StreamContent content, out ManualTimeProvider time, out PipelineScenario scenario)
+    {
+        var payload = Encoding.UTF8.GetBytes("{\"healthy\":true}");
+        time = new ManualTimeProvider();
+        var body = new GatedStream(payload, chunkCount: 4);
+        content = new StreamContent(body);
+        var responseContent = content;
+        scenario = PipelineScenario.Responding(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = responseContent,
+        }, networkTimeout: Window, time: time);
+        return body;
     }
 
     private static Pipeline CreatePipeline(
