@@ -1124,6 +1124,19 @@ public sealed class PipelineTests
     }
 
     [Test]
+    public async Task ExecuteAsync_Should_Report_A_Route_Without_A_Leading_Slash_Before_A_Null_Adapter()
+    {
+        using var scenario = PipelineScenario.Responding();
+
+        // The internal seam admits a null adapter; generated callers always supply one.
+        var execution = scenario.Pipeline.ExecuteAsync<TestResponse>(OperationId,
+            HttpMethod.Get, "x", null!, options: null, CancellationToken.None);
+        var exception = await Assert.That(execution).Throws<ArgumentException>();
+
+        await RouteRefusal.AssertAsync(exception, "Routes must start with '/'.", "route");
+    }
+
+    [Test]
     public async Task Create_Should_Refuse_An_Injected_Client_Without_An_Endpoint()
     {
         using var handler = new RecordingHttpHandler();

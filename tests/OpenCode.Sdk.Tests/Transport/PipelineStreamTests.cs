@@ -679,6 +679,20 @@ public sealed class PipelineStreamTests
     }
 
     [Test]
+    public async Task ExecuteStreamAsync_Should_Report_A_Route_Without_A_Leading_Slash_Before_A_Null_Adapter()
+    {
+        using var handler = new RecordingHttpHandler();
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient);
+
+        // The internal seam admits a null adapter; generated callers always supply one.
+        var exception = Assert.Throws<ArgumentException>(() => _ = pipeline.ExecuteStreamAsync<TestBody, TestStreamFailureCause[]>(
+            OperationId, HttpMethod.Get, "x", null!, null, CancellationToken.None));
+
+        await RouteRefusal.AssertAsync(exception, "Routes must start with '/'.", "route");
+    }
+
+    [Test]
     public async Task ExecuteStreamAsync_Should_Refuse_Enumeration_That_Starts_After_Dispose()
     {
         using var handler = new RecordingHttpHandler(static _ => EventStream(FirstFrame));
