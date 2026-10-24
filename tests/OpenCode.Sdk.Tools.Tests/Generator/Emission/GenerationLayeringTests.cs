@@ -49,6 +49,17 @@ public sealed class GenerationLayeringTests
         await Assert.That(parentReads).IsEquivalentTo(["EmitBase", "EmitBase"], CollectionOrdering.Matching);
     }
 
+    [Test]
+    public async Task Registry_Should_Have_One_Name_Owner()
+    {
+        var roots = await Task.WhenAll((await LoadEmissionAsync()).SyntaxTrees.Select(static tree => tree.GetRootAsync()));
+        var owners = roots.SelectMany(root => root.DescendantTokens()
+                .Where(static token => token.IsKind(SyntaxKind.StringLiteralToken) && string.Equals(token.ValueText, "OpenCodeJsonContext", StringComparison.Ordinal))
+                .Select(token => root.FindNode(token.Span).AncestorsAndSelf().OfType<ClassDeclarationSyntax>().First().Identifier.ValueText))
+            .Order(StringComparer.Ordinal).ToArray();
+        await Assert.That(owners).IsEquivalentTo(["RegistryNames"], CollectionOrdering.Matching).Because(string.Join(", ", owners));
+    }
+
     private static async Task<CSharpCompilation> LoadEmissionAsync()
     {
         var fileSystem = new RealFileSystem();

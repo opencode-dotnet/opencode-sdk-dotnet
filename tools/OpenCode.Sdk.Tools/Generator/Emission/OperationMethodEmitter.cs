@@ -182,7 +182,7 @@ internal static class OperationMethodEmitter
             if (!operation.RequestBody.IsBinary)
             {
                 arguments.Add(SyntaxFactory.Argument(EmissionSyntax.MemberAccess(
-                    EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("OpenCodeJsonContext"), "Default"),
+                    RegistryNames.Default,
                     operation.RequestBody.TypeName)));
             }
         }

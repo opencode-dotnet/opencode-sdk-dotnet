@@ -869,7 +869,7 @@ internal static class UnionEmitter
         var tryGet = EmitDispatchProbe(union);
         var getTypeInfo = EmissionSyntax.Invocation(
             EmissionSyntax.MemberAccess(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("OpenCodeJsonContext"), "Default"),
+                RegistryNames.Default,
                 "GetTypeInfo"),
             SyntaxFactory.Argument(SyntaxFactory.IdentifierName("targetType")));
         var typeInfo = SyntaxFactory.BinaryExpression(
@@ -926,7 +926,7 @@ internal static class UnionEmitter
             SyntaxFactory.Argument(SyntaxFactory.IdentifierName("reader"))
                 .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword)),
             SyntaxFactory.Argument(EmissionSyntax.MemberAccess(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("OpenCodeJsonContext"), "Default"),
+                RegistryNames.Default,
                 prefix.TypeName)));
         var result = SyntaxFactory.BinaryExpression(
             SyntaxKind.CoalesceExpression,
@@ -958,7 +958,7 @@ internal static class UnionEmitter
             EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("value"), "GetType"));
         var getTypeInfo = EmissionSyntax.Invocation(
             EmissionSyntax.MemberAccess(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("OpenCodeJsonContext"), "Default"),
+                RegistryNames.Default,
                 "GetTypeInfo"),
             SyntaxFactory.Argument(getRuntimeType));
         var typeInfo = SyntaxFactory.BinaryExpression(
@@ -992,7 +992,7 @@ internal static class UnionEmitter
                 SyntaxFactory.Argument(SyntaxFactory.IdentifierName("writer")),
                 SyntaxFactory.Argument(SyntaxFactory.IdentifierName(variableName)),
                 SyntaxFactory.Argument(EmissionSyntax.MemberAccess(
-                    EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("OpenCodeJsonContext"), "Default"),
+                    RegistryNames.Default,
                     typeName)));
             statements.Add(SyntaxFactory.IfStatement(
                 nestedPattern,

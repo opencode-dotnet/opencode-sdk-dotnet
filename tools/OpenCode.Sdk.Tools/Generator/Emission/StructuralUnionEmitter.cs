@@ -684,8 +684,7 @@ internal static class StructuralUnionEmitter
     private static BinaryExpressionSyntax GetTypeInfo()
     {
         var get = EmissionSyntax.Invocation(
-            EmissionSyntax.MemberAccess(EmissionSyntax.MemberAccess(
-                SyntaxFactory.IdentifierName("OpenCodeJsonContext"), "Default"), "GetTypeInfo"),
+            EmissionSyntax.MemberAccess(RegistryNames.Default, "GetTypeInfo"),
             SyntaxFactory.Argument(SyntaxFactory.TypeOfExpression(SyntaxFactory.IdentifierName("T"))));
         return SyntaxFactory.BinaryExpression(
             SyntaxKind.CoalesceExpression,

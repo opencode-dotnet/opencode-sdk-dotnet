@@ -336,7 +336,7 @@ internal static class ResponseAdapterEmitter
                 SyntaxFactory.IdentifierName("ReadBarePayload"),
                 SyntaxFactory.Argument(body),
                 SyntaxFactory.Argument(EmissionSyntax.MemberAccess(
-                    EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("OpenCodeJsonContext"), "Default"),
+                    RegistryNames.Default,
                     readTypeName)));
         }
 

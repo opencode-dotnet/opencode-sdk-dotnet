@@ -225,7 +225,7 @@ internal static class OptionalConverterEmitter
     {
         var get = EmissionSyntax.Invocation(
             EmissionSyntax.MemberAccess(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("OpenCodeJsonContext"), "Default"),
+                RegistryNames.Default,
                 "GetTypeInfo"),
             SyntaxFactory.Argument(SyntaxFactory.TypeOfExpression(TypeSyntaxEmitter.Emit(inner with { IsNullable = false }))));
         var resolved = SyntaxFactory.BinaryExpression(

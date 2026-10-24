@@ -10,7 +10,7 @@ internal static class RegistryEmitter
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(namespaces);
-        var declaration = SyntaxFactory.ClassDeclaration("OpenCodeJsonContext")
+        var declaration = SyntaxFactory.ClassDeclaration(RegistryNames.TypeName)
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.InternalKeyword),
                 SyntaxFactory.Token(SyntaxKind.SealedKeyword),
@@ -60,7 +60,7 @@ internal static class RegistryEmitter
             [declaration]);
         return Array.AsReadOnly(
         [
-            EmissionSyntax.CreateSource(GeneratedPlacement.PathOf(GeneratedKind.SharedSerialization, null, "OpenCodeJsonContext"), unit),
+            EmissionSyntax.CreateSource(GeneratedPlacement.PathOf(GeneratedKind.SharedSerialization, null, RegistryNames.TypeName), unit),
         ]);
     }
 }

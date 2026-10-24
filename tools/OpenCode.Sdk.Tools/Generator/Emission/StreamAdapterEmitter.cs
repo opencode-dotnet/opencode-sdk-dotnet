@@ -132,7 +132,7 @@ internal static class StreamAdapterEmitter
                 "PayloadTypeInfo")
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(EmissionSyntax.MemberAccess(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("OpenCodeJsonContext"), "Default"),
+                RegistryNames.Default,
                 stream.PayloadTypeName)))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
             .WithLeadingTrivia(EmissionSyntax.Documentation("Gets the metadata each frame's payload is read through."));
@@ -143,7 +143,7 @@ internal static class StreamAdapterEmitter
         var metadataType = TypeSyntaxEmitter.Generic("JsonTypeInfo", causeType);
         var getTypeInfo = EmissionSyntax.Invocation(
             EmissionSyntax.MemberAccess(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("OpenCodeJsonContext"), "Default"),
+                RegistryNames.Default,
                 "GetTypeInfo"),
             SyntaxFactory.Argument(SyntaxFactory.TypeOfExpression(causeType)));
         var value = SyntaxFactory.BinaryExpression(
