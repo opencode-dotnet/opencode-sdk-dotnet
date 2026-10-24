@@ -88,6 +88,8 @@ internal sealed class CloneScenario
 
     public ScriptedProcessRunner Runner { get; } = new();
 
+    public Dictionary<string, byte[]> SarifReports { get; } = new(StringComparer.Ordinal);
+
     public string Root { get; }
 
     /// <summary>Exercises the emitted config against the installed, pinned detector, not a regex substitute.</summary>
@@ -349,6 +351,7 @@ internal sealed class CloneScenario
                 },
             },
         };
-        await FileSystem.File.WriteAllTextAsync(FileSystem.Path.Combine(output, "jscpd-report.sarif"), JsonSerializer.Serialize(sarif));
+        await FileSystem.File.WriteAllTextAsync(FileSystem.Path.Combine(output, CloneDetector.SarifReportFileName), JsonSerializer.Serialize(sarif));
+        SarifReports[scope] = await FileSystem.File.ReadAllBytesAsync(FileSystem.Path.Combine(output, CloneDetector.SarifReportFileName));
     }
 }

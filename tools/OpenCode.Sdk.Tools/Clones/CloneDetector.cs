@@ -19,6 +19,7 @@ internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner proce
 {
     internal const string RunnerPath = CloneScopes.DetectorFolder + "/node_modules/jscpd/run-jscpd.js";
     internal const string ReportFileName = "jscpd-report.json";
+    internal const string SarifReportFileName = "jscpd-report.sarif";
 
     /// <summary>jscpd otherwise writes an empty report and exits 0 when nothing was analysed, which would read as a clean scope.</summary>
     private const string FailOnEmpty = "--fail-on-empty";
@@ -111,11 +112,19 @@ internal sealed class CloneDetector(IFileSystem fileSystem, IProcessRunner proce
         return _fileSystem.Path.Combine(workDirectory, scope.Name, ReportFileName);
     }
 
+    /// <summary>The path of the SARIF report a run of <paramref name="scope"/> writes into <paramref name="workDirectory"/>.</summary>
+    public string SarifReportPath(string workDirectory, CloneScope scope)
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+
+        return _fileSystem.Path.Combine(workDirectory, scope.Name, SarifReportFileName);
+    }
+
     /// <summary>Uses the detector's own content fingerprints from the same scan, rather than reproducing its hash algorithm.</summary>
     private async Task<IReadOnlyList<string>> StaleFingerprintsAsync(string root, string baseline, string output, CancellationToken cancellationToken)
     {
         using var accepted = JsonDocument.Parse(await _fileSystem.File.ReadAllTextAsync(_fileSystem.Path.Combine(root, baseline), cancellationToken).ConfigureAwait(false));
-        using var reported = JsonDocument.Parse(await _fileSystem.File.ReadAllTextAsync(_fileSystem.Path.Combine(output, "jscpd-report.sarif"), cancellationToken).ConfigureAwait(false));
+        using var reported = JsonDocument.Parse(await _fileSystem.File.ReadAllTextAsync(_fileSystem.Path.Combine(output, SarifReportFileName), cancellationToken).ConfigureAwait(false));
         var current = reported.RootElement.GetProperty("runs").EnumerateArray()
             .SelectMany(static run => run.GetProperty("results").EnumerateArray())
             .Select(static result => result.GetProperty("partialFingerprints").GetProperty("jscpdCloneHash/v1").GetString()!)
