@@ -8,9 +8,10 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 internal static class EnvelopeEmitter
 {
-    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients)
+    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients, GeneratedNamespacePlan namespaces)
     {
         ArgumentNullException.ThrowIfNull(clients);
+        ArgumentNullException.ThrowIfNull(namespaces);
 
         return Array.AsReadOnly(
         [
@@ -18,11 +19,11 @@ internal static class EnvelopeEmitter
                 .SelectMany(static client => client.Operations)
                 .Where(static operation => operation.Envelope is not null)
                 .OrderBy(static operation => operation.Envelope!.ResponseTypeName, StringComparer.Ordinal)
-                .Select(static operation => EmitEnvelope(operation)),
+                .Select(operation => EmitEnvelope(operation, namespaces)),
         ]);
     }
 
-    private static GeneratedSource EmitEnvelope(OperationPlan operation)
+    private static GeneratedSource EmitEnvelope(OperationPlan operation, GeneratedNamespacePlan namespaces)
     {
         var envelope = operation.Envelope!;
         var members = envelope.Kind is EnvelopeKind.NoContent
@@ -42,14 +43,14 @@ internal static class EnvelopeEmitter
                 $"Represents the response of the '{operation.HttpMethod.ToUpperInvariant()} {operation.RouteTemplate}' operation."));
         IReadOnlyList<string> usings = envelope.Kind switch
         {
-            EnvelopeKind.NoContent => ["System.Diagnostics.CodeAnalysis", GeneratedNamespace.Models],
+            EnvelopeKind.NoContent => ["System.Diagnostics.CodeAnalysis", namespaces.Models],
             EnvelopeKind.CursorList or EnvelopeKind.DataLocationList =>
-                ["System", "System.Diagnostics.CodeAnalysis", "System.Text", GeneratedNamespace.Models],
+                ["System", "System.Diagnostics.CodeAnalysis", "System.Text", namespaces.Models],
             EnvelopeKind.Bare or EnvelopeKind.Data or EnvelopeKind.DataLocation or EnvelopeKind.Binary or _ =>
-                ["System", "System.Diagnostics.CodeAnalysis", "System.Text", GeneratedNamespace.Models],
+                ["System", "System.Diagnostics.CodeAnalysis", "System.Text", namespaces.Models],
         };
         declaration = EmissionSyntax.DocumentedType(declaration, envelope.Documentation);
-        var unit = EmissionSyntax.CompilationUnit(GeneratedNamespace.Public, usings, [declaration]);
+        var unit = EmissionSyntax.CompilationUnit(namespaces.Public, usings, [declaration]);
         return EmissionSyntax.CreateSource(
             GeneratedPlacement.PathOf(GeneratedKind.OperationRecord, TypeHome.Family(operation.RouteContainerName), envelope.ResponseTypeName),
             unit);

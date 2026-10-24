@@ -24,7 +24,7 @@ public sealed class OptionalConverterEmitterTests(PinnedBinding pinned)
             Property("special", SpecialNumber(isNullable: true), isRequired: false, emitsOptionalWrapper: true),
             Property("plain", Named("double", isNullable: true), isRequired: false, emitsOptionalWrapper: true));
 
-        var sources = OptionalConverterEmitter.Emit([model]);
+        var sources = OptionalConverterEmitter.Emit([model], pinned.Plan.Namespaces);
 
         await Assert.That(sources.Select(static source => source.RelativePath)).IsEquivalentTo(
         [
@@ -44,7 +44,7 @@ public sealed class OptionalConverterEmitterTests(PinnedBinding pinned)
             : new ListTypeReferencePlan { ElementType = special, IsNullable = true, JsonNullRepresentation = JsonNullRepresentation.ClrNull, };
         var model = Record("WidgetPatchRequest", Property("values", container, isRequired: false, emitsOptionalWrapper: true));
 
-        var exception = Assert.Throws<InvalidOperationException>(() => OptionalConverterEmitter.Emit([model]));
+        var exception = Assert.Throws<InvalidOperationException>(() => OptionalConverterEmitter.Emit([model], pinned.Plan.Namespaces));
 
         await Assert.That(exception.Message).IsEqualTo(
             "No optional converter name exists for plan 'SpecialNumberTypeReferencePlan'; admit the representation first.");
@@ -63,7 +63,7 @@ public sealed class OptionalConverterEmitterTests(PinnedBinding pinned)
                 Property("label", Named("string", isNullable: true), isRequired: false)),
         ];
 
-        var sources = OptionalConverterEmitter.Emit(models);
+        var sources = OptionalConverterEmitter.Emit(models, pinned.Plan.Namespaces);
 
         // This checks the complete inventory, not its enumeration order.
         await Assert
@@ -106,7 +106,7 @@ public sealed class OptionalConverterEmitterTests(PinnedBinding pinned)
     private string EmitPinned(string converterName)
     {
         var source = OptionalConverterEmitter
-            .Emit(pinned.Plan.Models)
+            .Emit(pinned.Plan.Models, pinned.Plan.Namespaces)
             .Single(candidate => candidate.RelativePath == $"Internal/Serialization/{converterName}.cs");
         return Encoding.UTF8.GetString(source.Utf8Source.Span);
     }

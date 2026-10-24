@@ -15,7 +15,6 @@ internal static class ModelEmitter
 
         var result = new List<GeneratedSource>(plan.Models.Count);
         var unions = plan.Unions.ToDictionary(static union => union.Name, StringComparer.Ordinal);
-        var owners = DescriptionCurationBinder.InheritedMemberOwners(plan, unions);
         foreach (var model in plan.Models.OrderBy(static model => model.Name, StringComparer.Ordinal))
         {
             if (model is StructuralUnionModelPlan)
@@ -25,8 +24,8 @@ internal static class ModelEmitter
 
             result.AddRange(model switch
             {
-                ObjectModelPlan objectModel => [EmitObject(objectModel, unions, owners[model.Name], GeneratedPlacement.ModelPathOf(plan.Placement, model.Name))],
-                EnumModelPlan enumModel => ExtensibleEnumEmitter.Emit(enumModel, plan.Placement),
+                ObjectModelPlan objectModel => [EmitObject(objectModel, unions, GeneratedPlacement.ModelPathOf(plan.Placement, model.Name), plan.Namespaces)],
+                EnumModelPlan enumModel => ExtensibleEnumEmitter.Emit(enumModel, plan.Placement, plan.Namespaces),
                 _ => throw new InvalidOperationException($"Unknown model plan '{model.GetType().Name}'."),
             });
         }
@@ -35,13 +34,13 @@ internal static class ModelEmitter
     }
 
     private static GeneratedSource EmitObject(ObjectModelPlan model, Dictionary<string, UnionPlan> unions,
-        IReadOnlyDictionary<string, string> owners, string relativePath)
+        string relativePath, GeneratedNamespacePlan namespaces)
     {
-        var implemented = ResolveImplementedUnions(model, unions);
+        ValidateImplementedUnions(model, unions);
         // A variant overrides one abstract marker per level of its union chain: a nested
         // union's variant carries both its own tag and the fixed outer tag. A union's one
         // prefix-tagged arm carries that union's marker as a guarded string in place of a tag.
-        var chainMarkers = GetChainMarkers(model.Name, implemented, unions);
+        var chainMarkers = model.ChainMarkers;
         var unmatched = chainMarkers
             .FirstOrDefault(marker => model.Properties.Count(property => IsDiscriminator(property, marker)) is not 1);
         if (unmatched is not null)
@@ -81,8 +80,8 @@ internal static class ModelEmitter
 
         var guardsPrefix = chainMarkers.Any(static marker => marker.Prefix is not null);
         declaration = EmissionSyntax.DocumentedType(declaration, model.Documentation,
-            inheritedMembers: owners);
-        var unit = EmissionSyntax.CompilationUnit(model.Namespace, CollectUsings(model, guardsPrefix), [declaration]);
+            inheritedMembers: model.InheritedMemberOwners);
+        var unit = EmissionSyntax.CompilationUnit(model.Namespace, CollectUsings(model, guardsPrefix, namespaces), [declaration]);
         return EmissionSyntax.CreateSource(relativePath, unit);
     }
 
@@ -143,7 +142,7 @@ internal static class ModelEmitter
     /// A literal tag is a constant; the prefix-tagged arm's marker is a required string whose
     /// initializer refuses any value outside the prefix.
     /// </summary>
-    private static PropertyDeclarationSyntax EmitProperty(ModelPropertyPlan property, ChainMarker? marker)
+    private static PropertyDeclarationSyntax EmitProperty(ModelPropertyPlan property, ChainMarkerPlan? marker)
     {
         var memberName = marker?.MemberName ?? property.Name;
         var propertyType = property.EmitsOptionalWrapper
@@ -307,7 +306,7 @@ internal static class ModelEmitter
     /// An open model whose extension data a curation row masks prints the public view through
     /// <c>RecordPrinter.RedactEntries</c>, so an empty view still prints empty.
     /// </summary>
-    private static IEnumerable<MemberDeclarationSyntax> EmitRedactingToString(ObjectModelPlan model, IReadOnlyList<ChainMarker> markers)
+    private static IEnumerable<MemberDeclarationSyntax> EmitRedactingToString(ObjectModelPlan model, IReadOnlyList<ChainMarkerPlan> markers)
     {
         if (model.RedactsExtensionData && !model.EmitsExtensionData)
         {
@@ -415,7 +414,7 @@ internal static class ModelEmitter
         _ => throw new InvalidOperationException($"Property '{property.Name}' has an invalid literal plan."),
     };
 
-    private static IReadOnlyList<string> CollectUsings(ObjectModelPlan model, bool guardsPrefix)
+    private static IReadOnlyList<string> CollectUsings(ObjectModelPlan model, bool guardsPrefix, GeneratedNamespacePlan namespaces)
     {
         var result = new HashSet<string>(StringComparer.Ordinal);
         if (model.Properties.Count > 0)
@@ -439,13 +438,13 @@ internal static class ModelEmitter
         // nests under, so it needs no using.
         if (model.Properties.Any(static property => property.EmitsOptionalWrapper))
         {
-            _ = result.Add(GeneratedNamespace.Internal);
+            _ = result.Add(namespaces.Internal);
         }
 
         // A model with a secret member prints through the runtime's record printer.
         if (model.RedactsExtensionData || model.Properties.Any(static property => property.IsRedacted))
         {
-            _ = result.Add(GeneratedNamespace.Internal);
+            _ = result.Add(namespaces.Internal);
         }
 
         // The extension-data members name the dictionary types, JsonElement, the ordinal
@@ -453,7 +452,7 @@ internal static class ModelEmitter
         // empty view the runtime keeps for a bag the serializer has not created.
         if (model.EmitsExtensionData)
         {
-            _ = result.Add(GeneratedNamespace.Internal);
+            _ = result.Add(namespaces.Internal);
             _ = result.Add("System");
             _ = result.Add("System.Collections.Generic");
             _ = result.Add("System.Linq");
@@ -477,73 +476,23 @@ internal static class ModelEmitter
         _ => false,
     };
 
-    private static List<UnionPlan> ResolveImplementedUnions(ObjectModelPlan model, Dictionary<string, UnionPlan> unions) =>
-    [
-        .. model.ImplementedUnionNames.Select(name => unions.TryGetValue(name, out var union)
-            ? union
-            : throw new InvalidOperationException($"Model '{model.Name}' references absent union '{name}'.")),
-    ];
+    private static void ValidateImplementedUnions(ObjectModelPlan model, Dictionary<string, UnionPlan> unions)
+    {
+        var name = model.ImplementedUnionNames.FirstOrDefault(name => !unions.ContainsKey(name));
+        if (name is not null)
+        {
+            throw new InvalidOperationException($"Model '{model.Name}' references absent union '{name}'.");
+        }
+    }
 
     /// <summary>
     /// A variant carries a chain marker as the literal its tag fixes or, as the union's one
     /// prefix-tagged arm, as the plain string the prefix claims — never as both.
     /// </summary>
-    private static bool IsDiscriminator(ModelPropertyPlan property, ChainMarker marker) =>
+    private static bool IsDiscriminator(ModelPropertyPlan property, ChainMarkerPlan marker) =>
         string.Equals(property.WireName, marker.WireName, StringComparison.Ordinal)
         && (marker.Prefix is null ? property.IsLiteral : !property.IsLiteral);
 
-    private static ChainMarker? CarriedMarker(IEnumerable<ChainMarker> markers, ModelPropertyPlan property) =>
+    private static ChainMarkerPlan? CarriedMarker(IEnumerable<ChainMarkerPlan> markers, ModelPropertyPlan property) =>
         markers.FirstOrDefault(marker => IsDiscriminator(property, marker));
-
-    /// <summary>
-    /// The marker each union in the schema's membership expects it to carry, walking every
-    /// chain, paired with the member name that union promises for it and, when the schema is
-    /// that union's prefix-tagged arm, the prefix its value must carry. Two unions may name
-    /// different markers, and the schema then carries both; the same name is one property
-    /// serving both contracts.
-    /// </summary>
-    private static List<ChainMarker> GetChainMarkers(string modelName,
-        IReadOnlyList<UnionPlan> implemented, Dictionary<string, UnionPlan> unions)
-    {
-        var result = new List<ChainMarker>();
-        foreach (var union in implemented)
-        {
-            var current = union;
-            while (current is not null)
-            {
-                var wireName = VariantMarkerWireName(current, modelName);
-                if (!result.Any(entry => string.Equals(entry.WireName, wireName, StringComparison.Ordinal)))
-                {
-                    result.Add(new ChainMarker(wireName, current.MarkerName, PrefixOf(current, modelName, wireName)));
-                }
-
-                current = current.BaseTypeName is not null && unions.TryGetValue(current.BaseTypeName, out var outer)
-                    ? outer
-                    : null;
-            }
-        }
-
-        return result;
-    }
-
-    private static string VariantMarkerWireName(UnionPlan union, string modelName) =>
-        union
-            .Variants.FirstOrDefault(variant => string.Equals(variant.TypeName, modelName, StringComparison.Ordinal))
-            ?.MarkerWireName
-        ?? union.MarkerWireName;
-
-    /// <summary>The prefix a union's prefix-tagged arm must carry on its marker; null for every other variant.</summary>
-    private static string? PrefixOf(UnionPlan union, string modelName, string wireName) =>
-        union.PrefixVariant is { } prefix
-        && string.Equals(prefix.TypeName, modelName, StringComparison.Ordinal)
-        && string.Equals(prefix.MarkerWireName, wireName, StringComparison.Ordinal)
-            ? prefix.Prefix
-            : null;
-
-    /// <summary>
-    /// One marker a union in the schema's chain expects it to carry: the wire property, the
-    /// member the union promises for it, and — for the union's prefix-tagged arm — the prefix
-    /// the member's value must carry in place of a literal tag.
-    /// </summary>
-    private sealed record ChainMarker(string WireName, string MemberName, string? Prefix);
 }

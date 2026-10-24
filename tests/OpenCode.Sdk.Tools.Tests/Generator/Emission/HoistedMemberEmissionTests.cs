@@ -33,7 +33,7 @@ public sealed class HoistedMemberEmissionTests
                 },
             },
         };
-        var source = EmitterSnapshot.Content(UnionEmitter.Emit([union], plan.Placement), "Example/Models/IExampleEvent.cs");
+        var source = EmitterSnapshot.Content(UnionEmitter.Emit([union], plan.Placement, plan.Namespaces), "Example/Models/IExampleEvent.cs");
         var root = await CSharpSyntaxTree.ParseText(source).GetRootAsync();
         var property = root.DescendantNodes().OfType<PropertyDeclarationSyntax>().Single(static property => property.Identifier.ValueText == "Id");
 

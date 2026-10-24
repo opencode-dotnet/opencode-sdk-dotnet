@@ -8,7 +8,7 @@ public sealed class EnvelopeEmitterTests
     [Test]
     public async Task Emit_Should_Produce_Guarded_Response_Envelopes()
     {
-        var sources = EnvelopeEmitter.Emit(EmitterPlanFixture.Create().Clients);
+        var sources = EnvelopeEmitter.Emit(EmitterPlanFixture.Create().Clients, EmitterPlanFixture.Create().Namespaces);
 
         await Verify(EmitterSnapshot.Create(sources));
     }

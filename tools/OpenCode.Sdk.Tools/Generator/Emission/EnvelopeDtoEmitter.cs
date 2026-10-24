@@ -1,7 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Emission;
@@ -13,9 +12,10 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 /// </summary>
 internal static class EnvelopeDtoEmitter
 {
-    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients)
+    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients, GeneratedNamespacePlan namespaces)
     {
         ArgumentNullException.ThrowIfNull(clients);
+        ArgumentNullException.ThrowIfNull(namespaces);
 
         return Array.AsReadOnly(
         [
@@ -23,11 +23,11 @@ internal static class EnvelopeDtoEmitter
                 .SelectMany(static client => client.Operations)
                 .Where(static operation => operation.Envelope is { EnvelopeDtoTypeName: not null })
                 .OrderBy(static operation => operation.Envelope!.EnvelopeDtoTypeName, StringComparer.Ordinal)
-                .Select(static operation => EmitDto(operation.Envelope!, TypeHome.Family(operation.RouteContainerName))),
+                .Select(operation => EmitDto(operation.Envelope!, TypeHome.Family(operation.RouteContainerName), namespaces)),
         ]);
     }
 
-    private static GeneratedSource EmitDto(EnvelopePlan envelope, TypeHome owner)
+    private static GeneratedSource EmitDto(EnvelopePlan envelope, TypeHome owner, GeneratedNamespacePlan namespaces)
     {
         // The DTO member stays 'Data' whatever the wire key is: it is internal single-pass
         // framing every adapter reads the same way, and only the JSON name is the contract.
@@ -57,8 +57,8 @@ internal static class EnvelopeDtoEmitter
             .WithLeadingTrivia(EmissionSyntax.Documentation(
                 $"Carries the wire body of '{envelope.ResponseTypeName}' through one deserialization pass."));
         var unit = EmissionSyntax.CompilationUnit(
-            GeneratedNamespace.Internal,
-            ["System.Text.Json.Serialization", GeneratedNamespace.Models],
+            namespaces.Internal,
+            ["System.Text.Json.Serialization", namespaces.Models],
             [declaration]);
         return EmissionSyntax.CreateSource(GeneratedPlacement.PathOf(GeneratedKind.EnvelopeDto, owner, envelope.EnvelopeDtoTypeName!), unit);
     }

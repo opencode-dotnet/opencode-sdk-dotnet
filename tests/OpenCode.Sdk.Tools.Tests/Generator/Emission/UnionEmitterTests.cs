@@ -16,7 +16,7 @@ public sealed class UnionEmitterTests
             Description = null,
             HoistedMembers = [new HoistedMemberPlan { Name = "Value", WireName = "value", IsRequired = false, Type = UnionHoistPlanData.Named("string") }],
         };
-        var source = EmitterSnapshot.Create(UnionEmitter.Emit([union], ModelPlacementFixture.SingleSlice([union])));
+        var source = EmitterSnapshot.Create(UnionEmitter.Emit([union], ModelPlacementFixture.SingleSlice([union]), EmitterPlanFixture.Create().Namespaces));
         await Assert.That(source).Contains("Represents an OAuth event union.");
         await Assert.That(source).Contains("Gets the value. Every declared variant carries it");
         await Assert.That(source).Contains("Preserves an unknown OAuth event payload.");
@@ -27,7 +27,7 @@ public sealed class UnionEmitterTests
     public async Task Emit_Should_Inherit_The_Hand_Written_Stream_Cause_Marker()
     {
         var plan = await EmitterPlanFixture.CreateStreamPlanAsync();
-        var sources = UnionEmitter.Emit(plan.Unions, plan.Placement);
+        var sources = UnionEmitter.Emit(plan.Unions, plan.Placement, plan.Namespaces);
         var source = EmitterSnapshot.Content(sources, "Example/Models/IStreamFailureCause.cs");
 
         await Assert.That(source).Contains("public interface IStreamFailureCause : IOpenCodeStreamFailureCause");
@@ -104,6 +104,6 @@ public sealed class UnionEmitterTests
     {
         var unions = EmitterPlanFixture.CreateUnionSnapshot();
 
-        return UnionEmitter.Emit(unions, ModelPlacementFixture.SingleSlice(unions));
+        return UnionEmitter.Emit(unions, ModelPlacementFixture.SingleSlice(unions), EmitterPlanFixture.Create().Namespaces);
     }
 }

@@ -20,23 +20,24 @@ internal static class ExtensibleEnumEmitter
     private const string ValueField = "_value";
     private const string ValueParameter = "value";
 
-    public static IReadOnlyList<GeneratedSource> Emit(EnumModelPlan model, ModelPlacement placement)
+    public static IReadOnlyList<GeneratedSource> Emit(EnumModelPlan model, ModelPlacement placement, GeneratedNamespacePlan namespaces)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(placement);
+        ArgumentNullException.ThrowIfNull(namespaces);
 
         var converterName = ConverterName(model.Name);
         return
         [
-            EmitStruct(model, converterName, GeneratedPlacement.ModelPathOf(placement, model.Name)),
-            EmitConverter(model, converterName, GeneratedPlacement.ConverterPathOf(placement, model.Name, converterName)),
+            EmitStruct(model, converterName, GeneratedPlacement.ModelPathOf(placement, model.Name), namespaces),
+            EmitConverter(model, converterName, GeneratedPlacement.ConverterPathOf(placement, model.Name, converterName), namespaces),
         ];
     }
 
     /// <summary>Names the converter an enum carries.</summary>
     public static string ConverterName(string enumName) => $"{enumName}JsonConverter";
 
-    private static GeneratedSource EmitStruct(EnumModelPlan model, string converterName, string relativePath)
+    private static GeneratedSource EmitStruct(EnumModelPlan model, string converterName, string relativePath, GeneratedNamespacePlan namespaces)
     {
         var type = TypeSyntaxEmitter.EmitNamed(model.Name);
         List<MemberDeclarationSyntax> members =
@@ -72,7 +73,7 @@ internal static class ExtensibleEnumEmitter
         declaration = EmissionSyntax.DocumentedType(declaration, model.Documentation);
         var unit = EmissionSyntax.CompilationUnit(
             model.Namespace,
-            ["System", "System.Text.Json.Serialization", GeneratedNamespace.Internal],
+            ["System", "System.Text.Json.Serialization", namespaces.Internal],
             [declaration]);
         return EmissionSyntax.CreateSource(relativePath, unit);
     }
@@ -282,7 +283,7 @@ internal static class ExtensibleEnumEmitter
     /// malformed body, so a number never reads as a value; a default value has no spelling and is
     /// refused rather than written as an empty string.
     /// </summary>
-    private static GeneratedSource EmitConverter(EnumModelPlan model, string converterName, string relativePath)
+    private static GeneratedSource EmitConverter(EnumModelPlan model, string converterName, string relativePath, GeneratedNamespacePlan namespaces)
     {
         var type = TypeSyntaxEmitter.EmitNamed(model.Name);
         var reader = SyntaxFactory.IdentifierName("reader");
@@ -357,7 +358,7 @@ internal static class ExtensibleEnumEmitter
             .WithLeadingTrivia(EmissionSyntax.Documentation(
                 $"Converts {model.Name}: every string token reads as the value it spells, pinned or not; any other token is a malformed body. Writes the wire spelling and refuses a default value, which has none."));
         var unit = EmissionSyntax.CompilationUnit(
-            GeneratedNamespace.Internal,
+            namespaces.Internal,
             ["System", "System.Text.Json", "System.Text.Json.Serialization", model.Namespace],
             [declaration]);
         return EmissionSyntax.CreateSource(relativePath, unit);

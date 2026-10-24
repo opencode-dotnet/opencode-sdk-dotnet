@@ -192,7 +192,7 @@ public sealed class ExperimentalSurfaceEmissionTests(PinnedBinding pinned)
         var plan = await EmitterPlanFixture.CreateStructuralUnionPlanAsync();
         var unions = plan.Models.OfType<StructuralUnionModelPlan>()
             .Select(static union => union with { ExperimentalDiagnostic = "OPENCODE002" }).ToArray();
-        var sources = StructuralUnionEmitter.Emit(unions, plan.Placement);
+        var sources = StructuralUnionEmitter.Emit(unions, plan.Placement, plan.Namespaces);
 
         await Assert.That(unions.Length).IsGreaterThan(0);
         foreach (var union in unions)

@@ -9,7 +9,7 @@ public sealed class RegistryEmitterTests
     [Test]
     public async Task Emit_Should_Produce_The_Source_Generated_Context_Registry()
     {
-        var sources = RegistryEmitter.Emit(EmitterPlanFixture.CreateRegistry());
+        var sources = RegistryEmitter.Emit(EmitterPlanFixture.CreateRegistry(), EmitterPlanFixture.Create().Namespaces);
         var snapshot = EmitterSnapshot.Create(sources);
 
         await Assert.That(snapshot).Contains("UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip");
@@ -37,7 +37,7 @@ public sealed class RegistryEmitterTests
                 },
             ],
         };
-        var source = EmitterSnapshot.Create(RegistryEmitter.Emit(plan));
+        var source = EmitterSnapshot.Create(RegistryEmitter.Emit(plan, EmitterPlanFixture.Create().Namespaces));
         await Assert.That(source).Contains(
             "[JsonSerializable(typeof(IReadOnlyList<WidgetInfo>), TypeInfoPropertyName = \"WidgetInfoList\")]");
     }

@@ -2,16 +2,16 @@ using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 internal static class ResponseAdapterEmitter
 {
-    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients)
+    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients, GeneratedNamespacePlan namespaces)
     {
         ArgumentNullException.ThrowIfNull(clients);
+        ArgumentNullException.ThrowIfNull(namespaces);
 
         return Array.AsReadOnly(
         [
@@ -19,11 +19,11 @@ internal static class ResponseAdapterEmitter
                 .SelectMany(static client => client.Operations)
                 .Where(static operation => operation.Envelope is not null)
                 .OrderBy(static operation => operation.Envelope!.AdapterTypeName, StringComparer.Ordinal)
-                .Select(static operation => EmitAdapter(operation)),
+                .Select(operation => EmitAdapter(operation, namespaces)),
         ]);
     }
 
-    private static GeneratedSource EmitAdapter(OperationPlan operation)
+    private static GeneratedSource EmitAdapter(OperationPlan operation, GeneratedNamespacePlan namespaces)
     {
         var envelope = operation.Envelope!;
         var members = new List<MemberDeclarationSyntax>();
@@ -89,11 +89,11 @@ internal static class ResponseAdapterEmitter
         if (operation.Pagination is not null)
         {
             usings.Add("System.Collections.Generic");
-            usings.Add(GeneratedNamespace.Models);
+            usings.Add(namespaces.Models);
         }
 
         var unit = EmissionSyntax.CompilationUnit(
-            GeneratedNamespace.Internal,
+            namespaces.Internal,
             usings,
             [declaration]);
         return EmissionSyntax.CreateSource(

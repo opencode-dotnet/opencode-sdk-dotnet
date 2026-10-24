@@ -26,9 +26,10 @@ internal static class OptionalConverterEmitter
         ("-Infinity", "NegativeInfinity"),
     ];
 
-    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ModelPlan> models)
+    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ModelPlan> models, GeneratedNamespacePlan namespaces)
     {
         ArgumentNullException.ThrowIfNull(models);
+        ArgumentNullException.ThrowIfNull(namespaces);
 
         var instantiations = models
             .OfType<ObjectModelPlan>()
@@ -37,10 +38,10 @@ internal static class OptionalConverterEmitter
             .Select(static property => property.Type)
             .DistinctBy(static type => (TypeReferenceNamePolicy.Format(type), OptionalConverterNamePolicy.ConverterTypeName(type)))
             .OrderBy(static type => OptionalConverterNamePolicy.ConverterTypeName(type), StringComparer.Ordinal);
-        return Array.AsReadOnly([.. instantiations.Select(EmitConverter)]);
+        return Array.AsReadOnly([.. instantiations.Select(inner => EmitConverter(inner, namespaces))]);
     }
 
-    private static GeneratedSource EmitConverter(TypeReferencePlan inner)
+    private static GeneratedSource EmitConverter(TypeReferencePlan inner, GeneratedNamespacePlan namespaces)
     {
         var name = OptionalConverterNamePolicy.ConverterTypeName(inner);
         var wrapper = OptionalType(inner);
@@ -57,7 +58,7 @@ internal static class OptionalConverterEmitter
                 EmitRead(inner, wrapper),
                 EmitWrite(inner, wrapper),
             ]));
-        var unit = EmissionSyntax.CompilationUnit(GeneratedNamespace.Internal, CollectUsings(inner), [declaration]);
+        var unit = EmissionSyntax.CompilationUnit(namespaces.Internal, CollectUsings(inner, namespaces), [declaration]);
         return EmissionSyntax.CreateSource(GeneratedPlacement.PathOf(GeneratedKind.SharedSerialization, null, name), unit);
     }
 
@@ -266,7 +267,7 @@ internal static class OptionalConverterEmitter
         _ => null,
     };
 
-    private static IReadOnlyList<string> CollectUsings(TypeReferencePlan inner)
+    private static IReadOnlyList<string> CollectUsings(TypeReferencePlan inner, GeneratedNamespacePlan namespaces)
     {
         var result = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -277,7 +278,7 @@ internal static class OptionalConverterEmitter
         TypeUsingCollector.Collect(inner, result);
         if (ReferencesGeneratedModel(inner))
         {
-            _ = result.Add(GeneratedNamespace.Models);
+            _ = result.Add(namespaces.Models);
         }
 
         return [.. result.Order(StringComparer.Ordinal)];

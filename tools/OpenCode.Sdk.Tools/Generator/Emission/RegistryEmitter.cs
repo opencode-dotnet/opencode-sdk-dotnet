@@ -1,15 +1,15 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 internal static class RegistryEmitter
 {
-    public static IReadOnlyList<GeneratedSource> Emit(RegistryPlan plan)
+    public static IReadOnlyList<GeneratedSource> Emit(RegistryPlan plan, GeneratedNamespacePlan namespaces)
     {
         ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(namespaces);
         var declaration = SyntaxFactory.ClassDeclaration("OpenCodeJsonContext")
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.InternalKeyword),
@@ -48,14 +48,14 @@ internal static class RegistryEmitter
                 EmissionSyntax.StringArgument(accessor).WithNameEquals(SyntaxFactory.NameEquals("TypeInfoPropertyName"))));
         }
 
-        var usings = new List<string> { GeneratedNamespace.Models, "System.Text.Json.Serialization" };
+        var usings = new List<string> { namespaces.Models, "System.Text.Json.Serialization" };
         if (plan.PayloadEntries.Count > 0)
         {
             usings.Add("System.Collections.Generic");
         }
 
         var unit = EmissionSyntax.CompilationUnit(
-            GeneratedNamespace.Internal,
+            namespaces.Internal,
             usings,
             [declaration]);
         return Array.AsReadOnly(

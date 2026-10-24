@@ -14,11 +14,10 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 /// </summary>
 internal static class StreamAdapterEmitter
 {
-    private const string AdapterNamespace = GeneratedNamespace.Internal;
-
-    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients)
+    public static IReadOnlyList<GeneratedSource> Emit(IReadOnlyList<ClientPlan> clients, GeneratedNamespacePlan namespaces)
     {
         ArgumentNullException.ThrowIfNull(clients);
+        ArgumentNullException.ThrowIfNull(namespaces);
 
         return Array.AsReadOnly(
         [
@@ -26,11 +25,11 @@ internal static class StreamAdapterEmitter
                 .SelectMany(static client => client.Operations)
                 .Where(static operation => operation.Stream is not null)
                 .OrderBy(static operation => operation.Stream!.AdapterTypeName, StringComparer.Ordinal)
-                .Select(static operation => EmitAdapter(operation)),
+                .Select(operation => EmitAdapter(operation, namespaces)),
         ]);
     }
 
-    private static GeneratedSource EmitAdapter(OperationPlan operation)
+    private static GeneratedSource EmitAdapter(OperationPlan operation, GeneratedNamespacePlan namespaces)
     {
         var stream = operation.Stream!;
         var members = new List<MemberDeclarationSyntax>();
@@ -68,8 +67,8 @@ internal static class StreamAdapterEmitter
                 $"Carries the '{operation.HttpMethod.ToUpperInvariant()} {operation.RouteTemplate}' stream contract."));
 
         var unit = EmissionSyntax.CompilationUnit(
-            AdapterNamespace,
-            ["System", "System.Text.Json.Serialization.Metadata", GeneratedNamespace.Internal, GeneratedNamespace.Models],
+            namespaces.Internal,
+            ["System", "System.Text.Json.Serialization.Metadata", namespaces.Internal, namespaces.Models],
             [declaration]);
         return EmissionSyntax.CreateSource(
             GeneratedPlacement.PathOf(GeneratedKind.StreamAdapter, TypeHome.Family(operation.RouteContainerName), stream.AdapterTypeName),
