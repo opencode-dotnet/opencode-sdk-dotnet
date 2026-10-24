@@ -1,5 +1,6 @@
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
+using OpenCode.Sdk.Tests.Transport.Support;
 
 namespace OpenCode.Sdk.Tests.Transport;
 
@@ -24,6 +25,12 @@ public sealed class EventStreamIdleTimeoutTests
 
         await Assert.That(refusal!.ParamName).IsEqualTo("value");
     }
+
+    /// <summary>The idle-window refusal names its finite range without offering an infinite window.</summary>
+    [Test]
+    public async Task Options_Should_Report_The_Exact_Idle_Window_Refusal() =>
+        await OptionRefusal.AssertAsync(() => _ = new OpenCodeClientOptions { EventStreamIdleTimeout = TimeSpan.Zero }, TimeSpan.Zero,
+            "The event stream idle window must be above zero and at most int.MaxValue milliseconds.", "value");
 
     [Test]
     [Arguments(1L)]

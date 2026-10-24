@@ -663,6 +663,21 @@ public sealed class PipelineStreamTests
         await Assert.That(handler.Requests).IsEmpty();
     }
 
+    /// <summary>A disposed client wins over a null adapter at the stream entry point.</summary>
+    [Test]
+    public async Task ExecuteStreamAsync_Should_Report_Disposal_Before_A_Null_Adapter()
+    {
+        using var handler = new RecordingHttpHandler();
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient);
+        pipeline.Dispose();
+
+        var exception = Assert.Throws<ObjectDisposedException>(() => _ = pipeline.ExecuteStreamAsync<TestBody, TestStreamFailureCause[]>(
+            OperationId, HttpMethod.Get, "/api/event", null!, null, CancellationToken.None));
+
+        await Assert.That(exception.ObjectName).IsEqualTo(typeof(OpenCodeClient).FullName);
+    }
+
     [Test]
     public async Task ExecuteStreamAsync_Should_Refuse_Enumeration_That_Starts_After_Dispose()
     {

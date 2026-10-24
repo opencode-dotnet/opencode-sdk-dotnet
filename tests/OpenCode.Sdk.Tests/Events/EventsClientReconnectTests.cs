@@ -5,29 +5,19 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
 using TUnit.Assertions.Enums;
+using static OpenCode.Sdk.Tests.Events.Support.EventStreamSteps;
 
 namespace OpenCode.Sdk.Tests.Events;
 
 /// <summary>
 /// The event bus reconnects as the pinned client does. Each attempt has 2 seconds to answer and
-/// deliver <c>server.connected</c> first. A connected stream is cut after 45 seconds without a
-/// byte, and every failure of any kind is followed by a new attempt one second later. A stream
-/// that has failed every attempt for one minute, from the drop or from the first attempt, throws
-/// the last failure. Every bound runs on the test's clock, and each step waits until the bound it
-/// passes is armed.
+/// deliver <c>server.connected</c> first. Every failure of any kind is followed by a new attempt
+/// one second later. A stream that has failed every attempt for one minute, from the drop or from
+/// the first attempt, throws the last failure. Every bound runs on the test's clock, and each step
+/// waits until the bound it passes is armed.
 /// </summary>
 public sealed class EventsClientReconnectTests
 {
-    private static readonly TimeSpan Delay = TimeSpan.FromSeconds(1);
-
-    private static readonly TimeSpan ConnectBound = TimeSpan.FromSeconds(2);
-
-    private static readonly TimeSpan IdleWindow = TimeSpan.FromSeconds(45);
-
-    private static readonly TimeSpan OneTick = TimeSpan.FromTicks(1);
-
-    private static readonly string ConnectedFrame = WireBodyData.Frames(ScriptedEventServer.Connected);
-
     [Test]
     [Arguments("door")]
     [Arguments("spine")]
@@ -141,170 +131,6 @@ public sealed class EventsClientReconnectTests
     }
 
     [Test]
-    public async Task A_Connected_Stream_Should_Be_Cut_After_45_Seconds_Without_A_Byte()
-    {
-        using var first = new LiveEventBody(ConnectedFrame);
-        using var server = new ScriptedEventServer(number =>
-            number is 1 ? ScriptedEventServer.Stream(first) : ScriptedEventServer.StreamOf(ConnectedFrame));
-        await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
-        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
-
-        var next = PendingNext(events);
-        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard.Bound);
-        server.Time.Advance(IdleWindow - OneTick);
-        await Assert.That(next.IsCompleted).IsFalse();
-        server.Time.Advance(OneTick);
-        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
-        await Assert.That(server.RequestCount).IsEqualTo(1);
-        server.Time.Advance(Delay);
-
-        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
-        await Assert.That(server.RequestCount).IsEqualTo(2);
-        await Assert.That(first.IsDisposed).IsTrue();
-    }
-
-    /// <summary>A client that sets its own idle window, as upstream's <c>idleTimeout</c> allows, is cut when that window passes and not one tick before.</summary>
-    [Test]
-    public async Task A_Configured_Idle_Window_Should_Cut_A_Silent_Stream_Exactly_When_It_Passes()
-    {
-        var window = TimeSpan.FromSeconds(10);
-        using var first = new LiveEventBody(ConnectedFrame);
-        using var server = new ScriptedEventServer(
-            number => number is 1 ? ScriptedEventServer.Stream(first) : ScriptedEventServer.StreamOf(ConnectedFrame),
-            eventStreamIdleTimeout: window);
-        await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
-        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
-
-        var next = PendingNext(events);
-        await server.Time.WaitForArmedAsync(window, HangGuard.Bound);
-        server.Time.Advance(window - OneTick);
-        await Assert.That(next.IsCompleted).IsFalse();
-        server.Time.Advance(OneTick);
-        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
-        server.Time.Advance(Delay);
-
-        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
-        await Assert.That(server.RequestCount).IsEqualTo(2);
-        await Assert.That(first.IsDisposed).IsTrue();
-    }
-
-    [Test]
-    public async Task A_Heartbeat_Should_Start_A_Configured_Idle_Window_Again()
-    {
-        var window = TimeSpan.FromSeconds(10);
-        using var body = new LiveEventBody(ConnectedFrame);
-        using var server = new ScriptedEventServer(_ => ScriptedEventServer.Stream(body), eventStreamIdleTimeout: window);
-        await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
-        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
-
-        var next = PendingNext(events);
-        await server.Time.WaitForArmedAsync(window, HangGuard.Bound);
-        server.Time.Advance(TimeSpan.FromSeconds(9));
-        body.Append(ScriptedEventServer.Heartbeat);
-        await server.Time.WaitForArmedAsync(window, HangGuard.Bound);
-        server.Time.Advance(window - OneTick);
-        await Assert.That(next.IsCompleted).IsFalse();
-        body.Append(WireBodyData.Frames(WireBodyData.SessionCreatedEvent));
-
-        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current).IsTypeOf<SessionCreated>();
-        await Assert.That(server.RequestCount).IsEqualTo(1);
-    }
-
-    /// <summary>
-    /// Before <c>server.connected</c> only the fixed 2 s connect bound runs: bytes that arrive first
-    /// neither extend it nor hand the attempt to the idle window, even one shorter than the bound.
-    /// </summary>
-    [Test]
-    public async Task Bytes_Before_Server_Connected_Should_Leave_The_Connect_Bound_In_Charge()
-    {
-        using var first = new LiveEventBody(ScriptedEventServer.Heartbeat);
-        using var server = new ScriptedEventServer(
-            number => number is 1 ? ScriptedEventServer.Stream(first) : ScriptedEventServer.StreamOf(ConnectedFrame),
-            eventStreamIdleTimeout: TimeSpan.FromSeconds(1));
-        await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
-
-        var next = PendingNext(events);
-        await server.Time.WaitForArmedAsync(ConnectBound, HangGuard.Bound);
-        server.Time.Advance(TimeSpan.FromSeconds(1.5));
-        first.Append(ScriptedEventServer.Heartbeat);
-        server.Time.Advance(ConnectBound - TimeSpan.FromSeconds(1.5) - OneTick);
-        await Assert.That(next.IsCompleted).IsFalse();
-        await Assert.That(server.RequestCount).IsEqualTo(1);
-        server.Time.Advance(OneTick);
-        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
-        server.Time.Advance(Delay);
-
-        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
-        await Assert.That(server.RequestCount).IsEqualTo(2);
-        await Assert.That(first.IsDisposed).IsTrue();
-    }
-
-    /// <summary>Any byte counts as activity, even one that does not finish a line, as upstream's <c>onActivity</c> fires on every chunk.</summary>
-    [Test]
-    public async Task A_Single_Byte_Should_Start_The_Idle_Window_Again()
-    {
-        using var body = new LiveEventBody(ConnectedFrame);
-        using var server = new ScriptedEventServer(_ => ScriptedEventServer.Stream(body));
-        await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
-        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
-
-        var next = PendingNext(events);
-        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard.Bound);
-        server.Time.Advance(TimeSpan.FromSeconds(30));
-        body.Append(":");
-        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard.Bound);
-        server.Time.Advance(IdleWindow - OneTick);
-        await Assert.That(next.IsCompleted).IsFalse();
-        body.Append(" heartbeat\n\n" + WireBodyData.Frames(WireBodyData.SessionCreatedEvent));
-
-        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current).IsTypeOf<SessionCreated>();
-        await Assert.That(server.RequestCount).IsEqualTo(1);
-    }
-
-    [Test]
-    public async Task A_Heartbeat_Should_Keep_A_Quiet_Stream_Open()
-    {
-        using var body = new LiveEventBody(ConnectedFrame);
-        using var server = new ScriptedEventServer(_ => ScriptedEventServer.Stream(body));
-        await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
-        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
-
-        var next = PendingNext(events);
-        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard.Bound);
-        server.Time.Advance(TimeSpan.FromSeconds(30));
-        body.Append(ScriptedEventServer.Heartbeat);
-        await server.Time.WaitForArmedAsync(IdleWindow, HangGuard.Bound);
-        server.Time.Advance(IdleWindow - OneTick);
-        await Assert.That(next.IsCompleted).IsFalse();
-        body.Append(WireBodyData.Frames(WireBodyData.SessionCreatedEvent));
-
-        await Assert.That(await next.WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current).IsTypeOf<SessionCreated>();
-        await Assert.That(server.RequestCount).IsEqualTo(1);
-    }
-
-    /// <summary>The consumer's time with an event is not the server's silence, so a slow consumer is never cut.</summary>
-    [Test]
-    public async Task A_Consumer_Holding_An_Event_Should_Not_Count_As_Silence()
-    {
-        using var body = new LiveEventBody(ConnectedFrame);
-        using var server = new ScriptedEventServer(_ => ScriptedEventServer.Stream(body));
-        await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
-        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
-
-        server.Time.Advance(TimeSpan.FromMinutes(10));
-        body.Append(WireBodyData.Frames(WireBodyData.SessionCreatedEvent));
-
-        await Assert.That(await NextAsync(events)).IsTypeOf<SessionCreated>();
-        await Assert.That(server.RequestCount).IsEqualTo(1);
-    }
-
-    [Test]
     [Arguments(false)]
     [Arguments(true)]
     public async Task An_Attempt_Should_Be_Cut_When_It_Does_Not_Connect_Within_2_Seconds(bool answersHeaders)
@@ -357,6 +183,34 @@ public sealed class EventsClientReconnectTests
         await Assert.That(await first.WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
         await Assert.That(server.RequestCount).IsEqualTo(2);
+    }
+
+    /// <summary>A rejected first event is never delivered; only the next connection's announcement reaches the consumer.</summary>
+    [Test]
+    public async Task A_First_Event_That_Is_Not_Server_Connected_Should_Not_Be_Delivered()
+    {
+        using var server = new ScriptedEventServer(number => ScriptedEventServer.StreamOf(
+            number is 1 ? WireBodyData.Frames(WireBodyData.SessionCreatedEvent) : ConnectedFrame, ends: true));
+        await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
+        var received = new List<Type>();
+        var reading = ReadThroughConnectionAsync();
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
+        server.Time.Advance(Delay);
+        await reading.WaitAsync(HangGuard.Bound);
+
+        await Assert.That(received).IsEquivalentTo([typeof(EventServerConnected)], CollectionOrdering.Matching);
+
+        async Task ReadThroughConnectionAsync()
+        {
+            while (await events.MoveNextAsync())
+            {
+                received.Add(events.Current.GetType());
+                if (events.Current is EventServerConnected)
+                {
+                    return;
+                }
+            }
+        }
     }
 
     [Test]
@@ -416,6 +270,48 @@ public sealed class EventsClientReconnectTests
         var exception = await Assert.That(first.WaitAsync(HangGuard.Bound)).Throws<OpenCodeApiException>();
         await Assert.That(exception!.Status).IsEqualTo(500);
         await Assert.That(server.RequestCount).IsEqualTo(60);
+    }
+
+    /// <summary>A clean server end remains the last failure when the drop's give-up minute passes.</summary>
+    [Test]
+    public async Task An_Ended_Stream_Should_Report_The_Ended_Text_At_Give_Up()
+    {
+        using var server = new ScriptedEventServer(number =>
+            ScriptedEventServer.StreamOf(number is 1 ? ConnectedFrame : string.Empty, ends: true));
+        await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
+        var next = await PullAfterConnectionAsync(events);
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
+        server.Time.Advance(TimeSpan.FromMinutes(1));
+
+        var failure = await Assert.That(next.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
+
+        await Assert.That(failure!.Message).IsEqualTo("The opencode event stream ended.");
+    }
+
+    /// <summary>A response rejected as the give-up passes retains its own protocol failure.</summary>
+    [Test]
+    public async Task The_Give_Up_Should_Throw_An_Attempts_Own_Failure_When_Its_Response_Arrives_At_The_Minute()
+    {
+        var time = new ManualTimeProvider();
+        await AssertOpeningTransportFailureMessageAsync(time, _ =>
+        {
+            // The send has started, so both the give-up and connect windows are armed.
+            time.Advance(TimeSpan.FromMinutes(1));
+            return new HttpResponseMessage(HttpStatusCode.Redirect);
+        }, "The opencode API returned undeclared redirect status 302.");
+    }
+
+    /// <summary>A first attempt cut by give-up, before any failure was recorded, names the give-up minute.</summary>
+    [Test]
+    public async Task The_Give_Up_Should_Name_Its_Minute_When_It_Cuts_The_First_Attempt()
+    {
+        var time = new ManualTimeProvider();
+        await AssertOpeningTransportFailureMessageAsync(time, _ =>
+        {
+            // Keep the send on this stack until both windows have passed, before reporting its cancellation.
+            time.Advance(TimeSpan.FromMinutes(1));
+            throw new OperationCanceledException();
+        }, "The opencode event stream did not connect within 60 seconds.");
     }
 
     /// <summary>An attempt still waiting at the minute is cut by the give-up, which throws the failure before it.</summary>
@@ -582,6 +478,31 @@ public sealed class EventsClientReconnectTests
         await Assert.That(server.RequestCount).IsEqualTo(119);
     }
 
+    /// <summary>A dropped connection arms a fresh give-up minute and waits exactly one second to reconnect.</summary>
+    [Test]
+    public async Task A_Drop_Should_Arm_A_Fresh_Give_Up_Minute_Before_The_Reconnect_Delay()
+    {
+        using var connection = new LiveEventBody(ConnectedFrame);
+        using var server = new ScriptedEventServer(_ => ScriptedEventServer.Stream(connection));
+        using var caller = new CancellationTokenSource();
+        var events = server.Events.SubscribeAsync(cancellationToken: caller.Token).GetAsyncEnumerator();
+        await WithPendingCancellationAsync(caller, events, async startPull =>
+        {
+            // Drain creation notifications for the give-up, attempt and response-progress windows.
+            for (var timer = 0; timer < 3; timer++)
+            {
+                await server.Time.WaitForTimerAsync(HangGuard.Bound);
+            }
+
+            connection.End();
+            startPull();
+            await server.Time.WaitForTimerAsync(HangGuard.Bound);
+
+            await Assert.That(server.Time.ArmedIn(TimeSpan.FromMinutes(1))).IsEqualTo(1);
+            await Assert.That(server.Time.ArmedIn(Delay)).IsEqualTo(1);
+        });
+    }
+
     [Test]
     public async Task The_Callers_Token_Should_End_The_Stream_During_The_Delay_Without_Another_Attempt()
     {
@@ -605,8 +526,7 @@ public sealed class EventsClientReconnectTests
     {
         using var server = new ScriptedEventServer(_ => ScriptedEventServer.StreamOf(ConnectedFrame));
         using var caller = new CancellationTokenSource();
-        await using var events = server.Events.SubscribeAsync(cancellationToken: caller.Token).GetAsyncEnumerator();
-        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
+        await using var events = await SubscribeConnectedAsync(server, caller.Token);
 
         var next = PendingCancellationAsync(events);
         await caller.CancelOnWorkerAsync();
@@ -616,6 +536,24 @@ public sealed class EventsClientReconnectTests
         await Assert.That(exception!.CancellationToken).IsEqualTo(caller.Token);
         server.Time.Advance(TimeSpan.FromMinutes(2));
         await Assert.That(server.RequestCount).IsEqualTo(1);
+    }
+
+    /// <summary>Cancellation already observed while holding an event wins over subsequent client disposal.</summary>
+    [Test]
+    public async Task The_Callers_Cancellation_Should_Win_Over_Disposal_While_Holding_An_Event()
+    {
+        using var server = new ScriptedEventServer(_ => ScriptedEventServer.StreamOf(ConnectedFrame));
+        using var caller = new CancellationTokenSource();
+        await using var events = await SubscribeConnectedAsync(server, caller.Token);
+        await caller.CancelOnWorkerAsync();
+        server.DisposeClient();
+
+        OperationCanceledException? failure = null;
+        await Assert.That(async () => failure = await PendingCancellationAsync(events).WaitAsync(HangGuard.Bound)).ThrowsNothing();
+
+        await Assert.That(failure).IsNotNull();
+        await Assert.That(failure!.CancellationToken).IsEqualTo(caller.Token);
+        await Assert.That(failure.Message).IsEqualTo("The opencode event stream read was canceled.");
     }
 
     /// <summary>A disposed client ends the stream at once, whatever it is doing, and nothing opens again.</summary>
@@ -727,6 +665,39 @@ public sealed class EventsClientReconnectTests
         server.Time.Advance(OneTick);
     }
 
+    /// <summary>Checks the opening failure's message while the subscription and its transport are still owned.</summary>
+    private static async Task AssertOpeningTransportFailureMessageAsync(ManualTimeProvider time,
+        Func<HttpRequestMessage, HttpResponseMessage> answer, string expectedMessage)
+    {
+        using var handler = new RecordingHttpHandler(answer);
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient, time: time);
+        await using var events = new EventsClient(pipeline).SubscribeAsync().GetAsyncEnumerator();
+        var failure = await Assert.That(PendingNext(events).WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
+
+        await Assert.That(failure!.Message).IsEqualTo(expectedMessage);
+    }
+
+    private static async Task<IAsyncEnumerator<IEvent>> SubscribeConnectedAsync(ScriptedEventServer server, CancellationToken caller)
+    {
+        // The subscription already carries the caller's token; enumeration adds none.
+        var events = server.Events.SubscribeAsync(cancellationToken: caller).GetAsyncEnumerator(CancellationToken.None);
+        var handedOff = false;
+        try
+        {
+            await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
+            handedOff = true;
+            return events;
+        }
+        finally
+        {
+            if (!handedOff)
+            {
+                await events.DisposeAsync();
+            }
+        }
+    }
+
     private static HttpResponseMessage FailedOpen(string failure) => failure switch
     {
         "unauthorized" => ScriptedEventServer.Status(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError),
@@ -762,38 +733,8 @@ public sealed class EventsClientReconnectTests
         }
     }
 
-    /// <summary>
-    /// Asks for the next event without waiting for it, and keeps the cancellation it ends with whole:
-    /// a downlevel <c>WaitAsync</c> rethrows a cancellation without its token.
-    /// </summary>
-    private static async Task<OperationCanceledException?> PendingCancellationAsync(IAsyncEnumerator<IEvent> events)
-    {
-        try
-        {
-            _ = await events.MoveNextAsync();
-            return null;
-        }
-        catch (OperationCanceledException exception)
-        {
-            return exception;
-        }
-    }
-
     /// <summary>Opens the event bus through the generated door or straight through the stream spine it forwards to.</summary>
     private static IAsyncEnumerable<IEvent> Subscribe(string entry, Pipeline pipeline, OpenCodeRequestOptions options) => entry == "door"
         ? new EventsClient(pipeline).SubscribeAsync(requestOptions: options)
         : pipeline.ExecuteStreamAsync("event.subscribe", HttpMethod.Get, "/api/event", EventSubscribeResponseStreamAdapter.Instance, options, CancellationToken.None);
-
-    /// <summary>Asks for the next event without waiting for it, so the test can move time while the read is pending.</summary>
-    private static Task<bool> PendingNext(IAsyncEnumerator<IEvent> events) => events.MoveNextAsync().AsTask();
-
-    private static async Task<IEvent> NextAsync(IAsyncEnumerator<IEvent> events)
-    {
-        if (!await events.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound))
-        {
-            throw new InvalidOperationException("The event stream ended.");
-        }
-
-        return events.Current;
-    }
 }

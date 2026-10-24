@@ -123,6 +123,12 @@ public sealed class NetworkTimeoutTests
         await Assert.That(call!.ParamName).IsEqualTo("value");
     }
 
+    /// <summary>The refusal explains both the finite range and the explicit way to remove the window.</summary>
+    [Test]
+    public async Task Options_Should_Report_The_Exact_Network_Timeout_Refusal() =>
+        await OptionRefusal.AssertAsync(() => _ = new OpenCodeClientOptions { NetworkTimeout = TimeSpan.Zero }, TimeSpan.Zero,
+            "The network timeout must be above zero and at most int.MaxValue milliseconds, or Timeout.InfiniteTimeSpan.", "value");
+
     [Test]
     [Arguments(1L)]
     [Arguments(int.MaxValue * TimeSpan.TicksPerMillisecond)]
