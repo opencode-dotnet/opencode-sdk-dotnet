@@ -301,16 +301,8 @@ internal static class StructuralUnionEmitter
 
     private static GeneratedSource EmitConverter(StructuralUnionModelPlan union, string relativePath, GeneratedNamespacePlan namespaces)
     {
-        var declaration = SyntaxFactory
-            .ClassDeclaration($"{union.Name}JsonConverter")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.InternalKeyword),
-                SyntaxFactory.Token(SyntaxKind.SealedKeyword)))
-            .WithBaseList(SyntaxFactory.BaseList(SyntaxFactory.SingletonSeparatedList<BaseTypeSyntax>(
-                SyntaxFactory.SimpleBaseType(TypeSyntaxEmitter.Generic(
-                    "JsonConverter",
-                    TypeSyntaxEmitter.EmitNamed(union.Name))))))
-            .WithMembers(SyntaxFactory.List(ConverterMembers(union)));
+        var declaration = ConverterSyntax.Declaration($"{union.Name}JsonConverter",
+            TypeSyntaxEmitter.EmitNamed(union.Name), ConverterMembers(union), default);
         var unit = EmissionSyntax.CompilationUnit(
             namespaces.Internal,
             [
@@ -368,19 +360,13 @@ internal static class StructuralUnionEmitter
                 SyntaxFactory.ThrowExpression(EmissionSyntax.JsonException("The JSON token kind is not recognized."))))
             .ToArray();
         var tokenType = EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("reader"), "TokenType");
-        var body = new List<StatementSyntax>();
-        body.AddRange(EmissionSyntax.ArgumentNullGuard("typeToConvert"));
-        body.AddRange(EmissionSyntax.ArgumentNullGuard("options"));
-        body.Add(SyntaxFactory.ReturnStatement(SyntaxFactory
-            .SwitchExpression(tokenType)
-            .WithArms(SyntaxFactory.SeparatedList(arms))));
-        return SyntaxFactory
-            .MethodDeclaration(TypeSyntaxEmitter.EmitNamed(union.Name), "Read")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-            .WithParameterList(ConverterReadParameters())
-            .WithBody(SyntaxFactory.Block(body));
+        var body = new List<StatementSyntax>
+        {
+            SyntaxFactory.ReturnStatement(SyntaxFactory
+                .SwitchExpression(tokenType)
+                .WithArms(SyntaxFactory.SeparatedList(arms))),
+        };
+        return ConverterSyntax.Read(TypeSyntaxEmitter.EmitNamed(union.Name), SyntaxFactory.Block(body), ["typeToConvert", "options"]);
     }
 
     private static bool IsValueStartToken(JsonTokenType token) => token is
@@ -438,22 +424,13 @@ internal static class StructuralUnionEmitter
                 .WithStatements(SyntaxFactory.SingletonList<StatementSyntax>(SyntaxFactory.ThrowStatement(
                     EmissionSyntax.JsonException("The structural union kind is not recognized.")))))
             .ToArray();
-        var body = new List<StatementSyntax>();
-        body.AddRange(EmissionSyntax.ArgumentNullGuard("writer"));
-        body.AddRange(EmissionSyntax.ArgumentNullGuard("value"));
-        body.AddRange(EmissionSyntax.ArgumentNullGuard("options"));
-        body.Add(SyntaxFactory
-            .SwitchStatement(EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("value"), "Kind"))
-            .WithSections(SyntaxFactory.List(sections)));
-        return SyntaxFactory
-            .MethodDeclaration(
-                SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
-                "Write")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-            .WithParameterList(ConverterWriteParameters(union))
-            .WithBody(SyntaxFactory.Block(body));
+        var body = new List<StatementSyntax>
+        {
+            SyntaxFactory
+                .SwitchStatement(EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("value"), "Kind"))
+                .WithSections(SyntaxFactory.List(sections)),
+        };
+        return ConverterSyntax.Write(TypeSyntaxEmitter.EmitNamed(union.Name), SyntaxFactory.Block(body), ["writer", "value", "options"]);
     }
 
     private static InvocationExpressionSyntax EmitWriteValue(StructuralUnionArmPlan arm)
@@ -716,28 +693,10 @@ internal static class StructuralUnionEmitter
                     SyntaxFactory.Argument(root)))));
     }
 
-    private static ParameterListSyntax ConverterReadParameters() => SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(
-    [
-        SyntaxFactory
-            .Parameter(SyntaxFactory.Identifier("reader"))
-            .WithType(SyntaxFactory.IdentifierName("Utf8JsonReader"))
-            .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword))),
-        SyntaxFactory.Parameter(SyntaxFactory.Identifier("typeToConvert")).WithType(SyntaxFactory.IdentifierName("Type")),
-        SyntaxFactory.Parameter(SyntaxFactory.Identifier("options")).WithType(SyntaxFactory.IdentifierName("JsonSerializerOptions")),
-    ]));
-
     private static TypeParameterConstraintClauseSyntax NotNullConstraint() =>
         SyntaxFactory
             .TypeParameterConstraintClause("T")
             .WithConstraints(SyntaxFactory.SingletonSeparatedList<TypeParameterConstraintSyntax>(
                 SyntaxFactory.TypeConstraint(SyntaxFactory.IdentifierName("notnull"))));
-
-    private static ParameterListSyntax ConverterWriteParameters(StructuralUnionModelPlan union) =>
-        SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(
-        [
-            SyntaxFactory.Parameter(SyntaxFactory.Identifier("writer")).WithType(SyntaxFactory.IdentifierName("Utf8JsonWriter")),
-            SyntaxFactory.Parameter(SyntaxFactory.Identifier("value")).WithType(TypeSyntaxEmitter.EmitNamed(union.Name)),
-            SyntaxFactory.Parameter(SyntaxFactory.Identifier("options")).WithType(SyntaxFactory.IdentifierName("JsonSerializerOptions")),
-        ]));
 
 }

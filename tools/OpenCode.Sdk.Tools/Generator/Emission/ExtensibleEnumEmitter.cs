@@ -287,20 +287,7 @@ internal static class ExtensibleEnumEmitter
     {
         var type = TypeSyntaxEmitter.EmitNamed(model.Name);
         var reader = SyntaxFactory.IdentifierName("reader");
-        var read = SyntaxFactory
-            .MethodDeclaration(type, "Read")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-            .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(
-            [
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("reader"))
-                    .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword)))
-                    .WithType(TypeSyntaxEmitter.EmitNamed("Utf8JsonReader")),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("typeToConvert")).WithType(TypeSyntaxEmitter.EmitNamed("Type")),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("options")).WithType(TypeSyntaxEmitter.EmitNamed("JsonSerializerOptions")),
-            ])))
-            .WithBody(SyntaxFactory.Block(
+        var read = ConverterSyntax.Read(type, SyntaxFactory.Block(
                 SyntaxFactory.IfStatement(
                     SyntaxFactory.BinaryExpression(
                         SyntaxKind.NotEqualsExpression,
@@ -319,21 +306,9 @@ internal static class ExtensibleEnumEmitter
                     .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(SyntaxFactory.Argument(
                         SyntaxFactory.PostfixUnaryExpression(
                             SyntaxKind.SuppressNullableWarningExpression,
-                            EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(reader, "GetString"))))))))));
-        var write = SyntaxFactory
-            .MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), "Write")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-            .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(
+                            EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(reader, "GetString"))))))))), []);
+        var write = ConverterSyntax.Write(type, SyntaxFactory.Block(SyntaxFactory.List<StatementSyntax>(
             [
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("writer")).WithType(TypeSyntaxEmitter.EmitNamed("Utf8JsonWriter")),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier(ValueParameter)).WithType(type),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("options")).WithType(TypeSyntaxEmitter.EmitNamed("JsonSerializerOptions")),
-            ])))
-            .WithBody(SyntaxFactory.Block(SyntaxFactory.List(
-            [
-                .. EmissionSyntax.ArgumentNullGuard("writer"),
                 SyntaxFactory.IfStatement(
                     EmissionSyntax.Invocation(
                         EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(ValueParameter), "Equals"),
@@ -346,16 +321,8 @@ internal static class ExtensibleEnumEmitter
                     EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("writer"), "WriteStringValue"),
                     SyntaxFactory.Argument(
                         EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(ValueParameter), ExtensibleEnumMemberPolicy.Value)))),
-            ])));
-        var declaration = SyntaxFactory
-            .ClassDeclaration(converterName)
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.InternalKeyword),
-                SyntaxFactory.Token(SyntaxKind.SealedKeyword)))
-            .WithBaseList(SyntaxFactory.BaseList(SyntaxFactory.SingletonSeparatedList<BaseTypeSyntax>(
-                SyntaxFactory.SimpleBaseType(TypeSyntaxEmitter.Generic("JsonConverter", type)))))
-            .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([read, write]))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            ])), ["writer"]);
+        var declaration = ConverterSyntax.Declaration(converterName, type, [read, write], EmissionSyntax.Documentation(
                 $"Converts {model.Name}: every string token reads as the value it spells, pinned or not; any other token is a malformed body. Writes the wire spelling and refuses a default value, which has none."));
         var unit = EmissionSyntax.CompilationUnit(
             namespaces.Internal,

@@ -219,11 +219,9 @@ internal static class UnionEmitter
     {
         var converterName = $"{union.UnknownTypeName}JsonConverter";
         var readStatements = new List<StatementSyntax>();
-        readStatements.AddRange(EmissionSyntax.ArgumentNullGuard("typeToConvert"));
-        readStatements.AddRange(EmissionSyntax.ArgumentNullGuard("options"));
         readStatements.AddRange(
         [
-            EmitPayloadDocument(),
+            ConverterSyntax.PayloadDocument(),
             EmissionSyntax.Local("payload", EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("document"), "RootElement")),
             EmitObjectPayloadCheck(union),
         ]);
@@ -232,56 +230,22 @@ internal static class UnionEmitter
         readStatements.AddRange(EmitMarkerRead(union));
         readStatements.AddRange(EmitCarrierPrefixRefusal(union));
         readStatements.Add(EmitUnknownReturn(union));
-        var read = SyntaxFactory
-            .MethodDeclaration(TypeSyntaxEmitter.EmitNamed(union.UnknownTypeName), "Read")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-            .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(
-            [
-                SyntaxFactory
-                    .Parameter(SyntaxFactory.Identifier("reader"))
-                    .WithType(SyntaxFactory.IdentifierName("Utf8JsonReader"))
-                    .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword))),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("typeToConvert")).WithType(SyntaxFactory.IdentifierName("Type")),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("options")).WithType(SyntaxFactory.IdentifierName("JsonSerializerOptions")),
-            ])))
-            .WithBody(SyntaxFactory.Block(readStatements));
+        var read = ConverterSyntax.Read(TypeSyntaxEmitter.EmitNamed(union.UnknownTypeName),
+            SyntaxFactory.Block(readStatements), ["typeToConvert", "options"]);
 
-        var writeStatements = new List<StatementSyntax>();
-        writeStatements.AddRange(EmissionSyntax.ArgumentNullGuard("writer"));
-        writeStatements.AddRange(EmissionSyntax.ArgumentNullGuard("value"));
-        writeStatements.AddRange(EmissionSyntax.ArgumentNullGuard("options"));
-        writeStatements.Add(SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(
-            EmissionSyntax.MemberAccess(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("value"), "Payload"),
-                "WriteTo"),
-            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("writer")))));
-        var write = SyntaxFactory
-            .MethodDeclaration(
-                SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
-                "Write")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-            .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(
-            [
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("writer")).WithType(SyntaxFactory.IdentifierName("Utf8JsonWriter")),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("value")).WithType(TypeSyntaxEmitter.EmitNamed(union.UnknownTypeName)),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("options")).WithType(SyntaxFactory.IdentifierName("JsonSerializerOptions")),
-            ])))
-            .WithBody(SyntaxFactory.Block(writeStatements));
+        var writeStatements = new List<StatementSyntax>
+        {
+            SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(
+                EmissionSyntax.MemberAccess(
+                    EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("value"), "Payload"),
+                    "WriteTo"),
+                SyntaxFactory.Argument(SyntaxFactory.IdentifierName("writer")))),
+        };
+        var write = ConverterSyntax.Write(TypeSyntaxEmitter.EmitNamed(union.UnknownTypeName),
+            SyntaxFactory.Block(writeStatements), ["writer", "value", "options"]);
 
-        var declaration = SyntaxFactory
-            .ClassDeclaration(converterName)
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.InternalKeyword),
-                SyntaxFactory.Token(SyntaxKind.SealedKeyword)))
-            .WithBaseList(SyntaxFactory.BaseList(SyntaxFactory.SingletonSeparatedList<BaseTypeSyntax>(
-                SyntaxFactory.SimpleBaseType(TypeSyntaxEmitter.Generic(
-                    "JsonConverter",
-                    TypeSyntaxEmitter.EmitNamed(union.UnknownTypeName))))))
-            .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([read, write]));
+        var declaration = ConverterSyntax.Declaration(converterName,
+            TypeSyntaxEmitter.EmitNamed(union.UnknownTypeName), [read, write], default);
         var unit = EmissionSyntax.CompilationUnit(
             namespaces.Internal,
             [
@@ -471,20 +435,13 @@ internal static class UnionEmitter
     private static GeneratedSource EmitConverter(UnionPlan union, ModelPlacement placement, GeneratedNamespacePlan namespaces)
     {
         var converterName = $"{union.ConceptName}JsonConverter";
-        var declaration = SyntaxFactory
-            .ClassDeclaration(converterName)
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.InternalKeyword),
-                SyntaxFactory.Token(SyntaxKind.SealedKeyword)))
-            .WithBaseList(SyntaxFactory.BaseList(SyntaxFactory.SingletonSeparatedList<BaseTypeSyntax>(
-                SyntaxFactory.SimpleBaseType(TypeSyntaxEmitter.Generic("JsonConverter", TypeSyntaxEmitter.EmitNamed(union.Name))))))
-            .WithMembers(SyntaxFactory.List(
+        var declaration = ConverterSyntax.Declaration(converterName, TypeSyntaxEmitter.EmitNamed(union.Name),
             [
                 .. EmitDispatchMaps(union),
                 EmitDiscriminatorReader(),
                 EmitRead(union),
                 EmitWrite(union),
-            ]));
+            ], default);
         var unit = EmissionSyntax.CompilationUnit(
             namespaces.Internal,
             [
@@ -566,8 +523,6 @@ internal static class UnionEmitter
     private static MethodDeclarationSyntax EmitRead(UnionPlan union)
     {
         var statements = new List<StatementSyntax>();
-        statements.AddRange(EmissionSyntax.ArgumentNullGuard("typeToConvert"));
-        statements.AddRange(EmissionSyntax.ArgumentNullGuard("options"));
         statements.AddRange(EmitReaderFixedMarkerCheck(union));
         // String markers dispatch through the reader's combined lookup, which only
         // materializes the marker string on the unknown path; other kinds read it first.
@@ -578,7 +533,7 @@ internal static class UnionEmitter
 
         statements.Add(EmitKnownDispatch(union));
         statements.AddRange(EmitPrefixDispatch(union));
-        statements.Add(EmitPayloadDocument());
+        statements.Add(ConverterSyntax.PayloadDocument());
         statements.Add(EmissionSyntax.Local("payload", EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("document"), "RootElement")));
         statements.Add(SyntaxFactory.ReturnStatement(SyntaxFactory
             .ObjectCreationExpression(
@@ -589,21 +544,7 @@ internal static class UnionEmitter
                 SyntaxFactory.Argument(SyntaxFactory.IdentifierName("payload")),
             ])))));
 
-        return SyntaxFactory
-            .MethodDeclaration(TypeSyntaxEmitter.EmitNamed(union.Name), "Read")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-            .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(
-            [
-                SyntaxFactory
-                    .Parameter(SyntaxFactory.Identifier("reader"))
-                    .WithType(SyntaxFactory.IdentifierName("Utf8JsonReader"))
-                    .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword))),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("typeToConvert")).WithType(SyntaxFactory.IdentifierName("Type")),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("options")).WithType(SyntaxFactory.IdentifierName("JsonSerializerOptions")),
-            ])))
-            .WithBody(SyntaxFactory.Block(statements));
+        return ConverterSyntax.Read(TypeSyntaxEmitter.EmitNamed(union.Name), SyntaxFactory.Block(statements), ["typeToConvert", "options"]);
     }
 
     private static FieldDeclarationSyntax EmitDiscriminatorReader() =>
@@ -726,21 +667,6 @@ internal static class UnionEmitter
         LiteralKind.Number or _ => throw new InvalidOperationException(
             $"Union '{union.ConceptName}' fixes marker '{marker.WireName}' with kind '{marker.Kind}', which has no emission consumer."),
     };
-
-    private static LocalDeclarationStatementSyntax EmitPayloadDocument()
-    {
-        var parse = EmissionSyntax.Invocation(
-            EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonDocument"), "ParseValue"),
-            SyntaxFactory
-                .Argument(SyntaxFactory.IdentifierName("reader"))
-                .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword)));
-        return SyntaxFactory
-            .LocalDeclarationStatement(SyntaxFactory
-                .VariableDeclaration(SyntaxFactory.IdentifierName("var"))
-                .WithVariables(SyntaxFactory.SingletonSeparatedList(
-                    SyntaxFactory.VariableDeclarator("document").WithInitializer(SyntaxFactory.EqualsValueClause(parse)))))
-            .WithUsingKeyword(SyntaxFactory.Token(SyntaxKind.UsingKeyword));
-    }
 
     private static IfStatementSyntax EmitObjectPayloadCheck(UnionPlan union) =>
         SyntaxFactory.IfStatement(
@@ -956,11 +882,10 @@ internal static class UnionEmitter
             SyntaxFactory.Argument(SyntaxFactory.IdentifierName("writer")),
             SyntaxFactory.Argument(SyntaxFactory.IdentifierName("value")),
             SyntaxFactory.Argument(SyntaxFactory.IdentifierName("typeInfo")));
-        var statements = new List<StatementSyntax>();
-        statements.AddRange(EmissionSyntax.ArgumentNullGuard("writer"));
-        statements.AddRange(EmissionSyntax.ArgumentNullGuard("value"));
-        statements.AddRange(EmissionSyntax.ArgumentNullGuard("options"));
-        statements.Add(SyntaxFactory.IfStatement(unknownPattern, writeUnknown));
+        var statements = new List<StatementSyntax>
+        {
+            SyntaxFactory.IfStatement(unknownPattern, writeUnknown),
+        };
 
         // A nested-union variant must serialize through its declared base type so the nested
         // union's converter runs (its unknown carrier writes the raw payload); runtime-type
@@ -989,20 +914,7 @@ internal static class UnionEmitter
 
         statements.Add(EmissionSyntax.Local("typeInfo", typeInfo));
         statements.Add(SyntaxFactory.ExpressionStatement(serialize));
-        return SyntaxFactory
-            .MethodDeclaration(
-                SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
-                "Write")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-            .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(
-            [
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("writer")).WithType(SyntaxFactory.IdentifierName("Utf8JsonWriter")),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("value")).WithType(TypeSyntaxEmitter.EmitNamed(union.Name)),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("options")).WithType(SyntaxFactory.IdentifierName("JsonSerializerOptions")),
-            ])))
-            .WithBody(SyntaxFactory.Block(statements));
+        return ConverterSyntax.Write(TypeSyntaxEmitter.EmitNamed(union.Name), SyntaxFactory.Block(statements), ["writer", "value", "options"]);
     }
 
     private static ThrowStatementSyntax ThrowJson(string message) => SyntaxFactory.ThrowStatement(EmissionSyntax.JsonException(message));

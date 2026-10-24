@@ -60,6 +60,20 @@ public sealed class GenerationLayeringTests
         await Assert.That(owners).IsEquivalentTo(["RegistryNames"], CollectionOrdering.Matching).Because(string.Join(", ", owners));
     }
 
+    [Test]
+    public async Task Converters_Should_Use_One_Skeleton()
+    {
+        var roots = await Task.WhenAll((await LoadEmissionAsync()).SyntaxTrees.Select(static tree => tree.GetRootAsync()));
+        var owners = roots.SelectMany(root => root.DescendantNodes().OfType<InvocationExpressionSyntax>()
+                .Where(static call => call.Expression is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Generic" or "MethodDeclaration" }
+                    && call.ArgumentList.Arguments.Any(static argument => argument.Expression is LiteralExpressionSyntax
+                    { Token.ValueText: "JsonConverter" or "Read" or "Write" }))
+                .Select(static call => call.Ancestors().OfType<ClassDeclarationSyntax>().First().Identifier.ValueText))
+            .Order(StringComparer.Ordinal).ToArray();
+        await Assert.That(owners).IsEquivalentTo(["ConverterSyntax", "ConverterSyntax", "ConverterSyntax"], CollectionOrdering.Matching)
+            .Because(string.Join(", ", owners));
+    }
+
     private static async Task<CSharpCompilation> LoadEmissionAsync()
     {
         var fileSystem = new RealFileSystem();
