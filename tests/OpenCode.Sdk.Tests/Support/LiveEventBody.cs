@@ -11,6 +11,7 @@ namespace OpenCode.Sdk.Tests.Support;
 internal sealed class LiveEventBody : Stream
 {
     private readonly Channel<byte[]> _chunks = Channel.CreateUnbounded<byte[]>();
+    private TaskCompletionSource _nextEmptyRead = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private byte[] _current = [];
     private int _offset;
     private int _disposed;
@@ -28,6 +29,9 @@ internal sealed class LiveEventBody : Stream
     }
 
     public bool IsDisposed => Volatile.Read(ref _disposed) is not 0;
+
+    /// <summary>Gets a task completed when the next read starts waiting on an empty body; an already pending read cannot complete it.</summary>
+    public Task NextEmptyRead => Volatile.Read(ref _nextEmptyRead).Task;
 
     public override bool CanRead => true;
 
@@ -91,7 +95,14 @@ internal sealed class LiveEventBody : Stream
     {
         if (_offset == _current.Length)
         {
-            if (!await _chunks.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
+            var available = _chunks.Reader.WaitToReadAsync(cancellationToken);
+            if (!available.IsCompleted)
+            {
+                var waiting = Interlocked.Exchange(ref _nextEmptyRead, new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
+                _ = waiting.TrySetResult();
+            }
+
+            if (!await available.ConfigureAwait(false))
             {
                 return 0;
             }
