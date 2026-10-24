@@ -18,10 +18,9 @@ internal static class UnionDispatchPropertyPolicy
         var result = new HashSet<string>(StringComparer.Ordinal);
         var visited = new HashSet<string>(StringComparer.Ordinal);
         Walk(union, unions, result, visited);
-        for (var current = union.BaseTypeName; current is not null && unions.TryGetValue(current, out var outer);
-             current = outer.BaseTypeName)
+        foreach (var outer in union.Chain.Skip(1).Where(static link => !link.IsTerminal))
         {
-            Walk(outer, unions, result, visited);
+            Walk(unions[outer.Name], unions, result, visited);
         }
 
         return result;

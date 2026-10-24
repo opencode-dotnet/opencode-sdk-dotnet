@@ -10,7 +10,6 @@ internal static class DescriptionTargetCatalog
         ArgumentNullException.ThrowIfNull(plan);
 
         var targets = new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal);
-        var unions = plan.Unions.ToDictionary(static union => union.Name, StringComparer.Ordinal);
         foreach (var model in plan.Models)
         {
             var members = Members(model);
@@ -25,7 +24,7 @@ internal static class DescriptionTargetCatalog
         {
             // An inherited marker is not redeclared, so its documentation belongs to the outer interface.
             targets.Add(union.Name, union.HoistedMembers.Select(static member => member.Name)
-                .Concat(DeclaresMarker(union, unions) ? [union.MarkerName] : []).ToHashSet(StringComparer.Ordinal));
+                .Concat(DeclaresMarker(union) ? [union.MarkerName] : []).ToHashSet(StringComparer.Ordinal));
             targets.Add(union.UnknownTypeName, new[] { union.MarkerName, "Payload" }
                 .Concat(union.FixedMarker is { } marker ? [marker.Name] : []).ToHashSet(StringComparer.Ordinal));
         }
@@ -89,19 +88,6 @@ internal static class DescriptionTargetCatalog
         _ => [],
     };
 
-    private static bool DeclaresMarker(UnionPlan union, Dictionary<string, UnionPlan> unions)
-    {
-        var current = union.BaseTypeName;
-        while (current is not null && unions.TryGetValue(current, out var outer))
-        {
-            if (outer.MarkerWireName == union.MarkerWireName && outer.MarkerKind == union.MarkerKind)
-            {
-                return false;
-            }
-
-            current = outer.BaseTypeName;
-        }
-
-        return true;
-    }
+    private static bool DeclaresMarker(UnionPlan union) =>
+        !union.Chain.Skip(1).Any(link => !link.IsTerminal && link.MarkerWireName == union.MarkerWireName);
 }
