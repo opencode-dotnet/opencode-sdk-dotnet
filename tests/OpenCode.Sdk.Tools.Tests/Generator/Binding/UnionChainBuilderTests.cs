@@ -39,7 +39,7 @@ public sealed class UnionChainBuilderTests
         var started = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "Started");
         await Assert.That(started.ImplementedUnionNames).IsEquivalentTo(["IAlpha", "IBeta"], CollectionOrdering.Matching);
         await Assert.That(started.ChainMarkers).IsEquivalentTo(
-            [new ChainMarkerPlan("phase", "Phase", null), new ChainMarkerPlan("type", "Type", null)], CollectionOrdering.Matching);
+            [new ChainMarkerPlan("type", "Type", null), new ChainMarkerPlan("phase", "Phase", null)], CollectionOrdering.Matching);
         var rpc = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "Rpc");
         await Assert.That(rpc.ChainMarkers).IsEquivalentTo([new ChainMarkerPlan("type", "Type", "rpc.")], CollectionOrdering.Matching);
         await Assert.That(plan.Namespaces).IsEqualTo(new GeneratedNamespacePlan("OpenCode.Sdk", "OpenCode.Sdk.Models", "OpenCode.Sdk.Internal"));
@@ -80,7 +80,7 @@ public sealed class UnionChainBuilderTests
     private static void Arrange(SpecDocumentBuilder spec) => spec
         .WithSchema("Zulu", static schema => schema.AnyOf(static arm => arm.Ref("ZuluLeaf"), static arm => arm.Ref("Beta"), static arm => arm.Ref("Rpc")))
         .WithSchema("Beta", static schema => schema.AnyOf(static arm => arm.Ref("Started"), static arm => arm.Ref("Ended")))
-        .WithSchema("Alpha", static schema => schema.AnyOf(static arm => arm.Ref("Started"), static arm => arm.Ref("Ended")))
+        .WithSchema("Alpha", static schema => schema.AnyOf(static arm => arm.Ref("Started"), static arm => arm.Ref("ZuluLeaf")))
         .WithSchema("Rpc", static schema => Leaf(schema, "rpc").Property("type", static marker => marker.Type("string").Pattern("^rpc\\.[\\s\\S]*?$"), required: true))
         .WithSchema("ZMode", static schema => schema.Type("string").Enum("fast", "slow"))
         .WithSchema("AMode", static schema => schema.Type("string").Enum("on", "off"))
