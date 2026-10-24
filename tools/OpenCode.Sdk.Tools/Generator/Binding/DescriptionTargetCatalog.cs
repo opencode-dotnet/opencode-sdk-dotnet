@@ -89,5 +89,5 @@ internal static class DescriptionTargetCatalog
     };
 
     private static bool DeclaresMarker(UnionPlan union) =>
-        !union.Chain.Skip(1).Any(link => !link.IsTerminal && link.MarkerWireName == union.MarkerWireName);
+        !union.Chain.Skip(1).Any(link => link.MarkerWireName == union.MarkerWireName);
 }

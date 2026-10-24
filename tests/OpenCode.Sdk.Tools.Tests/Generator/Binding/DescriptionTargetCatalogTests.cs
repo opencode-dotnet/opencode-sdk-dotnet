@@ -12,6 +12,26 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class DescriptionTargetCatalogTests
 {
     [Test]
+    public async Task Bind_Should_Refuse_The_Inherited_Stream_Cause_Tag()
+    {
+        var context = new StreamOperationScenario().Build();
+        var wire = await context.FileSystem.File.ReadAllTextAsync(context.SpecPath);
+        var document = await BindingTestHost.IngestAsync(SpecScenario.FromRawJson(wire));
+        var curation = Curation(Groups("example", RootGroup())) with
+        {
+            Descriptions = [new() { Type = "IStreamFailureCause", Member = "Tag", Summary = "The failure discriminator.", Reason = "Documents the failure marker.",
+                Sources = [new() { Location = "packages/example.ts:1", Excerpt = "An explicit declaration." }] }],
+        };
+        var plan = new BindingTestHost().Bind(document, Selection(StreamOperationScenario.OperationId), curation with { Descriptions = [] });
+        await Assert.That(plan.Unions.Single(static union => union.Name == "IStreamFailureCause").Chain.Select(static link => link.Name)).IsEquivalentTo(["IStreamFailureCause", "IOpenCodeStreamFailureCause"], CollectionOrdering.Matching);
+        await Assert.That(plan.Unions.Single(static union => union.Name == "IStreamFailureCause").Chain[1].IsTerminal).IsTrue();
+        await Assert.That(DescriptionTargetCatalog.Create(plan)["UnknownStreamFailureCause"].Order(StringComparer.Ordinal)).IsEquivalentTo(["Payload", "Tag"], CollectionOrdering.Matching);
+        var exception = await Assert.That(() => new BindingTestHost().Bind(document, Selection(StreamOperationScenario.OperationId), curation)).Throws<BindingException>();
+        await Assert.That(exception!.Errors).IsEquivalentTo(
+            [new BindingError(BindingErrorCategory.Curation, "IStreamFailureCause.Tag", "description member does not exist as a declared property or operation method on the generated type")], CollectionOrdering.Matching);
+    }
+
+    [Test]
     [Arguments("type")]
     [Arguments("phase")]
     public async Task Create_Should_Distinguish_Declared_And_Inherited_Markers(string marker)
