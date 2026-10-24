@@ -178,21 +178,6 @@ public sealed class SessionsClientContractTests
     }
 
     [Test]
-    [Arguments(WireBodyData.InvalidCursorError, typeof(InvalidCursorError))]
-    [Arguments(WireBodyData.InvalidRequestError, typeof(InvalidRequestError))]
-    public async Task ListSessionsAsync_Should_Type_Both_Declared_400_Errors(string body, Type expected)
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, body);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Sessions.ListSessionsAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(400);
-        await Assert.That(exception.Error!.GetType()).IsEqualTo(expected);
-    }
-
-    [Test]
     public async Task ListSessionsAsync_Should_Treat_An_Undeclared_Success_As_A_Protocol_Failure()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.Accepted, "{}");
@@ -241,18 +226,6 @@ public sealed class SessionsClientContractTests
     }
 
     [Test]
-    public async Task CreateSessionAsync_Should_Throw_The_Declared_400_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Sessions.CreateSessionAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Error).IsTypeOf<InvalidRequestError>();
-    }
-
-    [Test]
     public async Task CreateSessionAsync_Should_Send_The_Parent_Id()
     {
         var payload = new FixtureLoader().LoadJson("Serialization.known-session.json");
@@ -282,19 +255,6 @@ public sealed class SessionsClientContractTests
     }
 
     [Test]
-    public async Task CreateSessionAsync_Should_Throw_The_Declared_404_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.NotFound, WireBodyData.SessionNotFoundError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Sessions.CreateSessionAsync(new SessionCreateRequest { ParentId = "ses_9" }))
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(404);
-        await Assert.That(exception.Error).IsTypeOf<SessionNotFoundError>();
-    }
-
-    [Test]
     public async Task GetActiveAsync_Should_Return_The_Typed_Active_Sessions()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.Envelope("{\"ses_100\":{\"type\":\"running\"}}"));
@@ -315,31 +275,6 @@ public sealed class SessionsClientContractTests
         var response = await scenario.Client.Sessions.GetActiveAsync();
 
         await Assert.That(response.Active).IsEmpty();
-    }
-
-    [Test]
-    public async Task GetActiveAsync_Should_Throw_The_Declared_400_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Sessions.GetActiveAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(400);
-        await Assert.That(exception.Error).IsTypeOf<InvalidRequestError>();
-    }
-
-    [Test]
-    public async Task GetActiveAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Sessions.GetActiveAsync(OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
     }
 
     [Test]
@@ -381,28 +316,4 @@ public sealed class SessionsClientContractTests
             .IsEqualTo("http://localhost:4096/api/experimental/session/stats?from=1785542400000&tools=summary");
     }
 
-    [Test]
-    public async Task GetStatsAsync_Should_Throw_The_Declared_400_Error()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, WireBodyData.InvalidRequestError);
-
-        var exception = await Assert
-            .That(async () => _ = await scenario.Client.Experimental.GetSessionStatsAsync())
-            .Throws<OpenCodeApiException>();
-
-        await Assert.That(exception!.Status).IsEqualTo(400);
-        await Assert.That(exception.Error).IsTypeOf<InvalidRequestError>();
-    }
-
-    [Test]
-    public async Task GetStatsAsync_Should_Return_The_401_Error_On_The_NoThrow_Spine()
-    {
-        using var scenario = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
-
-        var response = await scenario.Client.Experimental.GetSessionStatsAsync(requestOptions: OpenCodeRequestOptions.NoThrow);
-
-        await Assert.That(response.IsError).IsTrue();
-        await Assert.That(response.Status).IsEqualTo(401);
-        await Assert.That(response.Error).IsTypeOf<UnauthorizedError>();
-    }
 }

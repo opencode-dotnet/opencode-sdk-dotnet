@@ -151,6 +151,97 @@ public static class SessionsDeclaredErrors
         "/api/session/{sessionID}/form/{formID}",
         static async (client, options) => await client.Sessions.GetSessionClient("ses_100").GetFormAsync("frm_1", options));
 
+    private static readonly SessionFormReplyRequest BlueAnswer = new()
+    {
+        Answer = new Dictionary<string, FormValue>(StringComparer.Ordinal) { ["q1"] = FormValue.FromText("blue"), },
+    };
+
+    private static readonly SessionFormReplyRequest EmptyAnswer = new()
+    {
+        Answer = new Dictionary<string, FormValue>(StringComparer.Ordinal),
+    };
+
+    private static readonly DeclaredErrorDoor ReplyToFormBlueAnswerDoor = new(
+        nameof(SessionClient.ReplyToFormAsync),
+        "session.form.reply",
+        "post",
+        "/api/session/{sessionID}/form/{formID}/reply",
+        static async (client, options) => await client.Sessions.GetSessionClient("ses_100").ReplyToFormAsync("frm_1", BlueAnswer, options));
+
+    private static readonly DeclaredErrorDoor ReplyToFormEmptyAnswerDoor = new(
+        nameof(SessionClient.ReplyToFormAsync),
+        "session.form.reply",
+        "post",
+        "/api/session/{sessionID}/form/{formID}/reply",
+        static async (client, options) => await client.Sessions.GetSessionClient("ses_100").ReplyToFormAsync("frm_1", EmptyAnswer, options));
+
+    private static readonly DeclaredErrorDoor MarkViewedSes9Door = new(
+        nameof(SessionClient.MarkViewedAsync),
+        "session.view",
+        "post",
+        "/api/session/{sessionID}/view",
+        static async (client, options) => await client.Sessions.GetSessionClient("ses_9").MarkViewedAsync(
+            new SessionViewRequest { Idle = 1, }, options));
+
+    private static readonly DeclaredErrorDoor MarkViewedSes100Door = new(
+        nameof(SessionClient.MarkViewedAsync),
+        "session.view",
+        "post",
+        "/api/session/{sessionID}/view",
+        static async (client, options) => await client.Sessions.GetSessionClient("ses_100").MarkViewedAsync(
+            new SessionViewRequest { Idle = 1, }, options));
+
+    private static readonly DeclaredErrorDoor UpdateSes100Door = new(
+        nameof(SessionClient.UpdateAsync),
+        "session.update",
+        "patch",
+        "/api/session/{sessionID}",
+        static async (client, options) => await client.Sessions.GetSessionClient("ses_100").UpdateAsync(
+            new SessionUpdateRequest { Permissions = new Optional<IReadOnlyList<PermissionRule>?>([]), }, options));
+
+    private static readonly DeclaredErrorDoor UpdateSes9Door = new(
+        nameof(SessionClient.UpdateAsync),
+        "session.update",
+        "patch",
+        "/api/session/{sessionID}",
+        static async (client, options) => await client.Sessions.GetSessionClient("ses_9").UpdateAsync(
+            new SessionUpdateRequest { Permissions = new Optional<IReadOnlyList<PermissionRule>?>([]), }, options));
+
+    private static readonly DeclaredErrorDoor ListSessionsDoor = new(
+        nameof(SessionsClient.ListSessionsAsync),
+        "session.list",
+        "get",
+        "/api/session",
+        static async (client, options) => await client.Sessions.ListSessionsAsync(requestOptions: options));
+
+    private static readonly DeclaredErrorDoor CreateSessionDefaultDoor = new(
+        nameof(SessionsClient.CreateSessionAsync),
+        "session.create",
+        "post",
+        "/api/session",
+        static async (client, options) => await client.Sessions.CreateSessionAsync(requestOptions: options));
+
+    private static readonly DeclaredErrorDoor CreateSessionParentIdSes9Door = new(
+        nameof(SessionsClient.CreateSessionAsync),
+        "session.create",
+        "post",
+        "/api/session",
+        static async (client, options) => await client.Sessions.CreateSessionAsync(new SessionCreateRequest { ParentId = "ses_9" }, options));
+
+    private static readonly DeclaredErrorDoor GetActiveDoor = new(
+        nameof(SessionsClient.GetActiveAsync),
+        "session.active",
+        "get",
+        "/api/session/active",
+        static async (client, options) => await client.Sessions.GetActiveAsync(options));
+
+    private static readonly DeclaredErrorDoor GetSessionStatsDoor = new(
+        nameof(ExperimentalClient.GetSessionStatsAsync),
+        "experimental.session.stats",
+        "get",
+        "/api/experimental/session/stats",
+        static async (client, options) => await client.Experimental.GetSessionStatsAsync(requestOptions: options));
+
     public static IEnumerable<Func<DeclaredErrorCase>> Rows() =>
     [
         static () => new(
@@ -341,5 +432,133 @@ public static class SessionsDeclaredErrors
             "UnauthorizedError",
             typeof(UnauthorizedError),
             "#/paths/~1api~1session~1{sessionID}~1form~1{formID}/get/responses/401/content/application~1json/schema"),
+    ];
+
+    public static IEnumerable<Func<DeclaredErrorCase>> Rows5() =>
+    [
+        static () => new(
+            "session.form.reply:400:FormInvalidAnswerError",
+            ReplyToFormBlueAnswerDoor,
+            HttpStatusCode.BadRequest,
+            "{\"_tag\":\"FormInvalidAnswerError\",\"id\":\"frm_1\",\"message\":\"wrong shape\"}",
+            "FormInvalidAnswerError",
+            typeof(FormInvalidAnswerError),
+            "#/paths/~1api~1session~1{sessionID}~1form~1{formID}~1reply/post/responses/400/content/application~1json/schema/anyOf/0"),
+        static () => new(
+            "session.form.reply:401:UnauthorizedError",
+            ReplyToFormEmptyAnswerDoor,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1session~1{sessionID}~1form~1{formID}~1reply/post/responses/401/content/application~1json/schema"),
+        static () => new(
+            "session.view:404:SessionNotFoundError",
+            MarkViewedSes9Door,
+            HttpStatusCode.NotFound,
+            WireBodyData.SessionNotFoundError,
+            "SessionNotFoundError",
+            typeof(SessionNotFoundError),
+            "#/paths/~1api~1session~1{sessionID}~1view/post/responses/404/content/application~1json/schema"),
+        static () => new(
+            "session.view:401:UnauthorizedError",
+            MarkViewedSes100Door,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1session~1{sessionID}~1view/post/responses/401/content/application~1json/schema"),
+        static () => new(
+            "session.update:400:InvalidRequestError",
+            UpdateSes100Door,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1session~1{sessionID}/patch/responses/400/content/application~1json/schema"),
+        static () => new(
+            "session.update:404:SessionNotFoundError",
+            UpdateSes9Door,
+            HttpStatusCode.NotFound,
+            WireBodyData.SessionNotFoundError,
+            "SessionNotFoundError",
+            typeof(SessionNotFoundError),
+            "#/paths/~1api~1session~1{sessionID}/patch/responses/404/content/application~1json/schema/anyOf/0"),
+        static () => new(
+            "session.update:401:UnauthorizedError",
+            UpdateSes100Door,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1session~1{sessionID}/patch/responses/401/content/application~1json/schema"),
+    ];
+
+    public static IEnumerable<Func<DeclaredErrorCase>> Rows6() =>
+    [
+        static () => new(
+            "session.list:400:InvalidCursorError",
+            ListSessionsDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidCursorError,
+            "InvalidCursorError",
+            typeof(InvalidCursorError),
+            "#/paths/~1api~1session/get/responses/400/content/application~1json/schema/anyOf/0"),
+        static () => new(
+            "session.list:400:InvalidRequestError",
+            ListSessionsDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1session/get/responses/400/content/application~1json/schema/anyOf/1"),
+        static () => new(
+            "session.create:400:InvalidRequestError",
+            CreateSessionDefaultDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1session/post/responses/400/content/application~1json/schema"),
+        static () => new(
+            "session.create:404:SessionNotFoundError",
+            CreateSessionParentIdSes9Door,
+            HttpStatusCode.NotFound,
+            WireBodyData.SessionNotFoundError,
+            "SessionNotFoundError",
+            typeof(SessionNotFoundError),
+            "#/paths/~1api~1session/post/responses/404/content/application~1json/schema"),
+        static () => new(
+            "session.active:400:InvalidRequestError",
+            GetActiveDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1session~1active/get/responses/400/content/application~1json/schema"),
+        static () => new(
+            "session.active:401:UnauthorizedError",
+            GetActiveDoor,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1session~1active/get/responses/401/content/application~1json/schema"),
+        static () => new(
+            "experimental.session.stats:400:InvalidRequestError",
+            GetSessionStatsDoor,
+            HttpStatusCode.BadRequest,
+            WireBodyData.InvalidRequestError,
+            "InvalidRequestError",
+            typeof(InvalidRequestError),
+            "#/paths/~1api~1experimental~1session~1stats/get/responses/400/content/application~1json/schema"),
+        static () => new(
+            "experimental.session.stats:401:UnauthorizedError",
+            GetSessionStatsDoor,
+            HttpStatusCode.Unauthorized,
+            WireBodyData.UnauthorizedError,
+            "UnauthorizedError",
+            typeof(UnauthorizedError),
+            "#/paths/~1api~1experimental~1session~1stats/get/responses/401/content/application~1json/schema"),
     ];
 }
