@@ -15,10 +15,7 @@ internal static class EnvelopeEmitter
 
         return Array.AsReadOnly(
         [
-            .. clients
-                .SelectMany(static client => client.Operations)
-                .Where(static operation => operation.Envelope is not null)
-                .OrderBy(static operation => operation.Envelope!.ResponseTypeName, StringComparer.Ordinal)
+            .. EnvelopeOperations.Naming(clients, static envelope => envelope.ResponseTypeName)
                 .Select(operation => EmitEnvelope(operation, namespaces)),
         ]);
     }

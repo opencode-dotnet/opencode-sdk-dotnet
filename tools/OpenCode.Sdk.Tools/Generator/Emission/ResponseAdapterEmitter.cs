@@ -15,10 +15,7 @@ internal static class ResponseAdapterEmitter
 
         return Array.AsReadOnly(
         [
-            .. clients
-                .SelectMany(static client => client.Operations)
-                .Where(static operation => operation.Envelope is not null)
-                .OrderBy(static operation => operation.Envelope!.AdapterTypeName, StringComparer.Ordinal)
+            .. EnvelopeOperations.Naming(clients, static envelope => envelope.AdapterTypeName)
                 .Select(operation => EmitAdapter(operation, namespaces)),
         ]);
     }

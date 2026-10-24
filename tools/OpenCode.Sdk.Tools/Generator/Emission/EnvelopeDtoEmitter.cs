@@ -19,10 +19,7 @@ internal static class EnvelopeDtoEmitter
 
         return Array.AsReadOnly(
         [
-            .. clients
-                .SelectMany(static client => client.Operations)
-                .Where(static operation => operation.Envelope is { EnvelopeDtoTypeName: not null })
-                .OrderBy(static operation => operation.Envelope!.EnvelopeDtoTypeName, StringComparer.Ordinal)
+            .. EnvelopeOperations.Naming(clients, static envelope => envelope.EnvelopeDtoTypeName)
                 .Select(operation => EmitDto(operation.Envelope!, TypeHome.Family(operation.RouteContainerName), namespaces)),
         ]);
     }
