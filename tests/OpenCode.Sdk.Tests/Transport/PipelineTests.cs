@@ -1226,13 +1226,13 @@ public sealed class PipelineTests
     {
         var payload = Encoding.UTF8.GetBytes("{\"healthy\":true}");
         time = new ManualTimeProvider();
-        var body = new GatedStream(payload, chunkCount: 4);
-        content = new StreamContent(body);
-        var responseContent = content;
+        StreamContent? responseContent = null;
         scenario = PipelineScenario.Responding(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = responseContent,
         }, networkTimeout: Window, time: time);
+        var body = new GatedStream(payload, chunkCount: 4);
+        content = responseContent = new StreamContent(body);
         return body;
     }
 
