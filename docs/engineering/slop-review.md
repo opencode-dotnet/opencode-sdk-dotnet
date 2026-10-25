@@ -1,6 +1,6 @@
 # Slop Review
 
-Date: 2026-10-15
+Date: 2026-10-25
 
 What slop means in this repository, how to recognize it, and the rubric that every change and
 every review applies. It complements `coding-style.md` and `testing-style.md`: they say how to
