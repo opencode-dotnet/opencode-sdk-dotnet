@@ -8,6 +8,24 @@ namespace OpenCode.Sdk.Tools.Generator;
 internal static class PartialMarkerComposer
 {
     /// <summary>
+    /// A model with no family prefix needs an owner row before it can be placed: a refresh that
+    /// brings one stops here until the row, with its reason, decides the model's folder.
+    /// </summary>
+    internal static void RefuseUnplacedModels(ModelPlacement placement)
+    {
+        var errors = new BindingErrorCollector();
+        foreach (var model in placement.Unplaced)
+        {
+            errors.Add(
+                BindingErrorCategory.Curation,
+                model,
+                "the model has no family prefix and no modelOwners row: add a row naming its owner, with its reason");
+        }
+
+        errors.ThrowIfAny();
+    }
+
+    /// <summary>
     /// A decline states that a wall stands over the operation. The probe binds it through the real
     /// selection path, so a bindable mark means the wall the row cites is gone — an upstream fix or
     /// a generator mechanism landed — and the decision has to be taken again rather than inherited.
@@ -21,24 +39,6 @@ internal static class PartialMarkerComposer
                 BindingErrorCategory.Curation,
                 mark.OperationId,
                 "a bindable operation cannot be declined — select it or leave it pending");
-        }
-
-        errors.ThrowIfAny();
-    }
-
-    /// <summary>
-    /// A model with no family prefix needs an owner row before it can be placed: a refresh that
-    /// brings one stops here until the row, with its reason, decides the model's folder.
-    /// </summary>
-    internal static void RefuseUnplacedModels(ModelPlacement placement)
-    {
-        var errors = new BindingErrorCollector();
-        foreach (var model in placement.Unplaced)
-        {
-            errors.Add(
-                BindingErrorCategory.Curation,
-                model,
-                "the model has no family prefix and no modelOwners row: add a row naming its owner, with its reason");
         }
 
         errors.ThrowIfAny();
@@ -70,18 +70,6 @@ internal static class PartialMarkerComposer
         return content.ToString().ReplaceLineEndings("\n");
     }
 
-    /// <summary>
-    /// Each declined line carries the decision and the wall it rests on, so the reason and the
-    /// verbatim refusal the binder finds today are reviewed against each other in one place.
-    /// </summary>
-    private static IEnumerable<string> FormatDeclinedLines(IReadOnlyList<DeclinedOperationPlan> declined,
-        IReadOnlyList<PendingOperationMark> declinedMarks)
-    {
-        var marksById = declinedMarks.ToDictionary(static mark => mark.OperationId, StringComparer.Ordinal);
-        return declined.Select(operation =>
-            $"{operation.OperationId} [declined: {operation.Reason}] {FormatBindability(marksById[operation.OperationId])}");
-    }
-
     private static void AppendOperations(StringBuilder content, string heading, IEnumerable<string> operationIds)
     {
         _ = content.Append(heading).AppendLine(":");
@@ -95,6 +83,18 @@ internal static class PartialMarkerComposer
 
     private static string FormatBindability(PendingOperationMark mark) =>
         mark.IsBindable ? "[bindable]" : $"[refused: {mark.RefusalMessage}]";
+
+    /// <summary>
+    /// Each declined line carries the decision and the wall it rests on, so the reason and the
+    /// verbatim refusal the binder finds today are reviewed against each other in one place.
+    /// </summary>
+    private static IEnumerable<string> FormatDeclinedLines(IReadOnlyList<DeclinedOperationPlan> declined,
+        IReadOnlyList<PendingOperationMark> declinedMarks)
+    {
+        var marksById = declinedMarks.ToDictionary(static mark => mark.OperationId, StringComparer.Ordinal);
+        return declined.Select(operation =>
+            $"{operation.OperationId} [declined: {operation.Reason}] {FormatBindability(marksById[operation.OperationId])}");
+    }
 
     /// <summary>The curation validator has already proven the row's subtree fingerprint on this bind.</summary>
     private static string FormatTransportOwnedLine(string operationId) => $"{operationId} [fingerprint-pinned]";
