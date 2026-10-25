@@ -395,10 +395,18 @@ resolves the message's network window from those carried traits.
     the consumer holds an event. An opening, reading, or reconnecting wait ends with the cancellation
     or disposal exception specified in Error channels; a suspended enumeration reports it on its next
     pull. Nothing else ends it except the give-up window.
-  - Recorded divergence, the only one: upstream retries forever and shows a connection status; the
-    SDK has no status to show, so an endless silent retry would hang `await foreach`. The
-    consequence for consumers is that a wrong address or a refused credential surfaces after one
-    minute, not at once, as the error the server last answered.
+  - Recorded divergences, both intended:
+    - Upstream retries forever and shows a connection status; the SDK has no status to show, so an
+      endless silent retry would hang `await foreach`. The consequence for consumers is that a wrong
+      address or a refused credential surfaces after one minute, not at once, as the error the server
+      last answered.
+    - Upstream's clients read the bus on a background loop into a 4,096-event queue per subscriber
+      and fail a subscriber that falls behind (`client/src/shared-events.ts` at the pin). The SDK
+      reads only when the consumer pulls, as .NET's `IAsyncEnumerable` model does, so back-pressure
+      and pacing stay with the consumer, and it runs no background reader, no per-subscriber queue
+      and no drop policy of its own. The consequences: a long-held event delays noticing a lost
+      server, and a backlog sits in TCP and in the server's own 4,096-event limit. The streaming
+      guide's live-bus section shows the short loop that hands events off.
   - `OpenCodeClientOptions.NetworkTimeout` does not reach `event.subscribe`, and a non-null per-call
     `NetworkTimeout` is refused, including `Timeout.InfiniteTimeSpan`. The 2 s connect bound and the
     1 s delay are fixed, as in upstream; per-call `Location` is sent on every reconnect attempt.
