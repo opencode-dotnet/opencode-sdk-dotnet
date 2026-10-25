@@ -84,19 +84,36 @@ internal static class SecretMemberPolicy
         ArgumentNullException.ThrowIfNull(models);
         ArgumentNullException.ThrowIfNull(unions);
 
+        var reaching = ReachingTypes(models, unions, models.OfType<ObjectModelPlan>()
+            .Where(static model => model.RedactsExtensionData || model.Properties.Any(static property => property.IsRedacted)).Select(static model => model.Name));
+        return new UnknownPayloadMaskResult
+        {
+            Models =
+            [
+                .. models.Select(model => model is StructuralUnionModelPlan structural && reaching.Contains(structural.Name)
+                    ? structural with { MasksUnknownPayload = true }
+                    : model),
+            ],
+            Unions = [.. unions.Select(union => reaching.Contains(union.Name) ? union with { MasksUnknownPayload = true } : union)],
+        };
+    }
+
+    /// <summary>Finds every named type that reaches one of the targets through union arms or model members.</summary>
+    public static IReadOnlySet<string> ReachingTypes(IReadOnlyList<ModelPlan> models, IReadOnlyList<UnionPlan> unions, IEnumerable<string> targetNames)
+    {
+        ArgumentNullException.ThrowIfNull(models);
+        ArgumentNullException.ThrowIfNull(unions);
+        ArgumentNullException.ThrowIfNull(targetNames);
+
         // Each named type points at the types its printed form prints: an object at its members'
         // types, a structural union at its arms' types, a marked union at its known arms.
         var references = new Dictionary<string, string[]>(StringComparer.Ordinal);
-        var reaching = new HashSet<string>(StringComparer.Ordinal);
+        var reaching = targetNames.ToHashSet(StringComparer.Ordinal);
         foreach (var model in models)
         {
             if (model is ObjectModelPlan objectModel)
             {
                 references[objectModel.Name] = [.. objectModel.Properties.SelectMany(static property => NamedTypes(property.Type))];
-                if (objectModel.RedactsExtensionData || objectModel.Properties.Any(static property => property.IsRedacted))
-                {
-                    _ = reaching.Add(objectModel.Name);
-                }
             }
             else if (model is StructuralUnionModelPlan structural)
             {
@@ -127,16 +144,7 @@ internal static class SecretMemberPolicy
         }
         while (grew);
 
-        return new UnknownPayloadMaskResult
-        {
-            Models =
-            [
-                .. models.Select(model => model is StructuralUnionModelPlan structural && reaching.Contains(structural.Name)
-                    ? structural with { MasksUnknownPayload = true }
-                    : model),
-            ],
-            Unions = [.. unions.Select(union => reaching.Contains(union.Name) ? union with { MasksUnknownPayload = true } : union)],
-        };
+        return reaching;
     }
 
     /// <summary>The recorder's <c>normalizeField</c>: every character outside <c>[a-z0-9]</c> (either case) dropped, then lower-cased.</summary>

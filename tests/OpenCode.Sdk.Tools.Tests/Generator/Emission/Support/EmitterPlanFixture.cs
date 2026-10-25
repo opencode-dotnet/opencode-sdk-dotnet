@@ -28,6 +28,28 @@ internal static class EmitterPlanFixture
             Curation(Groups(StructuralUnionScenario.GroupName, RootGroup())));
     }
 
+    public static async Task<EmitPlan> CreateImpossibleStreamPlanAsync(bool nested)
+    {
+        var document = await BindingTestHost.IngestAsync(new StreamOperationScenario());
+        var cause = (UnionNode)document.Schemas[((RefNode)((ArrayNode)(document.Operations.Single().Responses.Single(static response => response.EffectStream is not null).EffectStream!.CauseSchema
+            ?? throw new InvalidOperationException("The fixture must declare stream causes."))).Item).Target];
+        var schemas = document.Schemas.ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal);
+        schemas["Nested"] = cause;
+        schemas["ExampleEvent"] = nested ? cause with { Branches = [.. cause.Branches.Skip(1)] } : cause;
+        if (nested)
+        {
+            var target = ((RefNode)cause.Branches[1]).Target;
+            var arm = (ObjectNode)schemas[target];
+            schemas[target] = arm with
+            {
+                Properties = [.. arm.Properties.Select(property => property.Name is "defect"
+                    ? property with { Schema = new RefNode { Target = "Nested" } } : property)],
+            };
+        }
+        return new BindingTestHost().Bind(document with { Schemas = schemas }, Selection(StreamOperationScenario.OperationId),
+            Curation(Groups(StreamOperationScenario.GroupName, RootGroup())));
+    }
+
     public static async Task<EmitPlan> CreateFirstMatchUnionPlanAsync()
     {
         var document = await BindingTestHost.IngestAsync(new FirstMatchUnionScenario());

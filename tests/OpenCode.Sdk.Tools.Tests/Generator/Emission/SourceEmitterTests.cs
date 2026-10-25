@@ -133,18 +133,11 @@ public sealed class SourceEmitterTests(PinnedBinding pinned)
     [Test]
     public async Task Emit_Should_Refuse_A_Stream_Payload_Union_With_Impossible_Tags()
     {
-        var plan = await EmitterPlanFixture.CreateStreamPlanAsync();
-        var client = plan.Clients.Single();
-        var operation = client.Operations.Single();
-        var stream = operation.Stream ?? throw new InvalidOperationException("The fixture must bind a stream.");
-        var impossiblePayload = plan with
-        {
-            Clients = [client with { Operations = [operation with { Stream = stream with { PayloadTypeName = "IStreamFailureCause" } }] }],
-        };
+        var exception = await Assert.That(async () => _ = await EmitterPlanFixture.CreateImpossibleStreamPlanAsync(nested: false)).Throws<BindingException>();
 
-        var exception = Assert.Throws<InvalidOperationException>(() => SpecBinder.ResolveEmissionData(impossiblePayload));
-
-        await Assert.That(exception.Message).IsEqualTo("Stream payload union 'IStreamFailureCause' declares impossible tags: Fail.");
+        await Assert.That(exception!.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Schema, "IExampleEvent", "Stream payload union 'IExampleEvent' reaches 'IExampleEvent', which declares impossible tags: Fail; a stream's unknown-arm fallback would bypass impossible-tag dispatch, so decline the stream or curate the tag."),
+        ], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -165,6 +158,16 @@ public sealed class SourceEmitterTests(PinnedBinding pinned)
         var renamed = ResolveStreamOperation(plan, client, operation with { OperationId = "renamed.stream" });
         await Assert.That(renamed.Clients.Single().Operations.Single().Stream!.UnknownPayloadTypeName).IsEqualTo("UnknownEvent");
         await Assert.That(renamed.Unions.Single(static union => union.Name == "IEvent").IsStreamFallbackCarrier).IsTrue();
+    }
+
+    [Test]
+    public async Task Emit_Should_Refuse_A_Stream_Payload_Union_That_Reaches_Impossible_Tags()
+    {
+        var exception = await Assert.That(async () => _ = await EmitterPlanFixture.CreateImpossibleStreamPlanAsync(nested: true)).Throws<BindingException>();
+
+        await Assert.That(exception!.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Schema, "INested", "Stream payload union 'IExampleEvent' reaches 'INested', which declares impossible tags: Fail; a stream's unknown-arm fallback would bypass impossible-tag dispatch, so decline the stream or curate the tag."),
+        ], CollectionOrdering.Matching);
     }
 
     private static EmitPlan ResolveStreamOperation(EmitPlan plan, ClientPlan client, OperationPlan operation) =>

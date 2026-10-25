@@ -320,7 +320,8 @@ has the two properties to set.
   the server's event store, and the distributed `opencode` CLI starts its server without event
   persistence. No flag, environment variable, or configuration key turns it on (confirmed at the
   pin; observed on `@opencode/cli@2.0.15`). `SessionClient.ReadLogAsync` does not fail: with or
-  without `Follow`, it delivers one `EventLogSynced` marker and no durable events. For live session
+  without `Follow`, it delivers one `log.synced` frame, normally materialized as `EventLogSynced`,
+  and no durable events. For live session
   activity, subscribe to the global event bus and filter by session id. Persisted replay needs a
   host that embeds the opencode server library with persistence enabled.
 

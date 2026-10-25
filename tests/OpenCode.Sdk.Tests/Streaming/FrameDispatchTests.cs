@@ -96,30 +96,28 @@ public sealed class FrameDispatchTests
     [MethodDataSource(nameof(EventRefusals))]
     [MethodDataSource(nameof(LogRefusals))]
     public async Task ReadPayload_Should_Keep_The_Failure_When_The_Unknown_Arm_Refuses(
-        string name, string body, Func<string, object> read)
+        (string Name, string Body, Func<string, object> Read) row)
     {
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(read);
-        var exception = Assert.Throws<OpenCodeTransportException>(() => _ = read(body));
+        var exception = Assert.Throws<OpenCodeTransportException>(() => _ = row.Read(row.Body));
 
         await Assert.That(exception.Message).IsEqualTo("The opencode event stream produced a malformed frame payload.");
         await Assert.That(exception.InnerException).IsTypeOf<JsonException>();
     }
 
-    public static IEnumerable<object[]> EventRefusals() => Refusals(static body => FrameDispatch.ReadPayload(
+    public static IEnumerable<(string Name, string Body, Func<string, object> Read)> EventRefusals() => Refusals(static body => FrameDispatch.ReadPayload(
         new ServerSentEvent(ServerSentEvent.DefaultName, body), EventSubscribeResponseStreamAdapter.Instance));
 
-    public static IEnumerable<object[]> LogRefusals() => Refusals(static body => FrameDispatch.ReadPayload(
+    public static IEnumerable<(string Name, string Body, Func<string, object> Read)> LogRefusals() => Refusals(static body => FrameDispatch.ReadPayload(
         new ServerSentEvent(ServerSentEvent.DefaultName, body), SessionLogResponseStreamAdapter.Instance));
 
-    private static IEnumerable<object[]> Refusals(Func<string, object> read) =>
+    private static IEnumerable<(string Name, string Body, Func<string, object> Read)> Refusals(Func<string, object> read) =>
     [
-        ["invalid JSON", MalformedData, read],
-        ["array", new JsonArray().ToJsonString(), read],
-        ["missing type", new JsonObject().ToJsonString(), read],
-        ["numeric type", new JsonObject { ["type"] = 42 }.ToJsonString(), read],
-        ["empty type", new JsonObject { ["type"] = "" }.ToJsonString(), read],
-        ["whitespace type", new JsonObject { ["type"] = "  " }.ToJsonString(), read],
+        ("invalid JSON", MalformedData, read),
+        ("array", new JsonArray().ToJsonString(), read),
+        ("missing type", new JsonObject().ToJsonString(), read),
+        ("numeric type", new JsonObject { ["type"] = 42 }.ToJsonString(), read),
+        ("empty type", new JsonObject { ["type"] = "" }.ToJsonString(), read),
+        ("whitespace type", new JsonObject { ["type"] = "  " }.ToJsonString(), read),
     ];
 
     [Test]

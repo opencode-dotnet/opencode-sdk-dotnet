@@ -88,7 +88,7 @@ internal sealed class ManualTimeProvider : TimeProvider
     /// <param name="hangGuard">Bounds a timer that is never armed; it decides nothing else.</param>
     /// <param name="cancellationToken">Ends the wait once the race is decided.</param>
     /// <returns>A task that completes once such a timer is armed, or is canceled.</returns>
-    public Task WaitForArmedUntilCanceledAsync(TimeSpan dueIn, TimeSpan hangGuard, CancellationToken cancellationToken) =>
+    public Task WaitForArmedOrCanceledAsync(TimeSpan dueIn, TimeSpan hangGuard, CancellationToken cancellationToken) =>
         WaitForArmedCoreAsync(dueIn, hangGuard, 1, cancellationToken);
 
     private Task WaitForArmedCoreAsync(TimeSpan dueIn, TimeSpan hangGuard, int count, CancellationToken cancellationToken)

@@ -97,7 +97,7 @@ public sealed class EventsClientContractTests
         {
             await Assert.That(await EventStreamSteps.NextAsync(events)).IsTypeOf<EventServerConnected>();
             pending = EventStreamSteps.PendingCancellationAsync(events);
-            reconnectDelay = scenario.Time.WaitForArmedUntilCanceledAsync(EventStreamSteps.Delay, HangGuard.Bound, waiterOwner.Token);
+            reconnectDelay = scenario.Time.WaitForArmedOrCanceledAsync(EventStreamSteps.Delay, HangGuard.Bound, waiterOwner.Token);
             var winner = await Task.WhenAny(pending, reconnectDelay).WaitAsync(HangGuard.Bound);
             await Assert.That(winner).IsNotSameReferenceAs(reconnectDelay);
             await Assert.That(scenario.Time.ArmedIn(EventStreamSteps.Delay)).IsEqualTo(0);

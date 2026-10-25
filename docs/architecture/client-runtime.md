@@ -305,9 +305,9 @@ resolves the message's network window from those carried traits.
   (`ToString`) leaves the raw body out, because a server can echo request data into it; the status,
   the error flag, and the typed error still print.
 - Transport, status/framing, unrecovered JSON or materialization, dispatch, and cancellation-wrapping
-  failures throw `OpenCodeTransportException`; stream payload tolerance is scoped below. `NoThrow` applies only to declared
-  API errors and never suppresses transport failures. Undeclared 3xx responses are protocol
-  failures on both one-shot and streaming paths (ADR-0007, ADR-0014).
+  failures throw `OpenCodeTransportException`; stream payload tolerance is scoped below. `NoThrow`
+  applies only to declared API errors and never suppresses transport failures. Undeclared 3xx
+  responses are protocol failures on both one-shot and streaming paths (ADR-0007, ADR-0014).
 - Caller cancellation of a public asynchronous operation or enumeration throws
   `OperationCanceledException` carrying the caller's token, not an SDK-owned linked token. The rule
   applies to HTTP operations, SSE, cursor traversal, both terminal families, and `StartAsync`,
@@ -427,9 +427,10 @@ resolves the message's network window from those carried traits.
   sentence, `docs/guide/streaming.md`, and the README's known issue change together.
 - The SSE event name is a framing signal. An ordinary payload uses the default `message` name;
   the operation's declared failure event materializes its cause through generated metadata and
-  throws; any other explicit name is refused. Unknown payload and cause discriminators are not
-  confused with unknown frame names. Reserved failure causes retain ADR-0009's unknown-tag rule;
-  a declared-but-impossible cause tag is a protocol failure, not an unknown variant (ADR-0015).
+  throws; any other explicit name is refused. Unknown payload and cause discriminators remain
+  governed by ADR-0009 and are not confused with unknown frame names. A known tag whose schema is
+  impossible is a protocol failure, not an unknown variant (ADR-0015). A stream payload union that
+  reaches one is refused at generation, so the tolerance below never reaches it (ADR-0038).
 - On `event.subscribe` and `session.log`, a payload whose normal materialization throws
   `JsonException` arrives as its union's existing unknown arm when that arm's converter can hold
   the same frame; the connection or request continues (ADR-0038). Invalid JSON and refused carriers

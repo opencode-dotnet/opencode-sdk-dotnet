@@ -13,7 +13,8 @@ What still fails:
 - **A frame the carrier refuses**, with its original decode failure as the cause: invalid JSON, a value that isn't an
   object, a missing or unusable discriminator, or one the union's prefix-tagged arm claims.
 - **A null payload**, with its own failure.
-- **A stream payload union that declares impossible tags**, which is refused at generation.
+- **A stream payload union that reaches impossible tags**, directly or through a nested union, which is refused at
+  generation, so ADR-0015's impossible-tag refusal is unaffected.
 
 On these two streams, then, ADR-0009's retained `JsonElement` is paid for by a declared variant that couldn't be read as
 well as by an unknown one. Call results and every other union keep ADR-0009 as written.

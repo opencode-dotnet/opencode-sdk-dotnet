@@ -67,6 +67,7 @@ internal sealed class SpecBinder : ISpecBinder
         var placement = ModelOwnershipPolicy.Place(candidates, clients, curation, errors);
         var reach = ModelReachCollector.Collect(new ReachScope(document, selected, clients, typeNames), candidates, errors);
         var experimental = ExperimentalModelPolicy.Collect(new ReachScope(document, selected, clients, typeNames), candidates, inventory, errors);
+        CheckStreamFallbacks(candidates, clients, errors);
         errors.ThrowIfAny();
         var plan = new EmitPlan
         {
@@ -125,11 +126,6 @@ internal sealed class SpecBinder : ISpecBinder
         var payloadNames = plan.Clients.SelectMany(static client => client.Operations)
             .Select(static operation => operation.Stream?.PayloadTypeName)
             .OfType<string>().ToHashSet(StringComparer.Ordinal);
-        if (plan.Unions.FirstOrDefault(union => payloadNames.Contains(union.Name) && union.KnownImpossibleTags.Count > 0) is { } impossible)
-        {
-            throw new InvalidOperationException($"Stream payload union '{impossible.Name}' declares impossible tags: {string.Join(", ", impossible.KnownImpossibleTags)}.");
-        }
-
         return plan with
         {
             Clients = [.. plan.Clients.Select(client => client with
@@ -149,6 +145,20 @@ internal sealed class SpecBinder : ISpecBinder
                 IsStreamFallbackCarrier = payloadNames.Contains(union.Name),
             })],
         };
+    }
+
+    private static void CheckStreamFallbacks(OwnershipCandidates candidates, IReadOnlyList<ClientPlan> clients, BindingErrorCollector errors)
+    {
+        var payloadNames = clients.SelectMany(static client => client.Operations).Select(static operation => operation.Stream?.PayloadTypeName).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        foreach (var impossible in candidates.Unions.Where(static union => union.KnownImpossibleTags.Count > 0).OrderBy(static union => union.Name, StringComparer.Ordinal))
+        {
+            var reaching = SecretMemberPolicy.ReachingTypes(candidates.Models, candidates.Unions, [impossible.Name]);
+            foreach (var root in candidates.Unions.Where(union => payloadNames.Contains(union.Name) && reaching.Contains(union.Name)).OrderBy(static union => union.Name, StringComparer.Ordinal))
+            {
+                errors.Add(BindingErrorCategory.Schema, impossible.Name,
+                    $"Stream payload union '{root.Name}' reaches '{impossible.Name}', which declares impossible tags: {string.Join(", ", impossible.KnownImpossibleTags.Order(StringComparer.Ordinal))}; a stream's unknown-arm fallback would bypass impossible-tag dispatch, so decline the stream or curate the tag.");
+            }
+        }
     }
 
     /// <summary>Attaches operation-owned model properties and session-event roles before masking secret payloads.</summary>
