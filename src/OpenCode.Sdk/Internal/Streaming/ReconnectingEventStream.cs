@@ -10,14 +10,18 @@ internal sealed class ReconnectingEventStream(TimeProvider time, TimeSpan idleWi
     private readonly TimeSpan _idleWindow = idleWindow;
 
     /// <summary>
-    /// Runs one connection after another for a reconnecting operation, as the pinned client does.
-    /// Each attempt runs under its own window: 2 seconds to answer and deliver
-    /// <c>server.connected</c> first, then the client's idle window without a byte once connected,
-    /// stopped while the consumer holds an event. Any failure is followed by a new attempt one
-    /// second later. The give-up window runs from the first attempt and again from each drop, stops
-    /// once an attempt connects, and when it passes it cuts whatever is in flight and throws the
-    /// last failure. The caller's token and a disposed client end the stream at once.
+    /// Runs one connection after another for a reconnecting operation, as the pinned client does,
+    /// until the caller cancels, the client is disposed, or its give-up window passes.
     /// </summary>
+    /// <remarks>
+    /// Each attempt runs under its own window: <see cref="StreamReconnect.ConnectBound"/> to answer
+    /// and deliver <c>server.connected</c> first, then the client's idle window without a byte once
+    /// connected, stopped while the consumer holds an event. Any failure is followed by a new attempt
+    /// after <see cref="StreamReconnect.Delay"/>. The give-up window runs from the first attempt and
+    /// again from each drop, stops once an attempt connects, and when it passes it cuts whatever is in
+    /// flight and throws the last failure. The caller's token and a disposed client end the stream at
+    /// once.
+    /// </remarks>
     public async IAsyncEnumerable<TPayload> ExecuteReconnectingStreamAsync<TPayload, TCause>(OperationRequest request, IStreamAdapter<TPayload, TCause> adapter,
         [EnumeratorCancellation] CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
