@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-10-25
+Date: 2026-10-26
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -102,6 +102,8 @@ evidence and may contain superseded positions.
   unmanifested files. A formatter-interrupted file with a damaged provenance header still refuses;
   this sequence promises restartability, not filesystem-wide atomicity, concurrent writers or
   power-loss durability.
+  The generated project must be restored before formatting so the formatter can remove redundant
+  usings; the generator refuses otherwise and never restores the project itself.
 - The repository tool forwards Ctrl+C cancellation to the running command and returns the configured
   cancellation exit code. Its composition root maps tool refusals to an unwrapped `Refused: <message>`
   diagnostic and exit code 1; other failures retain the CLI framework's error rendering and exit code.
