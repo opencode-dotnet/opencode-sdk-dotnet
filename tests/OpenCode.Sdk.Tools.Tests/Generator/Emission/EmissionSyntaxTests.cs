@@ -9,6 +9,7 @@ public sealed class EmissionSyntaxTests
 {
     [Test]
     [Arguments("Widget", "class Widget\n{\n}\n")]
+    [Arguments("Café", "class Café\n{\n}\n")]
     public async Task CreateSource_Should_Preserve_Utf8_And_Final_Newline(string name, string expectedDeclaration)
     {
         var unit = EmissionSyntax.CompilationUnit("Example", [], [SyntaxFactory.ClassDeclaration(name)]);
