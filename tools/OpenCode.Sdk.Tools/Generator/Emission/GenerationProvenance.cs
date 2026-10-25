@@ -22,6 +22,9 @@ internal static class GenerationProvenance
         return HasHeader(content.AsSpan(), FirstLine.AsSpan(), SecondLine.AsSpan(), '\n', '\r');
     }
 
+    /// <summary>Checks the same header in a source's UTF-8 bytes, without decoding the source.</summary>
+    /// <param name="content">The UTF-8 encoded content.</param>
+    /// <returns>Whether the header is present.</returns>
     public static bool HasHeader(ReadOnlySpan<byte> content) =>
         HasHeader(content, FirstLineUtf8, SecondLineUtf8, (byte)'\n', (byte)'\r');
 
