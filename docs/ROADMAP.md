@@ -235,8 +235,8 @@ These do not block `1.0.0` and run beside the road.
   residual before it is upstream's too. Recorded, not solved; the registration file's write time
   could bound it if it ever matters.
 - **Two allocation follow-ups are queued behind a benchmark gate** — on `net472` and
-  `netstandard2.0` a response body over 16 MiB is allocated at wire size on every call (bodies of
-  1-16 MiB are pooled), and each terminal connection allocates one 16 KiB receive buffer, reused
+  `netstandard2.0` a response body over 16 MiB gets a newly allocated buffer on every call (bodies
+  of 1-16 MiB are pooled), and each terminal connection allocates one 16 KiB receive buffer, reused
   across consumer reads. Both are described for consumers in the README's Known Issues; the 1.0
   performance gate's baseline decides whether either is fixed before `1.0.0`.
 - **Durable session-log replay cannot be enabled on any distributed CLI build.** `events.persist`
