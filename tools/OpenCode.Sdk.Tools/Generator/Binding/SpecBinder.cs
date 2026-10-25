@@ -92,6 +92,7 @@ internal sealed class SpecBinder : ISpecBinder
     public static EmitPlan ResolveEmissionData(EmitPlan plan)
     {
         ArgumentNullException.ThrowIfNull(plan);
+        plan = ResolveStreamFallbacks(plan);
         var enums = plan.Models.OfType<EnumModelPlan>().ToDictionary(static model => model.Name, StringComparer.Ordinal);
         var resolved = new Dictionary<string, IReadOnlyList<EnumModelPlan>>(StringComparer.Ordinal);
         foreach (var container in plan.Clients.SelectMany(static client => client.Operations)
@@ -115,6 +116,39 @@ internal sealed class SpecBinder : ISpecBinder
         }
 
         return UnionChainBuilder.Resolve(plan) with { QueryEnumModels = resolved };
+    }
+
+    /// <summary>Resolves stream fallback metadata from bound payload-union identity.</summary>
+    private static EmitPlan ResolveStreamFallbacks(EmitPlan plan)
+    {
+        var byName = plan.Unions.ToDictionary(static union => union.Name, StringComparer.Ordinal);
+        var payloadNames = plan.Clients.SelectMany(static client => client.Operations)
+            .Select(static operation => operation.Stream?.PayloadTypeName)
+            .OfType<string>().ToHashSet(StringComparer.Ordinal);
+        if (plan.Unions.FirstOrDefault(union => payloadNames.Contains(union.Name) && union.KnownImpossibleTags.Count > 0) is { } impossible)
+        {
+            throw new InvalidOperationException($"Stream payload union '{impossible.Name}' declares impossible tags: {string.Join(", ", impossible.KnownImpossibleTags)}.");
+        }
+
+        return plan with
+        {
+            Clients = [.. plan.Clients.Select(client => client with
+            {
+                Operations = [.. client.Operations.Select(operation => operation.Stream is { } stream
+                    ? operation with
+                    {
+                        Stream = stream with
+                        {
+                            UnknownPayloadTypeName = byName.GetValueOrDefault(stream.PayloadTypeName)?.UnknownTypeName,
+                        },
+                    }
+                    : operation)],
+            })],
+            Unions = [.. plan.Unions.Select(union => union with
+            {
+                IsStreamFallbackCarrier = payloadNames.Contains(union.Name),
+            })],
+        };
     }
 
     /// <summary>Attaches operation-owned model properties and session-event roles before masking secret payloads.</summary>

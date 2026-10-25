@@ -11,6 +11,12 @@ Nightly builds of `master` are on
 
 ### 🔧 Changes
 
+- **Known stream tags can now arrive as the unknown arm.** On `event.subscribe` and `session.log`,
+  a frame whose normal decoding fails arrives as `UnknownEvent` or `UnknownSessionLogItem` when
+  the existing carrier can preserve it; its neighbours continue on the same connection or request.
+  Invalid JSON and carrier refusals keep their original failures.
+- **The streaming guide's "a server upgrade cannot break your event loop" promise is now scoped
+  tolerance**, including the payloads that still fail and when a regenerated frame becomes typed.
 - **The event stream's connect-bound failure names its case.** Before any response it says "The
   opencode server did not answer the event stream request within 2 seconds."; when headers arrived
   but no first event followed it says "The opencode server answered the event stream request but

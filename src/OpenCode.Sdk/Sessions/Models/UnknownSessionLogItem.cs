@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Preserves an unknown session log item payload.
+/// Preserves an unknown or unmaterializable session log item payload.
 /// </summary>
 [JsonConverter(typeof(UnknownSessionLogItemJsonConverter))]
 public sealed record UnknownSessionLogItem : ISessionLogItem
@@ -30,7 +30,7 @@ public sealed record UnknownSessionLogItem : ISessionLogItem
     }
 
     /// <summary>
-    /// Gets the unrecognized &apos;type&apos; marker.
+    /// Gets the preserved &apos;type&apos; marker.
     /// </summary>
     [JsonPropertyName("type")]
     public string Type => _marker;

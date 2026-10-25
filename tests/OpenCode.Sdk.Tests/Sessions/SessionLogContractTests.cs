@@ -107,6 +107,26 @@ public sealed class SessionLogContractTests
     }
 
     [Test]
+    public async Task GetLogAsync_Should_Preserve_An_Unreadable_Known_Item_And_Its_Neighbour()
+    {
+        var bad = WireBodyData.EventWithoutData("session.created");
+        using var scenario = ContractScenario.RespondingWithFrames(WireBodyData.Frames(
+            WireBodyData.SessionCreatedEvent, bad, WireBodyData.LogSyncedEvent));
+
+        var items = await Assert.That(CollectAsync(scenario)).ThrowsNothing();
+
+        await Assert.That(items).IsNotNull();
+        await Assert.That(items!).Count().IsEqualTo(3);
+        await Assert.That(items[0]).IsTypeOf<SessionCreated>();
+        await Assert.That(items[1]).IsTypeOf<UnknownSessionLogItem>();
+        var unknown = (UnknownSessionLogItem)items[1];
+        await Assert.That(unknown.Type).IsEqualTo("session.created");
+        await Assert.That(unknown.Payload.GetRawText()).IsEqualTo(bad);
+        await Assert.That(items[2]).IsTypeOf<EventLogSynced>();
+        await Assert.That(scenario.Requests).Count().IsEqualTo(1);
+    }
+
+    [Test]
     public async Task GetLogAsync_Should_Expose_A_Typed_Mid_Stream_Failure_Cause()
     {
         using var scenario = ContractScenario.RespondingWithFrames(

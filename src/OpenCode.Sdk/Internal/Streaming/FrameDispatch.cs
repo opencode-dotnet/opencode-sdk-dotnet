@@ -26,7 +26,7 @@ internal static class FrameDispatch
             throw new OpenCodeTransportException($"The opencode event stream produced an undeclared frame named '{frame.Name}'.");
         }
 
-        return ReadFramePayload(frame.Data, adapter.PayloadTypeInfo);
+        return ReadFramePayload(frame.Data, adapter.PayloadTypeInfo, adapter.UnknownPayloadTypeInfo);
     }
 
     private static TCause ReadCause<TCause>(string frame, JsonTypeInfo<TCause> typeInfo)
@@ -43,8 +43,9 @@ internal static class FrameDispatch
         }
     }
 
-    /// <summary>A frame the operation's contract cannot decode is a protocol failure, never an event.</summary>
-    private static TPayload ReadFramePayload<TPayload>(string frame, JsonTypeInfo<TPayload> typeInfo)
+    /// <summary>Reads the payload, preserving an unreadable known shape through an admitted unknown arm.</summary>
+    private static TPayload ReadFramePayload<TPayload>(
+        string frame, JsonTypeInfo<TPayload> typeInfo, JsonTypeInfo? unknownTypeInfo)
     {
         try
         {
@@ -53,7 +54,22 @@ internal static class FrameDispatch
         }
         catch (JsonException exception)
         {
-            throw new OpenCodeTransportException("The opencode event stream produced a malformed frame payload.", exception);
+            var failure = new OpenCodeTransportException("The opencode event stream produced a malformed frame payload.", exception);
+            if (unknownTypeInfo is null)
+            {
+                throw failure;
+            }
+
+            try
+            {
+                return JsonSerializer.Deserialize(frame, unknownTypeInfo) is TPayload payload
+                    ? payload
+                    : throw failure;
+            }
+            catch (JsonException)
+            {
+                throw failure;
+            }
         }
     }
 }

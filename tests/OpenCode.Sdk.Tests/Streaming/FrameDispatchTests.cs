@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
 
@@ -52,7 +54,7 @@ public sealed class FrameDispatchTests
         var exception = Assert.Throws<OpenCodeTransportException>(
             () => _ = FrameDispatch.ReadPayload(frame, new TestStreamAdapter()));
 
-        await Assert.That(exception.InnerException).IsTypeOf<System.Text.Json.JsonException>();
+        await Assert.That(exception.InnerException).IsTypeOf<JsonException>();
     }
 
     [Test]
@@ -75,7 +77,7 @@ public sealed class FrameDispatchTests
             () => _ = FrameDispatch.ReadPayload(frame, new TestStreamAdapter()));
 
         await Assert.That(exception).IsNotTypeOf<OpenCodeStreamFailureException>();
-        await Assert.That(exception.InnerException).IsTypeOf<System.Text.Json.JsonException>();
+        await Assert.That(exception.InnerException).IsTypeOf<JsonException>();
     }
 
     [Test]
@@ -88,5 +90,48 @@ public sealed class FrameDispatchTests
 
         await Assert.That(exception).IsNotTypeOf<OpenCodeStreamFailureException>();
         await Assert.That(exception.Message).Contains("null failure cause");
+    }
+
+    [Test]
+    [MethodDataSource(nameof(EventRefusals))]
+    [MethodDataSource(nameof(LogRefusals))]
+    public async Task ReadPayload_Should_Keep_The_Failure_When_The_Unknown_Arm_Refuses(
+        string name, string body, Func<string, object> read)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(read);
+        var exception = Assert.Throws<OpenCodeTransportException>(() => _ = read(body));
+
+        await Assert.That(exception.Message).IsEqualTo("The opencode event stream produced a malformed frame payload.");
+        await Assert.That(exception.InnerException).IsTypeOf<JsonException>();
+    }
+
+    public static IEnumerable<object[]> EventRefusals() => Refusals(static body => FrameDispatch.ReadPayload(
+        new ServerSentEvent(ServerSentEvent.DefaultName, body), EventSubscribeResponseStreamAdapter.Instance));
+
+    public static IEnumerable<object[]> LogRefusals() => Refusals(static body => FrameDispatch.ReadPayload(
+        new ServerSentEvent(ServerSentEvent.DefaultName, body), SessionLogResponseStreamAdapter.Instance));
+
+    private static IEnumerable<object[]> Refusals(Func<string, object> read) =>
+    [
+        ["invalid JSON", MalformedData, read],
+        ["array", new JsonArray().ToJsonString(), read],
+        ["missing type", new JsonObject().ToJsonString(), read],
+        ["numeric type", new JsonObject { ["type"] = 42 }.ToJsonString(), read],
+        ["empty type", new JsonObject { ["type"] = "" }.ToJsonString(), read],
+        ["whitespace type", new JsonObject { ["type"] = "  " }.ToJsonString(), read],
+    ];
+
+    [Test]
+    public async Task ReadPayload_Should_Keep_The_Primary_Failure_For_An_Unreadable_Rpc_Event()
+    {
+        var frame = new ServerSentEvent(ServerSentEvent.DefaultName, WireBodyData.EventWithoutData("rpc.foo"));
+        var exception = Assert.Throws<OpenCodeTransportException>(
+            () => _ = FrameDispatch.ReadPayload(frame, EventSubscribeResponseStreamAdapter.Instance));
+
+        await Assert.That(exception.Message).IsEqualTo("The opencode event stream produced a malformed frame payload.");
+        await Assert.That(exception.InnerException).IsTypeOf<JsonException>();
+        await Assert.That(exception.InnerException!.Message)
+            .IsEqualTo("JSON deserialization for type 'OpenCode.Sdk.Models.EventRpc' was missing required properties including: 'data'.");
     }
 }

@@ -24,6 +24,7 @@ public sealed class StreamOperationEmissionTests
         await Assert.That(operation.QueryRequest).IsNull();
         await Assert.That(operation.Stream).IsNotNull();
         await Assert.That(operation.Stream!.PayloadTypeName).IsEqualTo("ExampleEvent");
+        await Assert.That(operation.Stream.UnknownPayloadTypeName).IsNull();
         await Assert.That(operation.Stream.AdapterTypeName).IsEqualTo("ExampleEventsResponseStreamAdapter");
         await Assert.That(operation.Stream.FailureEventName).IsEqualTo(StreamOperationScenario.FailureEventName);
         await Assert.That(operation.Stream.CauseTypeName).IsEqualTo("IStreamFailureCause[]");
@@ -69,6 +70,8 @@ public sealed class StreamOperationEmissionTests
             .Contains(
                 "public JsonTypeInfo<ExampleEvent> PayloadTypeInfo => OpenCodeJsonContext.Default.ExampleEvent;");
         await Assert.That(adapterSource).Contains("public JsonTypeInfo<IStreamFailureCause[]> CauseTypeInfo");
+        await Assert.That(adapterSource)
+            .Contains("public JsonTypeInfo? UnknownPayloadTypeInfo => null;");
         await Assert.That(causeConverterSource).Contains("[\"Fail\"] = null");
         await Assert.That(causeConverterSource).DoesNotContain("typeof(StreamFailureCauseFail)");
         await Assert.That(adapterSource).Contains("private static readonly string[] Status400Tags = [\"ExampleBadRequestError\"];");

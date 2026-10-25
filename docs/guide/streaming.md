@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-10-23
+Date: 2026-10-25
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **global event bus** for everything happening in the server
@@ -412,9 +412,10 @@ all declare: `Id`, `Created`, `Metadata`, `Location`, and the `Durable` envelope
 boundary rather than something committed against the aggregate, so it sits beside the durable union
 under `ISessionLogItem` and reports its watermark on its own `Seq`.
 
-Those members are nullable on the interface for one reason: a `type` this build has never heard of
-arrives as `UnknownSessionLogItem` or `UnknownSessionEventDurable`, which preserve the raw payload
-and materialize no typed member. A concrete event's own `Durable` property is still non-nullable —
+Those members are nullable on the interface because unknown carriers preserve the raw payload
+and materialize no typed member. An unrecognized `type` arrives as `UnknownSessionLogItem` or
+`UnknownSessionEventDurable`; a known log item that cannot be read can also arrive as
+`UnknownSessionLogItem`, under the tolerance below. A concrete event's own `Durable` property is still non-nullable —
 `SessionCreated.Durable` is a `SessionCreatedDurable` — so only the interface route needs the
 `?.`.
 
@@ -491,13 +492,22 @@ case UnknownEvent unknown:
 ```
 
 The per-session log has the same escape hatch, `UnknownSessionLogItem`, with the same two members.
-Practically: a server upgrade cannot break your event loop, you can log or even handle a new event
-type before the SDK is regenerated, and when it is regenerated the frame simply arrives as its
-typed self instead. This is also why the members a union interface promises are nullable: a carrier
-answers `null` for every one of them and hands you `Payload` instead.
+On both streams, a **known** `type` can also arrive as that unknown arm: if normal decoding throws
+a `JsonException` and the existing carrier can preserve the frame, the stream delivers it and its
+neighbours on the same connection or request. The carrier exposes `Type` and raw `Payload`, not the
+decode reason. Both streams follow the first-party client's tolerance of payload shape drift.
 
-What this is *not* is a bucket for malformed data. A frame whose `type` is known but whose body
-cannot be read is a protocol failure and throws — the carrier is for *unknown*, not for *broken*.
+This is scoped upgrade tolerance, not a promise that every server upgrade leaves an event loop
+unbroken. You can log or handle a new event before regeneration; after regeneration it arrives as
+its typed self only when it can be read in that shape. This is also why the members a union
+interface promises are nullable: a carrier answers `null` for every one of them and hands you
+`Payload` instead.
+
+Invalid JSON, a non-object, and a missing, non-string, empty or whitespace-only `type` still fail
+with the original decode failure as the cause. A null payload keeps its own failure. On the bus,
+the carrier refuses `rpc.` markers, so an unreadable RPC event still fails; the session log has no
+prefix rule. These failures reconnect the bus and end the session log, as before. See the
+[canonical stream rules](../architecture/client-runtime.md#server-sent-events).
 
 ## ⏹️ Cancellation and lifetime
 

@@ -63,7 +63,9 @@ internal static class UnionUnknownEmitter
                 SyntaxFactory.AttributeArgument(SyntaxFactory.TypeOfExpression(
                     TypeSyntaxEmitter.EmitNamed($"{union.UnknownTypeName}JsonConverter")))))
             .WithMembers(SyntaxFactory.List(members))
-            .WithLeadingTrivia(DocumentationSyntax.Documentation($"Preserves an unknown {GeneratedDisplayName.Of(union.ConceptName)} payload."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(union.IsStreamFallbackCarrier
+                ? $"Preserves an unknown or unmaterializable {GeneratedDisplayName.Of(union.ConceptName)} payload."
+                : $"Preserves an unknown {GeneratedDisplayName.Of(union.ConceptName)} payload."));
         var usingNames = union.MarkerKind is LiteralKind.String
             ? new[] { "System", "System.Text.Json", "System.Text.Json.Serialization", namespaces.Internal, }
             : ["System.Text.Json", "System.Text.Json.Serialization", namespaces.Internal];
@@ -158,8 +160,8 @@ internal static class UnionUnknownEmitter
     }
 
     /// <summary>
-    /// The carrier holds markers no arm claims, so a marker the prefix-tagged arm claims is
-    /// refused at construction: the untyped twin of that arm's own marker refusing a value
+    /// The carrier refuses markers claimed by the prefix-tagged arm at construction:
+    /// the untyped twin of that arm's own marker refusing a value
     /// outside its prefix.
     /// </summary>
     private static IReadOnlyList<StatementSyntax> EmitUnknownPrefixRefusal(UnionPlan union, string markerParameterName)
@@ -230,7 +232,9 @@ internal static class UnionUnknownEmitter
             .AddAttributeLists(EmissionSyntax.Attribute("JsonPropertyName", EmissionSyntax.StringArgument(union.MarkerWireName)))
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(SyntaxFactory.IdentifierName("_marker")))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(DocumentationSyntax.Documentation($"Gets the unrecognized {MarkerDescription(union)} marker."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(union.IsStreamFallbackCarrier
+                ? $"Gets the preserved {MarkerDescription(union)} marker."
+                : $"Gets the unrecognized {MarkerDescription(union)} marker."));
 
     private static PropertyDeclarationSyntax EmitFixedMarkerProperty(UnionFixedMarkerPlan marker) =>
         SyntaxFactory

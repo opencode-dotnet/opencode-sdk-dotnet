@@ -23,6 +23,9 @@ internal sealed record UnionPlan
 
     public required string UnknownTypeName { get; init; }
 
+    /// <summary>Gets whether a stream uses this union's unknown carrier for payload decode failures.</summary>
+    public bool IsStreamFallbackCarrier { get; init; }
+
     public required string MarkerWireName { get; init; }
 
     public required string MarkerName { get; init; }

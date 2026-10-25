@@ -28,6 +28,8 @@ internal sealed class TestStreamAdapter : IStreamAdapter<TestBody, TestStreamFai
 
     public JsonTypeInfo<TestBody> PayloadTypeInfo => TestBodyJsonContext.Default.TestBody;
 
+    public JsonTypeInfo? UnknownPayloadTypeInfo => null;
+
     public JsonTypeInfo<TestStreamFailureCause[]> CauseTypeInfo => TestBodyJsonContext.Default.TestStreamFailureCauseArray;
 
     public IOpenCodeError? ReadError(int status, string rawBody) => OpenCodeErrorReader.Read(rawBody, _allowedTags);

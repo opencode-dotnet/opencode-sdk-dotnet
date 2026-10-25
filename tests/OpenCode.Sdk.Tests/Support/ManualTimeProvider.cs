@@ -77,7 +77,21 @@ internal sealed class ManualTimeProvider : TimeProvider
     /// <param name="hangGuard">Bounds a timer that is never armed; it decides nothing else.</param>
     /// <param name="count">How many timers must be due then.</param>
     /// <returns>A task that completes once that many such timers are armed.</returns>
-    public Task WaitForArmedAsync(TimeSpan dueIn, TimeSpan hangGuard, int count = 1)
+    public Task WaitForArmedAsync(TimeSpan dueIn, TimeSpan hangGuard, int count = 1) =>
+        WaitForArmedCoreAsync(dueIn, hangGuard, count, CancellationToken.None);
+
+    /// <summary>
+    /// Completes as <see cref="WaitForArmedAsync"/> does, or ends with <paramref name="cancellationToken"/>'s
+    /// cancellation, so a test that races this wait can end and observe the loser.
+    /// </summary>
+    /// <param name="dueIn">How far from now the timer must be due.</param>
+    /// <param name="hangGuard">Bounds a timer that is never armed; it decides nothing else.</param>
+    /// <param name="cancellationToken">Ends the wait once the race is decided.</param>
+    /// <returns>A task that completes once such a timer is armed, or is canceled.</returns>
+    public Task WaitForArmedUntilCanceledAsync(TimeSpan dueIn, TimeSpan hangGuard, CancellationToken cancellationToken) =>
+        WaitForArmedCoreAsync(dueIn, hangGuard, 1, cancellationToken);
+
+    private Task WaitForArmedCoreAsync(TimeSpan dueIn, TimeSpan hangGuard, int count, CancellationToken cancellationToken)
     {
         var armed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         lock (_gate)
@@ -91,7 +105,7 @@ internal sealed class ManualTimeProvider : TimeProvider
             _armedWaiters.Add((due, count, armed));
         }
 
-        return armed.Task.WaitAsync(hangGuard);
+        return armed.Task.WaitAsync(hangGuard, cancellationToken);
     }
 
     /// <summary>

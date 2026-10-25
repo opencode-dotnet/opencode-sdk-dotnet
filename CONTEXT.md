@@ -351,8 +351,10 @@ _Avoid_: pattern arm (a general regex is never admitted); catch-all (the Unknown
 the catch-all).
 
 **Unknown variant carrier**:
-The per-union `Unknown*` variant absorbing discriminators that match neither a literal tag nor the
-union's prefix-tagged arm at runtime (tag string + raw payload).
+The per-union `Unknown*` variant preserving a tag string and raw payload for an unrecognized
+discriminator. On the event bus and session log, it can also hold a known variant that cannot be
+read; the union's prefix-tagged arm still excludes its markers from the carrier
+([stream payload tolerance](docs/architecture/client-runtime.md#server-sent-events)).
 
 **Plugin activation**:
 The asynchronous per-Location settling of a server's plugins, during which Providers register, the
