@@ -548,12 +548,7 @@ public sealed class EventsClientReconnectTests
         await caller.CancelOnWorkerAsync();
         server.DisposeClient();
 
-        OperationCanceledException? failure = null;
-        await Assert.That(async () => failure = await PendingCancellationAsync(events).WaitAsync(HangGuard.Bound)).ThrowsNothing();
-
-        await Assert.That(failure).IsNotNull();
-        await Assert.That(failure!.CancellationToken).IsEqualTo(caller.Token);
-        await Assert.That(failure.Message).IsEqualTo("The opencode event stream read was canceled.");
+        await AssertReadCanceledByCallerAsync(PendingCancellationAsync(events), caller.Token);
     }
 
     /// <summary>A disposed client ends the stream at once, whatever it is doing, and nothing opens again.</summary>
@@ -642,6 +637,16 @@ public sealed class EventsClientReconnectTests
 
         server.Time.Advance(TimeSpan.FromMinutes(2));
         await Assert.That(server.RequestCount).IsEqualTo(1);
+    }
+
+    /// <summary>Asserts the pull ends in the caller's own cancellation with the stream's canceled text.</summary>
+    private static async Task AssertReadCanceledByCallerAsync(Task<OperationCanceledException?> pending, CancellationToken caller)
+    {
+        // The caller's token is already canceled: it is the identity under test, so the wait must not observe it.
+        var failure = await Assert.That(pending.WaitAsync(HangGuard.Bound, CancellationToken.None)).ThrowsNothing();
+        await Assert.That(failure).IsNotNull();
+        await Assert.That(failure!.CancellationToken).IsEqualTo(caller);
+        await Assert.That(failure.Message).IsEqualTo("The opencode event stream read was canceled.");
     }
 
     /// <summary>
@@ -752,12 +757,7 @@ public sealed class EventsClientReconnectTests
         await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
         await caller.CancelOnWorkerAsync();
 
-        OperationCanceledException? failure = null;
-        failure = await Assert.That(pending.WaitAsync(HangGuard.Bound)).ThrowsNothing();
-
-        await Assert.That(failure).IsNotNull();
-        await Assert.That(failure!.CancellationToken).IsEqualTo(caller.Token);
-        await Assert.That(failure.Message).IsEqualTo("The opencode event stream read was canceled.");
+        await AssertReadCanceledByCallerAsync(pending, caller.Token);
     }
 
     [Test]
