@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 /// <summary>The header every generated source carries; the writer refuses files without it.</summary>
@@ -7,6 +9,9 @@ internal static class GenerationProvenance
     public const string SecondLine = "// Do not edit by hand — change tools/curation.json or the emitters, then regenerate.";
     public const string Header = $"{FirstLine}\n{SecondLine}\n";
 
+    private static readonly byte[] FirstLineUtf8 = Encoding.UTF8.GetBytes(FirstLine);
+    private static readonly byte[] SecondLineUtf8 = Encoding.UTF8.GetBytes(SecondLine);
+
     /// <summary>Checks whether the content opens with the exact provenance header, tolerating CRLF.</summary>
     /// <param name="content">The decoded file content.</param>
     /// <returns>Whether the header is present.</returns>
@@ -14,9 +19,25 @@ internal static class GenerationProvenance
     {
         ArgumentNullException.ThrowIfNull(content);
 
-        var lines = content.Split('\n');
-        return lines.Length >= 2
-               && string.Equals(lines[0].TrimEnd('\r'), FirstLine, StringComparison.Ordinal)
-               && string.Equals(lines[1].TrimEnd('\r'), SecondLine, StringComparison.Ordinal);
+        return HasHeader(content.AsSpan(), FirstLine.AsSpan(), SecondLine.AsSpan(), '\n', '\r');
+    }
+
+    public static bool HasHeader(ReadOnlySpan<byte> content) =>
+        HasHeader(content, FirstLineUtf8, SecondLineUtf8, (byte)'\n', (byte)'\r');
+
+    private static bool HasHeader<T>(ReadOnlySpan<T> content, ReadOnlySpan<T> firstLine, ReadOnlySpan<T> secondLine,
+        T lineFeed, T carriageReturn) where T : IEquatable<T>
+    {
+        var firstEnd = content.IndexOf(lineFeed);
+        if (firstEnd < 0)
+        {
+            return false;
+        }
+
+        var remainder = content[(firstEnd + 1)..];
+        var secondEnd = remainder.IndexOf(lineFeed);
+        var second = secondEnd < 0 ? remainder : remainder[..secondEnd];
+        return content[..firstEnd].TrimEnd(carriageReturn).SequenceEqual(firstLine)
+            && second.TrimEnd(carriageReturn).SequenceEqual(secondLine);
     }
 }

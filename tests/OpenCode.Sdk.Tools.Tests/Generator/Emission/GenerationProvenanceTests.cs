@@ -1,0 +1,37 @@
+using System.Text;
+using OpenCode.Sdk.Tools.Generator.Emission;
+
+namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
+
+public sealed class GenerationProvenanceTests
+{
+    private const string First = GenerationProvenance.FirstLine;
+    private const string Second = GenerationProvenance.SecondLine;
+
+    [Test]
+    [Arguments("LF", First + "\n" + Second + "\n", true)]
+    [Arguments("CRLF", First + "\r\n" + Second + "\r\n", true)]
+    [Arguments("repeated CR", First + "\r\r\n" + Second + "\r\r\n", true)]
+    [Arguments("no final LF", First + "\n" + Second, true)]
+    [Arguments("extra body", First + "\n" + Second + "\nnamespace Example;", true)]
+    [Arguments("empty", "", false)]
+    [Arguments("missing second line", First, false)]
+    [Arguments("missing first line", Second, false)]
+    [Arguments("mismatched first line", "// Other\n" + Second, false)]
+    [Arguments("mismatched second line", First + "\n// Other", false)]
+    [Arguments("blank line between", First + "\n\n" + Second, false)]
+    [Arguments("lone CR separator", First + "\r" + Second, false)]
+    [Arguments("leading CR", "\r" + First + "\n" + Second, false)]
+    [Arguments("CR after LF", First + "\n\r" + Second, false)]
+    [Arguments("BOM", "\uFEFF" + First + "\n" + Second, false)]
+    [Arguments("leading space", " " + First + "\n" + Second, false)]
+    [Arguments("trailing space", First + "\n" + Second + " ", false)]
+    [Arguments("leading tab", "\t" + First + "\n" + Second, false)]
+    [Arguments("trailing tab", First + "\n" + Second + "\t", false)]
+    [Arguments("CR then space", First + "\n" + Second + "\r ", false)]
+    public async Task HasHeader_Should_Preserve_Two_Line_Acceptance(string label, string content, bool expected)
+    {
+        await Assert.That(GenerationProvenance.HasHeader(content)).IsEqualTo(expected).Because(label);
+        await Assert.That(GenerationProvenance.HasHeader(Encoding.UTF8.GetBytes(content))).IsEqualTo(expected).Because(label);
+    }
+}
