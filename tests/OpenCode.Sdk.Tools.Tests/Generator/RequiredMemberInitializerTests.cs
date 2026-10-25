@@ -9,8 +9,8 @@ using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator;
 
-/// <summary>Reads every C# source of the tools project except bin/ and obj/, so a required member anywhere in the project is checked.</summary>
-public sealed class RequiredCollectionInitializerTests
+/// <summary>Reads every C# source of the tools project except bin/ and obj/, so a required property anywhere in the project is checked.</summary>
+public sealed class RequiredMemberInitializerTests
 {
     [Test]
     public async Task Required_Members_Should_Not_Allocate_Replaced_Initial_Values()
