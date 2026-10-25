@@ -6,7 +6,7 @@ internal sealed record TerminalSendTimeout
     public TerminalSendTimeout(TimeSpan value)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(value, TimeSpan.FromMilliseconds(1));
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(value, TimeSpan.FromMilliseconds(int.MaxValue));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(value, TimerBounds.TimerCeiling);
         Value = value;
     }
 

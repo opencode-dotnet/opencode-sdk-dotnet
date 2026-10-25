@@ -26,7 +26,7 @@ public sealed class OpenCodeRequestOptions
     public TimeSpan? NetworkTimeout
     {
         get;
-        init => field = Internal.NetworkTimeouts.Validate(value, nameof(value));
+        init => field = Internal.TimerBounds.ValidateNetworkTimeout(value, nameof(value));
     }
 
     /// <summary>Gets a shared instance that returns API errors on the response envelope.</summary>

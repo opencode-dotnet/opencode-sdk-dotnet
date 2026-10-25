@@ -121,12 +121,7 @@ internal static class ResponseEncodingPolicy
     }
 
     /// <summary>The JSON wire's overwhelmingly common charset skips the encoding-name lookup.</summary>
-    private static bool IsUtf8Name(ReadOnlySpan<char> name) =>
-#if NET8_0_OR_GREATER
-        Ascii.EqualsIgnoreCase(name, "utf-8");
-#else
-        name.Equals("utf-8".AsSpan(), StringComparison.OrdinalIgnoreCase);
-#endif
+    private static bool IsUtf8Name(ReadOnlySpan<char> name) => name.Equals("utf-8".AsSpan(), StringComparison.OrdinalIgnoreCase);
 
     private static int GetPreambleLength(byte[] body, int count, Encoding encoding)
     {

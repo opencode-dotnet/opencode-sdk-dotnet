@@ -295,6 +295,7 @@ internal static class ReservedNamePolicy
             "TerminalSocketCore",
             "TerminalSubmission",
             "TimedCancellation",
+            "TimerBounds",
             "TransportPolicy",
             "TreeKillOutcome",
             "UnionDiscriminatorReader",

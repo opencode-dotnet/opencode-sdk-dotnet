@@ -7,9 +7,6 @@ namespace OpenCode.Sdk;
 /// </summary>
 public sealed class OpenCodeServerOptions
 {
-    /// <summary>The longest duration every supported timer can represent.</summary>
-    private static readonly TimeSpan TimerCeiling = TimeSpan.FromMilliseconds(int.MaxValue);
-
     private TimeSpan _readinessTimeout = TimeSpan.FromSeconds(60);
     private TimeSpan _gracefulShutdownTimeout = TimeSpan.FromSeconds(3);
 
@@ -100,7 +97,7 @@ public sealed class OpenCodeServerOptions
     private static TimeSpan WithinTimerRange(TimeSpan value, TimeSpan minimum)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(value, minimum);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(value, TimerCeiling);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(value, Internal.TimerBounds.TimerCeiling);
         return value;
     }
 }

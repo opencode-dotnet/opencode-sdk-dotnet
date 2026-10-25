@@ -55,7 +55,7 @@ public sealed class OpenCodeClientOptions
     public TimeSpan? NetworkTimeout
     {
         get;
-        set => field = Internal.NetworkTimeouts.Validate(value, nameof(value));
+        set => field = Internal.TimerBounds.ValidateNetworkTimeout(value, nameof(value));
     }
 
     /// <summary>
@@ -74,6 +74,6 @@ public sealed class OpenCodeClientOptions
     public TimeSpan? EventStreamIdleTimeout
     {
         get;
-        set => field = Internal.StreamReconnect.ValidateIdleWindow(value, nameof(value));
+        set => field = Internal.TimerBounds.ValidateIdleWindow(value, nameof(value));
     }
 }
