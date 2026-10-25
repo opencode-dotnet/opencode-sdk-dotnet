@@ -33,15 +33,7 @@ internal static class EmitterPlanFixture
 
     public static Task<EmitPlan> CreateNestedImpossibleStreamPlanAsync() =>
         CreateImpossibleStreamPlanAsync(static (schemas, cause) =>
-        {
-            var target = ((RefNode)cause.Branches[1]).Target;
-            var arm = (ObjectNode)schemas[target];
-            schemas[target] = arm with
-            {
-                Properties = [.. arm.Properties.Select(property => property.Name is "defect"
-                    ? property with { Schema = new RefNode { Target = "Nested" } } : property)],
-            };
-        });
+            schemas["ExampleEvent"] = cause with { Branches = [.. cause.Branches.Skip(1)] });
 
     private static async Task<EmitPlan> CreateImpossibleStreamPlanAsync(Action<Dictionary<string, SchemaNode>, UnionNode>? arrangeNested)
     {
@@ -52,6 +44,13 @@ internal static class EmitterPlanFixture
         var schemas = document.Schemas.ToDictionary(static pair => pair.Key, static pair => pair.Value, StringComparer.Ordinal);
         schemas["Nested"] = cause;
         schemas["ExampleEvent"] = cause;
+        var target = ((RefNode)cause.Branches[1]).Target;
+        var arm = (ObjectNode)schemas[target];
+        schemas[target] = arm with
+        {
+            Properties = [.. arm.Properties.Select(property => property.Name is "defect"
+                ? property with { Schema = new RefNode { Target = "Nested" } } : property)],
+        };
         arrangeNested?.Invoke(schemas, cause);
         return new BindingTestHost().Bind(document with { Schemas = schemas }, Selection(StreamOperationScenario.OperationId),
             Curation(Groups(StreamOperationScenario.GroupName, RootGroup())));

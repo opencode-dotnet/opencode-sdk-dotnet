@@ -390,6 +390,10 @@ session. Upstream serves it as an experimental route, so it needs an
 [opt-in](experimental.md#opencode003) (`OPENCODE003`).
 
 ```csharp
+using System.Text.Json;
+```
+
+```csharp
 var session = client.Sessions.GetSessionClient(sessionId);
 
 await foreach (var item in session.ReadLogAsync(new SessionLogRequest { Follow = true }, cancellationToken: cancellationToken))

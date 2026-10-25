@@ -99,8 +99,8 @@ internal static class SecretMemberPolicy
     }
 
     /// <summary>
-    /// Finds every named type that reaches one of the targets through union arms or model members.
-    /// It also serves the stream-fallback impossible-tag check, which is why the traversal is shared.
+    /// Finds every named type that reaches one of the targets, the targets included, through union
+    /// arms or model members. It also serves the stream-fallback impossible-tag check, which is why the traversal is shared.
     /// </summary>
     public static IReadOnlySet<string> ReachingTypes(IReadOnlyList<ModelPlan> models, IReadOnlyList<UnionPlan> unions, IEnumerable<string> targetNames)
     {
