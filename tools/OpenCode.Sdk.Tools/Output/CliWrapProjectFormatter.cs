@@ -56,6 +56,12 @@ internal sealed class CliWrapProjectFormatter(IFileSystem fileSystem, IProcessRu
         var fullProjectPath = _fileSystem.Path.GetFullPath(projectPath);
         var projectDirectory = _fileSystem.Path.GetDirectoryName(fullProjectPath)
                                ?? throw new InvalidOperationException($"Project path '{projectPath}' has no parent directory.");
+        if (!_fileSystem.File.Exists(_fileSystem.Path.Combine(projectDirectory, "obj", "project.assets.json")))
+        {
+            throw new OutputRefusalException(
+                $"Project '{projectPath}' has not been restored; run 'dotnet restore {projectPath}' before generating because the formatter needs the restored project to remove redundant usings.");
+        }
+
         var projectFileName = _fileSystem.Path.GetFileName(fullProjectPath);
         var formatterDirectory = await ResolveFormatterDirectoryAsync(projectDirectory, cancellationToken).ConfigureAwait(false);
 
