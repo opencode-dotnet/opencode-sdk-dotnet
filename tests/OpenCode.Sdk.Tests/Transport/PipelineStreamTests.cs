@@ -776,4 +776,18 @@ public sealed class PipelineStreamTests
 
         return payloads;
     }
+
+    [Test]
+    public async Task ExecuteStreamAsync_Should_Report_The_Exact_Media_Wall_Text()
+    {
+        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(string.Empty),
+        });
+        using var httpClient = new HttpClient(handler);
+        using var pipeline = PipelineFactory.Create(httpClient);
+
+        var failure = await Assert.That(async () => _ = await CollectAsync(pipeline)).Throws<OpenCodeTransportException>();
+        await Assert.That(failure!.Message).IsEqualTo("The opencode API answered a streaming operation without an event-stream body.");
+    }
 }
