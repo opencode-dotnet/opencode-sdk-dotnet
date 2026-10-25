@@ -15,7 +15,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<DescriptionCuration>());
+    }
 
     /// <summary>The payload identifier projected explicitly by qualifying event records.</summary>
     [JsonPropertyName("sessionScopedEvent")]
@@ -30,7 +30,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = new ReadOnlyDictionary<string, GroupCuration>(new Dictionary<string, GroupCuration>(value, StringComparer.Ordinal));
         }
-    } = new ReadOnlyDictionary<string, GroupCuration>(new Dictionary<string, GroupCuration>(StringComparer.Ordinal));
+    }
 
     [JsonPropertyName("operationIdentities")]
     public required IReadOnlyList<OperationIdentityCuration> OperationIdentities
@@ -41,7 +41,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<OperationIdentityCuration>());
+    }
 
     [JsonPropertyName("operationNames")]
     public required IReadOnlyList<OperationNameCuration> OperationNames
@@ -52,7 +52,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<OperationNameCuration>());
+    }
 
     [JsonPropertyName("parameterNames")]
     public required IReadOnlyList<ParameterNameCuration> ParameterNames
@@ -63,7 +63,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<ParameterNameCuration>());
+    }
 
     [JsonPropertyName("schemaNames")]
     public required IReadOnlyList<SchemaNameCuration> SchemaNames
@@ -74,7 +74,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<SchemaNameCuration>());
+    }
 
     [JsonPropertyName("envelopePayloadNames")]
     public required IReadOnlyList<EnvelopePayloadNameCuration> EnvelopePayloadNames
@@ -85,7 +85,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<EnvelopePayloadNameCuration>());
+    }
 
     [JsonPropertyName("schemaAliases")]
     public required IReadOnlyList<SchemaAlias> SchemaAliases
@@ -96,7 +96,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<SchemaAlias>());
+    }
 
     /// <summary>Fingerprints for operations that are never selected but that hand-written code depends on (ADR-0021).</summary>
     [JsonPropertyName("transportOwned")]
@@ -108,7 +108,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<TransportOwnedCuration>());
+    }
 
     /// <summary>Names for the interfaces hoisted promoted-object members are declared with.</summary>
     [JsonPropertyName("hoistedMemberNames")]
@@ -120,7 +120,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<HoistedMemberNameCuration>());
+    }
 
     /// <summary>Names for enum members whose mechanical Pascal casing the reviewed surface does not want.</summary>
     [JsonPropertyName("enumMemberNames")]
@@ -132,7 +132,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<EnumMemberNameCuration>());
+    }
 
     /// <summary>Judgements on printed member values beside the upstream redaction list (ADR-0028).</summary>
     [JsonPropertyName("redactedMembers")]
@@ -144,7 +144,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<RedactedMemberCuration>());
+    }
 
     /// <summary>Judgements on every open model's printed extension data, one row per open model.</summary>
     [JsonPropertyName("redactedOpenMembers")]
@@ -156,7 +156,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<RedactedOpenMembersCuration>());
+    }
 
     /// <summary>Wire names the secret-name wall stops that carry no credential (ADR-0028).</summary>
     [JsonPropertyName("secretLookingNames")]
@@ -168,7 +168,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<SecretLookingNameCuration>());
+    }
 
     /// <summary>Operations a standing wall refuses and the maintainer has decided to leave out of the generated surface.</summary>
     [JsonPropertyName("declined")]
@@ -180,7 +180,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<DeclinedCuration>());
+    }
 
     /// <summary>Owners of the models no family prefix places, each with its reason.</summary>
     [JsonPropertyName("modelOwners")]
@@ -192,7 +192,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<ModelOwnerCuration>());
+    }
 
     /// <summary>The areas the Sessions family's models split into, each with its reason.</summary>
     [JsonPropertyName("sessionAreas")]
@@ -204,7 +204,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<SessionAreaCuration>());
+    }
 
     /// <summary>The query parameters the document projects as strings that bind as integers, each with its decode evidence.</summary>
     [JsonPropertyName("queryParameterTypes")]
@@ -216,7 +216,7 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<QueryParameterTypeCuration>());
+    }
 
     /// <summary>The plain-string query parameters that stay strings by design, each with its reason.</summary>
     [JsonPropertyName("stringQueryParameters")]
@@ -228,5 +228,5 @@ internal sealed record GenerationCuration
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<StringQueryParameterCuration>());
+    }
 }

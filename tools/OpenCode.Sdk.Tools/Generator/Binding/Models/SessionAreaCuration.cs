@@ -20,7 +20,7 @@ internal sealed record SessionAreaCuration : IReasonedRow
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     [JsonPropertyName("reason")] public required string Reason { get; init; }
 }

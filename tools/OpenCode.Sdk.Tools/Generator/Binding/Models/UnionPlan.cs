@@ -37,7 +37,7 @@ internal sealed record UnionPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<UnionVariantPlan>());
+    }
 
     /// <summary>
     /// Gets the prefix-tagged arm, dispatched after every literal tag and before the unknown

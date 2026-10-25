@@ -28,7 +28,7 @@ internal sealed record ClientPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<ClientReferencePlan>());
+    }
 
     /// <summary>Gets the handle factory a collection client exposes, when its group declares a handle.</summary>
     public HandleFactoryPlan? HandleFactory { get; init; }
@@ -44,5 +44,5 @@ internal sealed record ClientPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<OperationPlan>());
+    }
 }

@@ -1,10 +1,13 @@
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
+using OpenCode.Sdk.Tools.Output;
+using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
 /// <summary>
-/// Pins the one table that turns a generated file's kind and owner into its path. Every owned kind
+/// Pins the kind/owner path table and that the validator admits each kind's path for an area owner. Every owned kind
 /// refuses a missing owner even where its folder does not depend on the owner yet, so the owner is
 /// known for every file before the folders move to their slices. Kinds travel as names because the
 /// enum is internal to the generator and a public test method cannot take it.
@@ -17,6 +20,24 @@ public sealed class GeneratedPlacementTests
     private const string SessionMessage = "SessionMessage";
     private const string SessionForkRequest = "SessionForkRequest";
     private const string UnplacedName = "SessionStray";
+
+    [Test]
+    public async Task PathOf_Should_Admit_Every_Kind_Through_The_Same_Layout()
+    {
+        var placement = new PlacementValidator(GenerationTestData.CreateFileSystem());
+        var sources = Enum.GetValues<GeneratedKind>().Select(kind => GenerationTestData.Source(
+            GeneratedPlacement.PathOf(kind, Owner(SessionsSlice, MessagesArea), kind.ToString()), "")).ToArray();
+        var admitted = placement.ValidateSources(GenerationTestData.OutputRoot, sources, [SessionsSlice], ["Sessions/Models/Messages"]);
+        await Assert.That(admitted.Keys.Order(StringComparer.Ordinal)).IsEquivalentTo(
+        [
+            "Internal/Serialization/SharedSerialization.cs", "RootClient.cs",
+            "Sessions/BodyRequest.cs", "Sessions/Client.cs",
+            "Sessions/Internal/EnvelopeDto.cs", "Sessions/Internal/ModelConverter.cs",
+            "Sessions/Internal/RawClient.cs", "Sessions/Internal/ResponseAdapter.cs",
+            "Sessions/Internal/Routes.Sessions.cs", "Sessions/Internal/StreamAdapter.cs",
+            "Sessions/Models/Messages/Model.cs", "Sessions/OperationRecord.cs",
+        ], CollectionOrdering.Matching);
+    }
 
     [Test]
     [Arguments("Model", SessionsSlice, null, SessionInfo, "Sessions/Models/SessionInfo.cs")]

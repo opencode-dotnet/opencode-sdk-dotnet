@@ -14,7 +14,7 @@ internal sealed record UnionHoistPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<UnionPlan>());
+    }
 
     public required IReadOnlyList<ModelPlan> Models
     {
@@ -24,7 +24,7 @@ internal sealed record UnionHoistPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<ModelPlan>());
+    }
 
     public required IReadOnlyList<HoistedInterfacePlan> Interfaces
     {
@@ -34,5 +34,5 @@ internal sealed record UnionHoistPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<HoistedInterfacePlan>());
+    }
 }

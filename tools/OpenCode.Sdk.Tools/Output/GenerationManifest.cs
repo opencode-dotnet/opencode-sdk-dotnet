@@ -14,7 +14,7 @@ internal sealed record GenerationManifest
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     /// <summary>
     /// Gets the stabilize duplicates the binder folded without a curation row, each mapped to

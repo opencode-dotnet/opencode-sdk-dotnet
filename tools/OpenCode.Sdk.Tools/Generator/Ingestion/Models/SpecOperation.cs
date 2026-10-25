@@ -23,7 +23,7 @@ internal sealed record SpecOperation
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     /// <summary>Gets the invariant-lowercase HTTP method.</summary>
     public required string Method
@@ -74,7 +74,7 @@ internal sealed record SpecOperation
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<SpecParameter>());
+    }
 
     /// <summary>Gets the request body, when supplied.</summary>
     public SpecRequestBody? RequestBody { get; init; }
@@ -88,5 +88,5 @@ internal sealed record SpecOperation
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<SpecResponse>());
+    }
 }

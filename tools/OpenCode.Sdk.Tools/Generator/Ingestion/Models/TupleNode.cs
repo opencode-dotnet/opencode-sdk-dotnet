@@ -12,7 +12,7 @@ internal sealed record TupleNode : SchemaNode
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<SchemaNode>());
+    }
 
     /// <inheritdoc />
     public override IEnumerable<SchemaNode> Children => Items;

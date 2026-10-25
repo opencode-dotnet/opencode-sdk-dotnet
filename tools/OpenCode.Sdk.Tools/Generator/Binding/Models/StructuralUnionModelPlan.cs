@@ -14,7 +14,7 @@ internal sealed record StructuralUnionModelPlan : ModelPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<StructuralUnionArmPlan>());
+    }
 
     /// <summary>
     /// Gets whether the printed form masks the Unknown arm's preserved token: a known arm carries a

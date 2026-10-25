@@ -15,7 +15,7 @@ internal sealed record EmitPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     public required IReadOnlyList<ModelPlan> Models
     {
@@ -25,7 +25,7 @@ internal sealed record EmitPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<ModelPlan>());
+    }
 
     public required IReadOnlyList<UnionPlan> Unions
     {
@@ -35,7 +35,7 @@ internal sealed record EmitPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<UnionPlan>());
+    }
 
     /// <summary>Gets the interfaces emitted for hoisted promoted-object members (ADR-0011).</summary>
     public IReadOnlyList<HoistedInterfacePlan> HoistedInterfaces
@@ -58,7 +58,7 @@ internal sealed record EmitPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<ClientPlan>());
+    }
 
     public required IReadOnlyList<PendingOperationPlan> PendingOperations
     {
@@ -68,7 +68,7 @@ internal sealed record EmitPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<PendingOperationPlan>());
+    }
 
     /// <summary>
     /// Operations a <c>transportOwned</c> curation row covers: neither selected nor pending, their
@@ -82,7 +82,7 @@ internal sealed record EmitPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     /// <summary>
     /// Operations a <c>declined</c> curation row covers: neither selected nor pending, a standing
@@ -96,7 +96,7 @@ internal sealed record EmitPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<DeclinedOperationPlan>());
+    }
 
     /// <summary>
     /// Gets the stabilize duplicates the binder folded mechanically, the committed telltale the

@@ -19,7 +19,7 @@ internal sealed record ModelPlacement
             ArgumentNullException.ThrowIfNull(value);
             field = new ReadOnlyDictionary<string, TypeHome>(new Dictionary<string, TypeHome>(value, StringComparer.Ordinal));
         }
-    } = new ReadOnlyDictionary<string, TypeHome>(new Dictionary<string, TypeHome>(StringComparer.Ordinal));
+    }
 
     /// <summary>Gets the models neither a body-request operation, a union, an owner row nor a family prefix places, ordinal-sorted.</summary>
     public IReadOnlyList<string> Unplaced

@@ -36,7 +36,7 @@ internal sealed record OperationPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<OperationParameterPlan>());
+    }
 
     /// <summary>
     /// Gets the document-declared request headers, in declaration order. Only an internal-raw

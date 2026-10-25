@@ -9,10 +9,6 @@ internal sealed class PlacementValidator(IFileSystem fileSystem)
 {
     internal static readonly StringComparer OwnedPathComparer = StringComparer.OrdinalIgnoreCase;
 
-    /// <summary>Root Models/Pagination are forbidden too: families cannot recreate the pre-slice layout.</summary>
-    private static readonly string[] ReservedFolders = ["Common", "Internal", "Hosting", "Properties", "Models", "Pagination"];
-    /// <summary>The shared homes generated files may live in beside the families.</summary>
-    private static readonly string[] SharedFolders = ["Internal/Serialization/", "Common/Errors/", "Common/Internal/"];
     private readonly IFileSystem _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
 
     public IReadOnlyDictionary<string, GeneratedSource> ValidateSources(string outputRoot, IReadOnlyList<GeneratedSource> sources,
@@ -31,7 +27,7 @@ internal sealed class PlacementValidator(IFileSystem fileSystem)
             _ = ResolveOwnedPath(outputRoot, source.RelativePath);
             if (!source.RelativePath.EndsWith(".cs", StringComparison.Ordinal)
                 || !(!source.RelativePath.Contains('/', StringComparison.Ordinal)
-                     || IsSharedPath(source.RelativePath) || IsAdmittedFamilyPath(source.RelativePath, families, areas)))
+                     || GeneratedPlacement.IsSharedPath(source.RelativePath) || IsAdmittedFamilyPath(source.RelativePath, families, areas)))
             {
                 throw new OutputRefusalException($"Generated source path '{source.RelativePath}' is outside the owned source directories.");
             }
@@ -114,15 +110,7 @@ internal sealed class PlacementValidator(IFileSystem fileSystem)
     /// </summary>
     public static void ValidateManifestSourcePath(string relativePath)
     {
-        var segments = relativePath.Split('/');
-        var shaped = segments.Length switch
-        {
-            1 or 2 => true,
-            3 => segments[1] is "Models" or "Internal" || IsSharedPath(relativePath),
-            4 => segments[1] is "Models",
-            _ => false,
-        };
-        if (!relativePath.EndsWith(".cs", StringComparison.Ordinal) || !shaped)
+        if (!relativePath.EndsWith(".cs", StringComparison.Ordinal) || !GeneratedPlacement.IsManifestPath(relativePath))
         {
             throw new OutputRefusalException($"Generation manifest path '{relativePath}' is outside the owned source directories.");
         }
@@ -140,7 +128,7 @@ internal sealed class PlacementValidator(IFileSystem fileSystem)
                 throw new OutputRefusalException($"Family folder '{folder}' is unsafe.");
             }
 
-            if (ReservedFolders.Contains(folder, OwnedPathComparer))
+            if (GeneratedPlacement.ReservedFolders.Contains(folder, OwnedPathComparer))
             {
                 throw new OutputRefusalException($"Family folder '{folder}' shadows a reserved folder name.");
             }
@@ -159,9 +147,9 @@ internal sealed class PlacementValidator(IFileSystem fileSystem)
         var result = new HashSet<string>(OwnedPathComparer);
         foreach (var folder in areaFolders)
         {
-            if (folder.Split('/') is not [var family, "Models", var area]
+            if (folder.Split('/') is not [var family, GeneratedPlacement.ModelsFolder, var area]
                 || !IsExactly(familyFolders, family) || string.IsNullOrWhiteSpace(area) || area is "." or ".."
-                || area.Contains('\\', StringComparison.Ordinal) || ReservedFolders.Contains(area, OwnedPathComparer))
+                || area.Contains('\\', StringComparison.Ordinal) || GeneratedPlacement.ReservedFolders.Contains(area, OwnedPathComparer))
             {
                 throw new OutputRefusalException($"Model area folder '{folder}' is not an area of an admitted family.");
             }
@@ -175,9 +163,6 @@ internal sealed class PlacementValidator(IFileSystem fileSystem)
         return result;
     }
 
-    private static bool IsSharedPath(string relativePath) => SharedFolders.Any(folder =>
-        relativePath.StartsWith(folder, StringComparison.Ordinal) && !relativePath[folder.Length..].Contains('/', StringComparison.Ordinal));
-
     private static bool IsAdmittedFamilyPath(string relativePath, HashSet<string> families, HashSet<string> areas)
     {
         var segments = relativePath.Split('/');
@@ -186,13 +171,8 @@ internal sealed class PlacementValidator(IFileSystem fileSystem)
             return false;
         }
 
-        return segments switch
-        {
-            [_, _] => true,
-            [_, "Models" or "Internal", _] => true,
-            [_, "Models", _, _] => IsExactly(areas, string.Join('/', segments[..3])),
-            _ => false,
-        };
+        return GeneratedPlacement.IsFamilyPath(segments)
+            && (segments.Length != 4 || IsExactly(areas, string.Join('/', segments[..3])));
     }
 
     /// <summary>Collision detection is case-insensitive, but admission needs the exact spelling.</summary>

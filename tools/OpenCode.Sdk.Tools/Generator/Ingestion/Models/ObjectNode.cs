@@ -12,7 +12,7 @@ internal sealed record ObjectNode : SchemaNode
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<SpecProperty>());
+    }
 
     /// <summary>Gets how properties not declared by name are treated.</summary>
     public required AdditionalPropertiesKind AdditionalProperties { get; init; }
@@ -29,7 +29,7 @@ internal sealed record ObjectNode : SchemaNode
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<LiteralMarker>());
+    }
 
     /// <summary>
     /// Gets the required string properties constrained to a literal prefix, in document order;

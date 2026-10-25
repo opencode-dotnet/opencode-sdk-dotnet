@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Text;
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Abstractions;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
@@ -41,7 +39,7 @@ internal sealed class GenerationCoordinator(
         var selection = await _selectionLoader.LoadAsync(request.ProfilePath, cancellationToken).ConfigureAwait(false);
 
         var plan = _binder.Bind(document, selection, curation);
-        RefuseUnplacedModels(plan.Placement);
+        PartialMarkerComposer.RefuseUnplacedModels(plan.Placement);
 
         var pending = plan
             .PendingOperations
@@ -60,14 +58,14 @@ internal sealed class GenerationCoordinator(
         var declinedMarks = declined.Count > 0
             ? _pendingProbe.Probe(document, [.. declined.Select(static operation => operation.OperationId)])
             : [];
-        RefuseBindableDeclines(declinedMarks);
+        PartialMarkerComposer.RefuseBindableDeclines(declinedMarks);
 
         // Transport-owned operations are not pending — the binder keeps them out — so they are
         // never probed; the marker lists them beside the pending map as fingerprint-pinned. The
         // marker outlives a cleared pending set: while any operation stands outside the generated
         // surface by decision, the file is the committed record of which ones and why.
         var marker = pending.Length > 0 || declined.Count > 0 || plan.TransportOwnedOperationIds.Count > 0
-            ? CreatePartialMarker(plan.SelectedOperationIds, pendingMarks, declined, declinedMarks, plan.TransportOwnedOperationIds)
+            ? PartialMarkerComposer.Compose(plan.SelectedOperationIds, pendingMarks, declined, declinedMarks, plan.TransportOwnedOperationIds)
             : null;
 
         var reach = ModelReachReport.Compose(plan.Placement, plan.ModelReach);
@@ -109,7 +107,7 @@ internal sealed class GenerationCoordinator(
             [
                 .. plan.Placement.Homes.Values
                     .Where(static home => home.Area is not null)
-                    .Select(static home => $"{home.Slice}/Models/{home.Area}")
+                    .Select(GeneratedPlacement.ModelAreaFolder)
                     .Distinct(StringComparer.Ordinal)
                     .Order(StringComparer.Ordinal),
             ],
@@ -135,96 +133,4 @@ internal sealed class GenerationCoordinator(
         QueryParameterEvidencePolicy.Check(curation, watch, errors);
         errors.ThrowIfAny();
     }
-
-    /// <summary>
-    /// A decline states that a wall stands over the operation. The probe binds it through the real
-    /// selection path, so a bindable mark means the wall the row cites is gone — an upstream fix or
-    /// a generator mechanism landed — and the decision has to be taken again rather than inherited.
-    /// </summary>
-    private static void RefuseBindableDeclines(IReadOnlyList<PendingOperationMark> declinedMarks)
-    {
-        var errors = new BindingErrorCollector();
-        foreach (var mark in declinedMarks.Where(static mark => mark.IsBindable))
-        {
-            errors.Add(
-                BindingErrorCategory.Curation,
-                mark.OperationId,
-                "a bindable operation cannot be declined — select it or leave it pending");
-        }
-
-        errors.ThrowIfAny();
-    }
-
-    /// <summary>
-    /// A model with no family prefix needs an owner row before it can be placed: a refresh that
-    /// brings one stops here until the row, with its reason, decides the model's folder.
-    /// </summary>
-    private static void RefuseUnplacedModels(ModelPlacement placement)
-    {
-        var errors = new BindingErrorCollector();
-        foreach (var model in placement.Unplaced)
-        {
-            errors.Add(
-                BindingErrorCategory.Curation,
-                model,
-                "the model has no family prefix and no modelOwners row: add a row naming its owner, with its reason");
-        }
-
-        errors.ThrowIfAny();
-    }
-
-    private static string CreatePartialMarker(IReadOnlyList<string> selected, IReadOnlyList<PendingOperationMark> pendingMarks,
-        IReadOnlyList<DeclinedOperationPlan> declined, IReadOnlyList<PendingOperationMark> declinedMarks,
-        IReadOnlyList<string> transportOwned)
-    {
-        // The headline is the packing wall's plain-language half: while an operation is pending,
-        // nobody has decided what to do about it, and a package would ship that silence.
-        var content = new StringBuilder()
-            .AppendLine(pendingMarks.Count > 0
-                ? "Generation is incomplete; packages must not be published."
-                : "Generation is complete at the declared coverage; packages may be published.")
-            .Append("Selected operations: ")
-            .AppendLine(selected.Count.ToString(CultureInfo.InvariantCulture))
-            .Append("Pending operations: ")
-            .AppendLine(pendingMarks.Count.ToString(CultureInfo.InvariantCulture))
-            .Append("Declined operations: ")
-            .AppendLine(declined.Count.ToString(CultureInfo.InvariantCulture))
-            .Append("Transport-owned operations: ")
-            .AppendLine(transportOwned.Count.ToString(CultureInfo.InvariantCulture));
-        AppendOperations(content, "Selected", selected);
-        AppendOperations(content, "Pending", pendingMarks.Select(FormatPendingLine));
-        AppendOperations(content, "Declined", FormatDeclinedLines(declined, declinedMarks));
-        AppendOperations(content, "Transport-owned", transportOwned.Select(FormatTransportOwnedLine));
-
-        return content.ToString().ReplaceLineEndings("\n");
-    }
-
-    /// <summary>
-    /// Each declined line carries the decision and the wall it rests on, so the reason and the
-    /// verbatim refusal the binder finds today are reviewed against each other in one place.
-    /// </summary>
-    private static IEnumerable<string> FormatDeclinedLines(IReadOnlyList<DeclinedOperationPlan> declined,
-        IReadOnlyList<PendingOperationMark> declinedMarks)
-    {
-        var marksById = declinedMarks.ToDictionary(static mark => mark.OperationId, StringComparer.Ordinal);
-        return declined.Select(operation =>
-            $"{operation.OperationId} [declined: {operation.Reason}] {FormatBindability(marksById[operation.OperationId])}");
-    }
-
-    private static void AppendOperations(StringBuilder content, string heading, IEnumerable<string> operationIds)
-    {
-        _ = content.Append(heading).AppendLine(":");
-        foreach (var operationId in operationIds)
-        {
-            _ = content.Append("- ").AppendLine(operationId);
-        }
-    }
-
-    private static string FormatPendingLine(PendingOperationMark mark) => $"{mark.OperationId} {FormatBindability(mark)}";
-
-    private static string FormatBindability(PendingOperationMark mark) =>
-        mark.IsBindable ? "[bindable]" : $"[refused: {mark.RefusalMessage}]";
-
-    /// <summary>The curation validator has already proven the row's subtree fingerprint on this bind.</summary>
-    private static string FormatTransportOwnedLine(string operationId) => $"{operationId} [fingerprint-pinned]";
 }

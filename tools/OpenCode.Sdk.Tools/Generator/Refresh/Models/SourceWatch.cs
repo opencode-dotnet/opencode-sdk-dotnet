@@ -21,5 +21,5 @@ internal sealed record SourceWatch
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<WatchedSource>());
+    }
 }

@@ -12,7 +12,7 @@ internal sealed record UnionNode : SchemaNode
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<SchemaNode>());
+    }
 
     /// <summary>Gets the OpenAPI keyword that declared the union.</summary>
     public required UnionKeyword Keyword { get; init; }

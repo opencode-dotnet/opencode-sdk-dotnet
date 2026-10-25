@@ -12,7 +12,7 @@ internal sealed record SpecDocument
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<SpecOperation>());
+    }
 
     /// <summary>Gets the schema graph under ordinal-sorted keys.</summary>
     public required IReadOnlyDictionary<string, SchemaNode> Schemas

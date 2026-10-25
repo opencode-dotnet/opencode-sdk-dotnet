@@ -18,7 +18,7 @@ internal sealed record StructuralObjectClaimPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     /// <summary>Gets the literal-constrained properties in document order.</summary>
     public required IReadOnlyList<StructuralSentinelPlan> Sentinels
@@ -29,5 +29,5 @@ internal sealed record StructuralObjectClaimPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<StructuralSentinelPlan>());
+    }
 }

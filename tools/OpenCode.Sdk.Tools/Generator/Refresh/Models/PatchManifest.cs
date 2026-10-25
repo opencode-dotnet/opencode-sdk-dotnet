@@ -30,7 +30,7 @@ internal sealed record PatchManifest
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     /// <summary>
     /// Gets the repair predicate evaluated against the raw upstream document: while it holds the

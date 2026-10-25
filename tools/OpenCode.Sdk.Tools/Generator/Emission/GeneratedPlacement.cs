@@ -3,11 +3,23 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 /// <summary>
-/// The one place a generated file's path is decided: its kind and its owner's home map to a path,
-/// so no emitter spells a folder.
+/// Owns generated paths and the folder shapes admission accepts (callers check the .cs suffix): each kind and owner's home map to a path,
+/// so no emitter or validator spells a folder.
 /// </summary>
 internal static class GeneratedPlacement
 {
+    public const string ModelsFolder = "Models";
+
+    /// <summary>Names a family or a model area cannot take; root Models/Pagination too, so no family recreates the old layout.</summary>
+    public static IReadOnlyList<string> ReservedFolders { get; } = Array.AsReadOnly(
+        [TypeHome.CommonSlice, InternalFolder, "Hosting", "Properties", ModelsFolder, "Pagination"]);
+
+    private const string InternalFolder = "Internal";
+    private const string SharedSerializationFolder = $"{InternalFolder}/Serialization";
+    private const string SharedErrorsFolder = $"{TypeHome.CommonSlice}/Errors";
+    /// <summary>The shared homes generated files may live in beside the families.</summary>
+    private static readonly string[] SharedFolders = [$"{SharedSerializationFolder}/", $"{SharedErrorsFolder}/", $"{TypeHome.CommonSlice}/{InternalFolder}/"];
+
     public static string PathOf(GeneratedKind kind, TypeHome? owner, string typeName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(typeName);
@@ -15,12 +27,12 @@ internal static class GeneratedPlacement
         return kind switch
         {
             GeneratedKind.RootClient => $"{typeName}.cs",
-            GeneratedKind.SharedSerialization => $"Internal/Serialization/{typeName}.cs",
-            GeneratedKind.Routes => $"{Slice(kind, owner)}/Internal/{typeName}.{Slice(kind, owner)}.cs",
+            GeneratedKind.SharedSerialization => $"{SharedSerializationFolder}/{typeName}.cs",
+            GeneratedKind.Routes => $"{Slice(kind, owner)}/{InternalFolder}/{typeName}.{Slice(kind, owner)}.cs",
             GeneratedKind.Model => $"{ModelFolder(kind, owner)}/{typeName}.cs",
             GeneratedKind.BodyRequest or GeneratedKind.OperationRecord or GeneratedKind.Client => $"{Slice(kind, owner)}/{typeName}.cs",
             GeneratedKind.RawClient or GeneratedKind.ModelConverter or GeneratedKind.EnvelopeDto or GeneratedKind.ResponseAdapter
-                or GeneratedKind.StreamAdapter => $"{Slice(kind, owner)}/Internal/{typeName}.cs",
+                or GeneratedKind.StreamAdapter => $"{Slice(kind, owner)}/{InternalFolder}/{typeName}.cs",
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown generated kind."),
         };
     }
@@ -40,6 +52,33 @@ internal static class GeneratedPlacement
         return PathOf(GeneratedKind.ModelConverter, placement.HomeOf(unionName), converterName);
     }
 
+    public static string ModelAreaFolder(TypeHome home)
+    {
+        ArgumentNullException.ThrowIfNull(home);
+        return $"{home.Slice}/{ModelsFolder}/{home.Area}";
+    }
+
+    public static bool IsSharedPath(string relativePath) => SharedFolders.Any(folder =>
+        relativePath.StartsWith(folder, StringComparison.Ordinal) && !relativePath[folder.Length..].Contains('/', StringComparison.Ordinal));
+
+    /// <summary>Segment shape only: sources also need the exact family and, at four segments, its area; the manifest takes the shape.</summary>
+    public static bool IsFamilyPath(IReadOnlyList<string> segments) => segments switch
+    {
+        [_, _] => true,
+        [_, ModelsFolder or InternalFolder, _] => true,
+        [_, ModelsFolder, _, _] => true,
+        _ => false,
+    };
+
+    public static bool IsManifestPath(string relativePath)
+    {
+        var segments = relativePath.Split('/');
+        return segments.Length == 1 || IsFamilyPath(segments) || IsSharedPath(relativePath);
+    }
+
+    private static string Slice(GeneratedKind kind, TypeHome? owner) =>
+        owner?.Slice ?? throw new InvalidOperationException($"A generated {kind} needs an owner.");
+
     /// <summary>
     /// A family's models live in its <c>Models/</c> folder, a Sessions model in its area's subfolder,
     /// and the shared error spine in <c>Common/Errors/</c>.
@@ -49,12 +88,9 @@ internal static class GeneratedPlacement
         var slice = Slice(kind, owner);
         if (owner!.IsCommon)
         {
-            return $"{TypeHome.CommonSlice}/Errors";
+            return SharedErrorsFolder;
         }
 
-        return owner.Area is null ? $"{slice}/Models" : $"{slice}/Models/{owner.Area}";
+        return owner.Area is null ? $"{slice}/{ModelsFolder}" : ModelAreaFolder(owner);
     }
-
-    private static string Slice(GeneratedKind kind, TypeHome? owner) =>
-        owner?.Slice ?? throw new InvalidOperationException($"A generated {kind} needs an owner.");
 }

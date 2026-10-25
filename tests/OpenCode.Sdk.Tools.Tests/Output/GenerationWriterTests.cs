@@ -459,6 +459,9 @@ public sealed class GenerationWriterTests
     [Arguments("Internal/StreamAdapters/WidgetStreamAdapter.cs")]
     [Arguments("Widgets/WidgetsClient.cs")]
     [Arguments("Sessions/Deep/File.cs")]
+    [Arguments("Sessions/Notes.txt")]
+    [Arguments("Sessions/SessionsClient.CS")]
+    [Arguments("Sessions/Notes.cs.ics")]
     public async Task WriteAsync_Should_Refuse_A_Source_Outside_The_Owned_Layout(string relativePath)
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
@@ -501,6 +504,7 @@ public sealed class GenerationWriterTests
     [Arguments("Sessions/Models/Internal")]
     [Arguments("Sessions/Models/Hosting")]
     [Arguments("Sessions/Models/Properties")]
+    [Arguments("Sessions/Other/Inbox")]
     public async Task WriteAsync_Should_Refuse_A_Model_Area_Folder_Outside_An_Admitted_Family(string areaFolder)
     {
         var writer = CreateWriter(GenerationTestData.CreateFileSystem());
