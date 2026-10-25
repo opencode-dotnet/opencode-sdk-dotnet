@@ -43,6 +43,13 @@ Nightly builds of `master` are on
   connects loopback targets without SYN retransmission, as upstream's runtime does, and the give-up
   says "The opencode server could not be reached." with the refusal inside; on .NET Framework the
   connect keeps its retransmissions and reports through the "did not answer" text.
+- **A NUL in a launcher command, environment entry or working directory is refused before the
+  command is resolved.** `OpenCodeServer.StartAsync` refuses a NUL in an
+  `OpenCodeServerOptions.Command` or `OpenCodeServerOptions.Environment` entry, or in
+  `OpenCodeServerOptions.WorkingDirectory`, with `ArgumentException` before it looks the command
+  up. A bare command name no longer reports first that it was not found on PATH, a working
+  directory is no longer cut short at the NUL, and the exception's `ParamName` is `options`, the
+  public parameter, instead of an internal name.
 
 ## [0.9.0-preview.14] - 2026-10-23
 

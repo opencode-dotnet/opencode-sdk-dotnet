@@ -1,3 +1,4 @@
+using System.Collections;
 using System.ComponentModel;
 using NSubstitute;
 using OpenCode.Sdk.Internal;
@@ -9,45 +10,79 @@ namespace OpenCode.Sdk.Tests.Hosting.Launcher;
 /// <summary>The standalone door's pre-spawn refusals and the request it hands to the host's strategy.</summary>
 public sealed class OpenCodeServerSpawnRequestTests
 {
-    private static string Command => OperatingSystem.IsWindows() ? @"C:\oc\opencode.exe" : "/opt/oc/opencode";
-
-    /// <summary>A rooted executable and a leading argument are both checked before spawn, without pinning #401's parameter name.</summary>
-    [Test]
-    [Arguments(true)]
-    [Arguments(false)]
-    public async Task StartAsync_Should_Refuse_A_Nul_In_A_Command_Entry_Before_Spawn(bool executable)
+    private static class SpawnRequestData
     {
-        var spawn = new RecordingSpawn();
-        var options = new OpenCodeServerOptions { Command = executable ? [Command + "\0", "serve"] : [Command, "serve\0"] };
-
-        var exception = await Assert.That(async () => await OpenCodeServer.StartWithSeamsAsync(options, Seams(spawn), CancellationToken.None))
-            .Throws<ArgumentException>();
-
-        await Assert.That(exception!.Message).IsEqualTo(new ArgumentException(
-            "OpenCodeServerOptions.Command entries cannot contain NUL.", exception.ParamName).Message);
-        await Assert.That(spawn.Calls).IsEqualTo(0);
+        public const string PublicParameter = "options";
+        public const string AbsentCommand = "opencode-absent-command";
+        public const string EntryName = "ENTRY";
     }
 
-    /// <summary>Neither an environment name nor its value may be silently cut at a NUL by native marshalling.</summary>
+    private static string Command => OperatingSystem.IsWindows() ? @"C:\oc\opencode.exe" : "/opt/oc/opencode";
+
+    /// <summary>A NUL in the working directory is refused before the bare command is looked up on PATH.</summary>
     [Test]
-    [Arguments(true)]
-    [Arguments(false)]
-    public async Task StartAsync_Should_Refuse_A_Nul_In_An_Environment_Entry_Before_Spawn(bool name)
+    public async Task StartAsync_Should_Refuse_A_Nul_In_The_Working_Directory_Before_Resolution()
     {
-        var spawn = new RecordingSpawn();
+        var options = new OpenCodeServerOptions { Command = [SpawnRequestData.AbsentCommand], WorkingDirectory = "work\0dir" };
+
+        await RefusedBeforeSpawnAsync(options, "OpenCodeServerOptions.WorkingDirectory cannot contain NUL.");
+    }
+
+    /// <summary>Command entries are refused before resolution; the bare-name case proves refusal before lookup on PATH.</summary>
+    [Test]
+    [Arguments(CommandNul.Executable)]
+    [Arguments(CommandNul.LeadingArgument)]
+    [Arguments(CommandNul.BareName)]
+    public async Task StartAsync_Should_Refuse_A_Nul_In_A_Command_Entry_Before_Resolution(CommandNul entry)
+    {
         var options = new OpenCodeServerOptions
         {
-            Command = [Command],
-            Environment = new Dictionary<string, string>(StringComparer.Ordinal) { [name ? "ENTRY\0" : "ENTRY"] = name ? "value" : "value\0" },
+            Command = entry switch
+            {
+                CommandNul.Executable => [Command + "\0", "serve"],
+                CommandNul.LeadingArgument => [Command, "serve\0"],
+                CommandNul.BareName => ["opencode\0"],
+                _ => throw new ArgumentOutOfRangeException(nameof(entry), entry, null),
+            },
         };
-        var seams = Seams(spawn);
 
-        var exception = await Assert.That(async () => await OpenCodeServer.StartWithSeamsAsync(options, seams, cancellationToken: CancellationToken.None))
-            .Throws<ArgumentException>();
+        await RefusedBeforeSpawnAsync(options, "OpenCodeServerOptions.Command entries cannot contain NUL.");
+    }
 
-        await Assert.That(exception!.Message).IsEqualTo(new ArgumentException(
-            "OpenCodeServerOptions.Environment names and values cannot contain NUL.", exception.ParamName).Message);
-        await Assert.That(spawn.Calls).IsEqualTo(0);
+    /// <summary>Environment entries are refused before resolution; the bare-command case proves refusal before lookup on PATH.</summary>
+    [Test]
+    [Arguments(EnvironmentNul.Name)]
+    [Arguments(EnvironmentNul.Value)]
+    [Arguments(EnvironmentNul.ValueUnderBareCommand)]
+    public async Task StartAsync_Should_Refuse_A_Nul_In_An_Environment_Entry_Before_Resolution(EnvironmentNul entry)
+    {
+        var (command, name, value) = entry switch
+        {
+            EnvironmentNul.Name => (Command, SpawnRequestData.EntryName + "\0", "value"),
+            EnvironmentNul.Value => (Command, SpawnRequestData.EntryName, "value\0"),
+            EnvironmentNul.ValueUnderBareCommand => (SpawnRequestData.AbsentCommand, SpawnRequestData.EntryName, "value\0"),
+            _ => throw new ArgumentOutOfRangeException(nameof(entry), entry, null),
+        };
+        var options = new OpenCodeServerOptions
+        {
+            Command = [command],
+            Environment = new Dictionary<string, string>(StringComparer.Ordinal) { [name] = value },
+        };
+
+        await RefusedBeforeSpawnAsync(options, "OpenCodeServerOptions.Environment names and values cannot contain NUL.");
+    }
+
+    /// <summary>The child receives the environment copy checked by the door, not a later caller enumeration.</summary>
+    [Test]
+    public async Task StartAsync_Should_Spawn_The_Environment_It_Checked()
+    {
+        var spawn = new RecordingSpawn();
+        var options = new OpenCodeServerOptions { Command = [Command], Environment = new ChangingEnvironment() };
+
+        _ = await Assert.That(async () => await OpenCodeServer.StartWithSeamsAsync(options, Seams(spawn), CancellationToken.None))
+            .Throws<OpenCodeServerException>();
+
+        await Assert.That(spawn.Environment[SpawnRequestData.EntryName]).IsEqualTo("checked");
     }
 
     /// <summary>The launcher tail follows every supplied argument; Windows starts that exact command suspended.</summary>
@@ -150,6 +185,17 @@ public sealed class OpenCodeServerSpawnRequestTests
             .IsEqualTo(directory ? work : null);
     }
 
+    private static async Task RefusedBeforeSpawnAsync(OpenCodeServerOptions options, string message)
+    {
+        var spawn = new RecordingSpawn();
+        var exception = await Assert.That(async () => await OpenCodeServer.StartWithSeamsAsync(options, Seams(spawn), CancellationToken.None))
+            .Throws<ArgumentException>();
+
+        await Assert.That(exception!.ParamName).IsEqualTo(SpawnRequestData.PublicParameter);
+        await Assert.That(exception.Message).IsEqualTo(new ArgumentException(message, exception.ParamName).Message);
+        await Assert.That(spawn.Calls).IsEqualTo(0);
+    }
+
     private static LauncherSeams Seams(RecordingSpawn spawn, IReadOnlyDictionary<string, string>? host = null) => new()
     {
         WindowsSpawn = spawn,
@@ -162,6 +208,57 @@ public sealed class OpenCodeServerSpawnRequestTests
         Time = new ManualTimeProvider(),
         HostEnvironment = host ?? new Dictionary<string, string>(StringComparer.Ordinal),
     };
+
+    /// <summary>The command entries that native marshalling would cut short.</summary>
+    public enum CommandNul
+    {
+        /// <summary>A rooted executable followed by a NUL.</summary>
+        Executable,
+
+        /// <summary>A leading argument containing a NUL.</summary>
+        LeadingArgument,
+
+        /// <summary>A bare command name containing a NUL.</summary>
+        BareName,
+    }
+
+    /// <summary>The environment entries refused before command resolution.</summary>
+    public enum EnvironmentNul
+    {
+        /// <summary>A name containing a NUL.</summary>
+        Name,
+
+        /// <summary>A value containing a NUL under a rooted command.</summary>
+        Value,
+
+        /// <summary>A value containing a NUL under a bare command.</summary>
+        ValueUnderBareCommand,
+    }
+
+    /// <summary>Changes its entry after the first enumeration to expose reuse of the caller's map.</summary>
+    private sealed class ChangingEnvironment : IReadOnlyDictionary<string, string>
+    {
+        private int _enumerations;
+
+        public int Count => 1;
+
+        public IEnumerable<string> Keys => throw new NotSupportedException();
+
+        public IEnumerable<string> Values => throw new NotSupportedException();
+
+        public string this[string key] => throw new NotSupportedException();
+
+        public bool ContainsKey(string key) => throw new NotSupportedException();
+
+        public bool TryGetValue(string key, out string value) => throw new NotSupportedException();
+
+        public IEnumerator<KeyValuePair<string, string>> GetEnumerator()
+        {
+            yield return new KeyValuePair<string, string>(SpawnRequestData.EntryName, _enumerations++ == 0 ? "checked" : "changed");
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
 
     /// <summary>Records the host strategy's request and refuses to create a process.</summary>
     private sealed class RecordingSpawn : IPosixSpawn, IWindowsSpawn

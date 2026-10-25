@@ -69,11 +69,6 @@ internal static class PosixServerChild
         var arguments = new List<string>(start.SuppliedArguments.Count + start.LauncherArguments.Count);
         arguments.AddRange(start.SuppliedArguments);
         arguments.AddRange(start.LauncherArguments);
-        if (NulText.Occurs(start.Executable.Path) || arguments.Exists(NulText.Occurs))
-        {
-            throw new ArgumentException("OpenCodeServerOptions.Command entries cannot contain NUL.", nameof(start));
-        }
-
         var printLogs = seams.HostEnvironment.TryGetValue(PrintLogsVariable, out var value) &&
                         string.Equals(value, "1", StringComparison.Ordinal);
         return new PosixSpawnRequest

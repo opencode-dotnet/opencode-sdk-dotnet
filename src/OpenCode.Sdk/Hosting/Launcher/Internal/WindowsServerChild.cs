@@ -40,7 +40,6 @@ internal static class WindowsServerChild
     /// <param name="seams">The Windows seams and the host's environment.</param>
     /// <returns>The started child.</returns>
     /// <exception cref="OpenCodeServerException">The process could not be created, placed in the job, resumed, or watched; nothing runs.</exception>
-    /// <exception cref="ArgumentException">A command entry or an environment entry holds a NUL.</exception>
     public static async Task<OwnedServerChild> SpawnAsync(ServerChildStart start, LauncherSeams seams)
     {
         ArgumentNullException.ThrowIfNull(start);
@@ -53,13 +52,6 @@ internal static class WindowsServerChild
 
     private static WindowsSpawnRequest CreateRequest(ServerChildStart start, LauncherSeams seams)
     {
-        if (NulText.Occurs(start.Executable.Path) ||
-            start.SuppliedArguments.Any(NulText.Occurs) ||
-            start.LauncherArguments.Any(NulText.Occurs))
-        {
-            throw new ArgumentException("OpenCodeServerOptions.Command entries cannot contain NUL.", nameof(start));
-        }
-
         var printLogs = seams.HostEnvironment.TryGetValue(PrintLogsVariable, out var value) &&
                         string.Equals(value, "1", StringComparison.Ordinal);
         var command = WindowsCommandLine.For(start.Executable, start.SuppliedArguments, start.LauncherArguments);

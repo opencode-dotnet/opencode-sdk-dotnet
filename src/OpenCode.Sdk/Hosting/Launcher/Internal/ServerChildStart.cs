@@ -16,7 +16,7 @@ internal sealed record ServerChildStart
     /// <summary>Gets the launcher's own argv tail, after the supplied arguments.</summary>
     public required IReadOnlyList<string> LauncherArguments { get; init; }
 
-    /// <summary>Gets the caller's environment entries; null adds none.</summary>
+    /// <summary>Gets the caller's environment entries, already checked for NUL by the door; null adds none.</summary>
     public IReadOnlyDictionary<string, string>? Environment { get; init; }
 
     /// <summary>Gets the lease credential the child receives as <c>OPENCODE_PASSWORD</c>, after every other entry.</summary>

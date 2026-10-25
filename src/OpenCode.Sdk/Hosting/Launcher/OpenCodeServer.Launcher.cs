@@ -52,7 +52,7 @@ public partial class OpenCodeServer
     /// <param name="options">The launch options; null uses the defaults.</param>
     /// <param name="cancellationToken">The caller's token, checked immediately before process launch and observed during the readiness wait.</param>
     /// <returns>The started server, disposed by the caller.</returns>
-    /// <exception cref="ArgumentException">The options are unusable: an empty command, a blank command entry, a non-positive readiness timeout, a negative grace, an output collector an earlier start already bound, or a NUL in a command entry or an environment entry.</exception>
+    /// <exception cref="ArgumentException">The options are unusable: an empty command, a blank command entry, a non-positive readiness timeout, a negative grace, an output collector an earlier start already bound, or a NUL in a command entry, an environment entry or the working directory.</exception>
     /// <exception cref="OpenCodeServerException">The command did not resolve on PATH, a leading argument was refused for a Windows batch shim, the platform is neither Windows, Linux, nor macOS, or the process could not start, could not be placed in the job that ends it with its owner (Windows), exited or closed its stdout before readiness, timed out, or broke the readiness contract.</exception>
     public static Task<OpenCodeServer> StartAsync(
         OpenCodeServerOptions? options = null,
@@ -77,6 +77,8 @@ public partial class OpenCodeServer
 
         options ??= new OpenCodeServerOptions();
         var command = SnapshotCommand(options);
+        var environment = SnapshotEnvironment(options);
+        var workingDirectory = SnapshotWorkingDirectory(options);
         var readinessTimeout = options.ReadinessTimeout;
         var output = BindOutput(options);
 
@@ -105,9 +107,9 @@ public partial class OpenCodeServer
                     Executable = executable,
                     SuppliedArguments = [.. command.Skip(1)],
                     LauncherArguments = LauncherArguments,
-                    Environment = options.Environment,
+                    Environment = environment,
                     Password = password,
-                    WorkingDirectory = options.WorkingDirectory,
+                    WorkingDirectory = workingDirectory,
                     GracefulShutdownTimeout = options.GracefulShutdownTimeout,
                     Output = output,
                     OnStandardOutput = onStandardOutput,
@@ -265,10 +267,49 @@ public partial class OpenCodeServer
                 throw new ArgumentException("OpenCodeServerOptions.Command entries cannot be blank.", nameof(options));
             }
 
+            if (NulText.Occurs(entry))
+            {
+                throw new ArgumentException("OpenCodeServerOptions.Command entries cannot contain NUL.", nameof(options));
+            }
+
             snapshot[index] = entry;
         }
 
         return snapshot;
+    }
+
+    private static Dictionary<string, string>? SnapshotEnvironment(OpenCodeServerOptions options)
+    {
+        var environment = options.Environment;
+        if (environment is null)
+        {
+            return null;
+        }
+
+        var copy = new Dictionary<string, string>(environment.Count, StringComparer.Ordinal);
+        foreach (var entry in environment)
+        {
+            if (NulText.Occurs(entry.Key) || NulText.Occurs(entry.Value))
+            {
+                throw new ArgumentException(
+                    "OpenCodeServerOptions.Environment names and values cannot contain NUL.", nameof(options));
+            }
+
+            copy[entry.Key] = entry.Value;
+        }
+
+        return copy;
+    }
+
+    private static string? SnapshotWorkingDirectory(OpenCodeServerOptions options)
+    {
+        var workingDirectory = options.WorkingDirectory;
+        if (workingDirectory is not null && NulText.Occurs(workingDirectory))
+        {
+            throw new ArgumentException("OpenCodeServerOptions.WorkingDirectory cannot contain NUL.", nameof(options));
+        }
+
+        return workingDirectory;
     }
 
     private static string GeneratePassword()
