@@ -161,13 +161,17 @@ public sealed class OpenCodeServerContractTests
             .GetField("_pipeline", BindingFlags.NonPublic | BindingFlags.Instance)!
             .GetValue(client)!;
         await Assert.That(pipeline.Connection.Location).IsSameReferenceAs(sentinelLocation);
-        var carriedWindow = (TimeSpan?)typeof(Pipeline)
+        var carriedWindow = (TimeSpan?)typeof(PipelineExchange)
             .GetField("_clientNetworkTimeout", BindingFlags.NonPublic | BindingFlags.Instance)!
-            .GetValue(pipeline);
+            .GetValue(typeof(Pipeline)
+                .GetField("_exchange", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(pipeline));
         await Assert.That(carriedWindow).IsEqualTo(sentinelWindow);
-        var carriedIdleWindow = (TimeSpan)typeof(Pipeline)
-            .GetField("_eventStreamIdleWindow", BindingFlags.NonPublic | BindingFlags.Instance)!
-            .GetValue(pipeline)!;
+        var carriedIdleWindow = (TimeSpan)typeof(ReconnectingEventStream)
+            .GetField("_idleWindow", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(typeof(Pipeline)
+                .GetField("_reconnectingEventStream", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(pipeline))!;
         await Assert.That(carriedIdleWindow).IsEqualTo(sentinelIdleWindow);
     }
 

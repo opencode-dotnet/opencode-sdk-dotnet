@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-10-23
+Date: 2026-10-25
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -61,6 +61,12 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
   `XDG_STATE_HOME`, `XDG_CONFIG_HOME`, `OPENCODE_CONFIG_DIR`, and the user profile (`USERPROFILE`
   on Windows, `HOME` elsewhere), because the registration file those roots locate is that mode's
   complete endpoint-and-credential contract; they read no `OPENCODE_*` credential variable.
+
+`Pipeline` owns construction, the policy roster, the one-shot plane and disposal orchestration.
+`ClientLifetime` owns root admission state and the saved lifetime token; `PipelineExchange` creates
+messages and dispatches them through that roster. `StreamPlane` owns a single stream's opening,
+status and media walls, framing and response lifetime. `ReconnectingEventStream` owns the reconnect
+loop and its live caller/disposed ordering, using `StreamAttempt` for each attempt's windows.
 
 ### Location
 

@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
@@ -52,7 +50,7 @@ internal sealed class StreamAttempt : IDisposable
     {
         if (_startedConnected is not true)
         {
-            throw new OpenCodeTransportException($"The opencode event stream did not start with {StreamReconnect.ConnectedEventType}.");
+            throw FailureClassification.EventStreamFirstFrame();
         }
 
         IsEstablished = true;
@@ -81,18 +79,9 @@ internal sealed class StreamAttempt : IDisposable
     /// </summary>
     /// <param name="cancellation">The cancellation the attempt's read ended with.</param>
     /// <returns>The failure to report.</returns>
-    public OpenCodeTransportException Describe(OperationCanceledException cancellation)
-    {
-        var window = IsEstablished ? _idleWindow : StreamReconnect.ConnectBound;
-        var seconds = window.TotalSeconds.ToString("0.#######", CultureInfo.InvariantCulture);
-        var description = (IsEstablished, _responseReceived) switch
-        {
-            (true, _) => $"The opencode event stream received nothing for {seconds} seconds.",
-            (_, true) => $"The opencode server answered the event stream request but sent no event within {seconds} seconds.",
-            _ => $"The opencode server did not answer the event stream request within {seconds} seconds.",
-        };
-        return new OpenCodeTransportException(description, cancellation);
-    }
+    public OpenCodeTransportException Describe(OperationCanceledException cancellation) =>
+        FailureClassification.EventStreamWindow(cancellation,
+            IsEstablished ? _idleWindow : StreamReconnect.ConnectBound, IsEstablished, _responseReceived);
 
     public void Dispose() => _window.Dispose();
 }

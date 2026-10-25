@@ -548,12 +548,7 @@ public sealed class EventsClientReconnectTests
         await caller.CancelOnWorkerAsync();
         server.DisposeClient();
 
-        OperationCanceledException? failure = null;
-        await Assert.That(async () => failure = await PendingCancellationAsync(events).WaitAsync(HangGuard.Bound)).ThrowsNothing();
-
-        await Assert.That(failure).IsNotNull();
-        await Assert.That(failure!.CancellationToken).IsEqualTo(caller.Token);
-        await Assert.That(failure.Message).IsEqualTo("The opencode event stream read was canceled.");
+        await AssertReadCanceledByCallerAsync(PendingCancellationAsync(events), caller.Token);
     }
 
     /// <summary>A disposed client ends the stream at once, whatever it is doing, and nothing opens again.</summary>
@@ -642,6 +637,16 @@ public sealed class EventsClientReconnectTests
 
         server.Time.Advance(TimeSpan.FromMinutes(2));
         await Assert.That(server.RequestCount).IsEqualTo(1);
+    }
+
+    /// <summary>Asserts the pull ends in the caller's own cancellation with the stream's canceled text.</summary>
+    private static async Task AssertReadCanceledByCallerAsync(Task<OperationCanceledException?> pending, CancellationToken caller)
+    {
+        // The caller's token is already canceled: it is the identity under test, so the wait must not observe it.
+        var failure = await Assert.That(pending.WaitAsync(HangGuard.Bound, CancellationToken.None)).ThrowsNothing();
+        await Assert.That(failure).IsNotNull();
+        await Assert.That(failure!.CancellationToken).IsEqualTo(caller);
+        await Assert.That(failure.Message).IsEqualTo("The opencode event stream read was canceled.");
     }
 
     /// <summary>
@@ -737,4 +742,35 @@ public sealed class EventsClientReconnectTests
     private static IAsyncEnumerable<IEvent> Subscribe(string entry, Pipeline pipeline, OpenCodeRequestOptions options) => entry == "door"
         ? new EventsClient(pipeline).SubscribeAsync(requestOptions: options)
         : pipeline.ExecuteStreamAsync("event.subscribe", HttpMethod.Get, "/api/event", EventSubscribeResponseStreamAdapter.Instance, options, CancellationToken.None);
+
+    [Test]
+    public async Task The_Callers_Cancellation_Should_Win_Over_Disposal_During_The_Delay()
+    {
+        using var server = new ScriptedEventServer(static _ => throw new HttpRequestException());
+        using var caller = new CancellationTokenSource();
+        await using var events = server.Events.SubscribeAsync(cancellationToken: caller.Token).GetAsyncEnumerator();
+
+        // The failing send keeps link registration and this registration on the same thread.
+        // Do not insert an incomplete await between starting the pull and registering disposal.
+        var pending = PendingCancellationAsync(events);
+        using var disposal = caller.Token.Register(server.DisposeClient);
+        await server.Time.WaitForArmedAsync(Delay, HangGuard.Bound);
+        await caller.CancelOnWorkerAsync();
+
+        await AssertReadCanceledByCallerAsync(pending, caller.Token);
+    }
+
+    [Test]
+    public async Task A_First_Event_Refusal_Should_Report_The_Exact_First_Frame_Text()
+    {
+        using var server = new ScriptedEventServer(static _ =>
+            ScriptedEventServer.StreamOf(WireBodyData.Frames(WireBodyData.SessionCreatedEvent)));
+        await using var events = server.Events.SubscribeAsync().GetAsyncEnumerator();
+        var first = PendingNext(events);
+
+        await FailEveryAttemptUntilTheMinuteAsync(server, first, cyclesBefore: 59);
+
+        var failure = await Assert.That(first.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
+        await Assert.That(failure!.Message).IsEqualTo("The opencode event stream did not start with server.connected.");
+    }
 }
