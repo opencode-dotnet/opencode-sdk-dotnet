@@ -74,6 +74,24 @@ public sealed class GenerationLayeringTests
             .Because(string.Join(", ", owners));
     }
 
+    [Test]
+    public async Task Emission_Should_Keep_Artifact_Files_Below_Four_Hundred_Lines()
+    {
+        var fileSystem = new RealFileSystem();
+        var root = fileSystem.Path.Combine(new RepositoryRoot(fileSystem).Locate(), "tools", "OpenCode.Sdk.Tools", "Generator", "Emission");
+        foreach (var path in fileSystem.Directory.GetFiles(root, "*.cs", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+        {
+            // The response adapter's broader redesign belongs to GEN-E5.
+            if (string.Equals(fileSystem.Path.GetFileName(path), "ResponseAdapterEmitter.cs", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var lines = await fileSystem.File.ReadAllLinesAsync(path, CancellationToken.None);
+            await Assert.That(lines.Length).IsLessThan(400).Because($"{fileSystem.Path.GetFileName(path)} has {lines.Length} physical lines");
+        }
+    }
+
     private static async Task<CSharpCompilation> LoadEmissionAsync()
     {
         var fileSystem = new RealFileSystem();
