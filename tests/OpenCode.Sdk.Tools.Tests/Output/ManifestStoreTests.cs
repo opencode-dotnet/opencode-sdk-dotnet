@@ -37,7 +37,7 @@ public sealed class ManifestStoreTests
             var refusal = await Assert.That(() => store.RequireProvenanceAsync(GenerationTestData.OutputRoot, paths, CancellationToken.None))
                 .Throws<OutputRefusalException>();
             await Assert.That(refusal!.Message)
-                .IsEqualTo("Manifest entry 'Damaged.cs' does not carry the provenance header; refusing to overwrite or delete it.");
+                .IsEqualTo(ProvenanceRefusal("Damaged.cs"));
         }
         else
         {
@@ -84,7 +84,10 @@ public sealed class ManifestStoreTests
             var refusal = await Assert.That(() => store.RequireProvenanceAsync(GenerationTestData.OutputRoot, paths, CancellationToken.None))
                 .Throws<OutputRefusalException>().Because(label);
             await Assert.That(refusal!.Message)
-                .IsEqualTo("Manifest entry 'Entry.cs' does not carry the provenance header; refusing to overwrite or delete it.").Because(label);
+                .IsEqualTo(ProvenanceRefusal(entry)).Because(label);
         }
     }
+
+    private static string ProvenanceRefusal(string entry) =>
+        $"Manifest entry '{entry}' does not carry the provenance header; refusing to overwrite or delete it.";
 }

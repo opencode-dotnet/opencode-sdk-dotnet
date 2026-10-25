@@ -16,6 +16,8 @@ public sealed class GenerationWriterTests
     private const string AttributesPath = "src/OpenCode.Sdk/.gitattributes";
     private const string ReachReportName = ".generated-reach.txt";
     private const string ReachPath = "src/OpenCode.Sdk/" + ReachReportName;
+    private const string CreatedPath = "Created.cs";
+    private const string CreatedContent = "created\n";
 
     /// <summary>The two lines the writer opens its attributes file with, and the mark it recognizes the file by.</summary>
     private const string AttributesHeader =
@@ -666,7 +668,7 @@ public sealed class GenerationWriterTests
     public async Task WriteAsync_Should_Compare_Exact_Post_Formatter_Bytes()
     {
         const string changed = "Z.cs";
-        const string created = "Created.cs";
+        const string ordinalProbe = "a.cs";
         const string deleted = "Deleted.cs";
         const string shrunk = "Shrunk.cs";
         const string grown = "Grown.cs";
@@ -678,7 +680,7 @@ public sealed class GenerationWriterTests
             Request(
             [
                 GenerationTestData.Source(changed, $"{body}z\n"),
-                GenerationTestData.Source("a.cs", "old\n"),
+                GenerationTestData.Source(ordinalProbe, "old\n"),
                 GenerationTestData.Source(deleted, "deleted\n"),
                 GenerationTestData.Source(shrunk, "kept\nremoved\n"),
                 GenerationTestData.Source(grown, "kept\n"),
@@ -687,7 +689,7 @@ public sealed class GenerationWriterTests
         var formatted = new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
             [changed] = OwnedBytes($"{body}y\n"),
-            ["a.cs"] = OwnedBytes("new\n"),
+            [ordinalProbe] = OwnedBytes("new\n"),
             [shrunk] = OwnedBytes("kept\n"),
             [grown] = OwnedBytes("kept\nadded\n"),
             [unchanged] = OwnedBytes(unchangedSource),
@@ -705,21 +707,21 @@ public sealed class GenerationWriterTests
             Request(
             [
                 GenerationTestData.Source(changed, $"{body}z\n"),
-                GenerationTestData.Source("a.cs", "old\n"),
-                GenerationTestData.Source(created, "created\n"),
+                GenerationTestData.Source(ordinalProbe, "old\n"),
+                GenerationTestData.Source(CreatedPath, CreatedContent),
                 GenerationTestData.Source(shrunk, "kept\nremoved\n"),
                 GenerationTestData.Source(grown, "kept\n"),
                 GenerationTestData.Source(unchanged, "public record Unchanged;\n"),
             ], verify: true), CancellationToken.None);
 
         await Assert.That(result.IsVerification).IsTrue();
-        await Assert.That(result.CreatedPaths).IsEquivalentTo([created], CollectionOrdering.Matching);
+        await Assert.That(result.CreatedPaths).IsEquivalentTo([CreatedPath], CollectionOrdering.Matching);
         await Assert.That(result.ChangedPaths).IsEquivalentTo(
-            [".generated-manifest.json", ".gitattributes", grown, shrunk, changed, "a.cs"], CollectionOrdering.Matching);
+            [".generated-manifest.json", ".gitattributes", grown, shrunk, changed, ordinalProbe], CollectionOrdering.Matching);
         await Assert.That(result.DeletedPaths).IsEquivalentTo([deleted], CollectionOrdering.Matching);
         var expectedFiles = new Dictionary<string, byte[]>(formatted, StringComparer.Ordinal)
         {
-            [created] = OwnedBytes("created\n"),
+            [CreatedPath] = OwnedBytes(CreatedContent),
         };
         foreach (var (relativePath, bytes) in expectedFiles)
         {
@@ -748,7 +750,7 @@ public sealed class GenerationWriterTests
         });
 
         await Assert.That(async () => _ = await CreateWriter(fileSystem).WriteAsync(
-                Request([GenerationTestData.Source("Created.cs", "created\n")]), cancellation.Token))
+                Request([GenerationTestData.Source(CreatedPath, CreatedContent)]), cancellation.Token))
             .Throws<OperationCanceledException>();
         await cancelled;
     }

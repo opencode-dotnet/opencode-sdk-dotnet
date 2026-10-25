@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Text;
 
 namespace OpenCode.Sdk.Tools.Generator.Emission;
@@ -12,25 +13,27 @@ internal static class GenerationProvenance
     private static readonly byte[] FirstLineUtf8 = Encoding.UTF8.GetBytes(FirstLine);
     private static readonly byte[] SecondLineUtf8 = Encoding.UTF8.GetBytes(SecondLine);
 
-    /// <summary>Checks whether the content opens with the exact provenance header, tolerating CRLF.</summary>
+    /// <summary>Checks whether the content opens with the exact provenance header; each line tolerates trailing carriage returns.</summary>
     /// <param name="content">The decoded file content.</param>
     /// <returns>Whether the header is present.</returns>
     public static bool HasHeader(string content)
     {
         ArgumentNullException.ThrowIfNull(content);
 
-        return HasHeader(content.AsSpan(), FirstLine.AsSpan(), SecondLine.AsSpan(), '\n', '\r');
+        return HasHeader(content.AsSpan(), FirstLine.AsSpan(), SecondLine.AsSpan());
     }
 
     /// <summary>Checks the same header in a source's UTF-8 bytes, without decoding the source.</summary>
     /// <param name="content">The UTF-8 encoded content.</param>
     /// <returns>Whether the header is present.</returns>
     public static bool HasHeader(ReadOnlySpan<byte> content) =>
-        HasHeader(content, FirstLineUtf8, SecondLineUtf8, (byte)'\n', (byte)'\r');
+        HasHeader(content, FirstLineUtf8, SecondLineUtf8);
 
-    private static bool HasHeader<T>(ReadOnlySpan<T> content, ReadOnlySpan<T> firstLine, ReadOnlySpan<T> secondLine,
-        T lineFeed, T carriageReturn) where T : IEquatable<T>
+    private static bool HasHeader<T>(ReadOnlySpan<T> content, ReadOnlySpan<T> firstLine, ReadOnlySpan<T> secondLine)
+        where T : IBinaryInteger<T>
     {
+        var lineFeed = T.CreateTruncating('\n');
+        var carriageReturn = T.CreateTruncating('\r');
         var firstEnd = content.IndexOf(lineFeed);
         if (firstEnd < 0)
         {
