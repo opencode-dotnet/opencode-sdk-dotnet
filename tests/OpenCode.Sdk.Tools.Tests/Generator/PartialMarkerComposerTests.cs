@@ -6,19 +6,21 @@ namespace OpenCode.Sdk.Tools.Tests.Generator;
 
 public sealed class PartialMarkerComposerTests
 {
+    private const string WebSocketRefusal = "WebSocket operations are not supported";
+
     [Test]
     public async Task Compose_Should_Preserve_Sections_And_Verbatim_Walls()
     {
         var marker = PartialMarkerComposer.Compose(
-            ["session.get", "session.list", "session.update"],
-            [Mark("command.connect", "WebSocket operations are not supported"), Mark("command.list")],
+            ["session.list", "session.get", "session.update"],
+            [Mark("command.connect", WebSocketRefusal), Mark("command.list")],
             [
                 new() { OperationId = "widget.connect", Reason = "Requires a WebSocket upgrade." },
                 new() { OperationId = "widget.tail", Reason = "Cannot express the PUT response." },
             ],
             [
-                Mark("widget.connect", "WebSocket operations are not supported"),
-                Mark("widget.tail", "WebSocket operations are not supported; PUT operations must carry a request body"),
+                Mark("widget.connect", WebSocketRefusal),
+                Mark("widget.tail", WebSocketRefusal + "; PUT operations must carry a request body"),
             ],
             ["terminal.attach", "terminal.connect"]);
 
@@ -29,8 +31,8 @@ public sealed class PartialMarkerComposerTests
             Declined operations: 2
             Transport-owned operations: 2
             Selected:
-            - session.get
             - session.list
+            - session.get
             - session.update
             Pending:
             - command.connect [refused: WebSocket operations are not supported]
@@ -48,7 +50,7 @@ public sealed class PartialMarkerComposerTests
     public async Task RefuseBindableDeclines_Should_Report_Ordered_Errors()
     {
         var exception = Assert.Throws<BindingException>(() => PartialMarkerComposer.RefuseBindableDeclines(
-            [Mark("widget.get"), Mark("widget.tail", "WebSocket operations are not supported"), Mark("widget.update")]));
+            [Mark("widget.get"), Mark("widget.tail", WebSocketRefusal), Mark("widget.update")]));
 
         await Assert.That(exception.Errors).IsEquivalentTo(new BindingError[]
         {
