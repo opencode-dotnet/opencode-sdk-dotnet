@@ -1,5 +1,8 @@
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
+using OpenCode.Sdk.Tools.Output;
+using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
@@ -17,6 +20,24 @@ public sealed class GeneratedPlacementTests
     private const string SessionMessage = "SessionMessage";
     private const string SessionForkRequest = "SessionForkRequest";
     private const string UnplacedName = "SessionStray";
+
+    [Test]
+    public async Task PathOf_Should_Admit_Every_Kind_Through_The_Same_Layout()
+    {
+        var placement = new PlacementValidator(GenerationTestData.CreateFileSystem());
+        var sources = Enum.GetValues<GeneratedKind>().Select(kind => GenerationTestData.Source(
+            GeneratedPlacement.PathOf(kind, Owner(SessionsSlice, MessagesArea), kind.ToString()), "")).ToArray();
+        var admitted = placement.ValidateSources(GenerationTestData.OutputRoot, sources, [SessionsSlice], ["Sessions/Models/Messages"]);
+        await Assert.That(admitted.Keys.Order(StringComparer.Ordinal)).IsEquivalentTo(
+        [
+            "Internal/Serialization/SharedSerialization.cs", "RootClient.cs",
+            "Sessions/BodyRequest.cs", "Sessions/Client.cs",
+            "Sessions/Internal/EnvelopeDto.cs", "Sessions/Internal/ModelConverter.cs",
+            "Sessions/Internal/RawClient.cs", "Sessions/Internal/ResponseAdapter.cs",
+            "Sessions/Internal/Routes.Sessions.cs", "Sessions/Internal/StreamAdapter.cs",
+            "Sessions/Models/Messages/Model.cs", "Sessions/OperationRecord.cs",
+        ], CollectionOrdering.Matching);
+    }
 
     [Test]
     [Arguments("Model", SessionsSlice, null, SessionInfo, "Sessions/Models/SessionInfo.cs")]

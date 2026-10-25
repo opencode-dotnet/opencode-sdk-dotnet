@@ -6,6 +6,27 @@ namespace OpenCode.Sdk.Tools.Tests.Output;
 public sealed class PlacementValidatorTests
 {
     [Test]
+    [Arguments("RetiredClient.cs")]
+    [Arguments("Retired/RetiredClient.cs")]
+    [Arguments("Retired/Models/RetiredModel.cs")]
+    [Arguments("Retired/Internal/RetiredAdapter.cs")]
+    [Arguments("Retired/Models/Messages/RetiredMessage.cs")]
+    public async Task ValidateManifestSourcePath_Should_Keep_Retired_Family_Shapes(string path)
+    {
+        var admitted = path;
+        try
+        {
+            PlacementValidator.ValidateManifestSourcePath(path);
+        }
+        catch (OutputRefusalException refusal)
+        {
+            admitted = refusal.Message;
+        }
+
+        await Assert.That(admitted).IsEqualTo(path);
+    }
+
+    [Test]
     [Arguments("../Escape.cs")]
     [Arguments("/Escape.cs")]
     [Arguments("A//B.cs")]

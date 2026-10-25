@@ -109,7 +109,7 @@ internal sealed class GenerationCoordinator(
             [
                 .. plan.Placement.Homes.Values
                     .Where(static home => home.Area is not null)
-                    .Select(static home => $"{home.Slice}/Models/{home.Area}")
+                    .Select(GeneratedPlacement.ModelAreaFolder)
                     .Distinct(StringComparer.Ordinal)
                     .Order(StringComparer.Ordinal),
             ],
