@@ -9,7 +9,7 @@ using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator;
 
-/// <summary>Reads the C# sources under Generator/ and Output/; a required member moved out of those folders is no longer checked.</summary>
+/// <summary>Reads every C# source of the tools project except bin/ and obj/, so a required member anywhere in the project is checked.</summary>
 public sealed class RequiredCollectionInitializerTests
 {
     [Test]
@@ -18,17 +18,16 @@ public sealed class RequiredCollectionInitializerTests
         var fileSystem = new RealFileSystem();
         var root = fileSystem.Path.Combine(new RepositoryRoot(fileSystem).Locate(), "tools", "OpenCode.Sdk.Tools");
         var initializers = new List<string>();
-        foreach (var folder in new[] { "Generator", "Output" })
+        var paths = fileSystem.Directory.GetFiles(root, "*.cs", SearchOption.AllDirectories)
+            .Where(path => !fileSystem.Path.GetRelativePath(root, path).Split(fileSystem.Path.DirectorySeparatorChar)
+                .Any(static segment => segment is "bin" or "obj"));
+        foreach (var path in paths.Order(StringComparer.Ordinal))
         {
-            var paths = fileSystem.Directory.GetFiles(fileSystem.Path.Combine(root, folder), "*.cs", SearchOption.AllDirectories);
-            foreach (var path in paths.Order(StringComparer.Ordinal))
-            {
-                var tree = CSharpSyntaxTree.ParseText(await fileSystem.File.ReadAllTextAsync(path, CancellationToken.None), path: path);
-                var properties = (await tree.GetRootAsync()).DescendantNodes().OfType<PropertyDeclarationSyntax>();
-                initializers.AddRange(properties.Where(static property => property.Initializer is not null
-                        && property.Modifiers.Any(SyntaxKind.RequiredKeyword))
-                    .Select(property => string.Create(CultureInfo.InvariantCulture, $"{fileSystem.Path.GetRelativePath(root, path)}:{property.GetLocation().GetLineSpan().StartLinePosition.Line + 1}: {property.Identifier.ValueText}")));
-            }
+            var tree = CSharpSyntaxTree.ParseText(await fileSystem.File.ReadAllTextAsync(path, CancellationToken.None), path: path);
+            var properties = (await tree.GetRootAsync()).DescendantNodes().OfType<PropertyDeclarationSyntax>();
+            initializers.AddRange(properties.Where(static property => property.Initializer is not null
+                    && property.Modifiers.Any(SyntaxKind.RequiredKeyword))
+                .Select(property => string.Create(CultureInfo.InvariantCulture, $"{fileSystem.Path.GetRelativePath(root, path)}:{property.GetLocation().GetLineSpan().StartLinePosition.Line + 1}: {property.Identifier.ValueText}")));
         }
 
         await Assert.That(initializers).IsEmpty().Because(string.Join('\n', initializers));
