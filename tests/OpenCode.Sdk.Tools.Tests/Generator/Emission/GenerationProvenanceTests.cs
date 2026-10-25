@@ -13,7 +13,7 @@ public sealed class GenerationProvenanceTests
     [Arguments("CRLF", First + "\r\n" + Second + "\r\n", true)]
     [Arguments("repeated CR", First + "\r\r\n" + Second + "\r\r\n", true)]
     [Arguments("no final LF", First + "\n" + Second, true)]
-    [Arguments("extra body", First + "\n" + Second + "\nnamespace Example;", true)]
+    [Arguments("extra body ending in LF", First + "\n" + Second + "\nnamespace Example;\n", true)]
     [Arguments("empty", "", false)]
     [Arguments("missing second line", First, false)]
     [Arguments("missing first line", Second + "\nnamespace Example;", false)]
