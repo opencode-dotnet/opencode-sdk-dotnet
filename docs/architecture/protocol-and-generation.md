@@ -322,9 +322,9 @@ materializable.
   arm could not materialize. Direct union deserialization keeps the known-arm failure; only the
   stream adapter and reader retry through concrete unknown-arm metadata (ADR-0038). Public
   unknown-carrier construction requires the payload's discriminator (and any fixed outer marker)
-  to agree with the exposed marker properties;
-  serialization remains payload-only replay (ADR-0009). Dispatch order is fixed: declared literal
-  tags, then the single prefix-tagged arm, then the unknown carrier.
+  to agree with the exposed marker properties; serialization remains payload-only replay (ADR-0009).
+  Dispatch order is fixed: declared literal tags, then the single prefix-tagged arm, then the unknown
+  carrier.
 - Every tagged union dispatches on one marker property. The error union's is `_tag`, which every
   error the pinned contract declares carries. An error response that references a schema without
   exactly one required `_tag` literal refuses by name; one that carries a required `name` literal

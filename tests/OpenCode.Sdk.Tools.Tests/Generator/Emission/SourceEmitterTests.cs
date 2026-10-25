@@ -133,7 +133,7 @@ public sealed class SourceEmitterTests(PinnedBinding pinned)
     [Test]
     public async Task Emit_Should_Refuse_A_Stream_Payload_Union_With_Impossible_Tags()
     {
-        var exception = await Assert.That(async () => _ = await EmitterPlanFixture.CreateImpossibleStreamPlanAsync(nested: false)).Throws<BindingException>();
+        var exception = await Assert.That(async () => _ = await EmitterPlanFixture.CreateRootImpossibleStreamPlanAsync()).Throws<BindingException>();
 
         await Assert.That(exception!.Errors).IsEquivalentTo([
             new BindingError(BindingErrorCategory.Schema, "IExampleEvent", "Stream payload union 'IExampleEvent' reaches 'IExampleEvent', which declares impossible tags: Fail; a stream's unknown-arm fallback would bypass impossible-tag dispatch, so decline the stream or curate the tag."),
@@ -163,9 +163,10 @@ public sealed class SourceEmitterTests(PinnedBinding pinned)
     [Test]
     public async Task Emit_Should_Refuse_A_Stream_Payload_Union_That_Reaches_Impossible_Tags()
     {
-        var exception = await Assert.That(async () => _ = await EmitterPlanFixture.CreateImpossibleStreamPlanAsync(nested: true)).Throws<BindingException>();
+        var exception = await Assert.That(async () => _ = await EmitterPlanFixture.CreateNestedImpossibleStreamPlanAsync()).Throws<BindingException>();
 
         await Assert.That(exception!.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Schema, "IExampleEvent", "Stream payload union 'IExampleEvent' reaches 'IExampleEvent', which declares impossible tags: Fail; a stream's unknown-arm fallback would bypass impossible-tag dispatch, so decline the stream or curate the tag."),
             new BindingError(BindingErrorCategory.Schema, "INested", "Stream payload union 'IExampleEvent' reaches 'INested', which declares impossible tags: Fail; a stream's unknown-arm fallback would bypass impossible-tag dispatch, so decline the stream or curate the tag."),
         ], CollectionOrdering.Matching);
     }

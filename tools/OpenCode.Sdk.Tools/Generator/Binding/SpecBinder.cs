@@ -123,9 +123,7 @@ internal sealed class SpecBinder : ISpecBinder
     private static EmitPlan ResolveStreamFallbacks(EmitPlan plan)
     {
         var byName = plan.Unions.ToDictionary(static union => union.Name, StringComparer.Ordinal);
-        var payloadNames = plan.Clients.SelectMany(static client => client.Operations)
-            .Select(static operation => operation.Stream?.PayloadTypeName)
-            .OfType<string>().ToHashSet(StringComparer.Ordinal);
+        var payloadNames = StreamPayloadNames(plan.Clients);
         return plan with
         {
             Clients = [.. plan.Clients.Select(client => client with
@@ -147,13 +145,20 @@ internal sealed class SpecBinder : ISpecBinder
         };
     }
 
+    private static HashSet<string> StreamPayloadNames(IEnumerable<ClientPlan> clients) =>
+        clients.SelectMany(static client => client.Operations)
+            .Select(static operation => operation.Stream?.PayloadTypeName)
+            .OfType<string>().ToHashSet(StringComparer.Ordinal);
+
     private static void CheckStreamFallbacks(OwnershipCandidates candidates, IReadOnlyList<ClientPlan> clients, BindingErrorCollector errors)
     {
-        var payloadNames = clients.SelectMany(static client => client.Operations).Select(static operation => operation.Stream?.PayloadTypeName).OfType<string>().ToHashSet(StringComparer.Ordinal);
-        foreach (var impossible in candidates.Unions.Where(static union => union.KnownImpossibleTags.Count > 0).OrderBy(static union => union.Name, StringComparer.Ordinal))
+        var payloadNames = StreamPayloadNames(clients);
+        foreach (var impossible in candidates.Unions.Where(static union => union.KnownImpossibleTags.Count > 0)
+                     .OrderBy(static union => union.Name, StringComparer.Ordinal))
         {
             var reaching = SecretMemberPolicy.ReachingTypes(candidates.Models, candidates.Unions, [impossible.Name]);
-            foreach (var root in candidates.Unions.Where(union => payloadNames.Contains(union.Name) && reaching.Contains(union.Name)).OrderBy(static union => union.Name, StringComparer.Ordinal))
+            foreach (var root in candidates.Unions.Where(union => payloadNames.Contains(union.Name) && reaching.Contains(union.Name))
+                         .OrderBy(static union => union.Name, StringComparer.Ordinal))
             {
                 errors.Add(BindingErrorCategory.Schema, impossible.Name,
                     $"Stream payload union '{root.Name}' reaches '{impossible.Name}', which declares impossible tags: {string.Join(", ", impossible.KnownImpossibleTags.Order(StringComparer.Ordinal))}; a stream's unknown-arm fallback would bypass impossible-tag dispatch, so decline the stream or curate the tag.");

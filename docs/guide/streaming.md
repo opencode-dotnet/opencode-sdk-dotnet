@@ -396,9 +396,21 @@ await foreach (var item in session.ReadLogAsync(new SessionLogRequest { Follow =
 {
     if (item.Type is "log.synced")
     {
-        Console.WriteLine(item is EventLogSynced marker
-            ? $"replay caught up at seq={marker.Seq}"
-            : "replay caught up; inspect the unknown item's Payload for seq");
+        if (item is EventLogSynced marker)
+        {
+            Console.WriteLine($"replay caught up at seq={marker.Seq}");
+        }
+        else if (item is UnknownSessionLogItem unknown
+            && unknown.Payload.TryGetProperty("seq", out var seq)
+            && seq.ValueKind is JsonValueKind.Number
+            && seq.TryGetInt64(out var watermark))
+        {
+            Console.WriteLine($"replay caught up at seq={watermark}");
+        }
+        else
+        {
+            Console.WriteLine("replay caught up; watermark unavailable");
+        }
     }
     else if (item is ISessionEventDurable durable)
     {
@@ -414,10 +426,10 @@ all declare: `Id`, `Created`, `Metadata`, `Location`, and the `Durable` envelope
 boundary rather than something committed against the aggregate, so it sits beside the durable union
 under `ISessionLogItem`. It normally arrives as `EventLogSynced`, with its watermark on `Seq`.
 A drifted marker can arrive as `UnknownSessionLogItem`: detect it by `item.Type is "log.synced"`
-and look for the wire `seq` in `Payload`. Handle an absent or unusable value by keeping the last
-cursor you could read; the unknown carrier does not promise a readable cursor.
+and look for the wire `seq` in `Payload`. Handle an absent or unusable value; the unknown carrier
+does not promise a readable watermark. Keep the last `Durable.Seq` you read as the `After` cursor.
 
-Those members are nullable on the interface because unknown carriers preserve the raw payload
+The durable members are nullable on the interface because unknown carriers preserve the raw payload
 and materialize no typed member. An unrecognized `type` arrives as `UnknownSessionLogItem` or
 `UnknownSessionEventDurable`; a known log item that cannot be read can also arrive as
 `UnknownSessionLogItem`, under the tolerance below. A concrete event's own `Durable` property is still non-nullable —
