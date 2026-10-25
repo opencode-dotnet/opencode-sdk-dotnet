@@ -196,27 +196,17 @@ internal static class ExtensibleEnumEmitter
                 [new DocumentedParameter("left", "The first value."), new DocumentedParameter("right", "The second value.")]));
     }
 
-    private static ConversionOperatorDeclarationSyntax ImplicitConversion(EnumModelPlan model, TypeSyntax type) => SyntaxFactory
-        .ConversionOperatorDeclaration(SyntaxFactory.Token(SyntaxKind.ImplicitKeyword), type)
-        .WithModifiers(SyntaxFactory.TokenList(
-            SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-            SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
-        .WithParameterList(StringParameter())
-        .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(NewFromParameter(model)))
-        .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+    private static ConversionOperatorDeclarationSyntax ImplicitConversion(EnumModelPlan model, TypeSyntax type) => ValueFromWireSpellingMember(
+        SyntaxFactory.ConversionOperatorDeclaration(SyntaxFactory.Token(SyntaxKind.ImplicitKeyword), type),
+        model)
         .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
             "Converts a wire spelling to a value.",
             [new DocumentedParameter(ValueParameter, "The wire spelling.")]));
 
     /// <summary>The named alternate of the implicit conversion (CA2225).</summary>
-    private static MethodDeclarationSyntax FromString(EnumModelPlan model, TypeSyntax type) => SyntaxFactory
-        .MethodDeclaration(type, ExtensibleEnumMemberPolicy.FromString)
-        .WithModifiers(SyntaxFactory.TokenList(
-            SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-            SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
-        .WithParameterList(StringParameter())
-        .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(NewFromParameter(model)))
-        .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+    private static MethodDeclarationSyntax FromString(EnumModelPlan model, TypeSyntax type) => ValueFromWireSpellingMember(
+        SyntaxFactory.MethodDeclaration(type, ExtensibleEnumMemberPolicy.FromString),
+        model)
         .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
             "Creates a value from its wire spelling, as the implicit conversion does.",
             [new DocumentedParameter(ValueParameter, "The wire spelling.")]));
@@ -331,10 +321,17 @@ internal static class ExtensibleEnumEmitter
         return EmissionSyntax.CreateSource(relativePath, unit);
     }
 
-    private static ObjectCreationExpressionSyntax NewFromParameter(EnumModelPlan model) => SyntaxFactory
-        .ObjectCreationExpression(TypeSyntaxEmitter.EmitNamed(model.Name))
-        .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
-            SyntaxFactory.Argument(SyntaxFactory.IdentifierName(ValueParameter)))));
+    private static T ValueFromWireSpellingMember<T>(T declaration, EnumModelPlan model)
+        where T : BaseMethodDeclarationSyntax => (T)declaration
+        .WithModifiers(SyntaxFactory.TokenList(
+            SyntaxFactory.Token(SyntaxKind.PublicKeyword),
+            SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
+        .WithParameterList(StringParameter())
+        .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(SyntaxFactory
+            .ObjectCreationExpression(TypeSyntaxEmitter.EmitNamed(model.Name))
+            .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
+                SyntaxFactory.Argument(SyntaxFactory.IdentifierName(ValueParameter)))))))
+        .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
 
     private static InterpolatedStringTextSyntax InterpolatedText(string text) => SyntaxFactory.InterpolatedStringText(
         SyntaxFactory.Token(SyntaxFactory.TriviaList(), SyntaxKind.InterpolatedStringTextToken, text, text, SyntaxFactory.TriviaList()));

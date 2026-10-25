@@ -1044,29 +1044,7 @@ internal static class EmitterPlanFixture
         var errors = new BindingErrorCollector();
         var hoisted = UnionMemberHoistBinder.Bind(UnionChainFixture.Build(unions), models, HoistCuration(), errors);
         errors.ThrowIfAny();
-        return UnionChainFixture.Resolve(new EmitPlan
-        {
-            Namespaces = new(GeneratedNamespace.Public, GeneratedNamespace.Models, GeneratedNamespace.Internal),
-            ImplicitAliases = StabilizeDuplicateCollapse.Empty,
-            SelectedOperationIds = [],
-            Models = hoisted.Models,
-            Unions = hoisted.Unions,
-            HoistedInterfaces = hoisted.Interfaces,
-            Clients = [],
-            Registry = new RegistryPlan
-            {
-                TypeNames =
-                [
-                    .. hoisted
-                        .Models.Select(static model => model.Name)
-                        .Concat(hoisted.Unions.SelectMany(static union => new[] { union.Name, union.UnknownTypeName, }))
-                        .Order(StringComparer.Ordinal),
-                ],
-            },
-            PendingOperations = [],
-            DeclinedOperations = [],
-            TransportOwnedOperationIds = [],
-        }.WithSingleSlice());
+        return UnionHoistPlanData.EmitPlanOf(hoisted);
     }
 
     private static GenerationCuration HoistCuration() =>

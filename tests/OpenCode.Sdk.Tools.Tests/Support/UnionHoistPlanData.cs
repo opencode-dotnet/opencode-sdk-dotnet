@@ -156,6 +156,14 @@ internal static class UnionHoistPlanData
         var hoisted = UnionMemberHoistBinder.Bind(UnionChainFixture.Build(unions), models, curation, errors);
         CheckNames(hoisted, errors);
         errors.ThrowIfAny();
+        return EmitPlanOf(hoisted);
+    }
+
+    /// <summary>Wraps hoisted unions and their models for emission with resolved chains and placement.</summary>
+    public static EmitPlan EmitPlanOf(UnionHoistPlan hoisted)
+    {
+        ArgumentNullException.ThrowIfNull(hoisted);
+
         return UnionChainFixture.Resolve(new EmitPlan
         {
             Namespaces = new(GeneratedNamespace.Public, GeneratedNamespace.Models, GeneratedNamespace.Internal),
