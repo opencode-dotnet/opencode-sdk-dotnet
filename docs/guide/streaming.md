@@ -43,8 +43,10 @@ connection markers, logging, and the frames you have not written a case for.
 
 ### 🧭 Routing by session
 
-Every event that belongs to one session implements `ISessionScopedEvent`, whose `SessionId` names
-that session, so you can keep the events of one session without listing their types:
+Every typed event that belongs to one session implements `ISessionScopedEvent`, whose `SessionId`
+names that session, so you can keep the events of one session without listing their types. An
+event that arrives as `UnknownEvent` is not one of them; the `SessionOf` helper under
+[Waiting for a turn to end](#-waiting-for-a-turn-to-end) also reads its `data.sessionID`:
 
 ```csharp
 await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: window.Token))
@@ -119,8 +121,8 @@ static async Task<IReadOnlyList<IEvent>> AnswerAsksAsync(
         {
             FormCreated form => form.Data.Form.SessionId == created.Session.Id,
             FormReplied form => form.Data.SessionId == created.Session.Id,
-            ISessionScopedEvent scoped => scoped.SessionId == created.Session.Id,
-            _ => false,
+            // SessionOf and EndsTurn are shown under "Waiting for a turn to end" below.
+            _ => SessionOf(current) == created.Session.Id,
         };
         if (!belongs)
         {
@@ -173,7 +175,7 @@ static async Task<IReadOnlyList<IEvent>> AnswerAsksAsync(
                 await session.ReplyToFormAsync(form.Data.Form.Id,
                     new SessionFormReplyRequest { Answer = answer }, cancellationToken: token).ConfigureAwait(false);
                 break;
-            case SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted:
+            case var turnEnd when EndsTurn(turnEnd, created.Session.Id):
                 return observed;
         }
     }
@@ -190,6 +192,31 @@ on any `SessionExecutionInterrupted`, including one whose `Reason` is `Shutdown`
 the server is stopping, and the server resumes the turn after it restarts, with a new
 `SessionExecutionStarted`. The bus [reconnects](#-a-live-bus-that-reconnects) by itself once the
 server is back within a minute, so to follow the resumed turn keep reading and wait the same way.
+
+Match the three on their wire `Type`, not on their .NET type. A turn-end event whose payload has
+drifted from its declared shape arrives as `UnknownEvent`, so a typed match would never see it and
+the wait would run to its deadline. An `UnknownEvent` is not an `ISessionScopedEvent` either, so its
+session comes from the raw payload. These two helpers do both, and the samples below use them:
+
+```csharp
+using System.Text.Json;
+```
+
+```csharp
+static bool EndsTurn(IEvent @event, string sessionId) =>
+    @event.Type is "session.execution.succeeded" or "session.execution.failed" or "session.execution.interrupted"
+    && SessionOf(@event) == sessionId;
+
+static string? SessionOf(IEvent @event) => @event switch
+{
+    ISessionScopedEvent scoped => scoped.SessionId,
+    UnknownEvent unknown when unknown.Payload.TryGetProperty("data", out var data)
+        && data.ValueKind is JsonValueKind.Object
+        && data.TryGetProperty("sessionID", out var id)
+        && id.ValueKind is JsonValueKind.String => id.GetString(),
+    _ => null,
+};
+```
 Open the bus **before**
 you prompt, because an event published before you listen is gone; the first event,
 the `server.connected` frame, says the stream is live:
@@ -206,8 +233,7 @@ await session.PromptAsync(new SessionPromptRequest { Text = "Summarize this repo
 
 while (await events.MoveNextAsync())
 {
-    if (events.Current is SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted
-        && events.Current is ISessionScopedEvent { SessionId: var id } && id == sessionId)
+    if (EndsTurn(events.Current, sessionId))
     {
         break;
     }
@@ -245,7 +271,7 @@ var turnEnded = false;
 while (!turnEnded && await events.MoveNextAsync())
 {
     // Keep only this session's events; each of them names its session.
-    if (events.Current is not ISessionScopedEvent { SessionId: var id } || id != sessionId)
+    if (SessionOf(events.Current) != sessionId)
     {
         continue;
     }
@@ -263,7 +289,7 @@ while (!turnEnded && await events.MoveNextAsync())
         case SessionTextEnded { Data: var ended } when delivered:
             texts[(ended.AssistantMessageId, ended.Ordinal)] = ended.Text;
             break;
-        case SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted when delivered:
+        case var turnEnd when delivered && EndsTurn(turnEnd, sessionId):
             turnEnded = true;
             break;
     }
@@ -274,9 +300,10 @@ while (!turnEnded && await events.MoveNextAsync())
   subscriber before anything else, so once it has arrived, nothing the session publishes is missed.
   Upstream's client and the SDK both fail a connection that starts with anything else, and
   upstream's CLI waits for this event before it sends a prompt.
-- **Filter by session once.** Every event that belongs to a session implements
-  `ISessionScopedEvent`, so one check keeps this session's events and the `switch` below it needs
-  no session test of its own.
+- **Filter by session once.** Every typed event that belongs to a session implements
+  `ISessionScopedEvent`, and `SessionOf` also reads the session of an `UnknownEvent` from its
+  payload, so one check keeps this session's events, drifted ones included, and the `switch` below it
+  needs no session test of its own.
 - **Your own `Id` is how you find your prompt.** Upstream's CLI passes one too. The server requires
   only that it start with `msg_`; make it unique, as the `Guid` above does. When the session takes
   your prompt from its inbox, `SessionInboxDelivered` arrives with your id as its `InboxId`. Text the

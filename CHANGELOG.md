@@ -19,7 +19,10 @@ Nightly builds of `master` are on
   tolerance**, including the payloads that still fail and when a regenerated frame becomes typed.
 - **Match stream boundaries on `Type`.** A loop that detects a reconnect with `is EventServerConnected`
   or a replay boundary with `is EventLogSynced` should match `Type` against `"server.connected"` or
-  `"log.synced"` instead: a drifted marker can now arrive as the unknown arm.
+  `"log.synced"` instead: a drifted marker can now arrive as the unknown arm. The same holds for a
+  turn's end (`"session.execution.succeeded"`, `"session.execution.failed"`,
+  `"session.execution.interrupted"`); the streaming guide's `EndsTurn` and `SessionOf` helpers also
+  read the session of an unknown arm from its payload.
 - **The event stream's connect-bound failure names its case.** Before any response it says "The
   opencode server did not answer the event stream request within 2 seconds."; when headers arrived
   but no first event followed it says "The opencode server answered the event stream request but
