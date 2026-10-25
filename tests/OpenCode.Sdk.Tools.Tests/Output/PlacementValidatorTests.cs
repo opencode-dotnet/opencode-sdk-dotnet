@@ -8,7 +8,7 @@ public sealed class PlacementValidatorTests
     [Test]
     [Arguments("RetiredClient.cs", true, DisplayName = "root file")]
     [Arguments("Retired/RetiredClient.cs", true, DisplayName = "family root")]
-    [Arguments("Models/RetiredModel.cs", true, DisplayName = "shape, not provenance: a reserved root at two segments is admitted")]
+    [Arguments("Models/RetiredModel.cs", true, DisplayName = "shape, not family membership: a reserved root at two segments is admitted")]
     [Arguments("Retired/Models/RetiredModel.cs", true, DisplayName = "family Models")]
     [Arguments("Retired/models/RetiredModel.cs", false, DisplayName = "family Models, case variant")]
     [Arguments("Retired/Internal/RetiredAdapter.cs", true, DisplayName = "family Internal")]

@@ -3,7 +3,7 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 /// <summary>
-/// Owns generated paths and the path shapes admission accepts: each kind and owner's home map to a path,
+/// Owns generated paths and the folder shapes admission accepts (callers check the .cs suffix): each kind and owner's home map to a path,
 /// so no emitter or validator spells a folder.
 /// </summary>
 internal static class GeneratedPlacement
@@ -61,7 +61,7 @@ internal static class GeneratedPlacement
     public static bool IsSharedPath(string relativePath) => SharedFolders.Any(folder =>
         relativePath.StartsWith(folder, StringComparison.Ordinal) && !relativePath[folder.Length..].Contains('/', StringComparison.Ordinal));
 
-    /// <summary>A true answer still needs the caller to admit the family and, for a four-segment model path, its area.</summary>
+    /// <summary>Segment shape only: sources also need the exact family and, at four segments, its area; the manifest takes the shape.</summary>
     public static bool IsFamilyPath(IReadOnlyList<string> segments) => segments switch
     {
         [_, _] => true,
