@@ -17,6 +17,9 @@ public sealed class PlacementValidatorTests
     [Arguments("Retired/Internal/Deep/RetiredAdapter.cs", false)]
     [Arguments("Retired/Models/A/B/RetiredModel.cs", false)]
     [Arguments("Retired/Models/RetiredModel.txt", false)]
+    [Arguments("Internal/Transport/RetiredTransport.cs", false)]
+    [Arguments("Retired/models/RetiredModel.cs", false)]
+    [Arguments("Retired/RetiredClient.CS", false)]
     public async Task ValidateManifestSourcePath_Should_Admit_Only_The_Owned_Shapes(string path, bool admitted)
     {
         var outcome = path;

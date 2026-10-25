@@ -14,6 +14,12 @@ internal static class GeneratedPlacement
     public static IReadOnlyList<string> ReservedFolders { get; } = Array.AsReadOnly<string>(
         [TypeHome.CommonSlice, InternalFolder, "Hosting", "Properties", ModelsFolder, "Pagination"]);
 
+    private const string InternalFolder = "Internal";
+    private const string SharedSerializationFolder = $"{InternalFolder}/Serialization";
+    private const string SharedErrorsFolder = $"{TypeHome.CommonSlice}/Errors";
+    /// <summary>The shared homes generated files may live in beside the families.</summary>
+    private static readonly string[] SharedFolders = [$"{SharedSerializationFolder}/", $"{SharedErrorsFolder}/", $"{TypeHome.CommonSlice}/{InternalFolder}/"];
+
     public static string PathOf(GeneratedKind kind, TypeHome? owner, string typeName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(typeName);
@@ -55,7 +61,7 @@ internal static class GeneratedPlacement
     public static bool IsSharedPath(string relativePath) => SharedFolders.Any(folder =>
         relativePath.StartsWith(folder, StringComparison.Ordinal) && !relativePath[folder.Length..].Contains('/', StringComparison.Ordinal));
 
-    /// <summary>A four-segment model path still needs its area admitted by the caller.</summary>
+    /// <summary>A true answer still needs the caller to admit the family and, for a four-segment model path, its area.</summary>
     public static bool IsFamilyPath(IReadOnlyList<string> segments) => segments switch
     {
         [_, _] => true,
@@ -75,12 +81,6 @@ internal static class GeneratedPlacement
             _ => false,
         };
     }
-
-    private const string InternalFolder = "Internal";
-    private const string SharedSerializationFolder = $"{InternalFolder}/Serialization";
-    private const string SharedErrorsFolder = $"{TypeHome.CommonSlice}/Errors";
-    /// <summary>The shared homes generated files may live in beside the families.</summary>
-    private static readonly string[] SharedFolders = [$"{SharedSerializationFolder}/", $"{SharedErrorsFolder}/", $"{TypeHome.CommonSlice}/{InternalFolder}/"];
 
     private static string Slice(GeneratedKind kind, TypeHome? owner) =>
         owner?.Slice ?? throw new InvalidOperationException($"A generated {kind} needs an owner.");
