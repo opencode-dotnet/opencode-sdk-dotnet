@@ -352,15 +352,13 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Buffer_The_Body_For_The_Adapter()
     {
-        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        using var scenario = PipelineScenario.Responding(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent("{\"healthy\":true}"),
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter();
 
-        var response = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
+        var response = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
 
         await Assert.That(adapter.AdaptedStatus).IsEqualTo(200);
         await Assert.That(adapter.AdaptedRawBody).IsEqualTo("{\"healthy\":true}");
@@ -370,12 +368,10 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Throw_The_Api_Exception_By_Default()
     {
-        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
+        using var scenario = PipelineScenario.Responding(static _ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
         {
             Content = new StringContent("{\"_tag\":\"UnauthorizedError\"}"),
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
         var error = new UnauthorizedError
         {
             Message = "password required",
@@ -389,7 +385,7 @@ public sealed class PipelineTests
         });
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None))
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None))
             .Throws<OpenCodeApiException>();
 
         await Assert.That(exception!.Status).IsEqualTo(401);
@@ -402,12 +398,10 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Return_The_Error_Envelope_When_NoThrow()
     {
-        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
+        using var scenario = PipelineScenario.Responding(static _ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
         {
             Content = new StringContent("{\"_tag\":\"UnauthorizedError\"}"),
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter(static (status, rawBody) => new TestResponse
         {
             Status = status,
@@ -415,7 +409,7 @@ public sealed class PipelineTests
             RawBody = rawBody,
         });
 
-        var response = await pipeline.ExecuteAsync(OperationId,
+        var response = await scenario.Pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get,
             "/api/info",
             adapter,
@@ -430,12 +424,10 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Wrap_Network_Failures_As_Transport_Failures()
     {
-        using var handler = new RecordingHttpHandler(static _ => throw new HttpRequestException("connection refused"));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding(static _ => throw new HttpRequestException("connection refused"));
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<OpenCodeTransportException>();
 
@@ -445,7 +437,7 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Wrap_An_Invalid_Charset_As_A_Transport_Failure()
     {
-        using var handler = new RecordingHttpHandler(static _ =>
+        using var scenario = PipelineScenario.Responding(static _ =>
         {
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -454,11 +446,9 @@ public sealed class PipelineTests
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "not-an-encoding" };
             return response;
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<OpenCodeTransportException>();
 
@@ -469,7 +459,7 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Wrap_An_Unsupported_Success_Charset_As_A_Transport_Failure()
     {
-        using var handler = new RecordingHttpHandler(static _ =>
+        using var scenario = PipelineScenario.Responding(static _ =>
         {
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -478,11 +468,9 @@ public sealed class PipelineTests
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-7" };
             return response;
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<OpenCodeTransportException>();
 
@@ -493,7 +481,7 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Wrap_An_Unsupported_Error_Charset_As_A_Transport_Failure()
     {
-        using var handler = new RecordingHttpHandler(static _ =>
+        using var scenario = PipelineScenario.Responding(static _ =>
         {
             var response = new HttpResponseMessage(HttpStatusCode.Unauthorized)
             {
@@ -502,11 +490,9 @@ public sealed class PipelineTests
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-7" };
             return response;
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<OpenCodeTransportException>();
 
@@ -520,7 +506,7 @@ public sealed class PipelineTests
     public async Task ExecuteAsync_Should_Decode_A_Utf7_Success_Body_On_Net472()
     {
         var encoding = Encoding.GetEncoding("utf-7");
-        using var handler = new RecordingHttpHandler(_ =>
+        using var scenario = PipelineScenario.Responding(_ =>
         {
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -529,11 +515,9 @@ public sealed class PipelineTests
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-7" };
             return response;
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter();
 
-        _ = await pipeline.ExecuteAsync(OperationId,
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
 
         await Assert.That(adapter.AdaptedRawBody).IsEqualTo(WireBodyData.InfoOk);
@@ -543,7 +527,7 @@ public sealed class PipelineTests
     public async Task ExecuteAsync_Should_Decode_A_Utf7_Error_Body_On_Net472()
     {
         var encoding = Encoding.GetEncoding("utf-7");
-        using var handler = new RecordingHttpHandler(_ =>
+        using var scenario = PipelineScenario.Responding(_ =>
         {
             var response = new HttpResponseMessage(HttpStatusCode.Unauthorized)
             {
@@ -552,8 +536,6 @@ public sealed class PipelineTests
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-7" };
             return response;
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter(static (status, rawBody) => new TestResponse
         {
             Status = status,
@@ -561,7 +543,7 @@ public sealed class PipelineTests
             RawBody = rawBody,
         });
 
-        var response = await pipeline.ExecuteAsync(OperationId,
+        var response = await scenario.Pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", adapter, OpenCodeRequestOptions.NoThrow, CancellationToken.None);
 
         await Assert.That(response.RawBody).IsEqualTo(WireBodyData.UnauthorizedError);
@@ -573,15 +555,13 @@ public sealed class PipelineTests
     {
         var preamble = Encoding.Unicode.GetPreamble();
         var payload = Encoding.Unicode.GetBytes(WireBodyData.InfoOk);
-        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        using var scenario = PipelineScenario.Responding(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new ByteArrayContent([.. preamble, .. payload]),
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter();
 
-        _ = await pipeline.ExecuteAsync(OperationId,
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
 
         await Assert.That(adapter.AdaptedRawBody).IsEqualTo(WireBodyData.InfoOk);
@@ -591,15 +571,13 @@ public sealed class PipelineTests
     public async Task ExecuteAsync_Should_Strip_A_Utf8_Bom_From_A_Success_Body()
     {
         var body = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(WireBodyData.InfoOk)).ToArray();
-        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        using var scenario = PipelineScenario.Responding(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new ByteArrayContent(body),
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter();
 
-        _ = await pipeline.ExecuteAsync(OperationId,
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
 
         await Assert.That(adapter.AdaptedRawBody).IsEqualTo(WireBodyData.InfoOk);
@@ -610,7 +588,7 @@ public sealed class PipelineTests
     [Arguments("\"utf-8\"")]
     public async Task ExecuteAsync_Should_Decode_A_Declared_Utf8_Success_Body(string charset)
     {
-        using var handler = new RecordingHttpHandler(_ =>
+        using var scenario = PipelineScenario.Responding(_ =>
         {
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -619,11 +597,9 @@ public sealed class PipelineTests
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = charset };
             return response;
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter();
 
-        _ = await pipeline.ExecuteAsync(OperationId,
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
 
         await Assert.That(adapter.AdaptedRawBody).IsEqualTo(WireBodyData.InfoOk);
@@ -632,7 +608,7 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Return_An_Empty_Success_Body_Before_Validating_The_Charset()
     {
-        using var handler = new RecordingHttpHandler(static _ =>
+        using var scenario = PipelineScenario.Responding(static _ =>
         {
             var response = new HttpResponseMessage(HttpStatusCode.OK)
             {
@@ -641,11 +617,9 @@ public sealed class PipelineTests
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "not-an-encoding" };
             return response;
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter();
 
-        _ = await pipeline.ExecuteAsync(OperationId,
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
 
         await Assert.That(adapter.AdaptedRawBody).IsEmpty();
@@ -654,7 +628,7 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Decode_A_Quoted_Utf8_Error_Body()
     {
-        using var handler = new RecordingHttpHandler(static _ =>
+        using var scenario = PipelineScenario.Responding(static _ =>
         {
             var response = new HttpResponseMessage(HttpStatusCode.Unauthorized)
             {
@@ -663,8 +637,6 @@ public sealed class PipelineTests
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "\"utf-8\"" };
             return response;
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
         var adapter = new RecordingResponseAdapter(static (status, rawBody) => new TestResponse
         {
             Status = status,
@@ -672,7 +644,7 @@ public sealed class PipelineTests
             RawBody = rawBody,
         });
 
-        var response = await pipeline.ExecuteAsync(OperationId,
+        var response = await scenario.Pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", adapter, OpenCodeRequestOptions.NoThrow, CancellationToken.None);
 
         await Assert.That(response.RawBody).IsEqualTo(WireBodyData.UnauthorizedError);
@@ -681,14 +653,12 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Preserve_Replacement_Decoding_For_Malformed_Utf8()
     {
-        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        using var scenario = PipelineScenario.Responding(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new ByteArrayContent(WireBodyData.InfoWithMalformedUtf8UnknownField()),
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
 
-        var response = await pipeline.ExecuteAsync(OperationId,
+        var response = await scenario.Pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get, "/api/info", ServerInfoResponseAdapter.Instance, options: null, CancellationToken.None);
 
         await Assert.That(response.Status).IsEqualTo(200);
@@ -697,12 +667,10 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Wrap_A_Disposal_Race_On_Send_As_A_Transport_Failure()
     {
-        using var handler = new RecordingHttpHandler(static _ => throw new ObjectDisposedException(nameof(HttpClient)));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding(static _ => throw new ObjectDisposedException(nameof(HttpClient)));
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<OpenCodeTransportException>();
 
@@ -728,16 +696,14 @@ public sealed class PipelineTests
     {
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelOnWorkerAsync();
-        using var handler = new RecordingHttpHandler(_ => throw new OperationCanceledException(cancellation.Token));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding(_ => throw new OperationCanceledException(cancellation.Token));
 
         _ = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, cancellation.Token))
             .Throws<OperationCanceledException>();
 
-        await Assert.That(handler.CancellationTokens.Single().IsCancellationRequested).IsTrue();
+        await Assert.That(scenario.CancellationTokens.Single().IsCancellationRequested).IsTrue();
     }
 
     [Test]
@@ -787,12 +753,10 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Wrap_A_Timeout_Cancellation_As_A_Transport_Failure()
     {
-        using var handler = new RecordingHttpHandler(static _ => throw new TaskCanceledException());
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
+        using var scenario = PipelineScenario.Responding(static _ => throw new TaskCanceledException());
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<OpenCodeTransportException>();
 
@@ -802,15 +766,13 @@ public sealed class PipelineTests
     [Test]
     public async Task ExecuteAsync_Should_Wrap_A_Timeout_During_The_Body_Read_As_A_Transport_Failure()
     {
-        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.OK)
+        using var scenario = PipelineScenario.Responding(static _ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new TimeoutContent(),
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await pipeline.ExecuteAsync(OperationId,
+            .That(async () => _ = await scenario.Pipeline.ExecuteAsync(OperationId,
                 HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None))
             .Throws<OpenCodeTransportException>();
 
@@ -922,14 +884,12 @@ public sealed class PipelineTests
     {
         using var callerCancellation = new CancellationTokenSource();
         using var content = new BlockingContent();
-        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        using var scenario = PipelineScenario.Responding(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = content,
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
 
-        var execution = pipeline.ExecuteAsync(OperationId,
+        var execution = scenario.Pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get,
             "/api/info",
             new RecordingResponseAdapter(),
@@ -959,14 +919,12 @@ public sealed class PipelineTests
     {
         using var callerCancellation = new CancellationTokenSource();
         using var content = new InterruptedBufferingContent();
-        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        using var scenario = PipelineScenario.Responding(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = content,
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = CreatePipeline(httpClient);
 
-        var execution = pipeline.ExecuteAsync(OperationId,
+        var execution = scenario.Pipeline.ExecuteAsync(OperationId,
             HttpMethod.Get,
             "/api/info",
             new RecordingResponseAdapter(),
