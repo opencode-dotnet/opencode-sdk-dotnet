@@ -1,4 +1,3 @@
-using System.Collections.Frozen;
 using System.Text.Json;
 
 namespace OpenCode.Sdk.Internal;
@@ -18,8 +17,6 @@ internal static class StreamReconnect
 {
     /// <summary>The event that marks a connection as established, written first by the server on every connection.</summary>
     public const string ConnectedEventType = "server.connected";
-
-    private static readonly FrozenSet<string> ReconnectingOperations = FrozenSet.ToFrozenSet(["event.subscribe"], StringComparer.Ordinal);
 
     /// <summary>Gets the wait between a failure and the next attempt.</summary>
     public static TimeSpan Delay { get; } = TimeSpan.FromSeconds(1);
@@ -55,9 +52,6 @@ internal static class StreamReconnect
             ? value
             : throw new ArgumentOutOfRangeException(parameterName, window,
                 "The event stream idle window must be above zero and at most int.MaxValue milliseconds.");
-
-    /// <summary>Gets the operations whose stream reconnects instead of ending with its connection.</summary>
-    public static FrozenSet<string> Reconnecting => ReconnectingOperations;
 
     /// <summary>
     /// Gets whether a frame establishes the connection that delivered it: an unnamed frame whose

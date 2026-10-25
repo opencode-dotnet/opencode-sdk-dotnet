@@ -26,6 +26,7 @@ internal static class PipelineFactory
             Endpoint = endpoint ?? Endpoint,
             Password = password,
             Location = location,
+            NetworkTimeout = networkTimeout,
             EventStreamIdleTimeout = eventStreamIdleTimeout,
         };
         if (username is not null)
@@ -33,6 +34,6 @@ internal static class PipelineFactory
             options.Username = username;
         }
 
-        return new Pipeline(httpClient, ownsHttpClient, options, framer, bufferPool, networkTimeout, time);
+        return new Pipeline(httpClient, ownsHttpClient, options, framer, bufferPool, time);
     }
 }

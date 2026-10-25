@@ -7,14 +7,8 @@ namespace OpenCode.Sdk.Internal;
 /// </summary>
 internal sealed class PipelineMessage : IDisposable
 {
-    /// <summary>The operation the message carries, the key the transport's per-operation rules are looked up by.</summary>
-    public required string OperationId { get; init; }
-
     /// <summary>Gets the decorated request; built by the plane, sent by <see cref="TransportPolicy"/>.</summary>
     public required HttpRequestMessage Request { get; init; }
-
-    /// <summary>The default per-read progress window; internal until the public network-timeout option lands.</summary>
-    internal static readonly TimeSpan DefaultNetworkTimeout = TimeSpan.FromSeconds(100);
 
     /// <summary>Gets the caller's token, inspected first by every failure classification.</summary>
     public CancellationToken CancellationToken { get; init; }
@@ -26,7 +20,7 @@ internal sealed class PipelineMessage : IDisposable
     /// Gets the progress window the send and each buffered read must fit inside; read by
     /// <see cref="ResponseBufferingPolicy"/>, which re-arms it on every read that progresses.
     /// </summary>
-    public TimeSpan NetworkTimeout { get; init; } = DefaultNetworkTimeout;
+    public TimeSpan NetworkTimeout { get; init; }
 
     /// <summary>
     /// Gets the token network I/O runs under: the caller's token until

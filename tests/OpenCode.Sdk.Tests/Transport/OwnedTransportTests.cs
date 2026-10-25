@@ -112,7 +112,7 @@ public sealed class OwnedTransportTests
             options: null,
             CancellationToken.None);
         await handler.BodyStalled.WaitAsync(HangGuard.Bound);
-        time.Advance(PipelineMessage.DefaultNetworkTimeout);
+        time.Advance(NetworkTimeouts.DefaultNetworkTimeout);
 
         var exception = await Assert
             .That(execution.WaitAsync(HangGuard.Bound))

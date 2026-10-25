@@ -97,15 +97,19 @@ public sealed class NetworkTimeoutTests
     [Test]
     public async Task The_Long_Polls_Should_Be_The_Operations_That_Hold_Their_Headers_Until_The_Work_Ends()
     {
-        // This checks the complete inventory, not its enumeration order.
-        await Assert.That(NetworkTimeouts.LongPolls).IsEquivalentTo(
-        [
-            "experimental.session.wait",
-            "session.shell",
-            "experimental.generate.text",
-            "session.generate",
-            "session.command",
-        ], CollectionOrdering.Any);
+        // Every listed operation's traits, in any order; HandWrittenTransportTableTests catches an added id.
+        var expected = new Dictionary<string, OperationTraits>(StringComparer.Ordinal)
+        {
+            ["event.subscribe"] = new(Reconnects: true, HasNoNetworkWindow: false),
+            ["experimental.generate.text"] = new(Reconnects: false, HasNoNetworkWindow: true),
+            ["experimental.session.wait"] = new(Reconnects: false, HasNoNetworkWindow: true),
+            ["session.command"] = new(Reconnects: false, HasNoNetworkWindow: true),
+            ["session.generate"] = new(Reconnects: false, HasNoNetworkWindow: true),
+            ["session.shell"] = new(Reconnects: false, HasNoNetworkWindow: true),
+            ["not.an.operation"] = default,
+        };
+
+        await Assert.That(expected.Keys.ToDictionary(static id => id, OperationTraits.Lookup, StringComparer.Ordinal)).IsEquivalentTo(expected, CollectionOrdering.Any);
     }
 
     /// <summary>Minus one millisecond is <see cref="Timeout.InfiniteTimeSpan"/> itself, so the negative case is minus two.</summary>

@@ -6,8 +6,6 @@ namespace OpenCode.Sdk.Tests.Transport;
 
 public sealed class PipelineMessageTests
 {
-    private const string OperationId = "test.operation";
-
     [Test]
     public async Task Dispose_Should_Release_The_Request_And_The_Response()
     {
@@ -20,7 +18,7 @@ public sealed class PipelineMessageTests
         using var response = new DisposalTrackingResponse(HttpStatusCode.OK, responseContent);
         var message = new PipelineMessage
         {
-            OperationId = OperationId,
+            NetworkTimeout = NetworkTimeouts.DefaultNetworkTimeout,
             Request = request,
             Response = response,
         };
@@ -39,7 +37,7 @@ public sealed class PipelineMessageTests
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri("http://localhost:4096/api/info"));
         var message = new PipelineMessage
         {
-            OperationId = OperationId,
+            NetworkTimeout = NetworkTimeouts.DefaultNetworkTimeout,
             Request = request,
             Body = new ResponseBody(pool, pool.Rent(16), 3),
         };
@@ -53,7 +51,11 @@ public sealed class PipelineMessageTests
     public async Task Dispose_Should_Tolerate_A_Message_Without_A_Response()
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri("http://localhost:4096/api/info"));
-        var message = new PipelineMessage { OperationId = OperationId, Request = request };
+        var message = new PipelineMessage
+        {
+            Request = request,
+            NetworkTimeout = NetworkTimeouts.DefaultNetworkTimeout,
+        };
 
         message.Dispose();
 

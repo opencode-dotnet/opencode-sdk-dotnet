@@ -1,5 +1,3 @@
-using System.Collections.Frozen;
-
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
@@ -15,20 +13,16 @@ internal static class NetworkTimeouts
 {
     private static readonly TimeSpan TimerCeiling = TimeSpan.FromMilliseconds(int.MaxValue);
 
-    private static readonly FrozenSet<string> LongPollOperations = FrozenSet.ToFrozenSet(
-        ["experimental.session.wait", "session.shell", "experimental.generate.text", "session.generate", "session.command"],
-        StringComparer.Ordinal);
-
-    /// <summary>Gets the operations that wait on work rather than on the network.</summary>
-    public static FrozenSet<string> LongPolls => LongPollOperations;
+    /// <summary>The progress window an ordinary exchange uses when neither call nor client supplies one.</summary>
+    internal static readonly TimeSpan DefaultNetworkTimeout = TimeSpan.FromSeconds(100);
 
     /// <summary>Gets the window an exchange runs under.</summary>
-    /// <param name="operationId">The operation the exchange carries.</param>
+    /// <param name="traits">The operation rules carried by the call's description.</param>
     /// <param name="perCall">The call's own value, which wins.</param>
     /// <param name="client">The client's value, which ordinary operations take.</param>
     /// <returns>The window; <see cref="Timeout.InfiniteTimeSpan"/> for none.</returns>
-    public static TimeSpan Resolve(string operationId, TimeSpan? perCall, TimeSpan? client) =>
-        perCall ?? (LongPollOperations.Contains(operationId) ? Timeout.InfiniteTimeSpan : client ?? PipelineMessage.DefaultNetworkTimeout);
+    public static TimeSpan Resolve(OperationTraits traits, TimeSpan? perCall, TimeSpan? client) =>
+        perCall ?? (traits.HasNoNetworkWindow ? Timeout.InfiniteTimeSpan : client ?? DefaultNetworkTimeout);
 
     /// <summary>
     /// Refuses a value no supported timer can run: zero, negative other than
