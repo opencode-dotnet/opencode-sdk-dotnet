@@ -731,7 +731,7 @@ public sealed class GenerationWriterTests
     }
 
     [Test]
-    public async Task WriteAsync_Should_Observe_Cancellation_After_The_Final_Manifest_Rename_When_The_Output_Root_Starts_Empty()
+    public async Task WriteAsync_Should_Observe_Cancellation_After_The_Final_Manifest_Rename_When_No_Owned_File_Exists_Beforehand()
     {
         var fileSystem = GenerationTestData.CreateFileSystem();
         using var cancellation = new CancellationTokenSource();
