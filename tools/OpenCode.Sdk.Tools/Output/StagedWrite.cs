@@ -21,7 +21,7 @@ internal sealed class StagedWrite(IFileSystem fileSystem, PlacementValidator pla
             cancellationToken).ConfigureAwait(false);
         foreach (var path in paths)
         {
-            await InstallAsync(root, path, sources[path].Utf8Source.ToArray(), cancellationToken).ConfigureAwait(false);
+            await InstallAsync(root, path, sources[path].Utf8Source, cancellationToken).ConfigureAwait(false);
         }
 
         var retained = paths.ToHashSet(PlacementValidator.OwnedPathComparer);
@@ -47,7 +47,7 @@ internal sealed class StagedWrite(IFileSystem fileSystem, PlacementValidator pla
             ManifestStore.ManifestBytes(paths, request.ImplicitAliases), cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task InstallAsync(string root, string relativePath, byte[] content, CancellationToken cancellationToken)
+    private async Task InstallAsync(string root, string relativePath, ReadOnlyMemory<byte> content, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var path = _placement.ResolveOwnedPath(root, relativePath);
@@ -59,7 +59,12 @@ internal sealed class StagedWrite(IFileSystem fileSystem, PlacementValidator pla
         var temporaryPath = _placement.ResolveOwnedPath(root, temporaryRelativePath);
         try
         {
-            await _fileSystem.File.WriteAllBytesAsync(temporaryPath, content, cancellationToken).ConfigureAwait(false);
+            var stream = _fileSystem.File.Open(temporaryPath, FileMode.Create, FileAccess.Write, FileShare.Read);
+            await using (stream.ConfigureAwait(false))
+            {
+                await stream.WriteAsync(content, cancellationToken).ConfigureAwait(false);
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
             _fileSystem.File.Move(temporaryPath, path, true);
         }

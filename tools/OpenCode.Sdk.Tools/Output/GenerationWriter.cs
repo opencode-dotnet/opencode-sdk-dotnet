@@ -29,8 +29,7 @@ internal sealed class GenerationWriter(
             .Distinct(PlacementValidator.OwnedPathComparer).Order(StringComparer.Ordinal).ToArray();
         var before = await SnapshotAsync(root, trackedPaths, cancellationToken).ConfigureAwait(false);
         await _write.WriteAsync(request, oldPaths, sources, cancellationToken).ConfigureAwait(false);
-        var after = await SnapshotAsync(root, trackedPaths, cancellationToken).ConfigureAwait(false);
-        return Compare(before, after, request.Verify);
+        return await CompareAsync(root, before, request.Verify, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<Dictionary<string, byte[]?>> SnapshotAsync(string root, IReadOnlyList<string> paths, CancellationToken cancellationToken)
@@ -46,24 +45,28 @@ internal sealed class GenerationWriter(
         return result;
     }
 
-    private static WriteResult Compare(Dictionary<string, byte[]?> before, Dictionary<string, byte[]?> after, bool verify)
+    private async Task<WriteResult> CompareAsync(string root, Dictionary<string, byte[]?> before, bool verify,
+        CancellationToken cancellationToken)
     {
         var created = new List<string>();
         var changed = new List<string>();
         var deleted = new List<string>();
+        var buffer = new byte[8192];
         foreach (var relativePath in before.Keys.Order(StringComparer.Ordinal))
         {
             var oldContent = before[relativePath];
-            var newContent = after[relativePath];
-            if (oldContent is null && newContent is not null)
+            var path = _placement.ResolveOwnedPath(root, relativePath);
+            var exists = _fileSystem.File.Exists(path);
+            if (oldContent is null && exists)
             {
                 created.Add(relativePath);
             }
-            else if (oldContent is not null && newContent is null)
+            else if (oldContent is not null && !exists)
             {
                 deleted.Add(relativePath);
             }
-            else if (oldContent is not null && newContent is not null && !oldContent.AsSpan().SequenceEqual(newContent))
+            else if (oldContent is not null && exists
+                     && !await HasSameBytesAsync(path, oldContent, buffer, cancellationToken).ConfigureAwait(false))
             {
                 changed.Add(relativePath);
             }
@@ -76,5 +79,26 @@ internal sealed class GenerationWriter(
             ChangedPaths = changed,
             DeletedPaths = deleted,
         };
+    }
+
+    private async Task<bool> HasSameBytesAsync(string path, byte[] content, byte[] buffer, CancellationToken cancellationToken)
+    {
+        var stream = _fileSystem.File.OpenRead(path);
+        await using (stream.ConfigureAwait(false))
+        {
+            var offset = 0;
+            int count;
+            while ((count = await stream.ReadAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false)) != 0)
+            {
+                if (count > content.Length - offset || !content.AsSpan(offset, count).SequenceEqual(buffer.AsSpan(0, count)))
+                {
+                    return false;
+                }
+
+                offset += count;
+            }
+
+            return offset == content.Length;
+        }
     }
 }

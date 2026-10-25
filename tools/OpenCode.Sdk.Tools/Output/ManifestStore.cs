@@ -64,8 +64,21 @@ internal sealed class ManifestStore(IFileSystem fileSystem, PlacementValidator p
                 continue;
             }
 
-            var content = await _fileSystem.File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
-            if (!GenerationProvenance.HasHeader(content))
+            using var reader = new StreamReader(_fileSystem.File.OpenRead(path), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            var header = new StringBuilder();
+            var character = new char[1];
+            var lineFeeds = 0;
+            // Only LF separates header lines; a lone CR remains content for provenance validation.
+            while (lineFeeds < 2 && await reader.ReadAsync(character.AsMemory(), cancellationToken).ConfigureAwait(false) != 0)
+            {
+                _ = header.Append(character[0]);
+                if (character[0] == '\n')
+                {
+                    lineFeeds++;
+                }
+            }
+
+            if (!GenerationProvenance.HasHeader(header.ToString()))
             {
                 throw new OutputRefusalException(
                     $"Manifest entry '{relativePath}' does not carry the provenance header; refusing to overwrite or delete it.");

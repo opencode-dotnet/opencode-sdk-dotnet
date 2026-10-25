@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Output;
@@ -660,6 +661,68 @@ public sealed class GenerationWriterTests
         await Assert.That(written!.Files).IsEquivalentTo([familyAdapter, familyModel], CollectionOrdering.Any);
         await Assert.That(rerun.HasChanges).IsFalse();
     }
+
+    [Test]
+    public async Task WriteAsync_Should_Compare_Exact_Post_Formatter_Bytes()
+    {
+        const string changed = "Z.cs";
+        const string created = "Created.cs";
+        const string deleted = "Deleted.cs";
+        const string unchanged = "Unchanged.cs";
+        const string unchangedSource = "public sealed record Unchanged;\n";
+        var body = new string('a', 200_000);
+        var fileSystem = GenerationTestData.CreateFileSystem();
+        _ = await CreateWriter(fileSystem).WriteAsync(
+            Request(
+            [
+                GenerationTestData.Source(changed, $"{body}z\n"),
+                GenerationTestData.Source("a.cs", "old\n"),
+                GenerationTestData.Source(deleted, "deleted\n"),
+                GenerationTestData.Source(unchanged, unchangedSource),
+            ]), CancellationToken.None);
+        var formatted = new Dictionary<string, byte[]>(StringComparer.Ordinal)
+        {
+            [changed] = OwnedBytes($"{body}y\n"),
+            ["a.cs"] = OwnedBytes("new\n"),
+            [unchanged] = OwnedBytes(unchangedSource),
+        };
+        var formatter = new RecordingProjectFormatter(fileSystem, async (current, _, _, token) =>
+        {
+            foreach (var (relativePath, bytes) in formatted)
+            {
+                await current.File.WriteAllBytesAsync(
+                    current.Path.Combine(GenerationTestData.OutputRoot, relativePath), bytes, token);
+            }
+        });
+
+        var result = await CreateWriter(fileSystem, formatter).WriteAsync(
+            Request(
+            [
+                GenerationTestData.Source(changed, $"{body}z\n"),
+                GenerationTestData.Source("a.cs", "old\n"),
+                GenerationTestData.Source(created, "created\n"),
+                GenerationTestData.Source(unchanged, "public record Unchanged;\n"),
+            ], verify: true), CancellationToken.None);
+
+        await Assert.That(result.IsVerification).IsTrue();
+        await Assert.That(result.CreatedPaths).IsEquivalentTo([created], CollectionOrdering.Matching);
+        await Assert.That(result.ChangedPaths).IsEquivalentTo(
+            [".generated-manifest.json", ".gitattributes", changed, "a.cs"], CollectionOrdering.Matching);
+        await Assert.That(result.DeletedPaths).IsEquivalentTo([deleted], CollectionOrdering.Matching);
+        var expectedFiles = new Dictionary<string, byte[]>(formatted, StringComparer.Ordinal)
+        {
+            [created] = OwnedBytes("created\n"),
+        };
+        foreach (var (relativePath, bytes) in expectedFiles)
+        {
+            await Assert.That(await fileSystem.File.ReadAllBytesAsync(OwnedPath(fileSystem, relativePath)))
+                .IsEquivalentTo(bytes, CollectionOrdering.Matching);
+        }
+
+        await Assert.That(OwnedPath(fileSystem, deleted)).Satisfies(path => !fileSystem.File.Exists(path));
+    }
+
+    private static byte[] OwnedBytes(string content) => Encoding.UTF8.GetBytes(GenerationTestData.OwnedContent(content));
 
     /// <summary>Assembles one write request over the shared test roots; flags default off.</summary>
     private static GenerationWriteRequest Request(IReadOnlyList<GeneratedSource> sources,
