@@ -6,7 +6,9 @@ internal static class BenchmarkExitPolicy
     public static int GetExitCode(IEnumerable<SummaryResult> summaries)
     {
         ArgumentNullException.ThrowIfNull(summaries);
-        return summaries.Any(static summary => summary.HasValidationErrors || summary.HasBuildFailures
+        var results = summaries.ToArray();
+        return results.Length == 0 || results.Any(static summary => summary.ExpectedCases == 0
+            || summary.HasValidationErrors || summary.HasBuildFailures
             || summary.MissingReports != 0 || summary.UnsuccessfulReports != 0 || summary.MissingStatistics != 0) ? 1 : 0;
     }
 
@@ -15,5 +17,6 @@ internal static class BenchmarkExitPolicy
         bool HasBuildFailures,
         int MissingReports,
         int UnsuccessfulReports,
-        int MissingStatistics);
+        int MissingStatistics,
+        int ExpectedCases);
 }

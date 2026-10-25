@@ -14,6 +14,7 @@ internal static class Program
             summary.Reports.Any(static report => !report.BuildResult.IsBuildSuccess),
             summary.BenchmarksCases.Count(benchmarkCase => !summary.HasReport(benchmarkCase)),
             summary.Reports.Count(static report => !report.Success),
-            summary.Reports.Count(static report => report.ResultStatistics is null))));
+            summary.Reports.Count(static report => report.ResultStatistics is null),
+            summary.BenchmarksCases.Length)));
     }
 }

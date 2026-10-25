@@ -3,6 +3,22 @@ namespace OpenCode.Sdk.Tests.Harness;
 public sealed class BenchmarkExitPolicyTests
 {
     [Test]
+    public async Task GetExitCode_Should_Reject_No_Summaries()
+    {
+        var code = BenchmarkExitPolicy.GetExitCode([]);
+
+        await Assert.That(code).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task GetExitCode_Should_Reject_Zero_Expected_Cases()
+    {
+        var code = BenchmarkExitPolicy.GetExitCode([new(false, false, 0, 0, 0, 0)]);
+
+        await Assert.That(code).IsEqualTo(1);
+    }
+
+    [Test]
     [Arguments(true, false, 0, 0, 0)]
     [Arguments(false, true, 0, 0, 0)]
     [Arguments(false, false, 1, 0, 0)]
@@ -12,9 +28,9 @@ public sealed class BenchmarkExitPolicyTests
         bool hasValidationErrors, bool hasBuildFailures, int missingReports, int unsuccessfulReports, int missingStatistics)
     {
         var failure = new BenchmarkExitPolicy.SummaryResult(
-            hasValidationErrors, hasBuildFailures, missingReports, unsuccessfulReports, missingStatistics);
+            hasValidationErrors, hasBuildFailures, missingReports, unsuccessfulReports, missingStatistics, 1);
 
-        var code = BenchmarkExitPolicy.GetExitCode([new(false, false, 0, 0, 0), failure]);
+        var code = BenchmarkExitPolicy.GetExitCode([new(false, false, 0, 0, 0, 1), failure]);
 
         await Assert.That(code).IsEqualTo(1);
     }
@@ -22,7 +38,7 @@ public sealed class BenchmarkExitPolicyTests
     [Test]
     public async Task GetExitCode_Should_Accept_All_Clear_Summaries()
     {
-        var code = BenchmarkExitPolicy.GetExitCode([new(false, false, 0, 0, 0), new(false, false, 0, 0, 0)]);
+        var code = BenchmarkExitPolicy.GetExitCode([new(false, false, 0, 0, 0, 1), new(false, false, 0, 0, 0, 1)]);
 
         await Assert.That(code).IsEqualTo(0);
     }

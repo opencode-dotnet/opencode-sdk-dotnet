@@ -25,6 +25,10 @@ public sealed class CiBenchmarkGuardTests
             "if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.benchmarks == 'true' && runner.os == 'Linux' }}",
             "if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.benchmarks == 'true' && runner.os == 'Windows' }}",
         ], CollectionOrdering.Matching);
+        var uploadStart = matrix.IndexOf("      - name: Upload SDK Dry artifacts\n", StringComparison.Ordinal);
+        var uploadEnd = matrix.IndexOf("\n      - name: ", uploadStart + 1, StringComparison.Ordinal);
+        var upload = matrix[uploadStart..(uploadEnd < 0 ? matrix.Length : uploadEnd)];
+        await Assert.That(upload).Contains("continue-on-error: true");
     }
 
     [Test]
@@ -32,7 +36,9 @@ public sealed class CiBenchmarkGuardTests
     {
         var stage = Job(await WorkflowAsync(), "benchmark-generator-stage");
         await Assert.That(stage).Contains("needs: changes");
-        await Assert.That(stage).Contains("if: needs.changes.outputs.benchmarks == 'true'");
+        await Assert.That(stage).Contains("if: needs.changes.outputs.benchmarks-generator == 'true'");
+        await Assert.That(stage).Contains("- name: Generator stages\n");
+        await Assert.That(stage).Contains("- name: Upload generator stage artifacts\n");
         await Assert.That(stage).Contains("runs-on: ubuntu-24.04");
         await Assert.That(Commands(stage)).IsEquivalentTo([
             $"{Run} --filter 'OpenCode.Sdk.Performance.Tests.Generator.GeneratorStageBenchmarks.*' --job Dry --artifacts .benchmarks/ci-generator-stage",
@@ -59,12 +65,17 @@ public sealed class CiBenchmarkGuardTests
         var changes = Job(workflow, "changes");
         await Assert.That(changes).Contains("benchmarks: ${{ steps.diff.outputs.benchmarks }}");
         await Assert.That(changes).Contains("echo \"benchmarks=true\" >> \"$GITHUB_OUTPUT\"");
-        await Assert.That(changes).Contains("src/* | tools/OpenCode.Sdk.Tools/* | tools/curation.json | tools/generation-profile.txt | spec/* | tests/OpenCode.Sdk.Performance.Tests/* | tests/Shared/BenchmarkExitPolicy.cs | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | .github/workflows/ci.yml) benchmarks=true ;;");
+        await Assert.That(changes).Contains("src/* | tools/OpenCode.Sdk.Tools/* | tools/curation.json | tools/generation-profile.txt | spec/* | tests/OpenCode.Sdk.Performance.Tests/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks=true ;;");
         await Assert.That(changes).Contains("echo \"benchmarks=$benchmarks\" >> \"$GITHUB_OUTPUT\"");
+        await Assert.That(changes).Contains("benchmarks-generator: ${{ steps.diff.outputs.benchmarks-generator }}");
+        await Assert.That(changes).Contains("echo \"benchmarks-generator=true\" >> \"$GITHUB_OUTPUT\"");
+        await Assert.That(changes).Contains("benchmarks_generator=false");
+        await Assert.That(changes).Contains("              tools/* | tests/OpenCode.Sdk.Tools.Tests/* | tests/OpenCode.Sdk.Performance.Tests/* | spec/*) benchmarks_generator=true ;;");
+        await Assert.That(changes).Contains("echo \"benchmarks-generator=$benchmarks_generator\" >> \"$GITHUB_OUTPUT\"");
         var aggregate = Job(workflow, "ci-result");
         await Assert.That(aggregate).Contains("needs: [changes, lint, build-and-test, benchmark-generator-stage]");
         await Assert.That(aggregate).Contains("if: always()");
-        await Assert.That(aggregate).Contains("BENCHMARKS: ${{ needs.changes.outputs.benchmarks }}");
+        await Assert.That(aggregate).Contains("BENCHMARKS: ${{ needs.changes.outputs.benchmarks-generator }}");
         await Assert.That(aggregate).Contains("STAGE: ${{ needs.benchmark-generator-stage.result }}");
         await Assert.That(aggregate).Contains("[ \"$CHANGES\" = success ] || exit 1");
         await Assert.That(aggregate).Contains("""

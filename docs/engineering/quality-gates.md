@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-10-25
+Date: 2026-10-26
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -384,15 +384,19 @@ net10 or source-equivalent probes.
 The CI benchmark readiness guard runs SDK-only `--job Dry` steps in the existing Linux matrix leg
 for net10.0 and net11.0 (the job already installs the pinned .NET 11 SDK), and in the Windows leg
 with `--runtimes net472`. A separate `benchmark-generator-stage` job runs only
-`GeneratorStageBenchmarks`, without `--runtimes`; `GeneratorRunBenchmarks` never runs in CI.
-Each Dry step has a 20-minute timeout. The benchmark process returns non-zero for any validation
-error, failed build, missing report, unsuccessful report or missing result statistics, failing the
-step without log scraping. Both jobs upload their Dry artifacts even after benchmark failure.
+`GeneratorStageBenchmarks` once with its own default-strategy job, without `--runtimes`;
+`GeneratorRunBenchmarks` never runs in CI. Each SDK Dry step and the stage step has a 20-minute timeout.
+The benchmark process returns non-zero for no summaries, zero expected cases in any summary, any
+validation error, failed build, missing report, unsuccessful report or missing result statistics,
+failing the step without log scraping. Both jobs upload their benchmark artifacts even after failure.
 
-The guard selects changes under `src/`, `tools/OpenCode.Sdk.Tools/`, `spec/` and the performance
+The SDK guard selects changes under `src/`, `tools/OpenCode.Sdk.Tools/`, `spec/` and the performance
 project, plus `tools/curation.json`, `tools/generation-profile.txt`, the shared `BenchmarkExitPolicy.cs`,
-`Directory.Build.props`, `Directory.Build.targets`, `Directory.Packages.props`, `global.json` and
-the CI workflow itself. Push runs always select it. `CI result` requires the stage job to succeed
+`tests/Directory.Build.props`, `Directory.Build.props`, `Directory.Build.targets`,
+`Directory.Packages.props`, `global.json`, `nuget.config` and the CI workflow itself. The stage job
+selects only changes under `tools/`, `tests/OpenCode.Sdk.Tools.Tests/`, the performance project or
+`spec/` (including `tools/curation.json`), not `src/` alone. Push runs always select both guards.
+`CI result` requires the stage job to succeed
 when selected and to be skipped otherwise; invalid classification, failure or cancellation fails
 the aggregate. The existing matrix result covers the SDK steps.
 

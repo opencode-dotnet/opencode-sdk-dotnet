@@ -41,6 +41,7 @@ jobs:
     outputs:
       code: ${{ steps.diff.outputs.code }}
       benchmarks: ${{ steps.diff.outputs.benchmarks }}
+      benchmarks-generator: ${{ steps.diff.outputs.benchmarks-generator }}
 
     steps:
       - name: Checkout
@@ -58,6 +59,7 @@ jobs:
           if [ "$EVENT" = push ]; then
             echo "code=true" >> "$GITHUB_OUTPUT"
             echo "benchmarks=true" >> "$GITHUB_OUTPUT"
+            echo "benchmarks-generator=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if [ "$EVENT" = merge_group ]; then
@@ -71,6 +73,7 @@ jobs:
           git diff --name-only --no-renames -z "$base" HEAD > "$RUNNER_TEMP/changed-paths"
           code=false
           benchmarks=false
+          benchmarks_generator=false
           while IFS= read -r -d '' path; do
             printf '%s\n' "$path"
             case "$path" in
@@ -78,11 +81,15 @@ jobs:
               *) code=true ;;
             esac
             case "$path" in
-              src/* | tools/OpenCode.Sdk.Tools/* | tools/curation.json | tools/generation-profile.txt | spec/* | tests/OpenCode.Sdk.Performance.Tests/* | tests/Shared/BenchmarkExitPolicy.cs | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | .github/workflows/ci.yml) benchmarks=true ;;
+              src/* | tools/OpenCode.Sdk.Tools/* | tools/curation.json | tools/generation-profile.txt | spec/* | tests/OpenCode.Sdk.Performance.Tests/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks=true ;;
+            esac
+            case "$path" in
+              tools/* | tests/OpenCode.Sdk.Tools.Tests/* | tests/OpenCode.Sdk.Performance.Tests/* | spec/*) benchmarks_generator=true ;;
             esac
           done < "$RUNNER_TEMP/changed-paths"
           echo "code=$code" >> "$GITHUB_OUTPUT"
           echo "benchmarks=$benchmarks" >> "$GITHUB_OUTPUT"
+          echo "benchmarks-generator=$benchmarks_generator" >> "$GITHUB_OUTPUT"
 
   # The OS-independent gates run once, beside the matrix instead of inside its Linux leg, where
   # they delayed that leg's tests by about 5 minutes (2026-09-26, run 36231256172). None of them
@@ -519,6 +526,7 @@ jobs:
 
       - name: Upload SDK Dry artifacts
         if: ${{ !cancelled() && needs.changes.outputs.benchmarks == 'true' && runner.os != 'macOS' }}
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
           name: benchmark-sdk-${{ matrix.name }}-${{ github.event.pull_request.number || github.run_number }}
@@ -538,7 +546,7 @@ jobs:
   benchmark-generator-stage:
     name: "Benchmark generator stages"
     needs: changes
-    if: needs.changes.outputs.benchmarks == 'true'
+    if: needs.changes.outputs.benchmarks-generator == 'true'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -552,11 +560,11 @@ jobs:
           global-json-file: global.json
           dotnet-version: 10.0.x
 
-      - name: Generator stages Dry
+      - name: Generator stages
         timeout-minutes: 20
         run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Generator.GeneratorStageBenchmarks.*' --job Dry --artifacts .benchmarks/ci-generator-stage
 
-      - name: Upload generator stage Dry artifacts
+      - name: Upload generator stage artifacts
         if: always()
         uses: actions/upload-artifact@v7
         with:
@@ -582,7 +590,7 @@ jobs:
           CODE: ${{ needs.changes.outputs.code }}
           LINT: ${{ needs.lint.result }}
           BUILD_AND_TEST: ${{ needs.build-and-test.result }}
-          BENCHMARKS: ${{ needs.changes.outputs.benchmarks }}
+          BENCHMARKS: ${{ needs.changes.outputs.benchmarks-generator }}
           STAGE: ${{ needs.benchmark-generator-stage.result }}
         run: |
           echo "changes=$CHANGES code=$CODE lint=$LINT build-and-test=$BUILD_AND_TEST"
