@@ -321,6 +321,7 @@ internal static class ExtensibleEnumEmitter
         return EmissionSyntax.CreateSource(relativePath, unit);
     }
 
+    /// <remarks>The cast holds: Roslyn's With* on a base declaration keeps the declaration's concrete type.</remarks>
     private static T ValueFromWireSpellingMember<T>(T declaration, EnumModelPlan model)
         where T : BaseMethodDeclarationSyntax => (T)declaration
         .WithModifiers(SyntaxFactory.TokenList(
