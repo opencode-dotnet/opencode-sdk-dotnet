@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net.WebSockets;
 
 namespace OpenCode.Sdk.Internal;
@@ -93,6 +94,31 @@ internal static class FailureClassification
             ? canceled
             : new OperationCanceledException(message, failure, cancellationToken);
 
+    public static OpenCodeTransportException EventStreamEnded() =>
+        new("The opencode event stream ended.");
+
+    public static OpenCodeTransportException EventStreamGiveUp(Exception failure, TimeSpan window) =>
+        new($"The opencode event stream did not connect within {Seconds(window)} seconds.", failure);
+
+    public static OpenCodeTransportException EventStreamFirstFrame() =>
+        new($"The opencode event stream did not start with {StreamReconnect.ConnectedEventType}.");
+
+    /// <summary>Names the attempt's elapsed window without classifying caller or client state.</summary>
+    public static OpenCodeTransportException EventStreamWindow(OperationCanceledException cancellation,
+        TimeSpan window, bool established, bool responseReceived) =>
+        new((established, responseReceived) switch
+        {
+            (true, _) => $"The opencode event stream received nothing for {Seconds(window)} seconds.",
+            (_, true) => $"The opencode server answered the event stream request but sent no event within {Seconds(window)} seconds.",
+            _ => $"The opencode server did not answer the event stream request within {Seconds(window)} seconds.",
+        }, cancellation);
+
+    public static OpenCodeTransportException EventStreamBodyRequired() =>
+        new("The opencode API answered a streaming operation without an event-stream body.");
+
+    private static string Seconds(TimeSpan window) =>
+        window.TotalSeconds.ToString("0.#######", CultureInfo.InvariantCulture);
+
     private static string FaultMessage(FailurePhase phase) => phase switch
     {
         FailurePhase.Send => "The opencode server could not be reached.",
@@ -108,7 +134,7 @@ internal static class FailureClassification
             ? "The opencode server did not respond within the transport timeout."
             : FaultMessage(phase);
 
-    private static string CanceledMessage(FailurePhase phase) => phase switch
+    public static string CanceledMessage(FailurePhase phase) => phase switch
     {
         FailurePhase.Send => "The opencode request was canceled.",
         FailurePhase.ResponseBodyRead => "The opencode response body read was canceled.",

@@ -10,7 +10,7 @@ internal abstract class PipelinePolicy
     /// <summary>Processes the message, forwarding through <paramref name="remaining"/> when the stage continues.</summary>
     public abstract ValueTask ProcessAsync(PipelineMessage message, ReadOnlyMemory<PipelinePolicy> remaining);
 
-    /// <summary>Runs the rest of the pipeline behind this policy.</summary>
-    protected static ValueTask ProcessNextAsync(PipelineMessage message, ReadOnlyMemory<PipelinePolicy> remaining) =>
+    /// <summary>Runs <paramref name="remaining"/> in order, from its first policy.</summary>
+    internal static ValueTask ProcessNextAsync(PipelineMessage message, ReadOnlyMemory<PipelinePolicy> remaining) =>
         remaining.Span[0].ProcessAsync(message, remaining[1..]);
 }
