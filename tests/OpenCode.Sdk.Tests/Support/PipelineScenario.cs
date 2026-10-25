@@ -32,6 +32,8 @@ internal sealed class PipelineScenario : IDisposable
 
     public IReadOnlyList<RecordedRequest> Requests => _handler.Requests;
 
+    public IReadOnlyList<CancellationToken> CancellationTokens => _handler.CancellationTokens;
+
     public bool IsDisposed => _handler.IsDisposed;
 
     public static PipelineScenario Responding(
