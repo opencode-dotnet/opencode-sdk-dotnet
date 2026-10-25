@@ -26,17 +26,15 @@ public sealed class PipelineStreamTests
     public async Task ExecuteStreamAsync_Should_Report_Interruption_After_The_Final_Unterminated_Frame(bool disposeClient)
     {
         using var caller = new CancellationTokenSource();
-        using var handler = new RecordingHttpHandler(static _ => EventStream(FirstFrame[..^1]));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
-        await using var enumerator = pipeline.ExecuteStreamAsync(
+        using var scenario = PipelineScenario.Responding(static _ => EventStream(FirstFrame[..^1]));
+        await using var enumerator = scenario.Pipeline.ExecuteStreamAsync(
             OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, caller.Token).GetAsyncEnumerator();
         var first = enumerator.MoveNextAsync().AsTask();
         await Assert.That(await first.WaitAsync(HangGuard.Bound)).IsTrue();
 
         if (disposeClient)
         {
-            pipeline.Dispose();
+            scenario.Pipeline.Dispose();
         }
         else
         {
@@ -281,11 +279,9 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Yield_Every_Frame_Payload()
     {
-        using var handler = new RecordingHttpHandler(static _ => EventStream(FirstAndSecondFrames));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
+        using var scenario = PipelineScenario.Responding(static _ => EventStream(FirstAndSecondFrames));
 
-        var payloads = await CollectAsync(pipeline);
+        var payloads = await CollectAsync(scenario.Pipeline);
 
         await Assert.That(payloads
                 .Select(static payload => payload.Value)).IsEquivalentTo(["first", "second"], StringComparer.Ordinal, CollectionOrdering.Matching);
@@ -296,10 +292,8 @@ public sealed class PipelineStreamTests
     public async Task ExecuteStreamAsync_Should_Yield_The_First_Frame_Before_The_Body_Ends()
     {
         using var body = new BlockingStream(Encoding.UTF8.GetBytes(FirstFrame));
-        using var handler = new RecordingHttpHandler(_ => EventStreamOf(body));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
-        var stream = pipeline.ExecuteStreamAsync(OperationId,
+        using var scenario = PipelineScenario.Responding(_ => EventStreamOf(body));
+        var stream = scenario.Pipeline.ExecuteStreamAsync(OperationId,
             HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, CancellationToken.None);
 
         await using var enumerator = stream.GetAsyncEnumerator(CancellationToken.None);
@@ -349,15 +343,13 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Throw_The_Typed_Error_Before_Opening_The_Stream()
     {
-        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.NotFound)
+        using var scenario = PipelineScenario.Responding(static _ => new HttpResponseMessage(HttpStatusCode.NotFound)
         {
             Content = new StringContent(WireBodyData.SessionNotFoundError),
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await CollectAsync(pipeline, new TestStreamAdapter("SessionNotFoundError")))
+            .That(async () => _ = await CollectAsync(scenario.Pipeline, new TestStreamAdapter("SessionNotFoundError")))
             .Throws<OpenCodeApiException>();
 
         await Assert.That(exception!.Status).IsEqualTo(404);
@@ -423,22 +415,20 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Refuse_A_Success_That_Is_Not_An_Event_Stream()
     {
-        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.OK)
+        using var scenario = PipelineScenario.Responding(static _ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent("{\"value\":\"first\"}"),
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
 
         _ = await Assert
-            .That(async () => _ = await CollectAsync(pipeline))
+            .That(async () => _ = await CollectAsync(scenario.Pipeline))
             .Throws<OpenCodeTransportException>();
     }
 
     [Test]
     public async Task ExecuteStreamAsync_Should_Treat_An_Undeclared_2xx_As_A_Protocol_Failure()
     {
-        using var handler = new RecordingHttpHandler(static _ =>
+        using var scenario = PipelineScenario.Responding(static _ =>
         {
             var content = new StringContent(FirstFrame);
             content.Headers.ContentType = new MediaTypeHeaderValue(EventStreamMediaType);
@@ -447,26 +437,22 @@ public sealed class PipelineStreamTests
                 Content = content,
             };
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
 
         _ = await Assert
-            .That(async () => _ = await CollectAsync(pipeline))
+            .That(async () => _ = await CollectAsync(scenario.Pipeline))
             .Throws<OpenCodeTransportException>();
     }
 
     [Test]
     public async Task ExecuteStreamAsync_Should_Treat_A_Redirect_As_A_Protocol_Failure()
     {
-        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.Found)
+        using var scenario = PipelineScenario.Responding(static _ => new HttpResponseMessage(HttpStatusCode.Found)
         {
             Content = new StringContent(string.Empty),
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await CollectAsync(pipeline))
+            .That(async () => _ = await CollectAsync(scenario.Pipeline))
             .Throws<OpenCodeTransportException>();
 
         await Assert.That(exception!.Message).Contains("302");
@@ -475,39 +461,33 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Treat_A_Malformed_Frame_As_A_Protocol_Failure()
     {
-        using var handler = new RecordingHttpHandler(static _ => EventStream("data: not json\n\n"));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
+        using var scenario = PipelineScenario.Responding(static _ => EventStream("data: not json\n\n"));
 
         _ = await Assert
-            .That(async () => _ = await CollectAsync(pipeline))
+            .That(async () => _ = await CollectAsync(scenario.Pipeline))
             .Throws<OpenCodeTransportException>();
     }
 
     [Test]
     public async Task ExecuteStreamAsync_Should_Honor_Cancellation()
     {
-        using var handler = new RecordingHttpHandler(static _ => EventStream(FirstFrame));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
+        using var scenario = PipelineScenario.Responding(static _ => EventStream(FirstFrame));
         using var cancellation = new CancellationTokenSource();
         await cancellation.CancelOnWorkerAsync();
 
         _ = await Assert
-            .That(async () => _ = await CollectAsync(pipeline, cancellationToken: cancellation.Token))
+            .That(async () => _ = await CollectAsync(scenario.Pipeline, cancellationToken: cancellation.Token))
             .Throws<OperationCanceledException>();
     }
 
     [Test]
     public async Task ExecuteStreamAsync_Should_Read_A_Mid_Stream_Connection_Failure_As_A_Transport_Failure()
     {
-        using var handler = new RecordingHttpHandler(static _ =>
+        using var scenario = PipelineScenario.Responding(static _ =>
             EventStreamOf(new FaultingStream(Encoding.UTF8.GetBytes(FirstFrame))));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await CollectAsync(pipeline))
+            .That(async () => _ = await CollectAsync(scenario.Pipeline))
             .Throws<OpenCodeTransportException>();
 
         await Assert.That(exception!.InnerException).IsTypeOf<IOException>();
@@ -516,12 +496,10 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Read_Transport_Cancellation_As_A_Transport_Failure()
     {
-        using var handler = new RecordingHttpHandler(static _ => EventStreamOf(new CancelingStream()));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
+        using var scenario = PipelineScenario.Responding(static _ => EventStreamOf(new CancelingStream()));
 
         var exception = await Assert
-            .That(async () => _ = await CollectAsync(pipeline))
+            .That(async () => _ = await CollectAsync(scenario.Pipeline))
             .Throws<OpenCodeTransportException>();
 
         await Assert.That(exception!.InnerException).IsTypeOf<TaskCanceledException>();
@@ -530,13 +508,11 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Expose_A_Typed_Stream_Failure_Cause()
     {
-        using var handler = new RecordingHttpHandler(static _ => EventStream(
+        using var scenario = PipelineScenario.Responding(static _ => EventStream(
             FirstFrame + $"event: {TestStreamAdapter.StreamFailureEventName}\ndata: [{{\"tag\":\"Die\",\"detail\":\"boom\"}}]\n\n"));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await CollectAsync(pipeline))
+            .That(async () => _ = await CollectAsync(scenario.Pipeline))
             .Throws<OpenCodeStreamFailureException>();
 
         var cause = (TestStreamFailureCause)exception!.Causes.Single();
@@ -547,13 +523,11 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Treat_A_Malformed_Failure_Cause_As_A_Protocol_Failure()
     {
-        using var handler = new RecordingHttpHandler(static _ => EventStream(
+        using var scenario = PipelineScenario.Responding(static _ => EventStream(
             $"event: {TestStreamAdapter.StreamFailureEventName}\ndata: not json\n\n"));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await CollectAsync(pipeline))
+            .That(async () => _ = await CollectAsync(scenario.Pipeline))
             .Throws<OpenCodeTransportException>();
 
         await Assert.That(exception).IsNotTypeOf<OpenCodeStreamFailureException>();
@@ -563,13 +537,11 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Treat_A_Null_Failure_Cause_As_A_Protocol_Failure()
     {
-        using var handler = new RecordingHttpHandler(static _ => EventStream(
+        using var scenario = PipelineScenario.Responding(static _ => EventStream(
             $"event: {TestStreamAdapter.StreamFailureEventName}\ndata: null\n\n"));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await CollectAsync(pipeline))
+            .That(async () => _ = await CollectAsync(scenario.Pipeline))
             .Throws<OpenCodeTransportException>();
 
         await Assert.That(exception).IsNotTypeOf<OpenCodeStreamFailureException>();
@@ -579,13 +551,11 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Refuse_A_Frame_Named_Outside_The_Contract()
     {
-        using var handler = new RecordingHttpHandler(static _ =>
+        using var scenario = PipelineScenario.Responding(static _ =>
             EventStream("event: surprise\n" + FirstFrame));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
 
         var exception = await Assert
-            .That(async () => _ = await CollectAsync(pipeline))
+            .That(async () => _ = await CollectAsync(scenario.Pipeline))
             .Throws<OpenCodeTransportException>();
 
         await Assert.That(exception!.Message).Contains("surprise");
@@ -594,7 +564,7 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Accept_An_Event_Stream_Content_Type_In_Any_Case()
     {
-        using var handler = new RecordingHttpHandler(static _ =>
+        using var scenario = PipelineScenario.Responding(static _ =>
         {
             var content = new StringContent(FirstFrame);
             content.Headers.ContentType = new MediaTypeHeaderValue("Text/Event-Stream");
@@ -603,10 +573,8 @@ public sealed class PipelineStreamTests
                 Content = content,
             };
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
 
-        var payloads = await CollectAsync(pipeline);
+        var payloads = await CollectAsync(scenario.Pipeline);
 
         await Assert.That(payloads.Single().Value).IsEqualTo("first");
     }
@@ -614,12 +582,10 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Refuse_A_Null_Frame_Payload()
     {
-        using var handler = new RecordingHttpHandler(static _ => EventStream("data: null\n\n"));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
+        using var scenario = PipelineScenario.Responding(static _ => EventStream("data: null\n\n"));
 
         var exception = await Assert
-            .That(async () => _ = await CollectAsync(pipeline))
+            .That(async () => _ = await CollectAsync(scenario.Pipeline))
             .Throws<OpenCodeTransportException>();
 
         await Assert.That(exception!.Message).Contains("null");
@@ -646,27 +612,23 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Refuse_After_Dispose()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        var pipeline = PipelineFactory.Create(httpClient);
-        pipeline.Dispose();
+        using var scenario = PipelineScenario.Responding();
+        scenario.Pipeline.Dispose();
 
-        _ = Assert.Throws<ObjectDisposedException>(() => _ = pipeline.ExecuteStreamAsync(OperationId,
+        _ = Assert.Throws<ObjectDisposedException>(() => _ = scenario.Pipeline.ExecuteStreamAsync(OperationId,
             HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, CancellationToken.None));
 
-        await Assert.That(handler.Requests).IsEmpty();
+        await Assert.That(scenario.Requests).IsEmpty();
     }
 
     /// <summary>A disposed client wins over a null adapter at the stream entry point.</summary>
     [Test]
     public async Task ExecuteStreamAsync_Should_Report_Disposal_Before_A_Null_Adapter()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
-        pipeline.Dispose();
+        using var scenario = PipelineScenario.Responding();
+        scenario.Pipeline.Dispose();
 
-        var exception = Assert.Throws<ObjectDisposedException>(() => _ = pipeline.ExecuteStreamAsync<TestBody, TestStreamFailureCause[]>(
+        var exception = Assert.Throws<ObjectDisposedException>(() => _ = scenario.Pipeline.ExecuteStreamAsync<TestBody, TestStreamFailureCause[]>(
             OperationId, HttpMethod.Get, "/api/event", null!, null, CancellationToken.None));
 
         await Assert.That(exception.ObjectName).IsEqualTo(typeof(OpenCodeClient).FullName);
@@ -675,12 +637,10 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Report_A_Route_Without_A_Leading_Slash_Before_A_Null_Adapter()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
+        using var scenario = PipelineScenario.Responding();
 
         // The internal seam admits a null adapter; generated callers always supply one.
-        var exception = Assert.Throws<ArgumentException>(() => _ = pipeline.ExecuteStreamAsync<TestBody, TestStreamFailureCause[]>(
+        var exception = Assert.Throws<ArgumentException>(() => _ = scenario.Pipeline.ExecuteStreamAsync<TestBody, TestStreamFailureCause[]>(
             OperationId, HttpMethod.Get, "x", null!, null, CancellationToken.None));
 
         await RouteRefusal.AssertAsync(exception, "Routes must start with '/'.", "route");
@@ -689,12 +649,10 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Refuse_Enumeration_That_Starts_After_Dispose()
     {
-        using var handler = new RecordingHttpHandler(static _ => EventStream(FirstFrame));
-        using var httpClient = new HttpClient(handler);
-        var pipeline = PipelineFactory.Create(httpClient);
-        var stream = pipeline.ExecuteStreamAsync(OperationId,
+        using var scenario = PipelineScenario.Responding(static _ => EventStream(FirstFrame));
+        var stream = scenario.Pipeline.ExecuteStreamAsync(OperationId,
             HttpMethod.Get, "/api/event", new TestStreamAdapter(), null, CancellationToken.None);
-        pipeline.Dispose();
+        scenario.Pipeline.Dispose();
 
         _ = await Assert
             .That(async () =>
@@ -704,17 +662,15 @@ public sealed class PipelineStreamTests
             })
             .Throws<ObjectDisposedException>();
 
-        await Assert.That(handler.Requests).IsEmpty();
+        await Assert.That(scenario.Requests).IsEmpty();
     }
 
     [Test]
     public async Task ExecuteStreamAsync_Should_Refuse_A_Route_Without_A_Leading_Slash()
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
+        using var scenario = PipelineScenario.Responding();
 
-        var exception = Assert.Throws<ArgumentException>(() => _ = pipeline.ExecuteStreamAsync(OperationId,
+        var exception = Assert.Throws<ArgumentException>(() => _ = scenario.Pipeline.ExecuteStreamAsync(OperationId,
             HttpMethod.Get, "api/event", new TestStreamAdapter(), null, CancellationToken.None));
 
         await Assert.That(exception.ParamName).IsEqualTo("route");
@@ -725,14 +681,12 @@ public sealed class PipelineStreamTests
         where TException : ArgumentException
         where TCause : IReadOnlyList<IOpenCodeStreamFailureCause>
     {
-        using var handler = new RecordingHttpHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
+        using var scenario = PipelineScenario.Responding();
 
-        var exception = Assert.Throws<TException>(() => _ = pipeline.ExecuteStreamAsync(operationId,
+        var exception = Assert.Throws<TException>(() => _ = scenario.Pipeline.ExecuteStreamAsync(operationId,
             HttpMethod.Get, "/api/event", adapter, options, CancellationToken.None));
 
-        await Assert.That(handler.Requests).IsEmpty();
+        await Assert.That(scenario.Requests).IsEmpty();
         return exception;
     }
 
@@ -774,14 +728,12 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Report_The_Exact_Media_Wall_Text()
     {
-        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.OK)
+        using var scenario = PipelineScenario.Responding(static _ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(string.Empty),
         });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient);
 
-        var failure = await Assert.That(async () => _ = await CollectAsync(pipeline)).Throws<OpenCodeTransportException>();
+        var failure = await Assert.That(async () => _ = await CollectAsync(scenario.Pipeline)).Throws<OpenCodeTransportException>();
         await Assert.That(failure!.Message).IsEqualTo("The opencode API answered a streaming operation without an event-stream body.");
     }
 }
