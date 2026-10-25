@@ -68,6 +68,8 @@ internal static class ConverterSyntax
             SyntaxFactory.Argument(value),
             SyntaxFactory.Argument(typeInfo));
 
+    internal static ThrowStatementSyntax ThrowJson(string message) => SyntaxFactory.ThrowStatement(EmissionSyntax.JsonException(message));
+
     private static BlockSyntax GuardedBody(BlockSyntax body, IReadOnlyList<string> guardedParameters) =>
         body.WithStatements(SyntaxFactory.List(guardedParameters.SelectMany(EmissionSyntax.ArgumentNullGuard).Concat(body.Statements)));
 }
