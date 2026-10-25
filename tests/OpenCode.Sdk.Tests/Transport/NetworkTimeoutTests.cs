@@ -97,7 +97,7 @@ public sealed class NetworkTimeoutTests
     [Test]
     public async Task The_Long_Polls_Should_Be_The_Operations_That_Hold_Their_Headers_Until_The_Work_Ends()
     {
-        // This checks the complete inventory, not its enumeration order.
+        // Every listed operation's traits, in any order; HandWrittenTransportTableTests catches an added id.
         var expected = new Dictionary<string, OperationTraits>(StringComparer.Ordinal)
         {
             ["event.subscribe"] = new(Reconnects: true, HasNoNetworkWindow: false),
