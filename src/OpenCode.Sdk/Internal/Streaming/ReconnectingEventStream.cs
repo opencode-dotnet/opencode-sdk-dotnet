@@ -7,6 +7,7 @@ internal sealed class ReconnectingEventStream(TimeProvider time, TimeSpan idleWi
     ClientLifetime lifetime, StreamPlane streamPlane)
 {
     private readonly ClientLifetime _lifetime = lifetime;
+    private readonly TimeSpan _idleWindow = idleWindow;
 
     /// <summary>
     /// Runs one connection after another for a reconnecting operation, as the pinned client does.
@@ -75,7 +76,7 @@ internal sealed class ReconnectingEventStream(TimeProvider time, TimeSpan idleWi
         [EnumeratorCancellation] CancellationToken cancellationToken)
         where TCause : IReadOnlyList<Models.IOpenCodeStreamFailureCause>
     {
-        using var attempt = new StreamAttempt(time, idleWindow, giveUp.Token);
+        using var attempt = new StreamAttempt(time, _idleWindow, giveUp.Token);
         var frames = streamPlane.ExecuteStreamCoreAsync(request, adapter, attempt, attempt.Token)
             .GetAsyncEnumerator(cancellationToken);
         await using var enumeration = frames.ConfigureAwait(false);

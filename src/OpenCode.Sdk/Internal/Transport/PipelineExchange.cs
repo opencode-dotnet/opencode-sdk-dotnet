@@ -14,6 +14,7 @@ internal sealed class PipelineExchange(ConnectionSnapshot connection,
     /// so no code may ever write to it.
     /// </summary>
     private static readonly MediaTypeHeaderValue JsonMediaType = new("application/json");
+    private readonly TimeSpan? _clientNetworkTimeout = clientNetworkTimeout;
 
     public PipelineMessage CreateMessage(OperationRequest operation, bool bufferBody, TimeSpan? perCallNetworkTimeout,
         CancellationToken cancellationToken)
@@ -28,7 +29,7 @@ internal sealed class PipelineExchange(ConnectionSnapshot connection,
                 CancellationToken = cancellationToken,
                 LifetimeToken = lifetimeToken,
                 NetworkToken = cancellationToken,
-                NetworkTimeout = NetworkTimeouts.Resolve(operation.OperationId, perCallNetworkTimeout, clientNetworkTimeout),
+                NetworkTimeout = NetworkTimeouts.Resolve(operation.OperationId, perCallNetworkTimeout, _clientNetworkTimeout),
                 PerCallLocation = operation.Options?.Location,
                 DeclaredHeaders = operation.DeclaredHeaders,
                 BufferBody = bufferBody,
