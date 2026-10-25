@@ -19,9 +19,8 @@ namespace OpenCode.Sdk.Performance.Tests.Generator;
 /// cost. Writing, formatting and the whole run are <see cref="GeneratorRunBenchmarks"/>.
 /// </summary>
 /// <remarks>
-/// The pinned input has no pending or declined operations, so the run skips its bindability probe
-/// and no row measures it; the setup refuses an input that has some, because the baseline would
-/// then miss a stage the run performs. The rows return <see cref="object"/> or <see cref="Task"/>:
+/// The run's bindability probe is a measured stage over the pinned plan's pending and declined
+/// operations. The rows return <see cref="object"/> or <see cref="Task"/>:
 /// the stage types are internal to the tool, and a benchmark method is public.
 /// The class carries its own .NET 10 job, so the invocation passes no <c>--runtimes</c> and its rows
 /// keep the <c>.NET 10.0</c> label that joins the archived before-set.
@@ -33,6 +32,7 @@ public class GeneratorStageBenchmarks : IDisposable
     private ServiceProvider? _services;
     private ISpecIngestion? _ingestion;
     private ISpecBinder? _binder;
+    private PendingOperationBindabilityProbe? _probe;
     private GeneratorInput? _input;
     private IReadOnlyDictionary<string, string>? _identities;
     private SpecDocument? _document;
@@ -47,16 +47,16 @@ public class GeneratorStageBenchmarks : IDisposable
         _services = ToolApp.CreateServices().BuildServiceProvider();
         _ingestion = _services.GetRequiredService<ISpecIngestion>();
         _binder = _services.GetRequiredService<ISpecBinder>();
+        _probe = _services.GetRequiredService<PendingOperationBindabilityProbe>();
 
         _curation = await _services.GetRequiredService<CurationLoader>().LoadAsync(_input.CurationPath, CancellationToken.None).ConfigureAwait(false);
         _identities = OperationIdentityPolicy.BuildMap(_curation);
         _document = await IngestDocumentAsync().ConfigureAwait(false);
         _selection = await _services.GetRequiredService<OperationSelectionLoader>().LoadAsync(_input.ProfilePath, CancellationToken.None).ConfigureAwait(false);
         _plan = BindPlan();
-        if (_plan.PendingOperations.Count > 0 || _plan.DeclinedOperations.Count > 0)
+        if (_plan.PendingOperations.Count == 0 && _plan.DeclinedOperations.Count == 0)
         {
-            throw new InvalidOperationException(
-                "The pinned input has pending or declined operations, so the run probes them; add a probe row before taking a baseline.");
+            throw new InvalidOperationException("The pinned input has no pending or declined operations; the probe row would measure nothing.");
         }
 
         if (SourceEmitter.Emit(_plan).Count == 0)
@@ -72,6 +72,19 @@ public class GeneratorStageBenchmarks : IDisposable
     /// <summary>Binds the selected operations and their reachable schemas into the emit plan, under the curation.</summary>
     [Benchmark]
     public object Bind() => BindPlan();
+
+    /// <summary>Probes the bindability of pending and declined operations through the selection-path binder.</summary>
+    [Benchmark]
+    public object Probe()
+    {
+        var pending = _plan!.PendingOperations.Select(static operation => operation.OperationId).Order(StringComparer.Ordinal).ToArray();
+        var pendingMarks = pending.Length > 0 ? _probe!.Probe(_document!, pending) : [];
+        var declined = _plan.DeclinedOperations;
+        var declinedMarks = declined.Count > 0
+            ? _probe!.Probe(_document!, [.. declined.Select(static operation => operation.OperationId)])
+            : [];
+        return new[] { pendingMarks, declinedMarks };
+    }
 
     /// <summary>Emits every generated source from the plan, unformatted.</summary>
     [Benchmark]
