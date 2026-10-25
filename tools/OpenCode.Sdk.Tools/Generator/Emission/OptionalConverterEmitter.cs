@@ -45,19 +45,12 @@ internal static class OptionalConverterEmitter
     {
         var name = OptionalConverterNamePolicy.ConverterTypeName(inner);
         var wrapper = OptionalType(inner);
-        var declaration = SyntaxFactory
-            .ClassDeclaration(name)
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.InternalKeyword),
-                SyntaxFactory.Token(SyntaxKind.SealedKeyword)))
-            .WithBaseList(SyntaxFactory.BaseList(SyntaxFactory.SingletonSeparatedList<BaseTypeSyntax>(
-                SyntaxFactory.SimpleBaseType(TypeSyntaxEmitter.Generic("JsonConverter", wrapper)))))
-            .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>(
+        var declaration = ConverterSyntax.Declaration(name, wrapper,
             [
                 EmitHandleNull(),
                 EmitRead(inner, wrapper),
                 EmitWrite(inner, wrapper),
-            ]));
+            ], default);
         var unit = EmissionSyntax.CompilationUnit(namespaces.Internal, CollectUsings(inner, namespaces), [declaration]);
         return EmissionSyntax.CreateSource(GeneratedPlacement.PathOf(GeneratedKind.SharedSerialization, null, name), unit);
     }
@@ -77,15 +70,15 @@ internal static class OptionalConverterEmitter
 
     private static MethodDeclarationSyntax EmitRead(TypeReferencePlan inner, TypeSyntax wrapper)
     {
-        var body = new List<StatementSyntax>();
-        body.AddRange(EmissionSyntax.ArgumentNullGuard("typeToConvert"));
-        body.AddRange(EmissionSyntax.ArgumentNullGuard("options"));
-        body.Add(SyntaxFactory.IfStatement(
-            SyntaxFactory.BinaryExpression(
-                SyntaxKind.EqualsExpression,
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("reader"), "TokenType"),
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonTokenType"), "Null")),
-            SyntaxFactory.Block(SyntaxFactory.ReturnStatement(EmissionSyntax.MemberAccess(wrapper, "Null")))));
+        var body = new List<StatementSyntax>
+        {
+            SyntaxFactory.IfStatement(
+                SyntaxFactory.BinaryExpression(
+                    SyntaxKind.EqualsExpression,
+                    EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("reader"), "TokenType"),
+                    EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonTokenType"), "Null")),
+                SyntaxFactory.Block(SyntaxFactory.ReturnStatement(EmissionSyntax.MemberAccess(wrapper, "Null")))),
+        };
         if (inner is SpecialNumberTypeReferencePlan)
         {
             var literal = EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("reader"), "GetString"));
@@ -106,21 +99,7 @@ internal static class OptionalConverterEmitter
         }
 
         body.AddRange(EmitReadValue(inner, wrapper));
-        return SyntaxFactory
-            .MethodDeclaration(wrapper, "Read")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-            .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(
-            [
-                SyntaxFactory
-                    .Parameter(SyntaxFactory.Identifier("reader"))
-                    .WithType(SyntaxFactory.IdentifierName("Utf8JsonReader"))
-                    .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword))),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("typeToConvert")).WithType(SyntaxFactory.IdentifierName("Type")),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("options")).WithType(SyntaxFactory.IdentifierName("JsonSerializerOptions")),
-            ])))
-            .WithBody(SyntaxFactory.Block(body));
+        return ConverterSyntax.Read(wrapper, SyntaxFactory.Block(body), ["typeToConvert", "options"]);
     }
 
     private static IReadOnlyList<StatementSyntax> EmitReadValue(TypeReferencePlan inner, TypeSyntax wrapper)
@@ -151,17 +130,17 @@ internal static class OptionalConverterEmitter
     private static MethodDeclarationSyntax EmitWrite(TypeReferencePlan inner, TypeSyntax wrapper)
     {
         var value = EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("value"), "Value");
-        var body = new List<StatementSyntax>();
-        body.AddRange(EmissionSyntax.ArgumentNullGuard("writer"));
-        body.AddRange(EmissionSyntax.ArgumentNullGuard("options"));
-        body.Add(SyntaxFactory.IfStatement(
-            SyntaxFactory.IsPatternExpression(
-                value,
-                SyntaxFactory.ConstantPattern(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))),
-            SyntaxFactory.Block(
-                SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(
-                    EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("writer"), "WriteNullValue"))),
-                SyntaxFactory.ReturnStatement())));
+        var body = new List<StatementSyntax>
+        {
+            SyntaxFactory.IfStatement(
+                SyntaxFactory.IsPatternExpression(
+                    value,
+                    SyntaxFactory.ConstantPattern(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))),
+                SyntaxFactory.Block(
+                    SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(
+                        EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("writer"), "WriteNullValue"))),
+                    SyntaxFactory.ReturnStatement())),
+        };
         if (inner is SpecialNumberTypeReferencePlan)
         {
             foreach (var number in SpecialNumbers)
@@ -177,18 +156,7 @@ internal static class OptionalConverterEmitter
         }
 
         body.AddRange(EmitWriteValue(inner, value));
-        return SyntaxFactory
-            .MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), "Write")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-            .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(
-            [
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("writer")).WithType(SyntaxFactory.IdentifierName("Utf8JsonWriter")),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("value")).WithType(wrapper),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("options")).WithType(SyntaxFactory.IdentifierName("JsonSerializerOptions")),
-            ])))
-            .WithBody(SyntaxFactory.Block(body));
+        return ConverterSyntax.Write(wrapper, SyntaxFactory.Block(body), ["writer", "options"]);
     }
 
     private static IReadOnlyList<StatementSyntax> EmitWriteValue(TypeReferencePlan inner, ExpressionSyntax value)
@@ -209,11 +177,8 @@ internal static class OptionalConverterEmitter
         return
         [
             TypeInfoLocal(inner),
-            SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonSerializer"), "Serialize"),
-                SyntaxFactory.Argument(SyntaxFactory.IdentifierName("writer")),
-                SyntaxFactory.Argument(value),
-                SyntaxFactory.Argument(SyntaxFactory.IdentifierName("typeInfo")))),
+            SyntaxFactory.ExpressionStatement(ConverterSyntax.SerializeWithTypeInfo(
+                value, SyntaxFactory.IdentifierName("typeInfo"))),
         ];
     }
 
@@ -225,7 +190,7 @@ internal static class OptionalConverterEmitter
     {
         var get = EmissionSyntax.Invocation(
             EmissionSyntax.MemberAccess(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("OpenCodeJsonContext"), "Default"),
+                RegistryNames.Default,
                 "GetTypeInfo"),
             SyntaxFactory.Argument(SyntaxFactory.TypeOfExpression(TypeSyntaxEmitter.Emit(inner with { IsNullable = false }))));
         var resolved = SyntaxFactory.BinaryExpression(

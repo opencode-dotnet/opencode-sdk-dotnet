@@ -31,27 +31,24 @@ internal static class HoistedInterfaceEmitter
             .InterfaceDeclaration(plan.Name)
             .AddAttributeLists(ExperimentalAttributeSyntax.Emit(plan.ExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
-            .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([.. plan.Members.Select(EmitMember)]))
-            .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+            .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([.. plan.Members.Select(member =>
+                MemberProperty(member, member.Description ?? GeneratedDisplayName.MemberSummary(member.Name)))]))
+            .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
                 plan.Description ?? $"Represents {GeneratedDisplayName.WithIndefiniteArticle(plan.Name)} value.",
                 [],
                 remarks: PinBoundInterfaceRemarks.Runs));
-        declaration = EmissionSyntax.DocumentedType(declaration, plan.Documentation, PinBoundInterfaceRemarks.Runs);
+        declaration = DocumentationSyntax.DocumentedType(declaration, plan.Documentation, PinBoundInterfaceRemarks.Runs);
         var unit = EmissionSyntax.CompilationUnit(plan.Namespace, CollectUsings(plan), [declaration]);
         return EmissionSyntax.CreateSource(relativePath, unit);
     }
 
-    private static PropertyDeclarationSyntax EmitMember(HoistedMemberPlan member) =>
+    internal static PropertyDeclarationSyntax MemberProperty(HoistedMemberPlan member, string summary) =>
         SyntaxFactory
             .PropertyDeclaration(TypeSyntaxEmitter.Emit(member.Type), member.Name)
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .AddAttributeLists(EmissionSyntax.Attribute("JsonPropertyName", EmissionSyntax.StringArgument(member.WireName)))
-            .WithAccessorList(SyntaxFactory.AccessorList(SyntaxFactory.SingletonList(
-                SyntaxFactory
-                    .AccessorDeclaration(SyntaxKind.GetAccessorDeclaration)
-                    .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)))))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
-                member.Description ?? GeneratedDisplayName.MemberSummary(member.Name)));
+            .WithAccessorList(EmissionSyntax.GetOnlyAccessors())
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(summary));
 
     private static IReadOnlyList<string> CollectUsings(HoistedInterfacePlan plan)
     {

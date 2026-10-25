@@ -61,14 +61,14 @@ internal static class ClientEmitter
             .WithModifiers(EmissionModifiers.Type(client.Emission))
             .AddAttributeLists(ExperimentalAttributeSyntax.Emit(client.Emission is EmissionMode.Public ? client.ExperimentalDiagnostic : null))
             .WithMembers(SyntaxFactory.List(members))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(Summary(client)));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(Summary(client)));
         if (client.Role is ClientRole.Root)
         {
             declaration = declaration.WithBaseList(SyntaxFactory.BaseList(SyntaxFactory.SingletonSeparatedList<BaseTypeSyntax>(
                 SyntaxFactory.SimpleBaseType(TypeSyntaxEmitter.EmitNamed("IDisposable")))));
         }
 
-        declaration = EmissionSyntax.DocumentedType(declaration, client.Documentation);
+        declaration = DocumentationSyntax.DocumentedType(declaration, client.Documentation);
         var unit = EmissionSyntax.CompilationUnit(client.Namespace, EmitUsings(client, namespaces), [declaration]);
         return EmissionSyntax.CreateSource(PathOf(client), unit);
     }
@@ -189,7 +189,7 @@ internal static class ClientEmitter
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("options"))
                     .WithType(TypeSyntaxEmitter.EmitNamed("OpenCodeClientOptions")))))
             .WithBody(SyntaxFactory.Block(EmitRootAssignments(client, httpClientArgument: null)))
-            .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+            .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
                 "Initializes a client that owns its connection to the endpoint.",
                 [new DocumentedParameter("options", "The client options; the endpoint is required.")]));
         yield return SyntaxFactory.ConstructorDeclaration(client.Name)
@@ -200,7 +200,7 @@ internal static class ClientEmitter
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("options")).WithType(TypeSyntaxEmitter.EmitNamed("OpenCodeClientOptions")),
             ])))
             .WithBody(SyntaxFactory.Block(EmitRootAssignments(client, httpClientArgument: "httpClient")))
-            .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+            .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
                 "Initializes a client over an injected transport the client never disposes; " +
                 "friend-assembly test surface.",
                 [
@@ -292,7 +292,7 @@ internal static class ClientEmitter
         SyntaxFactory.ConstructorDeclaration(client.Name)
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.ProtectedKeyword)))
             .WithBody(SyntaxFactory.Block())
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 "Initializes a mocking instance; members invoked without an override throw an instructive failure."));
 
     private static IEnumerable<MemberDeclarationSyntax> EmitDispose()
@@ -309,7 +309,7 @@ internal static class ClientEmitter
                 SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(
                     EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("GC"), "SuppressFinalize"),
                     SyntaxFactory.Argument(SyntaxFactory.ThisExpression())))))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Releases the owned transport resources."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Releases the owned transport resources."));
         yield return SyntaxFactory.MethodDeclaration(
                 SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
                 "Dispose")
@@ -324,7 +324,7 @@ internal static class ClientEmitter
                 SyntaxFactory.Block(SyntaxFactory.ExpressionStatement(SyntaxFactory.ConditionalAccessExpression(
                     SyntaxFactory.IdentifierName("_pipeline"),
                     EmissionSyntax.Invocation(SyntaxFactory.MemberBindingExpression(SyntaxFactory.IdentifierName("Dispose")))))))))
-            .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+            .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
                 "Releases the owned transport resources.",
                 [new DocumentedParameter("disposing", "Whether managed state should be released.")]));
     }
@@ -338,7 +338,7 @@ internal static class ClientEmitter
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(
                 GuardedRead(client, SubClientFieldName(reference), reference.PropertyName)))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation($"Gets the '{reference.PropertyName}' collection client."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation($"Gets the '{reference.PropertyName}' collection client."));
 
     private static MethodDeclarationSyntax EmitHandleFactory(ClientPlan client, HandleFactoryPlan factory)
     {
@@ -358,7 +358,7 @@ internal static class ClientEmitter
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier(factory.Parameter.Name))
                     .WithType(TypeSyntaxEmitter.EmitNamed(factory.Parameter.TypeName)))))
             .WithBody(SyntaxFactory.Block(statements))
-            .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+            .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
                 $"Gets a bound '{factory.HandleTypeName}'; the handle never caches server state.",
                 [new DocumentedParameter(factory.Parameter.Name, $"The '{factory.Parameter.WireName}' route value.")],
                 $"The bound '{factory.HandleTypeName}'."));

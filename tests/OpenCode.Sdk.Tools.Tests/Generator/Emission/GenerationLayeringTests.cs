@@ -49,6 +49,49 @@ public sealed class GenerationLayeringTests
         await Assert.That(parentReads).IsEquivalentTo(["EmitBase", "EmitBase"], CollectionOrdering.Matching);
     }
 
+    [Test]
+    public async Task Registry_Should_Have_One_Name_Owner()
+    {
+        var roots = await Task.WhenAll((await LoadEmissionAsync()).SyntaxTrees.Select(static tree => tree.GetRootAsync()));
+        var owners = roots.SelectMany(root => root.DescendantTokens()
+                .Where(static token => token.IsKind(SyntaxKind.StringLiteralToken) && string.Equals(token.ValueText, "OpenCodeJsonContext", StringComparison.Ordinal))
+                .Select(token => root.FindNode(token.Span).AncestorsAndSelf().OfType<ClassDeclarationSyntax>().First().Identifier.ValueText))
+            .Order(StringComparer.Ordinal).ToArray();
+        await Assert.That(owners).IsEquivalentTo(["RegistryNames"], CollectionOrdering.Matching).Because(string.Join(", ", owners));
+    }
+
+    [Test]
+    public async Task Converters_Should_Use_One_Skeleton()
+    {
+        var roots = await Task.WhenAll((await LoadEmissionAsync()).SyntaxTrees.Select(static tree => tree.GetRootAsync()));
+        var owners = roots.SelectMany(root => root.DescendantNodes().OfType<InvocationExpressionSyntax>()
+                .Where(static call => call.Expression is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Generic" or "MethodDeclaration" }
+                    && call.ArgumentList.Arguments.Any(static argument => argument.Expression is LiteralExpressionSyntax
+                    { Token.ValueText: "JsonConverter" or "Read" or "Write" }))
+                .Select(static call => call.Ancestors().OfType<ClassDeclarationSyntax>().First().Identifier.ValueText))
+            .Order(StringComparer.Ordinal).ToArray();
+        await Assert.That(owners).IsEquivalentTo(["ConverterSyntax", "ConverterSyntax", "ConverterSyntax"], CollectionOrdering.Matching)
+            .Because(string.Join(", ", owners));
+    }
+
+    [Test]
+    public async Task Emission_Should_Keep_Artifact_Files_Below_Four_Hundred_Lines()
+    {
+        var fileSystem = new RealFileSystem();
+        var root = fileSystem.Path.Combine(new RepositoryRoot(fileSystem).Locate(), "tools", "OpenCode.Sdk.Tools", "Generator", "Emission");
+        foreach (var path in fileSystem.Directory.GetFiles(root, "*.cs", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+        {
+            // The response adapter's broader redesign belongs to GEN-E5.
+            if (string.Equals(fileSystem.Path.GetFileName(path), "ResponseAdapterEmitter.cs", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var lines = await fileSystem.File.ReadAllLinesAsync(path, CancellationToken.None);
+            await Assert.That(lines.Length).IsLessThan(400).Because($"{fileSystem.Path.GetFileName(path)} has {lines.Length} physical lines");
+        }
+    }
+
     private static async Task<CSharpCompilation> LoadEmissionAsync()
     {
         var fileSystem = new RealFileSystem();

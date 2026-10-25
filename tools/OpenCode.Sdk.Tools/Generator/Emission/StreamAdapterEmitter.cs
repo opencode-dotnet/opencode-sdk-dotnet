@@ -63,7 +63,7 @@ internal static class StreamAdapterEmitter
                     TypeSyntaxEmitter.EmitNamed(stream.PayloadTypeName),
                     TypeSyntaxEmitter.EmitNamed(stream.CauseTypeName))))))
             .WithMembers(SyntaxFactory.List(members))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 $"Carries the '{operation.HttpMethod.ToUpperInvariant()} {operation.RouteTemplate}' stream contract."));
 
         var unit = EmissionSyntax.CompilationUnit(
@@ -114,7 +114,7 @@ internal static class StreamAdapterEmitter
                     .ObjectCreationExpression(TypeSyntaxEmitter.EmitNamed(adapterTypeName))
                     .WithArgumentList(SyntaxFactory.ArgumentList())))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Gets the shared adapter instance."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Gets the shared adapter instance."));
 
     private static PropertyDeclarationSyntax EmitFailureEventName(StreamPlan stream) =>
         SyntaxFactory
@@ -123,7 +123,7 @@ internal static class StreamAdapterEmitter
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(
                 SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(stream.FailureEventName))))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Gets the event name a mid-stream failure frame carries."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Gets the event name a mid-stream failure frame carries."));
 
     private static PropertyDeclarationSyntax EmitPayloadTypeInfo(StreamPlan stream) =>
         SyntaxFactory
@@ -132,10 +132,10 @@ internal static class StreamAdapterEmitter
                 "PayloadTypeInfo")
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(EmissionSyntax.MemberAccess(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("OpenCodeJsonContext"), "Default"),
+                RegistryNames.Default,
                 stream.PayloadTypeName)))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Gets the metadata each frame's payload is read through."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Gets the metadata each frame's payload is read through."));
 
     private static PropertyDeclarationSyntax EmitCauseTypeInfo(StreamPlan stream)
     {
@@ -143,7 +143,7 @@ internal static class StreamAdapterEmitter
         var metadataType = TypeSyntaxEmitter.Generic("JsonTypeInfo", causeType);
         var getTypeInfo = EmissionSyntax.Invocation(
             EmissionSyntax.MemberAccess(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("OpenCodeJsonContext"), "Default"),
+                RegistryNames.Default,
                 "GetTypeInfo"),
             SyntaxFactory.Argument(SyntaxFactory.TypeOfExpression(causeType)));
         var value = SyntaxFactory.BinaryExpression(
@@ -160,7 +160,7 @@ internal static class StreamAdapterEmitter
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(value))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Gets the metadata the failure frame's cause is read through."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Gets the metadata the failure frame's cause is read through."));
     }
 
     private static MethodDeclarationSyntax EmitReadError(OperationPlan operation)
@@ -192,7 +192,7 @@ internal static class StreamAdapterEmitter
                     .SwitchExpression(SyntaxFactory.IdentifierName("status"))
                     .WithArms(SyntaxFactory.SeparatedList(arms))))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 "Maps a status refused before the stream opened onto its declared tags."));
     }
 

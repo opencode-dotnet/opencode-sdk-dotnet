@@ -51,7 +51,7 @@ internal static class StatusVerdictEmitter
                 SyntaxFactory.IdentifierName("status"),
                 SyntaxFactory.SeparatedList(arms))))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Classifies a status under this operation's pinned contract."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Classifies a status under this operation's pinned contract."));
     }
 
     private static MemberAccessExpressionSyntax Verdict(string name) =>

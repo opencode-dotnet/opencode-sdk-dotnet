@@ -69,8 +69,8 @@ internal static class ExtensibleEnumEmitter
             .AddAttributeLists(EmissionSyntax.Attribute("JsonConverter", SyntaxFactory.AttributeArgument(
                 SyntaxFactory.TypeOfExpression(TypeSyntaxEmitter.EmitNamed(converterName)))))
             .WithMembers(SyntaxFactory.List(members))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(StructSummary(model)));
-        declaration = EmissionSyntax.DocumentedType(declaration, model.Documentation);
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(StructSummary(model)));
+        declaration = DocumentationSyntax.DocumentedType(declaration, model.Documentation);
         var unit = EmissionSyntax.CompilationUnit(
             model.Namespace,
             ["System", "System.Text.Json.Serialization", namespaces.Internal],
@@ -104,7 +104,7 @@ internal static class ExtensibleEnumEmitter
                 SyntaxFactory.IdentifierName(ValueField),
                 SyntaxFactory.IdentifierName(ValueParameter))),
         ])))
-        .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+        .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
             "Creates a value from its wire spelling; any spelling is accepted, pinned or not.",
             [new DocumentedParameter(ValueParameter, "The wire spelling.")]));
 
@@ -113,13 +113,13 @@ internal static class ExtensibleEnumEmitter
         .WithModifiers(SyntaxFactory.TokenList(
             SyntaxFactory.Token(SyntaxKind.PublicKeyword),
             SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
-        .WithAccessorList(GetOnly())
+        .WithAccessorList(EmissionSyntax.GetOnlyAccessors())
         .WithInitializer(SyntaxFactory.EqualsValueClause(SyntaxFactory
             .ImplicitObjectCreationExpression()
             .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
                 SyntaxFactory.Argument(ValueConstant(value)))))))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.Documentation($"Gets the '{value.WireValue}' wire value."));
+        .WithLeadingTrivia(DocumentationSyntax.Documentation($"Gets the '{value.WireValue}' wire value."));
 
     /// <summary>
     /// The pinned spellings as constants, the one place each literal is written: the static
@@ -137,12 +137,12 @@ internal static class ExtensibleEnumEmitter
                 .VariableDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)))
                 .WithVariables(SyntaxFactory.SingletonSeparatedList(SyntaxFactory
                     .VariableDeclarator(value.Name)
-                    .WithInitializer(SyntaxFactory.EqualsValueClause(StringLiteral(value.WireValue))))))
+                    .WithInitializer(SyntaxFactory.EqualsValueClause(EmissionSyntax.StringLiteral(value.WireValue))))))
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.ConstKeyword)))
-            .WithLeadingTrivia(EmissionSyntax.Documentation($"The '{value.WireValue}' wire spelling.")))))
-        .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation($"The '{value.WireValue}' wire spelling.")))))
+        .WithLeadingTrivia(DocumentationSyntax.Documentation(
             $"The pinned wire spellings, for a case label or a property pattern on {ExtensibleEnumMemberPolicy.Value}."));
 
     /// <summary>The wire spelling, as <c>ToString</c> returns it; a default value has none and reads as an empty string.</summary>
@@ -154,7 +154,7 @@ internal static class ExtensibleEnumEmitter
             SyntaxFactory.IdentifierName(ValueField),
             EmissionSyntax.MemberAccess(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)), "Empty"))))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.Documentation(
+        .WithLeadingTrivia(DocumentationSyntax.Documentation(
             $"Gets the wire spelling, or an empty string for a default value, which has none; match it against {ExtensibleEnumMemberPolicy.Values}."));
 
     private static PropertyDeclarationSyntax IsKnownProperty(EnumModelPlan model)
@@ -168,7 +168,7 @@ internal static class ExtensibleEnumEmitter
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(
                 SyntaxFactory.IsPatternExpression(SyntaxFactory.IdentifierName(ValueField), pinned)))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 "Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not."));
     }
 
@@ -191,7 +191,7 @@ internal static class ExtensibleEnumEmitter
                 ? SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, equals)
                 : equals))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+            .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
                 negate ? "Compares two values' wire spellings ordinally for inequality." : "Compares two values' wire spellings ordinally.",
                 [new DocumentedParameter("left", "The first value."), new DocumentedParameter("right", "The second value.")]));
     }
@@ -204,7 +204,7 @@ internal static class ExtensibleEnumEmitter
         .WithParameterList(StringParameter())
         .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(NewFromParameter(model)))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+        .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
             "Converts a wire spelling to a value.",
             [new DocumentedParameter(ValueParameter, "The wire spelling.")]));
 
@@ -217,7 +217,7 @@ internal static class ExtensibleEnumEmitter
         .WithParameterList(StringParameter())
         .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(NewFromParameter(model)))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+        .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
             "Creates a value from its wire spelling, as the implicit conversion does.",
             [new DocumentedParameter(ValueParameter, "The wire spelling.")]));
 
@@ -232,7 +232,7 @@ internal static class ExtensibleEnumEmitter
             SyntaxFactory.Argument(EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("other"), ValueField)),
             SyntaxFactory.Argument(OrdinalComparison()))))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+        .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
             "Compares wire spellings ordinally: upstream compares string literals exactly.",
             [new DocumentedParameter("other", "The other value.")]));
 
@@ -251,7 +251,7 @@ internal static class ExtensibleEnumEmitter
                 SyntaxFactory.DeclarationPattern(type, SyntaxFactory.SingleVariableDesignation(SyntaxFactory.Identifier("other")))),
             EmissionSyntax.Invocation(SyntaxFactory.IdentifierName("Equals"), SyntaxFactory.Argument(SyntaxFactory.IdentifierName("other"))))))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+        .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
             "Compares with another object: equal only to a value with the same wire spelling.",
             [new DocumentedParameter("obj", "The other object.")]));
 
@@ -272,7 +272,7 @@ internal static class ExtensibleEnumEmitter
                     "GetHashCode"),
                 SyntaxFactory.Argument(SyntaxFactory.IdentifierName(ValueField))))))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.Documentation("Hashes the wire spelling ordinally, as equality compares it."));
+        .WithLeadingTrivia(DocumentationSyntax.Documentation("Hashes the wire spelling ordinally, as equality compares it."));
 
     private static MethodDeclarationSyntax SpellingToString() => RecordPrinterSyntax.ToStringOverride(
         SyntaxFactory.IdentifierName(ExtensibleEnumMemberPolicy.Value),
@@ -287,26 +287,13 @@ internal static class ExtensibleEnumEmitter
     {
         var type = TypeSyntaxEmitter.EmitNamed(model.Name);
         var reader = SyntaxFactory.IdentifierName("reader");
-        var read = SyntaxFactory
-            .MethodDeclaration(type, "Read")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-            .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(
-            [
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("reader"))
-                    .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword)))
-                    .WithType(TypeSyntaxEmitter.EmitNamed("Utf8JsonReader")),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("typeToConvert")).WithType(TypeSyntaxEmitter.EmitNamed("Type")),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("options")).WithType(TypeSyntaxEmitter.EmitNamed("JsonSerializerOptions")),
-            ])))
-            .WithBody(SyntaxFactory.Block(
+        var read = ConverterSyntax.Read(type, SyntaxFactory.Block(
                 SyntaxFactory.IfStatement(
                     SyntaxFactory.BinaryExpression(
                         SyntaxKind.NotEqualsExpression,
                         EmissionSyntax.MemberAccess(reader, "TokenType"),
                         EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonTokenType"), "String")),
-                    SyntaxFactory.Block(SyntaxFactory.ThrowStatement(JsonException(SyntaxFactory.InterpolatedStringExpression(
+                    SyntaxFactory.Block(SyntaxFactory.ThrowStatement(EmissionSyntax.JsonException(SyntaxFactory.InterpolatedStringExpression(
                         SyntaxFactory.Token(SyntaxKind.InterpolatedStringStartToken),
                         SyntaxFactory.List<InterpolatedStringContentSyntax>(
                         [
@@ -319,43 +306,23 @@ internal static class ExtensibleEnumEmitter
                     .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(SyntaxFactory.Argument(
                         SyntaxFactory.PostfixUnaryExpression(
                             SyntaxKind.SuppressNullableWarningExpression,
-                            EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(reader, "GetString"))))))))));
-        var write = SyntaxFactory
-            .MethodDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), "Write")
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
-            .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SeparatedList(
+                            EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(reader, "GetString"))))))))), []);
+        var write = ConverterSyntax.Write(type, SyntaxFactory.Block(SyntaxFactory.List<StatementSyntax>(
             [
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("writer")).WithType(TypeSyntaxEmitter.EmitNamed("Utf8JsonWriter")),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier(ValueParameter)).WithType(type),
-                SyntaxFactory.Parameter(SyntaxFactory.Identifier("options")).WithType(TypeSyntaxEmitter.EmitNamed("JsonSerializerOptions")),
-            ])))
-            .WithBody(SyntaxFactory.Block(SyntaxFactory.List(
-            [
-                .. EmissionSyntax.ArgumentNullGuard("writer"),
                 SyntaxFactory.IfStatement(
                     EmissionSyntax.Invocation(
                         EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(ValueParameter), "Equals"),
                         SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
                             SyntaxKind.DefaultLiteralExpression,
                             SyntaxFactory.Token(SyntaxKind.DefaultKeyword)))),
-                    SyntaxFactory.Block(SyntaxFactory.ThrowStatement(JsonException(
-                        StringLiteral($"A default {model.Name} has no wire value."))))),
+                    SyntaxFactory.Block(SyntaxFactory.ThrowStatement(EmissionSyntax.JsonException(
+                        EmissionSyntax.StringLiteral($"A default {model.Name} has no wire value."))))),
                 SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(
                     EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("writer"), "WriteStringValue"),
                     SyntaxFactory.Argument(
                         EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(ValueParameter), ExtensibleEnumMemberPolicy.Value)))),
-            ])));
-        var declaration = SyntaxFactory
-            .ClassDeclaration(converterName)
-            .WithModifiers(SyntaxFactory.TokenList(
-                SyntaxFactory.Token(SyntaxKind.InternalKeyword),
-                SyntaxFactory.Token(SyntaxKind.SealedKeyword)))
-            .WithBaseList(SyntaxFactory.BaseList(SyntaxFactory.SingletonSeparatedList<BaseTypeSyntax>(
-                SyntaxFactory.SimpleBaseType(TypeSyntaxEmitter.Generic("JsonConverter", type)))))
-            .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([read, write]))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            ])), ["writer"]);
+        var declaration = ConverterSyntax.Declaration(converterName, type, [read, write], DocumentationSyntax.Documentation(
                 $"Converts {model.Name}: every string token reads as the value it spells, pinned or not; any other token is a malformed body. Writes the wire spelling and refuses a default value, which has none."));
         var unit = EmissionSyntax.CompilationUnit(
             namespaces.Internal,
@@ -368,10 +335,6 @@ internal static class ExtensibleEnumEmitter
         .ObjectCreationExpression(TypeSyntaxEmitter.EmitNamed(model.Name))
         .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
             SyntaxFactory.Argument(SyntaxFactory.IdentifierName(ValueParameter)))));
-
-    private static ObjectCreationExpressionSyntax JsonException(ExpressionSyntax message) => SyntaxFactory
-        .ObjectCreationExpression(TypeSyntaxEmitter.EmitNamed("JsonException"))
-        .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(SyntaxFactory.Argument(message))));
 
     private static InterpolatedStringTextSyntax InterpolatedText(string text) => SyntaxFactory.InterpolatedStringText(
         SyntaxFactory.Token(SyntaxFactory.TriviaList(), SyntaxKind.InterpolatedStringTextToken, text, text, SyntaxFactory.TriviaList()));
@@ -386,13 +349,8 @@ internal static class ExtensibleEnumEmitter
     private static MemberAccessExpressionSyntax OrdinalComparison() =>
         EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("StringComparison"), "Ordinal");
 
-    private static AccessorListSyntax GetOnly() => SyntaxFactory.AccessorList(SyntaxFactory.SingletonList(
-        SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))));
-
     /// <summary>A pinned value's constant, as the struct's own members name it.</summary>
     private static MemberAccessExpressionSyntax ValueConstant(EnumValuePlan value) =>
         EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(ExtensibleEnumMemberPolicy.Values), value.Name);
 
-    private static LiteralExpressionSyntax StringLiteral(string value) =>
-        SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(value));
 }

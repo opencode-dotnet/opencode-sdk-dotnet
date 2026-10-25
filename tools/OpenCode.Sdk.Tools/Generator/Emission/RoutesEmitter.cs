@@ -54,7 +54,7 @@ internal static class RoutesEmitter
         // A partial type takes its documentation from one part; the others would concatenate onto it.
         if (documented)
         {
-            declaration = declaration.WithLeadingTrivia(EmissionSyntax.Documentation("Defines the wire route of every generated operation."));
+            declaration = declaration.WithLeadingTrivia(DocumentationSyntax.Documentation("Defines the wire route of every generated operation."));
         }
 
         var usings = new List<string>();
@@ -103,7 +103,7 @@ internal static class RoutesEmitter
                 SyntaxFactory.Token(SyntaxKind.InternalKeyword),
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
             .WithMembers(SyntaxFactory.List(members))
-            .WithLeadingTrivia(EmissionSyntax.Documentation($"Defines the '{container.Key}' routes."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation($"Defines the '{container.Key}' routes."));
     }
 
     private static FieldDeclarationSyntax EmitConst(string name, string value, string documentation) =>
@@ -116,7 +116,7 @@ internal static class RoutesEmitter
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.ConstKeyword)))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(documentation));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(documentation));
 
     private static MethodDeclarationSyntax EmitBuilder(OperationPlan operation)
     {
@@ -148,7 +148,7 @@ internal static class RoutesEmitter
             parameters.Add(new DocumentedParameter(ReservedNamePolicy.RequestParameter, "The request shaping the query."));
         }
 
-        var documentation = EmissionSyntax.MemberDocumentation(
+        var documentation = DocumentationSyntax.MemberDocumentation(
             $"Builds the '{operation.RouteTemplate}' route.",
             parameters,
             "The escaped route.");
