@@ -73,13 +73,7 @@ internal static class GeneratedPlacement
     public static bool IsManifestPath(string relativePath)
     {
         var segments = relativePath.Split('/');
-        return segments.Length switch
-        {
-            1 or 2 => true,
-            3 => segments[1] is ModelsFolder or InternalFolder || IsSharedPath(relativePath),
-            4 => segments[1] is ModelsFolder,
-            _ => false,
-        };
+        return segments.Length == 1 || IsFamilyPath(segments) || IsSharedPath(relativePath);
     }
 
     private static string Slice(GeneratedKind kind, TypeHome? owner) =>

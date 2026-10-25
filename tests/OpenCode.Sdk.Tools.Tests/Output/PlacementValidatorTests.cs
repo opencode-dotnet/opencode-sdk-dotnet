@@ -8,6 +8,7 @@ public sealed class PlacementValidatorTests
     [Test]
     [Arguments("RetiredClient.cs", true, DisplayName = "root file")]
     [Arguments("Retired/RetiredClient.cs", true, DisplayName = "family root")]
+    [Arguments("Models/RetiredModel.cs", true, DisplayName = "shape, not provenance: a reserved root at two segments is admitted")]
     [Arguments("Retired/Models/RetiredModel.cs", true, DisplayName = "family Models")]
     [Arguments("Retired/models/RetiredModel.cs", false, DisplayName = "family Models, case variant")]
     [Arguments("Retired/Internal/RetiredAdapter.cs", true, DisplayName = "family Internal")]
@@ -17,7 +18,7 @@ public sealed class PlacementValidatorTests
     [Arguments("internal/Serialization/RetiredContext.cs", false, DisplayName = "shared home Internal/Serialization, case variant")]
     [Arguments("Common/Errors/RetiredError.cs", true, DisplayName = "shared home Common/Errors")]
     [Arguments("Common/errors/RetiredError.cs", false, DisplayName = "shared home Common/Errors, case variant")]
-    [Arguments("Common/Internal/RetiredHelper.cs", true, DisplayName = "shared home Common/Internal, admitted through the Internal folder arm")]
+    [Arguments("Common/Internal/RetiredHelper.cs", true, DisplayName = "shared home Common/Internal, admitted by both the Internal folder arm and the shared-home arm")]
     [Arguments("Common/internal/RetiredHelper.cs", false, DisplayName = "shared home Common/Internal, case variant")]
     [Arguments("Internal/Transport/RetiredTransport.cs", false, DisplayName = "shared root Internal, not a home")]
     [Arguments("Common/Other/RetiredHelper.cs", false, DisplayName = "shared root Common, not a home")]
@@ -28,6 +29,7 @@ public sealed class PlacementValidatorTests
     [Arguments("Retired/Models/A/B/RetiredModel.cs", false, DisplayName = "five segments")]
     [Arguments("Retired/RetiredClient.CS", false, DisplayName = "suffix, case variant")]
     [Arguments("Retired/Models/RetiredModel.txt", false, DisplayName = "suffix, not C#")]
+    [Arguments("Retired/Notes.cs.ics", false, DisplayName = "suffix, C# inside another extension")]
     public async Task ValidateManifestSourcePath_Should_Admit_Only_The_Owned_Shapes(string path, bool admitted)
     {
         var outcome = path;

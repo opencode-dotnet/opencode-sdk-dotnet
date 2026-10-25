@@ -7,7 +7,7 @@ using TUnit.Assertions.Enums;
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 
 /// <summary>
-/// Pins the kind/owner path table and that the validator admits every path it gives. Every owned kind
+/// Pins the kind/owner path table and that the validator admits every path the table gives. Every owned kind
 /// refuses a missing owner even where its folder does not depend on the owner yet, so the owner is
 /// known for every file before the folders move to their slices. Kinds travel as names because the
 /// enum is internal to the generator and a public test method cannot take it.
