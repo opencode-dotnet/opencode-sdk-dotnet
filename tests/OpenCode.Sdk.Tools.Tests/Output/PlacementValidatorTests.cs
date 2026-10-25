@@ -6,24 +6,31 @@ namespace OpenCode.Sdk.Tools.Tests.Output;
 public sealed class PlacementValidatorTests
 {
     [Test]
-    [Arguments("RetiredClient.cs")]
-    [Arguments("Retired/RetiredClient.cs")]
-    [Arguments("Retired/Models/RetiredModel.cs")]
-    [Arguments("Retired/Internal/RetiredAdapter.cs")]
-    [Arguments("Retired/Models/Messages/RetiredMessage.cs")]
-    public async Task ValidateManifestSourcePath_Should_Keep_Retired_Family_Shapes(string path)
+    [Arguments("RetiredClient.cs", true)]
+    [Arguments("Retired/RetiredClient.cs", true)]
+    [Arguments("Retired/Models/RetiredModel.cs", true)]
+    [Arguments("Retired/Internal/RetiredAdapter.cs", true)]
+    [Arguments("Retired/Models/Messages/RetiredMessage.cs", true)]
+    [Arguments("Common/Errors/RetiredError.cs", true)]
+    [Arguments("Internal/Serialization/RetiredContext.cs", true)]
+    [Arguments("Retired/Other/RetiredClient.cs", false)]
+    [Arguments("Retired/Internal/Deep/RetiredAdapter.cs", false)]
+    [Arguments("Retired/Models/A/B/RetiredModel.cs", false)]
+    [Arguments("Retired/Models/RetiredModel.txt", false)]
+    public async Task ValidateManifestSourcePath_Should_Admit_Only_The_Owned_Shapes(string path, bool admitted)
     {
-        var admitted = path;
+        var outcome = path;
         try
         {
             PlacementValidator.ValidateManifestSourcePath(path);
         }
         catch (OutputRefusalException refusal)
         {
-            admitted = refusal.Message;
+            outcome = refusal.Message;
         }
 
-        await Assert.That(admitted).IsEqualTo(path);
+        await Assert.That(outcome).IsEqualTo(admitted ? path
+            : $"Generation manifest path '{path}' is outside the owned source directories.");
     }
 
     [Test]

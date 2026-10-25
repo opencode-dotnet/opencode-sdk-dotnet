@@ -3,22 +3,16 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 /// <summary>
-/// The one place a generated file's path is decided: its kind and its owner's home map to a path,
-/// so no emitter spells a folder.
+/// Owns generated paths and the path shapes admission accepts: each kind and owner's home map to a path,
+/// so no emitter or validator spells a folder.
 /// </summary>
 internal static class GeneratedPlacement
 {
     public const string ModelsFolder = "Models";
-    public const string InternalFolder = "Internal";
-    private const string SharedSerializationFolder = $"{InternalFolder}/Serialization";
-    private const string SharedErrorsFolder = $"{TypeHome.CommonSlice}/Errors";
-    private const string SharedInternalFolder = $"{TypeHome.CommonSlice}/{InternalFolder}";
 
     /// <summary>Root Models/Pagination are forbidden too: families cannot recreate the pre-slice layout.</summary>
     public static IReadOnlyList<string> ReservedFolders { get; } = Array.AsReadOnly<string>(
         [TypeHome.CommonSlice, InternalFolder, "Hosting", "Properties", ModelsFolder, "Pagination"]);
-    /// <summary>The shared homes generated files may live in beside the families.</summary>
-    private static readonly string[] SharedFolders = [$"{SharedSerializationFolder}/", $"{SharedErrorsFolder}/", $"{SharedInternalFolder}/"];
 
     public static string PathOf(GeneratedKind kind, TypeHome? owner, string typeName)
     {
@@ -61,6 +55,7 @@ internal static class GeneratedPlacement
     public static bool IsSharedPath(string relativePath) => SharedFolders.Any(folder =>
         relativePath.StartsWith(folder, StringComparison.Ordinal) && !relativePath[folder.Length..].Contains('/', StringComparison.Ordinal));
 
+    /// <summary>A four-segment model path still needs its area admitted by the caller.</summary>
     public static bool IsFamilyPath(IReadOnlyList<string> segments) => segments switch
     {
         [_, _] => true,
@@ -81,6 +76,15 @@ internal static class GeneratedPlacement
         };
     }
 
+    private const string InternalFolder = "Internal";
+    private const string SharedSerializationFolder = $"{InternalFolder}/Serialization";
+    private const string SharedErrorsFolder = $"{TypeHome.CommonSlice}/Errors";
+    /// <summary>The shared homes generated files may live in beside the families.</summary>
+    private static readonly string[] SharedFolders = [$"{SharedSerializationFolder}/", $"{SharedErrorsFolder}/", $"{TypeHome.CommonSlice}/{InternalFolder}/"];
+
+    private static string Slice(GeneratedKind kind, TypeHome? owner) =>
+        owner?.Slice ?? throw new InvalidOperationException($"A generated {kind} needs an owner.");
+
     /// <summary>
     /// A family's models live in its <c>Models/</c> folder, a Sessions model in its area's subfolder,
     /// and the shared error spine in <c>Common/Errors/</c>.
@@ -95,7 +99,4 @@ internal static class GeneratedPlacement
 
         return owner.Area is null ? $"{slice}/{ModelsFolder}" : ModelAreaFolder(owner);
     }
-
-    private static string Slice(GeneratedKind kind, TypeHome? owner) =>
-        owner?.Slice ?? throw new InvalidOperationException($"A generated {kind} needs an owner.");
 }

@@ -110,8 +110,7 @@ internal sealed class PlacementValidator(IFileSystem fileSystem)
     /// </summary>
     public static void ValidateManifestSourcePath(string relativePath)
     {
-        var shaped = GeneratedPlacement.IsManifestPath(relativePath);
-        if (!relativePath.EndsWith(".cs", StringComparison.Ordinal) || !shaped)
+        if (!relativePath.EndsWith(".cs", StringComparison.Ordinal) || !GeneratedPlacement.IsManifestPath(relativePath))
         {
             throw new OutputRefusalException($"Generation manifest path '{relativePath}' is outside the owned source directories.");
         }
