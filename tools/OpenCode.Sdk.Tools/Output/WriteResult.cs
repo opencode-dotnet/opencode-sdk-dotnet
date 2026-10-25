@@ -12,7 +12,7 @@ internal sealed record WriteResult
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     public required IReadOnlyList<string> ChangedPaths
     {
@@ -22,7 +22,7 @@ internal sealed record WriteResult
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     public required IReadOnlyList<string> DeletedPaths
     {
@@ -32,7 +32,7 @@ internal sealed record WriteResult
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     public bool HasChanges => CreatedPaths.Count > 0 || ChangedPaths.Count > 0 || DeletedPaths.Count > 0;
 }

@@ -12,7 +12,7 @@ internal sealed record GenerationReport
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     public required IReadOnlyList<string> PendingOperationIds
     {
@@ -22,7 +22,7 @@ internal sealed record GenerationReport
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     public required IReadOnlyList<string> TransportOwnedOperationIds
     {
@@ -32,7 +32,7 @@ internal sealed record GenerationReport
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     public required IReadOnlyList<string> DeclinedOperationIds
     {
@@ -42,7 +42,7 @@ internal sealed record GenerationReport
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     public required WriteResult WriteResult { get; init; }
 

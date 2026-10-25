@@ -10,7 +10,7 @@ internal sealed record ReachableSchemaSet
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     public required IReadOnlyList<string> ResponseRootKeys
     {
@@ -20,7 +20,7 @@ internal sealed record ReachableSchemaSet
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     /// <summary>
     /// Gets graph keys a selected operation's request body reaches. A property of one of these

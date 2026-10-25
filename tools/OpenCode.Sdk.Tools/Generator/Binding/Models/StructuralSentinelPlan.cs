@@ -28,5 +28,5 @@ internal sealed record StructuralSentinelPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 }

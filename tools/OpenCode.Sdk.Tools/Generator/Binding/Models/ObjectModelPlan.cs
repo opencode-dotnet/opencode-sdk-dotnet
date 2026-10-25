@@ -24,7 +24,7 @@ internal sealed record ObjectModelPlan : ModelPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<ModelPropertyPlan>());
+    }
 
     /// <summary>Gets every union interface this schema is a branch of; a schema can be a branch
     /// of more than one (ADR-0011).</summary>

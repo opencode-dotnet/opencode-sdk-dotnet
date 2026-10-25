@@ -10,7 +10,7 @@ internal sealed record RegistryPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     /// <summary>
     /// Gets the bare container payload plans (lists and dictionaries not carried by an envelope

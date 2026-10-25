@@ -11,7 +11,7 @@ internal sealed record OwnershipCandidates
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<ModelPlan>());
+    }
 
     public required IReadOnlyList<UnionPlan> Unions
     {
@@ -21,7 +21,7 @@ internal sealed record OwnershipCandidates
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<UnionPlan>());
+    }
 
     public required IReadOnlyList<HoistedInterfacePlan> HoistedInterfaces
     {
@@ -31,5 +31,5 @@ internal sealed record OwnershipCandidates
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<HoistedInterfacePlan>());
+    }
 }

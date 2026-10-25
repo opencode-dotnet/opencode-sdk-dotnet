@@ -18,7 +18,7 @@ internal sealed record SessionScopedEventCuration : IReasonedRow
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     /// <summary>Gets the wire name of the record's payload member.</summary>
     [JsonPropertyName("payloadMember")]

@@ -10,5 +10,5 @@ internal sealed record ErrorMapPlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<ErrorStatusPlan>());
+    }
 }

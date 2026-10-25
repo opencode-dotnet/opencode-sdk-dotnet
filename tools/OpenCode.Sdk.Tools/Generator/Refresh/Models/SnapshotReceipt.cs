@@ -37,7 +37,7 @@ internal sealed record SnapshotReceipt
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<ReceiptPatch>());
+    }
 
     /// <summary>Gets the SHA-256 of the normalized document apply installs as the accepted snapshot.</summary>
     [JsonPropertyName("normalizedDocumentSha256")] public required string NormalizedDocumentSha256 { get; init; }
@@ -59,7 +59,7 @@ internal sealed record SnapshotReceipt
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     [JsonPropertyName("removedOperations")]
     public required IReadOnlyList<string> RemovedOperations
@@ -70,7 +70,7 @@ internal sealed record SnapshotReceipt
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     [JsonPropertyName("componentCount")] public required int ComponentCount { get; init; }
 

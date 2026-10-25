@@ -25,7 +25,7 @@ internal sealed record HoistedInterfacePlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     public required IReadOnlyList<HoistedMemberPlan> Members
     {
@@ -35,7 +35,7 @@ internal sealed record HoistedInterfacePlan
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<HoistedMemberPlan>());
+    }
 
     public string? Description { get; init; }
 }

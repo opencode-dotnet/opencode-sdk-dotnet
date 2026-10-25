@@ -12,7 +12,7 @@ internal sealed record EnumNode : SchemaNode
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     /// <inheritdoc />
     public override IEnumerable<SchemaNode> Children => [];

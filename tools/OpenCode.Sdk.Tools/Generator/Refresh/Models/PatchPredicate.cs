@@ -24,7 +24,7 @@ internal sealed record PatchPredicate
             ArgumentNullException.ThrowIfNull(value);
             field = Array.AsReadOnly([.. value]);
         }
-    } = Array.AsReadOnly(Array.Empty<string>());
+    }
 
     [JsonPropertyName("keyword")] public required string Keyword { get; init; }
 }
