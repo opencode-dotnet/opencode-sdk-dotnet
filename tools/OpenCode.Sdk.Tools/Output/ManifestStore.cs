@@ -66,15 +66,19 @@ internal sealed class ManifestStore(IFileSystem fileSystem, PlacementValidator p
 
             using var reader = new StreamReader(_fileSystem.File.OpenRead(path), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
             var header = new StringBuilder();
-            var character = new char[1];
+            var buffer = new char[256];
             var lineFeeds = 0;
+            int count;
             // Only LF separates header lines; a lone CR remains content for provenance validation.
-            while (lineFeeds < 2 && await reader.ReadAsync(character.AsMemory(), cancellationToken).ConfigureAwait(false) != 0)
+            while (lineFeeds < 2 && (count = await reader.ReadAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false)) != 0)
             {
-                _ = header.Append(character[0]);
-                if (character[0] == '\n')
+                for (var index = 0; index < count && lineFeeds < 2; index++)
                 {
-                    lineFeeds++;
+                    _ = header.Append(buffer[index]);
+                    if (buffer[index] == '\n')
+                    {
+                        lineFeeds++;
+                    }
                 }
             }
 

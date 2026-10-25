@@ -668,9 +668,11 @@ public sealed class GenerationWriterTests
         const string changed = "Z.cs";
         const string created = "Created.cs";
         const string deleted = "Deleted.cs";
+        const string shrunk = "Shrunk.cs";
+        const string grown = "Grown.cs";
         const string unchanged = "Unchanged.cs";
-        const string unchangedSource = "public sealed record Unchanged;\n";
         var body = new string('a', 200_000);
+        var unchangedSource = $"{body}public sealed record Unchanged;\n";
         var fileSystem = GenerationTestData.CreateFileSystem();
         _ = await CreateWriter(fileSystem).WriteAsync(
             Request(
@@ -678,12 +680,16 @@ public sealed class GenerationWriterTests
                 GenerationTestData.Source(changed, $"{body}z\n"),
                 GenerationTestData.Source("a.cs", "old\n"),
                 GenerationTestData.Source(deleted, "deleted\n"),
+                GenerationTestData.Source(shrunk, "kept\nremoved\n"),
+                GenerationTestData.Source(grown, "kept\n"),
                 GenerationTestData.Source(unchanged, unchangedSource),
             ]), CancellationToken.None);
         var formatted = new Dictionary<string, byte[]>(StringComparer.Ordinal)
         {
             [changed] = OwnedBytes($"{body}y\n"),
             ["a.cs"] = OwnedBytes("new\n"),
+            [shrunk] = OwnedBytes("kept\n"),
+            [grown] = OwnedBytes("kept\nadded\n"),
             [unchanged] = OwnedBytes(unchangedSource),
         };
         var formatter = new RecordingProjectFormatter(fileSystem, async (current, _, _, token) =>
@@ -701,13 +707,15 @@ public sealed class GenerationWriterTests
                 GenerationTestData.Source(changed, $"{body}z\n"),
                 GenerationTestData.Source("a.cs", "old\n"),
                 GenerationTestData.Source(created, "created\n"),
+                GenerationTestData.Source(shrunk, "kept\nremoved\n"),
+                GenerationTestData.Source(grown, "kept\n"),
                 GenerationTestData.Source(unchanged, "public record Unchanged;\n"),
             ], verify: true), CancellationToken.None);
 
         await Assert.That(result.IsVerification).IsTrue();
         await Assert.That(result.CreatedPaths).IsEquivalentTo([created], CollectionOrdering.Matching);
         await Assert.That(result.ChangedPaths).IsEquivalentTo(
-            [".generated-manifest.json", ".gitattributes", changed, "a.cs"], CollectionOrdering.Matching);
+            [".generated-manifest.json", ".gitattributes", grown, shrunk, changed, "a.cs"], CollectionOrdering.Matching);
         await Assert.That(result.DeletedPaths).IsEquivalentTo([deleted], CollectionOrdering.Matching);
         var expectedFiles = new Dictionary<string, byte[]>(formatted, StringComparer.Ordinal)
         {
@@ -720,6 +728,29 @@ public sealed class GenerationWriterTests
         }
 
         await Assert.That(OwnedPath(fileSystem, deleted)).Satisfies(path => !fileSystem.File.Exists(path));
+    }
+
+    [Test]
+    public async Task WriteAsync_Should_Observe_Cancellation_After_The_Final_Manifest_Rename()
+    {
+        var fs = GenerationTestData.CreateFileSystem();
+        using var cancellation = new CancellationTokenSource();
+        var manifestPath = fs.Path.GetFullPath(GenerationTestData.ManifestPath);
+        var renames = 0;
+        var cancelled = Task.CompletedTask;
+        using var notification = fs.Notify.OnEvent(change =>
+        {
+            if (change.ChangeType == WatcherChangeTypes.Renamed
+                && change.Path == manifestPath && ++renames == 2)
+            {
+                cancelled = cancellation.CancelAsync();
+            }
+        });
+
+        await Assert.That(async () => _ = await CreateWriter(fs).WriteAsync(
+                Request([GenerationTestData.Source("Created.cs", "created\n")]), cancellation.Token))
+            .Throws<OperationCanceledException>();
+        await cancelled;
     }
 
     private static byte[] OwnedBytes(string content) => Encoding.UTF8.GetBytes(GenerationTestData.OwnedContent(content));

@@ -7,6 +7,7 @@ internal sealed class GenerationWriter(
     IFileSystem fileSystem, PlacementValidator placement, ManifestStore manifests, StagedWrite write) : IGenerationWriter
 {
     internal const string ManifestRelativePath = ManifestStore.ManifestRelativePath;
+    private const int ComparisonBufferSize = 8192;
     private readonly IFileSystem _fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
     private readonly PlacementValidator _placement = placement ?? throw new ArgumentNullException(nameof(placement));
     private readonly ManifestStore _manifests = manifests ?? throw new ArgumentNullException(nameof(manifests));
@@ -51,9 +52,10 @@ internal sealed class GenerationWriter(
         var created = new List<string>();
         var changed = new List<string>();
         var deleted = new List<string>();
-        var buffer = new byte[8192];
+        var buffer = new byte[ComparisonBufferSize];
         foreach (var relativePath in before.Keys.Order(StringComparer.Ordinal))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var oldContent = before[relativePath];
             var path = _placement.ResolveOwnedPath(root, relativePath);
             var exists = _fileSystem.File.Exists(path);
