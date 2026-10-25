@@ -36,7 +36,7 @@ internal static class EnvelopeEmitter
             .WithOpenBraceToken(SyntaxFactory.Token(SyntaxKind.OpenBraceToken))
             .WithCloseBraceToken(SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
             .WithMembers(SyntaxFactory.List(members))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 $"Represents the response of the '{operation.HttpMethod.ToUpperInvariant()} {operation.RouteTemplate}' operation."));
         IReadOnlyList<string> usings = envelope.Kind switch
         {
@@ -46,7 +46,7 @@ internal static class EnvelopeEmitter
             EnvelopeKind.Bare or EnvelopeKind.Data or EnvelopeKind.DataLocation or EnvelopeKind.Binary or _ =>
                 ["System", "System.Diagnostics.CodeAnalysis", "System.Text", namespaces.Models],
         };
-        declaration = EmissionSyntax.DocumentedType(declaration, envelope.Documentation);
+        declaration = DocumentationSyntax.DocumentedType(declaration, envelope.Documentation);
         var unit = EmissionSyntax.CompilationUnit(namespaces.Public, usings, [declaration]);
         return EmissionSyntax.CreateSource(
             GeneratedPlacement.PathOf(GeneratedKind.OperationRecord, TypeHome.Family(operation.RouteContainerName), envelope.ResponseTypeName),
@@ -125,7 +125,7 @@ internal static class EnvelopeEmitter
         SyntaxFactory.ConstructorDeclaration(responseTypeName)
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithBody(SyntaxFactory.Block())
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 $"Initializes a success instance of the '{responseTypeName}' envelope."));
 
     private static ConstructorDeclarationSyntax EmitErrorConstructor(EnvelopePlan envelope)
@@ -182,7 +182,7 @@ internal static class EnvelopeEmitter
                     .WithType(SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)))),
             ])))
             .WithBody(SyntaxFactory.Block(assignments))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 "Initializes an error-path instance; the payload stays unset behind its guard."));
     }
 
@@ -228,7 +228,7 @@ internal static class EnvelopeEmitter
                 SyntaxFactory.AccessorDeclaration(SyntaxKind.InitAccessorDeclaration)
                     .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
             ])))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 "Gets the Content-Type the server declared for the bytes, or null when it declared none or the response is an error."));
 
     private static PropertyDeclarationSyntax EmitGuardedProperty(TypeSyntax propertyType, string propertyName,
@@ -288,7 +288,7 @@ internal static class EnvelopeEmitter
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.RequiredKeyword)))
             .WithAccessorList(SyntaxFactory.AccessorList(SyntaxFactory.List([getter, setter])))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(documentation));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(documentation));
     }
 
     private static MethodDeclarationSyntax EmitPrintMembers(EnvelopePlan envelope, string payloadName, string fieldName)
@@ -357,7 +357,7 @@ internal static class EnvelopeEmitter
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("builder"))
                     .WithType(TypeSyntaxEmitter.EmitNamed("StringBuilder")))))
             .WithBody(SyntaxFactory.Block(statements))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 "Prints the shared metadata and appends the payload only when it is present."));
     }
 

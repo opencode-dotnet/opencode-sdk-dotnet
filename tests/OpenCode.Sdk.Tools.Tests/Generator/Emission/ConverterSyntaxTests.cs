@@ -26,7 +26,7 @@ public sealed class ConverterSyntaxTests
                 SyntaxFactory.IdentifierName("writer"), SyntaxFactory.IdentifierName("WriteNullValue"))))),
             writeGuards.Split(',', StringSplitOptions.RemoveEmptyEntries));
         var declaration = ConverterSyntax.Declaration("SampleJsonConverter", type, [handleNull, read, write],
-            EmissionSyntax.Documentation("Preserves converter members."));
+            DocumentationSyntax.Documentation("Preserves converter members."));
         await Assert.That(declaration.NormalizeWhitespace(indentation: "    ", eol: "\n", elasticTrivia: false).ToFullString()).IsEqualTo(expected);
     }
 }

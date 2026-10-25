@@ -25,7 +25,7 @@ internal static class ModelPropertyEmitter
         var declaration = SyntaxFactory
             .PropertyDeclaration(propertyType, memberName)
             .AddAttributeLists(EmissionSyntax.Attribute("JsonPropertyName", EmissionSyntax.StringArgument(property.WireName)))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(property.Description ?? GeneratedDisplayName.MemberSummary(memberName)));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(property.Description ?? GeneratedDisplayName.MemberSummary(memberName)));
         if (!property.EmitsOptionalWrapper && ContainsSpecialNumber(property.Type))
         {
             declaration = declaration.AddAttributeLists(EmissionSyntax.Attribute(

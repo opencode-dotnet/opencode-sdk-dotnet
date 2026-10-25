@@ -64,7 +64,7 @@ internal static class ModelEmitter
                 .. EmitExtensionDataMembers(model),
                 .. EmitRedactingToString(model, chainMarkers),
             ]))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(model.Description ?? $"Represents {GeneratedDisplayName.WithIndefiniteArticle(model.Name)} value."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(model.Description ?? $"Represents {GeneratedDisplayName.WithIndefiniteArticle(model.Name)} value."));
         // A hoisted carrier joins the base list beside the unions the schema is a branch of: the
         // record keeps one identity per wire schema and answers one more contract (ADR-0011).
         var baseTypes = model.ImplementedUnionNames.Concat(model.ImplementedHoistedInterfaceNames)
@@ -78,7 +78,7 @@ internal static class ModelEmitter
         }
 
         var guardsPrefix = chainMarkers.Any(static marker => marker.Prefix is not null);
-        declaration = EmissionSyntax.DocumentedType(declaration, model.Documentation,
+        declaration = DocumentationSyntax.DocumentedType(declaration, model.Documentation,
             inheritedMembers: model.InheritedMemberOwners);
         var unit = EmissionSyntax.CompilationUnit(model.Namespace, CollectUsings(model, guardsPrefix, namespaces), [declaration]);
         return EmissionSyntax.CreateSource(relativePath, unit);
@@ -191,7 +191,7 @@ internal static class ModelEmitter
                     .AccessorDeclaration(SyntaxKind.InitAccessorDeclaration)
                     .WithBody(SyntaxFactory.Block(SyntaxFactory.List([.. EmissionSyntax.ArgumentNullGuard("value"), store]))),
             ])))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 "Gets the members the pinned document leaves open, keyed by wire name; empty when the body carried none."));
 
         yield return SyntaxFactory
@@ -206,7 +206,7 @@ internal static class ModelEmitter
                 SyntaxFactory.AccessorDeclaration(SyntaxKind.GetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
                 SyntaxFactory.AccessorDeclaration(SyntaxKind.SetAccessorDeclaration).WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken)),
             ])))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 $"Gets or sets the serializer's writable bag behind {ObjectModelPlan.ExtensionDataMemberName}, created on the first open member; the public member is the read-only view."));
     }
 

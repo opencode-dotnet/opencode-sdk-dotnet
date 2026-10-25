@@ -31,13 +31,13 @@ internal static class StructuralUnionEmitter
             .Append("Unknown")
             .Select(name => SyntaxFactory
                 .EnumMemberDeclaration(name)
-                .WithLeadingTrivia(EmissionSyntax.Documentation($"Represents the {GeneratedDisplayName.Of(name)} arm.")));
+                .WithLeadingTrivia(DocumentationSyntax.Documentation($"Represents the {GeneratedDisplayName.Of(name)} arm.")));
         var declaration = SyntaxFactory
             .EnumDeclaration(union.KindTypeName)
             .AddAttributeLists(ExperimentalAttributeSyntax.Emit(union.ExperimentalDiagnostic))
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithMembers(SyntaxFactory.SeparatedList(members))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 union.KindDocumentation.Summary ?? $"Identifies the active arm of {union.Name}.", union.KindDocumentation.Remarks));
         var unit = EmissionSyntax.CompilationUnit(union.Namespace, [], [declaration]);
         return EmissionSyntax.CreateSource(relativePath, unit);

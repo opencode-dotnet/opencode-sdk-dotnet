@@ -71,7 +71,7 @@ internal static class PaginationMethodEmitter
         exceptions.Add(new DocumentedException(
             "OpenCodeTransportException",
             "The server could not be reached or returned a malformed success body."));
-        return EmissionSyntax.MemberDocumentation(
+        return DocumentationSyntax.MemberDocumentation(
             $"Enumerates the items returned by '{operation.HttpMethod.ToUpperInvariant()} {operation.RouteTemplate}' "
             + "by following each opaque next cursor; every filter of the first request rides each continuation.",
             [

@@ -42,7 +42,7 @@ internal static class QueryRequestEmitter
                     .Where(static property => !property.IsInherited)
                     .Select(static property => EmitProperty(property)),
             ]))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(RequestDocumentation(operation)));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(RequestDocumentation(operation)));
         if (queryRequest.DerivesFromListRequest)
         {
             declaration = declaration.WithBaseList(SyntaxFactory.BaseList(SyntaxFactory.SingletonSeparatedList<BaseTypeSyntax>(
@@ -54,7 +54,7 @@ internal static class QueryRequestEmitter
         var usings = queryRequest.Properties.Any(static property => property.Kind is QueryValueKind.Enum)
             ? new[] { namespaces.Models, }
             : [];
-        declaration = EmissionSyntax.DocumentedType(declaration, queryRequest.Documentation);
+        declaration = DocumentationSyntax.DocumentedType(declaration, queryRequest.Documentation);
         var unit = EmissionSyntax.CompilationUnit(namespaces.Public, usings, [declaration]);
         return EmissionSyntax.CreateSource(
             GeneratedPlacement.PathOf(GeneratedKind.OperationRecord, TypeHome.Family(operation.RouteContainerName), queryRequest.TypeName),
@@ -79,7 +79,7 @@ internal static class QueryRequestEmitter
         return SyntaxFactory.PropertyDeclaration(EmitPropertyType(property), property.PropertyName)
             .WithModifiers(SyntaxFactory.TokenList(modifiers))
             .WithAccessorList(accessors)
-            .WithLeadingTrivia(EmissionSyntax.Documentation(property.Description ?? (property.IsRequired
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(property.Description ?? (property.IsRequired
                 ? $"Gets the required '{property.WireName}' query value."
                 : $"Gets the '{property.WireName}' query value; the server default applies when unset.")));
     }

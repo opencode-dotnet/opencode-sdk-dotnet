@@ -19,7 +19,7 @@ internal static class UnionInterfaceEmitter
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .AddAttributeLists(EmissionSyntax.Attribute("JsonPropertyName", EmissionSyntax.StringArgument(union.MarkerWireName)))
             .WithAccessorList(EmissionSyntax.GetOnlyAccessors())
-            .WithLeadingTrivia(EmissionSyntax.Documentation($"Gets the '{union.MarkerWireName}' union marker."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation($"Gets the '{union.MarkerWireName}' union marker."));
         // A union inherits a matching discriminator from its generated parent or the stream-cause
         // marker; redeclaring it would hide the member its base already promises.
         var declaresMarker = !InheritsMarker(union);
@@ -40,7 +40,7 @@ internal static class UnionInterfaceEmitter
                 "JsonConverter",
                 SyntaxFactory.AttributeArgument(SyntaxFactory.TypeOfExpression(TypeSyntaxEmitter.EmitNamed(converterTypeName)))))
             .WithMembers(SyntaxFactory.List(members))
-            .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+            .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
                 union.Description ?? $"Represents {GeneratedDisplayName.WithIndefiniteArticle(union.ConceptName)} union.",
                 [],
                 remarks: PinBoundInterfaceRemarks.Runs));
@@ -67,7 +67,7 @@ internal static class UnionInterfaceEmitter
                 };
             }, StringComparer.Ordinal),
         };
-        declaration = EmissionSyntax.DocumentedType(declaration, documentation, PinBoundInterfaceRemarks.Runs);
+        declaration = DocumentationSyntax.DocumentedType(declaration, documentation, PinBoundInterfaceRemarks.Runs);
         var unit = EmissionSyntax.CompilationUnit(
             union.Namespace,
             HoistedUsings(union.HoistedMembers, [namespaces.Internal, "System.Text.Json.Serialization"]),

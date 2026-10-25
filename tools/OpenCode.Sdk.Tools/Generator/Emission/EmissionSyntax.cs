@@ -2,7 +2,6 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Emission;
@@ -76,22 +75,6 @@ internal static class EmissionSyntax
 
         return result;
     }
-
-    public static SyntaxTriviaList Documentation(string summary) => DocumentationSyntax.Documentation(summary);
-
-    public static SyntaxTriviaList Documentation(string summary, string? remarks) =>
-        DocumentationSyntax.Documentation(summary, remarks);
-
-    /// <summary>Applies bound text to a type and its directly declared properties, without interpreting wire roles.</summary>
-    public static T DocumentedType<T>(T declaration, TypeDocumentationPlan documentation,
-        IReadOnlyList<DocumentationRun>? existingRemarks = null,
-        IReadOnlyDictionary<string, string>? inheritedMembers = null) where T : TypeDeclarationSyntax =>
-        DocumentationSyntax.DocumentedType(declaration, documentation, existingRemarks, inheritedMembers);
-
-    public static SyntaxTriviaList MemberDocumentation(string summary, IReadOnlyList<DocumentedParameter> parameters,
-        string? returns = null, IReadOnlyList<DocumentedException>? exceptions = null,
-        IReadOnlyList<DocumentationRun>? remarks = null) =>
-        DocumentationSyntax.MemberDocumentation(summary, parameters, returns, exceptions, remarks);
 
     public static AttributeListSyntax Attribute(string name, params AttributeArgumentSyntax[] arguments)
     {

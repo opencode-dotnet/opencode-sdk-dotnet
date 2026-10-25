@@ -69,8 +69,8 @@ internal static class ExtensibleEnumEmitter
             .AddAttributeLists(EmissionSyntax.Attribute("JsonConverter", SyntaxFactory.AttributeArgument(
                 SyntaxFactory.TypeOfExpression(TypeSyntaxEmitter.EmitNamed(converterName)))))
             .WithMembers(SyntaxFactory.List(members))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(StructSummary(model)));
-        declaration = EmissionSyntax.DocumentedType(declaration, model.Documentation);
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(StructSummary(model)));
+        declaration = DocumentationSyntax.DocumentedType(declaration, model.Documentation);
         var unit = EmissionSyntax.CompilationUnit(
             model.Namespace,
             ["System", "System.Text.Json.Serialization", namespaces.Internal],
@@ -104,7 +104,7 @@ internal static class ExtensibleEnumEmitter
                 SyntaxFactory.IdentifierName(ValueField),
                 SyntaxFactory.IdentifierName(ValueParameter))),
         ])))
-        .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+        .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
             "Creates a value from its wire spelling; any spelling is accepted, pinned or not.",
             [new DocumentedParameter(ValueParameter, "The wire spelling.")]));
 
@@ -119,7 +119,7 @@ internal static class ExtensibleEnumEmitter
             .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
                 SyntaxFactory.Argument(ValueConstant(value)))))))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.Documentation($"Gets the '{value.WireValue}' wire value."));
+        .WithLeadingTrivia(DocumentationSyntax.Documentation($"Gets the '{value.WireValue}' wire value."));
 
     /// <summary>
     /// The pinned spellings as constants, the one place each literal is written: the static
@@ -141,8 +141,8 @@ internal static class ExtensibleEnumEmitter
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.ConstKeyword)))
-            .WithLeadingTrivia(EmissionSyntax.Documentation($"The '{value.WireValue}' wire spelling.")))))
-        .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation($"The '{value.WireValue}' wire spelling.")))))
+        .WithLeadingTrivia(DocumentationSyntax.Documentation(
             $"The pinned wire spellings, for a case label or a property pattern on {ExtensibleEnumMemberPolicy.Value}."));
 
     /// <summary>The wire spelling, as <c>ToString</c> returns it; a default value has none and reads as an empty string.</summary>
@@ -154,7 +154,7 @@ internal static class ExtensibleEnumEmitter
             SyntaxFactory.IdentifierName(ValueField),
             EmissionSyntax.MemberAccess(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)), "Empty"))))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.Documentation(
+        .WithLeadingTrivia(DocumentationSyntax.Documentation(
             $"Gets the wire spelling, or an empty string for a default value, which has none; match it against {ExtensibleEnumMemberPolicy.Values}."));
 
     private static PropertyDeclarationSyntax IsKnownProperty(EnumModelPlan model)
@@ -168,7 +168,7 @@ internal static class ExtensibleEnumEmitter
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(
                 SyntaxFactory.IsPatternExpression(SyntaxFactory.IdentifierName(ValueField), pinned)))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 "Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not."));
     }
 
@@ -191,7 +191,7 @@ internal static class ExtensibleEnumEmitter
                 ? SyntaxFactory.PrefixUnaryExpression(SyntaxKind.LogicalNotExpression, equals)
                 : equals))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+            .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
                 negate ? "Compares two values' wire spellings ordinally for inequality." : "Compares two values' wire spellings ordinally.",
                 [new DocumentedParameter("left", "The first value."), new DocumentedParameter("right", "The second value.")]));
     }
@@ -204,7 +204,7 @@ internal static class ExtensibleEnumEmitter
         .WithParameterList(StringParameter())
         .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(NewFromParameter(model)))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+        .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
             "Converts a wire spelling to a value.",
             [new DocumentedParameter(ValueParameter, "The wire spelling.")]));
 
@@ -217,7 +217,7 @@ internal static class ExtensibleEnumEmitter
         .WithParameterList(StringParameter())
         .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(NewFromParameter(model)))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+        .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
             "Creates a value from its wire spelling, as the implicit conversion does.",
             [new DocumentedParameter(ValueParameter, "The wire spelling.")]));
 
@@ -232,7 +232,7 @@ internal static class ExtensibleEnumEmitter
             SyntaxFactory.Argument(EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("other"), ValueField)),
             SyntaxFactory.Argument(OrdinalComparison()))))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+        .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
             "Compares wire spellings ordinally: upstream compares string literals exactly.",
             [new DocumentedParameter("other", "The other value.")]));
 
@@ -251,7 +251,7 @@ internal static class ExtensibleEnumEmitter
                 SyntaxFactory.DeclarationPattern(type, SyntaxFactory.SingleVariableDesignation(SyntaxFactory.Identifier("other")))),
             EmissionSyntax.Invocation(SyntaxFactory.IdentifierName("Equals"), SyntaxFactory.Argument(SyntaxFactory.IdentifierName("other"))))))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+        .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
             "Compares with another object: equal only to a value with the same wire spelling.",
             [new DocumentedParameter("obj", "The other object.")]));
 
@@ -272,7 +272,7 @@ internal static class ExtensibleEnumEmitter
                     "GetHashCode"),
                 SyntaxFactory.Argument(SyntaxFactory.IdentifierName(ValueField))))))
         .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-        .WithLeadingTrivia(EmissionSyntax.Documentation("Hashes the wire spelling ordinally, as equality compares it."));
+        .WithLeadingTrivia(DocumentationSyntax.Documentation("Hashes the wire spelling ordinally, as equality compares it."));
 
     private static MethodDeclarationSyntax SpellingToString() => RecordPrinterSyntax.ToStringOverride(
         SyntaxFactory.IdentifierName(ExtensibleEnumMemberPolicy.Value),
@@ -322,7 +322,7 @@ internal static class ExtensibleEnumEmitter
                     SyntaxFactory.Argument(
                         EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(ValueParameter), ExtensibleEnumMemberPolicy.Value)))),
             ])), ["writer"]);
-        var declaration = ConverterSyntax.Declaration(converterName, type, [read, write], EmissionSyntax.Documentation(
+        var declaration = ConverterSyntax.Declaration(converterName, type, [read, write], DocumentationSyntax.Documentation(
                 $"Converts {model.Name}: every string token reads as the value it spells, pinned or not; any other token is a malformed body. Writes the wire spelling and refuses a default value, which has none."));
         var unit = EmissionSyntax.CompilationUnit(
             namespaces.Internal,

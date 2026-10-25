@@ -76,7 +76,7 @@ internal static class QueryEnumWireValueEmitter
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("value")).WithType(SyntaxFactory.NullableType(type)))))
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(body))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 $"Spells one '{model.Name}' value the way the wire query expects it."));
     }
 }

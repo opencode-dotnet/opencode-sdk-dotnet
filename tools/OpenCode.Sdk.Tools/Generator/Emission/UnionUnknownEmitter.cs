@@ -63,11 +63,11 @@ internal static class UnionUnknownEmitter
                 SyntaxFactory.AttributeArgument(SyntaxFactory.TypeOfExpression(
                     TypeSyntaxEmitter.EmitNamed($"{union.UnknownTypeName}JsonConverter")))))
             .WithMembers(SyntaxFactory.List(members))
-            .WithLeadingTrivia(EmissionSyntax.Documentation($"Preserves an unknown {GeneratedDisplayName.Of(union.ConceptName)} payload."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation($"Preserves an unknown {GeneratedDisplayName.Of(union.ConceptName)} payload."));
         var usingNames = union.MarkerKind is LiteralKind.String
             ? new[] { "System", "System.Text.Json", "System.Text.Json.Serialization", namespaces.Internal, }
             : ["System.Text.Json", "System.Text.Json.Serialization", namespaces.Internal];
-        declaration = EmissionSyntax.DocumentedType(declaration, union.UnknownDocumentation);
+        declaration = DocumentationSyntax.DocumentedType(declaration, union.UnknownDocumentation);
         var unit = EmissionSyntax.CompilationUnit(
             union.Namespace,
             UnionInterfaceEmitter.HoistedUsings(chain.Select(static entry => entry.Member), usingNames),
@@ -154,7 +154,7 @@ internal static class UnionUnknownEmitter
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("payload")).WithType(SyntaxFactory.IdentifierName("JsonElement")),
             ])))
             .WithBody(SyntaxFactory.Block(statements))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Initializes an unknown union value from its marker and raw payload."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Initializes an unknown union value from its marker and raw payload."));
     }
 
     /// <summary>
@@ -230,7 +230,7 @@ internal static class UnionUnknownEmitter
             .AddAttributeLists(EmissionSyntax.Attribute("JsonPropertyName", EmissionSyntax.StringArgument(union.MarkerWireName)))
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(SyntaxFactory.IdentifierName("_marker")))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation($"Gets the unrecognized {MarkerDescription(union)} marker."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation($"Gets the unrecognized {MarkerDescription(union)} marker."));
 
     private static PropertyDeclarationSyntax EmitFixedMarkerProperty(UnionFixedMarkerPlan marker) =>
         SyntaxFactory
@@ -240,14 +240,14 @@ internal static class UnionUnknownEmitter
             .AddAttributeLists(EmissionSyntax.Attribute("JsonPropertyName", EmissionSyntax.StringArgument(marker.WireName)))
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(EmissionSyntax.MarkerLiteral(marker.Kind, marker.Value)))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation($"Gets the fixed '{marker.WireName}' marker of this nested union."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation($"Gets the fixed '{marker.WireName}' marker of this nested union."));
 
     private static PropertyDeclarationSyntax EmitUnknownPayloadProperty() =>
         SyntaxFactory
             .PropertyDeclaration(SyntaxFactory.IdentifierName("JsonElement"), "Payload")
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithAccessorList(EmissionSyntax.GetOnlyAccessors())
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Gets the preserved raw JSON payload."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Gets the preserved raw JSON payload."));
 
     /// <summary>Quotes the union's marker property for the messages that refuse a payload.</summary>
     internal static string MarkerDescription(UnionPlan union) => $"'{union.MarkerWireName}'";

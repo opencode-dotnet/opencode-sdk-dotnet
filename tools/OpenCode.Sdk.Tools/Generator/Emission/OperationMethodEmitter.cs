@@ -327,7 +327,7 @@ internal static class OperationMethodEmitter
             operation.Stream is null
                 ? "The server could not be reached or returned a malformed success body."
                 : "The server could not be reached, the stream could not be read, or a frame or failure cause was malformed."));
-        return EmissionSyntax.MemberDocumentation(
+        return DocumentationSyntax.MemberDocumentation(
             operation.CuratedSummary ?? DocumentationSummary(operation),
             parameters,
             operation.Stream is { } streamed

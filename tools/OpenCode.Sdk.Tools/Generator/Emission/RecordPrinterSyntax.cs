@@ -25,7 +25,7 @@ internal static class RecordPrinterSyntax
             .WithParameterList(SyntaxFactory.ParameterList())
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(body))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(summary));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(summary));
 
     /// <summary><c>RecordPrinter.Format(nameof(&lt;typeName&gt;), &lt;members&gt;)</c>.</summary>
     /// <param name="typeName">The printed record's type name.</param>

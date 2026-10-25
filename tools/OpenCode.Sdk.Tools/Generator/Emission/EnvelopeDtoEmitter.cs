@@ -51,7 +51,7 @@ internal static class EnvelopeDtoEmitter
             .WithOpenBraceToken(SyntaxFactory.Token(SyntaxKind.OpenBraceToken))
             .WithCloseBraceToken(SyntaxFactory.Token(SyntaxKind.CloseBraceToken))
             .WithMembers(SyntaxFactory.List(members))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 $"Carries the wire body of '{envelope.ResponseTypeName}' through one deserialization pass."));
         var unit = EmissionSyntax.CompilationUnit(
             namespaces.Internal,

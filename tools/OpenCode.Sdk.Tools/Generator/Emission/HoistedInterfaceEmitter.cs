@@ -33,11 +33,11 @@ internal static class HoistedInterfaceEmitter
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([.. plan.Members.Select(member =>
                 MemberProperty(member, member.Description ?? GeneratedDisplayName.MemberSummary(member.Name)))]))
-            .WithLeadingTrivia(EmissionSyntax.MemberDocumentation(
+            .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
                 plan.Description ?? $"Represents {GeneratedDisplayName.WithIndefiniteArticle(plan.Name)} value.",
                 [],
                 remarks: PinBoundInterfaceRemarks.Runs));
-        declaration = EmissionSyntax.DocumentedType(declaration, plan.Documentation, PinBoundInterfaceRemarks.Runs);
+        declaration = DocumentationSyntax.DocumentedType(declaration, plan.Documentation, PinBoundInterfaceRemarks.Runs);
         var unit = EmissionSyntax.CompilationUnit(plan.Namespace, CollectUsings(plan), [declaration]);
         return EmissionSyntax.CreateSource(relativePath, unit);
     }
@@ -48,7 +48,7 @@ internal static class HoistedInterfaceEmitter
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .AddAttributeLists(EmissionSyntax.Attribute("JsonPropertyName", EmissionSyntax.StringArgument(member.WireName)))
             .WithAccessorList(EmissionSyntax.GetOnlyAccessors())
-            .WithLeadingTrivia(EmissionSyntax.Documentation(summary));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(summary));
 
     private static IReadOnlyList<string> CollectUsings(HoistedInterfacePlan plan)
     {

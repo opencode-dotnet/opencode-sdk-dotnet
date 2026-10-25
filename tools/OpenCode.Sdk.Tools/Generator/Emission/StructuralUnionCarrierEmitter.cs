@@ -40,9 +40,9 @@ internal static class StructuralUnionCarrierEmitter
                 SyntaxFactory.AttributeArgument(SyntaxFactory.TypeOfExpression(
                     TypeSyntaxEmitter.EmitNamed($"{union.Name}JsonConverter")))))
             .WithMembers(SyntaxFactory.List(members))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 union.Description ?? $"Represents {GeneratedDisplayName.WithIndefiniteArticle(union.Name)} structural union."));
-        declaration = EmissionSyntax.DocumentedType(declaration, union.Documentation);
+        declaration = DocumentationSyntax.DocumentedType(declaration, union.Documentation);
         var unit = EmissionSyntax.CompilationUnit(
             union.Namespace,
             [
@@ -130,7 +130,7 @@ internal static class StructuralUnionCarrierEmitter
             .PropertyDeclaration(TypeSyntaxEmitter.EmitNamed(union.KindTypeName), "Kind")
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithAccessorList(EmissionSyntax.GetOnlyAccessors())
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Gets the active structural union arm."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Gets the active structural union arm."));
 
     private static PropertyDeclarationSyntax EmitArmProperty(StructuralUnionModelPlan union, StructuralUnionArmPlan arm) =>
         SyntaxFactory
@@ -143,7 +143,7 @@ internal static class StructuralUnionCarrierEmitter
                         SyntaxFactory.SingletonSeparatedList(TypeSyntaxEmitter.Emit(arm.Type)))),
                 SyntaxFactory.Argument(KindMember(union, arm.Name)))))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(GeneratedDisplayName.MemberSummary(arm.Name)));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(GeneratedDisplayName.MemberSummary(arm.Name)));
 
     private static MethodDeclarationSyntax EmitFactory(StructuralUnionModelPlan union, StructuralUnionArmPlan arm)
     {
@@ -162,7 +162,7 @@ internal static class StructuralUnionCarrierEmitter
             .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList(
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("value")).WithType(TypeSyntaxEmitter.Emit(arm.Type)))))
             .WithBody(SyntaxFactory.Block(statements))
-            .WithLeadingTrivia(EmissionSyntax.Documentation($"Creates {GeneratedDisplayName.WithIndefiniteArticle(union.Name)} from its {GeneratedDisplayName.Of(arm.Name)} arm."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation($"Creates {GeneratedDisplayName.WithIndefiniteArticle(union.Name)} from its {GeneratedDisplayName.Of(arm.Name)} arm."));
     }
 
     private static bool IsReferenceType(TypeReferencePlan type) => type switch
@@ -186,7 +186,7 @@ internal static class StructuralUnionCarrierEmitter
                         SyntaxFactory.SingletonSeparatedList<TypeSyntax>(SyntaxFactory.IdentifierName("JsonElement")))),
                 SyntaxFactory.Argument(KindMember(union, "Unknown")))))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Gets the preserved raw payload for an unrecognized token kind."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Gets the preserved raw payload for an unrecognized token kind."));
 
     private static MethodDeclarationSyntax EmitUnknownFactory(StructuralUnionModelPlan union)
     {
@@ -216,7 +216,7 @@ internal static class StructuralUnionCarrierEmitter
             .WithBody(SyntaxFactory.Block(
                 guard,
                 SyntaxFactory.ReturnStatement(NewCarrier(union, "Unknown", clone))))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Creates a structural union value preserving an unrecognized JSON token."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Creates a structural union value preserving an unrecognized JSON token."));
     }
 
     private static ObjectCreationExpressionSyntax NewCarrier(StructuralUnionModelPlan union, string armName, ExpressionSyntax value) =>

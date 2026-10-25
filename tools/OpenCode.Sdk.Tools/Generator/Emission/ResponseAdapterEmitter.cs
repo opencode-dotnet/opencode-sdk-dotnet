@@ -80,7 +80,7 @@ internal static class ResponseAdapterEmitter
                 SyntaxFactory.Token(SyntaxKind.SealedKeyword)))
             .WithBaseList(SyntaxFactory.BaseList(SyntaxFactory.SeparatedList(baseTypes)))
             .WithMembers(SyntaxFactory.List(members))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 $"Adapts the '{operation.HttpMethod.ToUpperInvariant()} {operation.RouteTemplate}' responses onto '{envelope.ResponseTypeName}'."));
         var usings = new List<string> { "System" };
         if (operation.Pagination is not null)
@@ -130,7 +130,7 @@ internal static class ResponseAdapterEmitter
                     TypeSyntaxEmitter.EmitNamed(adapterTypeName))
                 .WithArgumentList(SyntaxFactory.ArgumentList())))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Gets the shared adapter instance."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Gets the shared adapter instance."));
 
     private static MethodDeclarationSyntax EmitAdaptSuccess(EnvelopePlan envelope) =>
         SyntaxFactory.MethodDeclaration(TypeSyntaxEmitter.EmitNamed(envelope.ResponseTypeName), "AdaptSuccess")
@@ -149,7 +149,7 @@ internal static class ResponseAdapterEmitter
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(
                 EmitSuccessCreation(envelope, SyntaxFactory.IdentifierName("utf8Body"))))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Maps the declared UTF-8 success body onto the typed envelope."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Maps the declared UTF-8 success body onto the typed envelope."));
 
     private static PropertyDeclarationSyntax EmitBinarySuccess() =>
         SyntaxFactory.PropertyDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)), "BinarySuccess")
@@ -158,7 +158,7 @@ internal static class ResponseAdapterEmitter
                 SyntaxFactory.Token(SyntaxKind.OverrideKeyword)))
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(SyntaxFactory.LiteralExpression(SyntaxKind.TrueLiteralExpression)))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Gets a value indicating that the success body is raw bytes."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Gets a value indicating that the success body is raw bytes."));
 
     /// <summary>
     /// The envelope of a raw-byte success: the bytes are copied out of the pooled buffer, which the
@@ -193,7 +193,7 @@ internal static class ResponseAdapterEmitter
                         Initialize("ContentType", SyntaxFactory.IdentifierName("contentType")),
                     ])))))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Maps the raw success bytes and their content type onto the typed envelope."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Maps the raw success bytes and their content type onto the typed envelope."));
 
     private static AssignmentExpressionSyntax Initialize(string member, ExpressionSyntax value) =>
         SyntaxFactory.AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, SyntaxFactory.IdentifierName(member), value);
@@ -239,7 +239,7 @@ internal static class ResponseAdapterEmitter
                     .WithType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword))),
             ])))
             .WithBody(SyntaxFactory.Block(statements))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Maps one buffered response onto the typed envelope."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Maps one buffered response onto the typed envelope."));
     }
 
     private static MethodDeclarationSyntax EmitGetItems(OperationPlan operation)
@@ -258,7 +258,7 @@ internal static class ResponseAdapterEmitter
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("response"))
                     .WithType(TypeSyntaxEmitter.EmitNamed(responseTypeName)))))
             .WithBody(SyntaxFactory.Block(statements))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Gets the ordered items carried by one successful page."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Gets the ordered items carried by one successful page."));
     }
 
     private static MethodDeclarationSyntax EmitGetNextCursor(OperationPlan operation)
@@ -277,7 +277,7 @@ internal static class ResponseAdapterEmitter
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("response"))
                     .WithType(TypeSyntaxEmitter.EmitNamed(responseTypeName)))))
             .WithBody(SyntaxFactory.Block(statements))
-            .WithLeadingTrivia(EmissionSyntax.Documentation("Gets the opaque next cursor carried by one successful page."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Gets the opaque next cursor carried by one successful page."));
     }
 
     private static MethodDeclarationSyntax EmitCreateNextRequest(OperationPlan operation)
@@ -316,7 +316,7 @@ internal static class ResponseAdapterEmitter
                     .WithType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword))),
             ])))
             .WithBody(SyntaxFactory.Block(statements))
-            .WithLeadingTrivia(EmissionSyntax.Documentation(
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 "Creates a continuation request carrying every initial filter beside the opaque next cursor, "
                 + "with the first-page-only order dropped."));
     }
