@@ -24,12 +24,11 @@ internal sealed class PipelineExchange(ConnectionSnapshot connection,
         {
             var message = new PipelineMessage
             {
-                OperationId = operation.OperationId,
                 Request = request,
                 CancellationToken = cancellationToken,
                 LifetimeToken = lifetimeToken,
                 NetworkToken = cancellationToken,
-                NetworkTimeout = NetworkTimeouts.Resolve(operation.OperationId, perCallNetworkTimeout, _clientNetworkTimeout),
+                NetworkTimeout = NetworkTimeouts.Resolve(operation.Traits, perCallNetworkTimeout, _clientNetworkTimeout),
                 PerCallLocation = operation.Options?.Location,
                 DeclaredHeaders = operation.DeclaredHeaders,
                 BufferBody = bufferBody,

@@ -86,7 +86,7 @@ public sealed class CallerStreamContentTests
     {
         using var message = new PipelineMessage
         {
-            OperationId = OperationId,
+            NetworkTimeout = NetworkTimeouts.DefaultNetworkTimeout,
             Request = new HttpRequestMessage(HttpMethod.Post, "http://localhost:4096/"),
         };
         using var source = new MemoryStream([0x01, 0x02]);

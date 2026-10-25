@@ -67,6 +67,8 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
 messages and dispatches them through that roster. `StreamPlane` owns a single stream's opening,
 status and media walls, framing and response lifetime. `ReconnectingEventStream` owns the reconnect
 loop and its live caller/disposed ordering, using `StreamAttempt` for each attempt's windows.
+`OperationTraits` supplies per-operation rules once through `OperationRequest.Describe`; the exchange
+resolves the message's network window from those carried traits.
 
 ### Location
 

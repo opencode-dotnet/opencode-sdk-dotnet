@@ -22,7 +22,7 @@ internal sealed class Pipeline : IDisposable
     private readonly ReconnectingEventStream _reconnectingEventStream;
 
     internal Pipeline(HttpClient httpClient, bool ownsHttpClient, OpenCodeClientOptions options,
-        IEventStreamFramer? framer = null, ArrayPool<byte>? bufferPool = null, TimeSpan? networkTimeout = null,
+        IEventStreamFramer? framer = null, ArrayPool<byte>? bufferPool = null,
         TimeProvider? time = null)
     {
         _lifetime = new ClientLifetime(_lifetimeSource.Token);
@@ -45,7 +45,6 @@ internal sealed class Pipeline : IDisposable
 
         var endpointBase = EndpointPolicy.Normalize(endpoint);
         framer ??= new ServerSentEventFramer();
-        var clientNetworkTimeout = networkTimeout ?? options.NetworkTimeout;
         var idleWindow = options.EventStreamIdleTimeout ?? StreamReconnect.DefaultIdleWindow;
 #pragma warning disable RS0030 // The client pipeline composition root chooses the system clock only when no internal provider was supplied.
         time ??= TimeProvider.System;
@@ -71,7 +70,7 @@ internal sealed class Pipeline : IDisposable
         // WebSocket upgrade builds its own socket and therefore needs the endpoint, the
         // credential, and the ambient location the policies keep to themselves.
         Connection = new ConnectionSnapshot(endpointBase, authorization, options.Location, time);
-        _exchange = new PipelineExchange(Connection, clientNetworkTimeout, policies, _lifetime.Token);
+        _exchange = new PipelineExchange(Connection, options.NetworkTimeout, policies, _lifetime.Token);
         _streamPlane = new StreamPlane(_exchange, framer, _lifetime, Connection);
         _reconnectingEventStream = new ReconnectingEventStream(time, idleWindow, _lifetime, _streamPlane);
     }
@@ -173,7 +172,7 @@ internal sealed class Pipeline : IDisposable
     /// body is read, then each event frame's payload is yielded as it arrives. The
     /// one-shot buffer is never involved, and a stream always throws on an error status —
     /// it has no envelope for one to ride. An operation that reconnects
-    /// (<see cref="StreamReconnect"/>) runs one connection after another instead of ending
+    /// (<see cref="OperationTraits"/>) runs one connection after another instead of ending
     /// with the first. Per-call location applies to every connection attempt; a per-call timeout
     /// bounds only the opening, and a reconnecting stream refuses it.
     /// </summary>
@@ -190,7 +189,7 @@ internal sealed class Pipeline : IDisposable
 
         ErrorBehaviorPolicy.RefuseNoThrow(requestOptions, "Streams");
 
-        var reconnecting = StreamReconnect.Reconnecting.Contains(operationId);
+        var reconnecting = request.Traits.Reconnects;
         if (reconnecting && requestOptions?.NetworkTimeout is not null)
         {
             throw new ArgumentException("Reconnecting streams use their own connection and idle windows; NetworkTimeout is not supported.", nameof(requestOptions));

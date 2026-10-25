@@ -185,6 +185,7 @@ internal static class ReservedNamePolicy
             "OpenCodeErrorReader",
             "OpenCodeHttpMethod",
             "OperationRequest",
+            "OperationTraits",
             "OwnedServerChild",
             "OwnedServerProcess",
             "PersistentPtyClosePolicy",
