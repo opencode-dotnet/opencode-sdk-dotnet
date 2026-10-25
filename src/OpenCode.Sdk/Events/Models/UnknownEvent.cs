@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Preserves an unknown event payload.
+/// Preserves an unknown or unmaterializable event payload.
 /// </summary>
 [JsonConverter(typeof(UnknownEventJsonConverter))]
 public sealed record UnknownEvent : IEvent
@@ -35,7 +35,7 @@ public sealed record UnknownEvent : IEvent
     }
 
     /// <summary>
-    /// Gets the unrecognized &apos;type&apos; marker.
+    /// Gets the preserved &apos;type&apos; marker.
     /// </summary>
     [JsonPropertyName("type")]
     public string Type => _marker;

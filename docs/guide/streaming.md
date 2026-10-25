@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-10-23
+Date: 2026-10-25
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **global event bus** for everything happening in the server
@@ -39,7 +39,7 @@ await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: win
 
 `IEvent` carries exactly one common member, `Type` — the wire discriminator. Every concrete event
 type adds its own payload, so a `switch` on the type is the way in; `@event.Type` is there for
-logging and for the frames you have not written a case for.
+connection markers, logging, and the frames you have not written a case for.
 
 ### 🧭 Routing by session
 
@@ -104,9 +104,9 @@ static async Task<IReadOnlyList<IEvent>> AnswerAsksAsync(
     var session = client.Sessions.GetSessionClient(created.Session.Id);
     var events = client.Events.SubscribeAsync(cancellationToken: token).GetAsyncEnumerator(token);
     await using var eventLifetime = events.ConfigureAwait(false);
-    if (!await events.MoveNextAsync().ConfigureAwait(false) || events.Current is not EventServerConnected)
+    if (!await events.MoveNextAsync().ConfigureAwait(false) || events.Current.Type is not "server.connected")
     {
-        throw new InvalidOperationException("The bus did not start with server.connected.");
+        throw new InvalidOperationException("The bus did not start with a server.connected frame.");
     }
     await session.PromptAsync(new SessionPromptRequest { Text = prompt }, cancellationToken: token).ConfigureAwait(false);
     var observed = new List<IEvent>();
@@ -192,7 +192,7 @@ the server is stopping, and the server resumes the turn after it restarts, with 
 server is back within a minute, so to follow the resumed turn keep reading and wait the same way.
 Open the bus **before**
 you prompt, because an event published before you listen is gone; the first event,
-`EventServerConnected`, says the stream is live:
+the `server.connected` frame, says the stream is live:
 
 ```csharp
 var session = client.Sessions.GetSessionClient(sessionId);
@@ -229,9 +229,9 @@ using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
 await using var events = client.Events.SubscribeAsync(cancellationToken: deadline.Token).GetAsyncEnumerator();
 
 // 1. The stream is ready once its first event, server.connected, has arrived.
-if (!await events.MoveNextAsync() || events.Current is not EventServerConnected)
+if (!await events.MoveNextAsync() || events.Current.Type is not "server.connected")
 {
-    throw new InvalidOperationException("The event stream did not start with server.connected.");
+    throw new InvalidOperationException("The event stream did not start with a server.connected frame.");
 }
 
 // 2. Prompt with an id of your own, so you can recognize this prompt's delivery.
@@ -270,7 +270,7 @@ while (!turnEnded && await events.MoveNextAsync())
 }
 ```
 
-- **Open the bus first, and wait for `EventServerConnected`.** The server sends it to every new
+- **Open the bus first, and wait for a `server.connected` frame.** The server sends it to every new
   subscriber before anything else, so once it has arrived, nothing the session publishes is missed.
   Upstream's client and the SDK both fail a connection that starts with anything else, and
   upstream's CLI waits for this event before it sends a prompt.
@@ -310,10 +310,11 @@ The SDK **reconnects** the bus the way upstream's own client does, and it tells 
   an event never counts as silence. `OpenCodeClientOptions.EventStreamIdleTimeout` sets another
   window than 45 seconds; keep it above the 15-second keepalive, or a quiet, healthy bus is cut
   and reconnected each time.
-- Each connection has 2 seconds to answer and deliver `EventServerConnected`, or it counts as
+- Each connection has 2 seconds to answer and deliver a `server.connected` frame, or it counts as
   failed. A reachable server that is consistently slower than that fails every attempt, and the
   minute below applies.
-- **Every connection starts with `EventServerConnected`.** A second one means you were
+- **Every connection starts with a `server.connected` frame**, usually typed as `EventServerConnected`.
+  Match on `Type`: a drifted marker can arrive as `UnknownEvent`. A second one means you were
   disconnected and the events in between are gone: refresh the state you care about with ordinary
   calls and carry on reading.
 - The stream never ends on its own. Your cancellation token or disposing the client releases its
@@ -329,13 +330,13 @@ The SDK **reconnects** the bus the way upstream's own client does, and it tells 
 var connectedBefore = false;
 await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: cancellationToken))
 {
-    if (@event is EventServerConnected && connectedBefore)
+    if (@event.Type is "server.connected" && connectedBefore)
     {
         // Reconnected: whatever happened in between is not on this stream.
         await RefreshStateAsync(cancellationToken);
     }
 
-    connectedBefore |= @event is EventServerConnected;
+    connectedBefore |= @event.Type is "server.connected";
     // ...
 }
 ```
@@ -346,7 +347,7 @@ a later pull reads the connection again, after the events already received have 
 loss fails that read at once and the SDK reconnects 1 second later; a half-open connection takes a full
 idle window (45 seconds by default) from that read to detect. If your handler
 is slow, hand each event off so the loop keeps reading, and process `pending.Reader` on a separate
-task. A repeated `EventServerConnected` still means events were missed; an event dropped or refused
+task. A repeated `server.connected` frame still means events were missed; an event dropped or refused
 by a full channel is a gap too: refresh the state you care about. With `System.Threading.Channels` imported:
 
 ```csharp
@@ -389,32 +390,53 @@ session. Upstream serves it as an experimental route, so it needs an
 [opt-in](experimental.md#opencode003) (`OPENCODE003`).
 
 ```csharp
+using System.Text.Json;
+```
+
+```csharp
 var session = client.Sessions.GetSessionClient(sessionId);
 
 await foreach (var item in session.ReadLogAsync(new SessionLogRequest { Follow = true }, cancellationToken: cancellationToken))
 {
-    switch (item)
+    if (item.Type is "log.synced")
     {
-        case ISessionEventDurable durable:
-            Console.WriteLine($"{durable.Type} seq={durable.Durable?.Seq}");
-            break;
-        case EventLogSynced marker:
+        if (item is EventLogSynced marker)
+        {
             Console.WriteLine($"replay caught up at seq={marker.Seq}");
-            break;
+        }
+        else if (item is UnknownSessionLogItem unknown
+            && unknown.Payload.TryGetProperty("seq", out var seq)
+            && seq.ValueKind is JsonValueKind.Number
+            && seq.TryGetInt64(out var watermark))
+        {
+            Console.WriteLine($"replay caught up at seq={watermark}");
+        }
+        else
+        {
+            Console.WriteLine("replay caught up; watermark unavailable");
+        }
+    }
+    else if (item is ISessionEventDurable durable)
+    {
+        Console.WriteLine($"{durable.Type} seq={durable.Durable?.Seq}");
     }
 }
 ```
 
-Two arms cover the whole union, because the log is exactly *durable events plus one marker*. Every
+The log is exactly *durable events plus one marker*, with unknown carriers for unreadable items. Every
 durable event — all 43 of them — implements `ISessionEventDurable`, which carries the members they
 all declare: `Id`, `Created`, `Metadata`, `Location`, and the `Durable` envelope with
 `AggregateId`, `Seq`, and `Version`. The marker is not one of them: `log.synced` is a transition
 boundary rather than something committed against the aggregate, so it sits beside the durable union
-under `ISessionLogItem` and reports its watermark on its own `Seq`.
+under `ISessionLogItem`. It normally arrives as `EventLogSynced`, with its watermark on `Seq`.
+A drifted marker can arrive as `UnknownSessionLogItem`: detect it by `item.Type is "log.synced"`
+and look for the wire `seq` in `Payload`. Handle an absent or unusable value; the unknown carrier
+does not promise a readable watermark. Keep the last `Durable.Seq` you read as the `After` cursor.
 
-Those members are nullable on the interface for one reason: a `type` this build has never heard of
-arrives as `UnknownSessionLogItem` or `UnknownSessionEventDurable`, which preserve the raw payload
-and materialize no typed member. A concrete event's own `Durable` property is still non-nullable —
+The durable members are nullable on the interface because unknown carriers preserve the raw payload
+and materialize no typed member. An unrecognized `type` arrives as `UnknownSessionLogItem` or
+`UnknownSessionEventDurable`; a known log item that cannot be read can also arrive as
+`UnknownSessionLogItem`, under the tolerance below. A concrete event's own `Durable` property is still non-nullable —
 `SessionCreated.Durable` is a `SessionCreatedDurable` — so only the interface route needs the
 `?.`.
 
@@ -444,7 +466,8 @@ An unknown durable event has no envelope to read, so there is no sequence to res
 last one you did read.
 
 With `Follow = false`, a server that persists the requested history replays the available durable
-events and ends with one `EventLogSynced`. The marker reports the captured aggregate watermark.
+events and ends with one `log.synced` frame, normally typed as `EventLogSynced`. The marker reports
+the captured aggregate watermark when its `Seq`, or the unknown arm's `Payload` field `seq`, is usable.
 With `Follow = true`, read through any replayed events until that marker arrives; the same stream
 then delivers live events committed after the attachment boundary, from a server that persists
 them. The marker is a transition boundary, not a durable event to save as the next `After` value.
@@ -457,11 +480,12 @@ them. The marker is a transition boundary, not a durable event to save as the ne
 > **The distributed `opencode` CLI starts its server without event persistence and exposes no
 > switch for it** — no serve flag, no environment variable, no configuration key. Observed on
 > `@opencode/cli@2.0.15`. So `ReadLogAsync` against a CLI-started server is not an error and not
-> empty: with `Follow` unset or `False` it is one `EventLogSynced` and the end of the stream, and
+> empty: with `Follow` unset or `False` it is one `log.synced` frame and the end of the stream, and
 > with `Follow = True` it is the same single marker and then nothing, however many durable changes
-> the session goes through while you listen. The marker's `Seq` is the session's current aggregate
-> sequence, which moves with every durable change although nothing is stored. That is the signature
-> to look for — a marker, and no durable events ahead of it or after it. Persisted replay and
+> the session goes through while you listen. The marker's wire `seq` (normally `EventLogSynced.Seq`)
+> is the session's current aggregate sequence, which moves with every durable change although nothing
+> is stored. An unknown marker keeps it in `Payload`; handle an absent or unusable value. That is the
+> signature to look for — a marker, and no durable events ahead of it or after it. Persisted replay and
 > follow need a host that embeds the opencode server library with persistence enabled; this
 > repository's own simulation host does exactly that for its tests.
 >
@@ -491,13 +515,22 @@ case UnknownEvent unknown:
 ```
 
 The per-session log has the same escape hatch, `UnknownSessionLogItem`, with the same two members.
-Practically: a server upgrade cannot break your event loop, you can log or even handle a new event
-type before the SDK is regenerated, and when it is regenerated the frame simply arrives as its
-typed self instead. This is also why the members a union interface promises are nullable: a carrier
-answers `null` for every one of them and hands you `Payload` instead.
+On both streams, a **known** `type` can also arrive as that unknown arm: if normal decoding throws
+a `JsonException` and the existing carrier can preserve the frame, the stream delivers it and its
+neighbours on the same connection or request. The carrier exposes `Type` and raw `Payload`, not the
+decode reason. Both streams follow the first-party client's tolerance of payload shape drift.
 
-What this is *not* is a bucket for malformed data. A frame whose `type` is known but whose body
-cannot be read is a protocol failure and throws — the carrier is for *unknown*, not for *broken*.
+This is scoped upgrade tolerance, not a promise that every server upgrade leaves an event loop
+unbroken. You can log or handle a new event before regeneration; after regeneration it arrives as
+its typed self only when it can be read in that shape. This is also why the members a union
+interface promises are nullable: a carrier answers `null` for every one of them and hands you
+`Payload` instead.
+
+Invalid JSON, a non-object, and a missing, non-string, empty or whitespace-only `type` still fail
+with the original decode failure as the cause. A null payload keeps its own failure. On the bus,
+the carrier refuses `rpc.` markers, so an unreadable RPC event still fails; the session log has no
+prefix rule. These failures reconnect the bus and end the session log, as before. See the
+[canonical stream rules](../architecture/client-runtime.md#server-sent-events).
 
 ## ⏹️ Cancellation and lifetime
 

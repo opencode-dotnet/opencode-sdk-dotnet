@@ -29,6 +29,9 @@ internal interface IStreamAdapter<TPayload, TCause>
     /// <summary>Gets the source-generated metadata each frame's payload is read through.</summary>
     public JsonTypeInfo<TPayload> PayloadTypeInfo { get; }
 
+    /// <summary>Gets unknown-arm metadata for payload decode failures, or null when unavailable.</summary>
+    public JsonTypeInfo? UnknownPayloadTypeInfo { get; }
+
     /// <summary>Gets the source-generated metadata the failure frame's cause is read through.</summary>
     public JsonTypeInfo<TCause> CauseTypeInfo { get; }
 

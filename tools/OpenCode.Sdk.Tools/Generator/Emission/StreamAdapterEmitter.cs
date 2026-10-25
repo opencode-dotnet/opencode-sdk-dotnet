@@ -49,6 +49,7 @@ internal static class StreamAdapterEmitter
             overrides: false));
         members.Add(EmitFailureEventName(stream));
         members.Add(EmitPayloadTypeInfo(stream));
+        members.Add(EmitUnknownPayloadTypeInfo(stream));
         members.Add(EmitCauseTypeInfo(stream));
         members.Add(EmitReadError(operation));
 
@@ -136,6 +137,17 @@ internal static class StreamAdapterEmitter
                 stream.PayloadTypeName)))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
             .WithLeadingTrivia(DocumentationSyntax.Documentation("Gets the metadata each frame's payload is read through."));
+
+    private static PropertyDeclarationSyntax EmitUnknownPayloadTypeInfo(StreamPlan stream) =>
+        SyntaxFactory
+            .PropertyDeclaration(SyntaxFactory.NullableType(TypeSyntaxEmitter.EmitNamed("JsonTypeInfo")), "UnknownPayloadTypeInfo")
+            .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
+            .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(
+                stream.UnknownPayloadTypeName is { } unknown
+                    ? EmissionSyntax.MemberAccess(RegistryNames.Default, unknown)
+                    : SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)))
+            .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
+            .WithLeadingTrivia(DocumentationSyntax.Documentation("Gets unknown-arm metadata for payload decode failures, or null when unavailable."));
 
     private static PropertyDeclarationSyntax EmitCauseTypeInfo(StreamPlan stream)
     {

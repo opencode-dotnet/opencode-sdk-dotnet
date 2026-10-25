@@ -1,4 +1,6 @@
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
+using OpenCode.Sdk.Tests.Events.Support;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Events;
@@ -79,6 +81,67 @@ public sealed class EventsClientContractTests
 
         await Assert.That(await events.MoveNextAsync().AsTask().WaitAsync(HangGuard.Bound)).IsTrue();
         await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
+    }
+
+    [Test]
+    public async Task SubscribeAsync_Should_Preserve_An_Unreadable_Known_Event_And_Its_Neighbour()
+    {
+        var bad = WireBodyData.EventWithoutData("session.created");
+        using var scenario = RespondingWithEvents(bad, WireBodyData.SessionDeletedEvent);
+        using var caller = new CancellationTokenSource();
+        using var waiterOwner = new CancellationTokenSource();
+        var events = scenario.Events.SubscribeAsync(cancellationToken: caller.Token).GetAsyncEnumerator();
+        Task<OperationCanceledException?>? pending = null;
+        Task? reconnectDelay = null;
+        try
+        {
+            await Assert.That(await EventStreamSteps.NextAsync(events)).IsTypeOf<EventServerConnected>();
+            pending = EventStreamSteps.PendingCancellationAsync(events);
+            reconnectDelay = scenario.Time.WaitForArmedOrCanceledAsync(EventStreamSteps.Delay, HangGuard.Bound, waiterOwner.Token);
+            var winner = await Task.WhenAny(pending, reconnectDelay).WaitAsync(HangGuard.Bound);
+            await Assert.That(winner).IsNotSameReferenceAs(reconnectDelay);
+            await Assert.That(scenario.Time.ArmedIn(EventStreamSteps.Delay)).IsEqualTo(0);
+            await Assert.That(await pending).IsNull();
+            await Assert.That(events.Current).IsTypeOf<UnknownEvent>();
+            var unknown = (UnknownEvent)events.Current;
+            await Assert.That(unknown.Type).IsEqualTo("session.created");
+            await Assert.That(unknown.Payload.GetRawText()).IsEqualTo(bad);
+            await Assert.That(await EventStreamSteps.NextAsync(events)).IsTypeOf<SessionDeleted>();
+            await Assert.That(scenario.RequestCount).IsEqualTo(1);
+            await Assert.That(scenario.Time.ArmedIn(EventStreamSteps.Delay)).IsEqualTo(0);
+        }
+        finally
+        {
+            await caller.CancelOnWorkerAsync();
+            await waiterOwner.CancelOnWorkerAsync();
+            // Cleanup observes both race participants even after their owners have cancelled.
+            try
+            {
+                if (pending is not null)
+                {
+                    _ = await pending.WaitAsync(HangGuard.Bound, CancellationToken.None);
+                }
+            }
+            finally
+            {
+                try
+                {
+                    if (reconnectDelay is not null)
+                    {
+                        // The waiter's owner cancels it once the race is decided; anything but that cancellation propagates.
+                        var ended = await Task.WhenAny(reconnectDelay).WaitAsync(HangGuard.Bound, CancellationToken.None);
+                        if (!ended.IsCanceled || !waiterOwner.IsCancellationRequested)
+                        {
+                            await ended;
+                        }
+                    }
+                }
+                finally
+                {
+                    await events.DisposeAsync().AsTask().WaitAsync(HangGuard.Bound, CancellationToken.None);
+                }
+            }
+        }
     }
 
     /// <summary>Answers every subscribe with <c>server.connected</c> and then the given events, as the server writes them.</summary>

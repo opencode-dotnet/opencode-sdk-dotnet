@@ -130,6 +130,50 @@ public sealed class SourceEmitterTests(PinnedBinding pinned)
         await Assert.That(diagnostics).IsEmpty();
     }
 
+    [Test]
+    public async Task Emit_Should_Refuse_A_Stream_Payload_Union_With_Impossible_Tags()
+    {
+        var exception = await Assert.That(async () => _ = await EmitterPlanFixture.CreateRootImpossibleStreamPlanAsync()).Throws<BindingException>();
+
+        await Assert.That(exception!.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Schema, "IExampleEvent", "Stream payload union 'IExampleEvent' reaches 'IExampleEvent', which declares impossible tags: Fail; a stream's unknown-arm fallback would bypass impossible-tag dispatch, so decline the stream or curate the tag."),
+            new BindingError(BindingErrorCategory.Schema, "INested", "Stream payload union 'IExampleEvent' reaches 'INested', which declares impossible tags: Fail; a stream's unknown-arm fallback would bypass impossible-tag dispatch, so decline the stream or curate the tag."),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Emit_Should_Resolve_Stream_Fallback_Metadata_From_Bound_Unions()
+    {
+        var plan = pinned.Plan;
+        var streams = plan.Clients.SelectMany(static client => client.Operations).Select(static operation => operation.Stream)
+            .OfType<StreamPlan>().ToDictionary(static stream => stream.AdapterTypeName, static stream => stream.UnknownPayloadTypeName, StringComparer.Ordinal);
+        await Assert.That(streams["EventSubscribeResponseStreamAdapter"]).IsEqualTo("UnknownEvent");
+        await Assert.That(streams["SessionLogResponseStreamAdapter"]).IsEqualTo("UnknownSessionLogItem");
+        await Assert.That(plan.Unions.Where(static union => union.IsStreamFallbackCarrier).Select(static union => union.Name).Order(StringComparer.Ordinal))
+            .IsEquivalentTo(["IEvent", "ISessionLogItem"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        var client = plan.Clients.Single(static client => client.Name == "EventsClient");
+        var operation = client.Operations.Single();
+        var swapped = ResolveStreamOperation(plan, client, operation with { Stream = operation.Stream! with { PayloadTypeName = "SessionCreated" } });
+        await Assert.That(swapped.Clients.Single().Operations.Single().Stream!.UnknownPayloadTypeName).IsNull();
+        await Assert.That(swapped.Unions.Single(static union => union.Name == "IEvent").IsStreamFallbackCarrier).IsFalse();
+        var renamed = ResolveStreamOperation(plan, client, operation with { OperationId = "renamed.stream" });
+        await Assert.That(renamed.Clients.Single().Operations.Single().Stream!.UnknownPayloadTypeName).IsEqualTo("UnknownEvent");
+        await Assert.That(renamed.Unions.Single(static union => union.Name == "IEvent").IsStreamFallbackCarrier).IsTrue();
+    }
+
+    [Test]
+    public async Task Emit_Should_Refuse_A_Stream_Payload_Union_That_Reaches_Impossible_Tags()
+    {
+        var exception = await Assert.That(async () => _ = await EmitterPlanFixture.CreateNestedImpossibleStreamPlanAsync()).Throws<BindingException>();
+
+        await Assert.That(exception!.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Schema, "INested", "Stream payload union 'IExampleEvent' reaches 'INested', which declares impossible tags: Fail; a stream's unknown-arm fallback would bypass impossible-tag dispatch, so decline the stream or curate the tag."),
+        ], CollectionOrdering.Matching);
+    }
+
+    private static EmitPlan ResolveStreamOperation(EmitPlan plan, ClientPlan client, OperationPlan operation) =>
+        SpecBinder.ResolveEmissionData(plan with { Clients = [client with { Operations = [operation] }] });
+
     /// <summary>
     /// Guards <see cref="GeneratedSourceCompiler.GeneratedSurfaceConsumers"/>'s skip logic: the
     /// pinned plan must actually emit every entry's <c>RequiredEmission</c> twin, so a renamed or

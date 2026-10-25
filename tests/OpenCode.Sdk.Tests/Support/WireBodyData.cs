@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Nodes;
 
 namespace OpenCode.Sdk.Tests.Support;
 
@@ -140,6 +141,16 @@ internal static class WireBodyData
         + "\"location\":{\"directory\":\"/repo\"},"
         + "\"data\":{\"sessionID\":\"ses_9\",\"projectID\":\"prj_1\",\"location\":{\"directory\":\"/repo\"},"
         + "\"slug\":\"first\",\"title\":\"first\",\"agent\":\"build\",\"version\":\"1\"}}";
+
+    /// <summary>A session event with the given marker and without its required data member.</summary>
+    public static string EventWithoutData(string type)
+    {
+        var payload = JsonNode.Parse(SessionCreatedEvent)?.AsObject()
+                      ?? throw new InvalidOperationException("The session event fixture must contain a JSON object.");
+        payload["type"] = type;
+        _ = payload.Remove("data");
+        return payload.ToJsonString();
+    }
 
     /// <summary>A durable event at envelope version 2; the family carries both versions.</summary>
     public const string SessionDeletedEvent =

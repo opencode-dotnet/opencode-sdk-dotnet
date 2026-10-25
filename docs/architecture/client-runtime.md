@@ -310,10 +310,10 @@ resolves the message's network window from those carried traits.
   response spine, including when typed error parsing fails (ADR-0007). A response's printed form
   (`ToString`) leaves the raw body out, because a server can echo request data into it; the status,
   the error flag, and the typed error still print.
-- Transport, status/framing, JSON, dispatch, cancellation wrapping, and impossible top-level
-  materialization failures throw `OpenCodeTransportException`. `NoThrow` applies only to declared
-  API errors and never suppresses transport failures. Undeclared 3xx responses are protocol
-  failures on both one-shot and streaming paths (ADR-0007, ADR-0014).
+- Transport, status/framing, unrecovered JSON or materialization, dispatch, and cancellation-wrapping
+  failures throw `OpenCodeTransportException`; stream payload tolerance is scoped below. `NoThrow`
+  applies only to declared API errors and never suppresses transport failures. Undeclared 3xx
+  responses are protocol failures on both one-shot and streaming paths (ADR-0007, ADR-0014).
 - Caller cancellation of a public asynchronous operation or enumeration throws
   `OperationCanceledException` carrying the caller's token, not an SDK-owned linked token. The rule
   applies to HTTP operations, SSE, cursor traversal, both terminal families, and `StartAsync`,
@@ -388,8 +388,9 @@ resolves the message's network window from those carried traits.
     server's silence.
   - Every failure is followed by a new attempt 1 s later, with no backoff. That covers a refused
     connection, any HTTP error status (a 401 or a 404 included), an undeclared success, a body that
-    is not an event stream, a malformed frame, a failure frame, the server ending the stream, and
-    either window passing.
+    is not an event stream, malformed framing or JSON, a payload neither its primary nor its
+    unknown-arm metadata can materialize, a failure frame, the server ending the stream, and either
+    window passing. Tolerated payload skew is not a failed attempt.
   - No replay is requested. Each connection yields its own `server.connected`, so a second one
     tells the consumer that events published in between are gone and authoritative state should be
     refreshed.
@@ -445,7 +446,16 @@ resolves the message's network window from those carried traits.
   the operation's declared failure event materializes its cause through generated metadata and
   throws; any other explicit name is refused. Unknown payload and cause discriminators remain
   governed by ADR-0009 and are not confused with unknown frame names. A known tag whose schema is
-  impossible is a protocol failure, not an unknown variant (ADR-0015).
+  impossible is a protocol failure, not an unknown variant (ADR-0015). A stream payload union that
+  reaches one is refused at generation, so the tolerance below never reaches it (ADR-0038).
+- On `event.subscribe` and `session.log`, a payload whose normal materialization throws
+  `JsonException` arrives as its union's existing unknown arm when that arm's converter can hold
+  the same frame; the connection or request continues (ADR-0038). Invalid JSON and refused carriers
+  keep the malformed-payload transport failure with the original decode exception as inner. A null
+  primary result keeps its distinct null-payload failure. Only `JsonException` is caught; other
+  converter exceptions propagate. Both streams have this scoped tolerance because the pinned
+  first-party promise SSE reader parses JSON and casts without schema decoding, not because every
+  valid JSON value is representable by the SDK.
 - A body cut in the middle of an event is reported as a transport failure rather than dispatched
   as malformed payload data.
 

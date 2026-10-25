@@ -40,6 +40,10 @@ internal sealed class EventSubscribeResponseStreamAdapter : IStreamAdapter<IEven
     /// </summary>
     public JsonTypeInfo<IEvent> PayloadTypeInfo => OpenCodeJsonContext.Default.IEvent;
     /// <summary>
+    /// Gets unknown-arm metadata for payload decode failures, or null when unavailable.
+    /// </summary>
+    public JsonTypeInfo? UnknownPayloadTypeInfo => OpenCodeJsonContext.Default.UnknownEvent;
+    /// <summary>
     /// Gets the metadata the failure frame&apos;s cause is read through.
     /// </summary>
     public JsonTypeInfo<IStreamFailureCause[]> CauseTypeInfo => OpenCodeJsonContext.Default.GetTypeInfo(typeof(IStreamFailureCause[])) as JsonTypeInfo<IStreamFailureCause[]> ?? throw new InvalidOperationException("The generated context has no metadata for the stream failure cause.");

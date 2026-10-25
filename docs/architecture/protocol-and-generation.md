@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-10-24
+Date: 2026-10-25
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -292,6 +292,10 @@ to write a default value, and whose equality is ordinal. Declared no-content res
 success decoding preserves `HttpContent` charset, BOM, and replacement-decoding behavior while
 materializing valid UTF-8 directly (ADR-0014).
 
+For stream payloads only, a `JsonException` from normal materialization can instead be represented
+by the union's existing unknown arm when its converter accepts the frame (ADR-0038). The known
+attempt still performs the checks above; one-shot results and failure causes keep their failures.
+
 The exact standalone `not: {}` applicator is the dialect's never schema. The exact standalone
 `not: {"type":"null"}` is how Effect renders a struct with no declared fields: nothing says what
 the content is, so it binds as an object of unspecified content. Other `not` shapes refuse at
@@ -313,11 +317,14 @@ materializable.
   variants and remain framing failures (ADR-0009).
 - Known tagged-union arms scan a copied UTF-8 reader for the last top-level discriminator and then
   materialize once through source-generated metadata; the scan remains safe when serializer stream
-  entry points supply a partial reader, and it does not build a JSON DOM. Unknown arms alone retain
-  the DOM needed by their lossless carrier. Public unknown-carrier construction requires the
-  payload's discriminator (and any fixed outer marker) to agree with the exposed marker properties;
-  serialization remains payload-only replay (ADR-0009). Dispatch order is fixed: declared literal
-  tags, then the single prefix-tagged arm, then the unknown carrier.
+  entry points supply a partial reader, and it does not build a JSON DOM. Unknown arms retain
+  the DOM needed by their lossless carrier, including a stream payload recovered after its known
+  arm could not materialize. Direct union deserialization keeps the known-arm failure; only the
+  stream adapter and reader retry through concrete unknown-arm metadata (ADR-0038). Public
+  unknown-carrier construction requires the payload's discriminator (and any fixed outer marker)
+  to agree with the exposed marker properties; serialization remains payload-only replay (ADR-0009).
+  Dispatch order is fixed: declared literal tags, then the single prefix-tagged arm, then the unknown
+  carrier.
 - Every tagged union dispatches on one marker property. The error union's is `_tag`, which every
   error the pinned contract declares carries. An error response that references a schema without
   exactly one required `_tag` literal refuses by name; one that carries a required `name` literal
@@ -373,6 +380,12 @@ materializable.
 
 - Every HTTP operation method, including streaming operations, is generated as a short delegation
   into the hand-written behavior core (ADR-0008).
+- Bound root payload-union identity supplies a stream adapter's optional concrete unknown-arm
+  metadata and scopes its carrier documentation; an adapter without such a union emits null.
+  A stream payload union that reaches known-impossible tags, directly or through a nested union,
+  refuses binding by root union, offending union, and tag name, so fallback cannot bypass
+  impossible-tag dispatch. The behavior core learns no generated model name or operation identity
+  from this wiring (ADR-0038).
 - Every generated operation member, `Enumerate*Async` companions included, documents its operation
   identity and its HTTP method and route template in `<remarks>` as text only; no emitter branches
   on the identity (ADR-0008).
