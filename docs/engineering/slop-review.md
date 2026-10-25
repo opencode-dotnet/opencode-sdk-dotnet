@@ -1,6 +1,6 @@
 # Slop Review
 
-Date: 2026-10-15
+Date: 2026-10-25
 
 What slop means in this repository, how to recognize it, and the rubric that every change and
 every review applies. It complements `coding-style.md` and `testing-style.md`: they say how to
@@ -143,7 +143,9 @@ catches. Each item is pass, fail or not applicable, and a fail names its reason.
 
 - **T1. The oracle comes from upstream evidence:** the spec, upstream source, or an observed frame
   kept as test data. It is never pasted from our own output.
-- **T2. The test fails if the change is reverted.** A fix shows red, then green.
+- **T2. The test fails if the change is reverted.** A fix shows red, then green. Characterization
+  tests that pin behaviour a rewrite keeps are proven by a named mutant instead of T2's
+  red-then-green.
 - **T3. Assertions state intent and print a useful failure.** A collection assertion reports the
   elements it saw; `Assert.That(x.Any(…)).IsTrue()` reports only `false`.
 - **T4. Arrange goes through builders.** The second copy of a literal grows a builder verb.
