@@ -901,7 +901,7 @@ public sealed class PipelineTests
         OperationCanceledException? cancellation = null;
         try
         {
-            _ = await execution;
+            _ = await execution.WaitAsync(HangGuard.Bound);
         }
         catch (OperationCanceledException exception)
         {
@@ -936,7 +936,7 @@ public sealed class PipelineTests
         OperationCanceledException? cancellation = null;
         try
         {
-            _ = await execution;
+            _ = await execution.WaitAsync(HangGuard.Bound);
         }
         catch (OperationCanceledException exception)
         {
