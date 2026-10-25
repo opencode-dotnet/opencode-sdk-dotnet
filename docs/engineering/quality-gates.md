@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-10-23
+Date: 2026-10-25
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -380,6 +380,21 @@ such as scratch clones). Whatever the tier, before/after runs stay within one en
 allocation is the primary comparison. The performance project adds a net472 target on Windows only;
 net472 numbers come from the `--runtimes` net472 leg of the canonical invocation below, never from
 net10 or source-equivalent probes.
+
+The CI benchmark readiness guard runs SDK-only `--job Dry` steps in the existing Linux matrix leg
+for net10.0 and net11.0 (the job already installs the pinned .NET 11 SDK), and in the Windows leg
+with `--runtimes net472`. A separate `benchmark-generator-stage` job runs only
+`GeneratorStageBenchmarks`, without `--runtimes`; `GeneratorRunBenchmarks` never runs in CI.
+Each Dry step has a 20-minute timeout. The benchmark process returns non-zero for any validation
+error, failed build, missing report, unsuccessful report or missing result statistics, failing the
+step without log scraping. Both jobs upload their Dry artifacts even after benchmark failure.
+
+The guard selects changes under `src/`, `tools/OpenCode.Sdk.Tools/`, `spec/` and the performance
+project, plus `tools/curation.json`, `tools/generation-profile.txt`, the shared `BenchmarkExitPolicy.cs`,
+`Directory.Build.props`, `Directory.Build.targets`, `Directory.Packages.props`, `global.json` and
+the CI workflow itself. Push runs always select it. `CI result` requires the stage job to succeed
+when selected and to be skipped otherwise; invalid classification, failure or cancellation fails
+the aggregate. The existing matrix result covers the SDK steps.
 
 The canonical comparable run, and the comparison it feeds:
 
