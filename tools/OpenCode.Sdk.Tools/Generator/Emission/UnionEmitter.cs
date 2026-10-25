@@ -877,11 +877,8 @@ internal static class UnionEmitter
             SyntaxKind.CoalesceExpression,
             getTypeInfo,
             SyntaxFactory.ThrowExpression(EmissionSyntax.JsonException($"The generated context has no metadata for {union.ConceptName}.")));
-        var serialize = EmissionSyntax.Invocation(
-            EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonSerializer"), "Serialize"),
-            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("writer")),
-            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("value")),
-            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("typeInfo")));
+        var serialize = ConverterSyntax.SerializeWithTypeInfo(
+            SyntaxFactory.IdentifierName("value"), SyntaxFactory.IdentifierName("typeInfo"));
         var statements = new List<StatementSyntax>
         {
             SyntaxFactory.IfStatement(unknownPattern, writeUnknown),
@@ -898,13 +895,9 @@ internal static class UnionEmitter
                 SyntaxFactory.DeclarationPattern(
                     SyntaxFactory.IdentifierName(typeName),
                     SyntaxFactory.SingleVariableDesignation(SyntaxFactory.Identifier(variableName))));
-            var nestedSerialize = EmissionSyntax.Invocation(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonSerializer"), "Serialize"),
-                SyntaxFactory.Argument(SyntaxFactory.IdentifierName("writer")),
-                SyntaxFactory.Argument(SyntaxFactory.IdentifierName(variableName)),
-                SyntaxFactory.Argument(EmissionSyntax.MemberAccess(
-                    RegistryNames.Default,
-                    typeName)));
+            var nestedSerialize = ConverterSyntax.SerializeWithTypeInfo(
+                SyntaxFactory.IdentifierName(variableName),
+                EmissionSyntax.MemberAccess(RegistryNames.Default, typeName));
             statements.Add(SyntaxFactory.IfStatement(
                 nestedPattern,
                 SyntaxFactory.Block(

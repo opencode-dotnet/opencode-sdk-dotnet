@@ -61,6 +61,13 @@ internal static class ConverterSyntax
             .WithUsingKeyword(SyntaxFactory.Token(SyntaxKind.UsingKeyword));
     }
 
+    public static InvocationExpressionSyntax SerializeWithTypeInfo(ExpressionSyntax value, ExpressionSyntax typeInfo) =>
+        EmissionSyntax.Invocation(
+            EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonSerializer"), "Serialize"),
+            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("writer")),
+            SyntaxFactory.Argument(value),
+            SyntaxFactory.Argument(typeInfo));
+
     private static BlockSyntax GuardedBody(BlockSyntax body, IReadOnlyList<string> guardedParameters) =>
         body.WithStatements(SyntaxFactory.List(guardedParameters.SelectMany(EmissionSyntax.ArgumentNullGuard).Concat(body.Statements)));
 }

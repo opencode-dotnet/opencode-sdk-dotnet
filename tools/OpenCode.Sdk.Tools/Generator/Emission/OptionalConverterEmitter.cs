@@ -177,11 +177,8 @@ internal static class OptionalConverterEmitter
         return
         [
             TypeInfoLocal(inner),
-            SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonSerializer"), "Serialize"),
-                SyntaxFactory.Argument(SyntaxFactory.IdentifierName("writer")),
-                SyntaxFactory.Argument(value),
-                SyntaxFactory.Argument(SyntaxFactory.IdentifierName("typeInfo")))),
+            SyntaxFactory.ExpressionStatement(ConverterSyntax.SerializeWithTypeInfo(
+                value, SyntaxFactory.IdentifierName("typeInfo"))),
         ];
     }
 

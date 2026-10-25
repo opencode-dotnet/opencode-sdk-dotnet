@@ -495,17 +495,9 @@ internal static class StructuralUnionEmitter
     /// </summary>
     private static MethodDeclarationSyntax EmitReadObject(StructuralUnionModelPlan union)
     {
-        var parse = EmissionSyntax.Invocation(
-            EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonDocument"), "ParseValue"),
-            ReaderArgument());
         var body = new List<StatementSyntax>
         {
-            SyntaxFactory
-                .LocalDeclarationStatement(SyntaxFactory
-                    .VariableDeclaration(SyntaxFactory.IdentifierName("var"))
-                    .WithVariables(SyntaxFactory.SingletonSeparatedList(
-                        SyntaxFactory.VariableDeclarator("document").WithInitializer(SyntaxFactory.EqualsValueClause(parse)))))
-                .WithUsingKeyword(SyntaxFactory.Token(SyntaxKind.UsingKeyword)),
+            ConverterSyntax.PayloadDocument(),
             EmissionSyntax.Local("root", EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("document"), "RootElement")),
         };
         var unconditional = false;
@@ -629,11 +621,8 @@ internal static class StructuralUnionEmitter
 
     private static MethodDeclarationSyntax EmitWriteKnown()
     {
-        var serialize = EmissionSyntax.Invocation(
-            EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonSerializer"), "Serialize"),
-            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("writer")),
-            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("value")),
-            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("typeInfo")));
+        var serialize = ConverterSyntax.SerializeWithTypeInfo(
+            SyntaxFactory.IdentifierName("value"), SyntaxFactory.IdentifierName("typeInfo"));
         return SyntaxFactory
             .MethodDeclaration(
                 SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
@@ -666,15 +655,7 @@ internal static class StructuralUnionEmitter
 
     private static MethodDeclarationSyntax EmitReadUnknown(StructuralUnionModelPlan union)
     {
-        var parse = EmissionSyntax.Invocation(
-            EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonDocument"), "ParseValue"),
-            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("reader")).WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword)));
-        var document = SyntaxFactory
-            .LocalDeclarationStatement(SyntaxFactory
-                .VariableDeclaration(SyntaxFactory.IdentifierName("var"))
-                .WithVariables(SyntaxFactory.SingletonSeparatedList(
-                    SyntaxFactory.VariableDeclarator("document").WithInitializer(SyntaxFactory.EqualsValueClause(parse)))))
-            .WithUsingKeyword(SyntaxFactory.Token(SyntaxKind.UsingKeyword));
+        var document = ConverterSyntax.PayloadDocument();
         var root = EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("document"), "RootElement");
         return SyntaxFactory
             .MethodDeclaration(TypeSyntaxEmitter.EmitNamed(union.Name), "ReadUnknown")
