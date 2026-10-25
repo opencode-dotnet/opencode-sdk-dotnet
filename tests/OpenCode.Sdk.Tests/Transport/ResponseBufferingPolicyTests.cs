@@ -154,15 +154,13 @@ public sealed class ResponseBufferingPolicyTests
     public async Task ExecuteAsync_Should_Return_The_Pooled_Body_After_Success()
     {
         var pool = new TrackingByteArrayPool();
-        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.OK)
+        using var scenario = PipelineScenario.Buffering(static _ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(WireBodyData.InfoOk),
-        });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient, bufferPool: pool);
+        }, bufferPool: pool);
         var adapter = new RecordingResponseAdapter();
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
 
         // The tracking pool pre-fills spare capacity with 0xFF, so the adapter seeing the
         // exact body also proves decoding stayed inside the filled length.
@@ -177,15 +175,13 @@ public sealed class ResponseBufferingPolicyTests
         var payload = "{\"value\":\"" + new string('x', 2048) + "\"}";
         var pool = new TrackingByteArrayPool();
         using var content = new StreamContent(ChunkedStream.OfBytes(payload, chunkSize: payload.Length / 4));
-        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        using var scenario = PipelineScenario.Buffering(_ => new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = content,
-        });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient, bufferPool: pool);
+        }, bufferPool: pool);
         var adapter = new RecordingResponseAdapter();
 
-        _ = await pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", adapter, options: null, CancellationToken.None);
 
         // No declared length starts the buffer small, so a 2 KB body forces the
         // grow-and-copy path; every rented array must still come back exactly once.
@@ -277,12 +273,9 @@ public sealed class ResponseBufferingPolicyTests
         using var body = new GatedStream([0x41], chunkCount: 1);
         using var content = new StreamContent(body);
         content.Headers.ContentLength = declaredLength;
-        using var handler = new RecordingHttpHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
-        using var httpClient = new HttpClient(handler);
-
         // No pool is injected: the pipeline's own default is the subject.
-        using var pipeline = PipelineFactory.Create(httpClient, bufferPool: null);
-        var execution = pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info",
+        using var scenario = PipelineScenario.Responding(_ => new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+        var execution = scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info",
             new RecordingResponseAdapter(), options: null, CancellationToken.None);
 
         var capacity = await body.WaitForReadAsync(HangGuard.Bound);

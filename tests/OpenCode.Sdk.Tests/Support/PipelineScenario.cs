@@ -1,3 +1,4 @@
+using System.Buffers;
 using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Tests.Support;
@@ -48,6 +49,12 @@ internal sealed class PipelineScenario : IDisposable
         string? password = null,
         LocationSelector? location = null) => new(responder,
         httpClient => PipelineFactory.Create(httpClient, ownsHttpClient: false, password: password, location: location));
+
+    /// <summary>Creates a scenario whose pipeline buffers response bodies through the given array pool.</summary>
+    public static PipelineScenario Buffering(
+        Func<HttpRequestMessage, HttpResponseMessage>? responder = null,
+        ArrayPool<byte>? bufferPool = null) => new(responder,
+        httpClient => PipelineFactory.Create(httpClient, ownsHttpClient: false, bufferPool: bufferPool));
 
     public void Dispose()
     {
