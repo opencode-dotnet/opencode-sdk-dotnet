@@ -731,14 +731,14 @@ public sealed class GenerationWriterTests
     }
 
     [Test]
-    public async Task WriteAsync_Should_Observe_Cancellation_After_The_Final_Manifest_Rename()
+    public async Task WriteAsync_Should_Observe_Cancellation_After_The_Final_Manifest_Rename_When_The_Output_Root_Starts_Empty()
     {
-        var fs = GenerationTestData.CreateFileSystem();
+        var fileSystem = GenerationTestData.CreateFileSystem();
         using var cancellation = new CancellationTokenSource();
-        var manifestPath = fs.Path.GetFullPath(GenerationTestData.ManifestPath);
+        var manifestPath = fileSystem.Path.GetFullPath(GenerationTestData.ManifestPath);
         var renames = 0;
         var cancelled = Task.CompletedTask;
-        using var notification = fs.Notify.OnEvent(change =>
+        using var notification = fileSystem.Notify.OnEvent(change =>
         {
             if (change.ChangeType == WatcherChangeTypes.Renamed
                 && change.Path == manifestPath && ++renames == 2)
@@ -747,13 +747,11 @@ public sealed class GenerationWriterTests
             }
         });
 
-        await Assert.That(async () => _ = await CreateWriter(fs).WriteAsync(
+        await Assert.That(async () => _ = await CreateWriter(fileSystem).WriteAsync(
                 Request([GenerationTestData.Source("Created.cs", "created\n")]), cancellation.Token))
             .Throws<OperationCanceledException>();
         await cancelled;
     }
-
-    private static byte[] OwnedBytes(string content) => Encoding.UTF8.GetBytes(GenerationTestData.OwnedContent(content));
 
     /// <summary>Assembles one write request over the shared test roots; flags default off.</summary>
     private static GenerationWriteRequest Request(IReadOnlyList<GeneratedSource> sources,
@@ -789,4 +787,6 @@ public sealed class GenerationWriterTests
     /// <summary>The attributes file the writer owns: its header, then one line per path in the order given.</summary>
     private static string ExpectedAttributes(IReadOnlyList<string> orderedPaths) =>
         string.Concat(orderedPaths.Select(static path => $"/{path} linguist-generated\n").Prepend(AttributesHeader));
+
+    private static byte[] OwnedBytes(string content) => Encoding.UTF8.GetBytes(GenerationTestData.OwnedContent(content));
 }
