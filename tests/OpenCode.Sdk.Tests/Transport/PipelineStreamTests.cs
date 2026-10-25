@@ -206,15 +206,13 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Override_The_Ambient_Directory_With_Per_Call_Location()
     {
-        using var handler = new RecordingHttpHandler(static _ => EventStream(FirstFrame));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient, location: new LocationSelector { Directory = "/ambient" });
+        using var scenario = PipelineScenario.Decorating(static _ => EventStream(FirstFrame), location: new LocationSelector { Directory = "/ambient" });
         var options = new OpenCodeRequestOptions { Location = new LocationSelector { Directory = "/per-call/ç" } };
-        var stream = pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), options, CancellationToken.None);
+        var stream = scenario.Pipeline.ExecuteStreamAsync(OperationId, HttpMethod.Get, "/api/event", new TestStreamAdapter(), options, CancellationToken.None);
 
         await using var enumerator = stream.GetAsyncEnumerator();
         await Assert.That(await enumerator.MoveNextAsync()).IsTrue();
-        await Assert.That(handler.Requests.Single().Headers["x-opencode-directory"]).IsEqualTo("%2Fper-call%2F%C3%A7");
+        await Assert.That(scenario.Requests.Single().Headers["x-opencode-directory"]).IsEqualTo("%2Fper-call%2F%C3%A7");
     }
 
     [Test]
@@ -333,17 +331,15 @@ public sealed class PipelineStreamTests
     [Test]
     public async Task ExecuteStreamAsync_Should_Decorate_The_Request_Like_Any_Other()
     {
-        using var handler = new RecordingHttpHandler(static _ => EventStream(FirstFrame));
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient, password: "secret",
+        using var scenario = PipelineScenario.Decorating(static _ => EventStream(FirstFrame), password: "secret",
             location: new LocationSelector
             {
                 Directory = "/repo"
             });
 
-        _ = await CollectAsync(pipeline);
+        _ = await CollectAsync(scenario.Pipeline);
 
-        var request = handler.Requests.Single();
+        var request = scenario.Requests.Single();
         var expected = $"Basic {Convert.ToBase64String(Encoding.UTF8.GetBytes("opencode:secret"))}";
         await Assert.That(request.Authorization).IsEqualTo(expected);
         await Assert.That(request.UserAgent).IsEqualTo(UserAgentPolicy.Resolve().ToString());
@@ -379,15 +375,13 @@ public sealed class PipelineStreamTests
     public async Task ExecuteStreamAsync_Should_Name_A_Missing_Credential_Only_When_None_Was_Configured(
         string? password, bool expectHint)
     {
-        using var handler = new RecordingHttpHandler(static _ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
+        using var scenario = PipelineScenario.Decorating(static _ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
         {
             Content = new StringContent(string.Empty),
-        });
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient, password: password);
+        }, password: password);
 
         var exception = await Assert
-            .That(async () => _ = await CollectAsync(pipeline))
+            .That(async () => _ = await CollectAsync(scenario.Pipeline))
             .Throws<OpenCodeApiException>();
 
         await Assert.That(exception!.Status).IsEqualTo(401);
