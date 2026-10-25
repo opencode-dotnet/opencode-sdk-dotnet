@@ -10,7 +10,7 @@ internal static class GeneratedPlacement
 {
     public const string ModelsFolder = "Models";
 
-    /// <summary>Root Models/Pagination are forbidden too: families cannot recreate the pre-slice layout.</summary>
+    /// <summary>Names a family or a model area cannot take; root Models/Pagination too, so no family recreates the old layout.</summary>
     public static IReadOnlyList<string> ReservedFolders { get; } = Array.AsReadOnly<string>(
         [TypeHome.CommonSlice, InternalFolder, "Hosting", "Properties", ModelsFolder, "Pagination"]);
 
