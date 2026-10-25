@@ -325,7 +325,8 @@ has the two properties to set.
   host that embeds the opencode server library with persistence enabled.
 
 - **On `net472` and `netstandard2.0`, two costs are larger than on modern targets.** A response body
-  over 1 MB is copied once at wire size, because the downlevel array pool caps its buckets at 1 MB.
+  over 16 MiB is allocated at wire size on every call. Bodies between 1 and 16 MiB come from a pool
+  the SDK keeps, which holds at most about 60 MiB after large responses.
   On Unix (Mono), owner-only files that discovery and `EnsureAsync` write get mode `0600` through a
   `chmod` child process rather than at creation, and a failed `chmod` fails the write. No CI leg runs
   .NET Framework or Mono on Unix.

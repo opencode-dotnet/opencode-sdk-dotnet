@@ -101,13 +101,17 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    declined operations: an application hosts its own tools for the server over the experimental
    client-MCP WebSocket. It adds public surface, so it lands before the freeze; it is not the MCP
    server of the parallel tracks. Exit: every surface question is decided.
-5. **Extension points.** How retry, telemetry, and hooks attach (the policy roster, ADR-0018),
-   decided so that each capability lands additively after `1.0.0`. The public network-timeout
-   option with unbounded long polls
+5. **Extension points.** Decided without new code: retry, telemetry, and hooks land additively
+   after `1.0.0` under the two rules in
+   [the client runtime's construction section](architecture/client-runtime.md#construction-and-transport-ownership),
+   and no current declaration blocks them
+   ([#501](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/501)). The public
+   network-timeout option with unbounded long polls
    ([#175](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/175)) and the event bus's
    upstream-parity reconnect with its configurable idle window
-   ([#176](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/176)) have landed. Exit: no planned capability needs a breaking construction change. The
-   surface then freezes and `1.0.0-rc.1` ships.
+   ([#176](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/176)) have landed. Exit:
+   no planned capability needs a breaking construction change. The surface then freezes and
+   `1.0.0-rc.1` ships.
 6. **1.0 performance gate.** The benchmark coverage reviewed and extended with representative
    scenarios ([#185](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/185)), then a
    baseline run of the full suite, both before the freeze. The baseline's costs split three ways: a
@@ -231,9 +235,10 @@ These do not block `1.0.0` and run beside the road.
   residual before it is upstream's too. Recorded, not solved; the registration file's write time
   could bound it if it ever matters.
 - **Two allocation follow-ups are queued behind a benchmark gate** — on `net472` and
-  `netstandard2.0` a response body over 1 MB costs one wire-sized copy, and each terminal connection
-  allocates one 16 KiB receive buffer, reused across consumer reads. Both are described for consumers
-  in the README's Known Issues; pooling requires evidence under the current connection-lifetime harness.
+  `netstandard2.0` a response body over 16 MiB is allocated at wire size on every call (bodies of
+  1-16 MiB are pooled), and each terminal connection allocates one 16 KiB receive buffer, reused
+  across consumer reads. Both are described for consumers in the README's Known Issues; the 1.0
+  performance gate's baseline decides whether either is fixed before `1.0.0`.
 - **Durable session-log replay cannot be enabled on any distributed CLI build.** `events.persist`
   is a server-library option: the `opencode` serve command declares no flag for it, bridges no
   environment variable to it, and reads no configuration key for it, so a replay from a CLI-started

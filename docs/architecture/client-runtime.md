@@ -55,6 +55,12 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
 - No consumer transport-composition seam is public today. Adding one requires a concrete consumer
   need and a deliberate design; omission is reversible because a future public seam is additive
   (ADR-0010).
+- Retry, telemetry and hooks are not part of `1.0.0`; each can land later as an addition through
+  the policy roster (ADR-0018) under two rules. A new capability is off by default, so an existing
+  call behaves as before until the consumer opts in; retry in particular never starts retrying a
+  call that did not ask for it. `OpenCodeClient(OpenCodeClientOptions)` stays the only public
+  construction path, with today's transport and server ownership, so a capability arrives as a new
+  option or a new type and never as a changed constructor.
 - Client options are snapshotted at construction. Explicit-endpoint construction reads no process
   environment variable; consumers resolve their own configuration. `OpenCodeServer.DiscoverAsync`
   and `OpenCodeServer.StopAsync` are the doors that read the environment, and they read exactly
