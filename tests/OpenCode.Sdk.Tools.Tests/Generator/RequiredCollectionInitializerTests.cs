@@ -9,11 +9,11 @@ using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator;
 
-/// <summary>Source reader of Generator/ and Output/; moves within those folders must preserve its roots.</summary>
+/// <summary>Reads the C# sources under Generator/ and Output/; a required member moved out of those folders is no longer checked.</summary>
 public sealed class RequiredCollectionInitializerTests
 {
     [Test]
-    public async Task Required_Collections_Should_Not_Allocate_Replaced_Initial_Values()
+    public async Task Required_Members_Should_Not_Allocate_Replaced_Initial_Values()
     {
         var fileSystem = new RealFileSystem();
         var root = fileSystem.Path.Combine(new RepositoryRoot(fileSystem).Locate(), "tools", "OpenCode.Sdk.Tools");
@@ -26,8 +26,7 @@ public sealed class RequiredCollectionInitializerTests
                 var tree = CSharpSyntaxTree.ParseText(await fileSystem.File.ReadAllTextAsync(path, CancellationToken.None), path: path);
                 var properties = (await tree.GetRootAsync()).DescendantNodes().OfType<PropertyDeclarationSyntax>();
                 initializers.AddRange(properties.Where(static property => property.Initializer is not null
-                        && property.Modifiers.Any(SyntaxKind.RequiredKeyword)
-                        && property.Type is GenericNameSyntax { Identifier.ValueText: "IReadOnlyList" or "IReadOnlyDictionary" })
+                        && property.Modifiers.Any(SyntaxKind.RequiredKeyword))
                     .Select(property => string.Create(CultureInfo.InvariantCulture, $"{fileSystem.Path.GetRelativePath(root, path)}:{property.GetLocation().GetLineSpan().StartLinePosition.Line + 1}: {property.Identifier.ValueText}")));
             }
         }
