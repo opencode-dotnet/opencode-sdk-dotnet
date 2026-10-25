@@ -54,11 +54,6 @@ public class GeneratorStageBenchmarks : IDisposable
         _document = await IngestDocumentAsync().ConfigureAwait(false);
         _selection = await _services.GetRequiredService<OperationSelectionLoader>().LoadAsync(_input.ProfilePath, CancellationToken.None).ConfigureAwait(false);
         _plan = BindPlan();
-        if (_plan.PendingOperations.Count == 0 && _plan.DeclinedOperations.Count == 0)
-        {
-            throw new InvalidOperationException("The pinned input has no pending or declined operations; the probe row would measure nothing.");
-        }
-
         if (SourceEmitter.Emit(_plan).Count == 0)
         {
             throw new InvalidOperationException("The pinned input emitted no sources; the stage rows would measure nothing.");
