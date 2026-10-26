@@ -14,9 +14,9 @@ namespace OpenCode.Sdk.Tests.Serialization;
 /// member: a value reads as System.Text.Json's own dictionary converter gives it.
 /// </summary>
 /// <remarks>
-/// One non-disposable document backs a whole dictionary. The cases cover lifetime, the concrete
-/// type, clone and equality, duplicates, order, the empty object, nulls and the written bytes. One
-/// tool state stands for every such member, because all of them bind the converter through the context.
+/// One non-disposable document backs a dictionary's non-literal values. The cases cover lifetime,
+/// the concrete type, clone and equality, duplicates, order, the empty object, nulls and the written
+/// bytes. One tool state stands for every such member, because all bind the converter through the context.
 /// </remarks>
 public sealed class JsonElementDictionaryJsonConverterTests
 {
@@ -38,6 +38,10 @@ public sealed class JsonElementDictionaryJsonConverterTests
         () => new ExpectedJsonValue("none", JsonValueKind.Null, "null"),
         () => new ExpectedJsonValue("list", JsonValueKind.Array, "[1,\"two\"]"),
         () => new ExpectedJsonValue("nested", JsonValueKind.Object, "{\"k\":\"v\"}"),
+        () => new ExpectedJsonValue("flagAgain", JsonValueKind.True, "true"),
+        () => new ExpectedJsonValue("off", JsonValueKind.False, "false"),
+        () => new ExpectedJsonValue("offAgain", JsonValueKind.False, "false"),
+        () => new ExpectedJsonValue("noneAgain", JsonValueKind.Null, "null"),
     ];
 
     /// <summary>
@@ -86,8 +90,8 @@ public sealed class JsonElementDictionaryJsonConverterTests
     }
 
     /// <summary>
-    /// Clone keeps the text, two reads of one body are deeply equal value by value, and record
-    /// equality still compares the dictionary by reference.
+    /// Clone keeps the text, two reads of one body are deeply equal value by value, repeated
+    /// literals are equal by default, and record equality still compares the dictionary by reference.
     /// </summary>
     [Test]
     public async Task Read_Should_Keep_Clone_Deep_Equality_And_Reference_Record_Equality()
@@ -102,6 +106,7 @@ public sealed class JsonElementDictionaryJsonConverterTests
             await Assert.That(second.Input[entry.Key]).IsEqualTo(entry.Value, deepEquality);
         }
 
+        await Assert.That(first.Input.Values.Distinct().Count()).IsEqualTo(7);
         await Assert.That(first with { }).IsEqualTo(first);
         await Assert.That(first with { Input = second.Input, }).IsNotEqualTo(first);
     }

@@ -1,1 +1,1 @@
-{"status":"completed","input":{"text":"hello","count":3,"flag":true,"none":null,"list":[1,"two"],"nested":{"k":"v"}},"content":[]}
+{"status":"completed","input":{"text":"hello","count":3,"flag":true,"none":null,"list":[1,"two"],"nested":{"k":"v"},"flagAgain":true,"off":false,"offAgain":false,"noneAgain":null},"content":[]}
