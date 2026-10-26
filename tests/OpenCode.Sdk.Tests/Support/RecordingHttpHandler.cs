@@ -38,6 +38,10 @@ internal sealed class RecordingHttpHandler : HttpMessageHandler
         // reports the buffer's length instead of what it declared on its own.
         var contentLength = request.Content?.Headers.ContentLength;
         var bodyBytes = request.Content is null ? null : await request.Content.ReadAsByteArrayAsync(cancellationToken);
+#if NET
+        // Read before the checked enumeration below, which parses the store and normalizes an unvalidated value.
+        var rawUserAgent = request.Headers.NonValidated.TryGetValues("User-Agent", out var userAgent) ? userAgent.ToString() : null;
+#endif
         _requests.Add(new RecordedRequest
         {
             RequestUri = request.RequestUri,
@@ -48,6 +52,9 @@ internal sealed class RecordingHttpHandler : HttpMessageHandler
                 StringComparer.OrdinalIgnoreCase),
             Authorization = request.Headers.Authorization?.ToString(),
             UserAgent = request.Headers.UserAgent.Count is 0 ? null : request.Headers.UserAgent.ToString(),
+#if NET
+            RawUserAgent = rawUserAgent,
+#endif
             ContentType = request.Content?.Headers.ContentType?.ToString(),
             Body = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken),
             BodyBytes = bodyBytes,

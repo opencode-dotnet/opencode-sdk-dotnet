@@ -13,6 +13,9 @@ internal sealed record RecordedRequest
 
     public string? UserAgent { get; init; }
 
+    /// <summary>Gets the User-Agent as the handler writes it, from the unvalidated view; null on .NET Framework.</summary>
+    public string? RawUserAgent { get; init; }
+
     public string? ContentType { get; init; }
 
     public string? Body { get; init; }
