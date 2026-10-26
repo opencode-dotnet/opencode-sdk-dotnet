@@ -1,6 +1,6 @@
 # 🖥️ Terminals
 
-Date: 2026-10-23
+Date: 2026-10-26
 
 opencode has two terminal families, and they are genuinely different animals:
 
@@ -284,8 +284,11 @@ cancel/resume API. "One read at a time" still holds — it is a *concurrent* sec
 throws, not a later one.
 
 **Frames you have not read are queued, and the queue is not history.** The receiver holds only what
-it has not handed you yet, so a connection nobody reads grows in memory; the queue is deliberately
-unbounded until a real workload argues for a limit. It is not a replay buffer either — to go back,
+it has not handed you yet, so a connection nobody reads grows in memory. The queue is unbounded, as
+upstream's own clients and server are. A queued `PtySession` frame keeps about 2 bytes per output
+character, and a `PersistentPtySession` frame about 1 byte per byte: an unread `PtySession` through a
+verbose build (about 250,000 characters a second) grows by about 30 MB a minute, so read it or
+dispose it. It is not a replay buffer either — to go back,
 reconnect with a [cursor](#️-resuming-with-a-cursor).
 
 **When the connection ends, you still get what it already had.** A remote close or a transport

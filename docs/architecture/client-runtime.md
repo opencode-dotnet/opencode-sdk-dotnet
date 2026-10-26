@@ -181,7 +181,11 @@ resolves the message's network window from those carried traits.
   receiver assembles complete messages into an unbounded `Channel<TFrame>` independently of
   public enumeration. Canceling or disposing an enumerator ends only that consumer; another
   enumeration may continue on the same otherwise healthy connection. The queue retains only
-  undelivered frames, and can grow when consumers are absent or slow. Connection termination
+  undelivered frames, and can grow when consumers are absent or slow. It is unbounded, as
+  upstream's live path is: an unbounded per-connection outbox, with only its 2 MiB replay ring
+  bounded. A queued `PtySession` frame retains about 2 bytes per output character and a
+  `PersistentPtySession` frame about 1 byte per byte, so an absent consumer of a verbose build
+  (about 250,000 characters a second) grows by about 30 MB a minute. Connection termination
   delivers the valid queued prefix before normal completion or the recorded transport/protocol
   error. Later readers observe the same terminal outcome; consumer cancellation does not erase it.
   A frame already selected for delivery may win a race with cancellation.

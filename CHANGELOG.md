@@ -79,6 +79,13 @@ Nightly builds of `master` are on
   refuses it with `ArgumentException` for `options` before the registration is read or anything is
   spawned, as it does for the environment.
 
+### 📚 Documentation
+
+- **What an unread terminal costs.** The terminals guide now says that a queued `PtySession` frame
+  keeps about 2 bytes per output character (`PersistentPtySession` about 1 byte per byte), that an
+  unread session through a verbose build grows by about 30 MB a minute, and that the queue is
+  unbounded as upstream's is.
+
 ## [0.9.0-preview.14] - 2026-10-23
 
 **The SDK speaks opencode 2.1.x.** The pinned server moves from 2.0.32 to 2.1.4.
