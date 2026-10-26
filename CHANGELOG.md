@@ -50,6 +50,11 @@ Nightly builds of `master` are on
   up. A bare command name no longer reports first that it was not found on PATH, a working
   directory is no longer cut short at the NUL, and the exception's `ParamName` is `options`, the
   public parameter, instead of an internal name.
+- **A standalone start's failure message keeps at most 8,192 characters of stderr.** The stderr
+  tail in an `OpenCodeServerException` from `OpenCodeServer.StartAsync` was bounded only to its
+  last 40 lines, so one very long line went into the message whole. The tail now also keeps at most
+  the last 8,192 characters of text, so its size is bounded, as the background-service start's
+  already is.
 
 ## [0.9.0-preview.14] - 2026-10-23
 

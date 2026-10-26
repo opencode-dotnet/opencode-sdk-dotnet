@@ -6,7 +6,11 @@ namespace OpenCode.Sdk;
 
 public partial class OpenCodeServer
 {
+    /// <summary>Bounds the tail to its last 40 lines.</summary>
     private const int StderrRetainedLines = 40;
+
+    /// <summary>Bounds the tail's text to 8,192 UTF-16 characters, not counting the separators the message adds.</summary>
+    private const int StderrRetainedCharacters = 8 * 1024;
 
     /// <summary>The reference client's exact standalone argv tail, appended to every command.</summary>
     private static readonly string[] LauncherArguments = ["--stdio", "--port", "0"];
@@ -97,7 +101,7 @@ public partial class OpenCodeServer
             var executable = new ExecutableResolver(ExecutableSearchEnvironment.ForCurrentProcess())
                 .Resolve(command[0]);
             var stderrGate = new object();
-            var stderrTail = new Queue<string>(StderrRetainedLines);
+            var stderrTail = new BoundedLineBuffer(StderrRetainedLines, StderrRetainedCharacters);
             var readyLine = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
             var (onStandardOutput, onStandardError) = CreateOutputHandlers(readyLine, stderrGate, stderrTail, output);
             cancellationToken.ThrowIfCancellationRequested();
@@ -169,7 +173,7 @@ public partial class OpenCodeServer
     private static (Action<string> StandardOutput, Action<string> StandardError) CreateOutputHandlers(
         TaskCompletionSource<string> readyLine,
         object stderrGate,
-        Queue<string> stderrTail,
+        BoundedLineBuffer stderrTail,
         OpenCodeServerOutput? output)
     {
         // Continuous drain: the first stdout line is the readiness contract; every later stdout
@@ -189,11 +193,7 @@ public partial class OpenCodeServer
         {
             lock (stderrGate)
             {
-                stderrTail.Enqueue(line);
-                if (stderrTail.Count > StderrRetainedLines)
-                {
-                    _ = stderrTail.Dequeue();
-                }
+                stderrTail.Append(line);
             }
 
             output?.AppendStandardError(line);
@@ -207,7 +207,7 @@ public partial class OpenCodeServer
         TaskCompletionSource<string> readyLine,
         TimeSpan readinessTimeout,
         object stderrGate,
-        Queue<string> stderrTail,
+        BoundedLineBuffer stderrTail,
         TimeProvider time,
         CancellationToken cancellationToken)
     {
@@ -322,11 +322,12 @@ public partial class OpenCodeServer
         return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }
 
-    private static string DescribeStderr(object gate, Queue<string> tail)
+    private static string DescribeStderr(object gate, BoundedLineBuffer tail)
     {
         lock (gate)
         {
-            return tail.Count == 0 ? string.Empty : string.Concat(" Recent stderr: ", string.Join(" | ", tail));
+            var lines = tail.Snapshot();
+            return lines.Count == 0 ? string.Empty : string.Concat(" Recent stderr: ", string.Join(" | ", lines));
         }
     }
 }
