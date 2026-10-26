@@ -24,7 +24,7 @@ public sealed class EnvelopeEmitterTests
         ArgumentNullException.ThrowIfNull(payload);
         ArgumentNullException.ThrowIfNull(member);
         var plan = EmitterPlanFixture.Create();
-        var root = await CSharpSyntaxTree.ParseText(EmitterSnapshot.Create(EnvelopeEmitter.Emit(plan.Clients, plan.Namespaces))).GetRootAsync();
+        var root = await CSharpSyntaxTree.ParseText(EmitterSnapshot.Content(EnvelopeEmitter.Emit(plan.Clients, plan.Namespaces), $"Widgets/{response}.cs")).GetRootAsync();
         var method = root.DescendantNodes().OfType<RecordDeclarationSyntax>().Single(record => record.Identifier.ValueText == response)
             .Members.OfType<MethodDeclarationSyntax>().Single();
         var expected = $$"""
