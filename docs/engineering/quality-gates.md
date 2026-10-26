@@ -394,7 +394,8 @@ project and its references, using the pinned SDK. A separate `benchmark-generato
 each `GeneratorStageBenchmarks` case twice: once under the command line's Dry job and once under
 the class's own `[SimpleJob(RuntimeMoniker.Net10_0)]` default-strategy job, without `--runtimes`;
 `GeneratorRunBenchmarks` never runs in CI. Each SDK Dry step and the stage step has a
-20-minute timeout. The benchmark process returns non-zero for no summaries, zero expected cases in
+20-minute timeout. The `net10` leg also runs the cold-start invocation below once, with the same
+timeout. The benchmark process returns non-zero for no summaries, zero expected cases in
 any summary, any validation error, failed build, missing report, unsuccessful report or missing
 result statistics, failing the step without log scraping. Both jobs upload their benchmark artifacts
 even after failure.
@@ -440,6 +441,15 @@ naming both label sets, but only after the run's hours are already spent. An inc
 narrows `--filter` and adds `--job short`. `--artifacts` names the run's folder in the git-ignored
 `.benchmarks/` store; `compare-benchmarks` reads each folder's `results/*-report-full.json`, so
 those exports are the part of a run that must be preserved.
+
+The cold-start classes (`OpenCode.Sdk.Performance.Tests.ColdStart`) declare their own
+`RunStrategy.ColdStart` job and run as a separate invocation with neither `--job` nor `--runtimes`,
+either of which would add a second job to every class; CI runs that invocation once, on the `net10`
+leg.
+
+```bash
+dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.ColdStart.*' --artifacts .benchmarks/<run-name>-coldstart
+```
 
 `compare-benchmarks` fails the comparison without writing a CSV when either run contains a failed
 (NA) case (`Statistics` is null), naming each NA case rather than refusing it as missing memory
