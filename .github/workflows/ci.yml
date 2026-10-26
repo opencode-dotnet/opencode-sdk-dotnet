@@ -509,31 +509,6 @@ jobs:
           api_base_url: 'https://api.localstackfor.net'
           hmac_secret: '${{ secrets.TESTDATASECRET }}'
 
-      - name: SDK Dry (net10)
-        if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.benchmarks == 'true' && runner.os == 'Linux' }}
-        timeout-minutes: 20
-        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --job Dry --runtimes net10.0 --artifacts .benchmarks/ci-sdk-net10
-
-      - name: SDK Dry (net11)
-        if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.benchmarks == 'true' && runner.os == 'Linux' }}
-        timeout-minutes: 20
-        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --job Dry --runtimes net11.0 --artifacts .benchmarks/ci-sdk-net11
-
-      - name: SDK Dry (net472)
-        if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.benchmarks == 'true' && runner.os == 'Windows' }}
-        timeout-minutes: 20
-        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --job Dry --runtimes net472 --artifacts .benchmarks/ci-sdk-net472
-
-      - name: Upload SDK Dry artifacts
-        if: ${{ !cancelled() && needs.changes.outputs.benchmarks == 'true' && runner.os != 'macOS' }}
-        continue-on-error: true
-        uses: actions/upload-artifact@v7
-        with:
-          name: benchmark-sdk-${{ matrix.name }}-${{ github.event.pull_request.number || github.run_number }}
-          path: .benchmarks/ci-sdk-*
-          if-no-files-found: ignore
-          retention-days: 7
-
       - name: Upload test artifacts
         uses: actions/upload-artifact@v7
         if: always()
@@ -541,6 +516,46 @@ jobs:
         with:
           name: test-results-${{ matrix.name }}-${{ github.event.pull_request.number || github.run_number }}
           path: test-results/**
+          retention-days: 7
+
+  benchmark-sdk:
+    name: "Benchmark SDK (${{ matrix.leg }})"
+    needs: changes
+    if: needs.changes.outputs.benchmarks == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runtime: net10.0, os: ubuntu-24.04, leg: net10 }
+          - { runtime: net11.0, os: ubuntu-24.04, leg: net11 }
+          - { runtime: net472, os: windows-2025, leg: net472 }
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          # The SDK comes from the repository pin, the .NET 11 release candidate, which carries only
+          # the .NET 11 runtime; the 10.0 SDK is installed beside it for the net10.0 test legs and
+          # for the tools, which run on the LTS release.
+          global-json-file: global.json
+          dotnet-version: 10.0.x
+
+      - name: SDK Dry (${{ matrix.leg }})
+        timeout-minutes: 20
+        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --job Dry --runtimes ${{ matrix.runtime }} --artifacts .benchmarks/ci-sdk-${{ matrix.leg }}
+
+      - name: Upload SDK Dry artifacts
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-sdk-${{ matrix.leg }}-${{ github.event.pull_request.number || github.run_number }}
+          path: .benchmarks/ci-sdk-*
+          if-no-files-found: ignore
           retention-days: 7
 
   benchmark-generator-stage:
@@ -579,7 +594,7 @@ jobs:
   # that reaches code needs every job green, and a documentation-only change needs the changes job.
   ci-result:
     name: "CI result"
-    needs: [changes, lint, build-and-test, benchmark-generator-stage]
+    needs: [changes, lint, build-and-test, benchmark-sdk, benchmark-generator-stage]
     if: always()
     runs-on: ubuntu-24.04
     permissions: {}
@@ -591,16 +606,23 @@ jobs:
           CODE: ${{ needs.changes.outputs.code }}
           LINT: ${{ needs.lint.result }}
           BUILD_AND_TEST: ${{ needs.build-and-test.result }}
+          SDK_BENCHMARKS: ${{ needs.changes.outputs.benchmarks }}
+          SDK: ${{ needs.benchmark-sdk.result }}
           BENCHMARKS: ${{ needs.changes.outputs.benchmarks-generator }}
           STAGE: ${{ needs.benchmark-generator-stage.result }}
         run: |
           echo "changes=$CHANGES code=$CODE lint=$LINT build-and-test=$BUILD_AND_TEST"
-          echo "benchmarks=$BENCHMARKS stage=$STAGE"
+          echo "sdk-benchmarks=$SDK_BENCHMARKS sdk=$SDK generator-benchmarks=$BENCHMARKS stage=$STAGE"
           [ "$CHANGES" = success ] || exit 1
           if [ "$CODE" = true ]; then
             [ "$LINT" = success ] && [ "$BUILD_AND_TEST" = success ] || exit 1
           else
             [ "$CODE" = false ] || exit 1
+          fi
+          if [ "$SDK_BENCHMARKS" = true ]; then
+            [ "$SDK" = success ] || exit 1
+          else
+            [ "$SDK_BENCHMARKS" = false ] && [ "$SDK" = skipped ] || exit 1
           fi
           if [ "$BENCHMARKS" = true ]; then
             [ "$STAGE" = success ] || exit 1
@@ -608,14 +630,14 @@ jobs:
             [ "$BENCHMARKS" = false ] && [ "$STAGE" = skipped ] || exit 1
           fi
 
-  # Runs once green (needs the lint job and the matrixed build-and-test job, which GitHub Actions
-  # only satisfies once every OS leg completes) and only on a real push to master, never on a PR.
+  # Runs once green (needs lint, build-and-test and benchmark-sdk; GitHub Actions waits for every
+  # leg of both matrix jobs) and only on a real push to master, never on a PR.
   # Publishes a -nightly package to GitHub Packages for every master push that runs this workflow,
   # so the code of the last such push is installable; the stable, human-triggered lane lives in
   # publish-nuget.yml.
   publish-nightly:
     name: "Publish nightly (GitHub Packages)"
-    needs: [lint, build-and-test]
+    needs: [lint, build-and-test, benchmark-sdk]
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
