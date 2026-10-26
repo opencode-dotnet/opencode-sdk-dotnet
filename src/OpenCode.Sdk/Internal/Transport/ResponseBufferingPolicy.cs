@@ -54,8 +54,7 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
         // The window is linked over caller and client lifetime and armed before the send, so a
         // server that never answers headers is bounded exactly like a stalled body. The
         // transport sends under NetworkToken; classification keeps caller and lifetime apart.
-        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(message.CancellationToken, message.LifetimeToken);
-        using var progress = new ProgressWindow(message.NetworkTimeout, _time, lifetime.Token);
+        using var progress = new ProgressWindow(message.NetworkTimeout, _time, message.CancellationToken, message.LifetimeToken);
         message.NetworkToken = progress.Token;
         progress.Restart();
 
