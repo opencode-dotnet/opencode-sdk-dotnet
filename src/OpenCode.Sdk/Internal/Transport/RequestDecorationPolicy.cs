@@ -36,10 +36,10 @@ internal sealed class RequestDecorationPolicy : PipelinePolicy
         _escapedDirectory = location?.Directory is { } directory ? Uri.EscapeDataString(directory) : null;
     }
 
-    public override async ValueTask ProcessAsync(PipelineMessage message, ReadOnlyMemory<PipelinePolicy> remaining)
+    public override ValueTask ProcessAsync(PipelineMessage message, ReadOnlyMemory<PipelinePolicy> remaining)
     {
         Decorate(message.Request, message.PerCallLocation, message.DeclaredHeaders);
-        await ProcessNextAsync(message, remaining).ConfigureAwait(false);
+        return ProcessNextAsync(message, remaining);
     }
 
     private void Decorate(HttpRequestMessage request, LocationSelector? perCall, IReadOnlyList<DeclaredHeader>? declaredHeaders)

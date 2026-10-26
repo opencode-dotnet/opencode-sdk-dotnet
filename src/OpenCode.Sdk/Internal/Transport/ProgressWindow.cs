@@ -1,7 +1,7 @@
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// The progress window one exchange runs under: a token linked over the caller's, which a timer
+/// The progress window one exchange runs under: a token linked over the exchange's tokens, which a timer
 /// on the pipeline's clock cancels when the window passes with no restart. The send and each
 /// buffered read restart it as they progress, so a slow exchange that keeps moving survives and a
 /// stalled one is interrupted. The window keeps its own deadline, and the timer cancels only when
@@ -27,19 +27,29 @@ internal sealed class ProgressWindow : IDisposable
     /// <param name="time">The clock the window runs on.</param>
     /// <param name="callerToken">The caller's token, which cancels the window's token too.</param>
     public ProgressWindow(TimeSpan length, TimeProvider time, CancellationToken callerToken)
+        : this(length, time, callerToken, default)
+    {
+    }
+
+    /// <summary>Creates a window over caller and lifetime tokens; it is armed by the first <see cref="Restart()"/>.</summary>
+    /// <param name="length">How long the exchange may go without progress.</param>
+    /// <param name="time">The clock the window runs on.</param>
+    /// <param name="callerToken">The caller's token, which cancels the window's token too.</param>
+    /// <param name="lifetimeToken">The client lifetime token, which cancels the window's token too.</param>
+    public ProgressWindow(TimeSpan length, TimeProvider time, CancellationToken callerToken, CancellationToken lifetimeToken)
     {
         ArgumentNullException.ThrowIfNull(time);
 
         _length = length;
         _time = time;
-        _source = CancellationTokenSource.CreateLinkedTokenSource(callerToken);
-        _timer = time.CreateTimer(_ => OnTimer(), state: null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+        _source = CancellationTokenSource.CreateLinkedTokenSource(callerToken, lifetimeToken);
+        _timer = time.CreateTimer(static state => (state as ProgressWindow)?.OnTimer(), this, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
     }
 
-    /// <summary>Gets the token network I/O runs under: canceled by the caller or by the window passing.</summary>
+    /// <summary>Gets the token network I/O runs under: canceled by a linked token or by the window passing.</summary>
     public CancellationToken Token => _source.Token;
 
-    /// <summary>Gets whether the caller or the window has interrupted the exchange.</summary>
+    /// <summary>Gets whether a linked token or the window has interrupted the exchange.</summary>
     public bool IsCancellationRequested => _source.IsCancellationRequested;
 
     /// <summary>Starts the window again from now; a no-op once the window is disposed.</summary>
