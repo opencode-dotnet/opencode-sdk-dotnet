@@ -149,7 +149,10 @@ internal static class ResponseAdapterEmitter
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(
                 EmitSuccessCreation(envelope, SyntaxFactory.IdentifierName("utf8Body"))))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
-            .WithLeadingTrivia(DocumentationSyntax.Documentation("Maps the declared UTF-8 success body onto the typed envelope."));
+            .WithLeadingTrivia(DocumentationSyntax.Documentation(
+                envelope.Kind is EnvelopeKind.NoContent
+                    ? "Creates the typed envelope for a success that carries no body."
+                    : "Maps the declared UTF-8 success body onto the typed envelope."));
 
     private static PropertyDeclarationSyntax EmitBinarySuccess() =>
         SyntaxFactory.PropertyDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)), "BinarySuccess")

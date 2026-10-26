@@ -183,7 +183,9 @@ internal static class EnvelopeEmitter
             ])))
             .WithBody(SyntaxFactory.Block(assignments))
             .WithLeadingTrivia(DocumentationSyntax.Documentation(
-                "Initializes an error-path instance; the payload stays unset behind its guard."));
+                envelope.Kind is EnvelopeKind.NoContent
+                    ? "Initializes an error-path instance."
+                    : "Initializes an error-path instance; the payload stays unset behind its guard."));
     }
 
     private static PropertyDeclarationSyntax EmitPayloadProperty(EnvelopePlan envelope, TypeSyntax payloadType, string fieldName)

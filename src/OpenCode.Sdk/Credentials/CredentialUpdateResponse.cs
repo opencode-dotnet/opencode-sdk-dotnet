@@ -17,7 +17,7 @@ public sealed record CredentialUpdateResponse : OpenCodeResponse
     }
 
     /// <summary>
-    /// Initializes an error-path instance; the payload stays unset behind its guard.
+    /// Initializes an error-path instance.
     /// </summary>
     [SetsRequiredMembers]
     internal CredentialUpdateResponse(int status, IOpenCodeError? error, string? rawBody)

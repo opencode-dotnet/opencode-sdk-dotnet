@@ -17,7 +17,7 @@ public sealed record SessionRevertClearResponse : OpenCodeResponse
     }
 
     /// <summary>
-    /// Initializes an error-path instance; the payload stays unset behind its guard.
+    /// Initializes an error-path instance.
     /// </summary>
     [SetsRequiredMembers]
     internal SessionRevertClearResponse(int status, IOpenCodeError? error, string? rawBody)

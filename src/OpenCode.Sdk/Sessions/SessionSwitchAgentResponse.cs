@@ -17,7 +17,7 @@ public sealed record SessionSwitchAgentResponse : OpenCodeResponse
     }
 
     /// <summary>
-    /// Initializes an error-path instance; the payload stays unset behind its guard.
+    /// Initializes an error-path instance.
     /// </summary>
     [SetsRequiredMembers]
     internal SessionSwitchAgentResponse(int status, IOpenCodeError? error, string? rawBody)

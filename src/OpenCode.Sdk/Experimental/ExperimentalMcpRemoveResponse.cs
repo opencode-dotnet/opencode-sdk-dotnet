@@ -18,7 +18,7 @@ public sealed record ExperimentalMcpRemoveResponse : OpenCodeResponse
     }
 
     /// <summary>
-    /// Initializes an error-path instance; the payload stays unset behind its guard.
+    /// Initializes an error-path instance.
     /// </summary>
     [SetsRequiredMembers]
     internal ExperimentalMcpRemoveResponse(int status, IOpenCodeError? error, string? rawBody)

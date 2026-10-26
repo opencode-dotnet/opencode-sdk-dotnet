@@ -18,7 +18,7 @@ public sealed record ExperimentalSessionInstructionsEntryRemoveResponse : OpenCo
     }
 
     /// <summary>
-    /// Initializes an error-path instance; the payload stays unset behind its guard.
+    /// Initializes an error-path instance.
     /// </summary>
     [SetsRequiredMembers]
     internal ExperimentalSessionInstructionsEntryRemoveResponse(int status, IOpenCodeError? error, string? rawBody)
