@@ -112,6 +112,15 @@
     <EmbeddedResource Include="Serialization/Fixtures/duplicate-unknown-session-message-marker.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.duplicate-unknown-session-message-marker.json" />
     <EmbeddedResource Include="Serialization/Fixtures/empty-assistant-marker.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.empty-assistant-marker.json" />
     <EmbeddedResource Include="Serialization/Fixtures/error-carrying-both-markers.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.error-carrying-both-markers.json" />
+    <EmbeddedResource Include="Serialization/Fixtures/json-element-dictionary-array-token.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.json-element-dictionary-array-token.json" />
+    <EmbeddedResource Include="Serialization/Fixtures/json-element-dictionary-duplicate-keys.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.json-element-dictionary-duplicate-keys.json" />
+    <EmbeddedResource Include="Serialization/Fixtures/json-element-dictionary-empty-object.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.json-element-dictionary-empty-object.json" />
+    <EmbeddedResource Include="Serialization/Fixtures/json-element-dictionary-null-entry.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.json-element-dictionary-null-entry.json" />
+    <EmbeddedResource Include="Serialization/Fixtures/json-element-dictionary-null-required.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.json-element-dictionary-null-required.json" />
+    <EmbeddedResource Include="Serialization/Fixtures/json-element-dictionary-string-token.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.json-element-dictionary-string-token.json" />
+    <EmbeddedResource Include="Serialization/Fixtures/json-element-dictionary-value-kinds.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.json-element-dictionary-value-kinds.json" />
+    <EmbeddedResource Include="Serialization/Fixtures/json-element-dictionary-write-expected.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.json-element-dictionary-write-expected.json" />
+    <EmbeddedResource Include="Serialization/Fixtures/json-element-dictionary-write-input.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.json-element-dictionary-write-input.json" />
     <EmbeddedResource Include="Serialization/Fixtures/known-assistant-content.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.known-assistant-content.json" />
     <EmbeddedResource Include="Integrations/Fixtures/known-command-attempt-complete.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.known-command-attempt-complete.json" />
     <EmbeddedResource Include="Serialization/Fixtures/known-compaction-message.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.known-compaction-message.json" />

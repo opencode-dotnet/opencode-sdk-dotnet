@@ -28,7 +28,13 @@ internal static class RegistryEmitter
                 SyntaxFactory.AttributeArgument(EmissionSyntax.MemberAccess(
                         SyntaxFactory.IdentifierName("JsonUnmappedMemberHandling"),
                         "Skip"))
-                    .WithNameEquals(SyntaxFactory.NameEquals("UnmappedMemberHandling"))));
+                    .WithNameEquals(SyntaxFactory.NameEquals("UnmappedMemberHandling")),
+                SyntaxFactory.AttributeArgument(SyntaxFactory.ImplicitArrayCreationExpression(
+                        SyntaxFactory.InitializerExpression(
+                            SyntaxKind.ArrayInitializerExpression,
+                            SyntaxFactory.SingletonSeparatedList<ExpressionSyntax>(
+                                SyntaxFactory.TypeOfExpression(SyntaxFactory.IdentifierName("JsonElementDictionaryJsonConverter"))))))
+                    .WithNameEquals(SyntaxFactory.NameEquals("Converters"))));
         foreach (var typeName in plan.TypeNames.Order(StringComparer.Ordinal))
         {
             declaration = declaration.AddAttributeLists(EmissionSyntax.Attribute(

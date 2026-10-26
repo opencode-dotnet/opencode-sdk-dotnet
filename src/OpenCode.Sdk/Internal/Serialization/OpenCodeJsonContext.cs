@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk.Internal;
 
-[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Metadata, RespectNullableAnnotations = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip)]
+[JsonSourceGenerationOptions(GenerationMode = JsonSourceGenerationMode.Metadata, RespectNullableAnnotations = true, UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip, Converters = new[] { typeof(JsonElementDictionaryJsonConverter) })]
 [JsonSerializable(typeof(AgentInfo))]
 [JsonSerializable(typeof(AgentInfoMode))]
 [JsonSerializable(typeof(AgentListResponseEnvelope))]
