@@ -44,7 +44,7 @@ public sealed record ExperimentalFsWriteResponse : OpenCodeResponse
     public required LocationPublicRef Location { get => _location ?? throw new InvalidOperationException("The response is an error; check IsError before accessing Location."); init => _location = value; }
 
     /// <summary>
-    /// Prints the shared metadata and appends the payload only when it is present.
+    /// Prints the shared metadata and appends the payload and location only when they are present.
     /// </summary>
     protected override bool PrintMembers(StringBuilder builder)
     {
@@ -61,6 +61,7 @@ public sealed record ExperimentalFsWriteResponse : OpenCodeResponse
         }
 
         _ = builder.Append("File = ").Append(_file);
+        _ = builder.Append(", Location = ").Append(_location);
         return true;
     }
 }

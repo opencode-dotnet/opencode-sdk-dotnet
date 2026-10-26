@@ -51,6 +51,9 @@ Nightly builds of `master` are on
 
 ### 🐛 Fixes
 
+- **Response envelope logging keeps the page cursor and resolved location.** `ToString()` now
+  includes `Cursor` and `Location` when the response has them, so a logged page such as
+  `SessionListResponse` keeps its continuation token.
 - **On Windows, an event stream to a refused loopback port reports the refusal.** A .NET connect
   to a closed loopback port is refused there only after about two seconds, so every attempt ran into
   the stream's two-second connect bound, and the subscription gave up with "did not connect within 2
