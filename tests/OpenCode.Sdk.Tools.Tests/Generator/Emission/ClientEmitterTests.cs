@@ -35,7 +35,7 @@ public sealed class ClientEmitterTests
             + "    public virtual Task<WidgetItemResponse> GetItemAsync(");
         await Assert.That(source).Contains(
             "    /// <remarks>\n"
-            + "    /// Operation <c>widget.item.list</c>: <c>GET /api/widget/{widgetID}/item</c>.\n"
+            + "    /// Operation <c>widget.item.list</c>: <c>GET /api/widget/{widgetID}/item</c>. See <see cref = \"ListItemsAsync(ItemListRequest, OpenCodeRequestOptions, CancellationToken)\"/>. List the widget items\n"
             + "    /// </remarks>\n"
             + "    public virtual CursorSequence<WidgetItemListResponse, ExampleItem> EnumerateItemsAsync(");
         await Assert.That(source).Contains(

@@ -12,6 +12,29 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class DescriptionTargetCatalogTests
 {
     [Test]
+    public async Task Bind_Should_Keep_Companion_Names_Out_Of_Description_Targets()
+    {
+        var document = await BindingTestHost.IngestAsync(CursorListScenario(configure: static operation => operation
+            .Parameter("limit", "query", static schema => schema.Type("string"))
+            .Parameter("order", "query", static schema => schema.Type("string").Enum("asc", "desc"))
+            .Parameter("cursor", "query", static schema => schema.Type("string"))));
+        var curation = Curation(Groups("widget", ClientGroup("Widgets", null, null)),
+            queryParameterTypes: [QueryParameterType("widget.list", "limit", "int")], stringQueryParameters: [StringQueryParameter("widget.list", "cursor")]);
+        var plan = new BindingTestHost().Bind(document, Selection("widget.list"), curation with
+        {
+            Descriptions = [Description("WidgetsClient", "ListWidgetsAsync", "Browse the widgets.")],
+        });
+        await Assert.That(plan.Clients.Single(static client => client.Name == "WidgetsClient").Operations.Single().CuratedSummary).IsEqualTo("Browse the widgets.");
+        await Assert.That(DescriptionTargetCatalog.Create(plan)["WidgetsClient"].Order(StringComparer.Ordinal)).IsEquivalentTo(["ListWidgetsAsync"], CollectionOrdering.Matching);
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("widget.list"), curation with
+        {
+            Descriptions = [Description("WidgetsClient", "EnumerateWidgetsAsync", "Browse every widget.")],
+        }));
+        await Assert.That(exception.Errors).IsEquivalentTo([new BindingError(BindingErrorCategory.Curation, "WidgetsClient.EnumerateWidgetsAsync",
+            "description member does not exist as a declared property or operation method on the generated type")], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task Bind_Should_Refuse_The_Inherited_Stream_Cause_Tag()
     {
         var context = new StreamOperationScenario().Build();

@@ -81,6 +81,12 @@ internal static class PaginationMethodEmitter
             ],
             $"The '{pagination.ItemTypeName}' sequence, whose Pages expose each '{pagination.PageTypeName}'.",
             exceptions,
-            OperationRemarks.Of(operation));
+            [
+                .. OperationRemarks.Of(operation),
+                DocumentationRun.Prose(" See "),
+                DocumentationRun.Reference($"{operation.MethodName}({pagination.RequestTypeName}, OpenCodeRequestOptions, CancellationToken)"),
+                DocumentationRun.Prose(". "),
+                .. DocumentationSyntax.ProseRemarks(DocumentationSyntax.DocumentationSummary(operation), operation.CuratedSummary is not null),
+            ]);
     }
 }

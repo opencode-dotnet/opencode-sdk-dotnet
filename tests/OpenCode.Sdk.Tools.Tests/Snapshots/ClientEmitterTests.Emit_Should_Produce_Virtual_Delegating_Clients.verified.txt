@@ -175,7 +175,7 @@ public class WidgetClient
     /// <exception cref = "OpenCodeApiException">The API returned a declared error status (declared: 404); pagination API errors always throw.</exception>
     /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>widget.item.list</c>: <c>GET /api/widget/{widgetID}/item</c>.
+    /// Operation <c>widget.item.list</c>: <c>GET /api/widget/{widgetID}/item</c>. See <see cref = "ListItemsAsync(ItemListRequest, OpenCodeRequestOptions, CancellationToken)"/>. List the widget items
     /// </remarks>
     public virtual CursorSequence<WidgetItemListResponse, ExampleItem> EnumerateItemsAsync(ItemListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {

@@ -391,7 +391,7 @@ public class SessionClient
     /// <exception cref = "OpenCodeApiException">The API returned a declared error status (declared: 400, 401, 404, 500); pagination API errors always throw.</exception>
     /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>session.message.list</c>: <c>GET /api/session/{sessionID}/message</c>.
+    /// Operation <c>session.message.list</c>: <c>GET /api/session/{sessionID}/message</c>. See <see cref = "ListMessagesAsync(SessionMessageListRequest, OpenCodeRequestOptions, CancellationToken)"/>. Get session messages. Retrieve projected messages for a session, optionally filtered by type. Items keep the requested order across pages; use cursor.next or cursor.previous to move through the ordered timeline, passing the same type filter on each page.
     /// </remarks>
     public virtual CursorSequence<SessionMessageListResponse, ISessionMessageInfo> EnumerateMessagesAsync(SessionMessageListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {

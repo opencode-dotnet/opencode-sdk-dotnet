@@ -102,7 +102,7 @@ public class SessionsClient
     /// <exception cref = "OpenCodeApiException">The API returned a declared error status (declared: 400, 401); pagination API errors always throw.</exception>
     /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>session.list</c>: <c>GET /api/session</c>.
+    /// Operation <c>session.list</c>: <c>GET /api/session</c>. See <see cref = "ListSessionsAsync(SessionListRequest, OpenCodeRequestOptions, CancellationToken)"/>. List sessions. Retrieve sessions in the requested order. Items keep that order across pages; use cursor.next or cursor.previous to move through the ordered list.
     /// </remarks>
     public virtual CursorSequence<SessionListResponse, SessionInfo> EnumerateSessionsAsync(SessionListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {

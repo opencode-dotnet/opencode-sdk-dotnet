@@ -328,28 +328,13 @@ internal static class OperationMethodEmitter
                 ? "The server could not be reached or returned a malformed success body."
                 : "The server could not be reached, the stream could not be read, or a frame or failure cause was malformed."));
         return DocumentationSyntax.MemberDocumentation(
-            operation.CuratedSummary ?? DocumentationSummary(operation),
+            DocumentationSyntax.DocumentationSummary(operation),
             parameters,
             operation.Stream is { } streamed
                 ? $"The '{streamed.PayloadTypeName}' stream."
                 : $"The '{operation.Envelope!.ResponseTypeName}' envelope.",
             exceptions,
-            OperationRemarks.Of(operation));
+            OperationRemarks.Of(operation), summaryIsCurated: operation.CuratedSummary is not null);
     }
 
-    private static string DocumentationSummary(OperationPlan operation)
-    {
-        if (operation.Summary is null)
-        {
-            return operation.Description ?? $"Calls the '{operation.RouteTemplate}' operation.";
-        }
-
-        if (operation.Description is null)
-        {
-            return operation.Summary;
-        }
-
-        var separator = operation.Summary.Length > 0 && operation.Summary[^1] is '.' ? " " : ". ";
-        return string.Concat(operation.Summary, separator, operation.Description);
-    }
 }
