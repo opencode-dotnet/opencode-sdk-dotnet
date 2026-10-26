@@ -433,3 +433,9 @@ naming both label sets, but only after the run's hours are already spent. An inc
 narrows `--filter` and adds `--job short`. `--artifacts` names the run's folder in the git-ignored
 `.benchmarks/` store; `compare-benchmarks` reads each folder's `results/*-report-full.json`, so
 those exports are the part of a run that must be preserved.
+
+`compare-benchmarks` fails the comparison without writing a CSV when either run contains a failed
+(NA) case (`Statistics` is null), naming each NA case rather than refusing it as missing memory
+diagnostics. The reader still refuses a case with statistics but no memory diagnostics;
+a zero median remains valid but carries
+no usable timing. Reader refusals take precedence, followed by zero overlap, then NA diagnostics.

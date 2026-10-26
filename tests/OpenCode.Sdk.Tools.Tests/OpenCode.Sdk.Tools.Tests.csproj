@@ -85,6 +85,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Fixtures/**/*.json" />
     <EmbeddedResource Include="Benchmarks/Fixtures/missing-memory-report-full.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Benchmarks.missing-memory-report-full.json" />
+    <EmbeddedResource Include="Benchmarks/Fixtures/na-report-full.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Benchmarks.na-report-full.json" />
     <EmbeddedResource Include="Benchmarks/Fixtures/wire-metrics-report-full.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Benchmarks.wire-metrics-report-full.json" />
     <EmbeddedResource Include="Benchmarks/Fixtures/zero-median-report-full.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Benchmarks.zero-median-report-full.json" />
     <EmbeddedResource Include="Commands/Fixtures/net10-only-report-full.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Benchmarks.net10-only-report-full.json" />

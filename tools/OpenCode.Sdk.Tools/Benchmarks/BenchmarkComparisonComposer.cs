@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using OpenCode.Sdk.Tools.Benchmarks.Models;
 
 namespace OpenCode.Sdk.Tools.Benchmarks;
@@ -27,13 +28,16 @@ internal static class BenchmarkComparisonComposer
             // The wire figures describe the case's fixture, not a measurement: prefer the after
             // leg's triple and fall back to the baseline's when only it recorded wire metrics.
             var wireSource = afterCase.HasWireMetrics ? afterCase : beforeCase;
+            // The command refuses NA runs before composition; every remaining case has memory diagnostics.
+            Debug.Assert(beforeCase.AllocatedBytes.HasValue);
+            Debug.Assert(afterCase.AllocatedBytes.HasValue);
             rows.Add(new BenchmarkComparisonRow
             {
                 CaseLabel = afterCase.CaseLabel,
                 Runtime = afterCase.Runtime,
-                AllocatedBefore = beforeCase.AllocatedBytes,
-                AllocatedAfter = afterCase.AllocatedBytes,
-                AllocatedDelta = afterCase.AllocatedBytes - beforeCase.AllocatedBytes,
+                AllocatedBefore = beforeCase.AllocatedBytes.Value,
+                AllocatedAfter = afterCase.AllocatedBytes.Value,
+                AllocatedDelta = afterCase.AllocatedBytes.Value - beforeCase.AllocatedBytes.Value,
                 TimeRatio = ComputeTimeRatio(beforeCase.MedianNanoseconds, afterCase.MedianNanoseconds),
                 WireBytes = wireSource.WireBytes,
                 WireItems = wireSource.WireItems,

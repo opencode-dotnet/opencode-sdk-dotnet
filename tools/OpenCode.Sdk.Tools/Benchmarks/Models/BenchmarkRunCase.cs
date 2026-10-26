@@ -13,7 +13,10 @@ internal sealed record BenchmarkRunCase
 
     public required string Runtime { get; init; }
 
-    public required long AllocatedBytes { get; init; }
+    /// <summary>Whether BenchmarkDotNet exported the case without statistics: it failed and carries no measurement.</summary>
+    public bool IsNa { get; init; }
+
+    public required long? AllocatedBytes { get; init; }
 
     /// <summary>The case's median timing, or <see langword="null"/> when the run yielded no positive
     /// median — a constant-folded case measures at the noise floor and carries no usable timing.</summary>
