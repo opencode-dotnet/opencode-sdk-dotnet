@@ -19,6 +19,8 @@ public sealed class SchemaNameResolverTests
     private const string SecondBranch = Detail + "/anyOf/1";
     private const string CardName = "WidgetDetailCard";
     private const string TileName = "WidgetDetailTile";
+    private const string ComponentUnion = "Widget.Detail";
+    private const string ResponseUnion = "op:widget.get#/responses/201/content/application~1json/schema";
 
     [Test]
     [Arguments(true, "IWidgetServerStatus", "UnknownWidgetServerStatus")]
@@ -71,15 +73,18 @@ public sealed class SchemaNameResolverTests
     /// silently retarget; the union refuses even though both rows exist.
     /// </summary>
     [Test]
-    public async Task Resolve_Should_Refuse_A_Union_With_Two_Ordinal_Branches()
+    [Arguments(Detail, Detail + "/anyOf/")]
+    [Arguments(ComponentUnion, ComponentUnion + "#/anyOf/")]
+    [Arguments(ResponseUnion, ResponseUnion + "/anyOf/")]
+    public async Task Resolve_Should_Refuse_A_Union_With_Two_Ordinal_Branches(string union, string branchPrefix)
     {
         var errors = new BindingErrorCollector();
 
-        _ = await ResolveAsync(DetailScenario("anyOf", Card, Tile), errors,
-            SchemaName(FirstBranch, CardName),
-            SchemaName(SecondBranch, TileName));
+        _ = await ResolveAsync(SiblingScenario(union), errors,
+            SchemaName(branchPrefix + "0", CardName),
+            SchemaName(branchPrefix + "1", TileName));
 
-        await Assert.That(errors.Snapshot()).IsEquivalentTo([OrdinalSiblings(FirstBranch, SecondBranch)], CollectionOrdering.Matching);
+        await Assert.That(errors.Snapshot()).IsEquivalentTo([OrdinalSiblings(union, branchPrefix + "0", branchPrefix + "1")], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -186,6 +191,17 @@ public sealed class SchemaNameResolverTests
         .WithOperation(OperationId, configure: static operation => operation
             .Response(200, "application/json", static schema => schema.Ref("Widget.Info"))));
 
+    private static SpecScenario SiblingScenario(string union) => union switch
+    {
+        ComponentUnion => SpecScenario.Define(static spec => spec
+            .WithSchema(ComponentUnion, static schema => schema.AnyOf(Card, Tile))
+            .WithOperation(OperationId, configure: static operation => operation
+                .Response(200, "application/json", static schema => schema.Ref(ComponentUnion)))),
+        ResponseUnion => SpecScenario.Define(static spec => spec.WithOperation(OperationId, configure: static operation => operation
+            .Response(201, "application/json", static schema => schema.AnyOf(Card, Tile)))),
+        _ => DetailScenario("anyOf", Card, Tile),
+    };
+
     private static void Text(SchemaBuilder schema) => schema.Type("string");
 
     private static void Card(SchemaBuilder schema) => schema
@@ -210,7 +226,7 @@ public sealed class SchemaNameResolverTests
             Kind = BindingErrorKind.MissingRow,
         };
 
-    private static BindingError OrdinalSiblings(string first, string second) =>
-        new(BindingErrorCategory.Naming, Detail,
+    private static BindingError OrdinalSiblings(string union, string first, string second) =>
+        new(BindingErrorCategory.Naming, union,
             $"union carries more than one inline branch identified by ordinal ('{first}', '{second}'); a reorder would swap their names silently");
 }

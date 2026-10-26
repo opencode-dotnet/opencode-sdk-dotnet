@@ -16,7 +16,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 /// therefore moves the declaration without moving the file, which surfaces as MA0048 on a tree
 /// nobody may hand-edit. The nullable-wrapped inline union below is the shape that produced it:
 /// its promoted branch key ends in an ordinal, and a guarded ordinal spells an interior
-/// underscore. The fixture curates the ordinal branch because its position is not a type name.
+/// underscore. An uncurated ordinal name refuses, so the fixture curates the branch, and the
+/// underscore checks guard every other name the plan derives.
 /// </summary>
 public sealed class GeneratedFileNameTests
 {
@@ -26,7 +27,7 @@ public sealed class GeneratedFileNameTests
     private const string SearchName = "PreferencePatchSearch";
 
     [Test]
-    public async Task Bind_Should_Name_An_Ordinal_Union_Branch_Without_An_Interior_Underscore()
+    public async Task Bind_Should_Name_Every_Model_Without_An_Interior_Underscore()
     {
         var plan = await BindNullableInlineUnionPlanAsync();
 

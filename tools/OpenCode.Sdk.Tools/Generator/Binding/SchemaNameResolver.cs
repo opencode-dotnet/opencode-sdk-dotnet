@@ -28,6 +28,7 @@ internal static partial class SchemaNameResolver
             .ToDictionary(static row => row.Schema, static row => row.DotNetName, StringComparer.Ordinal);
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
         var owners = new Dictionary<string, string>(StringComparer.Ordinal);
+        CheckOrdinalBranches(reachable.GraphKeys, document.Schemas, errors);
         foreach (var key in reachable.GraphKeys)
         {
             if (responseRoots.Contains(key) || !document.Schemas.TryGetValue(key, out var schema)
@@ -36,7 +37,6 @@ internal static partial class SchemaNameResolver
                 continue;
             }
 
-            CheckOrdinalBranches(key, schema, document.Schemas, errors);
             string name;
             if (curatedNames.TryGetValue(key, out var curatedName))
             {
@@ -101,23 +101,31 @@ internal static partial class SchemaNameResolver
         _ => false,
     };
 
-    private static void CheckOrdinalBranches(string key, SchemaNode schema, IReadOnlyDictionary<string, SchemaNode> graph,
+    /// <summary>
+    /// Refuses every reachable nominal union, response roots included, that carries more than one
+    /// inline nominal branch identified by ordinal. A component's branches sit under its pointer root.
+    /// </summary>
+    private static void CheckOrdinalBranches(IEnumerable<string> keys, IReadOnlyDictionary<string, SchemaNode> graph,
         BindingErrorCollector errors)
     {
-        if (schema is not UnionNode union)
+        foreach (var key in keys)
         {
-            return;
-        }
+            if (!graph.TryGetValue(key, out var schema) || schema is not UnionNode union || !IsNominal(union, graph))
+            {
+                continue;
+            }
 
-        var ordinalBranches = union.Branches.OfType<RefNode>()
-            .Where(reference => reference.Target.StartsWith(key + "/", StringComparison.Ordinal)
-                                && OrdinalBranch().IsMatch(reference.Target[key.Length..])
-                                && graph.TryGetValue(reference.Target, out var branch) && IsNominal(branch, graph))
-            .Select(static reference => reference.Target).ToArray();
-        if (ordinalBranches.Length > 1)
-        {
-            errors.Add(BindingErrorCategory.Naming, key,
-                $"union carries more than one inline branch identified by ordinal ('{string.Join("', '", ordinalBranches)}'); a reorder would swap their names silently");
+            var branchPrefix = key.Contains('#', StringComparison.Ordinal) ? key + "/" : key + "#/";
+            var ordinalBranches = union.Branches.OfType<RefNode>()
+                .Where(reference => reference.Target.StartsWith(branchPrefix, StringComparison.Ordinal)
+                                    && OrdinalBranch().IsMatch(reference.Target[(branchPrefix.Length - 1)..])
+                                    && graph.TryGetValue(reference.Target, out var branch) && IsNominal(branch, graph))
+                .Select(static reference => reference.Target).ToArray();
+            if (ordinalBranches.Length > 1)
+            {
+                errors.Add(BindingErrorCategory.Naming, key,
+                    $"union carries more than one inline branch identified by ordinal ('{string.Join("', '", ordinalBranches)}'); a reorder would swap their names silently");
+            }
         }
     }
 

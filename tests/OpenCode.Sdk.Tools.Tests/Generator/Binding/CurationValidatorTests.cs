@@ -16,6 +16,8 @@ public sealed class CurationValidatorTests
 
     [Test]
     [Arguments("IntegrationFoo")]
+    [Arguments("XWidgetFoo")]
+    [Arguments("I")]
     public async Task ValidateCollapsedSchemas_Should_Refuse_A_Marked_Union_Row_That_Is_Not_An_Interface_Name(string name)
     {
         var exception = await BindRefusalsAsync(IntegrationScenario(), RowCuration(name), OperationId);
