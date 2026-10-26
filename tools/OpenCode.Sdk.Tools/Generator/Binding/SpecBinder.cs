@@ -40,7 +40,7 @@ internal sealed class SpecBinder : ISpecBinder
             context = context with { Document = document, Reachable = reachable };
         }
 
-        CurationValidator.ValidateCollapsedSchemas(context, collapse);
+        curation = CurationValidator.ValidateCollapsedSchemas(context, collapse);
 
         // Type names are resolved exactly once per bind; schema and operation binding
         // consume the same map so neither can reinterpret a schema under another name.

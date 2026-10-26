@@ -42,6 +42,10 @@ evidence and may contain superseded positions.
 - Derived model names strip Effect's encode-side `*Encoded` component suffix unless the unsuffixed
   component itself exists in the document — a mechanical projection-artifact rule owned by
   `ProjectionArtifactNamePolicy`, never a per-row curation act.
+- A union with no schema identity of its own is named from where it sits: its owner, its property
+  path and its branch markers, never from its branches. A name derived through an unmarked branch's
+  ordinal needs a reason-bearing `schemaNames` row, and a union with more than one such branch
+  refuses.
 
 ## Snapshot production
 

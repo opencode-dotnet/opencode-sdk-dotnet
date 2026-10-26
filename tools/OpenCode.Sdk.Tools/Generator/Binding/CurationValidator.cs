@@ -23,20 +23,27 @@ internal static class CurationValidator
         ValidateDeclined(documentIds, selectedIds, context.Curation, context.Errors);
     }
 
-    public static void ValidateCollapsedSchemas(BindingContext context, StabilizeDuplicateCollapse collapse)
+    /// <summary>
+    /// Reports collapsed-schema curation errors and returns the curation without refused
+    /// schema-name rows so binding keeps mechanical names for those schemas.
+    /// </summary>
+    public static GenerationCuration ValidateCollapsedSchemas(BindingContext context, StabilizeDuplicateCollapse collapse)
     {
         // Mechanical folds already refuse their schema-name rows as redundant, not missing.
-        ValidateSchemaNames(context.Document, context.Reachable, context.Curation with
+        var refusedNames = ValidateSchemaNames(context.Document, context.Reachable, context.Curation with
         {
             SchemaNames = [.. context.Curation.SchemaNames.Where(row => !collapse.Aliases.ContainsKey(row.Schema))],
         }, context.Errors);
         ValidateEnumMemberNames(context.Document, context.Reachable, context.Curation, context.Errors);
+
+        return context.Curation with { SchemaNames = [.. context.Curation.SchemaNames.Where(row => !refusedNames.Contains(row.Schema))] };
     }
 
-    private static void ValidateSchemaNames(SpecDocument document, ReachableSchemaSet reachable,
+    private static HashSet<string> ValidateSchemaNames(SpecDocument document, ReachableSchemaSet reachable,
         GenerationCuration curation, BindingErrorCollector errors)
     {
         var reachableKeys = reachable.GraphKeys.ToHashSet(StringComparer.Ordinal);
+        var refusedNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (var schemaName in curation.SchemaNames)
         {
             if (!document.Schemas.ContainsKey(schemaName.Schema))
@@ -54,8 +61,20 @@ internal static class CurationValidator
             {
                 errors.Add(BindingErrorCategory.Naming, schemaName.Schema,
                     $"schema name '{schemaName.DotNetName}' is not a valid C# identifier");
+                _ = refusedNames.Add(schemaName.Schema);
+            }
+            else if (document.Schemas.TryGetValue(schemaName.Schema, out var schema)
+                     && schema is UnionNode { Classification: UnionClassification.Marked }
+                     && (schemaName.DotNetName.Length < 2 || schemaName.DotNetName[0] is not 'I'
+                         || schemaName.DotNetName[1] is not (>= 'A' and <= 'Z')))
+            {
+                errors.Add(BindingErrorCategory.Naming, schemaName.Schema,
+                    $"schema name '{schemaName.DotNetName}' names a marked union, so it must be 'I' followed by an upper-case concept name");
+                _ = refusedNames.Add(schemaName.Schema);
             }
         }
+
+        return refusedNames;
     }
 
     /// <summary>

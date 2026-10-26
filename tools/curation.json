@@ -2977,6 +2977,21 @@
       "reason": "Upstream's Session.Message.AssistantContent: the assistant message content items and the content-updated event share it through schemaAliases; the mechanical *Encoded strip refuses here because it would empty the last dotted segment."
     },
     {
+      "schema": "op:experimental.mcp.add#/requestBody/content/application~1json/schema/properties/config",
+      "dotnetName": "IMcp",
+      "reason": "Keep the shipped public name IMcp; the pointer name IExperimentalMcpAddConfig is graceless because it ties the shared server configuration union to one operation."
+    },
+    {
+      "schema": "Mcp.Server#/properties/status",
+      "dotnetName": "IMcpStatus",
+      "reason": "Keep the shipped public name IMcpStatus; the pointer name IMcpServerStatus is graceless because the server qualifier adds no meaning to the MCP status concept."
+    },
+    {
+      "schema": "Session.Message.Assistant.Tool#/properties/state",
+      "dotnetName": "ISessionMessageToolState",
+      "reason": "Keep the shipped public name ISessionMessageToolState; the pointer name ISessionMessageAssistantToolState is graceless because the assistant qualifier adds no meaning to the tool state concept."
+    },
+    {
       "schema": "Config.ModelEncoded#/properties/cost",
       "dotnetName": "ConfigModelPricing",
       "reason": "A configured model's cost is one Config.Model.Cost or a list of context-size tiers of it; the mechanical Config.Model + cost name is taken by the Cost schema itself."
@@ -2994,7 +3009,7 @@
     {
       "schema": "Config.InfoEncoded#/properties/lsp/anyOf/1/additionalProperties",
       "dotnetName": "ConfigLspEntry",
-      "reason": "Upstream's ConfigLSP.Entry, one language server's configuration; the mechanical name falls back to the bare word Config."
+      "reason": "Upstream's ConfigLSP.Entry, one language server's configuration; the mechanical name ConfigInfoLsp1 spells the anyOf ordinal."
     },
     {
       "schema": "Config.InfoEncoded#/properties/lsp/anyOf/1/additionalProperties/anyOf/disabled=true",
