@@ -18,12 +18,14 @@ public sealed class CurationValidatorTests
     [Arguments("IntegrationFoo")]
     [Arguments("XWidgetFoo")]
     [Arguments("I")]
-    public async Task ValidateCollapsedSchemas_Should_Refuse_A_Marked_Union_Row_That_Is_Not_An_Interface_Name(string name)
+    [Arguments(" ", "is not a valid C# identifier")]
+    public async Task ValidateCollapsedSchemas_Should_Refuse_A_Marked_Union_Row_That_Is_Not_An_Interface_Name(string name,
+        string problem = "names a marked union, so it must be 'I' followed by an upper-case concept name")
     {
         var exception = await BindRefusalsAsync(IntegrationScenario(), RowCuration(name), OperationId);
 
         await Assert.That(exception.Errors).IsEquivalentTo([new BindingError(BindingErrorCategory.Naming, Union,
-            $"schema name '{name}' names a marked union, so it must be 'I' followed by an upper-case concept name")], CollectionOrdering.Matching);
+            $"schema name '{name}' {problem}")], CollectionOrdering.Matching);
     }
 
     [Test]

@@ -23,6 +23,10 @@ internal static class CurationValidator
         ValidateDeclined(documentIds, selectedIds, context.Curation, context.Errors);
     }
 
+    /// <summary>
+    /// Reports collapsed-schema curation errors and returns the curation without refused
+    /// schema-name rows so binding keeps mechanical names for those schemas.
+    /// </summary>
     public static GenerationCuration ValidateCollapsedSchemas(BindingContext context, StabilizeDuplicateCollapse collapse)
     {
         // Mechanical folds already refuse their schema-name rows as redundant, not missing.
@@ -57,6 +61,7 @@ internal static class CurationValidator
             {
                 errors.Add(BindingErrorCategory.Naming, schemaName.Schema,
                     $"schema name '{schemaName.DotNetName}' is not a valid C# identifier");
+                _ = refusedNames.Add(schemaName.Schema);
             }
             else if (document.Schemas.TryGetValue(schemaName.Schema, out var schema)
                      && schema is UnionNode { Classification: UnionClassification.Marked }
