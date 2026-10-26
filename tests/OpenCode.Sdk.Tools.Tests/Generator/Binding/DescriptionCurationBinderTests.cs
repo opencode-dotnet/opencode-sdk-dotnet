@@ -295,20 +295,6 @@ public sealed class DescriptionCurationBinderTests(PinnedBinding pinned)
         await Assert.That(Unindented(source)).Contains("/// <remarks>\n/// The curated remarks.\n/// </remarks>");
     }
 
-    private static GenerationCuration EventCuration(params DescriptionCuration[] rows) =>
-        Curation(Groups("event", RootGroup())) with { Descriptions = rows };
-
-    private static DescriptionCuration Description(string type, string? member = null, string summary = "The curated summary.", string? remarks = null) =>
-        new()
-        {
-            Type = type,
-            Member = member,
-            Summary = summary,
-            Remarks = remarks,
-            Reason = "Describe the scenario's generated C# surface.",
-            Sources = [new() { Location = "packages/example.ts:1", Excerpt = "An explicit declaration." }],
-        };
-
     /// <summary>A curated summary on a hoisted interface replaces the placeholder and keeps the consume-only remark.</summary>
     [Test]
     public async Task Emit_Should_Keep_The_Consume_Only_Remark_On_A_Curated_Hoisted_Interface()
@@ -325,9 +311,6 @@ public sealed class DescriptionCurationBinderTests(PinnedBinding pinned)
         await Assert.That(source).Contains("A curated envelope summary.");
         await Assert.That(source).Contains("Consume this interface; do not implement it outside tests.");
     }
-
-    /// <summary>A member's documentation is indented with its member; the assertions read it unindented.</summary>
-    private static string Unindented(string source) => string.Join('\n', source.Split('\n').Select(static line => line.TrimStart()));
 
     private static string Source(EmitPlan plan, string type) => Encoding.UTF8.GetString(ModelEmitter.Emit(plan)
         .Single(source => source.RelativePath.EndsWith("/" + type + ".cs", StringComparison.Ordinal)).Utf8Source.Span);

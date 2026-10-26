@@ -1389,7 +1389,7 @@
     {
       "type": "EventsClient",
       "member": "SubscribeAsync",
-      "remarks": "The stream reconnects after a failure, with a new attempt 1 s later and no backoff. It does not complete on its own; caller cancellation or root-client disposal ends it. After 1 minute in which every attempt fails, it throws the last failure. A repeated server.connected event means events published in between were missed; refresh authoritative state.",
+      "remarks": "The stream reconnects after a failure, with a new attempt 1 s later and no backoff. It does not complete on its own; caller cancellation or root-client disposal ends it. After 1 minute in which every attempt fails, it throws the last failure. A repeated `server.connected` event means events published in between were missed; refresh authoritative state.",
       "reason": "The SDK owns the reconnect and termination contract; upstream's operation description stays.",
       "sources": [
         { "canon": "docs/architecture/client-runtime.md#server-sent-events", "excerpt": "Every failure is followed by a new attempt 1 s later, with no backoff." },

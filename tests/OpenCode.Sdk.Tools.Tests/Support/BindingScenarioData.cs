@@ -6,6 +6,64 @@ namespace OpenCode.Sdk.Tools.Tests.Support;
 
 internal static class BindingScenarioData
 {
+    public static Task<SpecDocument> CursorListDocumentAsync(Action<OperationBuilder>? configure, Action<SchemaBuilder> limit) =>
+        BindingTestHost.IngestAsync(CursorListScenario(configure: operation =>
+        {
+            configure?.Invoke(operation);
+            _ = operation.Parameter("limit", "query", limit)
+                .Parameter("order", "query", static schema => schema.Type("string").Enum("asc", "desc"))
+                .Parameter("cursor", "query", static schema => schema.Type("string"));
+        }));
+
+    public static GenerationCuration CursorListCuration() => Curation(Groups("widget", ClientGroup("Widgets", null, null)),
+        queryParameterTypes: [QueryParameterType("widget.list", "limit", "int")], stringQueryParameters: [StringQueryParameter("widget.list", "cursor")]);
+
+    /// <summary>A member's documentation is indented with its member; the assertions read it unindented.</summary>
+    public static string Unindented(string source) => string.Join('\n', source.Split('\n').Select(static line => line.TrimStart()));
+
+    public static SpecScenario CursorListScenario(Action<SchemaBuilder>? cursor = null, Action<SchemaBuilder>? items = null,
+        Action<OperationBuilder>? configure = null, string method = "get", string path = "/api/widget", string operationId = "widget.list") =>
+        SpecScenario.Define(spec => spec
+            .WithSchema("WidgetInfo", schema => schema
+                .Type("object")
+                .Property("id", property => property.Type("string"), required: true))
+            .WithSchema("WidgetsResponse", schema => schema
+                .Type("object")
+                .AdditionalPropertiesFalse()
+                .Property("data", property => property
+                    .Type("array")
+                    .Items(items ?? (static item => item.Ref("WidgetInfo"))), required: true)
+                .Property("cursor", cursor ?? DefaultCursor, required: true))
+            .WithOperation(operationId, method: method, path: path, configure: operation =>
+            {
+                configure?.Invoke(operation);
+                _ = operation.Response(200, "application/json", schema => schema.Ref("WidgetsResponse"));
+            }));
+
+    private static void DefaultCursor(SchemaBuilder cursor) => cursor
+        .Type("object")
+        .AdditionalPropertiesFalse()
+        .Property("previous", static property => property.AnyOf(
+            static branch => branch.Type("string"),
+            static branch => branch.Type("null")))
+        .Property("next", static property => property.AnyOf(
+            static branch => branch.Type("string"),
+            static branch => branch.Type("null")));
+
+    public static GenerationCuration EventCuration(params DescriptionCuration[] rows) =>
+        Curation(Groups("event", RootGroup())) with { Descriptions = rows };
+
+    public static DescriptionCuration Description(string type, string? member = null, string summary = "The curated summary.", string? remarks = null) =>
+        new()
+        {
+            Type = type,
+            Member = member,
+            Summary = summary,
+            Remarks = remarks,
+            Reason = "Describe the scenario's generated C# surface.",
+            Sources = [new() { Location = "packages/example.ts:1", Excerpt = "An explicit declaration." }],
+        };
+
     public static SpecScenario UnionScenario(Action<SpecDocumentBuilder> arrange) => SpecScenario.Define(spec =>
     {
         arrange(spec);
