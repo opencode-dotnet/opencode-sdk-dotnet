@@ -116,7 +116,7 @@ public partial class OpenCodeServer
     /// <c>opencode serve --service</c> and <see cref="OpenCodeServerVersionPolicy.Ignore"/>.</param>
     /// <param name="cancellationToken">The caller's token; its cancellation propagates.</param>
     /// <returns>A non-owning handle over the ready service.</returns>
-    /// <exception cref="ArgumentException">An option is blank, the registration path is relative, the command is empty, or the options contradict one another.</exception>
+    /// <exception cref="ArgumentException">An option is blank, the registration path is relative, the command is empty, a command or environment entry contains a NUL, <c>Replace</c> or <c>Error</c> is set without <c>ExpectedVersion</c>, or the options contradict one another.</exception>
     /// <exception cref="OpenCodeServerException">No user home directory resolves, the election timed out, a contender or the registered service failed to start, the registered service speaks an incompatible health protocol at a version the call accepts, a version mismatch was refused, or a spawned command could not be resolved.</exception>
     public static Task<OpenCodeServer> EnsureAsync(
         OpenCodeServerEnsureOptions? options = null,

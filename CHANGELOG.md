@@ -55,6 +55,11 @@ Nightly builds of `master` are on
   last 40 lines, so one very long line went into the message whole. The tail now also keeps at most
   the last 8,192 characters of text, so its size is bounded, as the background-service start's
   already is.
+- **The background-service door refuses a NUL in a command entry.** `OpenCodeServer.EnsureAsync`
+  refused a NUL in an `OpenCodeServerEnsureOptions.Environment` entry but not in a `Command` entry,
+  so a command entry with a NUL could reach the contender's spawn and be cut short there. It now
+  refuses it with `ArgumentException` for `options` before the registration is read or anything is
+  spawned, as it does for the environment.
 
 ## [0.9.0-preview.14] - 2026-10-23
 

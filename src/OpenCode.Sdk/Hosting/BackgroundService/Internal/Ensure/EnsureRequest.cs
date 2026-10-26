@@ -1,8 +1,9 @@
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// One <c>EnsureAsync</c> call's options, validated and copied when the call starts and before any
-/// I/O, so a caller that reuses or changes its options object mid-call changes nothing. The
+/// One <c>EnsureAsync</c> call's options, validated and copied when the call starts, before the
+/// registration is read or anything is spawned, so a caller that reuses or changes its options
+/// object mid-call changes nothing. The
 /// version policy is resolved here the way the CLI resolves its <c>mismatch</c> flag
 /// (<c>resolveManaged</c> in <c>server-connection.ts</c>): Ignore strips the expected version before the election,
 /// Replace keeps it, Error keeps it after its two Discover calls.
@@ -27,7 +28,7 @@ internal sealed record EnsureRequest(
     /// <summary>Validates and copies the caller's options.</summary>
     /// <param name="options">The public options; null means every default.</param>
     /// <returns>The snapshot.</returns>
-    /// <exception cref="ArgumentException">A value is blank, contradictory, or missing for its policy.</exception>
+    /// <exception cref="ArgumentException">A value is blank, contradictory, or missing for its policy, or a command or environment entry holds a NUL.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The policy is not a defined value.</exception>
     public static EnsureRequest Snapshot(OpenCodeServerEnsureOptions? options)
     {
@@ -68,9 +69,18 @@ internal sealed record EnsureRequest(
         var copy = new string[command.Count];
         for (var index = 0; index < command.Count; index++)
         {
-            copy[index] = string.IsNullOrWhiteSpace(command[index])
-                ? throw new ArgumentException(Prefix + "Command entries cannot be blank.", paramName)
-                : command[index];
+            var entry = command[index];
+            if (string.IsNullOrWhiteSpace(entry))
+            {
+                throw new ArgumentException(Prefix + "Command entries cannot be blank.", paramName);
+            }
+
+            if (ContainsNul(entry))
+            {
+                throw new ArgumentException(Prefix + "Command entries cannot contain NUL.", paramName);
+            }
+
+            copy[index] = entry;
         }
 
         return copy;

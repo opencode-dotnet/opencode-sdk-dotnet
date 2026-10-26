@@ -936,8 +936,10 @@ never a tree, is never implied by disposal or host shutdown, and may end a servi
 share.
 
 `OpenCodeServer.EnsureAsync` is the CLI's managed-service election (`Service.ensure`). Its options
-are validated and copied before any I/O; `Replace` and `Error` need `ExpectedVersion`. It reuses a
-ready compatible daemon, replaces a version-mismatched one according to
+are validated and copied before the registration is read or anything is spawned; `Replace` and
+`Error` need `ExpectedVersion`. A NUL in a command entry or an environment entry is refused during that
+validation with `ArgumentException` for `options`, because a spawn would silently cut the entry. It
+reuses a ready compatible daemon, replaces a version-mismatched one according to
 `OpenCodeServerEnsureOptions.VersionPolicy` (Ignore strips the expected version, Replace keeps it in
 the loop, Error discovers twice and throws on a ready mismatch without entering the loop), and
 otherwise spawns at most two detached contenders (`opencode serve --service` by default) until a
