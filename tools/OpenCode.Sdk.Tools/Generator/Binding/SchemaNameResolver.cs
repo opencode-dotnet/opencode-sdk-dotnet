@@ -17,10 +17,11 @@ internal static partial class SchemaNameResolver
         ArgumentNullException.ThrowIfNull(errors);
 
         var responseRoots = reachable.ResponseRootKeys.ToHashSet(StringComparer.Ordinal);
-        var requestRoots = RequestBodyRootNameResolver.Resolve(selected, errors);
+        var referrers = new ClaimReferrerValidator(document, reachable, selected);
+        var requestRoots = RequestBodyRootNameResolver.Resolve(selected, referrers, errors);
         var queryEnumRoots = QueryEnumRootNameResolver.Resolve(document, selected);
         var payloadRoots = EnvelopePayloadRootNameResolver.Resolve(document, selected, errors);
-        var effectStreamTypes = EffectStreamRootNameResolver.Resolve(document, selected);
+        var effectStreamTypes = EffectStreamRootNameResolver.Resolve(document, selected, referrers, errors);
         var artifacts = new ProjectionArtifactNamePolicy(document.Schemas.Keys);
         var curatedNames = curation
             .SchemaNames

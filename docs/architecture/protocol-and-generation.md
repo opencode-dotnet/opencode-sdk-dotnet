@@ -155,7 +155,10 @@ Curation may:
   refuses. A list whose last subject word ends in a single `s` requires an `operationNames` row,
   unless it is a handle method with no subject, and an `envelopePayloadNames` row for a derived
   payload member. Request, response, and operation-derived payload type names follow the
-  operation identity, never an `operationNames` row (ADR-0008);
+  operation identity, never an `operationNames` row (ADR-0008); A request-body or stream-cause claim
+  renames a key only when the claiming edges are its sole reachable referrers; when any other
+  reachable schema or operation root references it, binding refuses at that key, naming the
+  referrers, and no curation row overrides the refusal.
 - declare that a family emits an internal raw layer rather than a public surface, where
   hand-written code owns that family's public doors (ADR-0021);
 - document a generated type or one of its members where the wire says too little, through a
