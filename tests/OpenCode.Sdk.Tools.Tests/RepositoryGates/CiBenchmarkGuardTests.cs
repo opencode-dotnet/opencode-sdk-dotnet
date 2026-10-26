@@ -13,17 +13,20 @@ public sealed class CiBenchmarkGuardTests
     [Test]
     public async Task Ci_Should_Keep_The_Ordered_Sdk_Dry_Commands()
     {
-        var matrix = Job(await WorkflowAsync(), "build-and-test");
-        var steps = DrySteps(matrix).ToArray();
+        var workflow = await WorkflowAsync();
+        await Assert.That(Job(workflow, "build-and-test")).DoesNotContain("--job Dry");
+        await Assert.That(Job(workflow, "publish-nightly")).Contains("needs: [lint, build-and-test, benchmark-sdk]");
+        var matrix = Job(workflow, "benchmark-sdk");
+        await Assert.That(matrix).Contains("needs: changes");
+        await Assert.That(matrix).Contains("if: needs.changes.outputs.benchmarks == 'true'");
+        await Assert.That(matrix).Contains("fail-fast: false");
         await Assert.That(Commands(matrix)).IsEquivalentTo([
-            $"{Run} {SdkFilter} --runtimes net10.0 --artifacts .benchmarks/ci-sdk-net10",
-            $"{Run} {SdkFilter} --runtimes net11.0 --artifacts .benchmarks/ci-sdk-net11",
-            $"{Run} {SdkFilter} --runtimes net472 --artifacts .benchmarks/ci-sdk-net472",
+            $"{Run} {SdkFilter} --runtimes ${{{{ matrix.runtime }}}} --artifacts .benchmarks/ci-sdk-${{{{ matrix.leg }}}}",
         ], CollectionOrdering.Matching);
-        await Assert.That(steps.Select(static step => step.Split('\n')[1].Trim())).IsEquivalentTo([
-            "if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.benchmarks == 'true' && runner.os == 'Linux' }}",
-            "if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.benchmarks == 'true' && runner.os == 'Linux' }}",
-            "if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.benchmarks == 'true' && runner.os == 'Windows' }}",
+        await Assert.That(matrix.Split('\n').Select(static line => line.Trim()).Where(static line => line.StartsWith("- {", StringComparison.Ordinal))).IsEquivalentTo([
+            "- { runtime: net10.0, os: ubuntu-24.04, leg: net10 }",
+            "- { runtime: net11.0, os: ubuntu-24.04, leg: net11 }",
+            "- { runtime: net472, os: windows-2025, leg: net472 }",
         ], CollectionOrdering.Matching);
         var uploadStart = matrix.IndexOf("      - name: Upload SDK Dry artifacts\n", StringComparison.Ordinal);
         var uploadEnd = matrix.IndexOf("\n      - name: ", uploadStart + 1, StringComparison.Ordinal);
@@ -58,7 +61,7 @@ public sealed class CiBenchmarkGuardTests
         var timeouts = DrySteps(await WorkflowAsync()).Select(static step =>
             step.Split('\n').SingleOrDefault(static line => line.TrimStart().StartsWith("timeout-minutes:", StringComparison.Ordinal))?.Trim() ?? "<missing>");
         await Assert.That(timeouts).IsEquivalentTo([
-            "timeout-minutes: 20", "timeout-minutes: 20", "timeout-minutes: 20", "timeout-minutes: 20",
+            "timeout-minutes: 20", "timeout-minutes: 20",
         ], CollectionOrdering.Matching);
     }
 
@@ -77,7 +80,16 @@ public sealed class CiBenchmarkGuardTests
         await Assert.That(changes).Contains("              tools/* | tests/OpenCode.Sdk.Tools.Tests/* | tests/OpenCode.Sdk.Performance.Tests/* | spec/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks_generator=true ;;");
         await Assert.That(changes).Contains("echo \"benchmarks-generator=$benchmarks_generator\" >> \"$GITHUB_OUTPUT\"");
         var aggregate = Job(workflow, "ci-result");
-        await Assert.That(aggregate).Contains("needs: [changes, lint, build-and-test, benchmark-generator-stage]");
+        await Assert.That(aggregate).Contains("needs: [changes, lint, build-and-test, benchmark-sdk, benchmark-generator-stage]");
+        await Assert.That(aggregate).Contains("SDK_BENCHMARKS: ${{ needs.changes.outputs.benchmarks }}");
+        await Assert.That(aggregate).Contains("SDK: ${{ needs.benchmark-sdk.result }}");
+        await Assert.That(aggregate).Contains("""
+                      if [ "$SDK_BENCHMARKS" = true ]; then
+                        [ "$SDK" = success ] || exit 1
+                      else
+                        [ "$SDK_BENCHMARKS" = false ] && [ "$SDK" = skipped ] || exit 1
+                      fi
+            """);
         await Assert.That(aggregate).Contains("if: always()");
         await Assert.That(aggregate).Contains("BENCHMARKS: ${{ needs.changes.outputs.benchmarks-generator }}");
         await Assert.That(aggregate).Contains("STAGE: ${{ needs.benchmark-generator-stage.result }}");
