@@ -548,6 +548,11 @@ jobs:
         timeout-minutes: 20
         run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --job Dry --runtimes ${{ matrix.runtime }} --artifacts .benchmarks/ci-sdk-${{ matrix.leg }}
 
+      - name: SDK cold start (net10)
+        if: matrix.leg == 'net10'
+        timeout-minutes: 20
+        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.ColdStart.*' --artifacts .benchmarks/ci-sdk-coldstart
+
       - name: Upload SDK Dry artifacts
         if: always()
         continue-on-error: true

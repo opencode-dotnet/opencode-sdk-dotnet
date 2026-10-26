@@ -22,6 +22,7 @@ public sealed class CiBenchmarkGuardTests
         await Assert.That(matrix).Contains("fail-fast: false");
         await Assert.That(Commands(matrix)).IsEquivalentTo([
             $"{Run} {SdkFilter} --runtimes ${{{{ matrix.runtime }}}} --artifacts .benchmarks/ci-sdk-${{{{ matrix.leg }}}}",
+            $"{Run} --filter 'OpenCode.Sdk.Performance.Tests.ColdStart.*' --artifacts .benchmarks/ci-sdk-coldstart",
         ], CollectionOrdering.Matching);
         await Assert.That(matrix.Split('\n').Select(static line => line.Trim()).Where(static line => line.StartsWith("- {", StringComparison.Ordinal))).IsEquivalentTo([
             "- { runtime: net10.0, os: ubuntu-24.04, leg: net10 }",
@@ -34,6 +35,21 @@ public sealed class CiBenchmarkGuardTests
         await Assert.That(upload).Contains("if: always()");
         await Assert.That(upload).Contains("name: benchmark-sdk-${{ matrix.leg }}-${{ github.event.pull_request.number || github.run_number }}");
         await Assert.That(upload).Contains("continue-on-error: true");
+    }
+
+    [Test]
+    public async Task Ci_Should_Run_Cold_Start_Once_On_The_Net10_Leg()
+    {
+        var matrix = Job(await WorkflowAsync(), "benchmark-sdk");
+        await Assert.That(matrix).Contains("      - name: SDK cold start (net10)\n");
+        var start = matrix.IndexOf("      - name: SDK cold start (net10)\n", StringComparison.Ordinal);
+        var end = matrix.IndexOf("\n      - name: ", start + 1, StringComparison.Ordinal);
+        var step = matrix[start..(end < 0 ? matrix.Length : end)];
+        await Assert.That(step).Contains("if: matrix.leg == 'net10'");
+        await Assert.That(step).Contains("timeout-minutes: 20");
+        var command = Commands(step).Single();
+        await Assert.That(command).DoesNotContain("--job");
+        await Assert.That(command).DoesNotContain("--runtimes");
     }
 
     [Test]
