@@ -383,8 +383,9 @@ net10 or source-equivalent probes.
 
 The CI benchmark readiness guard runs SDK-only `--job Dry` steps in the existing Linux matrix leg
 for net10.0 and net11.0 (the job already installs the pinned .NET 11 SDK), and in the Windows leg
-with `--runtimes net472`. A separate `benchmark-generator-stage` job runs only
-`GeneratorStageBenchmarks` once with its own default-strategy job, without `--runtimes`;
+with `--runtimes net472`. A separate `benchmark-generator-stage` job runs
+each `GeneratorStageBenchmarks` case twice: once under the command line's Dry job and once under
+the class's own `[SimpleJob(RuntimeMoniker.Net10_0)]` default-strategy job, without `--runtimes`;
 `GeneratorRunBenchmarks` never runs in CI. Each SDK Dry step and the stage step has a 20-minute timeout.
 The benchmark process returns non-zero for no summaries, zero expected cases in any summary, any
 validation error, failed build, missing report, unsuccessful report or missing result statistics,
@@ -394,8 +395,11 @@ The SDK guard selects changes under `src/`, `tools/OpenCode.Sdk.Tools/`, `spec/`
 project, plus `tools/curation.json`, `tools/generation-profile.txt`, the shared `BenchmarkExitPolicy.cs`,
 `tests/Directory.Build.props`, `Directory.Build.props`, `Directory.Build.targets`,
 `Directory.Packages.props`, `global.json`, `nuget.config` and the CI workflow itself. The stage job
-selects only changes under `tools/`, `tests/OpenCode.Sdk.Tools.Tests/`, the performance project or
-`spec/` (including `tools/curation.json`), not `src/` alone. Push runs always select both guards.
+selects changes under `tools/`, `tests/OpenCode.Sdk.Tools.Tests/`, the performance project or
+`spec/` (including `tools/curation.json`), plus `tests/Shared/BenchmarkExitPolicy.cs`,
+`tests/Directory.Build.props`, `Directory.Build.props`, `Directory.Build.targets`,
+`Directory.Packages.props`, `global.json`, `nuget.config` and the CI workflow itself, not `src/` alone.
+Push runs always select both guards.
 `CI result` requires the stage job to succeed
 when selected and to be skipped otherwise; invalid classification, failure or cancellation fails
 the aggregate. The existing matrix result covers the SDK steps.

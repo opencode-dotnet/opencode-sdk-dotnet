@@ -39,6 +39,10 @@ public sealed class CiBenchmarkGuardTests
         await Assert.That(stage).Contains("if: needs.changes.outputs.benchmarks-generator == 'true'");
         await Assert.That(stage).Contains("- name: Generator stages\n");
         await Assert.That(stage).Contains("- name: Upload generator stage artifacts\n");
+        var uploadStart = stage.IndexOf("      - name: Upload generator stage artifacts\n", StringComparison.Ordinal);
+        var uploadEnd = stage.IndexOf("\n      - name: ", uploadStart + 1, StringComparison.Ordinal);
+        var upload = stage[uploadStart..(uploadEnd < 0 ? stage.Length : uploadEnd)];
+        await Assert.That(upload).Contains("continue-on-error: true");
         await Assert.That(stage).Contains("runs-on: ubuntu-24.04");
         await Assert.That(Commands(stage)).IsEquivalentTo([
             $"{Run} --filter 'OpenCode.Sdk.Performance.Tests.Generator.GeneratorStageBenchmarks.*' --job Dry --artifacts .benchmarks/ci-generator-stage",
@@ -70,7 +74,7 @@ public sealed class CiBenchmarkGuardTests
         await Assert.That(changes).Contains("benchmarks-generator: ${{ steps.diff.outputs.benchmarks-generator }}");
         await Assert.That(changes).Contains("echo \"benchmarks-generator=true\" >> \"$GITHUB_OUTPUT\"");
         await Assert.That(changes).Contains("benchmarks_generator=false");
-        await Assert.That(changes).Contains("              tools/* | tests/OpenCode.Sdk.Tools.Tests/* | tests/OpenCode.Sdk.Performance.Tests/* | spec/*) benchmarks_generator=true ;;");
+        await Assert.That(changes).Contains("              tools/* | tests/OpenCode.Sdk.Tools.Tests/* | tests/OpenCode.Sdk.Performance.Tests/* | spec/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks_generator=true ;;");
         await Assert.That(changes).Contains("echo \"benchmarks-generator=$benchmarks_generator\" >> \"$GITHUB_OUTPUT\"");
         var aggregate = Job(workflow, "ci-result");
         await Assert.That(aggregate).Contains("needs: [changes, lint, build-and-test, benchmark-generator-stage]");
