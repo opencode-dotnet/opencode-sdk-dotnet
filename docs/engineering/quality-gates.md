@@ -368,7 +368,11 @@ item count, payload bytes per item, allocated bytes per item, and allocation amp
 rounded `KB`. Each benchmark class owns one operation family and decomposes it as a component ladder
 (complete operation, pipeline without materialization, generated adapter, source-generated
 materialization) over wire-shaped fixtures whose sizes scale from the common case to very large, so
-a regression attributes to a component rather than merely registering end to end. Every
+a regression attributes to a component rather than merely registering end to end.
+A request-side class, whose operation's response is a small acknowledgement, decomposes as request
+serialization plus the complete operation, and its wire figures describe the request body:
+response-side rungs would measure a near-empty response, and their allocation-to-wire figures would
+be denominated in request bytes. Every
 `GlobalSetup` refuses a fixture that does not materialize the generated type it claims to measure.
 Benchmark cadence follows scope. An increment-level check is targeted and cheap: filter to the
 component ladders the change touches and run `--job short` (`--job Dry` first when fixtures or

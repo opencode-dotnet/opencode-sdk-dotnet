@@ -1,11 +1,43 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace OpenCode.Sdk.Performance.Tests.Support;
 
 /// <summary>Loads and frames the canned wire payloads the benchmarks replay.</summary>
 internal static class BenchmarkFixtures
 {
+    /// <summary>Literal prompt request oracles, independent of request serialization.</summary>
+    public static byte[] SessionPromptRequestBody(string name) => Encoding.UTF8.GetBytes(name switch
+    {
+        "text-only" => """{"text":"Review the session transport for cancellation bugs. Explain the failure path and suggest a focused fix. Keep the public API unchanged."}""",
+        "text-files" => """{"text":"Review the session transport for cancellation bugs. Explain the failure path and suggest a focused fix. Keep the public API unchanged.","files":[{"uri":"file:///repo/src/Transport.cs","name":"Transport.cs","description":"HTTP transport"},{"uri":"file:///repo/tests/TransportTests.cs","name":"TransportTests.cs","description":"Cancellation tests"}]}""",
+        "all-set" => """{"id":"msg_bench","text":"Review the session transport for cancellation bugs. Explain the failure path and suggest a focused fix. Keep the public API unchanged.","files":[{"uri":"file:///repo/src/Transport.cs","name":"Transport.cs","description":"HTTP transport"},{"uri":"file:///repo/tests/TransportTests.cs","name":"TransportTests.cs","description":"Cancellation tests"}],"agents":[{"name":"build"}],"skills":[{"id":"review"}],"metadata":{"run":7},"delivery":"queue","resume":true}""",
+        _ => throw new ArgumentOutOfRangeException(nameof(name), name, "No such prompt case."),
+    });
+
+    /// <summary>A minimal admitted user input acknowledgement.</summary>
+    public static byte[] SessionPromptResponseBody() =>
+        """{"data":{"id":"inb_bench","sessionID":"ses_bench0000000000000000001","time":{"created":1},"type":"user","payload":{"text":"Accepted."},"delivery":"queue"}}"""u8.ToArray();
+
+    /// <summary>One source file's coherent unified diff; each six-line hunk replaces one setting.</summary>
+    public static byte[] SessionDiffBody(int hunks)
+    {
+        var patch = new StringBuilder("--- a/src/settings.ts\n+++ b/src/settings.ts\n");
+        for (var index = 0; index < hunks; index++)
+        {
+            var offset = (3 + (index * 6)).ToString(CultureInfo.InvariantCulture);
+            _ = patch.Append("@@ -").Append(offset).Append(",6 +").Append(offset).Append(",6 @@\n")
+                .Append("   {\n     name: \"worker\",\n-    enabled: false,\n+    enabled: true,\n     timeout: 30,\n   },\n \n");
+        }
+
+        var count = hunks.ToString(CultureInfo.InvariantCulture);
+        var escaped = JsonEncodedText.Encode(patch.ToString(), JavaScriptEncoder.UnsafeRelaxedJsonEscaping);
+        return Encoding.UTF8.GetBytes("[{\"file\":\"src/settings.ts\",\"patch\":\"" + escaped
+            + "\",\"additions\":" + count + ",\"deletions\":" + count + ",\"status\":\"modified\"}]");
+    }
+
     /// <summary>
     /// A deep assistant message — reasoning + text + two tool parts across four union
     /// levels — in the compact single-line form the wire carries. Indentation would put
