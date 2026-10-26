@@ -321,6 +321,184 @@ public sealed class ServerSentEventReaderTests
         await Assert.That(first).IsEqualTo("first");
     }
 
+    [Test]
+    // SDK policy: strict UTF-8 applies to comments as well as data.
+    [Arguments(": ", new byte[] { 0xff })]
+    // SDK policy: ignored fields still require valid UTF-8.
+    [Arguments("id: ", new byte[] { 0xff })]
+    // SDK policy: event names also require valid UTF-8.
+    [Arguments("event: ", new byte[] { 0xff })]
+    // SDK strict UTF-8 policy: overlong encodings are malformed.
+    [Arguments("data: ", new byte[] { 0xc0, 0xaf })]
+    // SDK strict UTF-8 policy: surrogate code points are malformed.
+    [Arguments("data: ", new byte[] { 0xed, 0xa0, 0x80 })]
+    public async Task ReadAsync_Should_Refuse_Malformed_Utf8_In_A_Line(string prefix, byte[] invalidBytes)
+    {
+        using var stream = new MemoryStream([.. Encoding.UTF8.GetBytes(prefix), .. invalidBytes, (byte)'\n', (byte)'\n']);
+
+        _ = await Assert.That(async () => _ = await ReadAllAsync(stream))
+            .Throws<OpenCodeTransportException>()
+            .WithMessage("The opencode event stream contains malformed UTF-8.", StringComparison.Ordinal);
+    }
+
+    [Test]
+    public async Task ReadAsync_Should_Ignore_A_Leading_Byte_Order_Mark_Split_Into_Single_Bytes()
+    {
+        // WHATWG HTML, Server-sent events, Parsing an event stream: ignore one leading U+FEFF.
+        using var stream = ChunkedStream.OfBytes("\uFEFFdata: a\n\n", chunkSize: 1);
+
+        var frames = await ReadEventsAsync(stream);
+
+        await Assert.That(frames.Single().Name).IsEqualTo(ServerSentEvent.DefaultName);
+        await Assert.That(frames.Single().Data).IsEqualTo("a");
+    }
+
+    [Test]
+    public async Task ReadAsync_Should_Yield_Nothing_For_A_Body_Containing_Only_A_Byte_Order_Mark()
+    {
+        // WHATWG HTML, Server-sent events, Parsing an event stream: ignore one leading U+FEFF.
+        using var stream = ChunkedStream.Of("\uFEFF");
+
+        var frames = await ReadAllAsync(stream);
+
+        await Assert.That(frames).IsEmpty();
+    }
+
+    [Test]
+    public async Task ReadAsync_Should_Not_Skip_A_Byte_Order_Mark_At_The_Start_Of_A_Later_Read()
+    {
+        // WHATWG HTML, Server-sent events, Parsing an event stream: only one leading U+FEFF is ignored.
+        using var stream = ChunkedStream.Of("data: a\n\n", "\uFEFFdata: b\n\n");
+
+        var frames = await ReadAllAsync(stream);
+
+        await Assert.That(frames).IsEquivalentTo(["a"], StringComparer.Ordinal, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    // WHATWG HTML, Server-sent events, Parsing an event stream: CR alone ends a line.
+    [Arguments("data: a\rdata: b\r\r", new[] { "a\nb" })]
+    // WHATWG HTML, Server-sent events, Parsing an event stream: LF then CR ends two lines.
+    [Arguments("data: a\n\rdata: b\n\n", new[] { "a", "b" })]
+    public async Task ReadAsync_Should_Treat_Carriage_Return_As_A_Line_Terminator(string body, string[] expected)
+    {
+        using var stream = ChunkedStream.Of(body);
+
+        var frames = await ReadAllAsync(stream);
+
+        await Assert.That(frames).IsEquivalentTo(expected, StringComparer.Ordinal, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    // WHATWG HTML, Server-sent events, Parsing an event stream: CRLF is one terminator, even across reads.
+    [Arguments(new[] { "data: a\r", "\ndata: b\n\n" }, new[] { "a\nb" })]
+    // WHATWG HTML, Server-sent events, Parsing an event stream: CR alone terminates; the next byte is retained.
+    [Arguments(new[] { "data: a\r", "data: b\n\n" }, new[] { "a\nb" })]
+    public async Task ReadAsync_Should_Pair_Only_A_Line_Feed_After_A_Carriage_Return_Across_Reads(
+        string[] chunks, string[] expected)
+    {
+        using var stream = ChunkedStream.Of(chunks);
+
+        var frames = await ReadAllAsync(stream);
+
+        await Assert.That(frames).IsEquivalentTo(expected, StringComparer.Ordinal, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task ReadAsync_Should_Flush_A_Trailing_Frame_Ending_In_A_Carriage_Return()
+    {
+        // SDK end-of-body policy: a terminated data line is whole even without a closing blank line.
+        // Unlike WHATWG dispatch, this contract flushes the trailing frame.
+        using var stream = ChunkedStream.Of("data: a\r");
+
+        var frames = await ReadAllAsync(stream);
+
+        await Assert.That(frames).IsEquivalentTo(["a"], StringComparer.Ordinal, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task ReadAsync_Should_Ignore_A_Data_Field_With_The_Wrong_Case()
+    {
+        // WHATWG HTML, Server-sent events, Interpreting an event stream: field names are case-sensitive;
+        // a frame with no data dispatches nothing.
+        using var stream = ChunkedStream.Of("Data: x\n\n");
+
+        var frames = await ReadAllAsync(stream);
+
+        await Assert.That(frames).IsEmpty();
+    }
+
+    [Test]
+    // WHATWG HTML, Server-sent events, Interpreting an event stream: the last event field sets the type.
+    [Arguments("event: first\nevent: second\ndata: a\n\n", "second")]
+    // WHATWG HTML, Server-sent events, Interpreting an event stream: an empty event type means message.
+    [Arguments("event:\ndata: a\n\n", ServerSentEvent.DefaultName)]
+    // WHATWG HTML, Server-sent events, Interpreting an event stream: an empty event value resets the type.
+    [Arguments("event: first\nevent:\ndata: a\n\n", ServerSentEvent.DefaultName)]
+    public async Task ReadAsync_Should_Name_A_Frame_From_The_Last_Event_Value(string body, string expectedName)
+    {
+        using var stream = ChunkedStream.Of(body);
+
+        var frames = await ReadEventsAsync(stream);
+
+        await Assert.That(frames.Single().Name).IsEqualTo(expectedName);
+        await Assert.That(frames.Single().Data).IsEqualTo("a");
+    }
+
+    [Test]
+    // SDK frame-ceiling policy: count line characters, not their terminators.
+    [Arguments("data: a\n\n", 7, new[] { "a" })]
+    // SDK frame-ceiling policy: comment characters count too.
+    [Arguments(":x\ndata: a\n\n", 9, new[] { "a" })]
+    // SDK frame-ceiling policy: the newline joining data values also counts.
+    [Arguments("data: a\ndata: b\n\n", 15, new[] { "a\nb" })]
+    // Frame ceiling's unit (SDK policy): é is one UTF-16 unit, not its two UTF-8 bytes.
+    [Arguments("data: é\n\n", 7, new[] { "é" })]
+    // Frame ceiling's unit (SDK policy): € is one UTF-16 unit, not its three UTF-8 bytes.
+    [Arguments("data: €\n\n", 7, new[] { "€" })]
+    // Frame ceiling's unit (SDK policy): 😀 is two UTF-16 units, not one scalar or four bytes.
+    [Arguments("data: 😀\n\n", 8, new[] { "😀" })]
+    public async Task ReadAsync_Should_Accept_At_The_Character_Ceiling_And_Refuse_One_Unit_Below(
+        string body, int ceiling, string[] expected)
+    {
+        using var stream = ChunkedStream.Of(body);
+
+        var frames = await ReadAllAsync(stream, ceiling);
+
+        await Assert.That(frames).IsEquivalentTo(expected, StringComparer.Ordinal, CollectionOrdering.Matching);
+
+        using var refusedStream = ChunkedStream.Of(body);
+
+        _ = await Assert.That(async () => _ = await ReadAllAsync(refusedStream, ceiling - 1))
+            .Throws<OpenCodeTransportException>()
+            .WithMessage("The opencode event stream produced a frame beyond the size this client accepts.", StringComparison.Ordinal);
+    }
+
+    [Test]
+    // SDK frame-ceiling policy: the count resets after a frame that yields data.
+    [Arguments("data: a\n\ndata: a\n\n", new[] { "a", "a" })]
+    // SDK frame-ceiling policy: the count also resets after a frame with no data.
+    [Arguments(":x\n\ndata: a\n\n", new[] { "a" })]
+    public async Task ReadAsync_Should_Reset_The_Character_Ceiling_After_Every_Frame(string body, string[] expected)
+    {
+        using var stream = ChunkedStream.Of(body);
+
+        var frames = await ReadAllAsync(stream, maxFrameCharacters: 7);
+
+        await Assert.That(frames).IsEquivalentTo(expected, StringComparer.Ordinal, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task ReadAsync_Should_Refuse_An_Unterminated_Line_Beyond_The_Character_Ceiling()
+    {
+        // DefaultMaxFrameCharacters's contract bounds pending frames, even before a line terminates.
+        using var stream = ChunkedStream.Of($"data: {new string('x', 64)}");
+
+        _ = await Assert.That(async () => _ = await ReadAllAsync(stream, maxFrameCharacters: 16))
+            .Throws<OpenCodeTransportException>()
+            .WithMessage("The opencode event stream produced a frame beyond the size this client accepts.", StringComparison.Ordinal);
+    }
+
     private static async Task<List<string>> ReadAllAsync(Stream stream,
         int maxFrameCharacters = ServerSentEventReader.DefaultMaxFrameCharacters,
         CancellationToken cancellationToken = default)
