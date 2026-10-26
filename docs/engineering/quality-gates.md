@@ -374,6 +374,9 @@ serialization plus the complete operation, and its wire figures describe the req
 response-side rungs would measure a near-empty response, and their allocation-to-wire figures would
 be denominated in request bytes. Every
 `GlobalSetup` refuses a fixture that does not materialize the generated type it claims to measure.
+A cold-start class (its own `RunStrategy.ColdStart` job, one fresh process per launch) checks its
+fixture after the measured call, since setup must not warm the path, and reports first-use time
+only: BenchmarkDotNet measures allocation in a later, warm invocation.
 Benchmark cadence follows scope. An increment-level check is targeted and cheap: filter to the
 component ladders the change touches and run `--job short` (`--job Dry` first when fixtures or
 benchmark code changed); its exact allocation columns are the before/after comparison, and its
