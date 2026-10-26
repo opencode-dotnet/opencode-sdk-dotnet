@@ -23,7 +23,6 @@ Nightly builds of `master` are on
 
 ### 🔧 Changes
 
-- **No-content IntelliSense is clearer.** Documentation on no-content operations' envelopes and adapters no longer implies a success payload or body.
 - **Clearer IntelliSense documentation.** `EnumerateSessionsAsync` and `EnumerateMessagesAsync`
   link their page methods and carry those methods' summaries; `server.connected` renders as code in
   `SubscribeAsync`'s remarks.
