@@ -83,7 +83,7 @@ public sealed class OpenCodeServerEnsureLiveTests(PinnedManagedServiceFixture se
             {
                 RegistrationFilePath = service.RegistrationFile,
                 Command = ["no-such-opencode-" + Guid.NewGuid().ToString("N")],
-                OnStart = (reason, _) => announced.Add(reason),
+                OnStart = start => announced.Add(start.Reason),
             },
             cancellationToken);
 

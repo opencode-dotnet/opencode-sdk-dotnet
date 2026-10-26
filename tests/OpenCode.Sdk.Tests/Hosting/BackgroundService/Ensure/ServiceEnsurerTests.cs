@@ -976,7 +976,7 @@ public sealed class ServiceEnsurerTests
     private OpenCodeServerEnsureOptions Announcing(OpenCodeServerEnsureOptions? options = null)
     {
         options ??= new OpenCodeServerEnsureOptions();
-        options.OnStart = (reason, previous) => _announced.Add((reason, previous));
+        options.OnStart = start => _announced.Add((start.Reason, start.PreviousVersion));
         return options;
     }
 

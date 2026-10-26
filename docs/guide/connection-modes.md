@@ -614,7 +614,7 @@ What it does:
 | `VersionPolicy` | What a service at another version gets: `Ignore` (the default) reuses it, `Replace` ends it and starts one at the expected version, `Error` throws without touching it. `Replace` and `Error` need `ExpectedVersion`. |
 | `Command` | The service command, `opencode serve --service` by default. The first entry is resolved the way `StartAsync` resolves it. |
 | `Environment` | Extra variables for a spawned service, over the channel's service-config `env` at spawn; a 2.0.32 service re-applies its saved `env` over them once it starts, so a key set in both takes the saved value for everything read after startup: set a key in one place, the caller's `Environment` or the saved `env`, not both. |
-| `OnStart` | Called at most once, before a new service process starts, with the reason (`Missing` or `VersionMismatch`) and the previous version. |
+| `OnStart` | Called synchronously at most once, before a new service process starts, with an `OpenCodeServerEnsureStartContext` carrying the reason (`Missing` or `VersionMismatch`) and the version the registered service reported (set only for a version mismatch, and null if it reported none). |
 
 The spawned command registers where its own build and environment say. A released `opencode` build
 registers the shared `service.json`; a source run registers the `local` channel. `Channel`,

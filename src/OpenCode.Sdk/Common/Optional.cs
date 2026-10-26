@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace OpenCode.Sdk;
 
 /// <summary>
@@ -33,7 +35,8 @@ public readonly struct Optional<T> : IEquatable<Optional<T>>
     /// <summary>Gets a value indicating whether the member was assigned, including an assignment of null.</summary>
     public bool IsSet => _isSet;
 
-    /// <summary>Gets the carried value, which is <c>default</c> when the member is absent.</summary>
+    /// <summary>Gets the carried value; <c>default</c> (null for a reference type) when the member is absent or explicitly null.</summary>
+    [MaybeNull]
     public T Value => _value;
 
     /// <summary>Wraps a value so an ordinary object initializer assigns the member directly.</summary>

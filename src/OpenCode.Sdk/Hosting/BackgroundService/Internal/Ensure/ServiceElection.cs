@@ -334,6 +334,6 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
         }
 
         _announced = true;
-        request.OnStart?.Invoke(reason, previousVersion);
+        request.OnStart?.Invoke(new OpenCodeServerEnsureStartContext(reason, previousVersion));
     }
 }

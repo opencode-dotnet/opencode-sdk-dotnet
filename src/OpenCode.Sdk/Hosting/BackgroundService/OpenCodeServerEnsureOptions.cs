@@ -65,8 +65,8 @@ public sealed class OpenCodeServerEnsureOptions
     public IReadOnlyDictionary<string, string>? Environment { get; set; }
 
     /// <summary>
-    /// Gets or sets a callback invoked at most once before a new service process is spawned, with
-    /// the reason and, for a version mismatch, the previous version.
+    /// Gets or sets a synchronous callback invoked at most once, before a new service process is spawned,
+    /// with an <see cref="OpenCodeServerEnsureStartContext"/> carrying the reason and previous version.
     /// </summary>
-    public Action<OpenCodeServerEnsureReason, string?>? OnStart { get; set; }
+    public Action<OpenCodeServerEnsureStartContext>? OnStart { get; set; }
 }
