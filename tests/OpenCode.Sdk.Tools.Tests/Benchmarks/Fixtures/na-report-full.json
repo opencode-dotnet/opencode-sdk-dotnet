@@ -1,0 +1,37 @@
+{
+  "Benchmarks": [
+    {
+      "DisplayInfo": "InfoBenchmarks.GetInfoAsync: Dry(IterationCount=1, LaunchCount=1, RunStrategy=ColdStart, UnrollFactor=1) [Fixture=info]",
+      "Type": "InfoBenchmarks",
+      "Method": "GetInfoAsync",
+      "Parameters": "Fixture=info",
+      "FullName": "OpenCode.Sdk.Performance.Tests.Benchmarks.InfoBenchmarks.GetInfoAsync(Fixture: info)",
+      "Statistics": null,
+      "Memory": {
+        "BytesAllocatedPerOperation": null
+      }
+    },
+    {
+      "DisplayInfo": "InfoBenchmarks.ExecuteWithoutAdapterAsync: Dry(IterationCount=1, LaunchCount=1, RunStrategy=ColdStart, UnrollFactor=1) [Fixture=info]",
+      "Type": "InfoBenchmarks",
+      "Method": "ExecuteWithoutAdapterAsync",
+      "Parameters": "Fixture=info",
+      "FullName": "OpenCode.Sdk.Performance.Tests.Benchmarks.InfoBenchmarks.ExecuteWithoutAdapterAsync(Fixture: info)",
+      "Statistics": null,
+      "Memory": {
+        "BytesAllocatedPerOperation": null
+      }
+    },
+    {
+      "DisplayInfo": "InfoBenchmarks.AdaptSuccess: Dry(IterationCount=1, LaunchCount=1, RunStrategy=ColdStart, UnrollFactor=1) [Fixture=info]",
+      "Type": "InfoBenchmarks",
+      "Method": "AdaptSuccess",
+      "Parameters": "Fixture=info",
+      "FullName": "OpenCode.Sdk.Performance.Tests.Benchmarks.InfoBenchmarks.AdaptSuccess(Fixture: info)",
+      "Statistics": null,
+      "Memory": {
+        "BytesAllocatedPerOperation": null
+      }
+    }
+  ]
+}

@@ -5,6 +5,7 @@ using OpenCode.Sdk.Tools.Benchmarks.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions.Testing;
 using Testably.Abstractions.Testing.Initializer;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Benchmarks;
 
@@ -152,12 +153,15 @@ public sealed class BenchmarkRunReaderTests
     public async Task ReadAsync_Should_Refuse_A_Case_Without_Memory_Diagnostics()
     {
         var fileSystem = new MockFileSystem();
+        var reportPath = fileSystem.Path.Combine("runs", "results", "missing-memory-report-full.json");
         fileSystem.Initialize().With(new FileDescription(
-            "runs/results/missing-memory-report-full.json",
+            reportPath,
             _fixtures.Load("Benchmarks.missing-memory-report-full.json")));
         var message = await RefusalAsync(fileSystem, "runs");
 
-        await Assert.That(message).Contains("memory diagnostics");
+        await Assert.That(message).IsEqualTo(
+            "Benchmark case 'OpenCode.Sdk.Performance.Tests.Benchmarks.HealthBenchmarks.GetHealthAsync(Fixture: health)' "
+            + $"in '{reportPath}' carries no memory diagnostics; run with MemoryDiagnoser enabled.");
     }
 
     [Test]
@@ -171,6 +175,47 @@ public sealed class BenchmarkRunReaderTests
         var message = await RefusalAsync(fileSystem, "runs");
 
         await Assert.That(message).Contains("more than once");
+    }
+
+    [Test]
+    public async Task ReadAsync_Should_Keep_Na_Cases_Without_Measurements()
+    {
+        var fileSystem = new MockFileSystem();
+        fileSystem.Initialize().With(new FileDescription("runs/na-report-full.json",
+            _fixtures.Load("Benchmarks.na-report-full.json")));
+
+        var cases = await new BenchmarkRunReader(fileSystem).ReadAsync("runs", CancellationToken.None);
+
+        await Assert.That(cases.Select(runCase => runCase.CaseLabel).ToArray()).IsEquivalentTo(
+            ["Info/GetInfoAsync [Fixture=info]", "Info/ExecuteWithoutAdapterAsync [Fixture=info]", "Info/AdaptSuccess [Fixture=info]"],
+            StringComparer.Ordinal, CollectionOrdering.Matching);
+        foreach (var runCase in cases)
+        {
+            await Assert.That(runCase.Runtime).IsEqualTo("Dry");
+            await Assert.That(runCase.IsNa).IsTrue();
+            await Assert.That(runCase.AllocatedBytes).IsNull();
+            await Assert.That(runCase.MedianNanoseconds).IsNull();
+        }
+    }
+
+    [Test]
+    [Arguments(null)]
+    [Arguments(-1L)]
+    public async Task ReadAsync_Should_Refuse_Invalid_Memory_With_Statistics(long? allocatedBytes)
+    {
+        var report = JsonSerializer.Deserialize<BenchmarkReportDocument>(_fixtures.Load(BenchmarkRunData.BeforeFixture));
+        Assert.NotNull(report);
+        Assert.NotNull(report.Benchmarks);
+        var reportCase = report.Benchmarks[0] with { Memory = new BenchmarkReportMemory { BytesAllocatedPerOperation = allocatedBytes } };
+        var fileSystem = new MockFileSystem();
+        var path = fileSystem.Path.Combine("runs", "invalid-report-full.json");
+        fileSystem.Initialize().With(new FileDescription(path,
+            JsonSerializer.Serialize(report with { Benchmarks = [reportCase] })));
+
+        var message = await RefusalAsync(fileSystem, "runs");
+
+        await Assert.That(message).IsEqualTo(
+            $"Benchmark case '{reportCase.FullName}' in '{path}' carries no memory diagnostics; run with MemoryDiagnoser enabled.");
     }
 
     private static async Task<string> RefusalAsync(IFileSystem fileSystem, string runDirectory)

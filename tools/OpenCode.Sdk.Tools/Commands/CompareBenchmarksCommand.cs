@@ -42,13 +42,22 @@ internal sealed partial class CompareBenchmarksCommand : AsyncCommand<CompareBen
 
         var before = await _runReader.ReadAsync(settings.BeforePath, cancellationToken).ConfigureAwait(false);
         var after = await _runReader.ReadAsync(settings.AfterPath, cancellationToken).ConfigureAwait(false);
-        var comparison = BenchmarkComparisonComposer.Compose(before, after);
-        if (comparison.Rows.Count == 0)
+        var beforeKeys = before.Select(static runCase => (runCase.FullName, runCase.Runtime)).ToHashSet();
+        if (!beforeKeys.Overlaps(after.Select(static runCase => (runCase.FullName, runCase.Runtime))))
         {
             WriteZeroOverlapFailure(before, after);
             return 1;
         }
 
+        var beforeNa = before.Where(static runCase => runCase.IsNa).ToArray();
+        var afterNa = after.Where(static runCase => runCase.IsNa).ToArray();
+        if (beforeNa.Length > 0 || afterNa.Length > 0)
+        {
+            WriteNaFailure(beforeNa, afterNa);
+            return 1;
+        }
+
+        var comparison = BenchmarkComparisonComposer.Compose(before, after);
         WriteRuntimeLegMismatchWarning(before, after);
         WriteRows(comparison);
         WriteUnmatched(comparison);
@@ -64,6 +73,21 @@ internal sealed partial class CompareBenchmarksCommand : AsyncCommand<CompareBen
 
     [LoggerMessage(EventId = 1, Level = LogLevel.Debug, Message = "Compare-benchmarks invoked for '{BeforePath}' vs '{AfterPath}'.")]
     private static partial void LogInvocation(ILogger logger, string beforePath, string afterPath);
+
+    private void WriteNaFailure(BenchmarkRunCase[] beforeNa, BenchmarkRunCase[] afterNa)
+    {
+        _console.MarkupLine(
+            $"[red]The runs contain failed (NA) benchmark cases[/] ({Count(beforeNa.Length)} before, {Count(afterNa.Length)} after).");
+        foreach (var runCase in beforeNa)
+        {
+            _console.MarkupLine($"[red]before NA:[/] {Markup.Escape(runCase.CaseLabel)} ({Markup.Escape(runCase.Runtime)})");
+        }
+
+        foreach (var runCase in afterNa)
+        {
+            _console.MarkupLine($"[red]after NA:[/] {Markup.Escape(runCase.CaseLabel)} ({Markup.Escape(runCase.Runtime)})");
+        }
+    }
 
     /// <summary>Zero overlap between non-empty runs is a mislabelled leg, not an empty result: a run
     /// launched without <c>--runtimes</c> is labelled by its job name (such as <c>DefaultJob</c>) and
