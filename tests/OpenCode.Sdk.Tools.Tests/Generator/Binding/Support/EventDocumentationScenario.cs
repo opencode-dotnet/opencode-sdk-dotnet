@@ -2,8 +2,7 @@ using OpenCode.Sdk.Tools.Tests.Support;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding.Support;
 
-internal sealed class EventDocumentationScenario(bool sharedPayload = false, bool payloadElsewhere = false, string? description = null,
-    bool carriesBody = false, bool payloadAsBody = false) : SpecScenario
+internal sealed class EventDocumentationScenario(bool sharedPayload = false, bool payloadElsewhere = false, string? description = null) : SpecScenario
 {
     protected override void Arrange(SpecDocumentBuilder spec)
     {
@@ -40,20 +39,5 @@ internal sealed class EventDocumentationScenario(bool sharedPayload = false, boo
             .Property("data", static property => property.Type("string").ContentSchema("application/json", static inner => inner.Ref("Events")), required: true));
         spec.WithOperation("event.get", configure: static operation =>
             operation.SseResponseFromFixture(static schema => schema.Ref("Frame"), "effect-stream.json"));
-        if (payloadAsBody)
-        {
-            // The event's payload is also the body of an ordinary call, so it has two wire roles.
-            spec.WithOperation("event.create", method: "post", configure: static operation => operation
-                .RequestBody("application/json", static schema => schema.Ref("Details"), required: true)
-                .Response(200, "application/json", static schema => schema.Type("object")));
-        }
-
-        if (carriesBody)
-        {
-            // The same record is also the body of an ordinary call, so it has two wire roles.
-            spec.WithOperation("event.create", method: "post", configure: static operation => operation
-                .RequestBody("application/json", static schema => schema.Ref("Notice"), required: true)
-                .Response(200, "application/json", static schema => schema.Type("object")));
-        }
     }
 }
