@@ -14,6 +14,12 @@ Nightly builds of `master` are on
 - **`PermissionsClient.UpdateSavedAsync` takes `savedPermissionId`.** Its route value was a bare
   `id`; it now matches `RemoveSavedAsync`. Only calls that name the argument (`id: …`) need to
   change; nothing on the wire changes.
+- **`OpenCodeServerEnsureOptions.OnStart` now takes an `OpenCodeServerEnsureStartContext`.**
+  `Action<OpenCodeServerEnsureReason, string?>` becomes `Action<OpenCodeServerEnsureStartContext>`.
+  Migrate `(reason, previous) => …` to `start => … start.Reason … start.PreviousVersion`.
+- **`Optional<T>.Value` is annotated `[MaybeNull]`.**
+  Reading an `Optional<string>` (non-nullable `T`) may produce a new nullable warning.
+  Migrate a receiving `string` local to `string?` and check for null before dereferencing it.
 
 ### 🔧 Changes
 

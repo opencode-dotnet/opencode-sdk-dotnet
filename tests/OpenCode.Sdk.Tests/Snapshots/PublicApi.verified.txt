@@ -756,7 +756,7 @@ namespace OpenCode.Sdk
         public System.Collections.Generic.IReadOnlyDictionary<string, string>? Environment { get; set; }
         public string? ExpectedVersion { get; set; }
         public string? InstalledVersion { get; set; }
-        public System.Action<OpenCode.Sdk.OpenCodeServerEnsureReason, string?>? OnStart { get; set; }
+        public System.Action<OpenCode.Sdk.OpenCodeServerEnsureStartContext>? OnStart { get; set; }
         public string? RegistrationFilePath { get; set; }
         public OpenCode.Sdk.OpenCodeServerVersionPolicy VersionPolicy { get; set; }
     }
@@ -764,6 +764,11 @@ namespace OpenCode.Sdk
     {
         Missing = 0,
         VersionMismatch = 1,
+    }
+    public sealed class OpenCodeServerEnsureStartContext
+    {
+        public string? PreviousVersion { get; }
+        public OpenCode.Sdk.OpenCodeServerEnsureReason Reason { get; }
     }
     public sealed class OpenCodeServerException : OpenCode.Sdk.OpenCodeException
     {

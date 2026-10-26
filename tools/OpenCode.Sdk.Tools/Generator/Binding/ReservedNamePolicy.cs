@@ -51,6 +51,7 @@ internal static class ReservedNamePolicy
             "OpenCodeServerDiscoverOptions",
             "OpenCodeServerEnsureOptions",
             "OpenCodeServerEnsureReason",
+            "OpenCodeServerEnsureStartContext",
             "OpenCodeServerException",
             "OpenCodeServerExit",
             "OpenCodeServerExitKind",

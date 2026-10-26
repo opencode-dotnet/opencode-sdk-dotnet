@@ -17,7 +17,7 @@ internal sealed record EnsureRequest(
     ServiceSelection Selection,
     IReadOnlyList<string> Command,
     IReadOnlyDictionary<string, string>? Environment,
-    Action<OpenCodeServerEnsureReason, string?>? OnStart,
+    Action<OpenCodeServerEnsureStartContext>? OnStart,
     OpenCodeServerVersionPolicy Policy)
 {
     private const string Prefix = nameof(OpenCodeServerEnsureOptions) + ".";
