@@ -7,33 +7,27 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 [MemoryDiagnoser]
 public class ClientConstructionBenchmarks
 {
-    private OpenCodeClientOptions _options = null!;
-
-    [GlobalSetup]
-    public void Setup()
+    private static readonly OpenCodeClientOptions Options = new()
     {
-        _options = new OpenCodeClientOptions
-        {
-            Endpoint = new Uri("https://benchmark.invalid"),
-            Password = "benchmark",
-        };
-    }
+        Endpoint = new Uri("https://benchmark.invalid"),
+        Password = "benchmark",
+    };
 
-    /// <summary>Constructs and disposes the owned-transport client with options prepared once in setup.</summary>
+    /// <summary>Constructs and disposes the owned-transport client with options prepared once.</summary>
     [Benchmark]
-    public void ConstructAndDisposeClient() => new OpenCodeClient(_options).Dispose();
+    public void ConstructAndDisposeClient() => new OpenCodeClient(Options).Dispose();
 
     /// <summary>Registers, configures, builds, first-resolves the singleton client, and disposes the provider.</summary>
     [Benchmark]
-    public OpenCodeClient RegisterBuildResolveClientAndDisposeProvider()
+    public void RegisterBuildResolveClientAndDisposeProvider()
     {
         var services = new ServiceCollection();
         _ = services.AddOpenCode(options =>
         {
-            options.Endpoint = _options.Endpoint;
-            options.Password = _options.Password;
+            options.Endpoint = Options.Endpoint;
+            options.Password = Options.Password;
         });
         using var provider = services.BuildServiceProvider();
-        return provider.GetRequiredService<OpenCodeClient>();
+        _ = provider.GetRequiredService<OpenCodeClient>();
     }
 }

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -13,19 +14,15 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// decode without discriminator dispatch, all over the same mixed turn frames.
 /// </summary>
 /// <remarks>
-/// Wire bytes include the whole connection; items count only turn frames. Each subscription
+/// Wire bytes include the whole connection; items count only turn frames. The subscription
 /// row's Alloc B/item includes one server.connected opener per connection. Decode controls
 /// exclude that opener. The subscription leaves before the bus reconnects at end of body.
 /// </remarks>
 [MemoryDiagnoser]
 public class PromptEventStreamBenchmarks : IDisposable
 {
-    private const int FrameCount = 65;
+    private const int FrameCount = 16 * 65;
     private const int SocketChunkBytes = 1460;
-    private const string ConnectedEvent = "{\"id\":\"evt_connected\",\"type\":\"server.connected\",\"data\":{}}";
-    private const string TextFragment =
-        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-        + "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
     private string[] _frames = [];
     private JsonTypeInfo[] _concreteTypes = [];
@@ -35,26 +32,29 @@ public class PromptEventStreamBenchmarks : IDisposable
 
     public static IEnumerable<WireFixture> Fixtures()
     {
-        var text = "{\"id\":\"evt_text\",\"created\":1,\"type\":\"session.text.delta\",\"data\":{\"sessionID\":\"ses_bench\",\"assistantMessageID\":\"msg_bench\",\"ordinal\":0,\"delta\":\""
-            + TextFragment + "\"}}";
-        var reasoning = "{\"id\":\"evt_reason\",\"created\":1,\"type\":\"session.reasoning.delta\",\"data\":{\"sessionID\":\"ses_bench\",\"assistantMessageID\":\"msg_bench\",\"ordinal\":1,\"delta\":\"Thinking\"}}";
-        var tool = "{\"id\":\"evt_tool\",\"created\":1,\"type\":\"session.tool.input.delta\",\"data\":{\"sessionID\":\"ses_bench\",\"assistantMessageID\":\"msg_bench\",\"id\":\"tool_bench\",\"delta\":\"x\"}}";
-        var ended = "{\"id\":\"evt_ended\",\"created\":1,\"type\":\"session.text.ended\",\"durable\":{\"aggregateID\":\"ses_bench\",\"seq\":1,\"version\":1},\"data\":{\"sessionID\":\"ses_bench\",\"assistantMessageID\":\"msg_bench\",\"ordinal\":0,\"text\":\""
-            + string.Concat(Enumerable.Repeat(TextFragment, 32)) + "\"}}";
+        // Sixteen blocks of (text, text, reasoning, tool-input) x16, then text-ended: 64:1.
+        // Each text-ended holds all 32 text deltas from its block.
+        byte[][] payloads = [BenchmarkFixtures.ConnectedEventBody(), .. Frames().Select(static frame => Encoding.UTF8.GetBytes(frame.Body))];
+        yield return new WireFixture("prompt-16x64deltas-1ended", BenchmarkFixtures.EventStream(payloads), FrameCount,
+            payloadBytesPerItem: payloads.Skip(1).Sum(static payload => payload.Length) / FrameCount);
+    }
 
-        // Fixed order: (text, text, reasoning, tool-input) x16, then text-ended: 64:1.
-        // 65 turn frames + 1 opener; text-ended holds all 32 text deltas (4096 ASCII bytes).
-        // JSON body sizes (UTF-8): opener 58, text 274, reasoning 161, tool 159, ended 4300 B.
-        var cycle = new[] { text, text, reasoning, tool };
-        var payloads = new byte[FrameCount + 1][];
-        payloads[0] = Encoding.UTF8.GetBytes(ConnectedEvent);
+    private static IEnumerable<(string Body, JsonTypeInfo Type)> Frames()
+    {
         for (var index = 0; index < FrameCount; index++)
         {
-            payloads[index + 1] = Encoding.UTF8.GetBytes(index == FrameCount - 1 ? ended : cycle[index % cycle.Length]);
+            var id = "evt_bench" + (index + 1).ToString("D20", CultureInfo.InvariantCulture);
+            yield return (index % 65) switch
+            {
+                64 => (BenchmarkFixtures.PromptTextEndedBody(id), OpenCodeJsonContext.Default.SessionTextEnded),
+                var delta => (delta % 4) switch
+                {
+                    0 or 1 => (BenchmarkFixtures.PromptTextDeltaBody(id), OpenCodeJsonContext.Default.SessionTextDelta),
+                    2 => (BenchmarkFixtures.PromptReasoningDeltaBody(id), OpenCodeJsonContext.Default.SessionReasoningDelta),
+                    _ => (BenchmarkFixtures.PromptToolInputDeltaBody(id), OpenCodeJsonContext.Default.SessionToolInputDelta),
+                },
+            };
         }
-
-        yield return new WireFixture("prompt-64deltas-1ended", BenchmarkFixtures.EventStream(payloads), FrameCount,
-            payloadBytesPerItem: payloads.Skip(1).Sum(static payload => payload.Length) / FrameCount);
     }
 
     [ParamsSource(nameof(Fixtures))]
@@ -63,13 +63,7 @@ public class PromptEventStreamBenchmarks : IDisposable
     [GlobalSetup]
     public async Task SetupAsync()
     {
-        JsonTypeInfo[] cycle =
-        [
-            OpenCodeJsonContext.Default.SessionTextDelta, OpenCodeJsonContext.Default.SessionTextDelta,
-            OpenCodeJsonContext.Default.SessionReasoningDelta, OpenCodeJsonContext.Default.SessionToolInputDelta,
-        ];
-        _concreteTypes = [.. Enumerable.Range(0, FrameCount).Select(index =>
-            index == FrameCount - 1 ? OpenCodeJsonContext.Default.SessionTextEnded : cycle[index % cycle.Length])];
+        _concreteTypes = [.. Frames().Select(static frame => frame.Type)];
         var frames = new List<string>();
         using var stream = new MemoryStream(Fixture.Bytes);
         await foreach (var frame in new ServerSentEventReader().ReadAsync(stream, CancellationToken.None).ConfigureAwait(false))
@@ -86,7 +80,7 @@ public class PromptEventStreamBenchmarks : IDisposable
         _frames = [.. frames.Skip(1)];
         if (_frames.Length != FrameCount)
         {
-            throw new InvalidOperationException("The prompt fixture did not contain its opener and 65 turn frames.");
+            throw new InvalidOperationException("The prompt fixture did not contain its opener and 1040 turn frames.");
         }
 
         _handler = new CannedResponseHandler(Fixture.Bytes, "text/event-stream", suspendingChunkBytes: SocketChunkBytes);
