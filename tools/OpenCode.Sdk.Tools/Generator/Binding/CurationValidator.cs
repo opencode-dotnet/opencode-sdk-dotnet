@@ -55,6 +55,14 @@ internal static class CurationValidator
                 errors.Add(BindingErrorCategory.Naming, schemaName.Schema,
                     $"schema name '{schemaName.DotNetName}' is not a valid C# identifier");
             }
+            else if (document.Schemas.TryGetValue(schemaName.Schema, out var schema)
+                     && schema is UnionNode { Classification: UnionClassification.Marked }
+                     && (schemaName.DotNetName.Length < 2 || schemaName.DotNetName[0] is not 'I'
+                         || schemaName.DotNetName[1] is not (>= 'A' and <= 'Z')))
+            {
+                errors.Add(BindingErrorCategory.Naming, schemaName.Schema,
+                    $"schema name '{schemaName.DotNetName}' names a marked union, so it must be 'I' followed by an upper-case concept name");
+            }
         }
     }
 

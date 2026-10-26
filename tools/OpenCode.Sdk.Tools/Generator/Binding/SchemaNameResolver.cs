@@ -1,10 +1,11 @@
 using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
-internal static class SchemaNameResolver
+internal static partial class SchemaNameResolver
 {
     public static IReadOnlyDictionary<string, string> Resolve(SpecDocument document, ReachableSchemaSet reachable,
         IReadOnlyList<SpecOperation> selected, GenerationCuration curation, BindingErrorCollector errors)
@@ -35,6 +36,7 @@ internal static class SchemaNameResolver
                 continue;
             }
 
+            CheckOrdinalBranches(key, schema, document.Schemas, errors);
             string name;
             if (curatedNames.TryGetValue(key, out var curatedName))
             {
@@ -64,13 +66,15 @@ internal static class SchemaNameResolver
             }
             else
             {
-                name = schema switch
+                name = schema is UnionNode { Classification: UnionClassification.Marked }
+                    ? CSharpNamePolicy.ToUnionInterfaceName(ResolveDefault(key, artifacts))
+                    : ResolveDefault(key, artifacts);
+                if (OrdinalPath().IsMatch(key[(key.IndexOf('#', StringComparison.Ordinal) + 1)..]))
                 {
-                    UnionNode { Classification: UnionClassification.Marked } union =>
-                        CSharpNamePolicy.ToUnionInterfaceName(ResolveUnionName(key, union, document.Schemas, artifacts)),
-                    UnionNode union => ResolveUnionName(key, union, document.Schemas, artifacts),
-                    _ => ResolveDefault(key, artifacts),
-                };
+                    errors.Add(BindingErrorCategory.Curation, key,
+                        $"schema '{key}' has mechanical name '{name}' that spells a union branch ordinal; add a schemaNames row that names the schema",
+                        BindingErrorKind.MissingRow);
+                }
             }
 
             if (owners.TryGetValue(name, out var existing))
@@ -97,45 +101,31 @@ internal static class SchemaNameResolver
         _ => false,
     };
 
-    private static string ResolveUnionName(string key, UnionNode union, IReadOnlyDictionary<string, SchemaNode> graph,
-        ProjectionArtifactNamePolicy artifacts)
+    private static void CheckOrdinalBranches(string key, SchemaNode schema, IReadOnlyDictionary<string, SchemaNode> graph,
+        BindingErrorCollector errors)
     {
-        if (!key.Contains('#', StringComparison.Ordinal))
+        if (schema is not UnionNode union)
         {
-            return ResolveDefault(key, artifacts);
+            return;
         }
 
-        var branchNames = union
-            .Branches
-            .OfType<RefNode>()
-            .Where(reference => graph.ContainsKey(reference.Target))
-            .Select(reference => ResolveDefault(reference.Target, artifacts))
-            .ToArray();
-        if (branchNames.Length != union.Branches.Count)
+        var ordinalBranches = union.Branches.OfType<RefNode>()
+            .Where(reference => reference.Target.StartsWith(key + "/", StringComparison.Ordinal)
+                                && OrdinalBranch().IsMatch(reference.Target[key.Length..])
+                                && graph.TryGetValue(reference.Target, out var branch) && IsNominal(branch, graph))
+            .Select(static reference => reference.Target).ToArray();
+        if (ordinalBranches.Length > 1)
         {
-            return ResolveDefault(key, artifacts);
+            errors.Add(BindingErrorCategory.Naming, key,
+                $"union carries more than one inline branch identified by ordinal ('{string.Join("', '", ordinalBranches)}'); a reorder would swap their names silently");
         }
-
-        var commonWords = CSharpNamePolicy.SplitWords(branchNames[0]).ToArray();
-        foreach (var branchName in branchNames.Skip(1))
-        {
-            var words = CSharpNamePolicy.SplitWords(branchName);
-            var commonLength = 0;
-            while (commonLength < commonWords.Length && commonLength < words.Count
-                                                     && StringComparer.OrdinalIgnoreCase.Equals(commonWords[commonLength], words[commonLength]))
-            {
-                commonLength++;
-            }
-
-            commonWords = commonWords[..commonLength];
-        }
-
-        var owner = CSharpNamePolicy.ToPascalCase(GetRoot(key));
-        var common = string.Concat(commonWords.Select(CSharpNamePolicy.ToPascalCase));
-        return common.Length > 0 && !StringComparer.Ordinal.Equals(common, owner)
-            ? common
-            : ResolveDefault(key, artifacts);
     }
+
+    [GeneratedRegex(@"/(?:anyOf|oneOf)/[0-9]+(?:/|$)", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
+    private static partial Regex OrdinalPath();
+
+    [GeneratedRegex(@"^/(?:anyOf|oneOf)/[0-9]+$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
+    private static partial Regex OrdinalBranch();
 
     private static string ResolveDefault(string key, ProjectionArtifactNamePolicy artifacts)
     {

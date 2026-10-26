@@ -16,12 +16,14 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 /// therefore moves the declaration without moving the file, which surfaces as MA0048 on a tree
 /// nobody may hand-edit. The nullable-wrapped inline union below is the shape that produced it:
 /// its promoted branch key ends in an ordinal, and a guarded ordinal spells an interior
-/// underscore.
+/// underscore. The fixture curates the ordinal branch because its position is not a type name.
 /// </summary>
 public sealed class GeneratedFileNameTests
 {
     private const string GroupName = "preference";
     private const string OperationId = "preference.get";
+    private const string SearchKey = "Preference.Patch#/properties/search/anyOf/0";
+    private const string SearchName = "PreferencePatchSearch";
 
     [Test]
     public async Task Bind_Should_Name_An_Ordinal_Union_Branch_Without_An_Interior_Underscore()
@@ -30,7 +32,7 @@ public sealed class GeneratedFileNameTests
 
         var names = plan.Models.Select(static model => model.Name).ToArray();
 
-        await Assert.That(names).Contains("PreferencePatchSearch0");
+        await Assert.That(names).Contains(SearchName);
         await Assert.That(names.Where(static name => name.Contains('_', StringComparison.Ordinal))).IsEmpty();
     }
 
@@ -100,8 +102,7 @@ public sealed class GeneratedFileNameTests
         .FirstOrDefault();
 
     /// <summary>
-    /// Mirrors the pinned document's <c>Config.PreferencesPatch.websearch</c>: a nullable
-    /// <c>anyOf</c> wrapping a structural choice, so the inner union is promoted under the
+    /// A nullable <c>anyOf</c> wraps a structural choice, so the inner union is promoted under the
     /// wrapper's branch ordinal rather than under a marker.
     /// </summary>
     private static async Task<EmitPlan> BindNullableInlineUnionPlanAsync()
@@ -123,6 +124,9 @@ public sealed class GeneratedFileNameTests
             .WithOperation(OperationId, configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("Preference.Container")))));
 
-        return new BindingTestHost().Bind(document, Selection(OperationId), Curation(Groups(GroupName, RootGroup())));
+        var curation = Curation(Groups(GroupName, RootGroup()),
+            schemaNames: [SchemaName(SearchKey, SearchName, "The search preference is a switch or its settings; the anyOf ordinal is a pointer detail.")]);
+
+        return new BindingTestHost().Bind(document, Selection(OperationId), curation);
     }
 }
