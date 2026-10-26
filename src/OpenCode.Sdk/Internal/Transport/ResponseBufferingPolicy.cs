@@ -103,9 +103,9 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
         // progress expiry, which remains a transport failure.
         // API-shape divergence, not algorithm: the registration has no DisposeAsync downlevel.
 #if NET
-        await using var interruption = progress.Token.UnsafeRegister(
+        var interruption = progress.Token.UnsafeRegister(
             static state => ((HttpContent)state!).Dispose(),
-            content).ConfigureAwait(false);
+            content);
 #else
         using var interruption = progress.Token.UnsafeRegister(
             static state => ((HttpContent)state!).Dispose(),
@@ -132,6 +132,13 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
             // client disposal or the window expiring.
             throw FailureClassification.MapFault(exception, FailurePhase.ResponseBodyRead, message.CancellationToken, message.LifetimeToken);
         }
+#if NET
+        finally
+        {
+            // Not await using: CA2007 requires ConfigureAwait there, and that extension boxes the registration as IAsyncDisposable.
+            await interruption.DisposeAsync().ConfigureAwait(false);
+        }
+#endif
     }
 
     private async ValueTask<ResponseBody> CopyToPooledAsync(Stream body, long? declaredLength, ProgressWindow progress)

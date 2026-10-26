@@ -134,6 +134,20 @@ public sealed class RequestDecorationPolicyTests
         await Assert.That(request.Headers.Keys.Order(StringComparer.Ordinal)).IsEquivalentTo(["User-Agent"], CollectionOrdering.Matching);
     }
 
+#if NET
+    [Test]
+    public async Task RequestDecorationPolicy_Should_Send_The_Product_Token_Unchanged_On_The_Wire()
+    {
+        using var scenario = PipelineScenario.Responding();
+
+        _ = await scenario.Pipeline.ExecuteAsync(OperationId, HttpMethod.Get, "/api/info", new RecordingResponseAdapter(), options: null, CancellationToken.None);
+
+        // The value is added unvalidated, so the unvalidated view is what the handler writes; the checked view would
+        // reparse and normalize it. .NET Framework has no unvalidated view, so this row exists on .NET only.
+        await Assert.That(scenario.Requests.Single().RawUserAgent).IsEqualTo(UserAgentPolicy.Resolve().ToString());
+    }
+#endif
+
     [Test]
     public async Task RequestDecorationPolicy_Should_Send_Only_The_Set_PerCall_Member_When_Ambient_Is_Absent()
     {

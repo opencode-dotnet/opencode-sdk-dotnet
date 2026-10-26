@@ -22,14 +22,14 @@ internal sealed class RequestDecorationPolicy : PipelinePolicy
 {
     private readonly AuthenticationHeaderValue? _authorization;
     private readonly string? _escapedDirectory;
-    private readonly ProductInfoHeaderValue _userAgent;
+    private readonly string _userAgent;
 
     public RequestDecorationPolicy(AuthenticationHeaderValue? authorization, LocationSelector? location, ProductInfoHeaderValue userAgent)
     {
         ArgumentNullException.ThrowIfNull(userAgent);
 
         _authorization = authorization;
-        _userAgent = userAgent;
+        _userAgent = userAgent.ToString();
 
         // The server percent-decodes this header. Compute the ambient escape once; per-call
         // overrides are escaped when decorating. This also keeps Unicode paths sendable.
@@ -69,6 +69,6 @@ internal sealed class RequestDecorationPolicy : PipelinePolicy
             }
         }
 
-        request.Headers.UserAgent.Add(_userAgent);
+        _ = request.Headers.TryAddWithoutValidation("User-Agent", _userAgent);
     }
 }
