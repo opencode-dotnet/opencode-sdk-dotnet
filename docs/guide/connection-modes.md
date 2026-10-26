@@ -1,6 +1,6 @@
 # 🔌 Connection modes
 
-Date: 2026-10-23
+Date: 2026-10-26
 
 There are three ways to get a client bound to a running opencode server: **let the SDK start one**,
 **point it at one you already have**, or **discover the background service the opencode CLI runs
@@ -621,8 +621,9 @@ registers the shared `service.json`; a source run registers the `local` channel.
 `Command`, and `Environment` must describe the same registration, or the call waits out its bound
 for a registration that appears somewhere else.
 
-It throws `ArgumentException` for blank or contradictory options, an empty command, or `Replace`
-and `Error` without `ExpectedVersion`; `OpenCodeServerException` when the roots cannot be located,
+It throws `ArgumentException` for blank or contradictory options, an empty command, a NUL in a
+command or environment entry, or `Replace` and `Error` without `ExpectedVersion`;
+`OpenCodeServerException` when the roots cannot be located,
 the command cannot be resolved, a contender or the registered service failed to start, the registered
 service speaks an incompatible health protocol at a version the call accepts, `Error` met a service
 at another version, or the 120-second bound expired (a contender's failure when one failed, and
