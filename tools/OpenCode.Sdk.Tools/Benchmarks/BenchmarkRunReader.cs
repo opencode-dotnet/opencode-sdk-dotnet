@@ -83,7 +83,8 @@ internal sealed class BenchmarkRunReader
 
     private static BenchmarkRunCase ProjectCase(string reportPath, BenchmarkReportCase reportCase)
     {
-        if (reportCase.Memory is not { BytesAllocatedPerOperation: >= 0 } memory)
+        var isNa = reportCase.Statistics is null;
+        if (!isNa && reportCase.Memory is not { BytesAllocatedPerOperation: >= 0 })
         {
             throw new BenchmarkRunException(
                 $"Benchmark case '{reportCase.FullName}' in '{reportPath}' carries no memory diagnostics; run with MemoryDiagnoser enabled.");
@@ -96,7 +97,8 @@ internal sealed class BenchmarkRunReader
             Method = reportCase.Method,
             Parameters = reportCase.Parameters,
             Runtime = ExtractRuntime(reportCase.DisplayInfo),
-            AllocatedBytes = memory.BytesAllocatedPerOperation,
+            IsNa = isNa,
+            AllocatedBytes = isNa ? null : reportCase.Memory?.BytesAllocatedPerOperation,
             // A constant-folded case measures at the noise floor and can report a zero median; it
             // carries no usable timing but its exact allocation still compares.
             MedianNanoseconds = reportCase.Statistics is { Median: > 0 } statistics ? statistics.Median : null,

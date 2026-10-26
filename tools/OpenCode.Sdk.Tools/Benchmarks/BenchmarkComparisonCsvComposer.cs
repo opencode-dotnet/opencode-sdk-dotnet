@@ -74,7 +74,7 @@ internal static class BenchmarkComparisonCsvComposer
 
     private static CsvRow OneSidedRow(BenchmarkRunCase runCase, string status, bool allocatesBefore)
     {
-        var allocatedBytes = runCase.AllocatedBytes.ToString(CultureInfo.InvariantCulture);
+        var allocatedBytes = OptionalInteger(runCase.AllocatedBytes);
         return new CsvRow
         {
             CaseLabel = runCase.CaseLabel,

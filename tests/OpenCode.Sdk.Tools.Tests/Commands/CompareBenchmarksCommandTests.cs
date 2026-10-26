@@ -12,6 +12,48 @@ namespace OpenCode.Sdk.Tools.Tests.Commands;
 public sealed class CompareBenchmarksCommandTests
 {
     [Test]
+    [Arguments(true, false)]
+    [Arguments(false, true)]
+    [Arguments(true, true)]
+    public async Task Execute_Should_Refuse_Na_Cases_In_Reader_Order_Without_Writing_Csv(bool beforeNa, bool afterNa)
+    {
+        const string outputPath = "comparison.csv";
+        var fileSystem = BenchmarkRunData.CreateComparisonStore();
+        var report = new FixtureLoader().Load("Benchmarks.na-report-full.json");
+        if (beforeNa)
+        {
+            fileSystem.Initialize().With(new FileDescription($"{BenchmarkRunData.BeforeDirectory}/results/na-report-full.json", report));
+        }
+
+        if (afterNa)
+        {
+            fileSystem.Initialize().With(new FileDescription($"{BenchmarkRunData.AfterDirectory}/results/na-report-full.json", report));
+        }
+
+        using var registrar = ToolApp.CreateRegistrar(services =>
+        {
+            services.AddSingleton<IFileSystem>(fileSystem);
+            services.AddSingleton<IAnsiConsole>(_ => new TestConsole().Width(200));
+        });
+        var tester = new CommandAppTester(registrar, new CommandAppTesterSettings { TrimConsoleOutput = false });
+        tester.Configure(ToolApp.Configure);
+
+        var result = await tester.RunAsync(
+            ["compare-benchmarks", BenchmarkRunData.BeforeDirectory, BenchmarkRunData.AfterDirectory, "--output", outputPath]);
+
+        await Assert.That(result.ExitCode).IsEqualTo(1);
+        await Assert.That(result.Output).IsEqualTo(
+            $"The runs contain failed (NA) benchmark cases ({(beforeNa ? "3" : "0")} before, {(afterNa ? "3" : "0")} after).\n"
+            + (beforeNa ? "before NA: Info/GetInfoAsync [Fixture=info] (Dry)\n"
+                + "before NA: Info/ExecuteWithoutAdapterAsync [Fixture=info] (Dry)\n"
+                + "before NA: Info/AdaptSuccess [Fixture=info] (Dry)\n" : string.Empty)
+            + (afterNa ? "after NA: Info/GetInfoAsync [Fixture=info] (Dry)\n"
+                + "after NA: Info/ExecuteWithoutAdapterAsync [Fixture=info] (Dry)\n"
+                + "after NA: Info/AdaptSuccess [Fixture=info] (Dry)\n" : string.Empty));
+        await Assert.That(fileSystem.Directory.GetFiles(".", "*.csv", SearchOption.AllDirectories)).IsEmpty();
+    }
+
+    [Test]
     public async Task Execute_Should_Refuse_A_Missing_Run_Through_The_Shared_Handler()
     {
         using var registrar = ToolApp.CreateRegistrar(services =>
@@ -98,6 +140,36 @@ public sealed class CompareBenchmarksCommandTests
         await Assert.That(result.Output).Contains("before runtimes: '.NET 10.0', '.NET Framework 4.7.2'");
         await Assert.That(result.Output).Contains("after runtimes: 'DefaultJob'");
         await Assert.That(result.Output).Contains("--runtimes");
+    }
+
+    [Test]
+    public async Task Execute_Should_Refuse_Zero_Overlap_Before_Na_Cases_Without_Writing_Csv()
+    {
+        const string outputPath = "comparison.csv";
+        var fileSystem = new MockFileSystem();
+        var loader = new FixtureLoader();
+        fileSystem.Initialize().With(
+            new FileDescription(BenchmarkRunData.BeforeReportPath, loader.Load(BenchmarkRunData.BeforeFixture)),
+            new FileDescription(BenchmarkRunData.AfterReportPath, loader.Load("Benchmarks.na-report-full.json")));
+        using var registrar = ToolApp.CreateRegistrar(services =>
+        {
+            services.AddSingleton<IFileSystem>(fileSystem);
+            services.AddSingleton<IAnsiConsole>(_ => new TestConsole().Width(200));
+        });
+        var tester = new CommandAppTester(registrar, new CommandAppTesterSettings { TrimConsoleOutput = false });
+        tester.Configure(ToolApp.Configure);
+
+        var result = await tester.RunAsync(
+            ["compare-benchmarks", BenchmarkRunData.BeforeDirectory, BenchmarkRunData.AfterDirectory, "--output", outputPath]);
+
+        await Assert.That(result.ExitCode).IsEqualTo(1);
+        await Assert.That(result.Output).IsEqualTo(
+            "The runs share no benchmark cases (4 before, 3 after).\n"
+            + "before runtimes: '.NET 10.0', '.NET Framework 4.7.2'\n"
+            + "after runtimes: 'Dry'\n"
+            + "Cases join on (case, runtime). A job-named leg such as 'DefaultJob' means that run was launched "
+            + "without --runtimes; relaunch it with --runtimes net10.0 net472 to make it joinable.\n");
+        await Assert.That(fileSystem.Directory.GetFiles(".", "*.csv", SearchOption.AllDirectories)).IsEmpty();
     }
 
     [Test]
