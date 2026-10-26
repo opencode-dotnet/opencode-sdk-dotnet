@@ -19,7 +19,7 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   `../spec/SNAPSHOT.md` owns the exact commit and the refresh procedure.
 - **Coverage** — **145 of 149 operations selected** across 27 client families, 2 transport-owned
   that hand-written WebSocket doors cover, and 2 declined: the experimental client-hosted MCP
-  attach and its token, deferred to a hand-written door before 1.0. So 147 of 149 are usable;
+  attach and its token, deferred to a hand-written door in `1.1` (#529). So 147 of 149 are usable;
   `src/OpenCode.Sdk/.generation-incomplete` is
   the committed marker and names every one. One-shot calls, server-sent event streams (the global
   bus and the per-session log), PTY and persistent-PTY WebSocket sessions, cursor pagination, typed
