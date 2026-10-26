@@ -392,8 +392,10 @@ materializable.
 - Every generated operation member, `Enumerate*Async` companions included, documents its operation
   identity and its HTTP method and route template in `<remarks>` as text only; no emitter branches
   on the identity (ADR-0008). A cursor-enumeration companion also links to its page operation and
-  includes that operation's effective summary after the route remark, curated remarks, and
-  `See <cref/>.` in that order; its documentation has no separate curation target.
+  includes that operation's effective summary: the curated summary; otherwise the upstream summary
+  or description, joined when both exist; otherwise the route fallback. The companion's remarks
+  contain the route remark, the page operation's curated remarks, a link to the page operation,
+  and the effective summary, in that order; its documentation has no separate curation target.
 - An internal-raw family emits its clients sealed and internal — internal operation methods and
   handle factory, no mocking constructor — under raw type names, while the root client keeps the
   public family accessor its hand-written door answers. Only such a family may carry a

@@ -11,7 +11,9 @@ Nightly builds of `master` are on
 
 ### 🔧 Changes
 
-- **Cursor-enumeration XML documentation links to its page operation and includes its summary; curated inline code renders in IntelliSense.**
+- **Clearer IntelliSense documentation.** `EnumerateSessionsAsync` and `EnumerateMessagesAsync`
+  link to their page method and carry its summary; `server.connected` renders as code in
+  `SubscribeAsync`'s remarks.
 - **Known stream tags can now arrive as the unknown arm.** On `event.subscribe` and `session.log`,
   a frame whose normal decoding fails arrives as `UnknownEvent` or `UnknownSessionLogItem` when
   the existing carrier can preserve it; its neighbours continue on the same connection or request.

@@ -336,5 +336,4 @@ internal static class OperationMethodEmitter
             exceptions,
             OperationRemarks.Of(operation), summaryIsCurated: operation.CuratedSummary is not null);
     }
-
 }

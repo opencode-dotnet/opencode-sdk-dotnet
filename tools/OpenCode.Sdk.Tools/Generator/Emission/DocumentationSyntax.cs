@@ -33,7 +33,7 @@ internal static class DocumentationSyntax
     public static SyntaxTriviaList Documentation(string summary) => MemberDocumentation(summary, []);
 
     public static SyntaxTriviaList Documentation(string summary, string? remarks) =>
-        MemberDocumentation(summary, [], remarks: ProseRemarks(remarks));
+        MemberDocumentation(summary, [], remarks: NormalizedProseRuns(remarks));
 
     /// <summary>Applies bound text to a type and its directly declared properties, without interpreting wire roles.</summary>
     public static T DocumentedType<T>(T declaration, TypeDocumentationPlan documentation,
@@ -52,7 +52,7 @@ internal static class DocumentationSyntax
 
             if (documentation.Members.TryGetValue(property.Identifier.ValueText, out var text))
             {
-                return property.WithLeadingTrivia(MemberDocumentation(text.Summary, [], remarks: ProseRemarks(text.Remarks, curated: true), summaryIsCurated: true));
+                return property.WithLeadingTrivia(MemberDocumentation(text.Summary, [], remarks: NormalizedCuratedRuns(text.Remarks), summaryIsCurated: true));
             }
 
             return inheritedMembers?.TryGetValue(property.Identifier.ValueText, out var owner) is true
@@ -65,12 +65,10 @@ internal static class DocumentationSyntax
             var remarks = existingRemarks ?? [];
             if (!string.IsNullOrWhiteSpace(documentation.Remarks))
             {
-                var typeRemarks = ProseRemarks(documentation.Remarks);
-                if (documentation.CuratedRemarks is { } curated)
-                {
-                    var prefix = NormalizeDocumentation(documentation.Remarks)[..^NormalizeDocumentation(curated).Length];
-                    typeRemarks = [DocumentationRun.Prose(prefix), .. ProseRemarks(curated, curated: true)];
-                }
+                var typeRemarks = documentation.CuratedRemarks is { } curated
+                    ? [DocumentationRun.Prose(NormalizeDocumentation(documentation.Remarks)[..^NormalizeDocumentation(curated).Length]),
+                        .. NormalizedCuratedRuns(curated)]
+                    : NormalizedProseRuns(documentation.Remarks);
 
                 remarks = remarks.Count > 0
                     ? [.. remarks, DocumentationRun.Prose(" "), .. typeRemarks]
@@ -83,7 +81,10 @@ internal static class DocumentationSyntax
         return result;
     }
 
-    public static IReadOnlyList<DocumentationRun> ProseRemarks(string? remarks, bool curated = false)
+    public static IReadOnlyList<DocumentationRun> NormalizedProseRuns(string? text) =>
+        string.IsNullOrWhiteSpace(text) ? [] : [DocumentationRun.Prose(NormalizeDocumentation(text))];
+
+    public static IReadOnlyList<DocumentationRun> NormalizedCuratedRuns(string? remarks)
     {
         if (string.IsNullOrWhiteSpace(remarks))
         {
@@ -93,7 +94,7 @@ internal static class DocumentationSyntax
         var text = NormalizeDocumentation(remarks);
         var runs = new List<DocumentationRun>();
         var start = 0;
-        for (var open = curated ? text.IndexOf('`', StringComparison.Ordinal) : -1; open >= 0; open = text.IndexOf('`', start, StringComparison.Ordinal))
+        for (var open = text.IndexOf('`', StringComparison.Ordinal); open >= 0; open = text.IndexOf('`', start, StringComparison.Ordinal))
         {
             var close = text.IndexOf('`', open + 1, StringComparison.Ordinal);
             if (close < 0)
@@ -118,7 +119,8 @@ internal static class DocumentationSyntax
         ArgumentNullException.ThrowIfNull(parameters);
 
         var text = new StringBuilder()
-            .Append("/// <summary>\n/// ").Append(string.Concat(ProseRemarks(summary, summaryIsCurated).Select(RenderRun))).Append("\n/// </summary>\n");
+            .Append("/// <summary>\n/// ").Append(string.Concat((summaryIsCurated ? NormalizedCuratedRuns(summary) : NormalizedProseRuns(summary))
+                .Select(RenderRun))).Append("\n/// </summary>\n");
         foreach (var parameter in parameters)
         {
             _ = text.Append("/// <param name=\"").Append(parameter.Name).Append("\">")

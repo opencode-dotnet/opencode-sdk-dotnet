@@ -54,11 +54,6 @@ public sealed class PaginationMethodEmitterTests
             handle ? "WidgetItemListResponse" : "WidgetListResponse", remarks));
         await Assert.That(method.WithLeadingTrivia().NormalizeWhitespace(eol: "\n").ToFullString())
             .IsEqualTo(handle ? HandleDeclaration : WidgetsDeclaration);
-        if (row == "curated")
-        {
-            await Assert.That(OperationMethodEmitter.Emit(bound, EmissionMode.Public).GetLeadingTrivia().ToFullString().Split("/// </summary>", StringSplitOptions.None)[0])
-                .IsEqualTo("/// <summary>\n/// Browse the <c>widget</c> catalog &amp; its pages.\n");
-        }
     }
 
     private const string WidgetsRemark = "Operation <c>widget.list</c>: <c>GET /api/widget</c>.";

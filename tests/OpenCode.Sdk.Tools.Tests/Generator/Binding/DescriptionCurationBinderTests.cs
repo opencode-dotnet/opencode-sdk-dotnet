@@ -312,9 +312,6 @@ public sealed class DescriptionCurationBinderTests(PinnedBinding pinned)
         await Assert.That(source).Contains("Consume this interface; do not implement it outside tests.");
     }
 
-    /// <summary>A member's documentation is indented with its member; the assertions read it unindented.</summary>
-    private static string Unindented(string source) => string.Join('\n', source.Split('\n').Select(static line => line.TrimStart()));
-
     private static string Source(EmitPlan plan, string type) => Encoding.UTF8.GetString(ModelEmitter.Emit(plan)
         .Single(source => source.RelativePath.EndsWith("/" + type + ".cs", StringComparison.Ordinal)).Utf8Source.Span);
 }

@@ -86,7 +86,9 @@ internal static class PaginationMethodEmitter
                 DocumentationRun.Prose(" See "),
                 DocumentationRun.Reference($"{operation.MethodName}({pagination.RequestTypeName}, OpenCodeRequestOptions, CancellationToken)"),
                 DocumentationRun.Prose(". "),
-                .. DocumentationSyntax.ProseRemarks(DocumentationSyntax.DocumentationSummary(operation), operation.CuratedSummary is not null),
+                .. operation.CuratedSummary is not null
+                    ? DocumentationSyntax.NormalizedCuratedRuns(DocumentationSyntax.DocumentationSummary(operation))
+                    : DocumentationSyntax.NormalizedProseRuns(DocumentationSyntax.DocumentationSummary(operation)),
             ]);
     }
 }

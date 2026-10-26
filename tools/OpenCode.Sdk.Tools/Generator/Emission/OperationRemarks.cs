@@ -20,7 +20,7 @@ internal static class OperationRemarks
             DocumentationRun.Code($"{operation.HttpMethod.ToUpperInvariant()} {operation.RouteTemplate}"),
             DocumentationRun.Prose("."),
             .. operation.CuratedRemarks is { } remarks
-                ? new[] { DocumentationRun.Prose(" ") }.Concat(DocumentationSyntax.ProseRemarks(remarks, curated: true)) : [],
+                ? new[] { DocumentationRun.Prose(" ") }.Concat(DocumentationSyntax.NormalizedCuratedRuns(remarks)) : [],
         ]);
     }
 }

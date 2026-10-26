@@ -14,12 +14,8 @@ public sealed class DescriptionTargetCatalogTests
     [Test]
     public async Task Bind_Should_Keep_Companion_Names_Out_Of_Description_Targets()
     {
-        var document = await BindingTestHost.IngestAsync(CursorListScenario(configure: static operation => operation
-            .Parameter("limit", "query", static schema => schema.Type("string"))
-            .Parameter("order", "query", static schema => schema.Type("string").Enum("asc", "desc"))
-            .Parameter("cursor", "query", static schema => schema.Type("string"))));
-        var curation = Curation(Groups("widget", ClientGroup("Widgets", null, null)),
-            queryParameterTypes: [QueryParameterType("widget.list", "limit", "int")], stringQueryParameters: [StringQueryParameter("widget.list", "cursor")]);
+        var document = await CursorListDocumentAsync(null, static schema => schema.Type("string"));
+        var curation = CursorListCuration();
         var plan = new BindingTestHost().Bind(document, Selection("widget.list"), curation with
         {
             Descriptions = [Description("WidgetsClient", "ListWidgetsAsync", "Browse the widgets.")],

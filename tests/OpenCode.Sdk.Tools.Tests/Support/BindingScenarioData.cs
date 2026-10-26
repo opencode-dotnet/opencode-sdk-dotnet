@@ -6,6 +6,21 @@ namespace OpenCode.Sdk.Tools.Tests.Support;
 
 internal static class BindingScenarioData
 {
+    public static Task<SpecDocument> CursorListDocumentAsync(Action<OperationBuilder>? configure, Action<SchemaBuilder> limit) =>
+        BindingTestHost.IngestAsync(CursorListScenario(configure: operation =>
+        {
+            configure?.Invoke(operation);
+            _ = operation.Parameter("limit", "query", limit)
+                .Parameter("order", "query", static schema => schema.Type("string").Enum("asc", "desc"))
+                .Parameter("cursor", "query", static schema => schema.Type("string"));
+        }));
+
+    public static GenerationCuration CursorListCuration() => Curation(Groups("widget", ClientGroup("Widgets", null, null)),
+        queryParameterTypes: [QueryParameterType("widget.list", "limit", "int")], stringQueryParameters: [StringQueryParameter("widget.list", "cursor")]);
+
+    /// <summary>A member's documentation is indented with its member; the assertions read it unindented.</summary>
+    public static string Unindented(string source) => string.Join('\n', source.Split('\n').Select(static line => line.TrimStart()));
+
     public static SpecScenario CursorListScenario(Action<SchemaBuilder>? cursor = null, Action<SchemaBuilder>? items = null,
         Action<OperationBuilder>? configure = null, string method = "get", string path = "/api/widget", string operationId = "widget.list") =>
         SpecScenario.Define(spec => spec
