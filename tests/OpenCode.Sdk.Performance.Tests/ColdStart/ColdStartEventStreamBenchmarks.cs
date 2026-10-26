@@ -27,6 +27,7 @@ public class ColdStartEventStreamBenchmarks
     private string _frame = string.Empty;
     private IEvent? _subscribed;
     private IEvent? _materialized;
+    private int _suspendedReads;
 
     [GlobalSetup]
     public void Setup()
@@ -43,9 +44,10 @@ public class ColdStartEventStreamBenchmarks
         using var handler = new CannedResponseHandler(_body, "text/event-stream", suspendingChunkBytes: 1460);
         using var httpClient = new HttpClient(handler);
         using var client = new OpenCodeClient(httpClient, Options);
-        await using var events = client.Events.SubscribeAsync().GetAsyncEnumerator();
-        _ = await events.MoveNextAsync().ConfigureAwait(false);
-        _subscribed = await events.MoveNextAsync().ConfigureAwait(false) ? events.Current : null;
+        await using var events = client.Events.SubscribeAsync().ConfigureAwait(false).GetAsyncEnumerator();
+        _ = await events.MoveNextAsync();
+        _subscribed = await events.MoveNextAsync() ? events.Current : null;
+        _suspendedReads = handler.LastBody?.SuspendedReads ?? 0;
         return _subscribed;
     }
 
@@ -54,7 +56,14 @@ public class ColdStartEventStreamBenchmarks
     public IEvent? DeserializeFrames() => _materialized = JsonSerializer.Deserialize(_frame, OpenCodeJsonContext.Default.IEvent);
 
     [IterationCleanup(Targets = new[] { nameof(SubscribeSuspendingAsync) })]
-    public void CheckSubscription() => RequireIdle(_subscribed);
+    public void CheckSubscription()
+    {
+        RequireIdle(_subscribed);
+        if (_suspendedReads < 1)
+        {
+            throw new InvalidOperationException("The cold subscription's reads did not suspend.");
+        }
+    }
 
     [IterationCleanup(Targets = new[] { nameof(DeserializeFrames) })]
     public void CheckMaterialization() => RequireIdle(_materialized);
