@@ -173,6 +173,7 @@ internal static class ReservedNamePolicy
             "InheritedHandleList",
             "JobAssignment",
             "JobObjects",
+            "JsonElementDictionaryJsonConverter",
             "KillOnCloseJob",
             "LauncherSeams",
             "LocationMerge",

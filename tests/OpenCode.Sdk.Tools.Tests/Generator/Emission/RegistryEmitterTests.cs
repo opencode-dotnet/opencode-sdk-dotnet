@@ -13,6 +13,7 @@ public sealed class RegistryEmitterTests
         var snapshot = EmitterSnapshot.Create(sources);
 
         await Assert.That(snapshot).Contains("UnmappedMemberHandling = JsonUnmappedMemberHandling.Skip");
+        await Assert.That(snapshot).Contains("Converters = new[] { typeof(JsonElementDictionaryJsonConverter) }");
         await Verify(snapshot);
     }
 

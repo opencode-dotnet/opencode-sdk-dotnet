@@ -79,6 +79,20 @@ public sealed class OpenCodeJsonContextTests
         await Assert.That(((UnknownSessionMessageInfo)result).Type).IsEqualTo("future-" + new string('x', 140));
     }
 
+    /// <summary>
+    /// The context options carry the shared-document converter, so every
+    /// <c>IReadOnlyDictionary&lt;string, JsonElement&gt;</c> member and the optional request
+    /// members that read through this type info bind it, on every target framework.
+    /// </summary>
+    [Test]
+    public async Task GetTypeInfo_Should_Bind_The_JsonElement_Dictionary_To_The_Shared_Document_Converter()
+    {
+        var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(typeof(IReadOnlyDictionary<string, JsonElement>));
+
+        await Assert.That(typeInfo).IsNotNull();
+        await Assert.That(typeInfo!.Converter).IsTypeOf<JsonElementDictionaryJsonConverter>();
+    }
+
     [Test]
     public async Task Serialize_Should_Write_A_Durable_Event_Exactly_As_It_Arrived()
     {
