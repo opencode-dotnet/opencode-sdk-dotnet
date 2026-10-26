@@ -1,3 +1,4 @@
+tests/OpenCode.Sdk.Performance.Tests/Macro/PtyReceiveQueueMacro.cs	1
 tests/OpenCode.Sdk.Sandbox/ModelSelectionWalkthrough.cs	2
 tests/OpenCode.Sdk.Sandbox/PersistentPtyWalkthrough.cs	2
 tests/OpenCode.Sdk.Sandbox/PtySessionWalkthrough.cs	1
