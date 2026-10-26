@@ -49,9 +49,7 @@ public sealed class RequestBodyRootNameResolverTests
     {
         var plan = await BindAsync(BodyScenario("nested"), Curation(Groups("widget", RootGroup())));
 
-        await Assert.That(BodyTypeName(plan)).IsEqualTo(RequestName);
-        await Assert.That(PropertyTypeName(plan, RequestName, "size")).IsEqualTo("WidgetSize");
-        await Assert.That(PropertyTypeName(plan, "WidgetInfo", "size")).IsEqualTo("WidgetSize");
+        await AssertSizeStaysSharedAsync(plan);
     }
 
     [Test]
@@ -84,6 +82,11 @@ public sealed class RequestBodyRootNameResolverTests
 
         var plan = await BindAsync(BodyScenario("nested-alias"), curation);
 
+        await AssertSizeStaysSharedAsync(plan);
+    }
+
+    private static async Task AssertSizeStaysSharedAsync(EmitPlan plan)
+    {
         await Assert.That(BodyTypeName(plan)).IsEqualTo(RequestName);
         await Assert.That(PropertyTypeName(plan, RequestName, "size")).IsEqualTo("WidgetSize");
         await Assert.That(PropertyTypeName(plan, "WidgetInfo", "size")).IsEqualTo("WidgetSize");
