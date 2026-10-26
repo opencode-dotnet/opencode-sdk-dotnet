@@ -27,6 +27,21 @@ public sealed class CliWrapProjectFormatterTests
     }
 
     [Test]
+    public async Task FormatAsync_Should_Refuse_An_Unrestored_Project()
+    {
+        var fs = CreateFileSystem();
+        var runner = new ScriptedProcessRunner();
+
+        var refusal = await Assert.That(() => new CliWrapProjectFormatter(fs, runner)
+            .FormatAsync("generated/Sdk.csproj", ["A.cs"], CancellationToken.None)).Throws<OutputRefusalException>();
+
+        await Assert.That(refusal!.Message).IsEqualTo(
+            "Project 'generated/Sdk.csproj' has not been restored; run 'dotnet restore generated/Sdk.csproj' before generating because the formatter needs the restored project to remove redundant usings.");
+        await Assert.That(runner.Invocations).IsEmpty();
+        await Assert.That(fs.Directory.EnumerateFiles(fs.Path.GetTempPath(), "*.rsp")).IsEmpty();
+    }
+
+    [Test]
     [Arguments("dotnet-format.dll")]
     [Arguments("dotnet-format.deps.json")]
     [Arguments("dotnet-format.runtimeconfig.json")]
@@ -132,6 +147,7 @@ public sealed class CliWrapProjectFormatterTests
     {
         var fs = new MockFileSystem();
         fs.Directory.CreateDirectory(fs.Path.GetTempPath());
+        fs.Initialize().WithFile(fs.Path.Combine("obj", "project.assets.json"));
         var formatter = fs.Path.GetFullPath("sdk/10.0.303/DotnetTools/dotnet-format");
         fs.Directory.CreateDirectory(formatter);
         foreach (var name in (string[])["dotnet-format.dll", "dotnet-format.deps.json", "dotnet-format.runtimeconfig.json"])

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Output;
@@ -15,6 +16,8 @@ public sealed class GenerationWriterTests
     private const string AttributesPath = "src/OpenCode.Sdk/.gitattributes";
     private const string ReachReportName = ".generated-reach.txt";
     private const string ReachPath = "src/OpenCode.Sdk/" + ReachReportName;
+    private const string CreatedPath = "Created.cs";
+    private const string CreatedContent = "created\n";
 
     /// <summary>The two lines the writer opens its attributes file with, and the mark it recognizes the file by.</summary>
     private const string AttributesHeader =
@@ -661,6 +664,97 @@ public sealed class GenerationWriterTests
         await Assert.That(rerun.HasChanges).IsFalse();
     }
 
+    [Test]
+    public async Task WriteAsync_Should_Compare_Exact_Post_Formatter_Bytes()
+    {
+        const string changed = "Z.cs";
+        const string ordinalProbe = "a.cs";
+        const string deleted = "Deleted.cs";
+        const string shrunk = "Shrunk.cs";
+        const string grown = "Grown.cs";
+        const string unchanged = "Unchanged.cs";
+        var body = new string('a', 200_000);
+        var unchangedSource = $"{body}public sealed record Unchanged;\n";
+        var fileSystem = GenerationTestData.CreateFileSystem();
+        _ = await CreateWriter(fileSystem).WriteAsync(
+            Request(
+            [
+                GenerationTestData.Source(changed, $"{body}z\n"),
+                GenerationTestData.Source(ordinalProbe, "old\n"),
+                GenerationTestData.Source(deleted, "deleted\n"),
+                GenerationTestData.Source(shrunk, "kept\nremoved\n"),
+                GenerationTestData.Source(grown, "kept\n"),
+                GenerationTestData.Source(unchanged, unchangedSource),
+            ]), CancellationToken.None);
+        var formatted = new Dictionary<string, byte[]>(StringComparer.Ordinal)
+        {
+            [changed] = OwnedBytes($"{body}y\n"),
+            [ordinalProbe] = OwnedBytes("new\n"),
+            [shrunk] = OwnedBytes("kept\n"),
+            [grown] = OwnedBytes("kept\nadded\n"),
+            [unchanged] = OwnedBytes(unchangedSource),
+        };
+        var formatter = new RecordingProjectFormatter(fileSystem, async (current, _, _, token) =>
+        {
+            foreach (var (relativePath, bytes) in formatted)
+            {
+                await current.File.WriteAllBytesAsync(
+                    current.Path.Combine(GenerationTestData.OutputRoot, relativePath), bytes, token);
+            }
+        });
+
+        var result = await CreateWriter(fileSystem, formatter).WriteAsync(
+            Request(
+            [
+                GenerationTestData.Source(changed, $"{body}z\n"),
+                GenerationTestData.Source(ordinalProbe, "old\n"),
+                GenerationTestData.Source(CreatedPath, CreatedContent),
+                GenerationTestData.Source(shrunk, "kept\nremoved\n"),
+                GenerationTestData.Source(grown, "kept\n"),
+                GenerationTestData.Source(unchanged, "public record Unchanged;\n"),
+            ], verify: true), CancellationToken.None);
+
+        await Assert.That(result.IsVerification).IsTrue();
+        await Assert.That(result.CreatedPaths).IsEquivalentTo([CreatedPath], CollectionOrdering.Matching);
+        await Assert.That(result.ChangedPaths).IsEquivalentTo(
+            [".generated-manifest.json", ".gitattributes", grown, shrunk, changed, ordinalProbe], CollectionOrdering.Matching);
+        await Assert.That(result.DeletedPaths).IsEquivalentTo([deleted], CollectionOrdering.Matching);
+        var expectedFiles = new Dictionary<string, byte[]>(formatted, StringComparer.Ordinal)
+        {
+            [CreatedPath] = OwnedBytes(CreatedContent),
+        };
+        foreach (var (relativePath, bytes) in expectedFiles)
+        {
+            await Assert.That(await fileSystem.File.ReadAllBytesAsync(OwnedPath(fileSystem, relativePath)))
+                .IsEquivalentTo(bytes, CollectionOrdering.Matching);
+        }
+
+        await Assert.That(OwnedPath(fileSystem, deleted)).Satisfies(path => !fileSystem.File.Exists(path));
+    }
+
+    [Test]
+    public async Task WriteAsync_Should_Observe_Cancellation_After_The_Final_Manifest_Rename_When_No_Owned_File_Exists_Beforehand()
+    {
+        var fileSystem = GenerationTestData.CreateFileSystem();
+        using var cancellation = new CancellationTokenSource();
+        var manifestPath = fileSystem.Path.GetFullPath(GenerationTestData.ManifestPath);
+        var renames = 0;
+        var cancelled = Task.CompletedTask;
+        using var notification = fileSystem.Notify.OnEvent(change =>
+        {
+            if (change.ChangeType == WatcherChangeTypes.Renamed
+                && change.Path == manifestPath && ++renames == 2)
+            {
+                cancelled = cancellation.CancelAsync();
+            }
+        });
+
+        await Assert.That(async () => _ = await CreateWriter(fileSystem).WriteAsync(
+                Request([GenerationTestData.Source(CreatedPath, CreatedContent)]), cancellation.Token))
+            .Throws<OperationCanceledException>();
+        await cancelled;
+    }
+
     /// <summary>Assembles one write request over the shared test roots; flags default off.</summary>
     private static GenerationWriteRequest Request(IReadOnlyList<GeneratedSource> sources,
         IReadOnlyList<string>? familyFolders = null, string? partialMarkerContent = null, bool verify = false,
@@ -695,4 +789,6 @@ public sealed class GenerationWriterTests
     /// <summary>The attributes file the writer owns: its header, then one line per path in the order given.</summary>
     private static string ExpectedAttributes(IReadOnlyList<string> orderedPaths) =>
         string.Concat(orderedPaths.Select(static path => $"/{path} linguist-generated\n").Prepend(AttributesHeader));
+
+    private static byte[] OwnedBytes(string content) => Encoding.UTF8.GetBytes(GenerationTestData.OwnedContent(content));
 }

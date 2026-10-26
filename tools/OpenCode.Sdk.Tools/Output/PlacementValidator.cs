@@ -1,5 +1,4 @@
 using System.IO.Abstractions;
-using System.Text;
 using OpenCode.Sdk.Tools.Generator.Emission;
 
 namespace OpenCode.Sdk.Tools.Output;
@@ -33,7 +32,7 @@ internal sealed class PlacementValidator(IFileSystem fileSystem)
             }
 
             // A headerless source would deadlock the next run's provenance requirement.
-            if (!GenerationProvenance.HasHeader(Encoding.UTF8.GetString(source.Utf8Source.Span)))
+            if (!GenerationProvenance.HasHeader(source.Utf8Source.Span))
             {
                 throw new InvalidOperationException($"Generated source '{source.RelativePath}' lacks the provenance header.");
             }
