@@ -324,29 +324,27 @@ internal static class EnvelopeEmitter
                 SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
                     SyntaxKind.StringLiteralExpression,
                     SyntaxFactory.Literal(", "))))))));
-        statements.Add(Discard(EmissionSyntax.Invocation(
-            EmissionSyntax.MemberAccess(
-                EmissionSyntax.Invocation(
-                    EmissionSyntax.MemberAccess(builder, "Append"),
-                    SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
-                        SyntaxKind.StringLiteralExpression,
-                        SyntaxFactory.Literal($"{payloadName} = ")))),
-                "Append"),
-            SyntaxFactory.Argument(payloadField))));
+        statements.Add(AppendMember($"{payloadName} = ", payloadField));
         if (envelope.Kind is EnvelopeKind.Binary)
         {
-            statements.Add(Discard(EmissionSyntax.Invocation(
-                EmissionSyntax.MemberAccess(
-                    EmissionSyntax.Invocation(
-                        EmissionSyntax.MemberAccess(builder, "Append"),
-                        SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
-                            SyntaxKind.StringLiteralExpression,
-                            SyntaxFactory.Literal(", ContentType = ")))),
-                    "Append"),
-                SyntaxFactory.Argument(SyntaxFactory.IdentifierName("ContentType")))));
+            statements.Add(AppendMember(", ContentType = ", SyntaxFactory.IdentifierName("ContentType")));
+        }
+
+        var diagnosticMembers = string.Empty;
+        if (envelope.Kind is EnvelopeKind.CursorList)
+        {
+            statements.Add(AppendMember(", Cursor = ", SyntaxFactory.IdentifierName("_cursor")));
+            diagnosticMembers += " and cursor";
+        }
+
+        if (envelope.LocationTypeName is not null)
+        {
+            statements.Add(AppendMember(", Location = ", SyntaxFactory.IdentifierName("_location")));
+            diagnosticMembers += " and location";
         }
 
         statements.Add(SyntaxFactory.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.TrueLiteralExpression)));
+        var presence = diagnosticMembers.Length == 0 ? "it is present" : "they are present";
         return SyntaxFactory.MethodDeclaration(
                 SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)),
                 "PrintMembers")
@@ -358,8 +356,19 @@ internal static class EnvelopeEmitter
                     .WithType(TypeSyntaxEmitter.EmitNamed("StringBuilder")))))
             .WithBody(SyntaxFactory.Block(statements))
             .WithLeadingTrivia(DocumentationSyntax.Documentation(
-                "Prints the shared metadata and appends the payload only when it is present."));
+                $"Prints the shared metadata and appends the payload{diagnosticMembers} only when {presence}."));
     }
+
+    private static ExpressionStatementSyntax AppendMember(string label, ExpressionSyntax value) =>
+        Discard(EmissionSyntax.Invocation(
+            EmissionSyntax.MemberAccess(
+                EmissionSyntax.Invocation(
+                    EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("builder"), "Append"),
+                    SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
+                        SyntaxKind.StringLiteralExpression,
+                        SyntaxFactory.Literal(label)))),
+                "Append"),
+            SyntaxFactory.Argument(value)));
 
     private static ExpressionStatementSyntax Assign(string target, ExpressionSyntax value) =>
         SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(

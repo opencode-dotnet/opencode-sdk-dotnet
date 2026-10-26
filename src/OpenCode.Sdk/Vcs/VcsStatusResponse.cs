@@ -43,7 +43,7 @@ public sealed record VcsStatusResponse : OpenCodeResponse
     public required LocationPublicRef Location { get => _location ?? throw new InvalidOperationException("The response is an error; check IsError before accessing Location."); init => _location = value; }
 
     /// <summary>
-    /// Prints the shared metadata and appends the payload only when it is present.
+    /// Prints the shared metadata and appends the payload and location only when they are present.
     /// </summary>
     protected override bool PrintMembers(StringBuilder builder)
     {
@@ -60,6 +60,7 @@ public sealed record VcsStatusResponse : OpenCodeResponse
         }
 
         _ = builder.Append("Changes = ").Append(_changes);
+        _ = builder.Append(", Location = ").Append(_location);
         return true;
     }
 }

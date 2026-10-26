@@ -43,7 +43,7 @@ public sealed record SessionMessageListResponse : OpenCodeResponse
     public required ListCursor Cursor { get => _cursor ?? throw new InvalidOperationException("The response is an error; check IsError before accessing Cursor."); init => _cursor = value; }
 
     /// <summary>
-    /// Prints the shared metadata and appends the payload only when it is present.
+    /// Prints the shared metadata and appends the payload and cursor only when they are present.
     /// </summary>
     protected override bool PrintMembers(StringBuilder builder)
     {
@@ -60,6 +60,7 @@ public sealed record SessionMessageListResponse : OpenCodeResponse
         }
 
         _ = builder.Append("Messages = ").Append(_messages);
+        _ = builder.Append(", Cursor = ").Append(_cursor);
         return true;
     }
 }

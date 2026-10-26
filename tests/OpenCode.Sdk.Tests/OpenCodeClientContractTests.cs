@@ -335,6 +335,29 @@ public sealed class OpenCodeClientContractTests
     }
 
     [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task ToString_Should_Print_Envelope_Owned_Members_Only_On_Success(bool cursor)
+    {
+        var payload = new FixtureLoader().LoadJson("Serialization.known-session.json");
+        var body = cursor ? WireBodyData.Page(payload, previous: "cur_0", next: "cur_2")
+            : WireBodyData.LocationEnvelope($"[{WireBodyData.FileSystemEntry}]");
+        using var success = ContractScenario.Responding(HttpStatusCode.OK, body);
+        using var error = ContractScenario.Responding(HttpStatusCode.Unauthorized, WireBodyData.UnauthorizedError);
+
+        var printed = cursor ? (await success.Client.Sessions.ListSessionsAsync()).ToString()
+            : (await success.Client.FileSystem.ListEntriesAsync(new FsListRequest { Path = "src" })).ToString();
+        var failed = cursor ? (await error.Client.Sessions.ListSessionsAsync(requestOptions: OpenCodeRequestOptions.NoThrow)).ToString()
+            : (await error.Client.FileSystem.ListEntriesAsync(new FsListRequest { Path = "src" }, OpenCodeRequestOptions.NoThrow)).ToString();
+
+        await Assert.That(printed).Contains(cursor
+            ? "Sessions = System.Collections.Generic.List`1[OpenCode.Sdk.Models.SessionInfo], Cursor = ListCursor { Previous = cur_0, Next = cur_2 }"
+            : "Entries = System.Collections.Generic.List`1[OpenCode.Sdk.Models.FileSystemEntry], Location = LocationPublicRef { Directory = /repo }");
+        await Assert.That(failed).DoesNotContain("Cursor = ");
+        await Assert.That(failed).DoesNotContain("Location = ");
+    }
+
+    [Test]
     public async Task Client_Should_Fail_Instructively_On_The_Unoverridden_Mock_Seam()
     {
         using var client = new MockableClient();
