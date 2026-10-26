@@ -11,7 +11,7 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 public sealed class DocumentationSyntaxTests
 {
     [Test]
-    public async Task DocumentedType_Should_Preserve_An_Envelope_Wire_Summary_With_Member_Only_Curation()
+    public async Task EnvelopeEmitter_Should_Keep_Wire_Summary_Backticks_Plain_When_Only_A_Member_Is_Curated()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
             .WithSchema("WidgetInfo", static schema => schema.Type("object").Property("id", static property => property.Type("string"), required: true))
@@ -86,7 +86,7 @@ public sealed class DocumentationSyntaxTests
             "member" => [Description("Notice", "Data", "The `data` payload.", "Holds `text`.")],
             "operation" => [Description("OpenCodeClient", "GetEventAsync", remarks: "Reconnect after `server.connected`.") with { Summary = null }],
             "page-summary" => [Description("WidgetsClient", "ListWidgetsAsync", "Browse the `widget` catalog & its pages.")],
-            _ => [],
+            _ => throw new InvalidOperationException("Unknown inline-code row: " + row),
         };
         var plan = new BindingTestHost().Bind(document, Selection(page ? "widget.list" : "event.get"),
             page ? CursorListCuration() with { Descriptions = rows } : EventCuration(rows));

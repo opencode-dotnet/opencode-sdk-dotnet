@@ -12,7 +12,7 @@ Nightly builds of `master` are on
 ### 🔧 Changes
 
 - **Clearer IntelliSense documentation.** `EnumerateSessionsAsync` and `EnumerateMessagesAsync`
-  link to their page method and carry its summary; `server.connected` renders as code in
+  link their page methods and carry those methods' summaries; `server.connected` renders as code in
   `SubscribeAsync`'s remarks.
 - **Known stream tags can now arrive as the unknown arm.** On `event.subscribe` and `session.log`,
   a frame whose normal decoding fails arrives as `UnknownEvent` or `UnknownSessionLogItem` when
