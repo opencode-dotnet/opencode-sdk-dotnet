@@ -21,10 +21,12 @@
 
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/OpenCode.Sdk/OpenCode.Sdk.csproj"/>
+    <ProjectReference Include="../../src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj"/>
     <Compile Include="../Shared/BenchmarkExitPolicy.cs" LinkBase="Shared" />
   </ItemGroup>
 
