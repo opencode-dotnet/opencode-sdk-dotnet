@@ -41,6 +41,7 @@
 
   <!-- Cross-project test support compiles into each consuming test project as shared source. -->
   <ItemGroup>
+    <Compile Include="../Shared/BenchmarkExitPolicy.cs" LinkBase="Shared" />
     <Compile Include="../Shared/BestEffortDelete.cs" LinkBase="Shared" />
     <Compile Include="../Shared/ContenderLedger.cs" LinkBase="Shared" />
     <Compile Include="../Shared/FixtureLoader.cs" LinkBase="Shared" />

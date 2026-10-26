@@ -40,6 +40,8 @@ jobs:
       contents: read
     outputs:
       code: ${{ steps.diff.outputs.code }}
+      benchmarks: ${{ steps.diff.outputs.benchmarks }}
+      benchmarks-generator: ${{ steps.diff.outputs.benchmarks-generator }}
 
     steps:
       - name: Checkout
@@ -56,6 +58,8 @@ jobs:
         run: |
           if [ "$EVENT" = push ]; then
             echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "benchmarks=true" >> "$GITHUB_OUTPUT"
+            echo "benchmarks-generator=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if [ "$EVENT" = merge_group ]; then
@@ -68,14 +72,24 @@ jobs:
           # source file renamed to Markdown is a deleted source file, and its old path must count.
           git diff --name-only --no-renames -z "$base" HEAD > "$RUNNER_TEMP/changed-paths"
           code=false
+          benchmarks=false
+          benchmarks_generator=false
           while IFS= read -r -d '' path; do
             printf '%s\n' "$path"
             case "$path" in
               *.md | LICENSE) ;;
               *) code=true ;;
             esac
+            case "$path" in
+              src/* | tools/OpenCode.Sdk.Tools/* | tools/curation.json | tools/generation-profile.txt | spec/* | tests/OpenCode.Sdk.Performance.Tests/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks=true ;;
+            esac
+            case "$path" in
+              tools/* | tests/OpenCode.Sdk.Tools.Tests/* | tests/OpenCode.Sdk.Performance.Tests/* | spec/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks_generator=true ;;
+            esac
           done < "$RUNNER_TEMP/changed-paths"
           echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "benchmarks=$benchmarks" >> "$GITHUB_OUTPUT"
+          echo "benchmarks-generator=$benchmarks_generator" >> "$GITHUB_OUTPUT"
 
   # The OS-independent gates run once, beside the matrix instead of inside its Linux leg, where
   # they delayed that leg's tests by about 5 minutes (2026-09-26, run 36231256172). None of them
@@ -495,6 +509,31 @@ jobs:
           api_base_url: 'https://api.localstackfor.net'
           hmac_secret: '${{ secrets.TESTDATASECRET }}'
 
+      - name: SDK Dry (net10)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.benchmarks == 'true' && runner.os == 'Linux' }}
+        timeout-minutes: 20
+        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --job Dry --runtimes net10.0 --artifacts .benchmarks/ci-sdk-net10
+
+      - name: SDK Dry (net11)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.benchmarks == 'true' && runner.os == 'Linux' }}
+        timeout-minutes: 20
+        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --job Dry --runtimes net11.0 --artifacts .benchmarks/ci-sdk-net11
+
+      - name: SDK Dry (net472)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && needs.changes.outputs.benchmarks == 'true' && runner.os == 'Windows' }}
+        timeout-minutes: 20
+        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Benchmarks.*' --job Dry --runtimes net472 --artifacts .benchmarks/ci-sdk-net472
+
+      - name: Upload SDK Dry artifacts
+        if: ${{ !cancelled() && needs.changes.outputs.benchmarks == 'true' && runner.os != 'macOS' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-sdk-${{ matrix.name }}-${{ github.event.pull_request.number || github.run_number }}
+          path: .benchmarks/ci-sdk-*
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Upload test artifacts
         uses: actions/upload-artifact@v7
         if: always()
@@ -504,12 +543,43 @@ jobs:
           path: test-results/**
           retention-days: 7
 
+  benchmark-generator-stage:
+    name: "Benchmark generator stages"
+    needs: changes
+    if: needs.changes.outputs.benchmarks-generator == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: 10.0.x
+
+      - name: Generator stages
+        timeout-minutes: 20
+        run: dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 -- --filter 'OpenCode.Sdk.Performance.Tests.Generator.GeneratorStageBenchmarks.*' --job Dry --artifacts .benchmarks/ci-generator-stage
+
+      - name: Upload generator stage artifacts
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-generator-stage-${{ github.event.pull_request.number || github.run_number }}
+          path: .benchmarks/ci-generator-stage
+          if-no-files-found: ignore
+          retention-days: 7
+
   # The one required check. A skipped matrix job reports under its unexpanded name, so the matrix
   # legs cannot be required one by one; this job stands for all of them. It fails closed: a change
   # that reaches code needs every job green, and a documentation-only change needs the changes job.
   ci-result:
     name: "CI result"
-    needs: [changes, lint, build-and-test]
+    needs: [changes, lint, build-and-test, benchmark-generator-stage]
     if: always()
     runs-on: ubuntu-24.04
     permissions: {}
@@ -521,13 +591,21 @@ jobs:
           CODE: ${{ needs.changes.outputs.code }}
           LINT: ${{ needs.lint.result }}
           BUILD_AND_TEST: ${{ needs.build-and-test.result }}
+          BENCHMARKS: ${{ needs.changes.outputs.benchmarks-generator }}
+          STAGE: ${{ needs.benchmark-generator-stage.result }}
         run: |
           echo "changes=$CHANGES code=$CODE lint=$LINT build-and-test=$BUILD_AND_TEST"
+          echo "benchmarks=$BENCHMARKS stage=$STAGE"
           [ "$CHANGES" = success ] || exit 1
           if [ "$CODE" = true ]; then
             [ "$LINT" = success ] && [ "$BUILD_AND_TEST" = success ] || exit 1
           else
             [ "$CODE" = false ] || exit 1
+          fi
+          if [ "$BENCHMARKS" = true ]; then
+            [ "$STAGE" = success ] || exit 1
+          else
+            [ "$BENCHMARKS" = false ] && [ "$STAGE" = skipped ] || exit 1
           fi
 
   # Runs once green (needs the lint job and the matrixed build-and-test job, which GitHub Actions

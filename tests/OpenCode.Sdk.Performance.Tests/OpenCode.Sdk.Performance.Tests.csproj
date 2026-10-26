@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/OpenCode.Sdk/OpenCode.Sdk.csproj"/>
+    <Compile Include="../Shared/BenchmarkExitPolicy.cs" LinkBase="Shared" />
   </ItemGroup>
 
   <!-- The generator benchmarks measure the repository tool, which targets the default framework only.
