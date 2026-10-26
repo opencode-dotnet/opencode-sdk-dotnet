@@ -26,8 +26,8 @@ public class RouteCompositionBenchmarks : IDisposable
 
     /// <summary>
     /// The ambient snapshot a client is constructed with. <see cref="PerCallLocation"/> overrides
-    /// its directory and leaves its workspace unset, so the merge below exercises both member
-    /// rules at once: a set member wins (directory, forcing the escape to recompute) over the ambient directory.
+    /// its directory and leaves its workspace unset, so the decoration below merges the directory: a set
+    /// member wins (forcing the escape to recompute) over the ambient one.
     /// </summary>
     private static readonly LocationSelector AmbientLocation = new() { Directory = "/repo" };
 
@@ -80,6 +80,8 @@ public class RouteCompositionBenchmarks : IDisposable
     /// values; request construction is measured separately.
     /// An <c>async ValueTask</c> method whose awaits complete synchronously allocates no state
     /// machine box, so the rung carries no async wrapper cost over the no-op terminal.
+    /// The reused message keeps its header container across calls (<c>Clear()</c> keeps its storage), so
+    /// the rung excludes the header container's creation, which a fresh production request pays.
     /// </summary>
     [Benchmark]
     public async ValueTask<HttpRequestHeaders> PathRouteDecorationAndHeaderResetAsync()

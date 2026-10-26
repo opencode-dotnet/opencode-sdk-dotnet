@@ -111,6 +111,7 @@ public class TerminalWriteBenchmarks : IAsyncDisposable
     public Task WritePtyAsync(WireFixture message)
     {
         ArgumentNullException.ThrowIfNull(message);
+        // Every PtyWrites fixture carries InputText, and GlobalSetup sends each one through RequireAsync.
         return _pty!.WriteAsync(message.InputText!);
     }
 
