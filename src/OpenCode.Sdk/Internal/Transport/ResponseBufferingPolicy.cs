@@ -87,7 +87,7 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
         return message.BufferBody || (int)message.Response!.StatusCode is < 200 or >= 300;
     }
 
-    private async Task<ResponseBody> ReadAsync(PipelineMessage message, ProgressWindow progress)
+    private async ValueTask<ResponseBody> ReadAsync(PipelineMessage message, ProgressWindow progress)
     {
         var content = message.Response!.Content;
         if (content is null)
@@ -134,7 +134,7 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
         }
     }
 
-    private async Task<ResponseBody> CopyToPooledAsync(Stream body, long? declaredLength, ProgressWindow progress)
+    private async ValueTask<ResponseBody> CopyToPooledAsync(Stream body, long? declaredLength, ProgressWindow progress)
     {
         var bytes = _pool.Rent(InitialRent(declaredLength));
         try
