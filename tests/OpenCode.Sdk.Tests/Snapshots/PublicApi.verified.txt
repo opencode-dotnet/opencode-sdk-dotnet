@@ -890,7 +890,7 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PermissionRequestListResponse> ListRequestsAsync(OpenCode.Sdk.PermissionRequestListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PermissionSavedListResponse> ListSavedAsync(OpenCode.Sdk.PermissionSavedListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PermissionSavedRemoveResponse> RemoveSavedAsync(string savedPermissionId, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
-        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PermissionSavedUpdateResponse> UpdateSavedAsync(string id, OpenCode.Sdk.Models.PermissionSavedUpdateRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+        public virtual System.Threading.Tasks.Task<OpenCode.Sdk.PermissionSavedUpdateResponse> UpdateSavedAsync(string savedPermissionId, OpenCode.Sdk.Models.PermissionSavedUpdateRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
     [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/exp" +
         "erimental.md#opencode002")]

@@ -9,6 +9,12 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 💥 Breaking changes
+
+- **`PermissionsClient.UpdateSavedAsync` takes `savedPermissionId`.** Its route value was a bare
+  `id`; it now matches `RemoveSavedAsync`. Only calls that name the argument (`id: …`) need to
+  change; nothing on the wire changes.
+
 ### 🔧 Changes
 
 - **Clearer IntelliSense documentation.** `EnumerateSessionsAsync` and `EnumerateMessagesAsync`

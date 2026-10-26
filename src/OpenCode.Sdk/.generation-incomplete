@@ -151,8 +151,8 @@ Selected:
 - worktree.remove
 Pending:
 Declined:
-- experimental.mcp.client [declined: Deferred and built before 1.0 in #529: the WebSocket attach needs a client-hosted MCP runtime channel.] [refused: WebSocket operations are not supported]
-- experimental.mcp.client.token [declined: Deferred and built before 1.0 in #529: the x-opencode-ticket header has no runtime channel for the client MCP attach.] [refused: header parameter 'x-opencode-ticket' has no runtime channel]
+- experimental.mcp.client [declined: Deferred to a hand-written door in 1.1 (#529): the WebSocket attach needs a client-hosted MCP runtime channel.] [refused: WebSocket operations are not supported]
+- experimental.mcp.client.token [declined: Deferred to a hand-written door in 1.1 (#529): the x-opencode-ticket header has no runtime channel for the client MCP attach.] [refused: header parameter 'x-opencode-ticket' has no runtime channel]
 Transport-owned:
 - persistentPty.connect [fingerprint-pinned]
 - pty.connect [fingerprint-pinned]
