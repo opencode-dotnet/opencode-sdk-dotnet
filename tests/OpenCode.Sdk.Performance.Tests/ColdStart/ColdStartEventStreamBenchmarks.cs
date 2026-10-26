@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Performance.Tests.Support;
 
-namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
+namespace OpenCode.Sdk.Performance.Tests.ColdStart;
 
 /// <summary>The live bus's first idle event after its opener, against materialization alone.</summary>
 /// <remarks>

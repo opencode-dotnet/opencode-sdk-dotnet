@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Performance.Tests.Support;
 
-namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
+namespace OpenCode.Sdk.Performance.Tests.ColdStart;
 
 /// <summary>The server-info component ladder on each process's first call, including client construction.</summary>
 /// <remarks>
