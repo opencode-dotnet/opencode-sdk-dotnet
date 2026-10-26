@@ -2221,7 +2221,7 @@
     "permission": {
       "placement": "client",
       "clientName": "Permissions",
-      "reason": "saved.remove is the family's only per-id operation; the pending-request surface lives on sessions (ADR-0019)."
+      "reason": "Saved-permission update and remove are single-shot admin actions whose id rides as an argument; the pending-request surface lives on sessions (ADR-0019)."
     },
     "provider": {
       "placement": "client",
@@ -2718,6 +2718,12 @@
       "parameter": "id",
       "dotnetName": "savedPermissionId",
       "reason": "The route value is a saved permission's id; the other operations name their ids after the resource (credentialId, integrationId), and a bare id says less."
+    },
+    {
+      "operationId": "permission.saved.update",
+      "parameter": "id",
+      "dotnetName": "savedPermissionId",
+      "reason": "The route value is a saved permission's id; the remove operation on the same resource already names it savedPermissionId, and a bare id says less."
     }
   ],
   "queryParameterTypes": [
@@ -3440,11 +3446,11 @@
   "declined": [
     {
       "operationId": "experimental.mcp.client",
-      "reason": "Deferred and built before 1.0 in #529: the WebSocket attach needs a client-hosted MCP runtime channel."
+      "reason": "Deferred to a hand-written door in 1.1 (#529): the WebSocket attach needs a client-hosted MCP runtime channel."
     },
     {
       "operationId": "experimental.mcp.client.token",
-      "reason": "Deferred and built before 1.0 in #529: the x-opencode-ticket header has no runtime channel for the client MCP attach."
+      "reason": "Deferred to a hand-written door in 1.1 (#529): the x-opencode-ticket header has no runtime channel for the client MCP attach."
     }
   ],
   "envelopePayloadNames": [

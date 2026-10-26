@@ -81,7 +81,7 @@ public class PermissionsClient
     /// <summary>
     /// Update saved permission. Change the action or resource of a saved permission. Fails with a conflict when the project already has a saved permission with the same action and resource.
     /// </summary>
-    /// <param name = "id">The &apos;id&apos; route value.</param>
+    /// <param name = "savedPermissionId">The &apos;id&apos; route value.</param>
     /// <param name = "request">The request body; an empty body is sent when omitted.</param>
     /// <param name = "requestOptions">The per-call options.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
@@ -91,9 +91,9 @@ public class PermissionsClient
     /// <remarks>
     /// Operation <c>permission.saved.update</c>: <c>PATCH /api/permission/saved/{id}</c>.
     /// </remarks>
-    public virtual Task<PermissionSavedUpdateResponse> UpdateSavedAsync(string id, PermissionSavedUpdateRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    public virtual Task<PermissionSavedUpdateResponse> UpdateSavedAsync(string savedPermissionId, PermissionSavedUpdateRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrEmpty(id);
-        return Pipeline.ExecuteAsync("permission.saved.update", OpenCodeHttpMethod.Patch, OpenCodeRoutes.Permissions.UpdateSaved(id), request ?? EmptyPermissionSavedUpdateRequest, OpenCodeJsonContext.Default.PermissionSavedUpdateRequest, PermissionSavedUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
+        ArgumentException.ThrowIfNullOrEmpty(savedPermissionId);
+        return Pipeline.ExecuteAsync("permission.saved.update", OpenCodeHttpMethod.Patch, OpenCodeRoutes.Permissions.UpdateSaved(savedPermissionId), request ?? EmptyPermissionSavedUpdateRequest, OpenCodeJsonContext.Default.PermissionSavedUpdateRequest, PermissionSavedUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }
