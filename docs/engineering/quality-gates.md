@@ -386,11 +386,11 @@ matrix: net10.0 and net11.0 on Linux, and net472 on Windows. Each job builds onl
 project and its references, using the pinned SDK. A separate `benchmark-generator-stage` job runs
 each `GeneratorStageBenchmarks` case twice: once under the command line's Dry job and once under
 the class's own `[SimpleJob(RuntimeMoniker.Net10_0)]` default-strategy job, without `--runtimes`;
-`GeneratorRunBenchmarks` never runs in CI. Each SDK Dry step and the stage step has a 20-minute
-timeout.
-The benchmark process returns non-zero for no summaries, zero expected cases in any summary, any
-validation error, failed build, missing report, unsuccessful report or missing result statistics,
-failing the step without log scraping. Both jobs upload their benchmark artifacts even after failure.
+`GeneratorRunBenchmarks` never runs in CI. Each SDK Dry step and the stage step has a
+20-minute timeout. The benchmark process returns non-zero for no summaries, zero expected cases in
+any summary, any validation error, failed build, missing report, unsuccessful report or missing
+result statistics, failing the step without log scraping. Both jobs upload their benchmark artifacts
+even after failure.
 
 The SDK guard selects changes under `src/`, `tools/OpenCode.Sdk.Tools/`, `spec/` and the performance
 project, plus `tools/curation.json`, `tools/generation-profile.txt`, the shared `BenchmarkExitPolicy.cs`,

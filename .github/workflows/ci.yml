@@ -534,8 +534,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          submodules: true
 
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
@@ -614,7 +612,7 @@ jobs:
           STAGE: ${{ needs.benchmark-generator-stage.result }}
         run: |
           echo "changes=$CHANGES code=$CODE lint=$LINT build-and-test=$BUILD_AND_TEST"
-          echo "benchmarks=$BENCHMARKS stage=$STAGE"
+          echo "sdk-benchmarks=$SDK_BENCHMARKS sdk=$SDK generator-benchmarks=$BENCHMARKS stage=$STAGE"
           [ "$CHANGES" = success ] || exit 1
           if [ "$CODE" = true ]; then
             [ "$LINT" = success ] && [ "$BUILD_AND_TEST" = success ] || exit 1
@@ -632,8 +630,8 @@ jobs:
             [ "$BENCHMARKS" = false ] && [ "$STAGE" = skipped ] || exit 1
           fi
 
-  # Runs once green (needs the lint job and the matrixed build-and-test job, which GitHub Actions
-  # only satisfies once every OS leg completes) and only on a real push to master, never on a PR.
+  # Runs once green (needs lint, build-and-test and benchmark-sdk; GitHub Actions waits for every
+  # leg of both matrix jobs) and only on a real push to master, never on a PR.
   # Publishes a -nightly package to GitHub Packages for every master push that runs this workflow,
   # so the code of the last such push is installable; the stable, human-triggered lane lives in
   # publish-nuget.yml.

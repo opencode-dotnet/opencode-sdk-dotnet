@@ -31,6 +31,8 @@ public sealed class CiBenchmarkGuardTests
         var uploadStart = matrix.IndexOf("      - name: Upload SDK Dry artifacts\n", StringComparison.Ordinal);
         var uploadEnd = matrix.IndexOf("\n      - name: ", uploadStart + 1, StringComparison.Ordinal);
         var upload = matrix[uploadStart..(uploadEnd < 0 ? matrix.Length : uploadEnd)];
+        await Assert.That(upload).Contains("if: always()");
+        await Assert.That(upload).Contains("name: benchmark-sdk-${{ matrix.leg }}-${{ github.event.pull_request.number || github.run_number }}");
         await Assert.That(upload).Contains("continue-on-error: true");
     }
 
