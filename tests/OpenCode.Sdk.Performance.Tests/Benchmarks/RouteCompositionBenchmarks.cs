@@ -6,11 +6,9 @@ using OpenCode.Sdk.Performance.Tests.Support;
 namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 
 /// <summary>
-/// Route and query composition alone, per request shape: the constant route as the
-/// composition-free control, the two-parameter path route, and the query-bearing list route,
-/// plus path request construction and a per-call location merge over an ambient snapshot —
-/// the member-by-member merge <see cref="RequestDecorationPolicy"/> performs on every request
-/// that carries a per-call <see cref="OpenCodeRequestOptions.Location"/>.
+/// Route and query composition alone, per request shape: the two-parameter path route and the
+/// query-bearing list route, plus production message construction and full request decoration
+/// (authorization, location selection and user agent) with the harness's header reset.
 /// </summary>
 [MemoryDiagnoser]
 public class RouteCompositionBenchmarks : IDisposable
@@ -28,8 +26,8 @@ public class RouteCompositionBenchmarks : IDisposable
 
     /// <summary>
     /// The ambient snapshot a client is constructed with. <see cref="PerCallLocation"/> overrides
-    /// its directory and leaves its workspace unset, so the merge below exercises both member
-    /// rules at once: a set member wins (directory, forcing the escape to recompute) over the ambient directory.
+    /// its directory and leaves its workspace unset, so the decoration below merges the directory: a set
+    /// member wins (forcing the escape to recompute) over the ambient one.
     /// </summary>
     private static readonly LocationSelector AmbientLocation = new() { Directory = "/repo" };
 
@@ -41,26 +39,20 @@ public class RouteCompositionBenchmarks : IDisposable
         AmbientLocation,
         UserAgentPolicy.Resolve());
 
-    private string _constantRoute = string.Empty;
-    private string _pathRoute = string.Empty;
+    private PipelineExchange? _exchange;
+    private OperationRequest? _operation;
     private PipelineMessage? _message;
 
     [GlobalSetup]
     public void Setup()
     {
-        _constantRoute = OpenCodeRoutes.Server.GetInfo;
-        _pathRoute = OpenCodeRoutes.Sessions.GetMessage(SessionId, MessageId);
-        _message = new PipelineMessage
-        {
-            NetworkTimeout = NetworkTimeouts.DefaultNetworkTimeout,
-            Request = new HttpRequestMessage(HttpMethod.Get, new Uri(EndpointBase + _pathRoute, UriKind.Absolute)),
-            PerCallLocation = PerCallLocation,
-        };
+        var connection = new ConnectionSnapshot(EndpointBase, authorization: null, AmbientLocation, TimeProvider.System);
+        _exchange = new PipelineExchange(connection, clientNetworkTimeout: null, Terminal, CancellationToken.None);
+        _operation = OperationRequest.Describe<object>("session.message.get", HttpMethod.Get,
+            OpenCodeRoutes.Sessions.GetMessage(SessionId, MessageId), body: null, bodyTypeInfo: null,
+            content: null, new OpenCodeRequestOptions { Location = PerCallLocation }, declaredHeaders: null);
+        _message = _exchange.CreateMessage(_operation, bufferBody: true, perCallNetworkTimeout: null, CancellationToken.None);
     }
-
-    /// <summary>The constant no-parameter route: the call-overhead floor.</summary>
-    [Benchmark]
-    public string ConstantRoute() => _constantRoute;
 
     /// <summary>The two-parameter path route: segment concatenation plus value escaping.</summary>
     [Benchmark(Baseline = true)]
@@ -71,16 +63,11 @@ public class RouteCompositionBenchmarks : IDisposable
     public string QueryRoute() =>
         OpenCodeRoutes.Sessions.ListMessages(SessionId, FullQuery);
 
-    /// <summary>Request construction over a precomposed path route: URI, HTTP request, and pipeline message.</summary>
+    /// <summary>Production message creation over an operation described once in setup: URI, HTTP request, and pipeline message.</summary>
     [Benchmark]
     public Uri PathRouteRequestConstruction()
     {
-        using var message = new PipelineMessage
-        {
-            NetworkTimeout = NetworkTimeouts.DefaultNetworkTimeout,
-            Request = new HttpRequestMessage(HttpMethod.Get, new Uri(EndpointBase + _pathRoute, UriKind.Absolute)),
-            PerCallLocation = PerCallLocation,
-        };
+        using var message = _exchange!.CreateMessage(_operation!, bufferBody: true, perCallNetworkTimeout: null, CancellationToken.None);
 
         return message.Request.RequestUri!;
     }
@@ -88,18 +75,21 @@ public class RouteCompositionBenchmarks : IDisposable
     /// <summary>
     /// A preconstructed path request, decorated through the same <see cref="RequestDecorationPolicy"/>
     /// every request rides, with a per-call location that merges over the ambient snapshot member
-    /// by member (directory overridden and re-escaped). Includes clearing headers each call so
-    /// repeated decoration does not accumulate values; request construction is measured separately.
+    /// by member (directory overridden and re-escaped), plus authorization and user-agent writes.
+    /// Includes the harness's header reset each call so repeated decoration does not accumulate
+    /// values; request construction is measured separately.
     /// An <c>async ValueTask</c> method whose awaits complete synchronously allocates no state
     /// machine box, so the rung carries no async wrapper cost over the no-op terminal.
+    /// The reused message keeps its header container across calls (<c>Clear()</c> keeps its storage), so
+    /// the rung excludes the header container's creation, which a fresh production request pays.
     /// </summary>
     [Benchmark]
-    public async ValueTask<string> PathRouteWithLocationMergeAsync()
+    public async ValueTask<HttpRequestHeaders> PathRouteDecorationAndHeaderResetAsync()
     {
         var message = _message!;
         message.Request.Headers.Clear();
         await Decoration.ProcessAsync(message, Terminal).ConfigureAwait(false);
-        return message.Request.Headers.GetValues("x-opencode-directory").First();
+        return message.Request.Headers;
     }
 
     [GlobalCleanup]

@@ -21,8 +21,8 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// with a decoder that reads nothing, so their difference is decoding, and the complete rung minus
 /// the first is the public session around the core. The receive-only rung is the receive loop
 /// (receive, reassembly, queue, delivery, the connection's lifetime) plus the canned socket's
-/// per-receive task. The pooled rung completes each receive on the thread pool, as a live socket
-/// does (<see cref="CannedTerminalWebSocket"/>).
+/// per-receive task. These rungs complete receives on the thread pool, as a live socket does
+/// (<see cref="CannedTerminalWebSocket"/>); the backlog rung uses synchronous receives instead.
 /// </summary>
 [MemoryDiagnoser]
 public class PtySessionReadBenchmarks : IAsyncDisposable
@@ -98,15 +98,16 @@ public class PtySessionReadBenchmarks : IAsyncDisposable
             throw new InvalidOperationException($"Fixture '{Fixture.Name}' did not decode into complete, non-empty output frames.");
         }
 
-        if (DecodeFrames() != Fixture.Items)
+        _ = DecodeFrames(out var decodedFrames);
+        if (decodedFrames != Fixture.Items)
         {
             throw new InvalidOperationException($"Fixture '{Fixture.Name}' did not decode-alone into the expected frame count.");
         }
     }
 
-    /// <summary>The connection lifetime: construction, receive, reassembly, decode, delivery, and disposal.</summary>
+    /// <summary>The synchronous backlog drain: the whole connection queues before the consumer reads, as for a slow consumer.</summary>
     [Benchmark]
-    public async Task<int> ReadFramesAsync()
+    public async Task<int> ReadBacklogAsync()
     {
         using var socket = new CannedTerminalWebSocket(_messages);
         await using var session = new PtySession(socket, TimeProvider.System);
@@ -115,7 +116,7 @@ public class PtySessionReadBenchmarks : IAsyncDisposable
 
     /// <summary>The complete rung over receives completed on the thread pool, as a live socket's are.</summary>
     [Benchmark]
-    public async Task<int> ReadFramesPooledAsync()
+    public async Task<int> ReadFramesAsync()
     {
         using var socket = new CannedTerminalWebSocket(_messages, pooled: true);
         await using var session = new PtySession(socket, TimeProvider.System);
@@ -132,16 +133,19 @@ public class PtySessionReadBenchmarks : IAsyncDisposable
 
     /// <summary>Decode alone, over the exact messages the complete rung assembles: no socket, no receive loop.</summary>
     [Benchmark]
-    public int DecodeFrames()
+    public PtyFrame? DecodeFrames() => DecodeFrames(out _);
+
+    private PtyFrame? DecodeFrames(out int frames)
     {
-        var frames = 0;
+        PtyFrame? result = null;
+        frames = 0;
         foreach (var (type, payload) in _messages)
         {
-            _ = PtyFrameReader.Read(type, payload, payload.Length);
+            result = PtyFrameReader.Read(type, payload, payload.Length);
             frames++;
         }
 
-        return frames;
+        return result;
     }
 
     [GlobalCleanup]
@@ -172,7 +176,7 @@ public class PtySessionReadBenchmarks : IAsyncDisposable
 
     private async Task<int> CountCoreFramesAsync(ITerminalFrameDecoder<PtyFrame> decoder)
     {
-        using var socket = new CannedTerminalWebSocket(_messages);
+        using var socket = new CannedTerminalWebSocket(_messages, pooled: true);
         await using var core = new TerminalSocketCore<PtyFrame>(socket, decoder, PtyClosePolicy.Instance, typeof(PtySession), TimeProvider.System);
         var frames = 0;
         await foreach (var frame in core.ReadAsync(CancellationToken.None).ConfigureAwait(false))

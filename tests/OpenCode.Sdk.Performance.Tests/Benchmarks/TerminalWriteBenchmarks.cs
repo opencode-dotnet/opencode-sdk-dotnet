@@ -28,17 +28,16 @@ public class TerminalWriteBenchmarks : IAsyncDisposable
 
     private static readonly PersistentPtySeed Seed = new();
 
-    private readonly Dictionary<string, string> _texts = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, byte[]> _inputs = new(StringComparer.Ordinal);
     private SendSinkTerminalWebSocket? _ptySocket;
     private PtySession? _pty;
     private SendSinkTerminalWebSocket? _persistentSocket;
     private PersistentPtySession? _persistent;
 
-    public static IEnumerable<WireFixture> PtyWrites() => Inputs().Select(static input => Message(input.Name, input.Bytes));
+    public static IEnumerable<WireFixture> PtyWrites() =>
+        Inputs().Select(static input => Message(input.Name, input.Bytes) with { InputText = Encoding.UTF8.GetString(input.Bytes) });
 
     public static IEnumerable<WireFixture> PersistentWrites() =>
-        Inputs().Select(static input => Message(input.Name, Frame(InputType, input.Bytes)));
+        Inputs().Select(static input => Message(input.Name, Frame(InputType, input.Bytes)) with { InputBytes = input.Bytes });
 
     public static IEnumerable<WireFixture> PtySubmits()
     {
@@ -63,12 +62,6 @@ public class TerminalWriteBenchmarks : IAsyncDisposable
     [GlobalSetup]
     public async Task SetupAsync()
     {
-        foreach (var input in Inputs())
-        {
-            _inputs[input.Name] = input.Bytes;
-            _texts[input.Name] = Encoding.UTF8.GetString(input.Bytes);
-        }
-
         _ptySocket = new SendSinkTerminalWebSocket();
         _pty = new PtySession(_ptySocket, TimeProvider.System);
         _persistentSocket = new SendSinkTerminalWebSocket();
@@ -118,7 +111,8 @@ public class TerminalWriteBenchmarks : IAsyncDisposable
     public Task WritePtyAsync(WireFixture message)
     {
         ArgumentNullException.ThrowIfNull(message);
-        return _pty!.WriteAsync(_texts[message.Name]);
+        // Every PtyWrites fixture carries InputText, and GlobalSetup sends each one through RequireAsync.
+        return _pty!.WriteAsync(message.InputText!);
     }
 
     /// <summary>The normal family's submit: validate the line, append the carriage return, encode, send.</summary>
@@ -136,7 +130,7 @@ public class TerminalWriteBenchmarks : IAsyncDisposable
     public Task WritePersistentAsync(WireFixture message)
     {
         ArgumentNullException.ThrowIfNull(message);
-        return _persistent!.WriteAsync(_inputs[message.Name]);
+        return _persistent!.WriteAsync(message.InputBytes);
     }
 
     /// <summary>The persistent family's submit: the normal family's line work, then the binary frame.</summary>

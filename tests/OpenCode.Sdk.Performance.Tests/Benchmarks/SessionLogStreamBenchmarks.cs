@@ -113,7 +113,7 @@ public class SessionLogStreamBenchmarks : IDisposable
 
     /// <summary>The complete generated stream operation over one canned response.</summary>
     [Benchmark]
-    public async Task<int> GetLogAsync()
+    public async Task<int> ReadLogAsync()
     {
         var session = _session!;
         var count = 0;
@@ -128,7 +128,7 @@ public class SessionLogStreamBenchmarks : IDisposable
 
     /// <summary>The complete generated stream operation over a body whose every socket-sized read suspends.</summary>
     [Benchmark]
-    public async Task<int> GetLogSuspendingAsync()
+    public async Task<int> ReadLogSuspendingAsync()
     {
         var session = _suspendingSession!;
         var count = 0;
@@ -147,31 +147,29 @@ public class SessionLogStreamBenchmarks : IDisposable
 
     /// <summary>Framing plus per-frame materialization without the request pipeline or HTTP.</summary>
     [Benchmark]
-    public async Task<int> ReadFramesAndDeserializeAsync()
+    public async Task<ISessionLogItem?> ReadFramesAndDeserializeAsync()
     {
         using var stream = new MemoryStream(_body);
-        var count = 0;
+        ISessionLogItem? result = null;
         await foreach (var frame in new ServerSentEventReader().ReadAsync(stream, CancellationToken.None).ConfigureAwait(false))
         {
-            _ = JsonSerializer.Deserialize(frame.Data, OpenCodeJsonContext.Default.ISessionLogItem);
-            count++;
+            result = JsonSerializer.Deserialize(frame.Data, OpenCodeJsonContext.Default.ISessionLogItem);
         }
 
-        return count;
+        return result;
     }
 
     /// <summary>Per-frame materialization alone over the exact frame strings the pipeline deserializes.</summary>
     [Benchmark]
-    public int DeserializeFrames()
+    public ISessionLogItem? DeserializeFrames()
     {
-        var count = 0;
+        ISessionLogItem? result = null;
         foreach (var frame in _frames)
         {
-            _ = JsonSerializer.Deserialize(frame, OpenCodeJsonContext.Default.ISessionLogItem);
-            count++;
+            result = JsonSerializer.Deserialize(frame, OpenCodeJsonContext.Default.ISessionLogItem);
         }
 
-        return count;
+        return result;
     }
 
     /// <summary>The harness floor: a bare send through the same handler with the body drained, no SDK.</summary>

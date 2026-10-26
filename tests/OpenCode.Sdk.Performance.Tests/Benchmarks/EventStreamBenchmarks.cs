@@ -20,7 +20,9 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// <remarks>
 /// A connection opens with <c>server.connected</c>, as the server writes it, and the bus refuses
 /// one that does not. The bus reconnects at the end of a body rather than ending, so each
-/// subscription rung reads the connection's events and leaves, as a consumer does.
+/// subscription rung reads the connection's events and leaves, as a consumer does. Its
+/// <c>Alloc B/item</c> includes one opener per 1024 idle events (about 0.1%); the fixture's item
+/// count remains 1024 for the materialization rows, which exclude the opener.
 /// </remarks>
 [MemoryDiagnoser]
 public class EventStreamBenchmarks : IDisposable
@@ -115,30 +117,28 @@ public class EventStreamBenchmarks : IDisposable
 
     /// <summary>Per-frame materialization alone through the live-bus union.</summary>
     [Benchmark]
-    public int DeserializeFrames()
+    public IEvent? DeserializeFrames()
     {
-        var count = 0;
+        IEvent? result = null;
         foreach (var frame in _frames)
         {
-            _ = JsonSerializer.Deserialize(frame, OpenCodeJsonContext.Default.IEvent);
-            count++;
+            result = JsonSerializer.Deserialize(frame, OpenCodeJsonContext.Default.IEvent);
         }
 
-        return count;
+        return result;
     }
 
     /// <summary>The control: the same frames materialized into the known record without union dispatch.</summary>
     [Benchmark]
-    public int DeserializeConcreteFrames()
+    public SessionIdle? DeserializeConcreteFrames()
     {
-        var count = 0;
+        SessionIdle? result = null;
         foreach (var frame in _frames)
         {
-            _ = JsonSerializer.Deserialize(frame, OpenCodeJsonContext.Default.SessionIdle);
-            count++;
+            result = JsonSerializer.Deserialize(frame, OpenCodeJsonContext.Default.SessionIdle);
         }
 
-        return count;
+        return result;
     }
 
     /// <summary>The buffered harness floor: a bare send through the same handler with the body drained, no SDK.</summary>

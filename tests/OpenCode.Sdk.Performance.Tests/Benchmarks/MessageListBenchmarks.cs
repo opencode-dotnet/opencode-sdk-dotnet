@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// <summary>
 /// The cursor-list page read, decomposed per page size: the complete call, the generated
 /// adapter over validated UTF-8, and source-generated envelope materialization alone. Pages
-/// carry one, thirty, and four hundred eighty deep messages, so per-item and fixed costs separate.
+/// carry one, thirty, and four hundred forty deep messages, so per-item and fixed costs separate.
 /// The raw-send rung sends and drains the same response with no SDK (<see cref="CannedExchange"/>),
 /// the floor a buffered pipeline rung stands on.
 /// </summary>
@@ -16,7 +16,8 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 public class MessageListBenchmarks : IDisposable
 {
     private const int MediumItems = 30;
-    private const int LargeItems = 480;
+    /// <summary>The 960,565-byte page stays over 5% below the downlevel pool's 1 MiB boundary.</summary>
+    private const int LargeItems = 440;
 
     private static readonly OpenCodeClientOptions Options = new()
     {
@@ -36,7 +37,7 @@ public class MessageListBenchmarks : IDisposable
         var composer = new AssistantMessageComposer(BenchmarkFixtures.DeepAssistantMessage());
         yield return Page("page-1", composer, 1);
         yield return Page("page-30", composer, MediumItems);
-        yield return Page("page-480", composer, LargeItems);
+        yield return Page("page-440", composer, LargeItems);
     }
 
     [ParamsSource(nameof(Fixtures))]
