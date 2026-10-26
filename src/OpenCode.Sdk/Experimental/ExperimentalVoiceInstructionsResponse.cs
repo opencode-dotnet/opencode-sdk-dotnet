@@ -18,7 +18,7 @@ public sealed record ExperimentalVoiceInstructionsResponse : OpenCodeResponse
     }
 
     /// <summary>
-    /// Initializes an error-path instance; the payload stays unset behind its guard.
+    /// Initializes an error-path instance.
     /// </summary>
     [SetsRequiredMembers]
     internal ExperimentalVoiceInstructionsResponse(int status, IOpenCodeError? error, string? rawBody)

@@ -404,7 +404,7 @@ public sealed record WidgetRemoveResponse : OpenCodeResponse
     }
 
     /// <summary>
-    /// Initializes an error-path instance; the payload stays unset behind its guard.
+    /// Initializes an error-path instance.
     /// </summary>
     [SetsRequiredMembers]
     internal WidgetRemoveResponse(int status, IOpenCodeError? error, string? rawBody)

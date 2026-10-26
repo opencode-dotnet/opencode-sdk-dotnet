@@ -31,7 +31,7 @@ internal sealed class WorktreeRefreshResponseAdapter : ResponseAdapter<WorktreeR
         _ => StatusVerdict.UndeclaredError
     };
     /// <summary>
-    /// Maps the declared UTF-8 success body onto the typed envelope.
+    /// Creates the typed envelope for a success that carries no body.
     /// </summary>
     public override WorktreeRefreshResponse AdaptSuccess(int status, ReadOnlySpan<byte> utf8Body) => new()
     {

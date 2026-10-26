@@ -31,7 +31,7 @@ internal sealed class LocationReloadResponseAdapter : ResponseAdapter<LocationRe
         _ => StatusVerdict.UndeclaredError
     };
     /// <summary>
-    /// Maps the declared UTF-8 success body onto the typed envelope.
+    /// Creates the typed envelope for a success that carries no body.
     /// </summary>
     public override LocationReloadResponse AdaptSuccess(int status, ReadOnlySpan<byte> utf8Body) => new()
     {

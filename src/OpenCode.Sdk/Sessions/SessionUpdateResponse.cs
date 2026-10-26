@@ -17,7 +17,7 @@ public sealed record SessionUpdateResponse : OpenCodeResponse
     }
 
     /// <summary>
-    /// Initializes an error-path instance; the payload stays unset behind its guard.
+    /// Initializes an error-path instance.
     /// </summary>
     [SetsRequiredMembers]
     internal SessionUpdateResponse(int status, IOpenCodeError? error, string? rawBody)

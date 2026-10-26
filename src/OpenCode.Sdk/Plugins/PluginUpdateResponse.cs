@@ -17,7 +17,7 @@ public sealed record PluginUpdateResponse : OpenCodeResponse
     }
 
     /// <summary>
-    /// Initializes an error-path instance; the payload stays unset behind its guard.
+    /// Initializes an error-path instance.
     /// </summary>
     [SetsRequiredMembers]
     internal PluginUpdateResponse(int status, IOpenCodeError? error, string? rawBody)
