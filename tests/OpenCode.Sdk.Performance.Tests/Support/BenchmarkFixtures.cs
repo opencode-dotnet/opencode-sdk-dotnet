@@ -8,10 +8,36 @@ namespace OpenCode.Sdk.Performance.Tests.Support;
 /// <summary>Loads and frames the canned wire payloads the benchmarks replay.</summary>
 internal static class BenchmarkFixtures
 {
+    public const string SessionPromptCodeText = """
+        Please review this transport change before I send it for review. It's meant to preserve the caller's cancellation token, not create another timeout. The report says "request completed" even when the response body is still being read. I'd like a focused fix, with no public API changes.
+
+        The failing path is `SendAsync` -> `ReadAsStreamAsync` -> `CopyToAsync`. We need to distinguish a caller's cancellation from a server error, and keep the original exception when the caller cancels. Don't turn an HTTP 404 into an empty success. If a header contains <trace> or a query includes a=1&b=2, keep those values intact in diagnostic output.
+
+        Here's the current sketch, pasted from the branch:
+        ```csharp
+        public async Task<string> ReadAsync(HttpClient client, CancellationToken cancellationToken)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, "/api/session?from=first&to=last");
+            request.Headers.Add("X-Trace", "review<transport>+body");
+            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            if ((int)response.StatusCode < 200 || (int)response.StatusCode > 299)
+            {
+                throw new InvalidOperationException("The server didn't accept this request.");
+            }
+
+            var text = await response.Content.ReadAsStringAsync(cancellationToken);
+            return text + "\n<done>&accepted=true";
+        }
+        ```
+
+        Check disposal when the server returns headers and then stalls halfway through the body. A canceled read shouldn't be reported as "Accepted" or retried; the caller owns that decision. Please suggest one deterministic test that starts cancellation after the first body chunk, and one that proves a non-success body remains available to the error adapter. Explain which token reaches each awaited operation and whether disposing the response closes the stream. Keep the patch small enough that I can compare the old and new failure paths side by side.
+        """;
+
     /// <summary>Literal prompt request oracles, independent of request serialization.</summary>
     public static byte[] SessionPromptRequestBody(string name) => Encoding.UTF8.GetBytes(name switch
     {
         "text-only" => """{"text":"Review the session transport for cancellation bugs. Explain the failure path and suggest a focused fix. Keep the public API unchanged."}""",
+        "text-code" => """{"text":"Please review this transport change before I send it for review. It\u0027s meant to preserve the caller\u0027s cancellation token, not create another timeout. The report says \u0022request completed\u0022 even when the response body is still being read. I\u0027d like a focused fix, with no public API changes.\n\nThe failing path is \u0060SendAsync\u0060 -\u003E \u0060ReadAsStreamAsync\u0060 -\u003E \u0060CopyToAsync\u0060. We need to distinguish a caller\u0027s cancellation from a server error, and keep the original exception when the caller cancels. Don\u0027t turn an HTTP 404 into an empty success. If a header contains \u003Ctrace\u003E or a query includes a=1\u0026b=2, keep those values intact in diagnostic output.\n\nHere\u0027s the current sketch, pasted from the branch:\n\u0060\u0060\u0060csharp\npublic async Task\u003Cstring\u003E ReadAsync(HttpClient client, CancellationToken cancellationToken)\n{\n    using var request = new HttpRequestMessage(HttpMethod.Get, \u0022/api/session?from=first\u0026to=last\u0022);\n    request.Headers.Add(\u0022X-Trace\u0022, \u0022review\u003Ctransport\u003E\u002Bbody\u0022);\n    using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);\n    if ((int)response.StatusCode \u003C 200 || (int)response.StatusCode \u003E 299)\n    {\n        throw new InvalidOperationException(\u0022The server didn\u0027t accept this request.\u0022);\n    }\n\n    var text = await response.Content.ReadAsStringAsync(cancellationToken);\n    return text \u002B \u0022\\n\u003Cdone\u003E\u0026accepted=true\u0022;\n}\n\u0060\u0060\u0060\n\nCheck disposal when the server returns headers and then stalls halfway through the body. A canceled read shouldn\u0027t be reported as \u0022Accepted\u0022 or retried; the caller owns that decision. Please suggest one deterministic test that starts cancellation after the first body chunk, and one that proves a non-success body remains available to the error adapter. Explain which token reaches each awaited operation and whether disposing the response closes the stream. Keep the patch small enough that I can compare the old and new failure paths side by side."}""",
         "text-files" => """{"text":"Review the session transport for cancellation bugs. Explain the failure path and suggest a focused fix. Keep the public API unchanged.","files":[{"uri":"file:///repo/src/Transport.cs","name":"Transport.cs","description":"HTTP transport"},{"uri":"file:///repo/tests/TransportTests.cs","name":"TransportTests.cs","description":"Cancellation tests"}]}""",
         "all-set" => """{"id":"msg_bench","text":"Review the session transport for cancellation bugs. Explain the failure path and suggest a focused fix. Keep the public API unchanged.","files":[{"uri":"file:///repo/src/Transport.cs","name":"Transport.cs","description":"HTTP transport"},{"uri":"file:///repo/tests/TransportTests.cs","name":"TransportTests.cs","description":"Cancellation tests"}],"agents":[{"name":"build"}],"skills":[{"id":"review"}],"metadata":{"run":7},"delivery":"queue","resume":true}""",
         _ => throw new ArgumentOutOfRangeException(nameof(name), name, "No such prompt case."),
@@ -19,20 +45,22 @@ internal static class BenchmarkFixtures
 
     /// <summary>A minimal admitted user input acknowledgement.</summary>
     public static byte[] SessionPromptResponseBody() =>
-        """{"data":{"id":"inb_bench","sessionID":"ses_bench0000000000000000001","time":{"created":1},"type":"user","payload":{"text":"Accepted."},"delivery":"queue"}}"""u8.ToArray();
+        """{"data":{"id":"msg_bench","sessionID":"ses_bench0000000000000000001","time":{"created":1},"type":"user","payload":{"text":"Accepted."},"delivery":"queue"}}"""u8.ToArray();
 
-    /// <summary>One source file's coherent unified diff; each six-line hunk replaces one setting.</summary>
-    public static byte[] SessionDiffBody(int hunks)
+    /// <summary>One full-file unified diff of a settings array, replacing one setting in each block.</summary>
+    public static byte[] SessionDiffBody(int blocks)
     {
-        var patch = new StringBuilder("--- a/src/settings.ts\n+++ b/src/settings.ts\n");
-        for (var index = 0; index < hunks; index++)
+        var lines = (2 + (blocks * 5)).ToString(CultureInfo.InvariantCulture);
+        var patch = new StringBuilder("diff --git a/src/settings.ts b/src/settings.ts\nindex 1234567..89abcde 100644\n--- a/src/settings.ts\n+++ b/src/settings.ts\n");
+        _ = patch.Append("@@ -1,").Append(lines).Append(" +1,").Append(lines).Append(" @@\n export const workers = [\n");
+        for (var index = 0; index < blocks; index++)
         {
-            var offset = (3 + (index * 6)).ToString(CultureInfo.InvariantCulture);
-            _ = patch.Append("@@ -").Append(offset).Append(",6 +").Append(offset).Append(",6 @@\n")
-                .Append("   {\n     name: \"worker\",\n-    enabled: false,\n+    enabled: true,\n     timeout: 30,\n   },\n \n");
+            _ = patch.Append("   {\n     name: \"worker-").Append(index.ToString(CultureInfo.InvariantCulture))
+                .Append("\",\n-    enabled: false,\n+    enabled: true,\n     timeout: 30,\n   },\n");
         }
 
-        var count = hunks.ToString(CultureInfo.InvariantCulture);
+        _ = patch.Append(" ];\n");
+        var count = blocks.ToString(CultureInfo.InvariantCulture);
         var escaped = JsonEncodedText.Encode(patch.ToString(), JavaScriptEncoder.UnsafeRelaxedJsonEscaping);
         return Encoding.UTF8.GetBytes("[{\"file\":\"src/settings.ts\",\"patch\":\"" + escaped
             + "\",\"additions\":" + count + ",\"deletions\":" + count + ",\"status\":\"modified\"}]");

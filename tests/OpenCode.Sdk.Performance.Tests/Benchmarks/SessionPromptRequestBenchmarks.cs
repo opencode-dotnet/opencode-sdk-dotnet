@@ -30,7 +30,7 @@ public class SessionPromptRequestBenchmarks : IDisposable
 
     public static IEnumerable<WireFixture> Fixtures()
     {
-        foreach (var name in new[] { "text-only", "text-files", "all-set" })
+        foreach (var name in new[] { "text-only", "text-code", "text-files", "all-set" })
         {
             var body = BenchmarkFixtures.SessionPromptRequestBody(name);
             yield return new WireFixture(name, body, items: 1, payloadBytesPerItem: body.Length);
@@ -54,15 +54,17 @@ public class SessionPromptRequestBenchmarks : IDisposable
         _client = new OpenCodeClient(_httpClient, Options);
         _session = _client.Sessions.GetSessionClient("ses_bench0000000000000000001");
         var response = await PromptAsync().ConfigureAwait(false);
-        if (response.Prompt is not { Id: "inb_bench", Payload.Text: "Accepted." })
+        if (response.Prompt is not { Id: "msg_bench", Payload.Text: "Accepted." })
         {
             throw new InvalidOperationException("The prompt acknowledgement did not materialize its inbox item.");
         }
     }
 
+    /// <summary>Source-generated serialization of the prompt request to UTF-8.</summary>
     [Benchmark]
     public byte[] SerializeRequest() => JsonSerializer.SerializeToUtf8Bytes(_request, OpenCodeJsonContext.Default.SessionPromptRequest);
 
+    /// <summary>The complete generated prompt operation over a canned acknowledgement.</summary>
     [Benchmark]
     public Task<SessionPromptResponse> PromptAsync() => _session!.PromptAsync(_request);
 
@@ -99,6 +101,7 @@ public class SessionPromptRequestBenchmarks : IDisposable
         return name switch
         {
             "text-only" => request,
+            "text-code" => new SessionPromptRequest { Text = BenchmarkFixtures.SessionPromptCodeText },
             "text-files" => request with { Files = files },
             "all-set" => request with
             {
