@@ -26,10 +26,10 @@ public class SessionDiffBenchmarks : IDisposable
 
     public static IEnumerable<WireFixture> Fixtures()
     {
-        // UTF-8 byte counts after JSON escaping and the nine-byte data envelope: 4,534 and 1,266,444.
-        // The large body is 20.78% above the downlevel shared pool's 1,048,576-byte boundary.
-        yield return Envelope("diff-4k", 36);
-        yield return Envelope("diff-1200k", 10000);
+        // UTF-8 body sizes after JSON escaping and the nine-byte data envelope: 4,550 and 1,249,176.
+        // The large body is 19.13% above the downlevel shared pool's 1,048,576-byte boundary.
+        yield return Envelope("diff-4k", 42);
+        yield return Envelope("diff-1200k", 12000);
     }
 
     [ParamsSource(nameof(Fixtures))]
@@ -55,22 +55,30 @@ public class SessionDiffBenchmarks : IDisposable
             throw new InvalidOperationException("The diff envelope did not materialize one file.");
         }
 
-        _ = await ExecuteWithoutAdapterAsync().ConfigureAwait(false);
+        if ((await ExecuteWithoutAdapterAsync().ConfigureAwait(false)).Status != 200)
+        {
+            throw new InvalidOperationException("The diff pipeline did not return status 200.");
+        }
     }
 
+    /// <summary>The complete generated diff operation.</summary>
     [Benchmark]
     public Task<SessionDiffResponse> GetDiffAsync() => _session!.GetDiffAsync();
 
+    /// <summary>The buffered pipeline without payload materialization.</summary>
     [Benchmark]
     public Task<NoOpResponse> ExecuteWithoutAdapterAsync() =>
         _pipeline!.ExecuteAsync("session.diff", HttpMethod.Get, OpenCodeRoutes.Sessions.GetDiff(SessionId), NoOpResponseAdapter.Instance, options: null, CancellationToken.None);
 
+    /// <summary>The generated adapter over validated UTF-8.</summary>
     [Benchmark]
     public SessionDiffResponse AdaptSuccess() => SessionDiffResponseAdapter.Instance.AdaptSuccess(200, _envelope);
 
+    /// <summary>Source-generated materialization of the diff envelope alone.</summary>
     [Benchmark]
     public object? DeserializeEnvelope() => JsonSerializer.Deserialize(_envelope, OpenCodeJsonContext.Default.SessionDiffResponseEnvelope);
 
+    /// <summary>A bare send through the same handler with the body drained, no SDK.</summary>
     [Benchmark]
     public Task<int> SendRawRequestAsync() => _raw!.SendAndDrainAsync();
 
@@ -98,15 +106,22 @@ public class SessionDiffBenchmarks : IDisposable
 
     private static void RequireDiff(SessionDiffResponse response)
     {
-        if (response.Diffs is not [{ File: "src/settings.ts", Patch.Length: > 4000, Additions: > 0, Deletions: > 0 }])
+        if (response.Diffs is not [{ File: "src/settings.ts", Patch.Length: > 4000 } diff])
         {
             throw new InvalidOperationException("The diff fixture did not materialize one source patch.");
         }
+
+        var lines = diff.Patch.Split('\n').Skip(5).ToArray();
+        if (diff.Additions != lines.Count(line => line.Length > 0 && line[0] == '+')
+            || diff.Deletions != lines.Count(line => line.Length > 0 && line[0] == '-'))
+        {
+            throw new InvalidOperationException("The diff counts did not match the fixture's added and removed lines.");
+        }
     }
 
-    private static WireFixture Envelope(string name, int hunks)
+    private static WireFixture Envelope(string name, int blocks)
     {
-        var payload = BenchmarkFixtures.SessionDiffBody(hunks);
+        var payload = BenchmarkFixtures.SessionDiffBody(blocks);
         return new WireFixture(name, BenchmarkFixtures.DataEnvelope(payload), items: 1, payloadBytesPerItem: payload.Length);
     }
 }
