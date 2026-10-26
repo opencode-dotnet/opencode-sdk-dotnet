@@ -254,7 +254,9 @@ internal static partial class DescriptionCurationBinder
         return prior with
         {
             Summary = type?.Summary ?? prior.Summary,
+            SummaryIsCurated = type?.Summary is not null || prior.SummaryIsCurated,
             Remarks = AppendRemarks(prior.Remarks, type?.Remarks),
+            CuratedRemarks = type?.Remarks ?? prior.CuratedRemarks,
             Members = rows.Where(static row => row.Member is not null && row.Summary is not null).ToDictionary(static row => row.Member!,
                 // The filter proves the summary; remarks-only operations bind separately.
                 static row => new DocumentationPlan(row.Summary!, row.Remarks), StringComparer.Ordinal),

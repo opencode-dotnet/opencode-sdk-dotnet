@@ -176,7 +176,8 @@ Curation may:
   the list is reviewed. A `descriptions` row never changes protocol semantics (ADR-0013). A curated
   interface member's documentation reaches each implementing public property without its own row
   through `<inheritdoc cref>`; different curated documentation from two owners for such a property
-  refuses generation;
+  refuses generation. In a curated summary or remark, a paired single-backtick span denotes inline
+  code and renders as XML `<c>` text; all text remains XML-escaped;
 - place a model in a slice where its name carries no family prefix, through a reason-bearing
   `modelOwners` row; a family's prefixes are its name, its singular, its group key and the
   group's `prefixAliases`, and a model with no prefix and no row fails generation. A
@@ -390,7 +391,11 @@ materializable.
   from this wiring (ADR-0038).
 - Every generated operation member, `Enumerate*Async` companions included, documents its operation
   identity and its HTTP method and route template in `<remarks>` as text only; no emitter branches
-  on the identity (ADR-0008).
+  on the identity (ADR-0008). A cursor-enumeration companion also links to its page operation and
+  includes that operation's effective summary: the curated summary; otherwise the upstream summary
+  or description, joined when both exist; otherwise the route fallback. The companion's remarks
+  contain the route remark, the page operation's curated remarks, a link to the page operation,
+  and the effective summary, in that order; its documentation has no separate curation target.
 - An internal-raw family emits its clients sealed and internal — internal operation methods and
   handle factory, no mocking constructor — under raw type names, while the root client keeps the
   public family accessor its hand-written door answers. Only such a family may carry a

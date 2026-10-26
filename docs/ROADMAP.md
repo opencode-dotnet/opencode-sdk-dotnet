@@ -19,7 +19,7 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
   `../spec/SNAPSHOT.md` owns the exact commit and the refresh procedure.
 - **Coverage** — **145 of 149 operations selected** across 27 client families, 2 transport-owned
   that hand-written WebSocket doors cover, and 2 declined: the experimental client-hosted MCP
-  attach and its token, deferred to a hand-written door before 1.0. So 147 of 149 are usable;
+  attach and its token, deferred to a hand-written door in `1.1` (#529). So 147 of 149 are usable;
   `src/OpenCode.Sdk/.generation-incomplete` is
   the committed marker and names every one. One-shot calls, server-sent event streams (the global
   bus and the per-session log), PTY and persistent-PTY WebSocket sessions, cursor pagination, typed
@@ -96,11 +96,11 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    `1.x` version promises when an upstream refresh changes generated shapes, the remaining surface
    questions the baseline pass raises, and the package, test-roster, and Native AOT gates
    ([#51](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/51)). The parked handle
-   questions are additive and wait for `1.1`. The client-hosted MCP door
-   ([#529](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/529)) closes the two
-   declined operations: an application hosts its own tools for the server over the experimental
-   client-MCP WebSocket. It adds public surface, so it lands before the freeze; it is not the MCP
-   server of the parallel tracks. Exit: every surface question is decided.
+   questions are additive and wait for `1.1`. So does the client-hosted MCP door
+   ([#529](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/529)), which closes the
+   two declined operations: an application hosts its own tools for the server over the experimental
+   client-MCP WebSocket. It adds public surface without breaking any, so it lands after `1.0.0`; it
+   is not the MCP server of the parallel tracks. Exit: every surface question is decided.
 5. **Extension points.** Decided without new code: retry, telemetry, and hooks land additively
    after `1.0.0` under the two rules in
    [the client runtime's construction section](architecture/client-runtime.md#construction-and-transport-ownership),

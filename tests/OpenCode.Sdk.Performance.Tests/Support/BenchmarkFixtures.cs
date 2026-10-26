@@ -38,6 +38,27 @@ internal static class BenchmarkFixtures
             + "\",\"additions\":" + count + ",\"deletions\":" + count + ",\"status\":\"modified\"}]");
     }
 
+    private const string TextFragment =
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+        + "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+
+    /// <summary>The live bus opener shared by idle and prompt connections.</summary>
+    public static byte[] ConnectedEventBody() => "{\"id\":\"evt_connected\",\"type\":\"server.connected\",\"data\":{}}"u8.ToArray();
+
+    public static string PromptTextDeltaBody(string id) =>
+        "{\"id\":\"" + id + "\",\"created\":1,\"type\":\"session.text.delta\",\"data\":{\"sessionID\":\"ses_bench00000000000000000001\",\"assistantMessageID\":\"msg_bench00000000000000000001\",\"ordinal\":0,\"delta\":\""
+        + TextFragment + "\"}}";
+
+    public static string PromptReasoningDeltaBody(string id) =>
+        "{\"id\":\"" + id + "\",\"created\":1,\"type\":\"session.reasoning.delta\",\"data\":{\"sessionID\":\"ses_bench00000000000000000001\",\"assistantMessageID\":\"msg_bench00000000000000000001\",\"ordinal\":1,\"delta\":\"Thinking\"}}";
+
+    public static string PromptToolInputDeltaBody(string id) =>
+        "{\"id\":\"" + id + "\",\"created\":1,\"type\":\"session.tool.input.delta\",\"data\":{\"sessionID\":\"ses_bench00000000000000000001\",\"assistantMessageID\":\"msg_bench00000000000000000001\",\"id\":\"tool_bench\",\"delta\":\"x\"}}";
+
+    public static string PromptTextEndedBody(string id) =>
+        "{\"id\":\"" + id + "\",\"created\":1,\"type\":\"session.text.ended\",\"durable\":{\"aggregateID\":\"ses_bench00000000000000000001\",\"seq\":1,\"version\":1},\"data\":{\"sessionID\":\"ses_bench00000000000000000001\",\"assistantMessageID\":\"msg_bench00000000000000000001\",\"ordinal\":0,\"text\":\""
+        + string.Concat(Enumerable.Repeat(TextFragment, 32)) + "\"}}";
+
     /// <summary>
     /// A deep assistant message — reasoning + text + two tool parts across four union
     /// levels — in the compact single-line form the wire carries. Indentation would put

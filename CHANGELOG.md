@@ -11,6 +11,9 @@ Nightly builds of `master` are on
 
 ### 🔧 Changes
 
+- **Clearer IntelliSense documentation.** `EnumerateSessionsAsync` and `EnumerateMessagesAsync`
+  link their page methods and carry those methods' summaries; `server.connected` renders as code in
+  `SubscribeAsync`'s remarks.
 - **Known stream tags can now arrive as the unknown arm.** On `event.subscribe` and `session.log`,
   a frame whose normal decoding fails arrives as `UnknownEvent` or `UnknownSessionLogItem` when
   the existing carrier can preserve it; its neighbours continue on the same connection or request.
@@ -55,6 +58,11 @@ Nightly builds of `master` are on
   last 40 lines, so one very long line went into the message whole. The tail now also keeps at most
   the last 8,192 characters of text, so its size is bounded, as the background-service start's
   already is.
+- **The background-service door refuses a NUL in a command entry.** `OpenCodeServer.EnsureAsync`
+  refused a NUL in an `OpenCodeServerEnsureOptions.Environment` entry but not in a `Command` entry,
+  so a command entry with a NUL could reach the contender's spawn and be cut short there. It now
+  refuses it with `ArgumentException` for `options` before the registration is read or anything is
+  spawned, as it does for the environment.
 
 ## [0.9.0-preview.14] - 2026-10-23
 

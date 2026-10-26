@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
 using OpenCode.Sdk.Internal;
@@ -30,7 +29,6 @@ public class EventStreamBenchmarks : IDisposable
     private const int FrameCount = 1024;
     private const int EventsPerConnection = FrameCount + 1;
     private const int SocketChunkBytes = 1460;
-    private const string ConnectedEvent = "{\"id\":\"evt_connected\",\"type\":\"server.connected\",\"data\":{}}";
 
     private static readonly OpenCodeClientOptions Options = new()
     {
@@ -52,7 +50,7 @@ public class EventStreamBenchmarks : IDisposable
     {
         var payload = BenchmarkFixtures.SessionIdleEventBody();
         var payloads = new byte[EventsPerConnection][];
-        payloads[0] = Encoding.UTF8.GetBytes(ConnectedEvent);
+        payloads[0] = BenchmarkFixtures.ConnectedEventBody();
         for (var index = 1; index < payloads.Length; index++)
         {
             payloads[index] = payload;

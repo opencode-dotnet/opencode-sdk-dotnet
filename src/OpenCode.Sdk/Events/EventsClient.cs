@@ -35,7 +35,7 @@ public class EventsClient
     /// <exception cref = "OpenCodeStreamFailureException">The opened stream reported a schema-valid failure with a typed cause.</exception>
     /// <exception cref = "OpenCodeTransportException">The server could not be reached, the stream could not be read, or a frame or failure cause was malformed.</exception>
     /// <remarks>
-    /// Operation <c>event.subscribe</c>: <c>GET /api/event</c>. The stream reconnects after a failure, with a new attempt 1 s later and no backoff. It does not complete on its own; caller cancellation or root-client disposal ends it. After 1 minute in which every attempt fails, it throws the last failure. A repeated server.connected event means events published in between were missed; refresh authoritative state.
+    /// Operation <c>event.subscribe</c>: <c>GET /api/event</c>. The stream reconnects after a failure, with a new attempt 1 s later and no backoff. It does not complete on its own; caller cancellation or root-client disposal ends it. After 1 minute in which every attempt fails, it throws the last failure. A repeated <c>server.connected</c> event means events published in between were missed; refresh authoritative state.
     /// </remarks>
     public virtual IAsyncEnumerable<IEvent> SubscribeAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {

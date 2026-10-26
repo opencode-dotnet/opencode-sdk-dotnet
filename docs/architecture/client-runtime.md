@@ -473,9 +473,10 @@ resolves the message's network window from those carried traits.
   enumerating both performs both walks. Its `TPage` is the generated response type — no page
   vocabulary and no page-size contract is introduced. The token given to `Enumerate*Async` and the
   token given to `GetAsyncEnumerator`/`WithCancellation` are both observed.
-- `ListRequest` carries the pinned string `limit`, first-page `order`, and opaque `cursor` channels,
-  and a derived request may declare its own filters beside them; `ListCursor` preserves the
-  response's optional `previous` and `next` values. The first automatic request is sent unchanged,
+- `ListRequest` carries the `limit`, first-page `order`, and opaque `cursor` channels, and a derived
+  request may declare its own filters beside them. `limit` is an `int?`, by curation: the pin
+  declares it a string, but the server decodes an integer and upstream's client takes a number.
+  `ListCursor` preserves the response's optional `previous` and `next` values. The first automatic request is sent unchanged,
   including an order-plus-cursor pair. Each continuation is that request again with `order` dropped
   and the returned `cursor.next` put in place, so `limit` and every filter travel every page and a
   filter added to the pinned query needs no generator change.
@@ -936,8 +937,10 @@ never a tree, is never implied by disposal or host shutdown, and may end a servi
 share.
 
 `OpenCodeServer.EnsureAsync` is the CLI's managed-service election (`Service.ensure`). Its options
-are validated and copied before any I/O; `Replace` and `Error` need `ExpectedVersion`. It reuses a
-ready compatible daemon, replaces a version-mismatched one according to
+are validated and copied before the registration is read or anything is spawned; `Replace` and
+`Error` need `ExpectedVersion`. A NUL in a command entry or an environment entry is refused during that
+validation with `ArgumentException` for `options`, because a spawn would silently cut the entry. It
+reuses a ready compatible daemon, replaces a version-mismatched one according to
 `OpenCodeServerEnsureOptions.VersionPolicy` (Ignore strips the expected version, Replace keeps it in
 the loop, Error discovers twice and throws on a ready mismatch without entering the loop), and
 otherwise spawns at most two detached contenders (`opencode serve --service` by default) until a
@@ -1012,9 +1015,9 @@ reason (ADR-0031):
 
 - **Stricter readers than upstream's `JSON.parse`.** The registration and service-config readers
   refuse a repeated member. The registration reader also refuses a pid that is not a positive
-  32-bit integer and a URL that is not absolute HTTP or HTTPS. The sidecar reader refuses a pid
-  that is not integral. A refused document reads as absent. Reason: the repository's fail-closed
-  boundary, which treats malformed state as missing rather than acting on it.
+  32-bit integer and a URL that is not absolute HTTP or HTTPS. A refused document reads as absent.
+  Reason: the repository's fail-closed boundary, which treats malformed state as missing rather
+  than acting on it.
 - **No registration without a password.** Discover and Ensure never hand out such a registration,
   where upstream would connect without credentials. Reason: the SDK never yields an
   unauthenticated connection. The pinned daemon always writes a password, so the two only differ

@@ -7,7 +7,11 @@ internal sealed record TypeDocumentationPlan
 {
     public string? Summary { get; init; }
 
+    public bool SummaryIsCurated { get; init; }
+
     public string? Remarks { get; init; }
+
+    public string? CuratedRemarks { get; init; }
 
     public IReadOnlyDictionary<string, DocumentationPlan> Members
     {

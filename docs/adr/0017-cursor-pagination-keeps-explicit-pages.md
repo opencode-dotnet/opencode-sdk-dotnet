@@ -13,8 +13,8 @@ generated response envelope itself, including the bidirectional `ListCursor`, so
 introduces no second public page vocabulary and no integer page-size contract absent from the pin.
 
 The first request is sent unchanged. A continuation is that same request with first-page-only
-`order` dropped and the opaque returned `cursor.next` put in place, so the pinned string `limit` and
-every filter the query declares travel every page; only an absent next cursor ends the sequence. A
+`order` dropped and the opaque returned `cursor.next` put in place, so `limit` and every filter the
+query declares travel every page; only an absent next cursor ends the sequence. A
 query binds `ListRequest` by inclusion — the three admitted members must be present in their
 admitted shapes, filters may ride beside them — and a spine-carrying query that declares a required
 parameter is refused, because a continuation must be constructible from no request at all. Generated
