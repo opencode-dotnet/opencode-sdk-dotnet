@@ -31,7 +31,7 @@ internal sealed class FsReadResponseAdapter : ResponseAdapter<FsReadResponse>
         _ => StatusVerdict.UndeclaredError
     };
     /// <summary>
-    /// Maps the declared UTF-8 success body onto the typed envelope.
+    /// Refuses, because a binary success is adapted from its raw bytes, not from text.
     /// </summary>
     public override FsReadResponse AdaptSuccess(int status, ReadOnlySpan<byte> utf8Body) => throw new InvalidOperationException("A binary success is adapted from its raw bytes, not from text.");
     /// <summary>

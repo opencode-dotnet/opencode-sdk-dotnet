@@ -150,9 +150,13 @@ internal static class ResponseAdapterEmitter
                 EmitSuccessCreation(envelope, SyntaxFactory.IdentifierName("utf8Body"))))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
             .WithLeadingTrivia(DocumentationSyntax.Documentation(
-                envelope.Kind is EnvelopeKind.NoContent
-                    ? "Creates the typed envelope for a success that carries no body."
-                    : "Maps the declared UTF-8 success body onto the typed envelope."));
+                envelope.Kind switch
+                {
+                    EnvelopeKind.Binary => "Refuses, because a binary success is adapted from its raw bytes, not from text.",
+                    EnvelopeKind.NoContent => "Creates the typed envelope for a success that carries no body.",
+                    EnvelopeKind.Bare or EnvelopeKind.Data or EnvelopeKind.CursorList or EnvelopeKind.DataLocation or EnvelopeKind.DataLocationList or _ =>
+                        "Maps the declared UTF-8 success body onto the typed envelope.",
+                }));
 
     private static PropertyDeclarationSyntax EmitBinarySuccess() =>
         SyntaxFactory.PropertyDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)), "BinarySuccess")
