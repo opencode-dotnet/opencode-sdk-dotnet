@@ -20,5 +20,5 @@ public sealed record ConfigInfoMcp
     /// </summary>
     [JsonPropertyName("servers")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public IReadOnlyDictionary<string, IMcp>? Servers { get; init; }
+    public IReadOnlyDictionary<string, IMcpServerConfig>? Servers { get; init; }
 }

@@ -13,7 +13,7 @@ public sealed record ExperimentalMcpAddRequest
     /// Gets the config value.
     /// </summary>
     [JsonPropertyName("config")]
-    public required IMcp Config { get; init; }
+    public required IMcpServerConfig Config { get; init; }
 
     /// <summary>
     /// Gets the &apos;location&apos; query value; the server default applies when unset.

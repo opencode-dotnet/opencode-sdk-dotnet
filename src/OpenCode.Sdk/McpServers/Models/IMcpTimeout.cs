@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents the shared timeout shape of every MCP variant.
+/// Represents the shared timeout shape of every MCP server config variant.
 /// </summary>
 /// <remarks>
 /// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin, which a minor version may do.

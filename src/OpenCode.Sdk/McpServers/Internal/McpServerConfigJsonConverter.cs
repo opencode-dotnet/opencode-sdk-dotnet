@@ -7,7 +7,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk.Internal;
 
-internal sealed class McpJsonConverter : JsonConverter<IMcp>
+internal sealed class McpServerConfigJsonConverter : JsonConverter<IMcpServerConfig>
 {
     private static readonly FrozenDictionary<string, Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
     {
@@ -15,33 +15,33 @@ internal sealed class McpJsonConverter : JsonConverter<IMcp>
         ["remote"] = typeof(McpRemoteConfig)
     }.ToFrozenDictionary(StringComparer.Ordinal);
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
-    public override IMcp Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override IMcpServerConfig Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "Mcp", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "McpServerConfig", TypesByTag, out var targetType, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for Mcp.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IMcp ?? throw new JsonException("The Mcp payload deserialized to null.");
+            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for McpServerConfig.");
+            return JsonSerializer.Deserialize(ref reader, typeInfo) as IMcpServerConfig ?? throw new JsonException("The McpServerConfig payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);
         var payload = document.RootElement;
-        return new UnknownMcp(marker, payload);
+        return new UnknownMcpServerConfig(marker, payload);
     }
 
-    public override void Write(Utf8JsonWriter writer, IMcp value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, IMcpServerConfig value, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(value);
         ArgumentNullException.ThrowIfNull(options);
-        if (value is UnknownMcp unknown)
+        if (value is UnknownMcpServerConfig unknown)
         {
             unknown.Payload.WriteTo(writer);
             return;
         }
 
-        var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(value.GetType()) ?? throw new JsonException("The generated context has no metadata for Mcp.");
+        var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(value.GetType()) ?? throw new JsonException("The generated context has no metadata for McpServerConfig.");
         JsonSerializer.Serialize(writer, value, typeInfo);
     }
 }

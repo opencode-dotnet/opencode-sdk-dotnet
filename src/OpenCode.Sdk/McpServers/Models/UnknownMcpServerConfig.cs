@@ -6,17 +6,17 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Preserves an unknown MCP payload.
+/// Preserves an unknown MCP server config payload.
 /// </summary>
-[JsonConverter(typeof(UnknownMcpJsonConverter))]
-public sealed record UnknownMcp : IMcp
+[JsonConverter(typeof(UnknownMcpServerConfigJsonConverter))]
+public sealed record UnknownMcpServerConfig : IMcpServerConfig
 {
     private readonly string _marker;
     /// <summary>
     /// Initializes an unknown union value from its marker and raw payload.
     /// </summary>
     [JsonConstructor]
-    public UnknownMcp(string type, JsonElement payload)
+    public UnknownMcpServerConfig(string type, JsonElement payload)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(type);
         if (payload.ValueKind is JsonValueKind.Undefined)
@@ -39,16 +39,16 @@ public sealed record UnknownMcp : IMcp
     /// </summary>
     public JsonElement Payload { get; }
 
-    bool? IMcp.Disabled => null;
+    bool? IMcpServerConfig.Disabled => null;
 
-    bool? IMcp.Codemode => null;
+    bool? IMcpServerConfig.Codemode => null;
 
-    IMcpTimeout? IMcp.Timeout => null;
+    IMcpTimeout? IMcpServerConfig.Timeout => null;
 
-    McpProtocol? IMcp.Protocol => null;
+    McpProtocol? IMcpServerConfig.Protocol => null;
 
     /// <summary>
     /// Prints the marker with the preserved payload masked, since a known arm of this union carries a secret.
     /// </summary>
-    public override string ToString() => RecordPrinter.Format(nameof(UnknownMcp), ("Type", Type), ("Payload", RecordPrinter.Redact(Payload)));
+    public override string ToString() => RecordPrinter.Format(nameof(UnknownMcpServerConfig), ("Type", Type), ("Payload", RecordPrinter.Redact(Payload)));
 }

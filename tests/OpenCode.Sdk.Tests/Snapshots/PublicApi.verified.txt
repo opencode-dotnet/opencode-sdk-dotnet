@@ -2409,7 +2409,7 @@ namespace OpenCode.Sdk.Models
         public ConfigInfoMcp() { }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("servers")]
-        public System.Collections.Generic.IReadOnlyDictionary<string, OpenCode.Sdk.Models.IMcp>? Servers { get; init; }
+        public System.Collections.Generic.IReadOnlyDictionary<string, OpenCode.Sdk.Models.IMcpServerConfig>? Servers { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("timeout")]
         public OpenCode.Sdk.Models.ConfigInfoMcpTimeout? Timeout { get; init; }
@@ -3420,7 +3420,7 @@ namespace OpenCode.Sdk.Models
     {
         public ExperimentalMcpAddRequest() { }
         [System.Text.Json.Serialization.JsonPropertyName("config")]
-        public required OpenCode.Sdk.Models.IMcp Config { get; init; }
+        public required OpenCode.Sdk.Models.IMcpServerConfig Config { get; init; }
         [System.Text.Json.Serialization.JsonIgnore]
         public OpenCode.Sdk.LocationSelector? Location { get; init; }
     }
@@ -4363,8 +4363,8 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         string Type { get; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.McpJsonConverter))]
-    public interface IMcp
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.McpServerConfigJsonConverter))]
+    public interface IMcpServerConfig
     {
         [System.Text.Json.Serialization.JsonPropertyName("codemode")]
         bool? Codemode { get; }
@@ -5143,7 +5143,7 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
-    public sealed class McpLocalConfig : OpenCode.Sdk.Models.IMcp, System.IEquatable<OpenCode.Sdk.Models.McpLocalConfig>
+    public sealed class McpLocalConfig : OpenCode.Sdk.Models.IMcpServerConfig, System.IEquatable<OpenCode.Sdk.Models.McpLocalConfig>
     {
         public McpLocalConfig() { }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -5230,7 +5230,7 @@ namespace OpenCode.Sdk.Models
             public const string Revision20260728 = "2026-07-28";
         }
     }
-    public sealed class McpRemoteConfig : OpenCode.Sdk.Models.IMcp, System.IEquatable<OpenCode.Sdk.Models.McpRemoteConfig>
+    public sealed class McpRemoteConfig : OpenCode.Sdk.Models.IMcpServerConfig, System.IEquatable<OpenCode.Sdk.Models.McpRemoteConfig>
     {
         public McpRemoteConfig() { }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -11671,11 +11671,11 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownMcpJsonConverter))]
-    public sealed class UnknownMcp : OpenCode.Sdk.Models.IMcp, System.IEquatable<OpenCode.Sdk.Models.UnknownMcp>
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.UnknownMcpServerConfigJsonConverter))]
+    public sealed class UnknownMcpServerConfig : OpenCode.Sdk.Models.IMcpServerConfig, System.IEquatable<OpenCode.Sdk.Models.UnknownMcpServerConfig>
     {
         [System.Text.Json.Serialization.JsonConstructor]
-        public UnknownMcp(string type, System.Text.Json.JsonElement payload) { }
+        public UnknownMcpServerConfig(string type, System.Text.Json.JsonElement payload) { }
         public System.Text.Json.JsonElement Payload { get; }
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }

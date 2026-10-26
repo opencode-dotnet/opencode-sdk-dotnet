@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Models;
 /// <summary>
 /// Represents an MCP remote config value.
 /// </summary>
-public sealed record McpRemoteConfig : IMcp
+public sealed record McpRemoteConfig : IMcpServerConfig
 {
     /// <summary>
     /// Gets the type value.
@@ -42,7 +42,7 @@ public sealed record McpRemoteConfig : IMcp
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? Disabled { get; init; }
 
-    /// <inheritdoc cref="IMcp.Codemode" />
+    /// <inheritdoc cref="IMcpServerConfig.Codemode" />
     [JsonPropertyName("codemode")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? Codemode { get; init; }
@@ -61,7 +61,7 @@ public sealed record McpRemoteConfig : IMcp
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public McpProtocol? Protocol { get; init; }
 
-    IMcpTimeout? IMcp.Timeout => Timeout;
+    IMcpTimeout? IMcpServerConfig.Timeout => Timeout;
 
     /// <summary>
     /// Prints the record&apos;s members with its secret members masked.

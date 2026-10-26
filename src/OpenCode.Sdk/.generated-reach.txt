@@ -175,7 +175,7 @@ IIntegrationAttemptStatusTime owner=Integrations reached-by=Integrations
 IIntegrationCommandAttemptStatus owner=Integrations reached-by=Integrations
 IIntegrationCommandAttemptStatusTime owner=Integrations reached-by=Integrations
 IIntegrationMethod owner=Integrations reached-by=Integrations
-IMcp owner=McpServers reached-by=Config,Experimental
+IMcpServerConfig owner=McpServers reached-by=Config,Experimental
 IMcpStatus owner=McpServers reached-by=McpServers
 IMcpTimeout owner=McpServers reached-by=Config,Experimental
 IOpenCodeError owner=Common reached-by=Agents,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Shells,Skills,Vcs,Websearch,Worktrees
@@ -714,7 +714,7 @@ UnknownFormState owner=Forms reached-by=Sessions
 UnknownIntegrationAttemptStatus owner=Integrations reached-by=Integrations
 UnknownIntegrationCommandAttemptStatus owner=Integrations reached-by=Integrations
 UnknownIntegrationMethod owner=Integrations reached-by=Integrations
-UnknownMcp owner=McpServers reached-by=Config,Experimental
+UnknownMcpServerConfig owner=McpServers reached-by=Config,Experimental
 UnknownMcpStatus owner=McpServers reached-by=McpServers
 UnknownOpenCodeError owner=Common reached-by=Agents,Commands,Config,Credentials,Debug,Events,Experimental,FileSystem,Forms,Integrations,LanguageModels,Location,McpServers,Permissions,PersistentPtys,Plugins,Projects,Providers,Ptys,References,Rpc,Server,Sessions,Shells,Skills,Vcs,Websearch,Worktrees
 UnknownPluginSource owner=Plugins reached-by=Plugins
