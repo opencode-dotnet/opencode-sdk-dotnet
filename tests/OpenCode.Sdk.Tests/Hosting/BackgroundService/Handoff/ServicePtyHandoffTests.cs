@@ -117,6 +117,7 @@ public sealed class ServicePtyHandoffTests
 
         await PrepareAsync(registration);
 
+        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath], CollectionOrdering.Matching);
         var sidecar = _scenario.ReadSidecar();
         await Assert.That(sidecar).IsNotNull();
         await Assert.That(sidecar!.SourceId).IsEqualTo(SourceId);
@@ -125,7 +126,6 @@ public sealed class ServicePtyHandoffTests
         await Assert.That(sidecar.ExpiresAt).IsEqualTo(TicketExpiry);
         await Assert.That(sidecar.Handoff!.Value.GetRawText()).IsEqualTo(Ticket.GetRawText());
         await Assert.That(_scenario.TemporaryFiles()).IsEmpty();
-        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -541,6 +541,8 @@ public sealed class ServicePtyHandoffTests
 
         await PrepareAsync(server.Endpoint);
 
+        // The exchange first, so a recorded shutdown identifies the null-sidecar fallback.
+        await Assert.That(server.RequestPaths).IsEquivalentTo([HandoffPath], CollectionOrdering.Matching);
         await Assert.That(_scenario.ReadSidecar()!.Handoff!.Value.GetRawText()).IsEqualTo(ticket);
     }
 
