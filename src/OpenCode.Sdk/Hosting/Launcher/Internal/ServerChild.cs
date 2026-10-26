@@ -14,7 +14,6 @@ internal static class ServerChild
     /// <param name="seams">The platform seams.</param>
     /// <returns>The started child, whose output is being read.</returns>
     /// <exception cref="OpenCodeServerException">The platform is not supported, or the process could not start; nothing runs.</exception>
-    /// <exception cref="ArgumentException">An environment entry or argument holds a NUL, which neither platform's spawn can pass.</exception>
     public static async Task<OwnedServerChild> LaunchAsync(ServerChildStart start, LauncherSeams seams)
     {
         ArgumentNullException.ThrowIfNull(start);

@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-10-25
+Date: 2026-10-26
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -577,7 +577,8 @@ ends as inheritable, creates the child, and closes the duplicates, and the paren
 own copies of the child's ends. A `Process.Start` on another thread of the host can still inherit a
 duplicate inside that call, on every runtime: it passes every inheritable handle under the runtime's
 own spawn lock, which the SDK's spawn does not take. That lock is private; reaching it through
-reflection was considered and rejected, because it breaks with any runtime change and under trimming.
+reflection was considered and rejected, because it breaks with any runtime change and under
+trimming.
 Stdin, stdout, and stderr are local named pipes under `\\.\pipe\LOCAL\` (the one namespace an
 AppContainer host can create pipes in), created with a fresh name, as the first and only instance,
 refusing remote clients: the parent's end is overlapped, the child's end synchronous, each one
@@ -589,14 +590,13 @@ ignoring case, so a caller entry spelled in another case than the host's replace
 upstream's is, so no stderr is collected or quoted, and the server then shares the host's console,
 as upstream's does: a Ctrl+C in that console reaches the server, even when the host handles it,
 which is diagnostics-mode behaviour, and a batch-shim root answers it with `cmd.exe`'s "Terminate
-batch job (Y/N)?" prompt. A NUL in a command entry or an environment entry is refused
-with `ArgumentException`, because the command line and the environment block end there, and a spawn
-failure in a working directory names the directory. Three residuals are recorded, not handled: the
-named pipes carry the default access rules, so a local process that connects to one first makes the
-start fail (it can read nothing); an owner that crashes between the server's creation and its
-assignment leaves that one server suspended until logoff; and on a Windows edition without
-`taskkill.exe` in System32 (possibly Nano Server, not verified) every tree kill fails, so disposal
-ends the root alone, through the fallback.
+batch job (Y/N)?" prompt. A NUL is refused before the spawn, as the launcher's failure contract
+states, and a spawn failure in a working directory names the directory. Three residuals are
+recorded, not handled: the named pipes carry the default access rules, so a local process that
+connects to one first makes the start fail (it can read nothing); an owner that crashes between the
+server's creation and its assignment leaves that one server suspended until logoff; and on a Windows
+edition without `taskkill.exe` in System32 (possibly Nano Server, not verified) every tree kill
+fails, so disposal ends the root alone, through the fallback.
 
 On Linux and macOS the server is placed the way upstream places it: `posix_spawnp` with
 `POSIX_SPAWN_SETSID`, so it leads a session and a process group of its own, out of reach of a
@@ -814,13 +814,13 @@ failures carry none, because nothing ran: an unresolvable command (naming the co
 directories searched, and the extensions tried), a refused batch argument (naming the argument and
 the shim), an unsupported POSIX platform, a spawn or pipe-creation failure (wrapping the underlying
 `Win32Exception` or `IOException`, naming the caller's spelling and, when they differ, the resolved
-path, and the working directory when one was set), and on Windows a server that could not be placed in the job
-or resumed (wrapping the `Win32Exception`; the server was ended before it ran). A NUL in a command
-entry or an environment entry is refused with `ArgumentException`, because the spawn would silently
-end the entry there. A caller token canceled before the launch boundary prevents process creation.
-Caller cancellation observed during the readiness wait is reported through the public cancellation
-contract after the child is torn down; cancellation during teardown does not reclassify an earlier
-failure.
+path, and the working directory when one was set), and on Windows a server that could not be placed
+in the job or resumed (wrapping the `Win32Exception`; the server was ended before it ran). A NUL in
+a command entry, an environment entry or the working directory is refused with `ArgumentException`
+for `options` before the command is resolved, because the spawn would silently cut the text there.
+A caller token canceled before the launch boundary prevents process creation. Caller cancellation
+observed during the readiness wait is reported through the public cancellation contract after the
+child is torn down; cancellation during teardown does not reclassify an earlier failure.
 
 Launcher acceptance is real-process and three-OS. Platform-specific behavior is tested on the
 platform it represents; a successful compile is not a lifecycle proof.

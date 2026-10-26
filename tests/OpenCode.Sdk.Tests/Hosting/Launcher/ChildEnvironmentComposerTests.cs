@@ -5,7 +5,7 @@ namespace OpenCode.Sdk.Tests.Hosting.Launcher;
 /// <summary>
 /// A server's environment: the host's variables, then the caller's entries, then the lease
 /// credential, with names compared the way the platform compares them (case-sensitively on Linux
-/// and macOS, ignoring case on Windows) and a NUL refused before it could cut an entry short.
+/// and macOS, ignoring case on Windows) and a host variable holding a NUL dropped.
 /// </summary>
 public sealed class ChildEnvironmentComposerTests
 {
@@ -45,19 +45,6 @@ public sealed class ChildEnvironmentComposerTests
 
         await Assert.That(composed["Cased"]).IsEqualTo("host");
         await Assert.That(composed["CASED"]).IsEqualTo("entry");
-    }
-
-    [Test]
-    [Arguments("NAME\0CUT", "value")]
-    [Arguments("NAME", "value\0cut")]
-    public async Task Compose_Should_Refuse_A_Nul_In_An_Entry(string name, string value)
-    {
-        var composer = new ChildEnvironmentComposer(new Dictionary<string, string>(StringComparer.Ordinal), StringComparer.Ordinal);
-
-        var refusal = await Assert.That(() => composer.Compose(new Dictionary<string, string>(StringComparer.Ordinal) { [name] = value }, Password))
-            .Throws<ArgumentException>();
-
-        await Assert.That(refusal!.Message).Contains("NUL");
     }
 
     [Test]

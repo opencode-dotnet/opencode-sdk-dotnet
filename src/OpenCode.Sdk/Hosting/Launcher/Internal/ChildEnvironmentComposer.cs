@@ -8,7 +8,8 @@ namespace OpenCode.Sdk.Internal;
 /// entry whose name differs from a host entry only in case replaces it, as
 /// <c>ProcessStartInfo.Environment</c> does. A POSIX spawn passes each entry as a C string and a
 /// Windows environment block ends each entry with a NUL, so a NUL in any name or value would cut
-/// it short without a word, and is refused.
+/// it short without a word. The caller's entries arrive already checked by the door, and a host
+/// variable holding a NUL is dropped.
 /// </summary>
 internal sealed class ChildEnvironmentComposer
 {
@@ -33,7 +34,6 @@ internal sealed class ChildEnvironmentComposer
     /// <param name="entries">The caller's entries; null adds none.</param>
     /// <param name="password">The lease credential.</param>
     /// <returns>The child's whole environment.</returns>
-    /// <exception cref="ArgumentException">A caller entry's name or value contains NUL.</exception>
     public IReadOnlyDictionary<string, string> Compose(IReadOnlyDictionary<string, string>? entries, string password)
     {
         ArgumentNullException.ThrowIfNull(password);
@@ -49,12 +49,6 @@ internal sealed class ChildEnvironmentComposer
         {
             foreach (var entry in entries)
             {
-                if (NulText.Occurs(entry.Key) || NulText.Occurs(entry.Value))
-                {
-                    throw new ArgumentException(
-                        "OpenCodeServerOptions.Environment names and values cannot contain NUL.", nameof(entries));
-                }
-
                 composed[entry.Key] = entry.Value;
             }
         }
