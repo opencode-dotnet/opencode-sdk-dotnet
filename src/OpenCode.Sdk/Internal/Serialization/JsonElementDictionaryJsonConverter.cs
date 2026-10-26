@@ -5,10 +5,6 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class JsonElementDictionaryJsonConverter : JsonConverter<IReadOnlyDictionary<string, JsonElement>>
 {
-    private static readonly JsonElement True = ParseLiteral("true"u8);
-    private static readonly JsonElement False = ParseLiteral("false"u8);
-    private static readonly JsonElement Null = ParseLiteral("null"u8);
-
     public override IReadOnlyDictionary<string, JsonElement> Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
@@ -63,11 +59,15 @@ internal sealed class JsonElementDictionaryJsonConverter : JsonConverter<IReadOn
     /// System.Text.Json reads every <c>true</c>, <c>false</c> and <c>null</c> into one cached element
     /// each, so repeated literals compare equal by default; a shared-document child would not.
     /// </summary>
+    /// <remarks>
+    /// Each literal is read again rather than kept: the cache is filled without a lock on some target
+    /// frameworks, so an element kept from a raced first read could differ from the one it settles on.
+    /// </remarks>
     private static JsonElement Literal(JsonElement value) => value.ValueKind switch
     {
-        JsonValueKind.True => True,
-        JsonValueKind.False => False,
-        JsonValueKind.Null => Null,
+        JsonValueKind.True => ParseLiteral("true"u8),
+        JsonValueKind.False => ParseLiteral("false"u8),
+        JsonValueKind.Null => ParseLiteral("null"u8),
         JsonValueKind.Undefined or JsonValueKind.Object or JsonValueKind.Array or JsonValueKind.String or JsonValueKind.Number => value,
         _ => value,
     };
