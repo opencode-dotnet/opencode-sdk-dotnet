@@ -13,6 +13,16 @@ namespace OpenCode.Sdk.Tests.Hosting.Launcher;
 [NotInParallel(ParallelConstraintKeys.ServerProcess)]
 public sealed class OpenCodeServerLifecycleTests
 {
+    private static class StderrTailData
+    {
+        public const int ExitCode = 7;
+        public const int RetainedCharacters = 8192;
+        public const int WrittenLines = 50;
+        public const int RetainedLines = 40;
+        public static readonly string FailurePrefix = "The server exited with code " + ExitCode.ToString(CultureInfo.InvariantCulture)
+            + " before reporting readiness. Recent stderr: ";
+    }
+
     private static readonly RealFileSystem FileSystem = new();
 
     /// <summary>How long the test's own cleanup waits for the stdout holder it ended.</summary>
@@ -46,6 +56,19 @@ public sealed class OpenCodeServerLifecycleTests
     {
         var runRoot = new TestRunRoot(FileSystem);
         return (await new PinnedServerLaunch(FileSystem).StartAsync(runRoot, null, gracefulShutdownTimeout, cancellationToken), runRoot);
+    }
+
+    private static async Task<string> FailedStartMessageAsync(string script, CancellationToken cancellationToken)
+    {
+        var failure = await Assert.That(async () => await OpenCodeServer.StartWithSeamsAsync(
+            new OpenCodeServerOptions
+            {
+                Command = ["bun", "-e", script],
+            },
+            LauncherSeams.ForCurrentProcess() with { Time = new ManualTimeProvider() },
+            cancellationToken)).Throws<OpenCodeServerException>();
+
+        return failure!.Message;
     }
 
     [Test]
@@ -124,6 +147,34 @@ public sealed class OpenCodeServerLifecycleTests
 
         await Assert.That(failure!.Message).Contains("exited with code 7");
         await Assert.That(failure.Message).Contains("boom");
+    }
+
+    [Test]
+    [Timeout(120_000)]
+    public async Task StartAsync_Should_Keep_Only_The_Last_8192_Characters_Of_An_Oversized_Stderr_Line(CancellationToken cancellationToken)
+    {
+        const int discardedCharacters = 100;
+        var script = "console.error('a'.repeat(" + discardedCharacters.ToString(CultureInfo.InvariantCulture)
+            + ") + 'b'.repeat(" + StderrTailData.RetainedCharacters.ToString(CultureInfo.InvariantCulture)
+            + ")); process.exitCode = " + StderrTailData.ExitCode.ToString(CultureInfo.InvariantCulture);
+        var message = await FailedStartMessageAsync(script, cancellationToken);
+
+        var expected = StderrTailData.FailurePrefix + new string('b', StderrTailData.RetainedCharacters);
+        await Assert.That(message).IsEqualTo(expected);
+    }
+
+    [Test]
+    [Timeout(120_000)]
+    public async Task StartAsync_Should_Keep_Only_The_Last_40_Stderr_Lines(CancellationToken cancellationToken)
+    {
+        var script = "for (let i = 1; i <= " + StderrTailData.WrittenLines.ToString(CultureInfo.InvariantCulture)
+            + "; i++) console.error('line' + i); process.exitCode = " + StderrTailData.ExitCode.ToString(CultureInfo.InvariantCulture);
+        var message = await FailedStartMessageAsync(script, cancellationToken);
+
+        var retainedLines = Enumerable.Range(StderrTailData.WrittenLines - StderrTailData.RetainedLines + 1, StderrTailData.RetainedLines)
+            .Select(index => "line" + index.ToString(CultureInfo.InvariantCulture));
+        var expected = StderrTailData.FailurePrefix + string.Join(" | ", retainedLines);
+        await Assert.That(message).IsEqualTo(expected);
     }
 
     [Test]
