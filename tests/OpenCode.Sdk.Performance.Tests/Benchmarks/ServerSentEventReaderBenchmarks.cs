@@ -134,6 +134,10 @@ public class ServerSentEventReaderBenchmarks
     }
 
     /// <summary>Cancelling a read that is in flight: the token's registration, the cancelled read, and the reader's unwinding.</summary>
+    /// <remarks>
+    /// On .NET cancellation uses <c>CancellationTokenSource.CancelAsync</c>; on net472 it uses
+    /// <c>Task.Run(source.Cancel)</c>. These are different mechanisms: compare only within a runtime leg.
+    /// </remarks>
     [Benchmark]
     public async Task<bool> CancelPendingReadAsync()
     {

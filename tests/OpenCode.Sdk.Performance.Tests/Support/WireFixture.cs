@@ -43,5 +43,11 @@ public sealed record WireFixture
     /// <summary>Gets the Content-Type charset the fixture declares, or <see langword="null"/> when the wire declares none.</summary>
     public string? Charset { get; }
 
+    /// <summary>Gets the resolved text for a terminal-write argument; absent for other fixtures.</summary>
+    internal string? InputText { get; init; }
+
+    /// <summary>Gets the resolved caller bytes for a persistent-terminal write, excluding its wire header.</summary>
+    internal ReadOnlyMemory<byte> InputBytes { get; init; }
+
     public override string ToString() => Name;
 }
