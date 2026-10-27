@@ -69,12 +69,12 @@ public class PromptEventStreamBenchmarks : IDisposable
         await foreach (var frame in new ServerSentEventReader().ReadAsync(stream, CancellationToken.None).ConfigureAwait(false))
         {
             var expected = frames.Count == 0 ? typeof(EventServerConnected) : _concreteTypes[frames.Count - 1].Type;
-            if (JsonSerializer.Deserialize(frame.Data, OpenCodeJsonContext.Default.IEvent)?.GetType() != expected)
+            if (JsonSerializer.Deserialize(frame.Data.Span, OpenCodeJsonContext.Default.IEvent)?.GetType() != expected)
             {
                 throw new InvalidOperationException("The prompt fixture did not dispatch to its expected concrete event type.");
             }
 
-            frames.Add(frame.Data);
+            frames.Add(Encoding.UTF8.GetString(frame.Data.Span));
         }
 
         _frames = [.. frames.Skip(1)];
