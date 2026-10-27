@@ -54,7 +54,7 @@ public sealed class EventStreamIdleTimeoutTests
     public async Task A_Passed_Window_Should_Be_Named_With_Its_Own_Length(long ticks, string seconds)
     {
         using var attempt = new StreamAttempt(TimeProvider.System, TimeSpan.FromTicks(ticks), CancellationToken.None);
-        attempt.OnFrame(new ServerSentEvent(ServerSentEvent.DefaultName, ScriptedEventServer.Connected));
+        attempt.OnFrame(TestFrames.FromText(ServerSentEvent.DefaultName, ScriptedEventServer.Connected));
         attempt.Establish();
 
         var failure = attempt.Describe(new OperationCanceledException());

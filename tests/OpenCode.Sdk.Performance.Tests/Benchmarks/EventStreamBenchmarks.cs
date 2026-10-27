@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
 using OpenCode.Sdk.Internal;
@@ -83,7 +84,7 @@ public class EventStreamBenchmarks : IDisposable
         {
             await foreach (var frame in new ServerSentEventReader().ReadAsync(stream, CancellationToken.None).ConfigureAwait(false))
             {
-                frames.Add(frame.Data);
+                frames.Add(Encoding.UTF8.GetString(frame.Data.Span));
             }
         }
 

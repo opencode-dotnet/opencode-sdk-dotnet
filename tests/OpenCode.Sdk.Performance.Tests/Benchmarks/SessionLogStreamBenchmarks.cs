@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
 using OpenCode.Sdk.Internal;
@@ -153,7 +154,7 @@ public class SessionLogStreamBenchmarks : IDisposable
         ISessionLogItem? result = null;
         await foreach (var frame in new ServerSentEventReader().ReadAsync(stream, CancellationToken.None).ConfigureAwait(false))
         {
-            result = JsonSerializer.Deserialize(frame.Data, OpenCodeJsonContext.Default.ISessionLogItem);
+            result = JsonSerializer.Deserialize(frame.Data.Span, OpenCodeJsonContext.Default.ISessionLogItem);
         }
 
         return result;
@@ -230,7 +231,7 @@ public class SessionLogStreamBenchmarks : IDisposable
         var frames = new List<string>();
         await foreach (var frame in new ServerSentEventReader().ReadAsync(stream, CancellationToken.None).ConfigureAwait(false))
         {
-            frames.Add(frame.Data);
+            frames.Add(Encoding.UTF8.GetString(frame.Data.Span));
         }
 
         return [.. frames];

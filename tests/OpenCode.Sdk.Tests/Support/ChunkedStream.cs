@@ -39,6 +39,14 @@ internal sealed class ChunkedStream : Stream
         return new ChunkedStream(chunks.Select(static chunk => Encoding.UTF8.GetBytes(chunk)));
     }
 
+    /// <summary>Hands out explicit byte chunks, including malformed or split UTF-8 sequences.</summary>
+    public static ChunkedStream OfBytes(params byte[][] chunks)
+    {
+        ArgumentNullException.ThrowIfNull(chunks);
+
+        return new ChunkedStream(chunks);
+    }
+
     /// <summary>Splits one payload into fixed-size byte chunks, cutting multi-byte characters apart.</summary>
     public static ChunkedStream OfBytes(string payload, int chunkSize)
     {

@@ -6,9 +6,13 @@ namespace OpenCode.Sdk.Internal;
 /// so an unnamed frame carries <see cref="DefaultName"/> — which is what makes a named frame
 /// a signal rather than a payload.
 /// </summary>
+/// <remarks>
+/// Data is valid until the earlier of the next MoveNextAsync on the same enumerator, or that
+/// enumerator's disposal. Disposal returns the pooled buffers.
+/// </remarks>
 /// <param name="Name">The event name, defaulting to <see cref="DefaultName"/> on the wire.</param>
 /// <param name="Data">The joined value of the frame's <c>data</c> fields.</param>
-internal readonly record struct ServerSentEvent(string Name, string Data)
+internal readonly record struct ServerSentEvent(string Name, ReadOnlyMemory<byte> Data)
 {
     /// <summary>The name the SSE grammar gives a frame that carries no <c>event</c> field.</summary>
     public const string DefaultName = "message";

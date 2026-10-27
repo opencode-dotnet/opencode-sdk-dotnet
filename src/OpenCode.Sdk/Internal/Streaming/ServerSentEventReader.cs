@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -6,31 +8,36 @@ namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// Reads one response body as a server-sent event stream and yields each dispatched frame.
 /// Only <c>data</c> carries a payload and only <c>event</c> names the frame, so every other
-/// field is skipped and a frame carrying no data never yields. One instance reads one body.
+/// field is skipped and a frame carrying no data never yields. One instance supports one enumeration at a time.
 /// </summary>
 internal sealed class ServerSentEventReader
 {
     /// <summary>The pending-frame ceiling; a stream that never closes a frame cannot grow without bound.</summary>
     public const int DefaultMaxFrameCharacters = 16 * 1024 * 1024;
 
-    private const string DataField = "data";
-    private const string EventField = "event";
-    private const char FieldSeparator = ':';
-    private const char ByteOrderMark = '\uFEFF';
     private const int ReadBufferBytes = 8192;
+    private const int InitialBufferBytes = 256;
     private static readonly Encoding StrictUtf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+    /// <summary>
+    /// One conversion must cover the whole read so decoder diagnostics stay relative to its start. Declared after
+    /// <see cref="StrictUtf8"/>, which its initializer reads.
+    /// </summary>
+    private static readonly int ScratchBufferCharacters = StrictUtf8.GetMaxCharCount(ReadBufferBytes);
 
-    private readonly StringBuilder _data = new();
-    private readonly StringBuilder _line = new();
+    /// <summary>Stores the name after the data so both share one rental until the frame is dispatched.</summary>
+    private byte[] _data = [];
+    private byte[] _line = [];
     private readonly int _maxFrameCharacters;
-#if !NET
-    private char[] _copyBuffer = [];
-#endif
-    private string? _eventName;
+    private readonly int _maxBufferBytes;
+    private int _dataLength;
+    private int _lineLength;
+    private int _eventNameLength;
     private int _frameCharacters;
+    private int _continuationBytes;
+    private int _sequenceCharacters;
+    private int _preambleLength;
     private bool _frameHasData;
     private bool _sawCarriageReturn;
-    private bool _sawAnyCharacter;
 
     public ServerSentEventReader()
         : this(DefaultMaxFrameCharacters)
@@ -42,6 +49,8 @@ internal sealed class ServerSentEventReader
         ArgumentOutOfRangeException.ThrowIfLessThan(maxFrameCharacters, 1);
 
         _maxFrameCharacters = maxFrameCharacters;
+        // A UTF-16 unit needs at most three UTF-8 bytes; an unfinished character adds at most three.
+        _maxBufferBytes = (int)Math.Min(int.MaxValue, (3L * maxFrameCharacters) + 3);
     }
 
     public IAsyncEnumerable<ServerSentEvent> ReadAsync(Stream stream, CancellationToken cancellationToken)
@@ -55,20 +64,24 @@ internal sealed class ServerSentEventReader
     private async IAsyncEnumerable<ServerSentEvent> ReadCoreAsync(Stream stream,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        // The decoder carries a partial multi-byte character across reads, so a chunk
-        // boundary inside one character never corrupts it.
+        ResetEnumeration();
         var decoder = StrictUtf8.GetDecoder();
         var bytes = new byte[ReadBufferBytes];
-        var characters = new char[Encoding.UTF8.GetMaxCharCount(ReadBufferBytes)];
-#if !NET
-        _copyBuffer = new char[characters.Length];
-#endif
+        var scratch = ArrayPool<char>.Shared.Rent(ScratchBufferCharacters);
 
-        int Decode(int byteCount, bool flush)
+        void Validate(int byteCount, bool flush)
         {
             try
             {
-                return decoder.GetChars(bytes, 0, byteCount, characters, 0, flush);
+                var offset = 0;
+                bool completed;
+                do
+                {
+                    decoder.Convert(bytes, offset, byteCount - offset, scratch, 0, scratch.Length, flush,
+                        out var bytesUsed, out _, out completed);
+                    offset += bytesUsed;
+                }
+                while (!completed);
             }
             catch (DecoderFallbackException exception)
             {
@@ -76,87 +89,108 @@ internal sealed class ServerSentEventReader
             }
         }
 
-        while (true)
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var read = await stream.ReadAsync(bytes.AsMemory(), cancellationToken).ConfigureAwait(false);
-            if (read is 0)
+            EnsureCapacity(ref _line, required: 1, used: 0);
+            EnsureCapacity(ref _data, required: 1, used: 0);
+            while (true)
             {
-                break;
-            }
-
-            var decoded = Decode(read, flush: false);
-            var position = 0;
-            while (position < decoded)
-            {
-                if (ScanDecoded(characters, decoded, ref position) is { } payload)
+                cancellationToken.ThrowIfCancellationRequested();
+                var read = await stream.ReadAsync(bytes.AsMemory(), cancellationToken).ConfigureAwait(false);
+                if (read is 0)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    yield return payload;
+                    break;
+                }
+
+                // Validate the whole arrival before dispatching anything from it, including ignored fields.
+                Validate(read, flush: false);
+                var position = 0;
+                SkipPreamble(bytes, read, ref position);
+                while (position < read)
+                {
+                    if (ScanBytes(bytes, read, ref position) is { } payload)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        yield return payload;
+                    }
                 }
             }
+
+            // Decoder failure precedes truncation when the body ends inside a UTF-8 character.
+            Validate(byteCount: 0, flush: true);
+
+            // A body may end without the blank line that closes its last frame, and that frame
+            // is whole. A body ending mid-line was cut instead, and no connection resumes another's
+            // bytes, so the truncation is reported rather than passed off as a complete event.
+            if (_lineLength > 0)
+            {
+                throw new OpenCodeTransportException("The opencode event stream ended in the middle of an event.");
+            }
+
+            if (TakeFrame() is { } trailing)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                yield return trailing;
+            }
         }
-
-        // Flushing makes the strict decoder reject a body cut inside a multi-byte character.
-        _ = Decode(byteCount: 0, flush: true);
-
-        // A body may end without the blank line that closes its last frame, and that frame
-        // is whole. A body ending mid-line was cut instead, and no connection resumes another's
-        // bytes, so the truncation is reported rather than passed off as a complete event.
-        if (_line.Length > 0)
+        finally
         {
-            throw new OpenCodeTransportException("The opencode event stream ended in the middle of an event.");
-        }
-
-        if (TakeFrame() is { } trailing)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            yield return trailing;
+            ReturnBuffer(ref _line);
+            ReturnBuffer(ref _data);
+            ArrayPool<char>.Shared.Return(scratch);
         }
     }
 
-    /// <summary>Scans decoded characters by line, returning when one frame is ready or the buffer is exhausted.</summary>
-    private ServerSentEvent? ScanDecoded(char[] characters, int length, ref int position)
+    private void SkipPreamble(byte[] bytes, int length, ref int position)
     {
-        if (!_sawAnyCharacter && position < length)
+        // One leading byte order mark belongs to the framing, not to the first field.
+        var preamble = "\uFEFF"u8;
+        while (_preambleLength < preamble.Length && position < length)
         {
-            _sawAnyCharacter = true;
-
-            // One leading byte order mark belongs to the framing, not to the first field.
-            if (characters[position] is ByteOrderMark)
+            if (bytes[position] != preamble[_preambleLength])
             {
-                position++;
+                AppendLine(preamble[.._preambleLength]);
+                _preambleLength = preamble.Length;
+                break;
             }
-        }
 
+            _preambleLength++;
+            position++;
+        }
+    }
+
+    /// <summary>Scans bytes by line, returning when one frame is ready or the buffer is exhausted.</summary>
+    private ServerSentEvent? ScanBytes(byte[] bytes, int length, ref int position)
+    {
         while (position < length)
         {
             // A CR already terminated the line, so the LF completing a CRLF pair is not a second terminator.
             if (_sawCarriageReturn)
             {
                 _sawCarriageReturn = false;
-                if (characters[position] is '\n')
+                if (bytes[position] is (byte)'\n')
                 {
                     position++;
                     continue;
                 }
             }
 
-            var remaining = characters.AsSpan(position, length - position);
-            var terminator = remaining.IndexOfAny('\r', '\n');
+            // ASCII delimiters cannot occur inside a multi-byte UTF-8 character.
+            var remaining = bytes.AsSpan(position, length - position);
+            var terminator = remaining.IndexOfAny((byte)'\r', (byte)'\n');
             if (terminator < 0)
             {
-                AppendLine(characters, position, remaining.Length);
+                AppendLine(remaining);
                 position = length;
                 break;
             }
 
             if (terminator > 0)
             {
-                AppendLine(characters, position, terminator);
+                AppendLine(remaining[..terminator]);
             }
 
-            _sawCarriageReturn = characters[position + terminator] is '\r';
+            _sawCarriageReturn = bytes[position + terminator] is (byte)'\r';
             position += terminator + 1;
             if (CompleteLine() is { } frame)
             {
@@ -167,36 +201,61 @@ internal sealed class ServerSentEventReader
         return null;
     }
 
-    private void AppendLine(char[] characters, int start, int count)
+    private void AppendLine(ReadOnlySpan<byte> bytes)
     {
-        Grow(count);
-        _ = _line.Append(characters, start, count);
+        foreach (var value in bytes)
+        {
+            if (value < 0x80)
+            {
+                Grow(1);
+            }
+            else if (value >= 0xc0)
+            {
+                _continuationBytes = value switch
+                {
+                    < 0xe0 => 1,
+                    < 0xf0 => 2,
+                    _ => 3,
+                };
+                _sequenceCharacters = value < 0xf0 ? 1 : 2;
+            }
+            else if (--_continuationBytes is 0)
+            {
+                Grow(_sequenceCharacters);
+            }
+        }
+
+        EnsureCapacity(ref _line, _lineLength + bytes.Length, _lineLength);
+        bytes.CopyTo(_line.AsSpan(_lineLength));
+        _lineLength += bytes.Length;
     }
 
     /// <summary>Closes the pending line: an empty one ends the frame, a field line extends it.</summary>
     private ServerSentEvent? CompleteLine()
     {
-        if (_line.Length is 0)
+        if (_lineLength is 0)
         {
             return TakeFrame();
         }
 
         // A line opening with the separator is a comment, which carries no field.
-        if (_line[0] is not FieldSeparator)
+        if (_line[0] is not (byte)':')
         {
-            var separator = IndexOfSeparator();
-            var nameLength = separator < 0 ? _line.Length : separator;
-            if (MatchesField(DataField, nameLength))
+            var line = _line.AsSpan(0, _lineLength);
+            var separator = line.IndexOf((byte)':');
+            var name = separator < 0 ? line : line[..separator];
+            var start = ValueStart(separator);
+            if (name.SequenceEqual("data"u8))
             {
-                AppendDataValue(separator);
+                AppendDataValue(line[start..]);
             }
-            else if (MatchesField(EventField, nameLength))
+            else if (name.SequenceEqual("event"u8))
             {
-                CaptureEventName(separator);
+                CaptureEventName(line[start..]);
             }
         }
 
-        _ = _line.Clear();
+        _lineLength = 0;
         return null;
     }
 
@@ -210,88 +269,73 @@ internal sealed class ServerSentEventReader
 
         // An absent or empty event field leaves the frame unnamed, which the grammar reads
         // as the default name.
-        var name = _eventName is { Length: > 0 } eventName ? eventName : ServerSentEvent.DefaultName;
-        var frame = new ServerSentEvent(name, _data.ToString());
+        var name = _eventNameLength is 0
+            ? ServerSentEvent.DefaultName
+            : StrictUtf8.GetString(_data, _dataLength, _eventNameLength);
+        var frame = new ServerSentEvent(name, _data.AsMemory(0, _dataLength));
         ResetFrame();
         return frame;
     }
 
-    private int IndexOfSeparator()
+    private void EnsureCapacity(ref byte[] buffer, int required, int used)
     {
-        for (var index = 0; index < _line.Length; index++)
+        // Valid input cannot reach beyond this bound: Grow refuses before the buffer passes it.
+        Debug.Assert(required <= _maxBufferBytes, "Required capacity must stay within the charged-character bound.");
+        if (required <= buffer.Length)
         {
-            if (_line[index] is FieldSeparator)
-            {
-                return index;
-            }
+            return;
         }
 
-        return -1;
+        var capacity = buffer.Length is 0 ? Math.Min(InitialBufferBytes, _maxBufferBytes) : buffer.Length;
+        while (capacity < required)
+        {
+            capacity = (int)Math.Min(_maxBufferBytes, 2L * capacity);
+        }
+
+        var replacement = ArrayPool<byte>.Shared.Rent(capacity);
+        buffer.AsSpan(0, used).CopyTo(replacement);
+        ReturnBuffer(ref buffer);
+        buffer = replacement;
     }
 
-    private bool MatchesField(string field, int nameLength)
+    private void AppendDataValue(ReadOnlySpan<byte> value)
     {
-        if (nameLength != field.Length)
-        {
-            return false;
-        }
-
-        for (var index = 0; index < nameLength; index++)
-        {
-            if (_line[index] != field[index])
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private void AppendDataValue(int separator)
-    {
-        // Every data field after the first contributes its own line to the payload.
+        var joinedLength = _dataLength + value.Length;
         if (_frameHasData)
         {
             Grow(1);
-            _ = _data.Append('\n');
+            joinedLength++;
         }
 
-        _frameHasData = true;
-        var start = ValueStart(separator);
-#if NET
-        _ = _data.Append(_line, start, _line.Length - start);
-#else
-        AppendDataValueDownlevel(start);
-#endif
-    }
-
-#if !NET
-    private void AppendDataValueDownlevel(int start)
-    {
-        var remaining = _line.Length - start;
-        while (remaining > 0)
+        EnsureCapacity(ref _data, joinedLength + _eventNameLength, _dataLength + _eventNameLength);
+        _data.AsSpan(_dataLength, _eventNameLength).CopyTo(_data.AsSpan(joinedLength));
+        if (_frameHasData)
         {
-            var count = Math.Min(remaining, _copyBuffer.Length);
-            _line.CopyTo(start, _copyBuffer, 0, count);
-            _ = _data.Append(_copyBuffer, 0, count);
-            start += count;
-            remaining -= count;
+            _data[_dataLength++] = (byte)'\n';
         }
-    }
-#endif
 
-    private void CaptureEventName(int separator)
+        value.CopyTo(_data.AsSpan(_dataLength));
+        _dataLength = joinedLength;
+        _frameHasData = true;
+    }
+
+    private void CaptureEventName(ReadOnlySpan<byte> value)
     {
-        var start = ValueStart(separator);
-        _eventName = _line.ToString(start, _line.Length - start);
+        // The grammar names event: message the same as an unnamed frame, so skip decoding a string.
+        _eventNameLength = value.SequenceEqual("message"u8) ? 0 : value.Length;
+        if (_eventNameLength > 0)
+        {
+            EnsureCapacity(ref _data, _dataLength + _eventNameLength, _dataLength);
+            value.CopyTo(_data.AsSpan(_dataLength));
+        }
     }
 
     /// <summary>Locates a field value: past the separator, then past at most one space.</summary>
     private int ValueStart(int separator)
     {
         // A line with no separator is a field name whose value is empty.
-        var start = separator < 0 ? _line.Length : separator + 1;
-        return start < _line.Length && _line[start] is ' ' ? start + 1 : start;
+        var start = separator < 0 ? _lineLength : separator + 1;
+        return start < _lineLength && _line[start] is (byte)' ' ? start + 1 : start;
     }
 
     private void Grow(int characters)
@@ -306,9 +350,28 @@ internal sealed class ServerSentEventReader
 
     private void ResetFrame()
     {
-        _ = _data.Clear();
-        _eventName = null;
+        _dataLength = 0;
+        _eventNameLength = 0;
         _frameCharacters = 0;
         _frameHasData = false;
+    }
+
+    private void ResetEnumeration()
+    {
+        ResetFrame();
+        _lineLength = 0;
+        _continuationBytes = 0;
+        _sequenceCharacters = 0;
+        _preambleLength = 0;
+        _sawCarriageReturn = false;
+    }
+
+    private static void ReturnBuffer(ref byte[] buffer)
+    {
+        if (buffer.Length > 0)
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+            buffer = [];
+        }
     }
 }

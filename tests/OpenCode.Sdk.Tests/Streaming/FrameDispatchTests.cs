@@ -14,7 +14,7 @@ public sealed class FrameDispatchTests
     [Test]
     public async Task ReadPayload_Should_Yield_The_Default_Frame_Payload()
     {
-        var frame = new ServerSentEvent(ServerSentEvent.DefaultName, FirstPayload);
+        var frame = TestFrames.FromText(ServerSentEvent.DefaultName, FirstPayload);
 
         var payload = FrameDispatch.ReadPayload(frame, new TestStreamAdapter());
 
@@ -24,7 +24,7 @@ public sealed class FrameDispatchTests
     [Test]
     public async Task ReadPayload_Should_Throw_The_Typed_Failure_For_The_Declared_Failure_Frame()
     {
-        var frame = new ServerSentEvent(TestStreamAdapter.StreamFailureEventName, DieCause);
+        var frame = TestFrames.FromText(TestStreamAdapter.StreamFailureEventName, DieCause);
 
         var exception = Assert.Throws<OpenCodeStreamFailureException>(
             () => _ = FrameDispatch.ReadPayload(frame, new TestStreamAdapter()));
@@ -37,7 +37,7 @@ public sealed class FrameDispatchTests
     [Test]
     public async Task ReadPayload_Should_Refuse_A_Frame_Named_Outside_The_Contract()
     {
-        var frame = new ServerSentEvent("surprise", FirstPayload);
+        var frame = TestFrames.FromText("surprise", FirstPayload);
 
         var exception = Assert.Throws<OpenCodeTransportException>(
             () => _ = FrameDispatch.ReadPayload(frame, new TestStreamAdapter()));
@@ -49,7 +49,7 @@ public sealed class FrameDispatchTests
     [Test]
     public async Task ReadPayload_Should_Refuse_A_Malformed_Payload()
     {
-        var frame = new ServerSentEvent(ServerSentEvent.DefaultName, MalformedData);
+        var frame = TestFrames.FromText(ServerSentEvent.DefaultName, MalformedData);
 
         var exception = Assert.Throws<OpenCodeTransportException>(
             () => _ = FrameDispatch.ReadPayload(frame, new TestStreamAdapter()));
@@ -60,7 +60,7 @@ public sealed class FrameDispatchTests
     [Test]
     public async Task ReadPayload_Should_Refuse_A_Null_Payload()
     {
-        var frame = new ServerSentEvent(ServerSentEvent.DefaultName, "null");
+        var frame = TestFrames.FromText(ServerSentEvent.DefaultName, "null");
 
         var exception = Assert.Throws<OpenCodeTransportException>(
             () => _ = FrameDispatch.ReadPayload(frame, new TestStreamAdapter()));
@@ -71,7 +71,7 @@ public sealed class FrameDispatchTests
     [Test]
     public async Task ReadPayload_Should_Refuse_A_Malformed_Failure_Cause()
     {
-        var frame = new ServerSentEvent(TestStreamAdapter.StreamFailureEventName, MalformedData);
+        var frame = TestFrames.FromText(TestStreamAdapter.StreamFailureEventName, MalformedData);
 
         var exception = Assert.Throws<OpenCodeTransportException>(
             () => _ = FrameDispatch.ReadPayload(frame, new TestStreamAdapter()));
@@ -83,7 +83,7 @@ public sealed class FrameDispatchTests
     [Test]
     public async Task ReadPayload_Should_Refuse_A_Null_Failure_Cause()
     {
-        var frame = new ServerSentEvent(TestStreamAdapter.StreamFailureEventName, "null");
+        var frame = TestFrames.FromText(TestStreamAdapter.StreamFailureEventName, "null");
 
         var exception = Assert.Throws<OpenCodeTransportException>(
             () => _ = FrameDispatch.ReadPayload(frame, new TestStreamAdapter()));
@@ -105,10 +105,10 @@ public sealed class FrameDispatchTests
     }
 
     public static IEnumerable<(string Name, string Body, Func<string, object> Read)> EventRefusals() => Refusals(static body => FrameDispatch.ReadPayload(
-        new ServerSentEvent(ServerSentEvent.DefaultName, body), EventSubscribeResponseStreamAdapter.Instance));
+        TestFrames.FromText(ServerSentEvent.DefaultName, body), EventSubscribeResponseStreamAdapter.Instance));
 
     public static IEnumerable<(string Name, string Body, Func<string, object> Read)> LogRefusals() => Refusals(static body => FrameDispatch.ReadPayload(
-        new ServerSentEvent(ServerSentEvent.DefaultName, body), SessionLogResponseStreamAdapter.Instance));
+        TestFrames.FromText(ServerSentEvent.DefaultName, body), SessionLogResponseStreamAdapter.Instance));
 
     private static IEnumerable<(string Name, string Body, Func<string, object> Read)> Refusals(Func<string, object> read) =>
     [
@@ -123,7 +123,7 @@ public sealed class FrameDispatchTests
     [Test]
     public async Task ReadPayload_Should_Keep_The_Primary_Failure_For_An_Unreadable_Rpc_Event()
     {
-        var frame = new ServerSentEvent(ServerSentEvent.DefaultName, WireBodyData.EventWithoutData("rpc.foo"));
+        var frame = TestFrames.FromText(ServerSentEvent.DefaultName, WireBodyData.EventWithoutData("rpc.foo"));
         var exception = Assert.Throws<OpenCodeTransportException>(
             () => _ = FrameDispatch.ReadPayload(frame, EventSubscribeResponseStreamAdapter.Instance));
 

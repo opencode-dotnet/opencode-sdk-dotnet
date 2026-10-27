@@ -18,7 +18,7 @@ internal static class FrameDispatch
 
         if (string.Equals(frame.Name, adapter.FailureEventName, StringComparison.Ordinal))
         {
-            throw new OpenCodeStreamFailureException(ReadCause(frame.Data, adapter.CauseTypeInfo));
+            throw new OpenCodeStreamFailureException(ReadCause(frame.Data.Span, adapter.CauseTypeInfo));
         }
 
         if (!string.Equals(frame.Name, ServerSentEvent.DefaultName, StringComparison.Ordinal))
@@ -26,15 +26,15 @@ internal static class FrameDispatch
             throw new OpenCodeTransportException($"The opencode event stream produced an undeclared frame named '{frame.Name}'.");
         }
 
-        return ReadFramePayload(frame.Data, adapter.PayloadTypeInfo, adapter.UnknownPayloadTypeInfo);
+        return ReadFramePayload(frame.Data.Span, adapter.PayloadTypeInfo, adapter.UnknownPayloadTypeInfo);
     }
 
-    private static TCause ReadCause<TCause>(string frame, JsonTypeInfo<TCause> typeInfo)
+    private static TCause ReadCause<TCause>(ReadOnlySpan<byte> utf8Payload, JsonTypeInfo<TCause> typeInfo)
         where TCause : IReadOnlyList<IOpenCodeStreamFailureCause>
     {
         try
         {
-            return JsonSerializer.Deserialize(frame, typeInfo)
+            return JsonSerializer.Deserialize(utf8Payload, typeInfo)
                    ?? throw new OpenCodeTransportException("The opencode event stream produced a null failure cause.");
         }
         catch (JsonException exception)
@@ -45,11 +45,11 @@ internal static class FrameDispatch
 
     /// <summary>Reads the payload, preserving an unreadable known shape through an admitted unknown arm.</summary>
     private static TPayload ReadFramePayload<TPayload>(
-        string frame, JsonTypeInfo<TPayload> typeInfo, JsonTypeInfo? unknownTypeInfo)
+        ReadOnlySpan<byte> utf8Payload, JsonTypeInfo<TPayload> typeInfo, JsonTypeInfo? unknownTypeInfo)
     {
         try
         {
-            return JsonSerializer.Deserialize(frame, typeInfo)
+            return JsonSerializer.Deserialize(utf8Payload, typeInfo)
                    ?? throw new OpenCodeTransportException("The opencode event stream produced a null frame payload.");
         }
         catch (JsonException exception)
@@ -62,7 +62,7 @@ internal static class FrameDispatch
 
             try
             {
-                return JsonSerializer.Deserialize(frame, unknownTypeInfo) is TPayload payload
+                return JsonSerializer.Deserialize(utf8Payload, unknownTypeInfo) is TPayload payload
                     ? payload
                     : throw failure;
             }

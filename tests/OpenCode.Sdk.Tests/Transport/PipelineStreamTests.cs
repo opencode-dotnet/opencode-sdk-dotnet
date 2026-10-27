@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json.Nodes;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
@@ -307,8 +308,8 @@ public sealed class PipelineStreamTests
     public async Task ExecuteStreamAsync_Should_Sequence_Frames_Through_The_Framer_Seam()
     {
         var framer = new ScriptedFramer(
-            new ServerSentEvent(ServerSentEvent.DefaultName, FirstPayload),
-            new ServerSentEvent(ServerSentEvent.DefaultName, SecondPayload));
+            TestFrames.FromText(ServerSentEvent.DefaultName, FirstPayload),
+            TestFrames.FromText(ServerSentEvent.DefaultName, SecondPayload));
         using var handler = new RecordingHttpHandler(static _ => EventStream(string.Empty));
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient, framer: framer);
@@ -321,6 +322,39 @@ public sealed class PipelineStreamTests
                 .Select(static payload => payload.Value)).IsEquivalentTo(["first", "second"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(framer.FramedStream).IsNotNull();
     }
+
+    [Test]
+    public async Task SubscribeAsync_Should_Keep_The_First_Typed_Event_After_Two_More_Moves()
+    {
+        using var scenario = PipelineScenario.Responding(static _ => EventStream(WireBodyData.Frames(
+            ConnectedPayload("aaa"), ConnectedPayload("bbb"), ConnectedPayload("ccc"))));
+        await using var events = new EventsClient(scenario.Pipeline).SubscribeAsync().GetAsyncEnumerator();
+        await Assert.That(await events.MoveNextAsync()).IsTrue();
+        await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
+        var first = (EventServerConnected)events.Current;
+
+        await Assert.That(await events.MoveNextAsync()).IsTrue();
+        await Assert.That(((EventServerConnected)events.Current).Data["value"].GetString()).IsEqualTo("bbb");
+        await Assert.That(await events.MoveNextAsync()).IsTrue();
+        await Assert.That(((EventServerConnected)events.Current).Data["value"].GetString()).IsEqualTo("ccc");
+
+        await Assert.That(first.Id).IsEqualTo("aaa");
+        await Assert.That(first.Data["value"].GetString()).IsEqualTo("aaa");
+        await Assert.That(first.Data["nested"].GetProperty("value").GetString()).IsEqualTo("aaa");
+        await Assert.That(first.Metadata?["value"].GetString()).IsEqualTo("aaa");
+    }
+
+    private static string ConnectedPayload(string value) => new JsonObject
+    {
+        ["id"] = value,
+        ["type"] = StreamReconnect.ConnectedEventType,
+        ["data"] = new JsonObject
+        {
+            ["value"] = value,
+            ["nested"] = new JsonObject { ["value"] = value },
+        },
+        ["metadata"] = new JsonObject { ["value"] = value },
+    }.ToJsonString();
 
     [Test]
     public async Task ExecuteStreamAsync_Should_Decorate_The_Request_Like_Any_Other()

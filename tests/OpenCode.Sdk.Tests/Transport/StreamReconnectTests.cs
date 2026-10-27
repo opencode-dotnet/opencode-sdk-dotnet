@@ -9,7 +9,7 @@ public sealed class StreamReconnectTests
     [Test]
     public async Task IsConnected_Should_Refuse_A_Named_Connected_Frame()
     {
-        var frame = new ServerSentEvent("notice", ScriptedEventServer.Connected);
+        var frame = TestFrames.FromText("notice", ScriptedEventServer.Connected);
 
         await Assert.That(StreamReconnect.IsConnected(frame)).IsFalse();
     }
