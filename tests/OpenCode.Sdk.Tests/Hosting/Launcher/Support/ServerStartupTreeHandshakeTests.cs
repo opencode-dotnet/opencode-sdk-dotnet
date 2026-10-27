@@ -6,7 +6,7 @@ namespace OpenCode.Sdk.Tests.Hosting.Launcher.Support;
 
 /// <summary>
 /// The child-tree handshake's own bound, on a clock the test moves: when no tree connects back, the
-/// failure names the bound and the step it was waiting for, and the caller's cancellation stays a
+/// failure names the bound, the step it was waiting for and the steps observed done before it, and the caller's cancellation stays a
 /// cancellation. Nothing connects to the listener, so no process is started.
 /// </summary>
 public sealed class ServerStartupTreeHandshakeTests
@@ -28,7 +28,7 @@ public sealed class ServerStartupTreeHandshakeTests
 
         var failure = await Assert.That(capture).Throws<TimeoutException>();
         await Assert.That(failure!.Message)
-            .IsEqualTo("The child-tree handshake did not complete within 15 s while waiting for the root to connect back.");
+            .IsEqualTo("The child-tree handshake did not complete within 15 s while waiting for the root to connect back. Steps observed done before the timeout: none; the timeout was observed 15.00 s after the handshake began.");
     }
 
     [Test]
