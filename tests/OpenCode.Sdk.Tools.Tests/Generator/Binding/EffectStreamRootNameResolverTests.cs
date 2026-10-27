@@ -50,12 +50,27 @@ public sealed class EffectStreamRootNameResolverTests
         await Assert.That(plan.Models.Select(static model => model.Name)).Contains("StreamFailureCauseDie");
     }
 
+    [Test]
+    public async Task Resolve_Should_Claim_A_Recursive_Cause_Union()
+    {
+        var document = await BindingTestHost.IngestAsync(ComponentCauseScenario("", recursive: true));
+
+        var plan = new BindingTestHost().Bind(document, Selection(Watch), Curation(Groups("widget", RootGroup())));
+
+        await Assert.That(plan.Clients.SelectMany(static client => client.Operations).Single().Stream!.CauseTypeName).IsEqualTo("IStreamFailureCause[]");
+        await Assert.That(plan.Unions.Select(static union => union.Name)).Contains("IStreamFailureCause");
+        await Assert.That(plan.Models.Select(static model => model.Name)).Contains("StreamFailureCauseInterrupt");
+        var recursive = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "StreamFailureCauseDie");
+        await Assert.That(((NamedTypeReferencePlan)recursive.Properties.Single(static property => property.WireName == "defect").Type).Name).IsEqualTo("IStreamFailureCause");
+    }
+
     /// <summary>A component cause union or variant that a model property also references.</summary>
-    private static SpecScenario ComponentCauseScenario(string suffix) => SpecScenario.Define(spec =>
+    private static SpecScenario ComponentCauseScenario(string suffix, bool recursive = false) => SpecScenario.Define(spec =>
     {
         _ = Frame(spec)
             .WithSchema(Failure, static schema => schema.AnyOf(static branch => branch.Ref(Failure + ".Die"), static branch => branch.Ref(Failure + ".Interrupt")))
-            .WithSchema(Failure + ".Die", static schema => Tagged(schema, "Die").Property("defect", static property => property.Type("string"), required: true))
+            .WithSchema(Failure + ".Die", schema => Tagged(schema, "Die")
+                .Property("defect", property => _ = recursive ? property.Ref(Failure) : property.Type("string"), required: true))
             .WithSchema(Failure + ".Interrupt", static schema => Tagged(schema, "Interrupt").Property("fiberId", static property => property.Type("number"), required: true))
             .WithSchema("Widget.Info", schema => schema
                 .Type("object")

@@ -10,12 +10,14 @@ internal sealed class ClaimReferrerValidator(SpecDocument document, ReachableSch
     private readonly ReachableSchemaSet _reachable = reachable ?? throw new ArgumentNullException(nameof(reachable));
     private readonly IReadOnlyList<SpecOperation> _selected = selected ?? throw new ArgumentNullException(nameof(selected));
 
-    public void Check(string key, string claim, IEnumerable<SchemaNode> claimingEdges, BindingErrorCollector errors)
+    public void Check(string key, string claim, IEnumerable<SchemaNode> claimingEdges,
+        IReadOnlyCollection<string> claimedKeys, BindingErrorCollector errors)
     {
-        // Equal reference records can belong to different wire roles; only the actual claiming edges are exempt.
+        // Equal reference records can belong to different wire roles; edge exemptions use reference identity.
         var exemptions = claimingEdges.ToHashSet(ReferenceEqualityComparer.Instance);
         var referrers = _reachable.GraphKeys
-            .Where(owner => _document.Schemas.TryGetValue(owner, out var schema) && References(schema))
+            .Where(owner => !claimedKeys.Contains(owner, StringComparer.Ordinal)
+                && _document.Schemas.TryGetValue(owner, out var schema) && References(schema))
             .Select(static owner => $"schema '{owner}'")
             .Concat(_selected.Where(operation => OperationRoots(operation).Any(References))
                 .Select(static operation => $"operation '{operation.OperationId}'"))

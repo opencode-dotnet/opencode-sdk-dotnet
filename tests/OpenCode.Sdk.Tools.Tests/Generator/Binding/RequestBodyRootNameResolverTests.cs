@@ -45,6 +45,15 @@ public sealed class RequestBodyRootNameResolverTests
     }
 
     [Test]
+    public async Task Resolve_Should_Claim_A_Recursive_Body_Root()
+    {
+        var plan = await BindAsync(BodyScenario("recursive"), Curation(Groups("widget", RootGroup())));
+
+        await Assert.That(BodyTypeName(plan)).IsEqualTo(RequestName);
+        await Assert.That(PropertyTypeName(plan, RequestName, "child")).IsEqualTo(RequestName);
+    }
+
+    [Test]
     public async Task Resolve_Should_Keep_A_Nested_Schema_Of_The_Root_Shared()
     {
         var plan = await BindAsync(BodyScenario("nested"), Curation(Groups("widget", RootGroup())));
@@ -117,6 +126,7 @@ public sealed class RequestBodyRootNameResolverTests
             {
                 "nested" => Titled(schema).Property("size", static property => property.Ref("Widget.Size"), required: true),
                 "nested-alias" => Titled(schema).Property("size", Size, required: true),
+                "recursive" => Titled(schema).Property("child", static property => property.Ref(Root), required: true),
                 _ => Titled(schema),
             })
             .WithSchema("Widget.Size", Size)

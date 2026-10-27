@@ -42,7 +42,7 @@ internal static class RequestBodyRootNameResolver
 
         foreach (var key in names.Keys)
         {
-            referrers.Check(key, "request-body", selected.Select(static operation => operation.RequestBody?.Schema).OfType<RefNode>(), errors);
+            referrers.Check(key, "request-body", selected.Select(static operation => operation.RequestBody?.Schema).OfType<RefNode>(), [key], errors);
         }
 
         return new ReadOnlyDictionary<string, string>(names);

@@ -45,7 +45,7 @@ internal static class EffectStreamRootNameResolver
         {
             var isUnion = name == EffectStreamTypeNamePolicy.CauseInterface;
             referrers.Check(key, isUnion ? "stream-cause union" : "stream-cause variant",
-                isUnion ? causes.Select(static cause => cause.Item) : branches, errors);
+                isUnion ? causes.Select(static cause => cause.Item) : branches, names.Keys, errors);
         }
 
         return new ReadOnlyDictionary<string, string>(names);
