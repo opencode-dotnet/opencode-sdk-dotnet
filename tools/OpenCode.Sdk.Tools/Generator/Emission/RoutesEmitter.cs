@@ -44,7 +44,7 @@ internal static class RoutesEmitter
         var operations = container.ToArray();
         var members = new List<MemberDeclarationSyntax> { EmitContainer(container) };
         members.AddRange(QueryEnumWireValueEmitter.Emit(ownedEnums));
-        var declaration = SyntaxFactory.ClassDeclaration("OpenCodeRoutes")
+        var declaration = SyntaxFactory.ClassDeclaration(ReservedNamePolicy.RoutesType)
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.InternalKeyword),
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword),
@@ -77,7 +77,7 @@ internal static class RoutesEmitter
 
         var unit = EmissionSyntax.CompilationUnit(namespaces.Internal, usings, [declaration]);
         return EmissionSyntax.CreateSource(
-            GeneratedPlacement.PathOf(GeneratedKind.Routes, TypeHome.Family(container.Key), "OpenCodeRoutes"),
+            GeneratedPlacement.PathOf(GeneratedKind.Routes, TypeHome.Family(container.Key), ReservedNamePolicy.RoutesType),
             unit);
     }
 
@@ -237,7 +237,7 @@ internal static class RoutesEmitter
             property.PropertyName);
         return property.Kind is QueryValueKind.Enum
             ? EmissionSyntax.Invocation(
-                SyntaxFactory.IdentifierName(QueryEnumWireValueEmitter.ConverterName),
+                SyntaxFactory.IdentifierName(ReservedNamePolicy.QueryEnumConverter),
                 SyntaxFactory.Argument(member))
             : member;
     }

@@ -42,7 +42,22 @@ public sealed class PendingOperationBindabilityProbeTests
         .WithOperation("widget.connect", path: "/api/widget/connect", configure: operation => operation
             .Extension("x-websocket", "true"))
         .WithOperation("widget.tail", method: "put", path: "/api/widget/tail", configure: operation => operation
-            .Extension("x-websocket", "true")));
+            .Extension("x-websocket", "true"))
+        .WithOperation("widget.item", path: "/api/widget/{class}", configure: operation => operation
+            .Parameter("class", "path", schema => schema.Type("string"), required: true)
+            .Response(200, "application/json", schema => schema.Ref("WidgetInfo"))));
+
+    /// <summary>A keyword route value is a missing parameterNames row, which the probe filters, so it probes bindable.</summary>
+    [Test]
+    public async Task Probe_Should_Mark_A_Keyword_Route_Value_As_Bindable()
+    {
+        var document = await BindingTestHost.IngestAsync(WidgetScenario);
+
+        var mark = new PendingOperationBindabilityProbe(new BindingTestHost().Binder).Probe(document, ["widget.item"]).Single();
+
+        await Assert.That(mark.IsBindable).IsTrue();
+        await Assert.That(mark.RefusalMessage).IsNull();
+    }
 
     [Test]
     public async Task Probe_Should_Mark_A_Standalone_Operation_As_Bindable()

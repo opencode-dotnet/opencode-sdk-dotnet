@@ -45,14 +45,14 @@ internal static class ClientEmitter
             members.Add(EmitHandleFactory(client, client.HandleFactory));
         }
 
-        members.Add(EmitGuardedAccessor(client, "Pipeline", "Pipeline", "_pipeline"));
+        members.Add(EmitGuardedAccessor(client, ReservedNamePolicy.PipelineProperty, "Pipeline", ReservedNamePolicy.PipelineField));
         if (client.HandleParameter is not null)
         {
             members.Add(EmitGuardedAccessor(
                 client,
                 CSharpNamePolicy.ToPascalCase(client.HandleParameter.Name),
                 client.HandleParameter.TypeName,
-                HandleFieldName(client.HandleParameter)));
+                ReservedNamePolicy.HandleFieldName(client.HandleParameter)));
         }
 
         members.AddRange(EmitOperationMembers(client));
@@ -132,33 +132,20 @@ internal static class ClientEmitter
 
     private static IEnumerable<MemberDeclarationSyntax> EmitFields(ClientPlan client)
     {
-        foreach (var typeName in OptionalBodyTypeNames(client))
+        foreach (var typeName in ReservedNamePolicy.OptionalBodyTypeNames(client))
         {
             yield return EmitEmptyBodyField(typeName);
         }
 
-        yield return EmitField("_pipeline", TypeSyntaxEmitter.EmitNamed("Pipeline"));
+        yield return EmitField(ReservedNamePolicy.PipelineField, TypeSyntaxEmitter.EmitNamed("Pipeline"));
         if (client.HandleParameter is not null)
         {
-            yield return EmitField(HandleFieldName(client.HandleParameter), TypeSyntaxEmitter.EmitNamed(client.HandleParameter.TypeName));
+            yield return EmitField(ReservedNamePolicy.HandleFieldName(client.HandleParameter), TypeSyntaxEmitter.EmitNamed(client.HandleParameter.TypeName));
         }
 
         foreach (var reference in client.SubClients)
         {
-            yield return EmitField(SubClientFieldName(reference), TypeSyntaxEmitter.EmitNamed(reference.TypeName));
-        }
-    }
-
-    /// <summary>Distinct optional request-body types, in operation order.</summary>
-    private static IEnumerable<string> OptionalBodyTypeNames(ClientPlan client)
-    {
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var operation in client.Operations)
-        {
-            if (operation.RequestBody is { IsOptional: true } body && seen.Add(body.TypeName))
-            {
-                yield return body.TypeName;
-            }
+            yield return EmitField(ReservedNamePolicy.SubClientFieldName(reference), TypeSyntaxEmitter.EmitNamed(reference.TypeName));
         }
     }
 
@@ -166,7 +153,7 @@ internal static class ClientEmitter
         SyntaxFactory.FieldDeclaration(SyntaxFactory.VariableDeclaration(
                 TypeSyntaxEmitter.EmitNamed(typeName),
                 SyntaxFactory.SingletonSeparatedList(SyntaxFactory
-                    .VariableDeclarator(OperationMethodEmitter.EmptyBodyFieldName(typeName))
+                    .VariableDeclarator(ReservedNamePolicy.EmptyBodyFieldName(typeName))
                     .WithInitializer(SyntaxFactory.EqualsValueClause(SyntaxFactory.ImplicitObjectCreationExpression())))))
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
@@ -222,7 +209,7 @@ internal static class ClientEmitter
         {
             SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(
                 SyntaxKind.SimpleAssignmentExpression,
-                SyntaxFactory.IdentifierName("_pipeline"),
+                SyntaxFactory.IdentifierName(ReservedNamePolicy.PipelineField),
                 EmissionSyntax.Invocation(
                     EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("Pipeline"), "Create"),
                     [.. createArguments]))),
@@ -230,10 +217,10 @@ internal static class ClientEmitter
         statements.AddRange(client.SubClients.Select(static reference => (StatementSyntax)SyntaxFactory.ExpressionStatement(
             SyntaxFactory.AssignmentExpression(
                 SyntaxKind.SimpleAssignmentExpression,
-                SyntaxFactory.IdentifierName(SubClientFieldName(reference)),
+                SyntaxFactory.IdentifierName(ReservedNamePolicy.SubClientFieldName(reference)),
                 SyntaxFactory.ObjectCreationExpression(TypeSyntaxEmitter.EmitNamed(reference.TypeName))
                     .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(
-                        SyntaxFactory.Argument(SyntaxFactory.IdentifierName("_pipeline")))))))));
+                        SyntaxFactory.Argument(SyntaxFactory.IdentifierName(ReservedNamePolicy.PipelineField)))))))));
         return statements;
     }
 
@@ -257,7 +244,7 @@ internal static class ClientEmitter
         [
             SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(
                 SyntaxKind.SimpleAssignmentExpression,
-                SyntaxFactory.IdentifierName("_pipeline"),
+                SyntaxFactory.IdentifierName(ReservedNamePolicy.PipelineField),
                 SyntaxFactory.IdentifierName(ReservedNamePolicy.PipelineParameter))),
         ];
     }
@@ -271,11 +258,11 @@ internal static class ClientEmitter
         statements.AddRange(EmissionSyntax.RouteValueGuard(parameter.Name));
         statements.Add(SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(
             SyntaxKind.SimpleAssignmentExpression,
-            SyntaxFactory.IdentifierName("_pipeline"),
+            SyntaxFactory.IdentifierName(ReservedNamePolicy.PipelineField),
             SyntaxFactory.IdentifierName(ReservedNamePolicy.PipelineParameter))));
         statements.Add(SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(
             SyntaxKind.SimpleAssignmentExpression,
-            SyntaxFactory.IdentifierName(HandleFieldName(parameter)),
+            SyntaxFactory.IdentifierName(ReservedNamePolicy.HandleFieldName(parameter)),
             SyntaxFactory.IdentifierName(parameter.Name))));
         yield return SyntaxFactory.ConstructorDeclaration(client.Name)
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.InternalKeyword)))
@@ -299,11 +286,11 @@ internal static class ClientEmitter
     {
         yield return SyntaxFactory.MethodDeclaration(
                 SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
-                "Dispose")
+                ReservedNamePolicy.DisposeMethod)
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword)))
             .WithBody(SyntaxFactory.Block(
                 SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(
-                    SyntaxFactory.IdentifierName("Dispose"),
+                    SyntaxFactory.IdentifierName(ReservedNamePolicy.DisposeMethod),
                     SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.TrueLiteralExpression))
                         .WithNameColon(SyntaxFactory.NameColon("disposing")))),
                 SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(
@@ -312,7 +299,7 @@ internal static class ClientEmitter
             .WithLeadingTrivia(DocumentationSyntax.Documentation("Releases the owned transport resources."));
         yield return SyntaxFactory.MethodDeclaration(
                 SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)),
-                "Dispose")
+                ReservedNamePolicy.DisposeMethod)
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.ProtectedKeyword),
                 SyntaxFactory.Token(SyntaxKind.VirtualKeyword)))
@@ -322,8 +309,8 @@ internal static class ClientEmitter
             .WithBody(SyntaxFactory.Block(SyntaxFactory.IfStatement(
                 SyntaxFactory.IdentifierName("disposing"),
                 SyntaxFactory.Block(SyntaxFactory.ExpressionStatement(SyntaxFactory.ConditionalAccessExpression(
-                    SyntaxFactory.IdentifierName("_pipeline"),
-                    EmissionSyntax.Invocation(SyntaxFactory.MemberBindingExpression(SyntaxFactory.IdentifierName("Dispose")))))))))
+                    SyntaxFactory.IdentifierName(ReservedNamePolicy.PipelineField),
+                    EmissionSyntax.Invocation(SyntaxFactory.MemberBindingExpression(SyntaxFactory.IdentifierName(ReservedNamePolicy.DisposeMethod)))))))))
             .WithLeadingTrivia(DocumentationSyntax.MemberDocumentation(
                 "Releases the owned transport resources.",
                 [new DocumentedParameter("disposing", "Whether managed state should be released.")]));
@@ -336,7 +323,7 @@ internal static class ClientEmitter
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
                 SyntaxFactory.Token(SyntaxKind.VirtualKeyword)))
             .WithExpressionBody(SyntaxFactory.ArrowExpressionClause(
-                GuardedRead(client, SubClientFieldName(reference), reference.PropertyName)))
+                GuardedRead(client, ReservedNamePolicy.SubClientFieldName(reference), reference.PropertyName)))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken))
             .WithLeadingTrivia(DocumentationSyntax.Documentation($"Gets the '{reference.PropertyName}' collection client."));
 
@@ -348,7 +335,7 @@ internal static class ClientEmitter
                 TypeSyntaxEmitter.EmitNamed(factory.HandleTypeName))
             .WithArgumentList(SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList(
             [
-                SyntaxFactory.Argument(SyntaxFactory.IdentifierName("Pipeline")),
+                SyntaxFactory.Argument(SyntaxFactory.IdentifierName(ReservedNamePolicy.PipelineProperty)),
                 SyntaxFactory.Argument(SyntaxFactory.IdentifierName(factory.Parameter.Name)),
             ])))));
         return SyntaxFactory.MethodDeclaration(TypeSyntaxEmitter.EmitNamed(factory.HandleTypeName), factory.MethodName)
@@ -386,9 +373,4 @@ internal static class ClientEmitter
                 SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(
                     SyntaxKind.StringLiteralExpression,
                     SyntaxFactory.Literal(memberName))))));
-
-    private static string SubClientFieldName(ClientReferencePlan reference) =>
-        $"_{CSharpNamePolicy.ToCamelCase(reference.PropertyName)}";
-
-    private static string HandleFieldName(OperationParameterPlan parameter) => $"_{parameter.Name}";
 }

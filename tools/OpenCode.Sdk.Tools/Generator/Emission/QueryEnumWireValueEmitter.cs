@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Emission;
@@ -12,11 +13,6 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 /// </summary>
 internal static class QueryEnumWireValueEmitter
 {
-    private const string MethodName = "ToWireValue";
-
-    /// <summary>Names the generated converter every route builder calls for an enum query member.</summary>
-    public static string ConverterName => MethodName;
-
     /// <summary>
     /// Emits one converter per named enum. The converters are private members of the routes
     /// root, so every family's nested container reaches them, and the routes emitter names each
@@ -68,7 +64,7 @@ internal static class QueryEnumWireValueEmitter
         return SyntaxFactory
             .MethodDeclaration(
                 SyntaxFactory.NullableType(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword))),
-                MethodName)
+                ReservedNamePolicy.QueryEnumConverter)
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword)))

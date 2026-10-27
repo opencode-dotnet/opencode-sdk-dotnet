@@ -179,7 +179,19 @@ internal sealed class SingleOperationBinder(OperationFacetContext context, Error
             return null;
         }
 
-        return [.. plans.OrderBy(plan => TemplatePosition(plan.WireName))];
+        var errorCount = _context.Errors.Count;
+        foreach (var parameter in plans.Where(static plan => CSharpNamePolicy.IsKeyword(plan.Name)))
+        {
+            _context.Errors.Add(BindingErrorCategory.Curation, $"{_context.Operation.OperationId}:{parameter.WireName}",
+                $"route value '{parameter.Name}' is a C# keyword: add a parameterNames row that names it", BindingErrorKind.MissingRow);
+        }
+        foreach (var header in declaredHeaders.Where(static header => CSharpNamePolicy.IsKeyword(header.Name)))
+        {
+            _context.Errors.Add(BindingErrorCategory.Naming, _context.Operation.OperationId,
+                $"header parameter '{header.Name}' is a C# keyword, and no curation row renames a header");
+        }
+
+        return _context.Errors.Count == errorCount ? [.. plans.OrderBy(plan => TemplatePosition(plan.WireName))] : null;
     }
 
     private int TemplatePosition(string wireName)

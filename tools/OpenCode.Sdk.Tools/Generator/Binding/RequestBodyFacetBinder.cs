@@ -82,7 +82,7 @@ internal sealed class RequestBodyFacetBinder(OperationFacetContext context)
         return new FacetResult<RequestBodyPlan?>.Bound(new RequestBodyPlan
         {
             TypeName = "Stream",
-            ParameterName = "content",
+            ParameterName = ReservedNamePolicy.ContentParameter,
             IsOptional = false,
             IsBinary = true,
         });
