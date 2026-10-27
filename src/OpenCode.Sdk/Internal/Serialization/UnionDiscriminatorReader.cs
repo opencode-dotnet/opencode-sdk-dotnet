@@ -13,8 +13,8 @@ internal sealed class UnionDiscriminatorReader
 
     /// <summary>
     /// Dispatches a string marker against the tag table: a known tag returns its mapped value
-    /// without materializing the marker string, while an unknown tag materializes the decoded
-    /// marker for the caller's carrier.
+    /// from the marker's UTF-8 bytes, decoding only a marker whose raw form exceeds the stack copy,
+    /// while an unknown tag materializes the decoded marker for the caller's carrier.
     /// </summary>
     public bool TryFindKnown<TValue>(
         ref Utf8JsonReader reader,

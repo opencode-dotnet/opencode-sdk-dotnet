@@ -775,7 +775,8 @@ public sealed class OpenCodeJsonContextTests
         var json = _fixtures.LoadJson("Serialization.malformed-assistant-marker.json");
 
         _ = await Assert.That(() => _serializer.Deserialize<ISessionMessageAssistantContent>(json))
-            .Throws<JsonException>();
+            .Throws<JsonException>()
+            .WithMessage("The 'type' marker must be a string.", StringComparison.Ordinal);
     }
 
     [Test]
