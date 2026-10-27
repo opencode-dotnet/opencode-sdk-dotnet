@@ -55,7 +55,7 @@ internal static class ModelPropertyEmitter
             declaration = declaration.AddAttributeLists(EmissionSyntax.Attribute(
                 "JsonConverter",
                 SyntaxFactory.AttributeArgument(SyntaxFactory.TypeOfExpression(
-                    TypeSyntaxEmitter.EmitNamed(OptionalConverterNamePolicy.ConverterTypeName(property.Type))))));
+                    TypeSyntaxEmitter.EmitNamed(ConverterNamePolicy.Optional(property.Type))))));
         }
 
         if (marker?.Prefix is { } prefix)

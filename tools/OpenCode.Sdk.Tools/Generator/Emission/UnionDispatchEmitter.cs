@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 
@@ -9,7 +10,7 @@ internal static class UnionDispatchEmitter
 {
     internal static GeneratedSource EmitConverter(UnionPlan union, ModelPlacement placement, GeneratedNamespacePlan namespaces)
     {
-        var converterName = $"{union.ConceptName}JsonConverter";
+        var converterName = ConverterNamePolicy.Of(union.ConceptName);
         var declaration = ConverterSyntax.Declaration(converterName, TypeSyntaxEmitter.EmitNamed(union.Name),
             [
                 .. EmitDispatchMaps(union),

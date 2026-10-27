@@ -38,7 +38,7 @@ internal static class StructuralUnionCarrierEmitter
             .AddAttributeLists(EmissionSyntax.Attribute(
                 "JsonConverter",
                 SyntaxFactory.AttributeArgument(SyntaxFactory.TypeOfExpression(
-                    TypeSyntaxEmitter.EmitNamed($"{union.Name}JsonConverter")))))
+                    TypeSyntaxEmitter.EmitNamed(ConverterNamePolicy.Of(union.Name))))))
             .WithMembers(SyntaxFactory.List(members))
             .WithLeadingTrivia(DocumentationSyntax.Documentation(
                 union.Description ?? $"Represents {GeneratedDisplayName.WithIndefiniteArticle(union.Name)} structural union."));

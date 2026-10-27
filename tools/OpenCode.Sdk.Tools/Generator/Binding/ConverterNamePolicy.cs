@@ -1,15 +1,22 @@
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
-namespace OpenCode.Sdk.Tools.Generator.Emission;
+namespace OpenCode.Sdk.Tools.Generator.Binding;
 
 /// <summary>
-/// Names the closed converter one <c>Optional&lt;T&gt;</c> instantiation needs. The wrapper is a
-/// generic type, and an unbound generic cannot be named in a <c>[JsonConverter]</c> argument, so
-/// each instantiation reaching the wire gets its own concrete converter type (ADR-0004).
+/// Names every generated converter type. Binding claims these names in the type inventory and the
+/// emitters declare them, so a claim and the declaration it guards come from one rule.
 /// </summary>
-internal static class OptionalConverterNamePolicy
+internal static class ConverterNamePolicy
 {
-    public static string ConverterTypeName(TypeReferencePlan inner) =>
+    /// <summary>Names the converter a union, unknown carrier, structural union or enum declares for itself.</summary>
+    public static string Of(string typeName) => $"{typeName}JsonConverter";
+
+    /// <summary>
+    /// Names the closed converter one <c>Optional&lt;T&gt;</c> instantiation needs. The wrapper is a
+    /// generic type, and an unbound generic cannot be named in a <c>[JsonConverter]</c> argument, so
+    /// each instantiation reaching the wire gets its own concrete converter type.
+    /// </summary>
+    public static string Optional(TypeReferencePlan inner) =>
         inner is SpecialNumberTypeReferencePlan
             ? "OptionalOfSpecialNumberJsonConverter"
             : $"OptionalOf{Suffix(inner ?? throw new ArgumentNullException(nameof(inner)))}JsonConverter";

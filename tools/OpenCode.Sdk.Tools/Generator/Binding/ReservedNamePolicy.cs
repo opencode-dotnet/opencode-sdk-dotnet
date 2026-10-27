@@ -32,6 +32,7 @@ internal static class ReservedNamePolicy
     public const string DisposeMethod = "Dispose";
     public const string EmptyBodyPrefix = "Empty";
     public const string RoutesType = "OpenCodeRoutes";
+    public const string JsonContextType = "OpenCodeJsonContext";
     public const string QueryEnumConverter = "ToWireValue";
 
     /// <summary>Identifies the declaration that a refused route name collides with.</summary>

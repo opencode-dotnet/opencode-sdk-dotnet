@@ -36,14 +36,14 @@ internal static class OptionalConverterEmitter
             .SelectMany(static model => model.Properties)
             .Where(static property => property.EmitsOptionalWrapper)
             .Select(static property => property.Type)
-            .DistinctBy(static type => (TypeReferenceNamePolicy.Format(type), OptionalConverterNamePolicy.ConverterTypeName(type)))
-            .OrderBy(static type => OptionalConverterNamePolicy.ConverterTypeName(type), StringComparer.Ordinal);
+            .DistinctBy(static type => (TypeReferenceNamePolicy.Format(type), ConverterNamePolicy.Optional(type)))
+            .OrderBy(static type => ConverterNamePolicy.Optional(type), StringComparer.Ordinal);
         return Array.AsReadOnly([.. instantiations.Select(inner => EmitConverter(inner, namespaces))]);
     }
 
     private static GeneratedSource EmitConverter(TypeReferencePlan inner, GeneratedNamespacePlan namespaces)
     {
-        var name = OptionalConverterNamePolicy.ConverterTypeName(inner);
+        var name = ConverterNamePolicy.Optional(inner);
         var wrapper = OptionalType(inner);
         var declaration = ConverterSyntax.Declaration(name, wrapper,
             [

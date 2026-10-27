@@ -38,9 +38,12 @@ public sealed class GeneratedTypeNameInventoryTests
             ("Body", "BodySchema"), ("Shape", "Shape"), ("IEvent", "IEvent"), ("ShapeKind", "Shape"), ("UnknownEvent", "IEvent"),
             ("Body", "Body"), ("Reply", "Widgets.SendBody"), ("StreamAdapter", "Widgets.Watch"), ("Query", "Widgets.Watch"),
             ("ReplyAdapter", "Widgets.SendBody"), ("ReplyDto", "Widgets.SendBody"), ("ICarrier", "IEvent"), ("INestedCarrier", "ICarrier"),
+            ("EventJsonConverter", "IEvent"), ("UnknownEventJsonConverter", "IEvent"), ("ShapeJsonConverter", "Shape"),
+            ("OpenCodeRoutes", "OpenCodeRoutes"), ("OpenCodeJsonContext", "OpenCodeJsonContext"),
         ], CollectionOrdering.Matching);
         await Assert.That(inventory.Names.Order(StringComparer.Ordinal)).IsEquivalentTo([
-            "Body", "ICarrier", "IEvent", "INestedCarrier", "Query", "Reply", "ReplyAdapter", "ReplyDto", "Shape", "ShapeKind", "StreamAdapter", "UnknownEvent",
+            "Body", "EventJsonConverter", "ICarrier", "IEvent", "INestedCarrier", "OpenCodeJsonContext", "OpenCodeRoutes", "Query", "Reply", "ReplyAdapter",
+            "ReplyDto", "Shape", "ShapeJsonConverter", "ShapeKind", "StreamAdapter", "UnknownEvent", "UnknownEventJsonConverter",
         ], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(inventory.OtherClaims(inventory.Claims[0]).Select(static claim => claim.Subject))
             .IsEquivalentTo(["Body"], StringComparer.Ordinal, CollectionOrdering.Matching);

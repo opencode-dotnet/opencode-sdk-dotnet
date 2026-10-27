@@ -5,8 +5,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// <summary>
 /// Refuses a bound type named like a hand-written internal type. Generated internal types share the
 /// internal namespace with the hand-written ones and every generated file imports it, so such a twin
-/// would not compile or would make the name ambiguous. The bind refuses every name it knows; the
-/// emitter still refuses a converter name derived later.
+/// would not compile or would make the name ambiguous. The bind refuses every generated type name,
+/// converters included; the emitter re-checks the files it writes.
 /// </summary>
 internal static class InternalNameCollisionCheck
 {

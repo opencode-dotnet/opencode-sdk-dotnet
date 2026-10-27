@@ -93,6 +93,14 @@ internal static class OwnershipPlanData
         return [.. names.Select(Model)];
     }
 
+    public static EnumModelPlan Enum(string name) =>
+        new()
+        {
+            Name = name,
+            Namespace = ModelNamespace,
+            Values = [],
+        };
+
     public static StructuralUnionModelPlan StructuralUnion(string name, string kindTypeName) =>
         new()
         {

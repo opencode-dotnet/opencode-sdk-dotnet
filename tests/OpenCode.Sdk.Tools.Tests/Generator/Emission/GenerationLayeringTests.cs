@@ -14,7 +14,7 @@ public sealed class GenerationLayeringTests
     {
         string[] approved =
         [
-            "ReservedNamePolicy", "CSharpNamePolicy", "ExtensibleEnumMemberPolicy",
+            "ReservedNamePolicy", "ConverterNamePolicy", "CSharpNamePolicy", "ExtensibleEnumMemberPolicy",
             "EffectStreamTypeNamePolicy", "ErrorMarkerPolicy", "TypeReferenceNamePolicy", "GeneratedDisplayName",
         ];
         var compilation = await LoadEmissionAsync();
@@ -53,12 +53,21 @@ public sealed class GenerationLayeringTests
     public async Task Registry_Should_Have_One_Name_Owner()
     {
         var roots = await Task.WhenAll((await LoadEmissionAsync()).SyntaxTrees.Select(static tree => tree.GetRootAsync()));
-        var owners = roots.SelectMany(root => root.DescendantTokens()
-                .Where(static token => token.IsKind(SyntaxKind.StringLiteralToken) && string.Equals(token.ValueText, "OpenCodeJsonContext", StringComparison.Ordinal))
-                .Select(token => root.FindNode(token.Span).AncestorsAndSelf().OfType<ClassDeclarationSyntax>().First().Identifier.ValueText))
-            .Order(StringComparer.Ordinal).ToArray();
-        await Assert.That(owners).IsEquivalentTo(["RegistryNames"], CollectionOrdering.Matching).Because(string.Join(", ", owners));
+        var fileSystem = new RealFileSystem();
+        var policyPath = fileSystem.Path.Combine(new RepositoryRoot(fileSystem).Locate(), "tools", "OpenCode.Sdk.Tools", "Generator", "Binding", "ReservedNamePolicy.cs");
+        var policy = await CSharpSyntaxTree.ParseText(await fileSystem.File.ReadAllTextAsync(policyPath, CancellationToken.None)).GetRootAsync();
+
+        var emissionOwners = roots.SelectMany(ContextNameOwners).Order(StringComparer.Ordinal).ToArray();
+        var bindingOwners = ContextNameOwners(policy).ToArray();
+
+        // The context's name is a claimed type name: ReservedNamePolicy owns it, and emission only reads it.
+        await Assert.That(emissionOwners).IsEmpty().Because(string.Join(", ", emissionOwners));
+        await Assert.That(bindingOwners).IsEquivalentTo(["ReservedNamePolicy"], CollectionOrdering.Matching).Because(string.Join(", ", bindingOwners));
     }
+
+    private static IEnumerable<string> ContextNameOwners(SyntaxNode root) => root.DescendantTokens()
+        .Where(static token => token.IsKind(SyntaxKind.StringLiteralToken) && string.Equals(token.ValueText, "OpenCodeJsonContext", StringComparison.Ordinal))
+        .Select(token => root.FindNode(token.Span).AncestorsAndSelf().OfType<ClassDeclarationSyntax>().First().Identifier.ValueText);
 
     [Test]
     public async Task Converters_Should_Use_One_Skeleton()

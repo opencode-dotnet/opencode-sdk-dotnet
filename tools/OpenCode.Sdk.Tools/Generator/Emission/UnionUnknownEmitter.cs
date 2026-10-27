@@ -61,7 +61,7 @@ internal static class UnionUnknownEmitter
             .AddAttributeLists(EmissionSyntax.Attribute(
                 "JsonConverter",
                 SyntaxFactory.AttributeArgument(SyntaxFactory.TypeOfExpression(
-                    TypeSyntaxEmitter.EmitNamed($"{union.UnknownTypeName}JsonConverter")))))
+                    TypeSyntaxEmitter.EmitNamed(ConverterNamePolicy.Of(union.UnknownTypeName))))))
             .WithMembers(SyntaxFactory.List(members))
             .WithLeadingTrivia(DocumentationSyntax.Documentation(union.IsStreamFallbackCarrier
                 ? $"Preserves an unknown or unmaterializable {GeneratedDisplayName.Of(union.ConceptName)} payload."
