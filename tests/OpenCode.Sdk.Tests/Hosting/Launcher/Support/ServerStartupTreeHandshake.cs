@@ -64,7 +64,7 @@ internal sealed class ServerStartupTreeHandshake : IDisposable
     /// <summary>
     /// Accepts and authenticates the root, then its child, and acknowledges both. When
     /// <see cref="HandshakeTimeout"/> runs out first, the failure is a <see cref="TimeoutException"/>
-    /// naming the bound and the step it was waiting for; the caller's own cancellation stays an
+    /// naming the bound, the step it was waiting for and the steps observed done before it; the caller's own cancellation stays an
     /// <see cref="OperationCanceledException"/>.
     /// </summary>
     /// <param name="acknowledge">False rejects the tree before the acknowledgement, for cleanup verification.</param>
@@ -74,7 +74,7 @@ internal sealed class ServerStartupTreeHandshake : IDisposable
     {
         using var deadline = TimedCancellation.Create(HandshakeTimeout, _time);
         using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
-        var step = new HandshakeStep(deadline, cancellationToken);
+        var step = new HandshakeStep(deadline, new HandshakeTimeline(_time), () => _root?.UnreadBytes, cancellationToken);
         _root = new ServerStartupTreeLease(
             await step.WithinBoundAsync(() => AcceptTcpClientAsync(bound.Token), "the root to connect back"), _fileSystem);
         try
@@ -159,15 +159,17 @@ internal sealed class ServerStartupTreeHandshake : IDisposable
 
     /// <summary>
     /// Turns a cancellation that only <see cref="HandshakeTimeout"/> caused into a
-    /// <see cref="TimeoutException"/> naming the step it was waiting for.
+    /// <see cref="TimeoutException"/> naming the step it was waiting for and the steps observed done before it.
     /// </summary>
-    private readonly struct HandshakeStep(CancellationTokenSource deadline, CancellationToken caller)
+    private readonly struct HandshakeStep(CancellationTokenSource deadline, HandshakeTimeline timeline, Func<int?> unreadRootBytes, CancellationToken caller)
     {
         public async Task<T> WithinBoundAsync<T>(Func<Task<T>> step, string waitingFor)
         {
             try
             {
-                return await step();
+                var result = await step();
+                timeline.Completed(waitingFor);
+                return result;
             }
             catch (OperationCanceledException exception) when (TimedOut)
             {
@@ -180,6 +182,7 @@ internal sealed class ServerStartupTreeHandshake : IDisposable
             try
             {
                 await step();
+                timeline.Completed(waitingFor);
             }
             catch (OperationCanceledException exception) when (TimedOut)
             {
@@ -189,11 +192,11 @@ internal sealed class ServerStartupTreeHandshake : IDisposable
 
         private bool TimedOut => deadline.IsCancellationRequested && !caller.IsCancellationRequested;
 
-        private static TimeoutException Timeout(string waitingFor, OperationCanceledException exception) =>
+        private TimeoutException Timeout(string waitingFor, OperationCanceledException exception) =>
             new(
                 "The child-tree handshake did not complete within "
                 + HandshakeTimeout.TotalSeconds.ToString(CultureInfo.InvariantCulture)
-                + " s while waiting for " + waitingFor + ".",
+                + " s while waiting for " + waitingFor + ". " + timeline.Describe(unreadRootBytes()),
                 exception);
     }
 }
