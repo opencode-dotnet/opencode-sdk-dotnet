@@ -160,19 +160,53 @@ internal static class OperationPlanBinder
                 .Concat(client.Operations
                     .Where(static operation => operation.Pagination is not null)
                     .Select(static operation => operation.Pagination!.MethodName))
-                .Concat(client.SubClients.Select(static reference => reference.PropertyName));
+                .Concat(client.SubClients.Select(static reference => reference.PropertyName))
+                .Append(ReservedNamePolicy.PipelineProperty)
+                .Concat(ReservedNamePolicy.OptionalBodyTypeNames(client).Select(ReservedNamePolicy.EmptyBodyFieldName));
+            if (client.Role is ClientRole.Root)
+            {
+                members = members.Append(ReservedNamePolicy.DisposeMethod);
+            }
+            if (client.HandleParameter is not null)
+            {
+                members = members.Append(CSharpNamePolicy.ToPascalCase(client.HandleParameter.Name));
+            }
             if (client.HandleFactory is not null)
             {
                 members = members.Append(client.HandleFactory.MethodName);
             }
 
-            foreach (var member in members
+            var memberNames = members.ToArray();
+            foreach (var member in memberNames
                          .GroupBy(static member => member, StringComparer.Ordinal)
                          .Where(static member => member.Skip(1).Any())
                          .OrderBy(static member => member.Key, StringComparer.Ordinal))
             {
                 errors.Add(BindingErrorCategory.Naming, client.Name, $"multiple members map to C# name '{member.Key}'");
             }
+
+            CheckFieldAndTypeCollisions(client, memberNames, errors);
+        }
+    }
+
+    private static void CheckFieldAndTypeCollisions(ClientPlan client, IReadOnlyList<string> members, BindingErrorCollector errors)
+    {
+        var fields = client.SubClients.Select(ReservedNamePolicy.SubClientFieldName).Prepend(ReservedNamePolicy.PipelineField);
+        if (client.HandleParameter is not null)
+        {
+            fields = fields.Append(ReservedNamePolicy.HandleFieldName(client.HandleParameter));
+        }
+        var fieldNames = fields.ToArray();
+        if (fieldNames.Concat(members).Contains(client.Name, StringComparer.Ordinal))
+        {
+            errors.Add(BindingErrorCategory.Naming, client.Name, $"member '{client.Name}' has the name of its enclosing type");
+        }
+        foreach (var field in fieldNames.Concat(members)
+                     .GroupBy(static name => name, StringComparer.Ordinal)
+                     .Where(group => group.Skip(1).Any() && fieldNames.Contains(group.Key, StringComparer.Ordinal))
+                     .OrderBy(static group => group.Key, StringComparer.Ordinal))
+        {
+            errors.Add(BindingErrorCategory.Naming, client.Name, $"multiple fields map to C# name '{field.Key}'");
         }
     }
 
@@ -242,6 +276,13 @@ internal static class OperationPlanBinder
 
         var routeMembers = new HashSet<string>(StringComparer.Ordinal);
         var operations = clients.SelectMany(static client => client.Operations).OrderBy(static operation => operation.OperationId, StringComparer.Ordinal).ToArray();
+        foreach (var operation in operations.Where(static operation =>
+                     string.Equals(operation.RouteContainerName, operation.RouteMemberName, StringComparison.Ordinal)
+                     || operation.RouteContainerName is ReservedNamePolicy.RoutesType or ReservedNamePolicy.QueryEnumConverter
+                     || operation.RouteMemberName is ReservedNamePolicy.QueryEnumConverter))
+        {
+            errors.Add(BindingErrorCategory.Naming, operation.OperationId, ReservedNamePolicy.RouteNameProblem(operation));
+        }
         foreach (var operation in operations.Where(operation => !routeMembers.Add($"{operation.RouteContainerName}.{operation.RouteMemberName}")))
         {
             errors.Add(BindingErrorCategory.Naming, operation.OperationId,

@@ -100,13 +100,16 @@ internal static class CSharpNamePolicy
         }
 
         // Reserved keywords would emit broken source; contextual keywords are legal identifiers.
-        if (Microsoft.CodeAnalysis.CSharp.SyntaxFacts.GetKeywordKind(candidate) is not Microsoft.CodeAnalysis.CSharp.SyntaxKind.None)
+        if (IsKeyword(candidate))
         {
             return false;
         }
 
         return candidate.Skip(1).All(static character => char.IsLetterOrDigit(character) || character is '_');
     }
+
+    public static bool IsKeyword(string candidate) =>
+        Microsoft.CodeAnalysis.CSharp.SyntaxFacts.GetKeywordKind(candidate) is not Microsoft.CodeAnalysis.CSharp.SyntaxKind.None;
 
     public static IReadOnlyList<string> SplitWords(string value)
     {

@@ -201,6 +201,9 @@ the keys the claim itself names, are its sole reachable referrers; when any othe
 or operation root references it, binding refuses at that key, naming the referrers, and no curation
 row overrides the refusal.
 
+A route value whose mechanical name is a C# keyword requires a `parameterNames` row; a declared
+header with such a name refuses.
+
 The structurally-equivalent collapse is mechanical wherever upstream's stabilize suffix names it: a
 reachable `<base>_<N>` component folds into `<base>` when the two are structurally identical. A
 non-equivalent candidate remains distinct only through an explicit, reason-bearing `schemaNames`

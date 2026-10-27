@@ -205,7 +205,7 @@ internal static class OperationMethodEmitter
         arguments.Add(SyntaxFactory.Argument(SyntaxFactory.IdentifierName(ReservedNamePolicy.CancellationTokenParameter)));
         return EmissionSyntax.Invocation(
             EmissionSyntax.MemberAccess(
-                SyntaxFactory.IdentifierName("Pipeline"),
+                SyntaxFactory.IdentifierName(ReservedNamePolicy.PipelineProperty),
                 operation.Stream is null ? "ExecuteAsync" : "ExecuteStreamAsync"),
             [.. arguments]);
     }
@@ -224,18 +224,15 @@ internal static class OperationMethodEmitter
         return SyntaxFactory.BinaryExpression(
             SyntaxKind.CoalesceExpression,
             parameter,
-            SyntaxFactory.IdentifierName(EmptyBodyFieldName(body.TypeName)));
+            SyntaxFactory.IdentifierName(ReservedNamePolicy.EmptyBodyFieldName(body.TypeName)));
     }
-
-    /// <summary>Names the client's cached empty instance for an optional request-body type.</summary>
-    internal static string EmptyBodyFieldName(string typeName) => $"Empty{typeName}";
 
     /// <summary>Route arguments come from the method for ordinary parameters and from the bound handle state otherwise.</summary>
     private static ExpressionSyntax EmitRoute(OperationPlan operation)
     {
         var member = EmissionSyntax.MemberAccess(
             EmissionSyntax.MemberAccess(
-                SyntaxFactory.IdentifierName("OpenCodeRoutes"),
+                SyntaxFactory.IdentifierName(ReservedNamePolicy.RoutesType),
                 operation.RouteContainerName),
             operation.RouteMemberName);
         if (operation.Parameters.Count is 0 && operation.QueryRequest is null)

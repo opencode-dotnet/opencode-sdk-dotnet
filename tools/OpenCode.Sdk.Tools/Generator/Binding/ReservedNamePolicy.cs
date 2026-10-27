@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
@@ -24,6 +25,45 @@ internal static class ReservedNamePolicy
 
     /// <summary>Parameter name emitted methods append for per-call options.</summary>
     public const string RequestOptionsParameter = "requestOptions";
+
+    public const string ContentParameter = "content";
+    public const string PipelineProperty = "Pipeline";
+    public const string PipelineField = "_pipeline";
+    public const string DisposeMethod = "Dispose";
+    public const string EmptyBodyPrefix = "Empty";
+    public const string RoutesType = "OpenCodeRoutes";
+    public const string QueryEnumConverter = "ToWireValue";
+
+    /// <summary>Identifies the declaration that a refused route name collides with.</summary>
+    public static string RouteNameProblem(OperationPlan operation) => operation.RouteContainerName switch
+    {
+        var container when string.Equals(container, operation.RouteMemberName, StringComparison.Ordinal) =>
+            $"route container '{container}' collides with its own route member '{operation.RouteMemberName}'",
+        RoutesType or QueryEnumConverter =>
+            $"route container '{operation.RouteContainerName}' collides with a name the routes root declares",
+        _ => $"route member '{operation.RouteMemberName}' collides with a name the routes root declares",
+    };
+
+    public static string SubClientFieldName(ClientReferencePlan reference) =>
+        $"_{CSharpNamePolicy.ToCamelCase(reference.PropertyName)}";
+
+    public static string HandleFieldName(OperationParameterPlan parameter) => $"_{parameter.Name}";
+
+    /// <summary>Names the client's cached empty instance for an optional request-body type.</summary>
+    public static string EmptyBodyFieldName(string typeName) => $"{EmptyBodyPrefix}{typeName}";
+
+    /// <summary>Distinct optional request-body types, in operation order.</summary>
+    public static IEnumerable<string> OptionalBodyTypeNames(ClientPlan client)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var operation in client.Operations)
+        {
+            if (operation.RequestBody is { IsOptional: true } body && seen.Add(body.TypeName))
+            {
+                yield return body.TypeName;
+            }
+        }
+    }
 
     /// <summary>
     /// Hand-written public spine types in the generated namespaces; a generated twin would not
@@ -95,6 +135,7 @@ internal static class ReservedNamePolicy
     public static readonly FrozenSet<string> ParameterNames = FrozenSet.ToFrozenSet(
         [
             CancellationTokenParameter,
+            ContentParameter,
             DeclaredHeadersParameter,
             PipelineParameter,
             RequestParameter,

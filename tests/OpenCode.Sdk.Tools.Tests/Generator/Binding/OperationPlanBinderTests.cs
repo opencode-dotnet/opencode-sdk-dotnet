@@ -10,6 +10,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 public sealed class OperationPlanBinderTests
 {
+    private const string RootClient = "OpenCodeClient";
+
     private static readonly string[] ClaimOrderModelNames = ["WidgetsClient", "WidgetListResponse", "WidgetStreamAdapter", "WidgetListRequest"];
 
     [Test]
@@ -413,6 +415,78 @@ public sealed class OperationPlanBinderTests
             .IsEquivalentTo(expected, CollectionOrdering.Matching)
             .Because(string.Join(" | ", exception.Errors.Select(static error => error.Subject + ": " + error.Problem)));
     }
+
+    /// <summary>
+    /// Each row lands a curated name on a member the client emitter synthesizes. <c>fields</c> names two families
+    /// whose properties differ but whose backing fields are both <c>_fooBar</c>; <c>Foo</c> beside <c>FOO</c>
+    /// would refuse earlier, at the case-insensitive family prefix.
+    /// </summary>
+    [Test]
+    [Arguments("Dispose")]
+    [Arguments("Pipeline")]
+    [Arguments("EmptyWidgetCreateRequest")]
+    [Arguments("OpenCodeClient")]
+    [Arguments("handle")]
+    [Arguments("handle-field")]
+    [Arguments("fields")]
+    public async Task Bind_Should_Refuse_A_Client_Member_On_A_Synthesized_Name(string fault)
+    {
+        var groups = new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
+        {
+            ["gadget"] = fault switch
+            {
+                "handle" => ClientGroup("Gadgets", "GadgetId", "gadgetID"),
+                "handle-field" => ClientGroup("Gadgets", "_gadgetId", "gadgetID"),
+                "fields" => ClientGroup("Foo_Bar", null, null),
+                _ => ClientGroup(fault, null, null),
+            },
+            ["widget"] = fault == "fields" ? ClientGroup("FooBar", null, null) : RootGroup(),
+        };
+        BindingError[] expected = fault switch
+        {
+            "Pipeline" => [ClientMemberRefusal(RootClient, "Pipeline"), ClientFieldRefusal(RootClient, "_pipeline")],
+            "OpenCodeClient" => [EnclosingTypeMemberRefusal(RootClient, "OpenCodeClient")],
+            "handle" => [EnclosingTypeMemberRefusal("GadgetId", "GadgetId")],
+            "handle-field" => [EnclosingTypeMemberRefusal("_gadgetId", "_gadgetId")],
+            "fields" => [ClientFieldRefusal(RootClient, "_fooBar")],
+            _ => [ClientMemberRefusal(RootClient, fault)],
+        };
+
+        var exception = await BindRefusalsAsync(GadgetScenario(static spec => spec.WithOperation("widget.create", method: "post",
+            path: "/api/widget", configure: static operation => operation
+                .RequestBody("application/json", static body => body.Type("object")
+                    .Property("title", static property => property.Type("string")), required: true)
+                .Response(200, "application/json", static schema => schema.Ref("GadgetPart")))), Curation(groups), "gadget.part", "widget.create");
+
+        await Assert.That(exception.Errors).IsEquivalentTo(expected, CollectionOrdering.Matching);
+    }
+
+    /// <summary>Route containers nest in <c>OpenCodeRoutes</c> beside its <c>ToWireValue</c> converters, and hold their route members.</summary>
+    [Test]
+    [Arguments("OpenCodeRoutes", null, "route container 'OpenCodeRoutes' collides with a name the routes root declares")]
+    [Arguments("ToWireValue", null, "route container 'ToWireValue' collides with a name the routes root declares")]
+    [Arguments("Widgets", "WidgetsAsync", "route container 'Widgets' collides with its own route member 'Widgets'")]
+    [Arguments("Widgets", "ToWireValueAsync", "route member 'ToWireValue' collides with a name the routes root declares")]
+    public async Task Bind_Should_Refuse_A_Route_Name_On_A_Routes_Member(string container, string? methodName, string problem)
+    {
+        var curation = Curation(Groups("widget", ClientGroup(container, null, null)),
+            operationNames: methodName is null ? [] : [OperationName("widget.list", methodName)]);
+
+        var exception = await BindRefusalsAsync(WidgetListScenario(static operation => operation
+            .Parameter("count", "query", static schema => schema.Type("string").Enum("alpha", "beta"))), curation, "widget.list");
+
+        await Assert.That(exception.Errors).IsEquivalentTo([new BindingError(BindingErrorCategory.Naming, "widget.list", problem)], CollectionOrdering.Matching);
+    }
+
+    /// <summary>Builds a naming refusal for two generated client members sharing one C# name.</summary>
+    private static BindingError ClientMemberRefusal(string client, string member) =>
+        new(BindingErrorCategory.Naming, client, $"multiple members map to C# name '{member}'");
+
+    private static BindingError ClientFieldRefusal(string client, string field) =>
+        new(BindingErrorCategory.Naming, client, $"multiple fields map to C# name '{field}'");
+
+    private static BindingError EnclosingTypeMemberRefusal(string type, string member) =>
+        new(BindingErrorCategory.Naming, type, $"member '{member}' has the name of its enclosing type");
 
     [Test]
     [Arguments("reason", "envelope payload name curation must declare a reason")]
@@ -3125,6 +3199,92 @@ public sealed class OperationPlanBinderTests
         var item = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
         await Assert.That(item.Parameters.Single().Name).IsEqualTo("options");
     }
+
+    /// <summary>A parameterNames row can rename a route value, so a keyword route value is a missing row; a header has no row.</summary>
+    [Test]
+    [Arguments("path", "class")]
+    [Arguments("path", "event")]
+    [Arguments("header", "class")]
+    [Arguments("handle", "class")]
+    public async Task Bind_Should_Refuse_A_Parameter_Named_By_A_CSharp_Keyword(string location, string keyword)
+    {
+        BindingException exception;
+        BindingError expected;
+        if (location == "header")
+        {
+            var document = await BindingTestHost.IngestAsync(PtyScenario(headerName: keyword));
+            exception = Assert.Throws<BindingException>(() => _ = BindPtys(document, EmissionMode.InternalRaw));
+            expected = HeaderKeywordRefusal("pty.connect.token", keyword);
+        }
+        else
+        {
+            var handle = location == "handle";
+            var operationId = handle ? "alias.list" : "widget.item";
+            var document = await BindingTestHost.IngestAsync(WidgetRouteScenario(operationId, keyword));
+            exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection(operationId),
+                Curation(Groups(handle ? "alias" : "widget",
+                    ClientGroup(handle ? "Aliases" : "Widgets", handle ? "AliasClient" : null, handle ? keyword : null)))));
+            expected = PathKeywordRefusal(operationId, keyword);
+        }
+
+        await Assert.That(exception.Errors).IsEquivalentTo([expected], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments("class", "classId", "classId")]
+    [Arguments("value", null, "value")]
+    public async Task Bind_Should_Name_A_Path_Parameter_From_Its_Row_Or_Mechanical_Name(string parameter, string? curatedName, string expectedName)
+    {
+        var document = await BindingTestHost.IngestAsync(WidgetRouteScenario("widget.item", parameter));
+
+        var plan = new BindingTestHost().Bind(document, Selection("widget.item"),
+            Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)),
+                parameterNames: curatedName is null ? [] : [ParameterName("widget.item", parameter, curatedName)]));
+
+        var item = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
+        await Assert.That(item.Parameters.Single().Name).IsEqualTo(expectedName);
+    }
+
+    /// <summary><c>content</c> is reserved on every emitted operation signature, like <c>request</c>.</summary>
+    [Test]
+    public async Task Bind_Should_Refuse_A_Reserved_Content_Route_Value()
+    {
+        var document = await BindingTestHost.IngestAsync(WidgetRouteScenario("widget.create", "content", binaryBody: true));
+
+        var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document, "widget.create"));
+
+        await Assert.That(exception.Errors).IsEquivalentTo([ReservedParameterRefusal("widget.create", "content")], CollectionOrdering.Matching);
+    }
+
+    private static SpecScenario WidgetRouteScenario(string operationId, string parameter, bool binaryBody = false) =>
+        SpecScenario.Define(spec => spec
+            .WithSchema("ItemInfo", static schema => schema
+                .Type("object")
+                .Property("id", static property => property.Type("string"), required: true))
+            .WithOperation(operationId, method: binaryBody ? "post" : "get", path: $"/api/widget/{{{parameter}}}", configure: operation =>
+            {
+                _ = operation.Parameter(parameter, "path", static schema => schema.Type("string"), required: true)
+                    .Response(200, "application/json", schema => _ = operationId == "alias.list"
+                        ? schema.Type("object").Property("items", static property => property.Type("array").Items(static item => item.Type("string")), required: true)
+                        : schema.Ref("ItemInfo"));
+                if (binaryBody)
+                {
+                    _ = operation.RequestBody("application/octet-stream", static schema => schema.Type("string").Format("binary"), required: true);
+                }
+            }));
+
+    /// <summary>A route keyword has a curation remedy, so its refusal identifies the missing row.</summary>
+    private static BindingError PathKeywordRefusal(string operationId, string parameter) =>
+        new(BindingErrorCategory.Curation, $"{operationId}:{parameter}",
+            $"route value '{parameter}' is a C# keyword: add a parameterNames row that names it")
+        { Kind = BindingErrorKind.MissingRow };
+
+    private static BindingError HeaderKeywordRefusal(string operationId, string header) =>
+        new(BindingErrorCategory.Naming, operationId, $"header parameter '{header}' is a C# keyword, and no curation row renames a header");
+
+    /// <summary>Builds a naming refusal for a route value that uses a reserved signature parameter name.</summary>
+    private static BindingError ReservedParameterRefusal(string operationId, string parameter) =>
+        new(BindingErrorCategory.Naming, operationId, $"parameter name '{parameter}' is reserved by the emitted method signature");
 
     [Test]
     public async Task Bind_Should_Refuse_An_Operation_Declaring_Both_A_Body_And_Query_Parameters()
