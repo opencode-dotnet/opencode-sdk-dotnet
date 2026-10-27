@@ -74,7 +74,7 @@ internal sealed class ServerStartupTreeHandshake : IDisposable
     {
         using var deadline = TimedCancellation.Create(HandshakeTimeout, _time);
         using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
-        var step = new HandshakeStep(deadline, new HandshakeTimeline(_time), cancellationToken);
+        var step = new HandshakeStep(deadline, new HandshakeTimeline(_time), () => _root?.UnreadBytes, cancellationToken);
         _root = new ServerStartupTreeLease(
             await step.WithinBoundAsync(() => AcceptTcpClientAsync(bound.Token), "the root to connect back"), _fileSystem);
         try
@@ -161,7 +161,7 @@ internal sealed class ServerStartupTreeHandshake : IDisposable
     /// Turns a cancellation that only <see cref="HandshakeTimeout"/> caused into a
     /// <see cref="TimeoutException"/> naming the step it was waiting for and the steps observed done before it.
     /// </summary>
-    private readonly struct HandshakeStep(CancellationTokenSource deadline, HandshakeTimeline timeline, CancellationToken caller)
+    private readonly struct HandshakeStep(CancellationTokenSource deadline, HandshakeTimeline timeline, Func<int?> unreadRootBytes, CancellationToken caller)
     {
         public async Task<T> WithinBoundAsync<T>(Func<Task<T>> step, string waitingFor)
         {
@@ -196,7 +196,7 @@ internal sealed class ServerStartupTreeHandshake : IDisposable
             new(
                 "The child-tree handshake did not complete within "
                 + HandshakeTimeout.TotalSeconds.ToString(CultureInfo.InvariantCulture)
-                + " s while waiting for " + waitingFor + ". " + timeline.Describe(),
+                + " s while waiting for " + waitingFor + ". " + timeline.Describe(unreadRootBytes()),
                 exception);
     }
 }

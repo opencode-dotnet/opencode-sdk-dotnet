@@ -20,8 +20,8 @@ public sealed class HandshakeTimelineTests
         timeline.Completed("the root to authenticate");
         time.Advance(TimeSpan.FromMilliseconds(12_500));
 
-        await Assert.That(timeline.Describe())
-            .IsEqualTo("Steps observed done before the timeout: the root to connect back at 0.84 s, the root to authenticate at 2.50 s; the timeout was observed 15.00 s after the handshake began.");
+        await Assert.That(timeline.Describe(12))
+            .IsEqualTo("Steps observed done before the timeout: the root to connect back at 0.84 s, the root to authenticate at 2.50 s; the timeout was observed 15.00 s after the handshake began; 12 bytes waiting unread on the root socket.");
     }
 
     [Test]
@@ -32,6 +32,6 @@ public sealed class HandshakeTimelineTests
 
         time.Advance(TimeSpan.FromSeconds(15));
 
-        await Assert.That(timeline.Describe()).IsEqualTo("Steps observed done before the timeout: none; the timeout was observed 15.00 s after the handshake began.");
+        await Assert.That(timeline.Describe(null)).IsEqualTo("Steps observed done before the timeout: none; the timeout was observed 15.00 s after the handshake began; no root socket yet.");
     }
 }

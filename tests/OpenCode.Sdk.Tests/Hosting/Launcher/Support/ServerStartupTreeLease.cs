@@ -27,6 +27,9 @@ internal sealed class ServerStartupTreeLease : IDisposable
     public Process Process =>
         _process ?? throw new InvalidOperationException("The fixture process has not been captured.");
 
+    /// <summary>Gets how many received bytes no read has taken yet; read while the handshake still owns the connection.</summary>
+    public int UnreadBytes => _client.Available;
+
     public async Task<int?> AuthenticateAsync(string nonce, string role, CancellationToken cancellationToken)
     {
         using var reader = new StreamReader(

@@ -28,7 +28,7 @@ public sealed class ServerStartupTreeHandshakeTests
 
         var failure = await Assert.That(capture).Throws<TimeoutException>();
         await Assert.That(failure!.Message)
-            .IsEqualTo("The child-tree handshake did not complete within 15 s while waiting for the root to connect back. Steps observed done before the timeout: none; the timeout was observed 15.00 s after the handshake began.");
+            .IsEqualTo("The child-tree handshake did not complete within 15 s while waiting for the root to connect back. Steps observed done before the timeout: none; the timeout was observed 15.00 s after the handshake began; no root socket yet.");
     }
 
     [Test]

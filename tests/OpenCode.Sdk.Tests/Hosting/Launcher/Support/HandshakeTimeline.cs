@@ -10,9 +10,10 @@ internal sealed class HandshakeTimeline(TimeProvider time)
 
     public void Completed(string step) => _completed.Add(step + " at " + Elapsed());
 
-    public string Describe() =>
+    public string Describe(int? unreadRootBytes) =>
         "Steps observed done before the timeout: " + (_completed.Count is 0 ? "none" : string.Join(", ", _completed))
-        + "; the timeout was observed " + Elapsed() + " after the handshake began.";
+        + "; the timeout was observed " + Elapsed() + " after the handshake began; "
+        + (unreadRootBytes is { } bytes ? bytes.ToString(CultureInfo.InvariantCulture) + " bytes waiting unread on the root socket." : "no root socket yet.");
 
     private string Elapsed() =>
         time.GetElapsedTime(_start).TotalSeconds.ToString("F2", CultureInfo.InvariantCulture) + " s";
