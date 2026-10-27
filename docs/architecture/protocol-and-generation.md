@@ -196,9 +196,10 @@ Curation may:
   identity through a reason-bearing operation-identity row carrying the upstream report; the row
   retires when upstream's fix makes it stale (ADR-0013).
 
-A request-body or stream-cause claim renames a key only when the claiming edges are its sole reachable
-referrers; when any other reachable schema or operation root references it, binding refuses at that
-key, naming the referrers, and no curation row overrides the refusal.
+A request-body or stream-cause claim renames a key only when its claiming edges, and references from
+the keys the claim itself names, are its sole reachable referrers; when any other reachable schema
+or operation root references it, binding refuses at that key, naming the referrers, and no curation
+row overrides the refusal.
 
 The structurally-equivalent collapse is mechanical wherever upstream's stabilize suffix names it: a
 reachable `<base>_<N>` component folds into `<base>` when the two are structurally identical. A

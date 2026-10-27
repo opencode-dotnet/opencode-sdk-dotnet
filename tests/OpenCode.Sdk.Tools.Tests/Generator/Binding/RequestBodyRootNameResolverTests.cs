@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 /// <summary>
 /// The request-body claim renames a component key, not one reference, so it may take only a root
-/// that the claiming bodies alone reference; any other reachable referrer would carry the
+/// that the claiming bodies and the root itself alone reference; another reachable referrer carries the
 /// operation's request name onto an unrelated wire role.
 /// </summary>
 public sealed class RequestBodyRootNameResolverTests
@@ -71,12 +71,14 @@ public sealed class RequestBodyRootNameResolverTests
     }
 
     [Test]
-    public async Task Resolve_Should_Refuse_A_Body_Root_An_Alias_Rewrites_Onto()
+    [Arguments("alias", "schema 'Widget.Info'")]
+    [Arguments("promoted-child", "schema 'Widget.CreateInput#/properties/size'")]
+    public async Task Resolve_Should_Refuse_A_Body_Root_An_Alias_Rewrites_Onto(string referrer, string referrerName)
     {
-        var exception = await BindRefusalsAsync(BodyScenario("alias"),
-            Curation(Groups("widget", RootGroup()), schemaAliases: [Alias(InfoDraft, Root)]), Create);
+        var exception = await BindRefusalsAsync(BodyScenario(referrer),
+            Curation(Groups("widget", RootGroup()), schemaAliases: [Alias(referrer == "alias" ? InfoDraft : InfoSize, referrer == "alias" ? Root : NestedSize)]), Create);
 
-        await Assert.That(exception.Errors).IsEquivalentTo([SharedBodyRoot("schema 'Widget.Info'")], CollectionOrdering.Matching);
+        await Assert.That(exception.Errors).IsEquivalentTo([SharedBodyRoot(referrerName)], CollectionOrdering.Matching);
     }
 
     /// <summary>
@@ -126,6 +128,7 @@ public sealed class RequestBodyRootNameResolverTests
             {
                 "nested" => Titled(schema).Property("size", static property => property.Ref("Widget.Size"), required: true),
                 "nested-alias" => Titled(schema).Property("size", Size, required: true),
+                "promoted-child" => Titled(schema).Property("size", RecursiveSize, required: true),
                 "recursive" => Titled(schema).Property("child", static property => property.Ref(Root), required: true),
                 _ => Titled(schema),
             })
@@ -153,6 +156,7 @@ public sealed class RequestBodyRootNameResolverTests
         "alias" => info.Property("draft", static property => Titled(property), required: true),
         "nested" => info.Property("size", static property => property.Ref("Widget.Size"), required: true),
         "nested-alias" => info.Property("size", Size, required: true),
+        "promoted-child" => info.Property("size", RecursiveSize, required: true),
         _ => info,
     };
 
@@ -163,6 +167,9 @@ public sealed class RequestBodyRootNameResolverTests
     private static void Size(SchemaBuilder schema) => schema
         .Type("object")
         .Property("width", static property => property.Type("integer"), required: true);
+
+    private static void RecursiveSize(SchemaBuilder schema) =>
+        Titled(schema).Property("child", static property => property.Ref(Root), required: true);
 
     private static BindingError SharedBodyRoot(string referrer) =>
         new(BindingErrorCategory.Naming, Root, $"request-body claim cannot rename a key also referenced by {referrer}");

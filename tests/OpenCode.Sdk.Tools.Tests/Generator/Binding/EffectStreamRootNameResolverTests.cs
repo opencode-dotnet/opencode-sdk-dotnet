@@ -8,7 +8,7 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 /// <summary>
 /// The stream-cause claim renames the cause union and its tagged variants everywhere, so it may
-/// take only a union that cause schemas alone reference.
+/// take only a union that cause schemas and the keys the claim names alone reference.
 /// </summary>
 public sealed class EffectStreamRootNameResolverTests
 {

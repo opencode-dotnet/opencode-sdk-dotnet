@@ -12,9 +12,9 @@ internal static class RequestBodyRootNameResolver
     /// (public names never surface raw operation ids or dotted component spellings).
     /// </summary>
     /// <remarks>
-    /// A claim renames a root only when the selected bodies are its sole reachable referrers;
-    /// another schema or operation root refuses. Two selected operations claiming one root under
-    /// different names refuse. Nested component dependencies stay shared.
+    /// A claim renames a root only when the selected bodies and the root's own references are its
+    /// sole reachable referrers; another schema or operation root refuses. Two selected operations
+    /// claiming one root under different names refuse. Nested component dependencies stay shared.
     /// </remarks>
     public static IReadOnlyDictionary<string, string> Resolve(IReadOnlyList<SpecOperation> selected,
         ClaimReferrerValidator referrers, BindingErrorCollector errors)
