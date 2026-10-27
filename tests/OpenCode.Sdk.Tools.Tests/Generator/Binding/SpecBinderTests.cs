@@ -128,8 +128,12 @@ public sealed class SpecBinderTests
             })));
 
         await Assert.That(exception.Errors)
-            .IsEquivalentTo([new BindingError(BindingErrorCategory.Schema, "Cause",
-                "nested union has multiple parents 'IOuterA' and 'IOpenCodeStreamFailureCause'")], CollectionOrdering.Matching);
+            .IsEquivalentTo([
+                new BindingError(BindingErrorCategory.Naming, "Cause",
+                    "stream-cause union claim cannot rename a key also referenced by schema 'OuterA'"),
+                new BindingError(BindingErrorCategory.Schema, "Cause",
+                    "nested union has multiple parents 'IOuterA' and 'IOpenCodeStreamFailureCause'"),
+            ], CollectionOrdering.Matching);
     }
 
     [Test]

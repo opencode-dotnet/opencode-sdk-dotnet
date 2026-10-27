@@ -10,15 +10,15 @@ internal static class EffectStreamRootNameResolver
     /// carrying it. Distinct schemas claiming the same name hit the ordinary schema-name wall
     /// rather than silently merging.
     /// </summary>
-    public static IReadOnlyDictionary<string, string> Resolve(SpecDocument document, IReadOnlyList<SpecOperation> selected)
+    public static IReadOnlyDictionary<string, string> Resolve(SpecDocument document, IReadOnlyList<SpecOperation> selected,
+        ClaimReferrerValidator referrers, BindingErrorCollector errors)
     {
         var names = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var extension in selected
-                     .SelectMany(static operation => operation.Responses)
-                     .Select(static response => response.EffectStream)
-                     .OfType<SpecEffectStreamContract>())
+        var causes = selected.SelectMany(static operation => operation.Responses)
+            .Select(static response => response.EffectStream?.CauseSchema).OfType<ArrayNode>().ToArray();
+        foreach (var cause in causes)
         {
-            if (extension.CauseSchema is not ArrayNode { Item: RefNode item }
+            if (cause.Item is not RefNode item
                 || !document.Schemas.TryGetValue(item.Target, out var itemSchema)
                 || itemSchema is not UnionNode { Classification: UnionClassification.Marked } union)
             {
@@ -37,6 +37,15 @@ internal static class EffectStreamRootNameResolver
 
                 names[target] = EffectStreamTypeNamePolicy.CauseVariant(marker.Value);
             }
+        }
+
+        var branches = names.Where(static pair => pair.Value == EffectStreamTypeNamePolicy.CauseInterface)
+            .SelectMany(pair => document.Schemas[pair.Key].Children).ToArray();
+        foreach (var (key, name) in names)
+        {
+            var isUnion = name == EffectStreamTypeNamePolicy.CauseInterface;
+            referrers.Check(key, isUnion ? "stream-cause union" : "stream-cause variant",
+                isUnion ? causes.Select(static cause => cause.Item) : branches, names.Keys, errors);
         }
 
         return new ReadOnlyDictionary<string, string>(names);

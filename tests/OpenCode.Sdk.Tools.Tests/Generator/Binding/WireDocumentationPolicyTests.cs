@@ -1,5 +1,4 @@
 using System.Text;
-using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Generator.Binding.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
@@ -116,19 +115,6 @@ public sealed class WireDocumentationPolicyTests(PinnedBinding pinned)
     }
 
     [Test]
-    public async Task Bind_Should_Keep_Todays_Text_When_A_Record_Has_Two_Wire_Roles()
-    {
-        var document = await BindingTestHost.IngestAsync(new EventDocumentationScenario(carriesBody: true));
-        var plan = new BindingTestHost().Bind(document, Selection("event.get", "event.create"), Curation(Groups("event", RootGroup())));
-
-        // The body names the shared record, so the event arm and the request are one type.
-        var record = plan.Models.Single(static model => model.Name == "EventCreateRequest");
-        await Assert.That(record.Documentation.Summary).IsNull();
-        var source = Encoding.UTF8.GetString(ModelEmitter.Emit(plan).Single(static source => source.RelativePath.EndsWith("/EventCreateRequest.cs", StringComparison.Ordinal)).Utf8Source.Span);
-        await Assert.That(source).Contains("Represents an event create request value.");
-    }
-
-    [Test]
     public async Task Bind_Should_Not_Call_A_Non_Event_Type_Discriminated_Arm_An_Event()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(static spec => spec
@@ -171,18 +157,6 @@ public sealed class WireDocumentationPolicyTests(PinnedBinding pinned)
 
         await Assert.That(source).Contains("The described response wrapper.");
         await Assert.That(source).DoesNotContain("The response of &apos;widget.get&apos;");
-    }
-
-    /// <summary>A payload that is also an operation's body has two roles, so it keeps today's text rather than either summary.</summary>
-    [Test]
-    public async Task Bind_Should_Keep_Todays_Text_When_A_Payload_Is_Also_A_Body()
-    {
-        var document = await BindingTestHost.IngestAsync(new EventDocumentationScenario(payloadAsBody: true));
-        var plan = new BindingTestHost().Bind(document, Selection("event.get", "event.create"), Curation(Groups("event", RootGroup())));
-
-        var notice = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "Notice");
-        var payload = (NamedTypeReferencePlan)notice.Properties.Single(static property => property.WireName == "data").Type;
-        await Assert.That(plan.Models.Single(model => model.Name == payload.Name).Documentation.Summary).IsNull();
     }
 
     /// <summary>Stream failure causes share the errors' marker but are not API errors, so they are not called errors.</summary>

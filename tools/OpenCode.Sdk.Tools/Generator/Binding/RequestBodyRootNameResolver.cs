@@ -12,11 +12,12 @@ internal static class RequestBodyRootNameResolver
     /// (public names never surface raw operation ids or dotted component spellings).
     /// </summary>
     /// <remarks>
-    /// Pending operations cannot rename a component the selected closure shares. Two selected
-    /// operations claiming one root under different names refuse. Only the root reference is
-    /// claimed; nested component dependencies stay shared.
+    /// A claim renames a root only when the selected bodies and the root's own references are its
+    /// sole reachable referrers; another schema or operation root refuses. Two selected operations
+    /// claiming one root under different names refuse. Nested component dependencies stay shared.
     /// </remarks>
-    public static IReadOnlyDictionary<string, string> Resolve(IReadOnlyList<SpecOperation> selected, BindingErrorCollector errors)
+    public static IReadOnlyDictionary<string, string> Resolve(IReadOnlyList<SpecOperation> selected,
+        ClaimReferrerValidator referrers, BindingErrorCollector errors)
     {
         var names = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var operation in selected)
@@ -37,6 +38,11 @@ internal static class RequestBodyRootNameResolver
             }
 
             names[reference.Target] = requestName;
+        }
+
+        foreach (var key in names.Keys)
+        {
+            referrers.Check(key, "request-body", selected.Select(static operation => operation.RequestBody?.Schema).OfType<RefNode>(), [key], errors);
         }
 
         return new ReadOnlyDictionary<string, string>(names);
