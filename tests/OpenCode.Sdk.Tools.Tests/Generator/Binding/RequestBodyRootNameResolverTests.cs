@@ -7,8 +7,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 
 /// <summary>
 /// The request-body claim renames a component key, not one reference, so it may take only a root
-/// that the claiming bodies and the root itself alone reference; another reachable referrer carries the
-/// operation's request name onto an unrelated wire role.
+/// that the claiming bodies and the root itself alone reference; another reachable referrer carries
+/// the operation's request name onto an unrelated wire role.
 /// </summary>
 public sealed class RequestBodyRootNameResolverTests
 {
@@ -71,14 +71,21 @@ public sealed class RequestBodyRootNameResolverTests
     }
 
     [Test]
-    [Arguments("alias", "schema 'Widget.Info'")]
-    [Arguments("promoted-child", "schema 'Widget.CreateInput#/properties/size'")]
-    public async Task Resolve_Should_Refuse_A_Body_Root_An_Alias_Rewrites_Onto(string referrer, string referrerName)
+    public async Task Resolve_Should_Refuse_A_Body_Root_An_Alias_Rewrites_Onto()
     {
-        var exception = await BindRefusalsAsync(BodyScenario(referrer),
-            Curation(Groups("widget", RootGroup()), schemaAliases: [Alias(referrer == "alias" ? InfoDraft : InfoSize, referrer == "alias" ? Root : NestedSize)]), Create);
+        var exception = await BindRefusalsAsync(BodyScenario("alias"),
+            Curation(Groups("widget", RootGroup()), schemaAliases: [Alias(InfoDraft, Root)]), Create);
 
-        await Assert.That(exception.Errors).IsEquivalentTo([SharedBodyRoot(referrerName)], CollectionOrdering.Matching);
+        await Assert.That(exception.Errors).IsEquivalentTo([SharedBodyRoot("schema 'Widget.Info'")], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Resolve_Should_Refuse_A_Body_Root_Whose_Promoted_Child_An_Alias_Shares()
+    {
+        var exception = await BindRefusalsAsync(BodyScenario("promoted-child"),
+            Curation(Groups("widget", RootGroup()), schemaAliases: [Alias(InfoSize, NestedSize)]), Create);
+
+        await Assert.That(exception.Errors).IsEquivalentTo([SharedBodyRoot($"schema '{NestedSize}'")], CollectionOrdering.Matching);
     }
 
     /// <summary>
@@ -140,7 +147,8 @@ public sealed class RequestBodyRootNameResolverTests
             .WithSchema("Widget.Archive", static schema => schema
                 .Type("object")
                 .Property("draft", static property => property.Ref(Root), required: true))
-            .WithSchema("Widget.Info", schema => Referrer(schema.Type("object").Property("id", static property => property.Type("string"), required: true), referrer))
+            .WithSchema("Widget.Info", schema => Referrer(
+                schema.Type("object").Property("id", static property => property.Type("string"), required: true), referrer))
             .WithOperation(Create, method: "post", path: "/api/widget", configure: static operation => operation
                 .RequestBody("application/json", static body => body.Ref(Root), required: true)
                 .Response(200, "application/json", static schema => schema.Ref("Widget.Info")))
