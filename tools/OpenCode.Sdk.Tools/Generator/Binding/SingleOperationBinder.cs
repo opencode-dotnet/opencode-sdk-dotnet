@@ -179,7 +179,6 @@ internal sealed class SingleOperationBinder(OperationFacetContext context, Error
             return null;
         }
 
-        var errorCount = _context.Errors.Count;
         foreach (var parameter in plans.Where(static plan => CSharpNamePolicy.IsKeyword(plan.Name)))
         {
             _context.Errors.Add(BindingErrorCategory.Curation, $"{_context.Operation.OperationId}:{parameter.WireName}",
@@ -191,7 +190,7 @@ internal sealed class SingleOperationBinder(OperationFacetContext context, Error
                 $"header parameter '{header.Name}' is a C# keyword, and no curation row renames a header");
         }
 
-        return _context.Errors.Count == errorCount ? [.. plans.OrderBy(plan => TemplatePosition(plan.WireName))] : null;
+        return [.. plans.OrderBy(plan => TemplatePosition(plan.WireName))];
     }
 
     private int TemplatePosition(string wireName)

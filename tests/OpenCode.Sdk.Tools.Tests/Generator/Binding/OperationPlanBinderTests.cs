@@ -463,10 +463,11 @@ public sealed class OperationPlanBinderTests
 
     /// <summary>Route containers nest in <c>OpenCodeRoutes</c> beside its <c>ToWireValue</c> converters, and hold their route members.</summary>
     [Test]
-    [Arguments("OpenCodeRoutes", null)]
-    [Arguments("ToWireValue", null)]
-    [Arguments("Widgets", "WidgetsAsync")]
-    public async Task Bind_Should_Refuse_A_Route_Container_On_A_Routes_Member(string container, string? methodName)
+    [Arguments("OpenCodeRoutes", null, "route container 'OpenCodeRoutes' collides with a name the routes root declares")]
+    [Arguments("ToWireValue", null, "route container 'ToWireValue' collides with a name the routes root declares")]
+    [Arguments("Widgets", "WidgetsAsync", "route container 'Widgets' collides with its own route member 'Widgets'")]
+    [Arguments("Widgets", "ToWireValueAsync", "route member 'ToWireValue' collides with a name the routes root declares")]
+    public async Task Bind_Should_Refuse_A_Route_Name_On_A_Routes_Member(string container, string? methodName, string problem)
     {
         var curation = Curation(Groups("widget", ClientGroup(container, null, null)),
             operationNames: methodName is null ? [] : [OperationName("widget.list", methodName)]);
@@ -474,10 +475,10 @@ public sealed class OperationPlanBinderTests
         var exception = await BindRefusalsAsync(WidgetListScenario(static operation => operation
             .Parameter("count", "query", static schema => schema.Type("string").Enum("alpha", "beta"))), curation, "widget.list");
 
-        await Assert.That(exception.Errors).IsEquivalentTo([RouteContainerRefusal("widget.list", container)], CollectionOrdering.Matching);
+        await Assert.That(exception.Errors).IsEquivalentTo([new BindingError(BindingErrorCategory.Naming, "widget.list", problem)], CollectionOrdering.Matching);
     }
 
-    /// <summary>Curated members cannot reuse a synthesized client's member name.</summary>
+    /// <summary>Builds a naming refusal for two generated client members sharing one C# name.</summary>
     private static BindingError ClientMemberRefusal(string client, string member) =>
         new(BindingErrorCategory.Naming, client, $"multiple members map to C# name '{member}'");
 
@@ -486,9 +487,6 @@ public sealed class OperationPlanBinderTests
 
     private static BindingError EnclosingTypeMemberRefusal(string type, string member) =>
         new(BindingErrorCategory.Naming, type, $"member '{member}' has the name of its enclosing type");
-
-    private static BindingError RouteContainerRefusal(string operationId, string container) =>
-        new(BindingErrorCategory.Naming, operationId, $"route container '{container}' collides with a name the routes root declares");
 
     [Test]
     [Arguments("reason", "envelope payload name curation must declare a reason")]
@@ -3207,6 +3205,7 @@ public sealed class OperationPlanBinderTests
     [Arguments("path", "class")]
     [Arguments("path", "event")]
     [Arguments("header", "class")]
+    [Arguments("handle", "class")]
     public async Task Bind_Should_Refuse_A_Parameter_Named_By_A_CSharp_Keyword(string location, string keyword)
     {
         BindingException exception;
@@ -3219,30 +3218,36 @@ public sealed class OperationPlanBinderTests
         }
         else
         {
-            var document = await BindingTestHost.IngestAsync(WidgetRouteScenario("widget.item", keyword));
-            exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document, "widget.item"));
-            expected = PathKeywordRefusal("widget.item", keyword);
+            var handle = location == "handle";
+            var operationId = handle ? "alias.list" : "widget.item";
+            var document = await BindingTestHost.IngestAsync(WidgetRouteScenario(operationId, keyword));
+            exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection(operationId),
+                Curation(Groups(handle ? "alias" : "widget",
+                    ClientGroup(handle ? "Aliases" : "Widgets", handle ? "AliasClient" : null, handle ? keyword : null)))));
+            expected = PathKeywordRefusal(operationId, keyword);
         }
 
         await Assert.That(exception.Errors).IsEquivalentTo([expected], CollectionOrdering.Matching);
     }
 
     [Test]
-    public async Task Bind_Should_Name_A_Keyword_Path_Parameter_From_Its_Row()
+    [Arguments("class", "classId", "classId")]
+    [Arguments("value", null, "value")]
+    public async Task Bind_Should_Name_A_Path_Parameter_From_Its_Row_Or_Mechanical_Name(string parameter, string? curatedName, string expectedName)
     {
-        var document = await BindingTestHost.IngestAsync(WidgetRouteScenario("widget.item", "class"));
+        var document = await BindingTestHost.IngestAsync(WidgetRouteScenario("widget.item", parameter));
 
         var plan = new BindingTestHost().Bind(document, Selection("widget.item"),
             Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)),
-                parameterNames: [ParameterName("widget.item", "class", "classId")]));
+                parameterNames: curatedName is null ? [] : [ParameterName("widget.item", parameter, curatedName)]));
 
         var item = plan.Clients.Single(static client => client.Role == ClientRole.Collection).Operations.Single();
-        await Assert.That(item.Parameters.Single().Name).IsEqualTo("classId");
+        await Assert.That(item.Parameters.Single().Name).IsEqualTo(expectedName);
     }
 
-    /// <summary>The binary body's stream parameter is named <c>content</c>, so a route value of that name repeats it.</summary>
+    /// <summary><c>content</c> is reserved on every emitted operation signature, like <c>request</c>.</summary>
     [Test]
-    public async Task Bind_Should_Refuse_A_Content_Route_Value_On_A_Binary_Body()
+    public async Task Bind_Should_Refuse_A_Reserved_Content_Route_Value()
     {
         var document = await BindingTestHost.IngestAsync(WidgetRouteScenario("widget.create", "content", binaryBody: true));
 
@@ -3259,7 +3264,9 @@ public sealed class OperationPlanBinderTests
             .WithOperation(operationId, method: binaryBody ? "post" : "get", path: $"/api/widget/{{{parameter}}}", configure: operation =>
             {
                 _ = operation.Parameter(parameter, "path", static schema => schema.Type("string"), required: true)
-                    .Response(200, "application/json", static schema => schema.Ref("ItemInfo"));
+                    .Response(200, "application/json", schema => _ = operationId == "alias.list"
+                        ? schema.Type("object").Property("items", static property => property.Type("array").Items(static item => item.Type("string")), required: true)
+                        : schema.Ref("ItemInfo"));
                 if (binaryBody)
                 {
                     _ = operation.RequestBody("application/octet-stream", static schema => schema.Type("string").Format("binary"), required: true);
@@ -3275,7 +3282,7 @@ public sealed class OperationPlanBinderTests
     private static BindingError HeaderKeywordRefusal(string operationId, string header) =>
         new(BindingErrorCategory.Naming, operationId, $"header parameter '{header}' is a C# keyword, and no curation row renames a header");
 
-    /// <summary>Today's reserved-parameter text: <c>content</c> joins the existing set, so the family keeps its wording.</summary>
+    /// <summary>Builds a naming refusal for a route value that uses a reserved signature parameter name.</summary>
     private static BindingError ReservedParameterRefusal(string operationId, string parameter) =>
         new(BindingErrorCategory.Naming, operationId, $"parameter name '{parameter}' is reserved by the emitted method signature");
 

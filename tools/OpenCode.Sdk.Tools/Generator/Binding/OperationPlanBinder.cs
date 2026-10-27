@@ -278,10 +278,10 @@ internal static class OperationPlanBinder
         var operations = clients.SelectMany(static client => client.Operations).OrderBy(static operation => operation.OperationId, StringComparer.Ordinal).ToArray();
         foreach (var operation in operations.Where(static operation =>
                      string.Equals(operation.RouteContainerName, operation.RouteMemberName, StringComparison.Ordinal)
-                     || operation.RouteContainerName is ReservedNamePolicy.RoutesType or ReservedNamePolicy.QueryEnumConverter))
+                     || operation.RouteContainerName is ReservedNamePolicy.RoutesType or ReservedNamePolicy.QueryEnumConverter
+                     || operation.RouteMemberName is ReservedNamePolicy.QueryEnumConverter))
         {
-            errors.Add(BindingErrorCategory.Naming, operation.OperationId,
-                $"route container '{operation.RouteContainerName}' collides with a name the routes root declares");
+            errors.Add(BindingErrorCategory.Naming, operation.OperationId, ReservedNamePolicy.RouteNameProblem(operation));
         }
         foreach (var operation in operations.Where(operation => !routeMembers.Add($"{operation.RouteContainerName}.{operation.RouteMemberName}")))
         {

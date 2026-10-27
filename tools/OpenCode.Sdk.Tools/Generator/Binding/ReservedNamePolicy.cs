@@ -34,6 +34,16 @@ internal static class ReservedNamePolicy
     public const string RoutesType = "OpenCodeRoutes";
     public const string QueryEnumConverter = "ToWireValue";
 
+    /// <summary>Identifies the declaration that a refused route name collides with.</summary>
+    public static string RouteNameProblem(OperationPlan operation) => operation.RouteContainerName switch
+    {
+        var container when string.Equals(container, operation.RouteMemberName, StringComparison.Ordinal) =>
+            $"route container '{container}' collides with its own route member '{operation.RouteMemberName}'",
+        RoutesType or QueryEnumConverter =>
+            $"route container '{operation.RouteContainerName}' collides with a name the routes root declares",
+        _ => $"route member '{operation.RouteMemberName}' collides with a name the routes root declares",
+    };
+
     public static string SubClientFieldName(ClientReferencePlan reference) =>
         $"_{CSharpNamePolicy.ToCamelCase(reference.PropertyName)}";
 
