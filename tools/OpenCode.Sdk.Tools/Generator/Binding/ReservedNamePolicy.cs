@@ -343,6 +343,7 @@ internal static class ReservedNamePolicy
             "TreeKillOutcome",
             "UnionDiscriminatorReader",
             "UnionPayloadGuard",
+            "UnionTagTable",
             "UserAgentPolicy",
             "WebSocketSchemePolicy",
             "WindowsChildExit",

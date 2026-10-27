@@ -22,7 +22,7 @@ internal static class UnionDispatchEmitter
             [
                 namespaces.Models,
                 "System",
-                "System.Collections.Frozen",
+                .. union.MarkerKind is LiteralKind.String ? Array.Empty<string>() : ["System.Collections.Frozen"],
                 "System.Collections.Generic",
                 "System.Text.Json",
                 "System.Text.Json.Serialization",
@@ -32,7 +32,7 @@ internal static class UnionDispatchEmitter
     }
 
     /// <summary>
-    /// The frozen table of the union's declared tags; an impossible tag maps to no type.
+    /// The table of the union's declared tags; an impossible tag maps to no type.
     /// </summary>
     private static List<MemberDeclarationSyntax> EmitDispatchMaps(UnionPlan union)
     {
@@ -69,23 +69,18 @@ internal static class UnionDispatchEmitter
             .WithInitializer(SyntaxFactory.InitializerExpression(
                 SyntaxKind.CollectionInitializerExpression,
                 SyntaxFactory.SeparatedList(entries)));
-        // The table is built once and read per payload, so it freezes for lookup speed; the
-        // comparer rides along because ToFrozenDictionary does not inherit the source's.
-        var frozen = EmissionSyntax.Invocation(
-            EmissionSyntax.MemberAccess(initializer, "ToFrozenDictionary"),
-            union.MarkerKind is LiteralKind.String
-                ?
-                [
-                    SyntaxFactory.Argument(EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("StringComparer"), "Ordinal")),
-                ]
-                : []);
+        // A string table matches the reader's UTF-8 marker bytes directly; a boolean table is read
+        // per payload too, so it freezes for lookup speed.
+        var (fieldType, factory) = union.MarkerKind is LiteralKind.String
+            ? (TypeSyntaxEmitter.Generic("UnionTagTable", valueType), "ToUnionTagTable")
+            : (TypeSyntaxEmitter.Generic("FrozenDictionary", markerType, valueType), "ToFrozenDictionary");
         return SyntaxFactory
             .FieldDeclaration(SyntaxFactory
-                .VariableDeclaration(TypeSyntaxEmitter.Generic("FrozenDictionary", markerType, valueType))
+                .VariableDeclaration(fieldType)
                 .WithVariables(SyntaxFactory.SingletonSeparatedList(
                     SyntaxFactory
                         .VariableDeclarator("TypesByTag")
-                        .WithInitializer(SyntaxFactory.EqualsValueClause(frozen)))))
+                        .WithInitializer(SyntaxFactory.EqualsValueClause(EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(initializer, factory)))))))
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword),

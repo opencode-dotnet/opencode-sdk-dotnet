@@ -1,4 +1,3 @@
-using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
@@ -7,24 +6,21 @@ namespace OpenCode.Sdk.Internal;
 /// <summary>Reads top-level union markers without materializing the known payload as a JSON DOM.</summary>
 internal sealed class UnionDiscriminatorReader
 {
-#if NET9_0_OR_GREATER
-    /// <summary>Bounds the stack copy used for allocation-free dispatch; every declared tag is
-    /// far shorter, so a longer marker is necessarily unknown and may take the string path.</summary>
+    /// <summary>Bounds the stack copy that unescapes a marker; a longer raw marker takes the string path.</summary>
     private const int MaxStackMarkerLength = 128;
-#endif
 
     private readonly JsonTokenType _objectToken = JsonTokenType.StartObject;
 
     /// <summary>
     /// Dispatches a string marker against the tag table: a known tag returns its mapped value
-    /// without materializing the marker string (on runtimes with alternate span lookup), while
-    /// an unknown tag materializes the marker for the caller's carrier.
+    /// without materializing the marker string, while an unknown tag materializes the decoded
+    /// marker for the caller's carrier.
     /// </summary>
     public bool TryFindKnown<TValue>(
         ref Utf8JsonReader reader,
         string propertyName,
         string conceptName,
-        FrozenDictionary<string, TValue> typesByTag,
+        UnionTagTable<TValue> typesByTag,
         [MaybeNullWhen(false)] out TValue type,
         [NotNullWhen(false)] out string? marker)
     {
@@ -66,7 +62,7 @@ internal sealed class UnionDiscriminatorReader
     private static bool Dispatch<TValue>(
         ref Utf8JsonReader markerReader,
         string propertyName,
-        FrozenDictionary<string, TValue> typesByTag,
+        UnionTagTable<TValue> typesByTag,
         [MaybeNullWhen(false)] out TValue type,
         [NotNullWhen(false)] out string? marker)
     {
@@ -75,43 +71,59 @@ internal sealed class UnionDiscriminatorReader
             throw new JsonException($"The '{propertyName}' marker must be a string.");
         }
 
-#if NET9_0_OR_GREATER
-        // UTF-8 bytes never decode to more chars than bytes, so the byte length bounds the copy.
-        var utf8Length = markerReader.HasValueSequence
-            ? checked((int)markerReader.ValueSequence.Length)
-            : markerReader.ValueSpan.Length;
-        if (utf8Length <= MaxStackMarkerLength)
+        if (!markerReader.HasValueSequence && !markerReader.ValueIsEscaped)
         {
-            Span<char> buffer = stackalloc char[MaxStackMarkerLength];
-            var span = buffer[..markerReader.CopyString(buffer)];
-            if (span.IsWhiteSpace())
-            {
-                throw new JsonException($"The '{propertyName}' marker must be a non-empty string.");
-            }
-
-            if (typesByTag.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(span, out type!))
+            if (typesByTag.TryGetValue(markerReader.ValueSpan, out type))
             {
                 marker = null;
                 return true;
             }
 
-            marker = new string(span);
-            return false;
+            return Unknown(ref markerReader, propertyName, null, out type, out marker);
         }
-#endif
 
-        if (markerReader.GetString() is not { } value || string.IsNullOrWhiteSpace(value))
+        // The raw length counts escapes, so it bounds the unescaped copy.
+        var rawLength = markerReader.HasValueSequence ? markerReader.ValueSequence.Length : markerReader.ValueSpan.Length;
+        if (rawLength <= MaxStackMarkerLength)
         {
-            throw new JsonException($"The '{propertyName}' marker must be a non-empty string.");
+            Span<byte> buffer = stackalloc byte[MaxStackMarkerLength];
+            if (typesByTag.TryGetValue(buffer[..markerReader.CopyString(buffer)], out type))
+            {
+                marker = null;
+                return true;
+            }
+
+            return Unknown(ref markerReader, propertyName, null, out type, out marker);
         }
 
-        if (typesByTag.TryGetValue(value, out type!))
+        var decoded = markerReader.GetString();
+        if (decoded is not null && typesByTag.TryGetValue(decoded, out type))
         {
             marker = null;
             return true;
         }
 
+        return Unknown(ref markerReader, propertyName, decoded, out type, out marker);
+    }
+
+    /// <summary>
+    /// Hands the decoded marker to the unknown carrier; no declared tag is whitespace, so refusing
+    /// a blank marker only after the lookup missed refuses exactly what a check before it would.
+    /// </summary>
+    private static bool Unknown<TValue>(
+        ref Utf8JsonReader markerReader,
+        string propertyName,
+        string? decoded,
+        [MaybeNullWhen(false)] out TValue type,
+        [NotNullWhen(false)] out string? marker)
+    {
+        if ((decoded ?? markerReader.GetString()) is not { } value || string.IsNullOrWhiteSpace(value))
+        {
+            throw new JsonException($"The '{propertyName}' marker must be a non-empty string.");
+        }
+
         marker = value;
+        type = default;
         return false;
     }
 
