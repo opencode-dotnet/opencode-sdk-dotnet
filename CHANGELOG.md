@@ -13,8 +13,8 @@ Nightly builds of `master` are on
 
 - **`IMcp` is now `IMcpServerConfig`, and `UnknownMcp` is now `UnknownMcpServerConfig`.**
   The union represents one MCP server's configuration, the value type of `ConfigInfoMcp.Servers`
-  and of `ExperimentalMcpAddRequest.Config`. Migrate by renaming type references; nothing on the
-  wire changes.
+  and of `ExperimentalMcpAddRequest.Config`. Migrate by renaming type references; `IMcpTimeout`
+  keeps its name, and nothing on the wire changes.
 - **`PermissionsClient.UpdateSavedAsync` takes `savedPermissionId`.** Its route value was a bare
   `id`; it now matches `RemoveSavedAsync`. Only calls that name the argument (`id: …`) need to
   change; nothing on the wire changes.

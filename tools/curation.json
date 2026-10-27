@@ -2979,7 +2979,7 @@
     {
       "schema": "op:experimental.mcp.add#/requestBody/content/application~1json/schema/properties/config",
       "dotnetName": "IMcpServerConfig",
-      "reason": "One MCP server's configuration union, named for an entry of ConfigInfoMcp.Servers and matching its …Config arms; the pointer name IExperimentalMcpAddConfig would tie it to one operation."
+      "reason": "One MCP server's configuration union, named for an entry of ConfigInfoMcp.Servers and matching its arms McpLocalConfig and McpRemoteConfig; the pointer name IExperimentalMcpAddConfig would tie it to one operation."
     },
     {
       "schema": "Mcp.Server#/properties/status",
