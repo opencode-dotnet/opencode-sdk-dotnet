@@ -52,6 +52,9 @@ Nightly builds of `master` are on
   two idle timestamps now state their meaning or unit.
 - **The guides explain file-system entry path formats and timestamp units**, including
   provider-specific voice expiry and the unestablished persistent-PTY expiry unit.
+- **Repeated JSON literals in a `JsonElement` dictionary no longer compare equal by default.**
+  Repeated `true`, `false` and `null` values no longer compare equal under `JsonElement`'s default
+  equality; compare JSON values with `JsonElement.DeepEquals`, as System.Text.Json recommends.
 
 ### 🐛 Fixes
 
