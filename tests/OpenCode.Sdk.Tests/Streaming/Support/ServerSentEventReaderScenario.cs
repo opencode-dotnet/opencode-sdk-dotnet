@@ -37,6 +37,21 @@ internal sealed class ServerSentEventReaderScenario(
         return exception!;
     }
 
+    public async Task<IReadOnlyList<byte[]>> ReadUntilRefusalAsync(Stream stream, string message)
+    {
+        var delivered = new List<byte[]>();
+        _ = await Assert.That(async () =>
+        {
+            await foreach (var frame in new ServerSentEventReader(maxFrameCharacters).ReadAsync(stream, CancellationToken.None))
+            {
+                delivered.Add(frame.Data.ToArray());
+            }
+        }).Throws<OpenCodeTransportException>()
+            .WithMessage(message, StringComparison.Ordinal);
+
+        return delivered;
+    }
+
     public async Task<List<string>> ReadAllAsync(Stream stream,
         CancellationToken cancellationToken = default)
     {

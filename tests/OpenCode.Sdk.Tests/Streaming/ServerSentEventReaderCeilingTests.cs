@@ -42,6 +42,21 @@ public sealed class ServerSentEventReaderCeilingTests
     [Arguments("\uFEFF\uFEFFdata: ignored\ndata: a\n\n", 21, new[] { APayload })]
     [Arguments("data: a\r\r", 7, new[] { APayload })]
     [Arguments("data: a\r\n\r\n", 7, new[] { APayload })]
+    // Lead-byte offsets 0, 7, 8 and 9; each character has a nine-byte ASCII suffix.
+    // Offset zero is an ignored field, but its characters still consume the ceiling.
+    [Arguments("éaaaaaaaaa\n\n", 10, new string[] { })]
+    [Arguments("😀aaaaaaaaa\n\n", 11, new string[] { })]
+    [Arguments("data: aéaaaaaaaaa\n\n", 17, new[] { "aéaaaaaaaaa" })]
+    [Arguments("data: a😀aaaaaaaaa\n\n", 18, new[] { "a😀aaaaaaaaa" })]
+    [Arguments("data: abéaaaaaaaaa\n\n", 18, new[] { "abéaaaaaaaaa" })]
+    [Arguments("data: ab😀aaaaaaaaa\n\n", 19, new[] { "ab😀aaaaaaaaa" })]
+    [Arguments("data: abcéaaaaaaaaa\n\n", 19, new[] { "abcéaaaaaaaaa" })]
+    [Arguments("data: abc😀aaaaaaaaa\n\n", 20, new[] { "abc😀aaaaaaaaa" })]
+    // Exactly 21 bytes: the lead at offset 17 follows two words and one tail byte.
+    [Arguments("data: abcdefghijkéxy\n\n", 20, new[] { "abcdefghijkéxy" })]
+    [Arguments("data: abcdefghijk😀\n\n", 19, new[] { "abcdefghijk😀" })]
+    // Six prefix units plus 31 payload units make a single 37-byte ASCII line.
+    [Arguments("data: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\n", 37, new[] { "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" })]
     public async Task ReadAsync_Should_Accept_At_The_Character_Ceiling_And_Refuse_One_Unit_Below(
         string body, int ceiling, string[] expected)
     {
