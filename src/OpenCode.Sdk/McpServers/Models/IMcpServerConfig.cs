@@ -5,13 +5,13 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents an MCP union.
+/// Represents an MCP server config union.
 /// </summary>
 /// <remarks>
 /// Consume this interface; do not implement it outside tests. Its members follow the pinned protocol document and change when the SDK moves to a newer pin, which a minor version may do.
 /// </remarks>
-[JsonConverter(typeof(McpJsonConverter))]
-public interface IMcp
+[JsonConverter(typeof(McpServerConfigJsonConverter))]
+public interface IMcpServerConfig
 {
     /// <summary>
     /// Gets the &apos;type&apos; union marker.
@@ -20,7 +20,7 @@ public interface IMcp
     public string Type { get; }
 
     /// <summary>
-    /// Gets the disabled value. Every declared variant carries it; the value is null when the payload is an unrecognized variant preserved as UnknownMcp.
+    /// Gets the disabled value. Every declared variant carries it; the value is null when the payload is an unrecognized variant preserved as UnknownMcpServerConfig.
     /// </summary>
     [JsonPropertyName("disabled")]
     public bool? Disabled { get; }
@@ -29,19 +29,19 @@ public interface IMcp
     /// Expose this server&apos;s tools through Code Mode. Defaults to true.
     /// </summary>
     /// <remarks>
-    /// Every declared variant carries it; an unrecognized variant preserved as UnknownMcp returns null through this interface. An ordinary optional property may also be absent.
+    /// Every declared variant carries it; an unrecognized variant preserved as UnknownMcpServerConfig returns null through this interface. An ordinary optional property may also be absent.
     /// </remarks>
     [JsonPropertyName("codemode")]
     public bool? Codemode { get; }
 
     /// <summary>
-    /// Gets the timeout value. Every declared variant carries it; the value is null when the payload is an unrecognized variant preserved as UnknownMcp.
+    /// Gets the timeout value. Every declared variant carries it; the value is null when the payload is an unrecognized variant preserved as UnknownMcpServerConfig.
     /// </summary>
     [JsonPropertyName("timeout")]
     public IMcpTimeout? Timeout { get; }
 
     /// <summary>
-    /// Gets the protocol value. Every declared variant carries it; the value is null when the payload is an unrecognized variant preserved as UnknownMcp.
+    /// Gets the protocol value. Every declared variant carries it; the value is null when the payload is an unrecognized variant preserved as UnknownMcpServerConfig.
     /// </summary>
     [JsonPropertyName("protocol")]
     public McpProtocol? Protocol { get; }

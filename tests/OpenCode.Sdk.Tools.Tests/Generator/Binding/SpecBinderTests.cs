@@ -588,7 +588,7 @@ public sealed class SpecBinderTests
         var names = SchemaNameResolver.Resolve(document, reachable, selected, curation, namingErrors);
 
         // A lost name must fail here before its description rows can refuse later binding.
-        await Assert.That(names["op:experimental.mcp.add#/requestBody/content/application~1json/schema/properties/config"]).IsEqualTo("IMcp");
+        await Assert.That(names["op:experimental.mcp.add#/requestBody/content/application~1json/schema/properties/config"]).IsEqualTo("IMcpServerConfig");
         await Assert.That(names["Mcp.Server#/properties/status"]).IsEqualTo("IMcpStatus");
         await Assert.That(names["Session.Message.Assistant.Tool#/properties/state"]).IsEqualTo("ISessionMessageToolState");
 
@@ -624,8 +624,8 @@ public sealed class SpecBinderTests
 
         await Assert.That(plan.Unions).Contains(static union => union.Name == "ISessionMessageAssistantContent");
         // Each row preserves a shipped interface and its unknown carrier independently.
-        await Assert.That(plan.Unions).Contains(static union => union.Name == "IMcp");
-        await Assert.That(plan.Unions.Single(static union => union.Name == "IMcp").UnknownTypeName).IsEqualTo("UnknownMcp");
+        await Assert.That(plan.Unions).Contains(static union => union.Name == "IMcpServerConfig");
+        await Assert.That(plan.Unions.Single(static union => union.Name == "IMcpServerConfig").UnknownTypeName).IsEqualTo("UnknownMcpServerConfig");
         await Assert.That(plan.Unions).Contains(static union => union.Name == "IMcpStatus");
         await Assert.That(plan.Unions.Single(static union => union.Name == "IMcpStatus").UnknownTypeName).IsEqualTo("UnknownMcpStatus");
         await Assert.That(plan.Unions).Contains(static union => union.Name == "ISessionMessageToolState");

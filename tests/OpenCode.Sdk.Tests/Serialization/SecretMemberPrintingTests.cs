@@ -136,12 +136,12 @@ public sealed class SecretMemberPrintingTests
     }
 
     [Test]
-    public async Task UnknownMcp_Should_Print_Its_Marker_With_The_Payload_Masked()
+    public async Task UnknownMcpServerConfig_Should_Print_Its_Marker_With_The_Payload_Masked()
     {
-        var value = Deserialize("Serialization.unknown-mcp.json", OpenCodeJsonContext.Default.IMcp);
+        var value = Deserialize("Serialization.unknown-mcp.json", OpenCodeJsonContext.Default.IMcpServerConfig);
 
-        await Assert.That(value).IsTypeOf<UnknownMcp>();
-        await Assert.That(value.ToString()).IsEqualTo("UnknownMcp { Type = sse, Payload = [REDACTED] }");
+        await Assert.That(value).IsTypeOf<UnknownMcpServerConfig>();
+        await Assert.That(value.ToString()).IsEqualTo("UnknownMcpServerConfig { Type = sse, Payload = [REDACTED] }");
     }
 
     /// <summary>A config entry reaches masked members through the document it holds (MCP servers, providers, agents, formatters, and LSP servers).</summary>

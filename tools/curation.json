@@ -28,7 +28,7 @@
       ]
     },
     {
-      "type": "IMcp",
+      "type": "IMcpServerConfig",
       "member": "Codemode",
       "summary": "Expose this server's tools through Code Mode. Defaults to true.",
       "reason": "The optional annotation is absent from OpenAPI; the union owner supplies the known configurations' documentation.",
@@ -2978,8 +2978,8 @@
     },
     {
       "schema": "op:experimental.mcp.add#/requestBody/content/application~1json/schema/properties/config",
-      "dotnetName": "IMcp",
-      "reason": "Keep the shipped public name IMcp; the pointer name IExperimentalMcpAddConfig is graceless because it ties the shared server configuration union to one operation."
+      "dotnetName": "IMcpServerConfig",
+      "reason": "One MCP server's configuration union, named for an entry of ConfigInfoMcp.Servers and matching its arms McpLocalConfig and McpRemoteConfig; the pointer name IExperimentalMcpAddConfig would tie it to one operation."
     },
     {
       "schema": "Mcp.Server#/properties/status",
@@ -3091,6 +3091,12 @@
     }
   ],
   "hoistedMemberNames": [
+    {
+      "owner": "IMcpServerConfig",
+      "property": "timeout",
+      "dotnetName": "IMcpTimeout",
+      "reason": "Keep the shipped public name IMcpTimeout when the owning server configuration union is renamed."
+    },
     {
       "owner": "ISessionEventDurable",
       "property": "durable",

@@ -73,7 +73,7 @@ generator's format pass strips it; structural unions override `ToString()` for t
   elements, dictionary values, nested unions, and structural-union arms — prints the payload its
   unknown arm preserves as `[REDACTED]` and keeps that arm's marker visible, since an arm the pin
   does not know may carry the same secret. At the pin that is `UnknownCredentialValue`,
-  `UnknownMcp`, and `UnknownConfigEntry` (a configuration document reaches masked maps through its
+  `UnknownMcpServerConfig`, and `UnknownConfigEntry` (a configuration document reaches masked maps through its
   MCP servers, providers, agents, formatters, and LSP servers), and the Unknown arm of the structural unions `McpRemoteConfigOAuth`, `ConfigInfoFormatter`,
   `ConfigInfoLsp`, and `ConfigLspEntry`.
 - Masking is a printing concern only: equality, serialization, and the members' values are

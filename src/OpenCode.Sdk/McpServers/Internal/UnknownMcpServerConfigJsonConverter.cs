@@ -6,9 +6,9 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk.Internal;
 
-internal sealed class UnknownMcpJsonConverter : JsonConverter<UnknownMcp>
+internal sealed class UnknownMcpServerConfigJsonConverter : JsonConverter<UnknownMcpServerConfig>
 {
-    public override UnknownMcp Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override UnknownMcpServerConfig Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
@@ -16,12 +16,12 @@ internal sealed class UnknownMcpJsonConverter : JsonConverter<UnknownMcp>
         var payload = document.RootElement;
         if (payload.ValueKind != JsonValueKind.Object)
         {
-            throw new JsonException("The Mcp payload must be a JSON object.");
+            throw new JsonException("The McpServerConfig payload must be a JSON object.");
         }
 
         if (!payload.TryGetProperty("type", out var markerElement))
         {
-            throw new JsonException("The Mcp payload must contain 'type'.");
+            throw new JsonException("The McpServerConfig payload must contain 'type'.");
         }
 
         if (markerElement.ValueKind != JsonValueKind.String)
@@ -35,10 +35,10 @@ internal sealed class UnknownMcpJsonConverter : JsonConverter<UnknownMcp>
             throw new JsonException("The 'type' marker must be a non-empty string.");
         }
 
-        return new UnknownMcp(marker, payload);
+        return new UnknownMcpServerConfig(marker, payload);
     }
 
-    public override void Write(Utf8JsonWriter writer, UnknownMcp value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, UnknownMcpServerConfig value, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(writer);
         ArgumentNullException.ThrowIfNull(value);
