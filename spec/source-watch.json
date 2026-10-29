@@ -389,12 +389,12 @@
       }
     },
     {
-      "path": "packages/cli/script/publish.ts",
-      "sha256": "ef9fb340b3db84ef9337d07244731da6df77ef1b62173981a168ff8bbeba9e6c",
-      "behavior": "The published package\u0027s bin map names opencode as the command and opencode2 as the legacy alias of the same binary, which is the contract behind the launcher\u0027s default command.",
+      "path": "packages/cli/bin/opencode2.cjs",
+      "sha256": "50d5d50c514a1455be7f0d002f950b541085b905c966763203e5074cc5cb308b",
+      "behavior": "The opencode2 alias that the CLI package\u0027s bin map declares only requires the opencode wrapper, so both commands start the same server binary, which is the contract behind the launcher\u0027s default command and its transitional alias.",
       "anchor": {
         "type": "contains",
-        "text": "legacyCommand: \u0022opencode2\u0022"
+        "text": "require(\u0022./opencode.cjs\u0022)"
       }
     },
     {
