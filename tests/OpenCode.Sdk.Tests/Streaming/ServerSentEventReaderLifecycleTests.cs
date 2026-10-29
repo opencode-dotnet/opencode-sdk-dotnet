@@ -11,6 +11,31 @@ namespace OpenCode.Sdk.Tests.Streaming;
 
 public sealed class ServerSentEventReaderLifecycleTests
 {
+    private const int MultiReadPayloadLength = 9000;
+
+    [Test]
+    public async Task ReadAsync_Should_Request_Exactly_8192_Bytes_On_Every_Short_Read()
+    {
+        var payload = new string('x', MultiReadPayloadLength);
+        var body = Encoding.UTF8.GetBytes(WireBodyData.Frames(payload));
+        var lengths = new List<int>();
+        var position = 0;
+        using var stream = new ControlledReadStream((buffer, _) =>
+        {
+            lengths.Add(buffer.Length);
+            var count = Math.Min(1024, body.Length - position);
+            body.AsMemory(position, count).CopyTo(buffer);
+            position += count;
+            return Task.FromResult(count);
+        });
+
+        var frames = await new ServerSentEventReaderScenario().ReadAllAsync(stream);
+
+        await Assert.That(frames).IsEquivalentTo([payload], StringComparer.Ordinal, CollectionOrdering.Matching);
+        // 9,008 body bytes take nine short reads, then one read reports EOF.
+        await Assert.That(lengths).IsEquivalentTo(Enumerable.Repeat(8192, 10), CollectionOrdering.Matching);
+    }
+
     [Test]
     public async Task ReadAsync_Should_Refuse_A_Null_Stream_Before_Enumeration()
     {
@@ -162,7 +187,7 @@ public sealed class ServerSentEventReaderLifecycleTests
 
     [Test]
     [Arguments(1)]
-    [Arguments(9000)]
+    [Arguments(MultiReadPayloadLength)]
     public async Task ReadAsync_Should_Dispose_After_A_Yield_With_Growth_And_Unread_Buffered_Frames(int length)
     {
         var payload = new string('x', length);

@@ -12,6 +12,19 @@ namespace OpenCode.Sdk.Tests.Streaming;
 public sealed class ServerSentEventReaderUtf8Tests
 {
     [Test]
+    public async Task ReadAsync_Should_Deliver_A_Frame_Before_Malformed_Utf8_Beyond_Byte_8192()
+    {
+        var scenario = new ServerSentEventReaderScenario();
+        // AFrame is nine bytes; the ignored line places the invalid byte at offset 8,200.
+        byte[] body = [.. Encoding.UTF8.GetBytes(AFrame), .. Enumerable.Repeat((byte)':', 8191), 0xff];
+        using var stream = new MemoryStream(body);
+
+        var delivered = await scenario.ReadUntilRefusalAsync(stream, MalformedUtf8Message);
+
+        await Assert.That(delivered.Single()).IsEquivalentTo([(byte)'a'], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task ReadAsync_Should_Reassemble_A_Multi_Byte_Character_Split_Across_Chunks()
     {
         var scenario = new ServerSentEventReaderScenario();
@@ -87,17 +100,10 @@ public sealed class ServerSentEventReaderUtf8Tests
     [Test]
     public async Task ReadAsync_Should_Validate_The_Whole_Read_Before_Delivering_A_Frame()
     {
+        var scenario = new ServerSentEventReaderScenario();
         using var stream = new MemoryStream([.. Encoding.UTF8.GetBytes("event: surprise\ndata: {}\n\n: "), 0xff, (byte)'\n', (byte)'\n']);
-        var delivered = new List<string>();
 
-        _ = await Assert.That(async () =>
-        {
-            await foreach (var frame in new ServerSentEventReader().ReadAsync(stream, CancellationToken.None))
-            {
-                delivered.Add(frame.Name);
-            }
-        }).Throws<OpenCodeTransportException>()
-            .WithMessage(MalformedUtf8Message, StringComparison.Ordinal);
+        var delivered = await scenario.ReadUntilRefusalAsync(stream, MalformedUtf8Message);
 
         await Assert.That(delivered).IsEmpty();
     }

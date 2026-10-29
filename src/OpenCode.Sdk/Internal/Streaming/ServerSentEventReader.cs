@@ -2,6 +2,9 @@ using System.Buffers;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
+#if !NET
+using System.Runtime.InteropServices;
+#endif
 
 namespace OpenCode.Sdk.Internal;
 
@@ -66,7 +69,7 @@ internal sealed class ServerSentEventReader
     {
         ResetEnumeration();
         var decoder = StrictUtf8.GetDecoder();
-        var bytes = new byte[ReadBufferBytes];
+        var bytes = ArrayPool<byte>.Shared.Rent(ReadBufferBytes);
         var scratch = ArrayPool<char>.Shared.Rent(ScratchBufferCharacters);
 
         void Validate(int byteCount, bool flush)
@@ -96,7 +99,7 @@ internal sealed class ServerSentEventReader
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var read = await stream.ReadAsync(bytes.AsMemory(), cancellationToken).ConfigureAwait(false);
+                var read = await stream.ReadAsync(bytes.AsMemory(0, ReadBufferBytes), cancellationToken).ConfigureAwait(false);
                 if (read is 0)
                 {
                     break;
@@ -137,6 +140,7 @@ internal sealed class ServerSentEventReader
         {
             ReturnBuffer(ref _line);
             ReturnBuffer(ref _data);
+            ArrayPool<byte>.Shared.Return(bytes);
             ArrayPool<char>.Shared.Return(scratch);
         }
     }
@@ -203,31 +207,65 @@ internal sealed class ServerSentEventReader
 
     private void AppendLine(ReadOnlySpan<byte> bytes)
     {
-        foreach (var value in bytes)
+        var position = 0;
+        while (position < bytes.Length)
         {
-            if (value < 0x80)
+            if (_continuationBytes is 0)
             {
-                Grow(1);
+                var length = AsciiRunLength(bytes[position..]);
+                Grow(length);
+                position += length;
             }
-            else if (value >= 0xc0)
+
+            while (position < bytes.Length && (bytes[position] >= 0x80 || _continuationBytes is not 0))
             {
-                _continuationBytes = value switch
+                var value = bytes[position++];
+                Debug.Assert(value >= 0x80, "Validated input has no ASCII byte inside a pending sequence.");
+                if (value >= 0xc0)
                 {
-                    < 0xe0 => 1,
-                    < 0xf0 => 2,
-                    _ => 3,
-                };
-                _sequenceCharacters = value < 0xf0 ? 1 : 2;
-            }
-            else if (--_continuationBytes is 0)
-            {
-                Grow(_sequenceCharacters);
+                    _continuationBytes = value switch
+                    {
+                        < 0xe0 => 1,
+                        < 0xf0 => 2,
+                        _ => 3,
+                    };
+                    _sequenceCharacters = value < 0xf0 ? 1 : 2;
+                }
+                else if (--_continuationBytes is 0)
+                {
+                    Grow(_sequenceCharacters);
+                }
             }
         }
 
         EnsureCapacity(ref _line, _lineLength + bytes.Length, _lineLength);
         bytes.CopyTo(_line.AsSpan(_lineLength));
         _lineLength += bytes.Length;
+    }
+
+    /// <summary>Finds the leading ASCII run, eight bytes at a time and then the tail on downlevel targets.</summary>
+    private static int AsciiRunLength(ReadOnlySpan<byte> bytes)
+    {
+#if NET
+        var index = bytes.IndexOfAnyExceptInRange((byte)0, (byte)0x7f);
+        return index < 0 ? bytes.Length : index;
+#else
+        // Polyfill has no IndexOfAnyExceptInRange for net472 or netstandard2.0.
+        const ulong highBits = 0x8080808080808080UL;
+        var index = 0;
+        while (index + sizeof(ulong) <= bytes.Length
+               && (MemoryMarshal.Read<ulong>(bytes[index..]) & highBits) == 0)
+        {
+            index += sizeof(ulong);
+        }
+
+        while (index < bytes.Length && bytes[index] < 0x80)
+        {
+            index++;
+        }
+
+        return index;
+#endif
     }
 
     /// <summary>Closes the pending line: an empty one ends the frame, a field line extends it.</summary>
@@ -340,12 +378,13 @@ internal sealed class ServerSentEventReader
 
     private void Grow(int characters)
     {
-        _frameCharacters += characters;
-        if (_frameCharacters > _maxFrameCharacters)
+        if (characters > _maxFrameCharacters - _frameCharacters)
         {
             throw new OpenCodeTransportException(
                 "The opencode event stream produced a frame beyond the size this client accepts.");
         }
+
+        _frameCharacters += characters;
     }
 
     private void ResetFrame()
