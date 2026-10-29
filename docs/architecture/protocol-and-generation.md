@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-10-26
+Date: 2026-10-30
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -39,9 +39,11 @@ evidence and may contain superseded positions.
   such operations reach; the hand-written doors over an experimental family carry the same id. A
   group with an experimental route and no id, or with an id and no experimental route, fails
   generation, and so does a type reached only by experimental operations of two different ids.
-- Derived model names strip Effect's encode-side `*Encoded` component suffix unless the unsuffixed
-  component itself exists in the document — a mechanical projection-artifact rule owned by
-  `ProjectionArtifactNamePolicy`, never a per-row curation act.
+- Derived model names strip Effect's encode-side `*Encoded` suffix from a component's final segment
+  whenever a name remains, whatever other components the document holds — a mechanical
+  projection-artifact rule owned by `ProjectionArtifactNamePolicy`, never a per-row curation act. A
+  stripped name that meets another schema's name refuses through the type-name collision wall, and
+  a `schemaNames` row resolves it.
 - A union with no schema identity of its own is named from where it sits: its owner, its property
   path and its branch markers, never from its branches. A name derived through an unmarked branch's
   ordinal needs a reason-bearing `schemaNames` row, and a union with more than one such branch

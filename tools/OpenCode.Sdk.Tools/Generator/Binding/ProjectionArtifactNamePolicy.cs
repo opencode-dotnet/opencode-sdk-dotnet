@@ -1,27 +1,21 @@
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
 /// <summary>
-/// Strips upstream projection artifacts from component names before .NET name derivation.
-/// The declared suffix list carries Effect's encode-side <c>*Encoded</c> fallback
-/// rename (the #44911 projection context). A suffix is stripped from
-/// the final dotted segment only when the unsuffixed component does not itself exist, so a
-/// deliberate pair such as <c>V2Event</c>/<c>V2EventEncoded</c> keeps both names; if upstream
-/// stops emitting the artifact, the rule goes quietly dead.
+/// Strips upstream projection artifacts, Effect's encode-side <c>*Encoded</c> fallback rename (the
+/// #44911 projection context), from component names before .NET name derivation.
 /// </summary>
-internal sealed class ProjectionArtifactNamePolicy
+/// <remarks>
+/// A suffix is stripped from the final dotted segment whenever a name remains, whatever other
+/// components the document holds, so an unrelated key can never toggle a name. A schema whose
+/// stripped name meets another schema's name refuses through the type-name collision wall until a
+/// <c>schemaNames</c> row names one side.
+/// </remarks>
+internal static class ProjectionArtifactNamePolicy
 {
     private static readonly string[] ArtifactSuffixes = ["Encoded"];
 
-    private readonly HashSet<string> _componentNames;
-
-    public ProjectionArtifactNamePolicy(IEnumerable<string> componentNames)
-    {
-        ArgumentNullException.ThrowIfNull(componentNames);
-        _componentNames = componentNames.ToHashSet(StringComparer.Ordinal);
-    }
-
     /// <summary>Returns the component name with any declared projection-artifact suffix removed.</summary>
-    public string Normalize(string componentName)
+    public static string Normalize(string componentName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(componentName);
 
@@ -33,8 +27,7 @@ internal sealed class ProjectionArtifactNamePolicy
             }
 
             var stripped = componentName[..^suffix.Length];
-            var lastSegmentStart = stripped.LastIndexOf('.', StringComparison.Ordinal) + 1;
-            if (stripped.Length == lastSegmentStart || _componentNames.Contains(stripped))
+            if (stripped.Length == stripped.LastIndexOf('.', StringComparison.Ordinal) + 1)
             {
                 continue;
             }
