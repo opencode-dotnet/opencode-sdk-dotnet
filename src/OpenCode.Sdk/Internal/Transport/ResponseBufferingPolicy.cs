@@ -49,6 +49,9 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
         _time = time;
     }
 
+#if NET
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder))]
+#endif
     public override async ValueTask ProcessAsync(PipelineMessage message, ReadOnlyMemory<PipelinePolicy> remaining)
     {
         // The window is linked over caller and client lifetime and armed before the send, so a
