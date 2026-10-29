@@ -1,5 +1,6 @@
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
+using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
 
@@ -97,6 +98,29 @@ public sealed class UnionEmitterTests
         var phase = EmitterSnapshot.Content(sources, "Example/Internal/ExamplePhaseJsonConverter.cs");
 
         await Assert.That(phase).DoesNotContain("StartsWith(");
+    }
+
+    [Test]
+    public async Task Emit_Should_Table_String_Markers_By_Their_Bytes_And_Freeze_Boolean_Markers()
+    {
+        var unions = EmitterPlanFixture.CreateUnionSnapshot();
+        var phase = unions.Single(static union => union.ConceptName == "ExamplePhase");
+        IReadOnlyList<UnionPlan> booleanPhase =
+        [
+            .. unions.Where(static union => union.ConceptName != "ExamplePhase"),
+            phase with { MarkerKind = LiteralKind.Boolean, Variants = [phase.Variants[0] with { Tag = "true" }] },
+        ];
+
+        var strings = EmitterSnapshot.Create(EmitUnionSnapshot());
+        var booleans = EmitterSnapshot.Content(
+            UnionEmitter.Emit(booleanPhase, ModelPlacementFixture.SingleSlice(booleanPhase), EmitterPlanFixture.Create().Namespaces),
+            "Example/Internal/ExamplePhaseJsonConverter.cs");
+
+        await Assert.That(strings).Contains("private static readonly UnionTagTable<Type> TypesByTag");
+        await Assert.That(strings).DoesNotContain("FrozenDictionary<string");
+        await Assert.That(strings).DoesNotContain("using System.Collections.Frozen;");
+        await Assert.That(booleans).Contains("private static readonly FrozenDictionary<bool, Type> TypesByTag");
+        await Assert.That(booleans).Contains("using System.Collections.Frozen;");
     }
 
     /// <summary>Emits the shared union snapshot, placed in one slice built from the same plans.</summary>

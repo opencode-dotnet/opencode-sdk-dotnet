@@ -43,9 +43,9 @@
     <PackageReference Include="System.Memory" />
   </ItemGroup>
 
-  <!-- FrozenDictionary backs the generated union tag tables; System.Collections.Frozen is inbox
-       from net8.0 on, so only the downlevel targets need the package carrying it, declared directly
-       because the code uses it directly. -->
+  <!-- FrozenDictionary backs the boolean union tag tables and internal lookups; System.Collections.Frozen
+       is inbox from net8.0 on, so only the downlevel targets need the package carrying it, declared
+       directly because the code uses it directly. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
     <PackageReference Include="System.Collections.Immutable" />
   </ItemGroup>

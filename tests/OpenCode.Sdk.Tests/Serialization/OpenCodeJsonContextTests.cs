@@ -5,6 +5,7 @@ using System.Text.Json.Serialization.Metadata;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Serialization.Support;
 using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Serialization;
@@ -774,7 +775,8 @@ public sealed class OpenCodeJsonContextTests
         var json = _fixtures.LoadJson("Serialization.malformed-assistant-marker.json");
 
         _ = await Assert.That(() => _serializer.Deserialize<ISessionMessageAssistantContent>(json))
-            .Throws<JsonException>();
+            .Throws<JsonException>()
+            .WithMessage("The 'type' marker must be a string.", StringComparison.Ordinal);
     }
 
     [Test]
@@ -942,5 +944,80 @@ public sealed class OpenCodeJsonContextTests
                     ?? throw new InvalidOperationException("The session shell fixture must contain a JSON object.");
         shell["exit"] = exit;
         return shell.ToJsonString();
+    }
+
+    [Test]
+    [Arguments(1)]
+    [Arguments(31)]
+    public async Task Deserialize_Should_Dispatch_A_Known_Tag_Spelled_With_Escapes(int escapedChars)
+    {
+        // Escaping all 31 characters spells the tag in 186 raw bytes, past the reader's stack copy.
+        const string tag = "IntegrationAttemptNotFoundError";
+        var spelled = string.Concat(tag.Take(escapedChars).Select(static c => $"\\u{(int)c:x4}")) + tag[escapedChars..];
+
+        var result = _serializer.Deserialize<IOpenCodeError>(AttemptNotFound(spelled));
+
+        await Assert.That(result).IsTypeOf<IntegrationAttemptNotFoundError>();
+    }
+
+    [Test]
+    [Arguments("IntegrationAttemptNotFoundError", "IntegrationAttemptNotFoundError")]
+    [Arguments("IntegrationAttemptMissingError", "IntegrationAttemptMissingError")]
+    public async Task Deserialize_Should_Read_A_Tag_Split_Across_Buffer_Segments(string tag, string expectedTag)
+    {
+        var json = Encoding.UTF8.GetBytes(AttemptNotFound(tag));
+
+        var result = DeserializeSplit(json, Array.IndexOf(json, (byte)'A'));
+
+        await Assert.That(result.Tag).IsEqualTo(expectedTag);
+        await Assert.That(result is UnknownOpenCodeError).IsEqualTo(tag != "IntegrationAttemptNotFoundError");
+    }
+
+    [Test]
+    [Arguments("future", "future")]
+    [Arguments("fut\\u0075re", "future")]
+    [Arguments("f\u00fcture", "f\u00fcture")]
+    [Arguments("\\uD83D\\uDE00", "\uD83D\uDE00")]
+    public async Task Deserialize_Should_Carry_An_Unknown_Tag_Decoded_And_Its_Payload_As_Written(string spelled, string expectedTag)
+    {
+        var json = AttemptNotFound(spelled);
+
+        var result = _serializer.Deserialize<IOpenCodeError>(json);
+
+        await Assert.That(result).IsTypeOf<UnknownOpenCodeError>();
+        var unknown = (UnknownOpenCodeError)result;
+        await Assert.That(unknown.Tag).IsEqualTo(expectedTag);
+        await Assert.That(unknown.Payload.GetProperty("_tag").GetRawText()).IsEqualTo($"\"{spelled}\"");
+    }
+
+    [Test]
+    public async Task Deserialize_Should_Carry_An_Escaped_Unknown_Tag_Longer_Than_The_Stack_Copy_Bound()
+    {
+        var tail = new string('x', 140);
+
+        var result = _serializer.Deserialize<IOpenCodeError>(AttemptNotFound("fut\\u0075re-" + tail));
+
+        await Assert.That(result).IsTypeOf<UnknownOpenCodeError>();
+        await Assert.That(((UnknownOpenCodeError)result).Tag).IsEqualTo("future-" + tail);
+    }
+
+    [Test]
+    public async Task Deserialize_Should_Refuse_A_Tag_Escaped_To_Whitespace()
+    {
+        var json = AttemptNotFound("\\u0020\\u0009");
+
+        _ = await Assert.That(() => _serializer.Deserialize<IOpenCodeError>(json))
+            .Throws<JsonException>()
+            .WithMessage("The '_tag' marker must be a non-empty string.", StringComparison.Ordinal);
+    }
+
+    private static string AttemptNotFound(string spelledTag) =>
+        $$"""{"_tag":"{{spelledTag}}","integrationID":"i","attemptID":"a","message":"m"}""";
+
+    private IOpenCodeError DeserializeSplit(byte[] json, int splitAt)
+    {
+        var reader = new Utf8JsonReader(BufferSegment.Split(json, splitAt));
+        return JsonSerializer.Deserialize(ref reader, _serializer.GetTypeInfo(typeof(IOpenCodeError))) as IOpenCodeError
+               ?? throw new JsonException("The split payload deserialized to null.");
     }
 }
