@@ -1143,9 +1143,12 @@ dotnet_diagnostic.MA0045.severity = none
 # nothing; the conversion exists so an ordinary object initializer keeps assigning Shell = "pwsh"
 # across the generated request surface. Winner: the object-initializer contract; CA2225 remains
 # enabled for every other file.
+# CA1716 flags Optional as a Visual Basic keyword; Visual Basic callers write [Optional], C# and F#
+# callers are unaffected. Winner: the shipped name; CA1716 remains enabled for every other file.
 [src/OpenCode.Sdk/Common/Optional.cs]
 dotnet_diagnostic.CA1000.severity = none
 dotnet_diagnostic.CA2225.severity = none
+dotnet_diagnostic.CA1716.severity = none
 
 # The standalone launcher awaits the tasks of its own child: the exit watch's completion, which a
 # thread of the watch completes, and the line readers' loops, which the pump started. Every await
