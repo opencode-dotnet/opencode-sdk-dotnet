@@ -22,6 +22,7 @@ internal static partial class SchemaNameResolver
         var queryEnumRoots = QueryEnumRootNameResolver.Resolve(document, selected);
         var payloadRoots = EnvelopePayloadRootNameResolver.Resolve(document, selected, errors);
         var effectStreamTypes = EffectStreamRootNameResolver.Resolve(document, selected, referrers, errors);
+        var operationStems = OperationStems(selected);
         var curatedNames = curation
             .SchemaNames
             .DistinctBy(static row => row.Schema, StringComparer.Ordinal)
@@ -67,8 +68,8 @@ internal static partial class SchemaNameResolver
             else
             {
                 name = schema is UnionNode { Classification: UnionClassification.Marked }
-                    ? CSharpNamePolicy.ToUnionInterfaceName(ResolveDefault(key))
-                    : ResolveDefault(key);
+                    ? CSharpNamePolicy.ToUnionInterfaceName(ResolveDefault(key, operationStems))
+                    : ResolveDefault(key, operationStems);
                 if (OrdinalPath().IsMatch(key[(key.IndexOf('#', StringComparison.Ordinal) + 1)..]))
                 {
                     errors.Add(BindingErrorCategory.Curation, key,
@@ -135,10 +136,10 @@ internal static partial class SchemaNameResolver
     [GeneratedRegex(@"^/(?:anyOf|oneOf)/[0-9]+$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex OrdinalBranch();
 
-    private static string ResolveDefault(string key)
+    private static string ResolveDefault(string key, IReadOnlyDictionary<string, string> operationStems)
     {
         var root = GetRoot(key);
-        var result = new System.Text.StringBuilder(CSharpNamePolicy.ToPascalCase(NormalizeRoot(root)));
+        var result = new System.Text.StringBuilder(CSharpNamePolicy.ToPascalCase(NormalizeRoot(root, operationStems)));
         var hash = key.IndexOf('#', StringComparison.Ordinal);
         if (hash < 0)
         {
@@ -179,14 +180,20 @@ internal static partial class SchemaNameResolver
         return result.ToString();
     }
 
+    private static Dictionary<string, string> OperationStems(IReadOnlyList<SpecOperation> selected) => selected.ToDictionary(
+        static operation => $"op:{operation.OperationId}", static operation => string.Join('.', operation.Segments), StringComparer.Ordinal);
+
     private static string GetRoot(string key)
     {
         var hash = key.IndexOf('#', StringComparison.Ordinal);
         return hash < 0 ? key : key[..hash];
     }
 
-    /// <summary>Component roots normalize projection artifacts; operation roots retain their group/action identity.</summary>
-    private static string NormalizeRoot(string root)
+    /// <summary>
+    /// Component roots normalize projection artifacts; operation roots take the operation's naming
+    /// segments, so a prefix-owned operation's inline types name as its unprefixed form would.
+    /// </summary>
+    private static string NormalizeRoot(string root, IReadOnlyDictionary<string, string> operationStems)
     {
         const string operationPrefix = "op:";
         if (!root.StartsWith(operationPrefix, StringComparison.Ordinal))
@@ -194,7 +201,7 @@ internal static partial class SchemaNameResolver
             return ProjectionArtifactNamePolicy.Normalize(root);
         }
 
-        return root[operationPrefix.Length..];
+        return operationStems.TryGetValue(root, out var stem) ? stem : root[operationPrefix.Length..];
     }
 
     private static string DecodePointer(string segment) => segment

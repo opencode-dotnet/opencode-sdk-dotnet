@@ -50,6 +50,28 @@ public sealed class OperationGroupPolicyTests
     }
 
     [Test]
+    public async Task Bind_Should_Name_A_Prefix_Owned_Operations_Inline_Types_As_Its_Unprefixed_Identity_Would()
+    {
+        var prefixed = await BindAsync(Groups("lab.widget", ClientGroup("Widgets", null, null)), "lab.widget.get");
+        var unprefixed = await BindAsync(Groups("widget", ClientGroup("Widgets", null, null)), "widget.get");
+
+        await Assert.That(prefixed.Models.Select(static model => model.Name))
+            .IsEquivalentTo(unprefixed.Models.Select(static model => model.Name), CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments("lab.wid")]
+    [Arguments("lab.widget.get")]
+    public async Task Apply_Should_Leave_An_Operation_A_Key_Does_Not_Prefix_At_A_Dot(string key)
+    {
+        var grouped = OperationGroupPolicy.Apply(await IngestAsync("lab.widget.get"), Groups(key, ClientGroup("Widgets", null, null)));
+
+        var operation = grouped.Operations.Single();
+        await Assert.That((operation.OperationId, operation.Group)).IsEqualTo(("lab.widget.get", "lab"));
+        await Assert.That(operation.Segments).IsEquivalentTo(["lab", "widget", "get"], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task Apply_Should_Leave_A_Grouped_Document_As_It_Is()
     {
         var groups = Groups("lab.widget", ClientGroup("Widgets", null, null));
@@ -71,7 +93,9 @@ public sealed class OperationGroupPolicyTests
             {
                 _ = spec.WithOperation(operationId, path: "/api/" + operationId.Replace('.', '/'), configure: static operation => operation
                     .Response(200, "application/json", static schema => schema.Type("object")
-                        .Property("id", static property => property.Type("string"), required: true)));
+                        .Property("id", static property => property.Type("string"), required: true)
+                        .Property("detail", static property => property.Type("object")
+                            .Property("note", static note => note.Type("string"), required: true))));
             }
         }));
 
