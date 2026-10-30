@@ -556,14 +556,6 @@ public sealed class PtySessionTests
     }
 
     [Test]
-    public async Task PtyOutputFrame_Should_Refuse_A_Null_Text()
-    {
-        _ = Assert.Throws<ArgumentNullException>(() => _ = new PtyOutputFrame(null!));
-
-        await Task.CompletedTask;
-    }
-
-    [Test]
     public async Task Session_Mock_Seam_Should_Fail_Instructively_Without_An_Override()
     {
         await using var session = new UnoverriddenPtySession();

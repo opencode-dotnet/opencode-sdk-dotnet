@@ -183,11 +183,12 @@ resolves the message's network window from those carried traits.
   enumeration may continue on the same otherwise healthy connection. The queue retains only
   undelivered frames, and can grow when consumers are absent or slow. It is unbounded, as
   upstream's live path is: an unbounded per-connection outbox, with only its 2 MiB replay ring
-  bounded. A queued `PtySession` frame retains about 2 bytes per output character and a
-  `PersistentPtySession` frame about 1 byte per byte, so an absent consumer of a verbose build
-  (about 250,000 characters a second) grows by about 30 MB a minute. Connection termination
-  delivers the valid queued prefix before normal completion or the recorded transport/protocol
-  error. Later readers observe the same terminal outcome; consumer cancellation does not erase it.
+  bounded. A queued frame of either family retains about 1 byte per byte of output: a `PtySession`
+  frame keeps the received UTF-8 and decodes `Text` on its first read. So an absent consumer of a
+  verbose build (about 250,000 mostly ASCII characters a second) grows by about 15 MB a minute.
+  Connection termination delivers the valid queued prefix before normal completion or the recorded
+  transport/protocol error. Later readers observe the same terminal outcome; consumer cancellation
+  does not erase it.
   A frame already selected for delivery may win a race with cancellation.
 - **Explicit disposal (both terminal families).** The session owns its socket and receiver.
   Disposal rejects new sends, wakes waiters, attempts bounded graceful close, then tears down

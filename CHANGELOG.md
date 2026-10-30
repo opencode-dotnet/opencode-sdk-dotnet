@@ -53,6 +53,11 @@ Nightly builds of `master` are on
 - **The guides explain file-system entry path formats and timestamp units**, including
   provider-specific voice expiry and the unestablished persistent-PTY expiry unit.
 
+- **A `PtySession` frame keeps the UTF-8 it was received as.** `PtyOutputFrame.Text` decodes on
+  its first read, with the same replacement decoding, and every read returns the same string. A
+  queued frame of mostly ASCII output now holds about half what it did; box-drawing and CJK output
+  holds about 1.5 times more, since those characters take 3 bytes in UTF-8 and 2 in UTF-16.
+
 ### 🐛 Fixes
 
 - **Response envelope logging keeps the page cursor and resolved location.** `ToString()` now
@@ -85,10 +90,9 @@ Nightly builds of `master` are on
 
 ### 📚 Documentation
 
-- **What an unread terminal costs.** The terminals guide now says that a queued `PtySession` frame
-  keeps about 2 bytes per output character (`PersistentPtySession` about 1 byte per byte), that an
-  unread session through a verbose build grows by about 30 MB a minute, and that the queue is
-  unbounded as upstream's is.
+- **What an unread terminal costs.** The terminals guide now says that a queued frame of either
+  terminal family keeps about 1 byte per byte of output, that an unread session through a verbose
+  build grows by about 15 MB a minute, and that the queue is unbounded as upstream's is.
 
 ## [0.9.0-preview.14] - 2026-10-23
 

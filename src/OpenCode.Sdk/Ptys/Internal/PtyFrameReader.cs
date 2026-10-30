@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Net.WebSockets;
-using System.Text;
 using System.Text.Json;
 
 namespace OpenCode.Sdk.Internal;
@@ -38,8 +37,9 @@ internal static class PtyFrameReader
 
         // Replacement decoding is deliberate, not laxity: the server chunks its replay at 64Ki
         // UTF-16 code units, so a chunk boundary can split a surrogate pair and produce bytes no
-        // strict decoder accepts. Terminal output must survive that, not fault on it.
-        return new PtyOutputFrame(Encoding.UTF8.GetString(payload, 0, count));
+        // strict decoder accepts. Terminal output must tolerate those malformed bytes, so
+        // PtyOutputFrame.Text uses replacement decoding when first read.
+        return new PtyOutputFrame(new ReadOnlySpan<byte>(payload, 0, count));
     }
 
     private static long ReadCursor(ReadOnlySpan<byte> body)
