@@ -10,7 +10,7 @@ internal static class UnionInterfaceEmitter
 {
     internal static GeneratedSource EmitBase(UnionPlan union, string relativePath, GeneratedNamespacePlan namespaces)
     {
-        var converterTypeName = $"{union.ConceptName}JsonConverter";
+        var converterTypeName = ConverterNamePolicy.Of(union.ConceptName);
 
         // The union is an interface because a wire schema can be a branch of more than one
         // union, which a base class cannot express (ADR-0011).

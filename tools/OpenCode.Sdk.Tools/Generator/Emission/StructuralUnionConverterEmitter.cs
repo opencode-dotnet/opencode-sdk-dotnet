@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Emission;
@@ -9,7 +10,7 @@ internal static class StructuralUnionConverterEmitter
 {
     internal static GeneratedSource EmitConverter(StructuralUnionModelPlan union, string relativePath, GeneratedNamespacePlan namespaces)
     {
-        var declaration = ConverterSyntax.Declaration($"{union.Name}JsonConverter",
+        var declaration = ConverterSyntax.Declaration(ConverterNamePolicy.Of(union.Name),
             TypeSyntaxEmitter.EmitNamed(union.Name), ConverterMembers(union), default);
         var unit = EmissionSyntax.CompilationUnit(
             namespaces.Internal,

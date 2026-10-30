@@ -18,7 +18,7 @@ internal static class StructuralUnionEmitter
         {
             result.Add(EmitKind(union, GeneratedPlacement.ModelPathOf(placement, union.KindTypeName)));
             result.Add(StructuralUnionCarrierEmitter.EmitCarrier(union, GeneratedPlacement.ModelPathOf(placement, union.Name), namespaces));
-            result.Add(StructuralUnionConverterEmitter.EmitConverter(union, GeneratedPlacement.ConverterPathOf(placement, union.Name, $"{union.Name}JsonConverter"), namespaces));
+            result.Add(StructuralUnionConverterEmitter.EmitConverter(union, GeneratedPlacement.ConverterPathOf(placement, union.Name, ConverterNamePolicy.Of(union.Name)), namespaces));
         }
 
         return Array.AsReadOnly([.. result]);

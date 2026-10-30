@@ -14,7 +14,7 @@ internal static class UnionCarrierConverterEmitter
     /// </summary>
     internal static GeneratedSource EmitCarrierConverter(UnionPlan union, ModelPlacement placement, GeneratedNamespacePlan namespaces)
     {
-        var converterName = $"{union.UnknownTypeName}JsonConverter";
+        var converterName = ConverterNamePolicy.Of(union.UnknownTypeName);
         var readStatements = new List<StatementSyntax>();
         readStatements.AddRange(
         [

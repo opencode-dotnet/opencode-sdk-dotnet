@@ -26,16 +26,13 @@ internal static class ExtensibleEnumEmitter
         ArgumentNullException.ThrowIfNull(placement);
         ArgumentNullException.ThrowIfNull(namespaces);
 
-        var converterName = ConverterName(model.Name);
+        var converterName = ConverterNamePolicy.Of(model.Name);
         return
         [
             EmitStruct(model, converterName, GeneratedPlacement.ModelPathOf(placement, model.Name), namespaces),
             EmitConverter(model, converterName, GeneratedPlacement.ConverterPathOf(placement, model.Name, converterName), namespaces),
         ];
     }
-
-    /// <summary>Names the converter an enum carries.</summary>
-    public static string ConverterName(string enumName) => $"{enumName}JsonConverter";
 
     private static GeneratedSource EmitStruct(EnumModelPlan model, string converterName, string relativePath, GeneratedNamespacePlan namespaces)
     {

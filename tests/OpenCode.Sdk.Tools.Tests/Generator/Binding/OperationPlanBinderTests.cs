@@ -19,23 +19,28 @@ public sealed class OperationPlanBinderTests
     [Arguments("unknown", "UnknownEvent")]
     [Arguments("adapter", "WidgetListResponseAdapter")]
     [Arguments("model", "SharedModel")]
+    [Arguments("union converter", "EventJsonConverter")]
+    [Arguments("carrier converter", "UnknownEventJsonConverter")]
+    [Arguments("structural converter", "ShapeJsonConverter")]
+    [Arguments("enum converter", "PhaseJsonConverter")]
+    [Arguments("routes", "OpenCodeRoutes")]
+    [Arguments("context", "OpenCodeJsonContext")]
     public async Task CheckTypeNameCollisions_Should_Refuse_A_Model_Against_Another_Generated_Declaration(string declaration, string name)
     {
         var document = await BindingTestHost.IngestAsync(WidgetListScenario(static operation => operation.WithoutResponse(204)));
         var clients = declaration == "adapter" ? BindWidgets(document).Clients : [];
-        ModelPlan[] models = [Support.OwnershipPlanData.Model(name)];
-        if (declaration == "kind")
+        ModelPlan[] models = declaration switch
         {
-            models = [Support.OwnershipPlanData.StructuralUnion("Shape", name), .. models];
-        }
-        else if (declaration == "model")
-        {
-            models = [.. models, Support.OwnershipPlanData.Model(name)];
-        }
+            "kind" => [Support.OwnershipPlanData.StructuralUnion("Shape", name)],
+            "structural converter" => [Support.OwnershipPlanData.StructuralUnion("Shape", "ShapeKind")],
+            "enum converter" => [Support.OwnershipPlanData.Enum("Phase")],
+            "model" => [Support.OwnershipPlanData.Model(name)],
+            _ => [],
+        };
         var candidates = new OwnershipCandidates
         {
-            Models = models,
-            Unions = declaration == "unknown" ? [Support.OwnershipPlanData.Union("Event")] : [],
+            Models = [.. models, Support.OwnershipPlanData.Model(name)],
+            Unions = declaration is "unknown" or "union converter" or "carrier converter" ? [Support.OwnershipPlanData.Union("Event")] : [],
             HoistedInterfaces = [],
         };
         await Assert.That(NameCollisions(candidates, clients)).IsEquivalentTo([
@@ -102,6 +107,65 @@ public sealed class OperationPlanBinderTests
             new BindingError(BindingErrorCategory.Naming, "IEvent", "type name 'SharedKind' collides with another generated type"),
         ], CollectionOrdering.Matching);
     }
+
+    [Test]
+    [Arguments("enum", "Status", "StatusJsonConverter")]
+    [Arguments("carrier", "IUnknownStatus", "UnknownStatusJsonConverter")]
+    [Arguments("structural", "Status", "StatusJsonConverter")]
+    public async Task CheckTypeNameCollisions_Should_Refuse_Two_Converters_With_One_Name(string declaration, string subject, string converter)
+    {
+        var candidates = new OwnershipCandidates
+        {
+            Models = declaration switch
+            {
+                "enum" => [Support.OwnershipPlanData.Enum("Status")],
+                "structural" => [Support.OwnershipPlanData.StructuralUnion("Status", "StatusKind")],
+                _ => [],
+            },
+            Unions = declaration == "carrier"
+                ? [Support.OwnershipPlanData.Union("Status"), Support.OwnershipPlanData.Union("UnknownStatus")]
+                : [Support.OwnershipPlanData.Union("Status")],
+            HoistedInterfaces = [],
+        };
+
+        await Assert.That(NameCollisions(candidates, [])).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Naming, subject, $"type name '{converter}' collides with another generated type"),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task CheckTypeNameCollisions_Should_Claim_One_Optional_Converter_Per_Instantiation()
+    {
+        var fooList = UnionHoistPlanData.Named("FooList", isNullable: true);
+        var listOfFoo = new ListTypeReferencePlan { ElementType = UnionHoistPlanData.Named("Foo"), IsNullable = true, JsonNullRepresentation = JsonNullRepresentation.ClrNull };
+
+        var shared = NameCollisions(OptionalHolder(fooList, fooList), []);
+        var distinct = NameCollisions(OptionalHolder(fooList, listOfFoo), []);
+
+        await Assert.That(shared).IsEmpty();
+        await Assert.That(distinct).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Naming, "IReadOnlyList<Foo>?", "type name 'OptionalOfFooListJsonConverter' collides with another generated type"),
+        ], CollectionOrdering.Matching);
+    }
+
+    /// <summary>One record whose two optional members wrap the given types.</summary>
+    private static OwnershipCandidates OptionalHolder(TypeReferencePlan first, TypeReferencePlan second) =>
+        new()
+        {
+            Models =
+            [
+                Support.OwnershipPlanData.Model("Holder") with
+                {
+                    Properties =
+                    [
+                        UnionHoistPlanData.Property("first", first, isRequired: false, emitsOptionalWrapper: true),
+                        UnionHoistPlanData.Property("second", second, isRequired: false, emitsOptionalWrapper: true),
+                    ],
+                },
+            ],
+            Unions = [],
+            HoistedInterfaces = [],
+        };
 
     private static IReadOnlyList<BindingError> NameCollisions(OwnershipCandidates candidates, IReadOnlyList<ClientPlan> clients,
         IReadOnlyDictionary<string, string>? schemaNames = null)

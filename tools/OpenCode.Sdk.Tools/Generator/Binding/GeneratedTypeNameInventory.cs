@@ -54,6 +54,29 @@ internal sealed class GeneratedTypeNameInventory
         claims.AddRange(operations.Where(static operation => operation.Envelope?.EnvelopeDtoTypeName is not null)
             .Select(static operation => new GeneratedTypeNameClaim(operation.Envelope!.EnvelopeDtoTypeName!, operation.OperationId, ClaimRole.EnvelopeDto)));
         claims.AddRange(hoistedClaims);
+        claims.AddRange(ConverterClaims(candidates));
+        claims.AddRange(new[] { ReservedNamePolicy.RoutesType, ReservedNamePolicy.JsonContextType }
+            .Select(static name => new GeneratedTypeNameClaim(name, name, ClaimRole.Derived)));
         return new GeneratedTypeNameInventory(claims);
+    }
+
+    /// <summary>
+    /// The converter types the emitters declare beside their models: one per union and per unknown
+    /// carrier, structural union and enum, and one per distinct <c>Optional&lt;T&gt;</c> instantiation,
+    /// so two instantiations that share a converter name refuse while a shared one stays legal.
+    /// </summary>
+    private static IEnumerable<GeneratedTypeNameClaim> ConverterClaims(OwnershipCandidates candidates)
+    {
+        var unions = candidates.Unions.SelectMany(static union => new[] { union.ConceptName, union.UnknownTypeName }
+            .Select(name => new GeneratedTypeNameClaim(ConverterNamePolicy.Of(name), union.Name, ClaimRole.Derived)));
+        var models = candidates.Models.Where(static model => model is StructuralUnionModelPlan or EnumModelPlan)
+            .Select(static model => new GeneratedTypeNameClaim(ConverterNamePolicy.Of(model.Name), model.Name, ClaimRole.Derived));
+        var optionals = candidates.Models.OfType<ObjectModelPlan>()
+            .SelectMany(static model => model.Properties)
+            .Where(static property => property.EmitsOptionalWrapper)
+            .Select(static property => (Type: TypeReferenceNamePolicy.Format(property.Type), Name: ConverterNamePolicy.Optional(property.Type)))
+            .Distinct()
+            .Select(static optional => new GeneratedTypeNameClaim(optional.Name, optional.Type, ClaimRole.Derived));
+        return unions.Concat(models).Concat(optionals);
     }
 }
