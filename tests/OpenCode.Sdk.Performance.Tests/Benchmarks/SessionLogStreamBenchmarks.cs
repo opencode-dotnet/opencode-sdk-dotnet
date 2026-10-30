@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
 using OpenCode.Sdk.Internal;
@@ -38,7 +37,7 @@ public class SessionLogStreamBenchmarks : IDisposable
     };
 
     private byte[] _body = [];
-    private string[] _frames = [];
+    private byte[][] _frames = [];
     private CannedResponseHandler? _handler;
     private HttpClient? _httpClient;
     private OpenCodeClient? _client;
@@ -160,7 +159,7 @@ public class SessionLogStreamBenchmarks : IDisposable
         return result;
     }
 
-    /// <summary>Per-frame materialization alone over the exact frame strings the pipeline deserializes.</summary>
+    /// <summary>Per-frame materialization alone over the exact frame bytes the pipeline deserializes.</summary>
     [Benchmark]
     public ISessionLogItem? DeserializeFrames()
     {
@@ -225,13 +224,13 @@ public class SessionLogStreamBenchmarks : IDisposable
             payloadBytesPerItem: (int)(payloadBytes / MixedFrameCount));
     }
 
-    private static async Task<string[]> CollectFramesAsync(byte[] body)
+    private static async Task<byte[][]> CollectFramesAsync(byte[] body)
     {
         using var stream = new MemoryStream(body);
-        var frames = new List<string>();
+        var frames = new List<byte[]>();
         await foreach (var frame in new ServerSentEventReader().ReadAsync(stream, CancellationToken.None).ConfigureAwait(false))
         {
-            frames.Add(Encoding.UTF8.GetString(frame.Data.Span));
+            frames.Add(frame.Data.ToArray());
         }
 
         return [.. frames];

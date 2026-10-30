@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
 using OpenCode.Sdk.Internal;
@@ -37,7 +36,7 @@ public class EventStreamBenchmarks : IDisposable
         Password = "benchmark",
     };
 
-    private string[] _frames = [];
+    private byte[][] _frames = [];
     private CannedResponseHandler? _handler;
     private HttpClient? _httpClient;
     private OpenCodeClient? _client;
@@ -79,12 +78,12 @@ public class EventStreamBenchmarks : IDisposable
         _suspendingClient = new OpenCodeClient(_suspendingHttpClient, Options);
         _suspendingRaw = new CannedExchange(_suspendingHttpClient, HttpMethod.Get, Options.Endpoint!);
 
-        var frames = new List<string>();
+        var frames = new List<byte[]>();
         using (var stream = new MemoryStream(Fixture.Bytes))
         {
             await foreach (var frame in new ServerSentEventReader().ReadAsync(stream, CancellationToken.None).ConfigureAwait(false))
             {
-                frames.Add(Encoding.UTF8.GetString(frame.Data.Span));
+                frames.Add(frame.Data.ToArray());
             }
         }
 
