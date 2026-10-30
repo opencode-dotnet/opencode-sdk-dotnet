@@ -111,13 +111,20 @@ internal sealed class QueryRequestFacetBinder(OperationFacetContext context)
         }
 
         var value = declared is NullableNode nullable ? nullable.Inner : parameter.Schema;
+        var item = QueryEnumShapePolicy.ResolveListItem(value, _context.Document.Schemas);
         var binding = ResolveEnumBinding(parameter, value);
         if (binding is { IsEnum: true, TypeName: null })
         {
             return null;
         }
 
-        var kind = binding.IsEnum ? QueryValueKind.Enum : ResolveQueryValueKind(value);
+        var kind = (binding.IsEnum, item) switch
+        {
+            (true, null) => QueryValueKind.Enum,
+            (true, not null) => QueryValueKind.EnumList,
+            (false, null) => ResolveQueryValueKind(value),
+            (false, not null) => null,
+        };
         if (kind is null)
         {
             return _context.RefuseNull<QueryPropertyPlan>($"query parameter '{parameter.Name}' has an unsupported schema shape");

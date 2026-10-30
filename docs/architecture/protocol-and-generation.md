@@ -442,7 +442,9 @@ materializable.
   binds `bool?` for an optional parameter and `bool` for a required one, and the route builder
   writes lowercase `true` or `false`; an unset optional is omitted. Any other string enum becomes
   a generated extensible enum whose spelling the route builder writes as given, refusing a default
-  value; every other query shape refuses by name.
+  value; a value-or-list of such an enum binds a read-only list of it, written as one key per
+  element as upstream's client writes an array, and nothing for an unset or empty list; every other
+  query shape refuses by name.
 - The SSE engine remains hand-written runtime behavior; generated stream methods bind their route,
   payload, frame, declared failure event, typed cause, and statuses from the pin. Cause models,
   converters, array metadata, and adapter metadata pass through the same emitted registry and

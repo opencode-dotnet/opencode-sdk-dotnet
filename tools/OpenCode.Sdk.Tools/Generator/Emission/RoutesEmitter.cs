@@ -235,16 +235,26 @@ internal static class RoutesEmitter
         var member = EmissionSyntax.MemberAccess(
             SyntaxFactory.IdentifierName(ReservedNamePolicy.RequestParameter),
             property.PropertyName);
-        return property.Kind is QueryValueKind.Enum
-            ? EmissionSyntax.Invocation(
-                SyntaxFactory.IdentifierName(ReservedNamePolicy.QueryEnumConverter),
-                SyntaxFactory.Argument(member))
+        if (property.Kind is QueryValueKind.Enum)
+        {
+            return EmissionSyntax.Invocation(SyntaxFactory.IdentifierName(ReservedNamePolicy.QueryEnumConverter), SyntaxFactory.Argument(member));
+        }
+
+        return property.Kind is QueryValueKind.EnumList
+            ? SyntaxFactory.ConditionalAccessExpression(member, EmissionSyntax.Invocation(
+                SyntaxFactory.MemberBindingExpression(SyntaxFactory.IdentifierName("Select")),
+                SyntaxFactory.Argument(SyntaxFactory.SimpleLambdaExpression(SyntaxFactory.Parameter(SyntaxFactory.Identifier("item")))
+                    .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
+                    .WithExpressionBody(EmissionSyntax.Invocation(
+                        SyntaxFactory.IdentifierName(ReservedNamePolicy.QueryEnumConverter),
+                        SyntaxFactory.Argument(SyntaxFactory.IdentifierName("item")))))))
             : member;
     }
 
     private static string QueryAddMethod(QueryValueKind kind) => kind switch
     {
         QueryValueKind.Text or QueryValueKind.Enum => "AddText",
+        QueryValueKind.EnumList => "AddTextList",
         QueryValueKind.ListOrder => "AddOrder",
         QueryValueKind.BooleanText => "AddBoolean",
         QueryValueKind.SessionParentFilter => "AddParentFilter",

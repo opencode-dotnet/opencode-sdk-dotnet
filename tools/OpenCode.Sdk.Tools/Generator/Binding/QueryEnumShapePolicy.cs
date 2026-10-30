@@ -54,7 +54,18 @@ internal static class QueryEnumShapePolicy
 
         // Ingestion promotes every inline enum into the graph, so the enum a parameter binds
         // always arrives behind a reference; a key is what the model and its name hang on.
-        var resolved = candidate is null ? null : RefChain.Resolve(candidate, graph);
+        var resolved = candidate is null ? null : RefChain.Resolve(ResolveListItem(candidate, graph) ?? candidate, graph);
         return resolved?.Node is EnumNode { Format: null } node && ResolveSpineKind(node) is null ? resolved.LastKey : null;
     }
+
+    /// <summary>
+    /// Finds the item of a value that admits one item or a list of the same item, the shape
+    /// upstream's ArrayEnsure takes; any other value has no item.
+    /// </summary>
+    public static SchemaNode? ResolveListItem(SchemaNode schema, IReadOnlyDictionary<string, SchemaNode> graph) =>
+        RefChain.Resolve(schema, graph)?.Node is UnionNode { Classification: UnionClassification.Structural, Format: null, Branches: [var single, var list] }
+        && RefChain.Resolve(list, graph)?.Node is ArrayNode { Format: null } array
+        && SchemaNodeComparer.DeepEquals(single, array.Item, graph)
+            ? single
+            : null;
 }

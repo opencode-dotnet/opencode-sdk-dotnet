@@ -51,7 +51,7 @@ internal static class QueryRequestEmitter
 
         // Every other query kind is a spine type in the client namespace; only a generated
         // enum lives with the models.
-        var usings = queryRequest.Properties.Any(static property => property.Kind is QueryValueKind.Enum)
+        var usings = queryRequest.Properties.Any(static property => property.Kind is QueryValueKind.Enum or QueryValueKind.EnumList)
             ? new[] { namespaces.Models, }
             : [];
         declaration = DocumentationSyntax.DocumentedType(declaration, queryRequest.Documentation);
@@ -96,12 +96,15 @@ internal static class QueryRequestEmitter
             QueryValueKind.Location => TypeSyntaxEmitter.EmitNamed("LocationSelector"),
             QueryValueKind.Int32 => SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.IntKeyword)),
             QueryValueKind.Int64 => SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.LongKeyword)),
-            QueryValueKind.Enum => TypeSyntaxEmitter.EmitNamed(property.EnumTypeName
-                ?? throw new InvalidOperationException($"Query property '{property.PropertyName}' has no enum type name.")),
+            QueryValueKind.Enum => EnumType(property),
+            QueryValueKind.EnumList => TypeSyntaxEmitter.Generic("IReadOnlyList", EnumType(property)),
             _ => throw new InvalidOperationException($"Query value kind '{property.Kind}' has no property type."),
         };
         return property.IsRequired ? type : SyntaxFactory.NullableType(type);
     }
+
+    private static TypeSyntax EnumType(QueryPropertyPlan property) => TypeSyntaxEmitter.EmitNamed(property.EnumTypeName
+        ?? throw new InvalidOperationException($"Query property '{property.PropertyName}' has no enum type name."));
 
     private static string RequestDocumentation(OperationPlan operation)
     {

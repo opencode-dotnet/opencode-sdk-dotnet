@@ -45,6 +45,28 @@ public sealed class QueryStringBuilderTests
     }
 
     [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task AddTextList_Should_Write_Nothing_For_An_Unset_Or_Empty_List(bool unset)
+    {
+        var query = new QueryStringBuilder();
+
+        query.AddTextList("types", unset ? null : []);
+
+        await Assert.That(query.Value).IsEqualTo(string.Empty);
+    }
+
+    [Test]
+    public async Task AddTextList_Should_Repeat_The_Key_And_Escape_Each_Value()
+    {
+        var query = new QueryStringBuilder();
+
+        query.AddTextList("types", ["a b", "c&d"]);
+
+        await Assert.That(query.Value).IsEqualTo("?types=a%20b&types=c%26d");
+    }
+
+    [Test]
     public async Task AddText_Should_Escape_The_Name()
     {
         var query = new QueryStringBuilder();

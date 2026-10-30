@@ -2596,6 +2596,33 @@ public sealed class OperationPlanBinderTests
     }
 
     [Test]
+    [Arguments("Widget.Mode", "EnumList")]
+    [Arguments("Widget.Other", null)]
+    public async Task Bind_Should_Bind_One_Or_Many_Of_An_Enum_As_An_Enum_List(string listItem, string? kind)
+    {
+        var document = await BindingTestHost.IngestAsync(WidgetListScenario(
+            operation => operation.Parameter("modes", "query", schema => schema.AnyOf(
+                branch => branch.Ref("Widget.Mode"),
+                branch => branch.Type("array").Items(item => item.Ref(listItem)),
+                branch => branch.Type("null"))),
+            spec => spec
+                .WithSchema("Widget.Mode", schema => schema.Type("string").Enum("working", "branch"))
+                .WithSchema("Widget.Other", schema => schema.Type("string").Enum("other"))));
+
+        if (kind is null)
+        {
+            var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document));
+            await Assert.That(exception.Errors).IsEquivalentTo(
+                [new BindingError(BindingErrorCategory.Operation, "widget.list", "query parameter 'modes' has an unsupported schema shape")],
+                CollectionOrdering.Matching);
+            return;
+        }
+
+        var property = BindWidgets(document).Clients.SelectMany(static client => client.Operations).Single().QueryRequest!.Properties.Single();
+        await Assert.That((property.Kind.ToString(), property.EnumTypeName, property.IsRequired)).IsEqualTo((kind, "WidgetMode", false));
+    }
+
+    [Test]
     public async Task Bind_Should_Bind_A_Referenced_Enum_Query_Parameter_To_Its_Component_Model()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
@@ -3597,16 +3624,21 @@ public sealed class OperationPlanBinderTests
             expectedProblem,
             StreamOperationScenario.GroupName);
 
-    private static SpecScenario WidgetListScenario(Action<OperationBuilder> configureParameters) =>
-        SpecScenario.Define(spec => spec
-            .WithSchema("WidgetInfo", schema => schema
-                .Type("object")
-                .Property("id", property => property.Type("string"), required: true))
-            .WithOperation("widget.list", path: "/api/widget", configure: operation =>
-            {
-                configureParameters(operation);
-                _ = operation.Response(200, "application/json", schema => schema.Ref("WidgetInfo"));
-            }));
+    private static SpecScenario WidgetListScenario(Action<OperationBuilder> configureParameters,
+        Action<SpecDocumentBuilder>? configureSchemas = null) =>
+        SpecScenario.Define(spec =>
+        {
+            configureSchemas?.Invoke(spec);
+            _ = spec
+                .WithSchema("WidgetInfo", schema => schema
+                    .Type("object")
+                    .Property("id", property => property.Type("string"), required: true))
+                .WithOperation("widget.list", path: "/api/widget", configure: operation =>
+                {
+                    configureParameters(operation);
+                    _ = operation.Response(200, "application/json", schema => schema.Ref("WidgetInfo"));
+                });
+        });
 
     private static SpecScenario WidgetCreateScenario(Action<SchemaBuilder> configureBody,
         string mediaType = "application/json", bool required = true) =>
