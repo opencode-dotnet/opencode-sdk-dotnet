@@ -22,13 +22,12 @@ with "'vswhere.exe' is not recognized" inside the linker command and then MSB307
 `C:\Program Files (x86)\Microsoft Visual Studio\Installer` on that process's `PATH` rather than
 clearing the variable.
 
-## Live legs that need a Linux-hosted server
+## Live legs against a Linux-hosted server
 
-The `opencode-pty` daemon (`@opencode-ai/pty`) ships darwin and linux platform packages only — no
-win32 package exists at the pinned upstream commit — so a persistent PTY live run directly on
-Windows can only exercise the daemon-absent arms. `PinnedOpenCodeServerFixture`'s
-external-endpoint mode plus `PersistentPtyDaemonGate`'s override let a Windows workstation run the
-live leg against a server hosted in WSL2 instead, whose linux package does carry the daemon binary.
+The `opencode-pty` daemon (`@opencode-ai/pty`) ships a win32 package too, so a persistent PTY live
+run directly on Windows drives the round trip. To prove the live leg against a Linux server from a
+Windows workstation, `PinnedOpenCodeServerFixture`'s external-endpoint mode plus
+`PersistentPtyDaemonGate`'s override run it against a server hosted in WSL2.
 
 Clone into the WSL filesystem instead of reusing the Windows checkout over `/mnt/<drive>`: one
 shared `external/opencode/node_modules` holds the platform package of whichever OS installed last,

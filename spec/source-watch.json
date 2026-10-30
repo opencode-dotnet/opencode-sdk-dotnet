@@ -130,7 +130,7 @@
     {
       "path": "packages/core/src/persistent-pty/binary.bun.ts",
       "sha256": "701b81e5bccbe154805674c8de3725171fb5c9846260fe5129a88ef5c888277e",
-      "behavior": "OPENCODE_PTY_BIN overrides the daemon executable; otherwise the embedded asset is installed under an opencode-pty directory keyed by version and checksum. available is false on win32 because opencode-pty ships no Windows binaries; it feeds only the info capability, not the PTY routes.",
+      "behavior": "OPENCODE_PTY_BIN overrides the daemon executable; otherwise the embedded asset is installed under an opencode-pty directory keyed by version and checksum. available is true on every platform; it feeds only the info capability, not the PTY routes.",
       "anchor": {
         "type": "contains",
         "text": "if (process.env.OPENCODE_PTY_BIN) return process.env.OPENCODE_PTY_BIN"
@@ -139,7 +139,7 @@
     {
       "path": "packages/core/src/persistent-pty/binary.node.ts",
       "sha256": "bdac35d9250bb727f67650cf989608f84376df1fdfd1b888557a6a5fb40147b6",
-      "behavior": "Under Node the daemon executable is OPENCODE_PTY_BIN or opencode-pty resolved on PATH, and available is false on win32.",
+      "behavior": "Under Node the daemon executable is OPENCODE_PTY_BIN or opencode-pty resolved on PATH, and available is true on every platform.",
       "anchor": {
         "type": "contains",
         "text": "process.env.OPENCODE_PTY_BIN ||"
