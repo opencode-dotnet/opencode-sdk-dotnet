@@ -47,9 +47,10 @@ evidence and may contain superseded positions.
   stripped name that meets another schema's name refuses through the type-name collision wall, and
   a `schemaNames` row resolves it.
 - A union with no schema identity of its own is named from where it sits: its owner, its property
-  path and its branch markers, never from its branches. A name derived through an unmarked branch's
-  ordinal needs a reason-bearing `schemaNames` row, and a union with more than one such branch
-  refuses.
+  path and its branch markers, never from its branches. An inline object branch with exactly one
+  required key that no sibling branch requires is keyed by that key, as a literal marker keys its
+  branch, so its name survives a reorder. A name derived through an unmarked branch's ordinal needs
+  a reason-bearing `schemaNames` row, and a union with more than one such branch refuses.
 
 ## Snapshot production
 
@@ -321,7 +322,8 @@ the content is, so it binds as an object of unspecified content. Other `not` sha
 their applicator pointer rather than approximating general JSON Schema negation. A required never
 member makes its object branch uninhabitable. Tagged unions preserve such a branch as a known
 impossible tag in their bound plan, emit no dead public variant for it, and refuse that tag during
-dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).
+dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015). An optional never
+member is a must-be-absent marker: the key may not appear, so it generates no property.
 
 An unmarked union of a free-form object and an array of unrestricted values binds to
 `JsonElement`, so both the object and the array that Effect's object keyword admits remain

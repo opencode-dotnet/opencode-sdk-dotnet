@@ -137,15 +137,32 @@ internal sealed class UnionNormalizer
     private ProjectedBranch[]? ProjectBranches(IList<IOpenApiSchema> sourceBranches, string root, string pointer, string keyword,
         ProjectionState state)
     {
+        var specialNumber = FindFlatSpecialNumber(sourceBranches);
         var branches = new List<ProjectedBranch>(sourceBranches.Count);
         var failed = false;
         for (var index = 0; index < sourceBranches.Count; index++)
         {
             var source = sourceBranches[index];
+            if (specialNumber is not null && specialNumber.Contains(index))
+            {
+                var errorCount = state.Errors.Count;
+                SchemaWallPolicy.Check((OpenApiSchema)source, string.Concat(root, GraphKeyBuilder.UnionBranch(pointer, keyword, index, marker: null)), state.Errors);
+                failed |= state.Errors.Count != errorCount;
+                if (index == specialNumber[0])
+                {
+                    branches.Add(new ProjectedBranch(new SpecialNumberNode(), Marker: null, IsNull: false, IsMarkedUnionReference: false));
+                }
+
+                continue;
+            }
+
             var marker = LiteralClassifier.FindFirstMarker(source);
             var prefixMarker = marker is null ? LiteralClassifier.FindFirstPrefixMarker(source) : null;
             var isMarkedUnionReference = marker is null && ReferencesMarkedUnion(source);
-            var branchPointer = GraphKeyBuilder.UnionBranch(pointer, keyword, index, marker);
+            var ownKey = marker is null && prefixMarker is null ? OwnRequiredKeyPolicy.Find(sourceBranches, index) : null;
+            var branchPointer = ownKey is null
+                ? GraphKeyBuilder.UnionBranch(pointer, keyword, index, marker)
+                : GraphKeyBuilder.Append(GraphKeyBuilder.Append(pointer, keyword), ownKey);
             var branchLocation = string.Concat(root, branchPointer);
             if (source is OpenApiSchema { Type: JsonSchemaType.Null } concrete)
             {
@@ -227,6 +244,21 @@ internal sealed class UnionNormalizer
             Keyword = keyword,
             Classification = classification,
         };
+    }
+
+    /// <summary>
+    /// Effect 4.0.6 flattens the special-number union into a wider union's own branches; the one
+    /// plain number branch and its special-spelling siblings fold back into the single special-number
+    /// branch the nested form projected. Only adjacent members fold, as the flattening leaves them, so
+    /// the fold never moves the special spellings ahead of a branch that first-match gives them to.
+    /// </summary>
+    private static int[]? FindFlatSpecialNumber(IList<IOpenApiSchema> branches)
+    {
+        var numbers = Enumerable.Range(0, branches.Count).Where(index => branches[index] is OpenApiSchema { Type: JsonSchemaType.Number, Enum: null, Const: null } number
+            && !HasCompetingNodeConstraints(number)).ToArray();
+        var specials = Enumerable.Range(0, branches.Count).Where(index => branches[index] is OpenApiSchema special && IsSpecialStringBranch(special)).ToArray();
+        int[] members = [.. numbers.Concat(specials).Order()];
+        return numbers.Length is 1 && specials.Length > 0 && members[^1] - members[0] == members.Length - 1 ? members : null;
     }
 
     private static bool IsSpecialNumber(IEnumerable<IOpenApiSchema> branches)

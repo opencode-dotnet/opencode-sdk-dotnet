@@ -1,6 +1,7 @@
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Tests.Generator.Ingestion.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Ingestion.Projection;
 
@@ -189,22 +190,108 @@ public sealed class UnionNormalizerTests
     }
 
     [Test]
-    public async Task Project_Should_Keep_Special_Number_Near_Miss_As_Ordinary_Union()
+    public async Task Project_Should_Fold_A_Flat_Special_Number_Into_One_Branch_Of_A_Wider_Union()
     {
-        var host = new SchemaProjectionTestHost();
-        var scenario = SpecScenario.Define(spec => spec.WithSchema("NearMiss", schema => schema.AnyOf(
+        var result = await ProjectUnionAsync("Value",
+            branch => branch.Type("string"),
+            branch => branch.Type("number"),
+            SpecialSpellings,
+            branch => branch.Type("boolean"));
+
+        await Assert.That(((UnionNode)result.Schemas["Value"]).Branches.Select(BranchKind))
+            .IsEquivalentTo(["String", nameof(SpecialNumberNode), "Boolean"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Project_Should_Fold_A_Flat_Nullable_Special_Number()
+    {
+        var result = await ProjectUnionAsync("Dcid",
+            branch => branch.Type("number"),
+            SpecialSpellings,
+            branch => branch.Type("null"));
+
+        await Assert.That(((NullableNode)result.Schemas["Dcid"]).Inner).IsTypeOf<SpecialNumberNode>();
+    }
+
+    [Test]
+    public async Task Project_Should_Fold_Several_Flat_Special_Spellings_Beside_Another_Branch()
+    {
+        var result = await ProjectUnionAsync("NearMiss",
             branch => branch.Type("number"),
             branch => branch.Type("string").Enum("NaN"),
             branch => branch.Type("string").Enum("Infinity"),
             branch => branch.Type("string").Enum("-Infinity"),
-            branch => branch.Type("string").Enum("Infinity", "-Infinity", "NaN"),
-            branch => branch.Type("boolean"))));
-
-        var result = await host.ProjectAsync(scenario);
+            SpecialSpellings,
+            branch => branch.Type("boolean"));
 
         var union = (UnionNode)result.Schemas["NearMiss"];
         await Assert.That(union.Classification).IsEqualTo(UnionClassification.Structural);
-        await Assert.That(union.Branches).Count().IsEqualTo(6);
+        await Assert.That(union.Branches.Select(BranchKind)).IsEquivalentTo([nameof(SpecialNumberNode), "Boolean"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Project_Should_Keep_A_Number_Apart_From_Its_Special_Spellings_As_Ordinary_Union()
+    {
+        var result = await ProjectUnionAsync("Apart",
+            branch => branch.Type("number"),
+            branch => branch.Type("string"),
+            SpecialSpellings);
+
+        await Assert.That(((UnionNode)result.Schemas["Apart"]).Branches.Select(BranchKind))
+            .IsEquivalentTo(["Number", "String", nameof(RefNode)], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Project_Should_Keep_A_Number_Beside_A_Non_Special_String_Enum_As_Ordinary_Union()
+    {
+        var result = await ProjectUnionAsync("NearMiss",
+            branch => branch.Type("number"),
+            branch => branch.Type("string").Enum("Infinity", "Other"),
+            branch => branch.Type("boolean"));
+
+        await Assert.That(((UnionNode)result.Schemas["NearMiss"]).Branches.Select(BranchKind))
+            .IsEquivalentTo(["Number", nameof(RefNode), "Boolean"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Project_Should_Keep_Two_Numbers_Beside_Special_Spellings_As_Ordinary_Union()
+    {
+        var result = await ProjectUnionAsync("Twice",
+            branch => branch.Type("number"),
+            branch => branch.Type("number").Format("double"),
+            SpecialSpellings);
+
+        await Assert.That(((UnionNode)result.Schemas["Twice"]).Branches.Select(BranchKind))
+            .IsEquivalentTo(["Number", "Number", nameof(RefNode)], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Project_Should_Refuse_A_Folded_Member_The_Wall_Refuses()
+    {
+        var host = new SchemaProjectionTestHost();
+        var scenario = SpecScenario.Define(spec => spec.WithSchema("Value", schema => schema.AnyOf(
+            branch => branch.Type("string"),
+            branch => branch.Type("number").Raw("frobnicate", "1"),
+            SpecialSpellings)));
+
+        var exception = await host.ProjectExpectingRefusalAsync(scenario);
+
+        await Assert.That(exception.Errors).IsEquivalentTo(
+            [new IngestionError("Value/anyOf/1", "unrecognized schema keyword 'frobnicate' is not supported")], CollectionOrdering.Matching);
+    }
+
+    /// <summary>A branch keyed by its own required key refuses when that key is another branch's ordinal key.</summary>
+    [Test]
+    public async Task Project_Should_Refuse_An_Own_Key_That_Collides_With_An_Ordinal_Key()
+    {
+        var host = new SchemaProjectionTestHost();
+        var scenario = SpecScenario.Define(spec => spec.WithSchema("Value", schema => schema.AnyOf(
+            branch => branch.Type("object").Property("label", property => property.Type("string")),
+            branch => branch.Type("object").Property("0", property => property.Type("string"), required: true))));
+
+        var exception = await host.ProjectExpectingRefusalAsync(scenario);
+
+        await Assert.That(exception.Message).Contains("schema graph key collision for 'Value#/anyOf/0'");
     }
 
     [Test]
@@ -301,4 +388,11 @@ public sealed class UnionNormalizerTests
         var union = (UnionNode)result.Schemas["Event"];
         await Assert.That(union.Classification).IsEqualTo(UnionClassification.Structural);
     }
+
+    private static Task<SchemaProjectionResult> ProjectUnionAsync(string name, params Action<SchemaBuilder>[] branches) =>
+        new SchemaProjectionTestHost().ProjectAsync(SpecScenario.Define(spec => spec.WithSchema(name, schema => schema.AnyOf(branches))));
+
+    private static void SpecialSpellings(SchemaBuilder branch) => branch.Type("string").Enum("Infinity", "-Infinity", "NaN");
+
+    private static string BranchKind(SchemaNode branch) => branch is PrimitiveNode primitive ? primitive.Kind.ToString() : branch.GetType().Name;
 }

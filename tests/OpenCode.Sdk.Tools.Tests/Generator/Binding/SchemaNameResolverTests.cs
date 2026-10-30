@@ -57,6 +57,71 @@ public sealed class SchemaNameResolverTests
         await Assert.That(exception.Errors).IsEquivalentTo([MissingOrdinalRow(key, mechanicalName)], CollectionOrdering.Matching);
     }
 
+    /// <summary>
+    /// An inline object branch with a required key no sibling requires is keyed by that key, so
+    /// its mechanical name holds in either order and needs no row.
+    /// </summary>
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Resolve_Should_Key_An_Inline_Branch_By_Its_Own_Required_Key_In_Either_Order(bool reordered)
+    {
+        var errors = new BindingErrorCollector();
+        Action<SchemaBuilder> inArm = static schema => schema.Type("object").Property("in", static property => property.Type("string"), required: true);
+        Action<SchemaBuilder> atArm = static schema => schema.Type("object").Property("at", static property => property.Type("string"), required: true);
+
+        var names = await ResolveAsync(DetailScenario("anyOf", reordered ? [atArm, inArm] : [inArm, atArm]), errors);
+
+        await Assert.That(errors.Snapshot()).IsEmpty();
+        await Assert.That((names[Detail + "/anyOf/in"], names[Detail + "/anyOf/at"])).IsEqualTo(("WidgetInfoDetailIn", "WidgetInfoDetailAt"));
+    }
+
+    /// <summary>A key a sibling also requires, even behind a reference, keys nothing; nor do two keys the branch alone requires, since a choice between them would move with property order.</summary>
+    [Test]
+    [Arguments("serial", false)]
+    [Arguments("label", true)]
+    [Arguments("label,size", false)]
+    public async Task Resolve_Should_Keep_An_Ordinal_When_No_Required_Key_Is_The_Branch_Own(string keys, bool shared)
+    {
+        var errors = new BindingErrorCollector();
+        Action<SchemaBuilder> arm = schema =>
+        {
+            _ = schema.Type("object");
+            foreach (var key in keys.Split(','))
+            {
+                _ = schema.Property(key, static property => property.Type("string"), required: true);
+            }
+        };
+        var sibling = shared ? arm : Gadget;
+
+        var names = await ResolveAsync(DetailScenario("anyOf", sibling, arm), errors);
+
+        await Assert.That(names.Keys).Contains(SecondBranch);
+    }
+
+    /// <summary>
+    /// The shape both rules exist for: each branch requires its own key and forbids the others as
+    /// optional never members, so the branches bind keyed by their keys and carry no forbidden key.
+    /// </summary>
+    [Test]
+    public async Task Bind_Should_Key_Exclusive_Branches_And_Drop_Their_Forbidden_Keys()
+    {
+        Action<SchemaBuilder> inArm = static schema => schema.Type("object")
+            .Property("in", static property => property.Type("string"), required: true)
+            .Property("at", static property => property.Raw("not", "{}"));
+        Action<SchemaBuilder> atArm = static schema => schema.Type("object")
+            .Property("at", static property => property.Type("string"), required: true)
+            .Property("in", static property => property.Raw("not", "{}"));
+        var document = await BindingTestHost.IngestAsync(DetailScenario("anyOf", inArm, atArm));
+
+        var plan = new BindingTestHost().Bind(document, Selection(OperationId), Curation(Groups("widget", RootGroup())));
+
+        var arms = plan.Models.OfType<ObjectModelPlan>().Where(static model => model.Name is "WidgetInfoDetailIn" or "WidgetInfoDetailAt")
+            .ToDictionary(static model => model.Name, static model => model.Properties.Select(static property => property.WireName).ToArray(), StringComparer.Ordinal);
+        await Assert.That(arms["WidgetInfoDetailIn"]).IsEquivalentTo(["in"], CollectionOrdering.Matching);
+        await Assert.That(arms["WidgetInfoDetailAt"]).IsEquivalentTo(["at"], CollectionOrdering.Matching);
+    }
+
     [Test]
     public async Task Resolve_Should_Name_An_Ordinal_Branch_By_Its_Row()
     {
@@ -206,16 +271,16 @@ public sealed class SchemaNameResolverTests
 
     private static void Card(SchemaBuilder schema) => schema
         .Type("object")
-        .Property("label", static property => property.Type("string"), required: true);
+        .Property("label", static property => property.Type("string"));
 
     private static void KindedCard(SchemaBuilder schema) => schema
         .Type("object")
-        .Property("label", static property => property.Type("string"), required: true)
-        .Property("kind", static property => property.Type("string").Enum("small", "large"), required: true);
+        .Property("label", static property => property.Type("string"))
+        .Property("kind", static property => property.Type("string").Enum("small", "large"));
 
     private static void Tile(SchemaBuilder schema) => schema
         .Type("object")
-        .Property("size", static property => property.Type("integer"), required: true);
+        .Property("size", static property => property.Type("integer"));
 
     private static void Gadget(SchemaBuilder schema) => schema.Ref("Gadget.Info");
 

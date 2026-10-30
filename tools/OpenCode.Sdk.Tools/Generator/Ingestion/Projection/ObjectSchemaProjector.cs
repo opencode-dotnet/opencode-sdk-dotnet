@@ -99,10 +99,15 @@ internal sealed class ObjectSchemaProjector
         }
 
         var projectedProperties = new List<SpecProperty>(properties.Count);
+        var failed = false;
         foreach (var property in properties)
         {
             var projected = _schemaProjector.Project(property.Value, root, GraphKeyBuilder.Append(GraphKeyBuilder.Append(pointer, "properties"), property.Key), state);
-            if (projected is null)
+            var isRequired = schema.Required?.Contains(property.Key) is true;
+            failed |= projected is null;
+
+            // An optional never member says the key must be absent; it carries no value, so it is no property.
+            if (projected is null || (projected is NeverNode && !isRequired))
             {
                 continue;
             }
@@ -111,11 +116,11 @@ internal sealed class ObjectSchemaProjector
             {
                 Name = property.Key,
                 Schema = projected,
-                IsRequired = schema.Required?.Contains(property.Key) is true,
+                IsRequired = isRequired,
             });
         }
 
-        if (projectedProperties.Count != properties.Count)
+        if (failed)
         {
             return null;
         }
