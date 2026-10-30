@@ -1,6 +1,6 @@
 # Structural unions use generated carriers with token and first-match dispatch
 
-Date: 2026-08-19
+Date: 2026-10-30
 
 An untagged structural union emits one sealed record carrier plus a `Kind` enum, guarded typed
 accessors, factories, and a custom converter. The converter follows pinned branch order, dispatches
@@ -27,7 +27,9 @@ For overlapping `string | special-number`, the earlier broad string branch owns 
 `"NaN"`, `"Infinity"`, and `"-Infinity"` spellings; the remaining number arm admits ordinary JSON
 numbers. A non-finite `double` constructed through that number arm cannot write a JSON number and is
 refused by `Utf8JsonWriter`; callers use the text arm for those exact wire spellings. Collapsed
-same-primitive refinements produce no carrier and no dead branch models.
+same-primitive refinements produce no carrier and no dead branch models. A string enum beside a free
+string is an open enum: it binds the generated extensible enum with the enum's values, which accepts
+any other string, never a plain string.
 
 ## Considered options
 

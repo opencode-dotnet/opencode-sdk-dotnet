@@ -195,6 +195,7 @@
 /Events/Internal/EventJsonConverter.cs linguist-generated
 /Events/Internal/EventSubscribeResponseStreamAdapter.cs linguist-generated
 /Events/Internal/OpenCodeRoutes.Events.cs linguist-generated
+/Events/Internal/TuiCommandExecuteDataCommandJsonConverter.cs linguist-generated
 /Events/Internal/TuiToastShowDataVariantJsonConverter.cs linguist-generated
 /Events/Internal/UnknownEventJsonConverter.cs linguist-generated
 /Events/Models/EventLogSynced.cs linguist-generated
@@ -207,6 +208,7 @@
 /Events/Models/InstallationUpdatedData.cs linguist-generated
 /Events/Models/TuiCommandExecute.cs linguist-generated
 /Events/Models/TuiCommandExecuteData.cs linguist-generated
+/Events/Models/TuiCommandExecuteDataCommand.cs linguist-generated
 /Events/Models/TuiPromptAppend.cs linguist-generated
 /Events/Models/TuiPromptAppendData.cs linguist-generated
 /Events/Models/TuiSessionSelect.cs linguist-generated
@@ -497,6 +499,7 @@
 /LanguageModels/Internal/ModelListResponseAdapter.cs linguist-generated
 /LanguageModels/Internal/ModelListResponseEnvelope.cs linguist-generated
 /LanguageModels/Internal/ModelMaxTokensFieldJsonConverter.cs linguist-generated
+/LanguageModels/Internal/ModelReasoningFieldJsonConverter.cs linguist-generated
 /LanguageModels/Internal/OpenCodeRoutes.LanguageModels.cs linguist-generated
 /LanguageModels/LanguageModelsClient.cs linguist-generated
 /LanguageModels/ModelDefaultRequest.cs linguist-generated
@@ -514,6 +517,7 @@
 /LanguageModels/Models/ModelInfoStatus.cs linguist-generated
 /LanguageModels/Models/ModelInfoTime.cs linguist-generated
 /LanguageModels/Models/ModelMaxTokensField.cs linguist-generated
+/LanguageModels/Models/ModelReasoningField.cs linguist-generated
 /LanguageModels/Models/ModelRef.cs linguist-generated
 /LanguageModels/Models/ModelSettings.cs linguist-generated
 /LanguageModels/Models/ModelUpdated.cs linguist-generated

@@ -1,4 +1,4 @@
-using System.Text.Json.Nodes;
+using System.Globalization;
 using Microsoft.OpenApi;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Walls;
@@ -7,13 +7,6 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 
 internal sealed class UnionNormalizer
 {
-    private static readonly HashSet<string> SpecialNumberValues = new(StringComparer.Ordinal)
-    {
-        "NaN",
-        "Infinity",
-        "-Infinity",
-    };
-
     private readonly SchemaProjector _schemaProjector;
     private readonly SchemaShapeClassifier _shapeClassifier;
 
@@ -46,18 +39,14 @@ internal sealed class UnionNormalizer
             return null;
         }
 
-        if (IsSpecialNumber(sourceBranches))
+        if (SpecialNumberPolicy.IsWhole(sourceBranches))
         {
-            if (!ValidateSpecialNumberBranches(sourceBranches, root, pointer, keywordName, state))
-            {
-                return null;
-            }
+            return ProjectSpecialNumber(schema, sourceBranches, string.Concat(root, GraphKeyBuilder.Append(pointer, keywordName)), state.Errors);
+        }
 
-            return new SpecialNumberNode
-            {
-                Description = schema.Description,
-                Format = schema.Format,
-            };
+        if (OpenEnumPolicy.ProjectWhole(schema, sourceBranches) is { } wholeOpenEnum)
+        {
+            return CheckBranchWalls(sourceBranches, string.Concat(root, GraphKeyBuilder.Append(pointer, keywordName)), state.Errors) ? wholeOpenEnum : null;
         }
 
         var branches = ProjectBranches(sourceBranches, root, pointer, keywordName, state);
@@ -102,9 +91,26 @@ internal sealed class UnionNormalizer
         };
     }
 
-    private static bool ValidateSpecialNumberBranches(IList<IOpenApiSchema> branches, string root, string pointer, string keyword, ProjectionState state)
+    /// <summary>A whole special-number union is one special-number node once each member passes the wall, nested members included.</summary>
+    private static SpecialNumberNode? ProjectSpecialNumber(OpenApiSchema schema, IList<IOpenApiSchema> branches, string keywordLocation,
+        IngestionErrorCollector errors)
     {
-        var errorCount = state.Errors.Count;
+        if (!CheckBranchWalls(branches, keywordLocation, errors))
+        {
+            return null;
+        }
+
+        return new SpecialNumberNode
+        {
+            Description = schema.Description,
+            Format = schema.Format,
+        };
+    }
+
+    /// <summary>A union whose branches fold into one node never projects them, so the wall checks each, and each nested anyOf member.</summary>
+    private static bool CheckBranchWalls(IList<IOpenApiSchema> branches, string keywordLocation, IngestionErrorCollector errors)
+    {
+        var errorCount = errors.Count;
         for (var index = 0; index < branches.Count; index++)
         {
             if (branches[index] is not OpenApiSchema branch)
@@ -112,8 +118,8 @@ internal sealed class UnionNormalizer
                 continue;
             }
 
-            var branchPointer = GraphKeyBuilder.UnionBranch(pointer, keyword, index, marker: null);
-            SchemaWallPolicy.Check(branch, string.Concat(root, branchPointer), state.Errors);
+            var branchLocation = GraphKeyBuilder.Append(keywordLocation, index.ToString(CultureInfo.InvariantCulture));
+            SchemaWallPolicy.Check(branch, branchLocation, errors);
             if (branch.AnyOf is not { Count: > 0 } nested)
             {
                 continue;
@@ -121,36 +127,41 @@ internal sealed class UnionNormalizer
 
             for (var innerIndex = 0; innerIndex < nested.Count; innerIndex++)
             {
-                if (nested[innerIndex] is not OpenApiSchema inner)
+                if (nested[innerIndex] is OpenApiSchema inner)
                 {
-                    continue;
+                    SchemaWallPolicy.Check(inner, GraphKeyBuilder.Append(GraphKeyBuilder.Append(branchLocation, "anyOf"), innerIndex.ToString(CultureInfo.InvariantCulture)), errors);
                 }
-
-                var innerPointer = GraphKeyBuilder.UnionBranch(branchPointer, "anyOf", innerIndex, marker: null);
-                SchemaWallPolicy.Check(inner, string.Concat(root, innerPointer), state.Errors);
             }
         }
 
-        return state.Errors.Count == errorCount;
+        return errors.Count == errorCount;
     }
 
     private ProjectedBranch[]? ProjectBranches(IList<IOpenApiSchema> sourceBranches, string root, string pointer, string keyword,
         ProjectionState state)
     {
-        var specialNumber = FindFlatSpecialNumber(sourceBranches);
+        var specialNumber = SpecialNumberPolicy.FindFlat(sourceBranches);
+        var openEnum = OpenEnumPolicy.Find(sourceBranches, specialNumber);
         var branches = new List<ProjectedBranch>(sourceBranches.Count);
         var failed = false;
         for (var index = 0; index < sourceBranches.Count; index++)
         {
             var source = sourceBranches[index];
-            if (specialNumber is not null && specialNumber.Contains(index))
+            if (specialNumber?.Contains(index) == true || openEnum?.Contains(index) == true)
             {
+                // A folded member is never projected on its own, so the wall checks it here.
+                var foldPointer = GraphKeyBuilder.UnionBranch(pointer, keyword, index, marker: null);
                 var errorCount = state.Errors.Count;
-                SchemaWallPolicy.Check((OpenApiSchema)source, string.Concat(root, GraphKeyBuilder.UnionBranch(pointer, keyword, index, marker: null)), state.Errors);
+                SchemaWallPolicy.Check((OpenApiSchema)source, string.Concat(root, foldPointer), state.Errors);
                 failed |= state.Errors.Count != errorCount;
-                if (index == specialNumber[0])
+                if (index == specialNumber?[0])
                 {
                     branches.Add(new ProjectedBranch(new SpecialNumberNode(), Marker: null, IsNull: false, IsMarkedUnionReference: false));
+                }
+                else if (index == openEnum?[0]
+                         && state.Register(new EnumNode { Values = OpenEnumPolicy.Values(sourceBranches, openEnum) }, root, foldPointer, string.Concat(root, foldPointer)) is { } registered)
+                {
+                    branches.Add(new ProjectedBranch(registered, Marker: null, IsNull: false, IsMarkedUnionReference: false));
                 }
 
                 continue;
@@ -201,19 +212,9 @@ internal sealed class UnionNormalizer
     /// </summary>
     private static bool ReferencesMarkedUnion(IOpenApiSchema source) =>
         source is OpenApiSchemaReference { Target: OpenApiSchema target }
-        && (IsPureAnyOfBranch(target) || IsPureOneOfBranch(target))
+        && (UnionBranchShape.IsPureAnyOfBranch(target) || UnionBranchShape.IsPureOneOfBranch(target))
         && (target.AnyOf is { Count: > 1 } ? target.AnyOf : target.OneOf) is { Count: > 1 } nested
         && nested.All(static branch => LiteralClassifier.FindFirstMarker(branch) is not null);
-
-    /// <summary>The oneOf twin of <see cref="IsPureAnyOfBranch"/>; a nested marked union may use either keyword exclusively.</summary>
-    private static bool IsPureOneOfBranch(OpenApiSchema schema) =>
-        schema is { OneOf.Count: > 0, Type: null, Enum: null, Const: null, Items: null, Properties: null, AdditionalProperties: null }
-        && schema.AnyOf is not { Count: > 0 }
-        && schema.AllOf is not { Count: > 0 }
-        && schema.Required is not { Count: > 0 }
-        && schema.PatternProperties is not { Count: > 0 }
-        && schema.AdditionalPropertiesAllowed
-        && schema is { ContentEncoding: null, ContentMediaType: null, ContentSchema: null };
 
     private static ProjectedBranch[] DeduplicateReferences(IReadOnlyList<ProjectedBranch> branches)
     {
@@ -245,115 +246,6 @@ internal sealed class UnionNormalizer
             Classification = classification,
         };
     }
-
-    /// <summary>
-    /// Effect 4.0.6 flattens the special-number union into a wider union's own branches; the one
-    /// plain number branch and its special-spelling siblings fold back into the single special-number
-    /// branch the nested form projected. Only adjacent members fold, as the flattening leaves them, so
-    /// the fold never moves the special spellings ahead of a branch that first-match gives them to.
-    /// </summary>
-    private static int[]? FindFlatSpecialNumber(IList<IOpenApiSchema> branches)
-    {
-        var numbers = Enumerable.Range(0, branches.Count).Where(index => branches[index] is OpenApiSchema { Type: JsonSchemaType.Number, Enum: null, Const: null } number
-            && !HasCompetingNodeConstraints(number)).ToArray();
-        var specials = Enumerable.Range(0, branches.Count).Where(index => branches[index] is OpenApiSchema special && IsSpecialStringBranch(special)).ToArray();
-        int[] members = [.. numbers.Concat(specials).Order()];
-        return numbers.Length is 1 && specials.Length > 0 && members[^1] - members[0] == members.Length - 1 ? members : null;
-    }
-
-    private static bool IsSpecialNumber(IEnumerable<IOpenApiSchema> branches)
-    {
-        var numberBranches = 0;
-        var specialBranches = 0;
-        return CountSpecialNumberBranches(branches, allowNested: true, ref numberBranches, ref specialBranches)
-               && numberBranches is 1
-               && specialBranches > 0;
-    }
-
-    private static bool CountSpecialNumberBranches(IEnumerable<IOpenApiSchema> branches, bool allowNested, ref int numberBranches,
-        ref int specialBranches)
-    {
-        foreach (var branch in branches)
-        {
-            if (branch is not OpenApiSchema schema)
-            {
-                return false;
-            }
-
-            if (schema is { Type: JsonSchemaType.Number, Enum: null, Const: null } && !HasCompetingNodeConstraints(schema))
-            {
-                numberBranches++;
-                continue;
-            }
-
-            // The v2 dialect nests the special-number union one level deeper
-            // (anyOf: [anyOf of number-and-specials, a redundant specials enum]); exactly one
-            // nesting level flattens, anything deeper or impure stays refused.
-            if (allowNested && IsPureAnyOfBranch(schema))
-            {
-                if (!CountSpecialNumberBranches(schema.AnyOf!, allowNested: false, ref numberBranches, ref specialBranches))
-                {
-                    return false;
-                }
-
-                continue;
-            }
-
-            if (!IsSpecialStringBranch(schema))
-            {
-                return false;
-            }
-
-            specialBranches++;
-        }
-
-        return true;
-    }
-
-    private static bool IsPureAnyOfBranch(OpenApiSchema schema) =>
-        schema is { AnyOf.Count: > 0, Type: null, Enum: null, Const: null, Items: null, Properties: null, AdditionalProperties: null }
-        && schema.OneOf is not { Count: > 0 }
-        && schema.AllOf is not { Count: > 0 }
-        && schema.Required is not { Count: > 0 }
-        && schema.PatternProperties is not { Count: > 0 }
-        && schema.AdditionalPropertiesAllowed
-        && schema is { ContentEncoding: null, ContentMediaType: null, ContentSchema: null };
-
-    private static bool IsSpecialStringBranch(OpenApiSchema schema)
-    {
-        if (schema.Type is not JsonSchemaType.String || HasCompetingNodeConstraints(schema))
-        {
-            return false;
-        }
-
-        if (schema is { Const: not null, Enum: null })
-        {
-            return SpecialNumberValues.Contains(schema.Const);
-        }
-
-        if (schema is not { Const: null, Enum.Count: > 0 } || schema.Enum is not { } values)
-        {
-            return false;
-        }
-
-        return values.All(static value => value is JsonValue jsonValue
-                                          && jsonValue.TryGetValue<string>(out var text)
-                                          && SpecialNumberValues.Contains(text));
-    }
-
-    private static bool HasCompetingNodeConstraints(OpenApiSchema schema) =>
-        schema.AnyOf is { Count: > 0 }
-        || schema.OneOf is { Count: > 0 }
-        || schema.AllOf is { Count: > 0 }
-        || schema.Required is { Count: > 0 }
-        || schema.Items is not null
-        || schema.Properties is not null
-        || schema.PatternProperties is { Count: > 0 }
-        || !schema.AdditionalPropertiesAllowed
-        || schema.AdditionalProperties is not null
-        || schema.ContentEncoding is not null
-        || schema.ContentMediaType is not null
-        || schema.ContentSchema is not null;
 
     private sealed record ProjectedBranch(SchemaNode? Node, LiteralMarker? Marker, bool IsNull, bool IsMarkedUnionReference, PrefixMarker? PrefixMarker = null);
 }

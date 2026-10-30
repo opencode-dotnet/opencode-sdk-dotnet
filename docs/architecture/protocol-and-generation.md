@@ -386,7 +386,8 @@ materializable.
   and any other branch competing for an already claimed token, fails binding.
   `tools/oracles/first-match-union.ts` runs upstream's own decoder over a checked-in corpus, and
   a parity test holds the converters to its verdicts. Same-primitive refinements collapse without
-  emitting dead branch models (ADR-0016).
+  emitting dead branch models, except that a string enum beside a free string is an open enum and
+  binds the generated extensible enum (ADR-0016).
 - The interfaces and carriers above are the representation of every union. No generated type
   carries a C# union declaration. C# union types, when they come, are generated as additional
   sibling types over the same records, and the SDK never returns one where an interface value is

@@ -5,7 +5,8 @@ namespace OpenCode.Sdk.Tools.Generator.Binding;
 /// <summary>
 /// Reads the two union shapes that offer a consumer no choice to make. Branches that are
 /// refinements of one primitive differ only in constraints this SDK does not enforce, so the
-/// union is that primitive — an open enum is the common case. An object-or-array pair is how
+/// union is that primitive; an open enum never reaches here, because projection folds it into one
+/// enum. An object-or-array pair is how
 /// Effect renders its object keyword, and neither branch says what the content is, so it
 /// is carried losslessly as JsonElement. Anything else stays a structural union.
 /// </summary>

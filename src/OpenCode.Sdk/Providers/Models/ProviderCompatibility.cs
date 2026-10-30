@@ -13,7 +13,7 @@ public sealed record ProviderCompatibility
     /// </summary>
     [JsonPropertyName("reasoningField")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? ReasoningField { get; init; }
+    public ModelReasoningField? ReasoningField { get; init; }
 
     /// <summary>
     /// Gets the require reasoning value.
