@@ -22,7 +22,6 @@ internal static partial class SchemaNameResolver
         var queryEnumRoots = QueryEnumRootNameResolver.Resolve(document, selected);
         var payloadRoots = EnvelopePayloadRootNameResolver.Resolve(document, selected, errors);
         var effectStreamTypes = EffectStreamRootNameResolver.Resolve(document, selected, referrers, errors);
-        var artifacts = new ProjectionArtifactNamePolicy(document.Schemas.Keys);
         var curatedNames = curation
             .SchemaNames
             .DistinctBy(static row => row.Schema, StringComparer.Ordinal)
@@ -68,8 +67,8 @@ internal static partial class SchemaNameResolver
             else
             {
                 name = schema is UnionNode { Classification: UnionClassification.Marked }
-                    ? CSharpNamePolicy.ToUnionInterfaceName(ResolveDefault(key, artifacts))
-                    : ResolveDefault(key, artifacts);
+                    ? CSharpNamePolicy.ToUnionInterfaceName(ResolveDefault(key))
+                    : ResolveDefault(key);
                 if (OrdinalPath().IsMatch(key[(key.IndexOf('#', StringComparison.Ordinal) + 1)..]))
                 {
                     errors.Add(BindingErrorCategory.Curation, key,
@@ -136,10 +135,10 @@ internal static partial class SchemaNameResolver
     [GeneratedRegex(@"^/(?:anyOf|oneOf)/[0-9]+$", RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex OrdinalBranch();
 
-    private static string ResolveDefault(string key, ProjectionArtifactNamePolicy artifacts)
+    private static string ResolveDefault(string key)
     {
         var root = GetRoot(key);
-        var result = new System.Text.StringBuilder(CSharpNamePolicy.ToPascalCase(NormalizeRoot(root, artifacts)));
+        var result = new System.Text.StringBuilder(CSharpNamePolicy.ToPascalCase(NormalizeRoot(root)));
         var hash = key.IndexOf('#', StringComparison.Ordinal);
         if (hash < 0)
         {
@@ -187,12 +186,12 @@ internal static partial class SchemaNameResolver
     }
 
     /// <summary>Component roots normalize projection artifacts; operation roots retain their group/action identity.</summary>
-    private static string NormalizeRoot(string root, ProjectionArtifactNamePolicy artifacts)
+    private static string NormalizeRoot(string root)
     {
         const string operationPrefix = "op:";
         if (!root.StartsWith(operationPrefix, StringComparison.Ordinal))
         {
-            return artifacts.Normalize(root);
+            return ProjectionArtifactNamePolicy.Normalize(root);
         }
 
         return root[operationPrefix.Length..];

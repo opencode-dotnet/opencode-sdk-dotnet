@@ -926,14 +926,26 @@ public sealed class SpecBinderTests
     }
 
     [Test]
-    public async Task Bind_Should_Strip_The_Encoded_Projection_Artifact_From_Derived_Names()
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Bind_Should_Strip_The_Encoded_Projection_Artifact_From_Derived_Names(bool unreachableThing)
     {
-        var document = await IngestAsync(SpecScenario.Define(spec => spec
-            .WithSchema("ThingEncoded", schema => schema
-                .Type("object")
-                .Property("value", property => property.Type("string"), required: true))
-            .WithOperation("health.get", configure: operation => operation
-                .Response(200, "application/json", schema => schema.Ref("ThingEncoded")))));
+        // An unsuffixed component that no selected operation reaches must not toggle the strip.
+        var document = await IngestAsync(SpecScenario.Define(spec =>
+        {
+            _ = spec
+                .WithSchema("ThingEncoded", schema => schema
+                    .Type("object")
+                    .Property("value", property => property.Type("string"), required: true))
+                .WithOperation("health.get", configure: operation => operation
+                    .Response(200, "application/json", schema => schema.Ref("ThingEncoded")));
+            if (unreachableThing)
+            {
+                _ = spec.WithSchema("Thing", schema => schema
+                    .Type("object")
+                    .Property("other", property => property.Type("string"), required: true));
+            }
+        }));
         var plan = BindHealthRows(document);
 
         await AssertThingAsync(plan);
@@ -965,7 +977,22 @@ public sealed class SpecBinderTests
     }
 
     [Test]
-    public async Task Bind_Should_Keep_The_Encoded_Suffix_When_The_Unsuffixed_Component_Exists()
+    public async Task Bind_Should_Keep_A_Component_Whose_Final_Segment_Is_Only_The_Suffix()
+    {
+        var document = await IngestAsync(SpecScenario.Define(spec => spec
+            .WithSchema("Foo.Encoded", schema => schema
+                .Type("object")
+                .Property("value", property => property.Type("string"), required: true))
+            .WithOperation("health.get", configure: operation => operation
+                .Response(200, "application/json", schema => schema.Ref("Foo.Encoded")))));
+
+        var plan = BindHealthRows(document);
+
+        await Assert.That(plan.Models).Contains(static model => model.Name == "FooEncoded");
+    }
+
+    [Test]
+    public async Task Bind_Should_Refuse_A_Reachable_Encoded_Pair_Until_A_Row_Names_One_Side()
     {
         var document = await IngestAsync(SpecScenario.Define(spec => spec
             .WithSchema("Thing", schema => schema
@@ -980,8 +1007,13 @@ public sealed class SpecBinderTests
                 .Property("encoded", property => property.Ref("ThingEncoded"), required: true))
             .WithOperation("health.get", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("Pair")))));
-        var plan = BindHealthRows(document);
 
+        var exception = Assert.Throws<BindingException>(() => BindHealthRows(document));
+        var plan = new BindingTestHost().Bind(document, Selection("health.get"),
+            Curation(Groups("health", RootGroup()), schemaNames: [SchemaName("ThingEncoded", "ThingEncoded")]));
+
+        await Assert.That(exception.Errors)
+            .Contains(new BindingError(BindingErrorCategory.Naming, "ThingEncoded", "C# type name 'Thing' collides with schema 'Thing'"));
         await AssertThingAsync(plan);
         await Assert.That(plan.Models).Contains(static model => model.Name == "ThingEncoded");
     }
