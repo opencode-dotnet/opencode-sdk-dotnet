@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Exporters.Json;
+using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Reports;
 using OpenCode.Sdk.Performance.Tests.Support.Columns;
 using Perfolizer.Metrology;
@@ -24,6 +25,7 @@ internal static class BenchmarkConfig
         ManualConfig.Create(DefaultConfig.Instance)
             .WithSummaryStyle(SummaryStyle.Default.WithSizeUnit(SizeUnit.B).WithMaxParameterColumnWidth(MaxParameterColumnWidth))
             .AddExporter(JsonExporter.Full)
+            .AddJob(Job.Default.DontEnforcePowerPlan().AsMutator())
             .AddDiagnoser(new WireFixtureDiagnoser())
             .AddColumn(
                 new AllocatedPerItemColumn(),

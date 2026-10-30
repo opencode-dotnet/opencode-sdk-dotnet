@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-10-26
+Date: 2026-10-31
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -387,6 +387,8 @@ such as scratch clones). Whatever the tier, before/after runs stay within one en
 allocation is the primary comparison. The performance project adds a net472 target on Windows only;
 net472 numbers come from the `--runtimes` net472 leg of the canonical invocation below, never from
 net10 or source-equivalent probes.
+Benchmarks run on the host's own power plan; a host that needs a stable plan for a measurement
+window sets it itself.
 
 The CI benchmark readiness guard runs SDK-only `--job Dry` steps in the parallel `benchmark-sdk`
 matrix: net10.0 and net11.0 on Linux, and net472 on Windows. Each job builds only the performance
