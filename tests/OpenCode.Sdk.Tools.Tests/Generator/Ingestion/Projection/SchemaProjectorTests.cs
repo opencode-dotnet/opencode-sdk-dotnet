@@ -3,6 +3,7 @@ using OpenCode.Sdk.Tools.Generator.Ingestion.Models;
 using OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 using OpenCode.Sdk.Tools.Tests.Generator.Ingestion.Support;
 using OpenCode.Sdk.Tools.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Ingestion.Projection;
 
@@ -140,6 +141,22 @@ public sealed class SchemaProjectorTests
         var result = await host.ProjectAsync(scenario);
 
         await Assert.That(result.Schemas["Value"]).IsTypeOf<NeverNode>();
+    }
+
+    [Test]
+    [Arguments(false, new[] { "in" })]
+    [Arguments(true, new[] { "in", "at" })]
+    public async Task Project_Should_Drop_An_Optional_Never_Member_And_Keep_A_Required_One(bool atRequired, string[] expected)
+    {
+        var host = new SchemaProjectionTestHost();
+        var scenario = SpecScenario.Define(spec => spec.WithSchema("When", schema => schema.Type("object")
+            .Property("in", static property => property.Type("string"), required: true)
+            .Property("at", static property => property.Raw("not", "{}"), required: atRequired)));
+
+        var result = await host.ProjectAsync(scenario);
+
+        await Assert.That(((ObjectNode)result.Schemas["When"]).Properties.Select(static property => property.Name))
+            .IsEquivalentTo(expected, CollectionOrdering.Matching);
     }
 
     [Test]

@@ -319,7 +319,8 @@ The exact standalone `not: {}` applicator is the dialect's never schema. The exa
 `not: {"type":"null"}` is how Effect renders a struct with no declared fields: nothing says what
 the content is, so it binds as an object of unspecified content. Other `not` shapes refuse at
 their applicator pointer rather than approximating general JSON Schema negation. A required never
-member makes its object branch uninhabitable. Tagged unions preserve such a branch as a known
+member makes its object branch uninhabitable. An optional never member is a must-be-absent marker:
+the key may not appear, so it generates no property. Tagged unions preserve such a branch as a known
 impossible tag in their bound plan, emit no dead public variant for it, and refuse that tag during
 dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).
 
