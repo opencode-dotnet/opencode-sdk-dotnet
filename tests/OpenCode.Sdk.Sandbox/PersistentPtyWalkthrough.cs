@@ -9,8 +9,9 @@ namespace OpenCode.Sdk.Sandbox;
 /// family, whose center of gravity is a live WebSocket carrying binary output and framed input -
 /// the inverse of the normal PTY family this leg follows. Which arm runs is the server's answer,
 /// not a flag: <c>create</c> is the only route that starts the <c>opencode-pty</c> daemon, and the
-/// daemon ships darwin/linux binaries only, so on Windows the leg records the declared 503 and the
-/// daemon-absent answers of every other route instead of the round trip.
+/// daemon ships for darwin, linux and win32, so the leg normally drives the round trip. A server
+/// that cannot start the daemon records the declared 503 and the daemon-absent answers of every
+/// other route instead.
 /// </summary>
 internal static class PersistentPtyWalkthrough
 {

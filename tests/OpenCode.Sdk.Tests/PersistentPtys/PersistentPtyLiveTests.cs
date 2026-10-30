@@ -9,9 +9,8 @@ namespace OpenCode.Sdk.Tests.PersistentPtys;
 /// The persistent PTY family's live proof against the pinned server (ADR-0021, ADR-0022): one
 /// terminal driven end to end where the <c>opencode-pty</c> daemon exists, and the family's
 /// daemon-absent answers where it does not. Both arms assert real server answers and neither is a
-/// skip - the daemon ships darwin/linux binaries only, so this workstation's Windows leg proves
-/// the declared 503 and the daemon-absent arms of every other route, while the hosted Linux and
-/// macOS legs prove the round trip. <see cref="PersistentPtyDaemonGate.DaemonExpected"/> selects
+/// skip - the daemon ships for darwin, linux and win32, so every leg proves the round trip by
+/// default. <see cref="PersistentPtyDaemonGate.DaemonExpected"/> selects
 /// the arm, and the arm that ran names itself on the console.
 /// </summary>
 [ClassDataSource<PinnedOpenCodeServerFixture>(Shared = SharedType.PerTestSession)]
