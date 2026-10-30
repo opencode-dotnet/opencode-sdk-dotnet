@@ -43,7 +43,6 @@ a different place from upstream, the difference is a recorded divergence.
 | Divergence | Upstream | Launcher | Reason |
 |---|---|---|---|
 | Already-exited root on Windows | Can run `taskkill` on the dead pid while it waits for the output deadline | Does not | `taskkill` cannot reach a process that has exited, so the run only costs time. |
-| Exit report | Reports an exit late when a descendant holds stdout | Reports the root's exit as soon as it is observed | Earlier and exact. |
 | Stderr | Discards it | Drains it into a bounded tail for startup diagnostics, and also honours upstream's `OPENCODE_PRINT_LOGS=1` inherit mode | A superset of upstream's behaviour. |
 | Signals to the owner | Closes the scope on SIGINT and SIGTERM | Installs no process-wide signal handler | A library does not take over its host's signal handling; the host ends the server through `DisposeAsync`. |
 | Waiting for the group | Waits for the root's own output pipes to close | Waits for the root's exit, then for the group to empty | No dependency on who holds the pipes. |

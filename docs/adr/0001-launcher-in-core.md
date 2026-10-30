@@ -25,5 +25,5 @@ process library, so this record's rule holds.
 - **CliWrap** — rejected for the product: the lifecycle is one known binary with known
   arguments; a dependency is not warranted. The rule is product-scoped — repo tooling may use
   CliWrap freely.
-- **.NET 11 process APIs** (`ReadAllLinesAsync`, `KillOnParentExit`) — net11-only; planned as
-  light-up, not baseline.
+- **.NET 11 process APIs** (`ReadAllLinesAsync`, `KillOnParentExit`) — net11-only, not baseline;
+  ADR-0032 decides each primitive by whether it gives upstream's result.
