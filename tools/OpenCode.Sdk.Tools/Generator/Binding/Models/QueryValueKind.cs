@@ -38,4 +38,10 @@ internal enum QueryValueKind
     /// exposed as a 64-bit <c>long</c> and written as invariant query text (ADR-0037).
     /// </summary>
     Int64 = 8,
+
+    /// <summary>
+    /// One generated enum or a list of it, exposed as a list and written as one key per element,
+    /// as upstream's client writes an array into the query.
+    /// </summary>
+    EnumList = 9,
 }

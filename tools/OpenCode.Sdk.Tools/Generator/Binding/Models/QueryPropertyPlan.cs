@@ -8,7 +8,7 @@ internal sealed record QueryPropertyPlan
 
     public required QueryValueKind Kind { get; init; }
 
-    /// <summary>Gets the generated C# enum type name; set only for <see cref="QueryValueKind.Enum"/>.</summary>
+    /// <summary>Gets the generated C# enum type name; set only for <see cref="QueryValueKind.Enum"/> and <see cref="QueryValueKind.EnumList"/>.</summary>
     public string? EnumTypeName { get; init; }
 
     public string? Description { get; init; }

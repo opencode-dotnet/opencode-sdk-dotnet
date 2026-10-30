@@ -31,7 +31,11 @@ internal static class QueryEnumShapePolicy
     /// <summary>
     /// Resolves the graph key of the enum a query parameter binds to a generated C# enum,
     /// or <see langword="null"/> when the parameter is not enum-valued, carries a format, or
-    /// spells a spine value set. A parameter admitting null resolves exactly like one that
+    /// spells a spine value set.
+    /// </summary>
+    /// <remarks>
+    /// A value that admits one item or a list of it resolves through the item. A parameter
+    /// admitting null resolves exactly like one that
     /// does not: null-admission is dialect ceremony the emitted optionality already carries.
     /// The unwrap happens once, before the reference walk and never inside it, so a
     /// <c>$ref</c> to a component that is itself <c>anyOf[enum, null]</c> resolves to the
@@ -39,7 +43,7 @@ internal static class QueryEnumShapePolicy
     /// refuses by name instead of typing a property against a model that was not generated -
     /// and the pin declares no such component, so the case stays refused until one appears to
     /// prove the widening.
-    /// </summary>
+    /// </remarks>
     public static string? ResolveModelKey(SchemaNode schema, IReadOnlyDictionary<string, SchemaNode> graph)
     {
         ArgumentNullException.ThrowIfNull(schema);
@@ -54,7 +58,18 @@ internal static class QueryEnumShapePolicy
 
         // Ingestion promotes every inline enum into the graph, so the enum a parameter binds
         // always arrives behind a reference; a key is what the model and its name hang on.
-        var resolved = candidate is null ? null : RefChain.Resolve(candidate, graph);
+        var resolved = candidate is null ? null : RefChain.Resolve(ResolveListItem(candidate, graph) ?? candidate, graph);
         return resolved?.Node is EnumNode { Format: null } node && ResolveSpineKind(node) is null ? resolved.LastKey : null;
     }
+
+    /// <summary>
+    /// Finds the item of a value that admits one item or a list of the same item, the shape
+    /// upstream's ArrayEnsure takes; any other value has no item.
+    /// </summary>
+    public static SchemaNode? ResolveListItem(SchemaNode schema, IReadOnlyDictionary<string, SchemaNode> graph) =>
+        RefChain.Resolve(schema, graph)?.Node is UnionNode { Classification: UnionClassification.Structural, Format: null, Branches: [var single, var list] }
+        && RefChain.Resolve(list, graph)?.Node is ArrayNode { Format: null } array
+        && SchemaNodeComparer.DeepEquals(single, array.Item, graph)
+            ? single
+            : null;
 }

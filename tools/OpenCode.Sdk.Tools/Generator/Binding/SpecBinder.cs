@@ -107,7 +107,7 @@ internal sealed class SpecBinder : ISpecBinder
             var models = new SortedDictionary<string, EnumModelPlan>(StringComparer.Ordinal);
             foreach (var property in container.SelectMany(static operation => operation.QueryRequest?.Properties ?? []))
             {
-                if (property.Kind is not QueryValueKind.Enum)
+                if (property.Kind is not (QueryValueKind.Enum or QueryValueKind.EnumList))
                 {
                     continue;
                 }

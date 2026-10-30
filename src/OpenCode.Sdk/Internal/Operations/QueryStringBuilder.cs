@@ -23,6 +23,18 @@ internal sealed class QueryStringBuilder
     }
 
     /// <summary>
+    /// Writes one key per element, as upstream's client writes an array into the query; an unset
+    /// or empty list writes nothing.
+    /// </summary>
+    public void AddTextList(string name, IEnumerable<string?>? values)
+    {
+        foreach (var value in values ?? [])
+        {
+            AddText(name, value);
+        }
+    }
+
+    /// <summary>
     /// Writes an integer the way upstream's client writes a number into the query: its
     /// invariant decimal text, which the server decodes back into a number.
     /// </summary>
