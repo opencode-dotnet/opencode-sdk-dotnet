@@ -1,6 +1,6 @@
 # Target the v2 protocol surface only
 
-Date: 2026-08-13
+Date: 2026-10-30
 
 opencode's active successor line (branch `v2`) serves exactly one HTTP surface — the protocol
 contract of `packages/protocol` — and has deleted the legacy root block
@@ -30,7 +30,7 @@ evidence: internal research, 2026-08-08, "Upstream v1/v2: product version vs HTT
   machinery (ADR-0020) carries the pin across upstream releases.
 - The spec pin is a snapshot taken at an upstream release tag: refreshes stay deliberate and
   receipt-governed (ADR-0020), never HEAD-tracking.
-- Operation-scoped names derive from the dotted identities directly. An `experimental.*`
-  identity selects the flat ExperimentalClient with explicit route ids, and an identity that
-  leaks its upstream group qualification is a reason-bearing defect repair, never a
-  client-placement mechanism (ADR-0013).
+- Operation-scoped names derive from the dotted identities directly. An `experimental.*` identity
+  selects the flat ExperimentalClient with explicit route ids unless a curated longer dotted prefix
+  owns it, and an identity that leaks its upstream group qualification is a reason-bearing defect
+  repair, never a client-placement mechanism (ADR-0013).

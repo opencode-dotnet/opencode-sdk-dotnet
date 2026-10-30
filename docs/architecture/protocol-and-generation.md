@@ -27,12 +27,14 @@ evidence and may contain superseded positions.
   client at the pin), and retires: a row fails generation once the document declares the type or
   drops the subject. Query parameters are the one kind today (Operations, streams, and exclusions).
 - The public SDK covers the OpenCode 2.x protocol surface only. At the current pin, operation
-  identities use dotted group/action segments without a version prefix. The first segment selects
-  the curated client family; `experimental.*` operations use the flat ExperimentalClient with
-  explicit route arguments. Every upstream group id is `server.<name>`, so an endpoint that omits
-  its own identifier leaks `server.<name>.<endpoint>`; any such group-qualified identity is refused
-  until an explicit reason-bearing identity repair names it, and well-formed identities cannot be
-  remapped (ADR-0005).
+  identities use dotted group/action segments without a version prefix. The longest dotted prefix of
+  an identity that a `groups` row curates selects its client family, and the identity itself is
+  never remapped. For most operations that prefix is the first segment, and `experimental.*`
+  operations use the flat ExperimentalClient with explicit route arguments unless a longer curated
+  prefix, such as `experimental.persistentPty`, owns them. Every upstream group id is
+  `server.<name>`, so an endpoint that omits its own identifier leaks `server.<name>.<endpoint>`;
+  any such group-qualified identity is refused until an explicit reason-bearing identity repair
+  names it, and well-formed identities cannot be remapped (ADR-0005).
 - An operation upstream serves under `/api/experimental/` is experimental. Its group's curation row
   names the family's diagnostic id (`OPENCODE` and three digits), and the generator marks with
   `[Experimental]` every public member that calls such an operation and every public type that only
