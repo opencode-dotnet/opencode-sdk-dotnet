@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Support;
@@ -20,12 +21,12 @@ public sealed class HandWrittenExperimentalDoorTests(PinnedBinding pinned)
     [Test]
     public async Task HandWritten_Public_Types_Of_An_Experimental_Raw_Family_Should_Carry_Its_Id()
     {
-        var document = pinned.Document;
         var curation = pinned.Curation;
+        var document = OperationGroupPolicy.Apply(pinned.Document, curation.Groups);
         var families = curation.Groups
             .Where(pair => pair.Value is { Emission: EmissionMode.InternalRaw, ExperimentalDiagnostic: not null, ClientName: not null }
                            && document.Operations
-                               .Where(operation => string.Equals(operation.Segments[0], pair.Key, StringComparison.Ordinal))
+                               .Where(operation => string.Equals(operation.Group, pair.Key, StringComparison.Ordinal))
                                .All(static operation => operation.Path.StartsWith("/api/experimental/", StringComparison.Ordinal)))
             .Select(static pair => (Folder: pair.Value.ClientName!, Id: pair.Value.ExperimentalDiagnostic!))
             .ToArray();

@@ -14,6 +14,15 @@ internal sealed record SpecOperation
         }
     }
 
+    /// <summary>Gets the curated group that owns the operation: its first segment, or the longer curated dotted prefix binding assigns.</summary>
+    public string Group
+    {
+        get => _group ?? Segments[0];
+        init => _group = value;
+    }
+
+    private readonly string? _group;
+
     /// <summary>Gets the group and action segments of the operation identifier.</summary>
     public required IReadOnlyList<string> Segments
     {

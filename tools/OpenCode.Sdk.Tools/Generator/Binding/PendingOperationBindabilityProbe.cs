@@ -113,7 +113,7 @@ internal sealed class PendingOperationBindabilityProbe(ISpecBinder binder)
         {
             Groups = new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
             {
-                [operation.Segments[0]] = new GroupCuration
+                [operation.Group] = new GroupCuration
                 {
                     Placement = GroupPlacement.Root,
                     Reason = SyntheticGroupReason,
