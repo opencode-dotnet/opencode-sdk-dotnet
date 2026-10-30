@@ -122,8 +122,7 @@ internal sealed class QueryRequestFacetBinder(OperationFacetContext context)
         {
             (true, null) => QueryValueKind.Enum,
             (true, not null) => QueryValueKind.EnumList,
-            (false, null) => ResolveQueryValueKind(value),
-            (false, not null) => null,
+            (false, _) => ResolveQueryValueKind(value),
         };
         if (kind is null)
         {

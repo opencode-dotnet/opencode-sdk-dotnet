@@ -2596,31 +2596,39 @@ public sealed class OperationPlanBinderTests
     }
 
     [Test]
-    [Arguments("Widget.Mode", "EnumList")]
-    [Arguments("Widget.Other", null)]
-    public async Task Bind_Should_Bind_One_Or_Many_Of_An_Enum_As_An_Enum_List(string listItem, string? kind)
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Bind_Should_Bind_One_Or_Many_Of_An_Enum_As_An_Enum_List(bool required)
     {
-        var document = await BindingTestHost.IngestAsync(WidgetListScenario(
-            operation => operation.Parameter("modes", "query", schema => schema.AnyOf(
-                branch => branch.Ref("Widget.Mode"),
-                branch => branch.Type("array").Items(item => item.Ref(listItem)),
-                branch => branch.Type("null"))),
-            spec => spec
-                .WithSchema("Widget.Mode", schema => schema.Type("string").Enum("working", "branch"))
-                .WithSchema("Widget.Other", schema => schema.Type("string").Enum("other"))));
-
-        if (kind is null)
-        {
-            var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document));
-            await Assert.That(exception.Errors).IsEquivalentTo(
-                [new BindingError(BindingErrorCategory.Operation, "widget.list", "query parameter 'modes' has an unsupported schema shape")],
-                CollectionOrdering.Matching);
-            return;
-        }
+        var document = await IngestModesAsync(static item => item.Ref("Widget.Mode"), required);
 
         var property = BindWidgets(document).Clients.SelectMany(static client => client.Operations).Single().QueryRequest!.Properties.Single();
-        await Assert.That((property.Kind.ToString(), property.EnumTypeName, property.IsRequired)).IsEqualTo((kind, "WidgetMode", false));
+        await Assert.That((property.Kind, property.EnumTypeName, property.IsRequired)).IsEqualTo((QueryValueKind.EnumList, "WidgetMode", required));
     }
+
+    /// <summary>A list whose item is another enum, or no enum at all, is not a value-or-list of the enum.</summary>
+    [Test]
+    [Arguments("Widget.Other")]
+    [Arguments("string")]
+    public async Task Bind_Should_Refuse_A_List_Whose_Item_Is_Not_The_Single_Enum(string item)
+    {
+        var document = await IngestModesAsync(schema => _ = item == "string" ? schema.Type("string") : schema.Ref(item), required: false);
+
+        var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document));
+        await Assert.That(exception.Errors).IsEquivalentTo(
+            [new BindingError(BindingErrorCategory.Operation, "widget.list", "query parameter 'modes' has an unsupported schema shape")],
+            CollectionOrdering.Matching);
+    }
+
+    private static Task<SpecDocument> IngestModesAsync(Action<SchemaBuilder> listItem, bool required) =>
+        BindingTestHost.IngestAsync(WidgetListScenario(
+            operation => operation.Parameter("modes", "query", schema => _ = required
+                ? schema.AnyOf(static branch => branch.Ref("Widget.Mode"), branch => branch.Type("array").Items(listItem))
+                : schema.AnyOf(static branch => branch.Ref("Widget.Mode"), branch => branch.Type("array").Items(listItem), static branch => branch.Type("null")),
+                required: required),
+            static spec => spec
+                .WithSchema("Widget.Mode", static schema => schema.Type("string").Enum("working", "branch"))
+                .WithSchema("Widget.Other", static schema => schema.Type("string").Enum("other"))));
 
     [Test]
     public async Task Bind_Should_Bind_A_Referenced_Enum_Query_Parameter_To_Its_Component_Model()
