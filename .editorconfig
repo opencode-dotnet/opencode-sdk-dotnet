@@ -733,6 +733,9 @@ dotnet_diagnostic.CA2007.severity = none
 dotnet_diagnostic.MA0004.severity = none
 dotnet_diagnostic.VSTHRD111.severity = none
 
+# CA1716 judges names consumers see; test assemblies do not ship, so test namespaces such as Shared keep their names
+dotnet_diagnostic.CA1716.severity = none
+
 # =============================================================================
 # FILE-BASED ENTRY ARBITRATION (MA0048)
 # =============================================================================
