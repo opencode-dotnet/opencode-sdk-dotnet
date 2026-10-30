@@ -380,8 +380,8 @@ plugin's notifications ride the live event stream as `rpc.*` events (the prefix-
 _Avoid_: RPC alone (the SDK's own HTTP calls are not RPC).
 
 **Fingerprint pin**:
-The committed hash of an excluded operation's full spec subtree; CI breaks when the pinned
-construct drifts.
+The committed hash of an excluded operation's own spec subtree, which names the components it
+references; CI breaks when the pinned construct drifts.
 
 **Output manifest**:
 The committed inventory of generated files; generated-ness is tracked here, never by

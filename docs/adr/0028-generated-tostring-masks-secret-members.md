@@ -80,8 +80,8 @@ generator's format pass strips it; structural unions override `ToString()` for t
   unchanged.
 - A refresh that adds a secret-shaped member fails generation until a row decides it; the
   pending-operation probe sets that wall aside, since a missing row is curation, not a shape wall.
-- Response envelopes are hand-written records outside this mechanism; the raw error body they
-  print is tracked separately (issue #100).
+- Response envelopes are hand-written records outside this mechanism; their printed form leaves
+  out the raw error body.
 - Reversal: upstream projects a secret marker into the OpenAPI document (for example
   `format: password` or `writeOnly` from Effect's `Schema.Redacted`); the marker then becomes the
   floor and the recorder list a cross-check.

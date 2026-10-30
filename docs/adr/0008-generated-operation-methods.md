@@ -32,9 +32,10 @@ Upstream's own generator emits its SSE operations as delegations over the same c
 
 The radar covers both sides of the boundary: generated output is CI regen-verified
 (ADR-0003); every **excluded** operation (`pty.connect`, future exclusions) is
-**fingerprint-pinned** — the generator hashes the operation's full subtree (method, path,
-parameters, content types, transitive schemas) into a committed manifest, and a spec
-refresh that moves a pinned construct breaks the build for explicit review. Exclusion is
+**fingerprint-pinned** — the generator hashes the operation's own subtree (method, path,
+parameters, the WebSocket marker, request body and responses, naming the components they
+reference) into a committed manifest, and a spec refresh that moves a pinned construct
+breaks the build for explicit review. Exclusion is
 reserved for transports the HTTP pipeline cannot carry: `pty.connect` upgrades to
 WebSocket, which leaves HTTP after the handshake and needs a different client stack
 entirely. Non-JSON response bodies stay generated via a fail-closed
