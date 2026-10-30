@@ -1,4 +1,5 @@
 using OpenCode.Sdk.Tests.Harness.Ownership;
+using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Harness;
 
@@ -11,7 +12,7 @@ public sealed class GitProcessCancellationTests
         var interruptFailure = new InvalidOperationException("Git process interruption failed.");
         var waitFailure = new IOException("Git process exit observation failed.");
         var waitAttempted = false;
-        var cancellation = new GitProcessCancellation(TimeSpan.FromSeconds(5));
+        var cancellation = new GitProcessCancellation(TimeSpan.FromSeconds(5), new OperationDeadlineScenario().Deadline);
 
         var caught = await Assert.That(async () => await cancellation.StopAsync(
             () => false,

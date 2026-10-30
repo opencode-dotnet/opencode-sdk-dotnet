@@ -1,9 +1,14 @@
 using OpenCode.Sdk.Tests.Harness.Ownership;
+using OpenCode.Sdk.Tests.Harness.Ownership.Abstractions;
 
 namespace OpenCode.Sdk.Tests.Harness;
 
-internal sealed class GitProcessCancellation(TimeSpan timeout)
+internal sealed class GitProcessCancellation(TimeSpan timeout, IOwnedOperationDeadline deadline)
 {
+    public GitProcessCancellation(TimeSpan timeout) : this(timeout, new OwnedOperationDeadline())
+    {
+    }
+
     public async Task StopAsync(
         Func<bool> hasExited,
         Action interrupt,
@@ -15,7 +20,7 @@ internal sealed class GitProcessCancellation(TimeSpan timeout)
         ArgumentNullException.ThrowIfNull(waitForExit);
         ArgumentNullException.ThrowIfNull(primary);
 
-        var cleanup = new OwnedCleanup(timeout);
+        var cleanup = new OwnedCleanup(timeout, deadline);
         cleanup.Own("Git process interruption", _ =>
         {
             if (!hasExited())
