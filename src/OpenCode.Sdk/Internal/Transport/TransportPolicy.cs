@@ -37,6 +37,9 @@ internal sealed class TransportPolicy : PipelinePolicy, IDisposable
         _ownsHttpClient = ownsHttpClient;
     }
 
+#if NET
+    [System.Runtime.CompilerServices.AsyncMethodBuilder(typeof(System.Runtime.CompilerServices.PoolingAsyncValueTaskMethodBuilder))]
+#endif
     public override async ValueTask ProcessAsync(PipelineMessage message, ReadOnlyMemory<PipelinePolicy> remaining)
     {
         Debug.Assert(remaining.IsEmpty, "The transport is the pipeline's terminal policy.");
