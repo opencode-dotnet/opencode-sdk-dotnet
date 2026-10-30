@@ -24,7 +24,7 @@ public class PromptEventStreamBenchmarks : IDisposable
     private const int FrameCount = 16 * 65;
     private const int SocketChunkBytes = 1460;
 
-    private string[] _frames = [];
+    private byte[][] _frames = [];
     private JsonTypeInfo[] _concreteTypes = [];
     private CannedResponseHandler? _handler;
     private HttpClient? _httpClient;
@@ -64,7 +64,7 @@ public class PromptEventStreamBenchmarks : IDisposable
     public async Task SetupAsync()
     {
         _concreteTypes = [.. Frames().Select(static frame => frame.Type)];
-        var frames = new List<string>();
+        var frames = new List<byte[]>();
         using var stream = new MemoryStream(Fixture.Bytes);
         await foreach (var frame in new ServerSentEventReader().ReadAsync(stream, CancellationToken.None).ConfigureAwait(false))
         {
@@ -74,7 +74,7 @@ public class PromptEventStreamBenchmarks : IDisposable
                 throw new InvalidOperationException("The prompt fixture did not dispatch to its expected concrete event type.");
             }
 
-            frames.Add(Encoding.UTF8.GetString(frame.Data.Span));
+            frames.Add(frame.Data.ToArray());
         }
 
         _frames = [.. frames.Skip(1)];
