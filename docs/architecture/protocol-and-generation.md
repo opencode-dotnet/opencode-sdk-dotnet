@@ -320,9 +320,11 @@ The exact standalone `not: {}` applicator is the dialect's never schema. The exa
 the content is, so it binds as an object of unspecified content. Other `not` shapes refuse at
 their applicator pointer rather than approximating general JSON Schema negation. A required never
 member makes its object branch uninhabitable. An optional never member is a must-be-absent marker:
-the key may not appear, so it generates no property. Tagged unions preserve such a branch as a known
-impossible tag in their bound plan, emit no dead public variant for it, and refuse that tag during
-dispatch instead of routing it through ADR-0009's unknown carrier (ADR-0015).
+the key may not appear, so it generates no property. An inline object branch whose required keys
+include one that no sibling branch requires is keyed by that key, as a literal marker keys its
+branch, so its name survives a reorder. Tagged unions preserve such a branch as a known impossible
+tag in their bound plan, emit no dead public variant for it, and refuse that tag during dispatch
+instead of routing it through ADR-0009's unknown carrier (ADR-0015).
 
 An unmarked union of a free-form object and an array of unrestricted values binds to
 `JsonElement`, so both the object and the array that Effect's object keyword admits remain

@@ -159,7 +159,10 @@ internal sealed class UnionNormalizer
             var marker = LiteralClassifier.FindFirstMarker(source);
             var prefixMarker = marker is null ? LiteralClassifier.FindFirstPrefixMarker(source) : null;
             var isMarkedUnionReference = marker is null && ReferencesMarkedUnion(source);
-            var branchPointer = GraphKeyBuilder.UnionBranch(pointer, keyword, index, marker);
+            var ownKey = marker is null && prefixMarker is null ? OwnRequiredKeyPolicy.Find(sourceBranches, index) : null;
+            var branchPointer = ownKey is null
+                ? GraphKeyBuilder.UnionBranch(pointer, keyword, index, marker)
+                : GraphKeyBuilder.Append(GraphKeyBuilder.Append(pointer, keyword), ownKey);
             var branchLocation = string.Concat(root, branchPointer);
             if (source is OpenApiSchema { Type: JsonSchemaType.Null } concrete)
             {

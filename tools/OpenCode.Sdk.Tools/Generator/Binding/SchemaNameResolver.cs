@@ -157,9 +157,9 @@ internal static partial class SchemaNameResolver
                 continue;
             }
 
-            // A promoted union branch is keyed by its marker ("anyOf/type=inline") or, for
-            // unmarked branches, by ordinal; the branch name appends the marker value so
-            // sibling branches (and their root) never collide: Prompt.FileSource#/anyOf/
+            // A promoted union branch is keyed by its marker ("anyOf/type=inline"), by its own
+            // required key ("anyOf/in"), or otherwise by ordinal; the branch name appends the
+            // marker value so sibling branches (and their root) never collide: Prompt.FileSource#/anyOf/
             // type=inline -> PromptFileSourceInline. An ordinal appends as a bare digit
             // (ToPascalCaseFragment): the whole-name digit guard belongs to the stem, and an
             // interior underscore is a spelling the format pass rewrites out from under the

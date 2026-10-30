@@ -256,6 +256,20 @@ public sealed class UnionNormalizerTests
             .IsEquivalentTo(["Number", nameof(RefNode), "Boolean"], CollectionOrdering.Matching);
     }
 
+    /// <summary>A branch keyed by its own required key refuses when that key is another branch's ordinal key.</summary>
+    [Test]
+    public async Task Project_Should_Refuse_An_Own_Key_That_Collides_With_An_Ordinal_Key()
+    {
+        var host = new SchemaProjectionTestHost();
+        var scenario = SpecScenario.Define(spec => spec.WithSchema("Value", schema => schema.AnyOf(
+            branch => branch.Type("object").Property("label", property => property.Type("string")),
+            branch => branch.Type("object").Property("0", property => property.Type("string"), required: true))));
+
+        var exception = await host.ProjectExpectingRefusalAsync(scenario);
+
+        await Assert.That(exception.Message).Contains("schema graph key collision for 'Value#/anyOf/0'");
+    }
+
     [Test]
     public async Task Project_Should_Refuse_When_Special_Number_Branch_Has_Competing_Constraint()
     {

@@ -3002,9 +3002,9 @@
       "reason": "Upstream's Config.ModelSelection (ConfigModel.Selection): a short provider/model#variant string or the explicit object; agents, commands and the root configuration share it through schemaAliases."
     },
     {
-      "schema": "Config.AgentEncoded#/properties/model/anyOf/1",
+      "schema": "Config.AgentEncoded#/properties/model/anyOf/providerID",
       "dotnetName": "ConfigModelSelectionExplicit",
-      "reason": "Upstream's Explicit member of Config.ModelSelection; the anyOf ordinal is a schema pointer detail."
+      "reason": "Upstream's Explicit member of Config.ModelSelection; the providerID key its branch is keyed by is a schema pointer detail."
     },
     {
       "schema": "Config.InfoEncoded#/properties/lsp/anyOf/1/additionalProperties",
@@ -3037,14 +3037,14 @@
       "reason": "The two statuses of the idle member; the mechanical name spells the anyOf ordinal."
     },
     {
-      "schema": "Session.Message.LocationSwitched#/properties/previous/anyOf/0",
+      "schema": "Session.Message.LocationSwitched#/properties/previous/anyOf/location",
       "dotnetName": "SessionMessageLocationSwitchedPrevious",
-      "reason": "Name the previous-location object by its domain role; the nullable anyOf branch ordinal is a schema pointer detail."
+      "reason": "Name the previous-location object by its domain role; the location key its nullable branch is keyed by is a schema pointer detail."
     },
     {
-      "schema": "VoiceSessionResponse#/properties/data/properties/session/anyOf/0",
+      "schema": "VoiceSessionResponse#/properties/data/properties/session/anyOf/id",
       "dotnetName": "VoiceSessionReference",
-      "reason": "The nullable session member identifies the voice session the response belongs to; name the reference rather than its anyOf position."
+      "reason": "The nullable session member identifies the voice session the response belongs to; name the reference rather than the id key its branch is keyed by."
     },
     {
       "schema": "ServerInfo#/properties/capabilities/anyOf/0",

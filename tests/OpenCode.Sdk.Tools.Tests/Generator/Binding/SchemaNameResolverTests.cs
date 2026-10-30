@@ -57,6 +57,40 @@ public sealed class SchemaNameResolverTests
         await Assert.That(exception.Errors).IsEquivalentTo([MissingOrdinalRow(key, mechanicalName)], CollectionOrdering.Matching);
     }
 
+    /// <summary>
+    /// An inline object branch with a required key no sibling requires is keyed by that key, so
+    /// its mechanical name holds in either order and needs no row.
+    /// </summary>
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Resolve_Should_Key_An_Inline_Branch_By_Its_Own_Required_Key_In_Either_Order(bool reordered)
+    {
+        var errors = new BindingErrorCollector();
+        Action<SchemaBuilder> inArm = static schema => schema.Type("object").Property("in", static property => property.Type("string"), required: true);
+        Action<SchemaBuilder> atArm = static schema => schema.Type("object").Property("at", static property => property.Type("string"), required: true);
+
+        var names = await ResolveAsync(DetailScenario("anyOf", reordered ? [atArm, inArm] : [inArm, atArm]), errors);
+
+        await Assert.That(errors.Snapshot()).IsEmpty();
+        await Assert.That((names[Detail + "/anyOf/in"], names[Detail + "/anyOf/at"])).IsEqualTo(("WidgetInfoDetailIn", "WidgetInfoDetailAt"));
+    }
+
+    /// <summary>A key a sibling also requires, even behind a reference, keys nothing.</summary>
+    [Test]
+    [Arguments("serial", false)]
+    [Arguments("label", true)]
+    public async Task Resolve_Should_Keep_An_Ordinal_When_No_Required_Key_Is_The_Branch_Own(string key, bool shared)
+    {
+        var errors = new BindingErrorCollector();
+        Action<SchemaBuilder> arm = schema => schema.Type("object").Property(key, static property => property.Type("string"), required: true);
+        var sibling = shared ? arm : Gadget;
+
+        var names = await ResolveAsync(DetailScenario("anyOf", sibling, arm), errors);
+
+        await Assert.That(names.Keys).Contains(SecondBranch);
+    }
+
     [Test]
     public async Task Resolve_Should_Name_An_Ordinal_Branch_By_Its_Row()
     {
@@ -206,16 +240,16 @@ public sealed class SchemaNameResolverTests
 
     private static void Card(SchemaBuilder schema) => schema
         .Type("object")
-        .Property("label", static property => property.Type("string"), required: true);
+        .Property("label", static property => property.Type("string"));
 
     private static void KindedCard(SchemaBuilder schema) => schema
         .Type("object")
-        .Property("label", static property => property.Type("string"), required: true)
-        .Property("kind", static property => property.Type("string").Enum("small", "large"), required: true);
+        .Property("label", static property => property.Type("string"))
+        .Property("kind", static property => property.Type("string").Enum("small", "large"));
 
     private static void Tile(SchemaBuilder schema) => schema
         .Type("object")
-        .Property("size", static property => property.Type("integer"), required: true);
+        .Property("size", static property => property.Type("integer"));
 
     private static void Gadget(SchemaBuilder schema) => schema.Ref("Gadget.Info");
 
