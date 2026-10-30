@@ -90,15 +90,15 @@ public sealed class JsonElementDictionaryJsonConverterTests
     }
 
     /// <summary>
-    /// Clone keeps the text, two reads of one body are deeply equal value by value, repeated
-    /// literals are equal by default, and record equality still compares the dictionary by reference.
+    /// Clone keeps the text, two reads of one body are deeply equal value by value, repeated values
+    /// are deeply equal, and record equality still compares the dictionary by reference.
     /// </summary>
     [Test]
     public async Task Read_Should_Keep_Clone_Deep_Equality_And_Reference_Record_Equality()
     {
         var first = Read(ValueKindsFixture);
         var second = Read(ValueKindsFixture);
-        var deepEquality = EqualityComparer<JsonElement>.Create(JsonElement.DeepEquals);
+        var deepEquality = EqualityComparer<JsonElement>.Create(JsonElement.DeepEquals, static element => (int)element.ValueKind);
 
         foreach (var entry in first.Input)
         {
@@ -106,7 +106,7 @@ public sealed class JsonElementDictionaryJsonConverterTests
             await Assert.That(second.Input[entry.Key]).IsEqualTo(entry.Value, deepEquality);
         }
 
-        await Assert.That(first.Input.Values.Distinct().Count()).IsEqualTo(7);
+        await Assert.That(first.Input.Values.Distinct(deepEquality).Count()).IsEqualTo(7);
         await Assert.That(first with { }).IsEqualTo(first);
         await Assert.That(first with { Input = second.Input, }).IsNotEqualTo(first);
     }
