@@ -7,7 +7,8 @@ namespace OpenCode.Sdk.Tools.Generator.Ingestion.Projection;
 /// marker keys its branch, so its name survives a reorder.
 /// </summary>
 /// <remarks>Several such keys keep the ordinal, since a choice among them would move with property
-/// order; a sibling behind a reference counts with its target's required keys.</remarks>
+/// order; a sibling behind a reference counts with its target's required keys; a key that collides
+/// with another branch's key refuses as a schema graph key collision.</remarks>
 internal static class OwnRequiredKeyPolicy
 {
     public static string? Find(IList<IOpenApiSchema> branches, int index)
