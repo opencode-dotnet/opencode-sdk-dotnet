@@ -94,7 +94,7 @@
     {
       "path": "packages/server/src/handlers/persistent-pty.ts",
       "sha256": "49aa47debe92dbfd15c748f19580f30bcf8dd212bb4ff4f73bf669615d807612",
-      "behavior": "The persistent connect handler closes 4404 when the terminal is unavailable and 1000 on a normal end, consumes the ticket, and requires a cursor at or above 0.",
+      "behavior": "The persistent connect handler closes 4404 when the terminal is unavailable and 1000 on a normal end, consumes the ticket, and requires a cursor at or above 0. create answers 400 InvalidRequestError (kind invalid_cwd, field cwd) when the working directory is missing or not a directory, before the daemon starts.",
       "anchor": {
         "type": "contains",
         "text": "new Socket.CloseEvent(4404"
@@ -103,7 +103,7 @@
     {
       "path": "packages/core/src/persistent-pty/index.ts",
       "sha256": "ad113c4e4eb14ca87a41f79af6a1ef2c231d07fd0765f082dfae91ef669d29ae",
-      "behavior": "The handoff call yields null when no daemon is running, and the service reports NotFoundError and UnavailableError. Each server\u0027s daemon owns a fresh runtime directory under \u003Cstate\u003E/pty (or the root the options name); the former XDG_RUNTIME_DIR and temporary-directory roots and OPENCODE_PTY_RUNTIME_DIR are gone, and the available flag is re-exported for the server\u0027s info capabilities.",
+      "behavior": "The handoff call yields null when no daemon is running, and the service reports NotFoundError and UnavailableError, and create also reports InvalidCwdError when the working directory is missing or not a directory. Each server\u0027s daemon owns a fresh runtime directory under \u003Cstate\u003E/pty (or the root the options name); the former XDG_RUNTIME_DIR and temporary-directory roots and OPENCODE_PTY_RUNTIME_DIR are gone, and the available flag is re-exported for the server\u0027s info capabilities.",
       "anchor": {
         "type": "contains",
         "text": "PersistentPty.handoff"
@@ -151,13 +151,13 @@
       "behavior": "The embedded daemon asset comes from the binaryPath export of the pty package.",
       "anchor": {
         "type": "contains",
-        "text": "import { binaryPath } from \u0022@opencode-ai/pty\u0022"
+        "text": "import { binaryPath } from \u0022@opencode/pty\u0022"
       }
     },
     {
       "path": "packages/cli/package.json",
       "sha256": "e587687fe2515ccfa80738e86e79070168cdbf59830dd83c8f932a4dec7d6bb9",
-      "behavior": "The CLI package bin map names \u0022opencode\u0022 as the installed command and keeps \u0022opencode2\u0022 as a transitional alias of the same launcher, so the shipped launcher default resolves \u0022opencode\u0022 from PATH. The CLI depends on the opencode-pty package at 0.2.0.",
+      "behavior": "The CLI package bin map names \u0022opencode\u0022 as the installed command and keeps \u0022opencode2\u0022 as a transitional alias of the same launcher, so the shipped launcher default resolves \u0022opencode\u0022 from PATH. The CLI depends on the opencode-pty package (`@opencode/pty`) at 0.3.3.",
       "anchor": {
         "type": "contains",
         "text": "\u0022opencode\u0022: \u0022./bin/opencode.cjs\u0022"
@@ -166,16 +166,16 @@
     {
       "path": "packages/core/package.json",
       "sha256": "9e23b9cd27747da85835f0c75d7db0ae743ecfd1f1212d05ea6e3b920c66b88a",
-      "behavior": "The opencode-pty daemon dependency is pinned at 0.3.1, which takes its runtime directory and name as arguments instead of OPENCODE_PTY_RUNTIME_DIR; the daemon protocol the persistent-PTY door speaks stays at version 7.",
+      "behavior": "The opencode-pty daemon dependency is pinned at 0.3.3, which takes its runtime directory and name as arguments instead of OPENCODE_PTY_RUNTIME_DIR; the daemon protocol the persistent-PTY door speaks stays at version 7.",
       "anchor": {
         "type": "contains",
-        "text": "\u0022@opencode-ai/pty\u0022: \u00220.3.1\u0022"
+        "text": "\u0022@opencode/pty\u0022: \u00220.3.3\u0022"
       }
     },
     {
       "path": "packages/server/src/process.ts",
       "sha256": "d08c941bf767b891e03292e80c0d1f1c9899e93865949c4aecbc2c9a4aeff8a3",
-      "behavior": "A ticketed PTY connect is admitted before the server reports ready. Uncredentialed or wrongly credentialed requests above the API layer receive a 401 whose JSON body is the UnauthorizedError the document declares, with the Basic challenge only for requests that are not browser fetches. While the server is not ready, GET /api/info is answered by the process layer under Basic auth with the version, pid, urls (the bound connection URLs, plus the remote-access URL while a service\u0027s tunnel is attached), and paths.tmp body at 500 when failed or 503 when starting or stopping, the latter two with retry-after: 1; once ready the request reaches the API group\u0027s server.info handler, which answers the same shape at 200.",
+      "behavior": "A ticketed PTY connect is admitted before the server reports ready. Uncredentialed or wrongly credentialed requests above the API layer receive a 401 whose JSON body is the UnauthorizedError the document declares, with the Basic challenge only for requests that are not browser fetches. While the server is not ready, GET /api/info is answered by the process layer under Basic auth with the version, pid, urls (the bound connection URLs, plus the remote-access URL while a service\u0027s tunnel is attached), and paths.tmp body at 500 when failed or 503 when starting or stopping, the latter two with retry-after: 1; once ready the request reaches the API group\u0027s server.info handler, which answers at 200 with the same members plus an optional hostname (os.hostname()) and capabilities.persistentPty.",
       "anchor": {
         "type": "contains",
         "text": "!hasPtyConnectTicketURL(url)"
@@ -229,7 +229,7 @@
     {
       "path": "packages/util/src/cross-spawn-spawner.ts",
       "sha256": "9a73e57e0200310519cf7635f7e5f1682d96c1054a7f6634a00980c24a85bdbf",
-      "behavior": "The spawner the standalone service starts its child through merges the command env over the parent environment when extendEnv is set, starts the child in its own process group off Windows, and ends it by killing the tree (taskkill /pid \u003Cpid\u003E /T /F on Windows, process.kill(-pid, signal) elsewhere, falling back to the child alone) with killSignal, SIGTERM by default, escalating to SIGKILL once forceKillAfter elapses; after the child exits, its stdout and stderr share one 1-second deadline to close before they are discarded.",
+      "behavior": "The spawner the standalone service starts its child through merges the command env over the parent environment when extendEnv is set, starts the child in its own process group off Windows, and ends it by killing the tree (taskkill /pid \u003Cpid\u003E /T /F on Windows, process.kill(-pid, signal) elsewhere, falling back to the child alone) with killSignal, SIGTERM by default, escalating to SIGKILL once forceKillAfter elapses, 3 seconds when the command sets none and its scope is released; after the child exits, its stdout and stderr share one 1-second deadline to close before they are discarded. Off Windows, a synchronous process exit hook SIGKILLs the process group of every detached child still running.",
       "anchor": {
         "type": "contains",
         "text": "taskkill /pid ${proc.pid} /T /F"
@@ -247,7 +247,7 @@
     {
       "path": "packages/cli/src/server-process.ts",
       "sha256": "690e055649cfe260bfa55a4c2ce428cba063fb721b5d0fcd5ee0b989ffa073ce",
-      "behavior": "In stdio mode the serve command prints exactly one JSON line carrying the bound url to stdout after full boot and exits when stdin reaches EOF, which is the readiness line ServerReadyLine parses and the lease OpenCodeServer releases. In service mode it changes into the user home (which ServerIsolation\u0027s isolated home relies on), returns at once when a compatible incumbent already answers, and, when the bind finds the port in use, spends up to 15 seconds re-checking for a recognized incumbent and retrying the bind every 100 milliseconds: a recognized incumbent makes it exit 0 as the loser, and a freed port makes it the service. That exit 0 is the exit the Ensure election reads as a lost race and answers by doubling its spawn delay; a loser that exited non-zero would fail every multi-contender Ensure. On Windows, a service run from a package-manager or curl install first holds a second hard link to its own image under the cache directory, so an installer can replace the binary while the daemon runs; the pid and start time the stop door identifies it by are unchanged, and a daemon the stop door ends hard leaves that link for the next service start to sweep. An OPENCODE_PTY_HANDOFF that does not decode is logged and ignored, so the server starts with fresh persistent terminals instead of failing. In service mode with remote access configured, it attaches the remote-access tunnel in the background after binding; a tunnel failure is logged and changes neither the readiness line nor the exit status.",
+      "behavior": "In stdio mode the serve command prints exactly one JSON line carrying the bound url to stdout after full boot and exits when stdin reaches EOF, which is the readiness line ServerReadyLine parses and the lease OpenCodeServer releases. In service mode it changes into the user home (which ServerIsolation\u0027s isolated home relies on), returns at once when a compatible incumbent already answers, and, when the bind finds the port in use, spends up to 15 seconds re-checking for a recognized incumbent and retrying the bind every 100 milliseconds: a recognized incumbent makes it exit 0 as the loser, and a freed port makes it the service. That exit 0 is the exit the Ensure election reads as a lost race and answers by doubling its spawn delay; a loser that exited non-zero would fail every multi-contender Ensure. On Windows, a service run from a package-manager or curl install first holds a second hard link to its own image under the cache directory, so an installer can replace the binary while the daemon runs; the pid and start time the stop door identifies it by are unchanged, and a daemon the stop door ends hard leaves that link for the next service start to sweep. An OPENCODE_PTY_HANDOFF that does not decode is logged and ignored, so the server starts with fresh persistent terminals instead of failing. In service mode with remote access configured, it attaches the remote-access tunnel in the background after binding; a tunnel failure is logged and changes neither the readiness line nor the exit status. In service mode it re-applies the saved service-config env over process.env, except XDG_STATE_HOME.",
       "anchor": {
         "type": "contains",
         "text": "JSON.stringify({ url })"
@@ -283,7 +283,7 @@
     {
       "path": "packages/server/src/middleware/form-location.ts",
       "sha256": "aff866ce37a2f4981d63ef497ea68c2147228423acfdf1c1b19ee663f2716f9c",
-      "behavior": "Session form routes take their location from the session row like other session routes, except that the sessionID \u0022global\u0022 skips the session lookup and takes the location from the request (location[directory] query, then the x-opencode-directory header, then the server working directory). A location whose directory does not exist answers 404 LocationNotFoundError on both paths.",
+      "behavior": "Session form routes take their location from the session row like other session routes, except that the sessionID \u0022global\u0022 skips the session lookup and takes the location from the request (location[directory] query, then the x-opencode-directory header, then the server working directory). A location whose directory does not exist answers 404 LocationNotFoundError on both paths. session.form.list on a session whose location services are not live answers 200 with an empty list without resolving its location.",
       "anchor": {
         "type": "contains",
         "text": "if (route.params.sessionID === \u0022global\u0022) {"
@@ -310,7 +310,7 @@
     {
       "path": "packages/server/src/handlers/generate.ts",
       "sha256": "9231f95384e907545dc53cab06c6577a4a7c34abbd709b6a685da534226de4d3",
-      "behavior": "experimental.generate.text answers with the whole generation in one body, so it sends no response headers until the model finishes; the SDK\u0027s network timeout leaves it unbounded unless a call sets a window.",
+      "behavior": "experimental.generate.text, experimental.generate.image and experimental.generate.decisions each answer with the whole result in one body (image also downloads URL results first), so they send no response headers until the model finishes; the SDK\u0027s network timeout leaves them unbounded unless a call sets a window. experimental.generate.textLegacy is a deprecated alias of text at the old path.",
       "anchor": {
         "type": "contains",
         "text": ".text(request.payload)"
@@ -463,7 +463,7 @@
     {
       "path": "packages/cli/src/services/service-config.ts",
       "sha256": "8f8b9ed75b6bfd2055f77a52a713d12d4656bee43725e9cea5e6e2cd78e4a6bf",
-      "behavior": "The release channels latest, dev, beta, and next share service.json; every other channel is sanitized into service-\u003Cchannel\u003E.json; a legacy SHA-1 filename exists for every channel except latest and local; versionBelongsToChannel admits the exact installed version or the 0.0.0-\u003Cchannel\u003E-N[.M] spelling; migration copies a donor exclusively with mode 0600, ignores write failures, and admits only the current shape. Info declares optional disabled (a boolean), remote (an object holding a string route), and remoteAccepted (the literal true, which the CLI writes when remote access is accepted while pairing or turned off after it was on, and which the service get, set, and unset commands do not reach) beside hostname, port, password, cors, and env. read turns a document that fails both the current shape and the legacy shape (remote as a boolean) into an empty config, so an invalid document, including one whose remoteAccepted is present but not true, is absent config; a legacy document is rewritten in place, true getting a generated route and false dropping the key.",
+      "behavior": "The release channels latest, dev, beta, and next share service.json; every other channel is sanitized into service-\u003Cchannel\u003E.json; a legacy SHA-1 filename exists for every channel except latest and local; versionBelongsToChannel admits the exact installed version or the 0.0.0-\u003Cchannel\u003E-N[.M] spelling; migration copies a donor exclusively with mode 0600, ignores write failures, and admits only the current shape. Info declares optional disabled (a boolean), remote (an object holding a string route), and remoteAccepted (the literal true, which the CLI writes when remote access is accepted while pairing or turned off after it was on, and which the service get, set, and unset commands do not reach) beside hostname, port, password, cors, and env. read turns a document that fails both the current shape and the legacy shape (remote as a boolean) into an empty config, so an invalid document, including one whose remoteAccepted is present but not true, is absent config; a legacy document is rewritten in place, true getting a generated route and false dropping the key. options() and the service\u0027s own startup apply the saved env without XDG_STATE_HOME (processEnv), so a saved value cannot move the registration\u0027s state directory.",
       "anchor": {
         "type": "contains",
         "text": "export function filename(channel = OPENCODE_CHANNEL)"
@@ -571,7 +571,7 @@
     {
       "path": "packages/cli/src/services/server-connection.ts",
       "sha256": "9ab1863048e60f427d5e27daff8536fb888b8c261d2e89d9bfb937f60b785dd7",
-      "behavior": "resolve routes the default CLI connection to Standalone.start when args.standalone is set or the service config\u0027s disabled is true, before any managed-service path; otherwise it goes through ServiceConfig.options, which performs legacy registration migration before discovery or ensure and enables the version gate only when mismatch is not ignore. An explicit --server connection uses server.info with a five-second bound and warns on a version mismatch. shutdownPersistentPty discovers with no version filter and, when a service answers, calls persistentPty.shutdown with no request bound; the managed restart stops with a handoff and ensures again.",
+      "behavior": "resolve routes the default CLI connection to Standalone.start when --standalone is given as the command\u0027s argument or the global flag (--server likewise) or the service config\u0027s disabled is true, before any managed-service path; otherwise it goes through ServiceConfig.options, which performs legacy registration migration before discovery or ensure and enables the version gate only when mismatch is not ignore. An explicit --server connection uses server.info with a five-second bound and warns on a version mismatch. shutdownPersistentPty discovers with no version filter and, when a service answers, calls persistentPty.shutdown with no request bound; the managed restart stops with a handoff and ensures again.",
       "anchor": {
         "type": "contains",
         "text": "ServiceConfig.options({ checkVersion: mismatch !== \u0022ignore\u0022 })"
@@ -601,7 +601,7 @@
       "behavior": "The workspace catalog pins the Effect release the protocol document is generated with, whose JSON Schema encoding of StructWithRest (a struct\u0027s properties beside a single-element allOf carrying only the rest\u0027s additionalProperties) the projector admits as an open object, and whose union decode (SchemaAST Union.getParser: literal sentinels, then the first member in declaration order that decodes) the structural union first-match arm mirrors, as tools/oracles/first-match-union.ts proves; an Effect bump is reviewed against both, and the oracle re-run, before the snapshot moves.",
       "anchor": {
         "type": "contains",
-        "text": "\u0022effect\u0022: \u00224.0.1\u0022"
+        "text": "\u0022effect\u0022: \u00224.0.6\u0022"
       }
     },
     {
@@ -634,7 +634,7 @@
     {
       "path": "packages/cli/src/index.ts",
       "sha256": "65c95a432a9cdb1b448c9605a0f7ccc4d0b3add6f033c336360c58f8bd8cf0c8",
-      "behavior": "The CLI\u0027s entry runs every command through NodeRuntime.runMain with its error reporting off, writes a fatal cause to stderr itself, and exits with process.exitCode (0 when unset): the stderr tail and exit status a contender\u0027s failure report carries, and the exit 0 the Ensure election reads as a loser that stood down.",
+      "behavior": "The CLI\u0027s entry runs every command through NodeRuntime.runMain with its error reporting off, writes a fatal cause to stderr itself, and exits with process.exitCode (0 when unset): the stderr tail and exit status a contender\u0027s failure report carries, and the exit 0 the Ensure election reads as a loser that stood down. After SIGTERM or SIGINT, a teardown still unfinished after 10 seconds, or a second signal during teardown, writes the pending work to stderr and exits 1.",
       "anchor": {
         "type": "contains",
         "text": "Effect.tap(() =\u003E Effect.sync(() =\u003E process.exit(process.exitCode ?? 0))),"
