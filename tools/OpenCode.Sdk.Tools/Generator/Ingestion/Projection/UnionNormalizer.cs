@@ -46,7 +46,8 @@ internal sealed class UnionNormalizer
 
         if (OpenEnumPolicy.ProjectWhole(schema, sourceBranches) is { } wholeOpenEnum)
         {
-            return CheckBranchWalls(sourceBranches, string.Concat(root, GraphKeyBuilder.Append(pointer, keywordName)), state.Errors) ? wholeOpenEnum : null;
+            var keywordLocation = string.Concat(root, GraphKeyBuilder.Append(pointer, keywordName));
+            return CheckBranchWalls(sourceBranches, keywordLocation, state.Errors) ? wholeOpenEnum : null;
         }
 
         var branches = ProjectBranches(sourceBranches, root, pointer, keywordName, state);
@@ -122,8 +123,7 @@ internal sealed class UnionNormalizer
             }
 
             var branchLocation = GraphKeyBuilder.Append(keywordLocation, index.ToString(CultureInfo.InvariantCulture));
-            SchemaWallPolicy.Check(branch, branchLocation, errors);
-            _ = _shapeClassifier.Classify(branch, branchLocation, errors);
+            CheckFoldedMember(branch, branchLocation, errors);
             if (branch.AnyOf is not { Count: > 0 } nested)
             {
                 continue;
@@ -133,14 +133,25 @@ internal sealed class UnionNormalizer
             {
                 if (nested[innerIndex] is OpenApiSchema inner)
                 {
-                    var innerLocation = GraphKeyBuilder.Append(GraphKeyBuilder.Append(branchLocation, "anyOf"), innerIndex.ToString(CultureInfo.InvariantCulture));
-                    SchemaWallPolicy.Check(inner, innerLocation, errors);
-                    _ = _shapeClassifier.Classify(inner, innerLocation, errors);
+                    var innerLocation = GraphKeyBuilder.Append(
+                        GraphKeyBuilder.Append(branchLocation, "anyOf"), innerIndex.ToString(CultureInfo.InvariantCulture));
+                    CheckFoldedMember(inner, innerLocation, errors);
                 }
             }
         }
 
         return errors.Count == errorCount;
+    }
+
+    /// <summary>A folded member answers as projection would: the wall first, and the shape only once the wall passes.</summary>
+    private void CheckFoldedMember(OpenApiSchema member, string location, IngestionErrorCollector errors)
+    {
+        var errorCount = errors.Count;
+        SchemaWallPolicy.Check(member, location, errors);
+        if (errors.Count == errorCount)
+        {
+            _ = _shapeClassifier.Classify(member, location, errors);
+        }
     }
 
     private ProjectedBranch[]? ProjectBranches(IList<IOpenApiSchema> sourceBranches, string root, string pointer, string keyword,
@@ -161,8 +172,7 @@ internal sealed class UnionNormalizer
                 var errorCount = state.Errors.Count;
                 if (source is OpenApiSchema inline)
                 {
-                    SchemaWallPolicy.Check(inline, string.Concat(root, foldPointer), state.Errors);
-                    _ = _shapeClassifier.Classify(inline, string.Concat(root, foldPointer), state.Errors);
+                    CheckFoldedMember(inline, string.Concat(root, foldPointer), state.Errors);
                 }
 
                 failed |= state.Errors.Count != errorCount;
@@ -171,7 +181,8 @@ internal sealed class UnionNormalizer
                     branches.Add(new ProjectedBranch(new SpecialNumberNode(), Marker: null, IsNull: false, IsMarkedUnionReference: false));
                 }
                 else if (index == openEnum?[0]
-                         && state.Register(OpenEnumPolicy.Project(sourceBranches, openEnum), root, foldPointer, string.Concat(root, foldPointer)) is { } registered)
+                         && state.Register(new EnumNode { Values = OpenEnumPolicy.Values(sourceBranches, openEnum) }, root, foldPointer,
+                             string.Concat(root, foldPointer)) is { } registered)
                 {
                     branches.Add(new ProjectedBranch(registered, Marker: null, IsNull: false, IsMarkedUnionReference: false));
                 }

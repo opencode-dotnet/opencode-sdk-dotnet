@@ -1570,12 +1570,17 @@ public sealed class SpecBinderTests
             .WithSchema("Item.State", static schema => schema.AnyOf(
                 static branch => branch.Type("string").Enum("removed", "pending"),
                 static branch => branch.Type("string")))
-            .WithSchema("ItemInfo", static schema => schema.Type("object").Property("state", static property => property.Ref("Item.State"), required: true))
-            .WithOperation("health.get", configure: static operation => operation.Response(200, "application/json", static schema => schema.Ref("ItemInfo"))))));
+            .WithSchema("ItemInfo", static schema => schema
+                .Type("object")
+                .Property("state", static property => property.Ref("Item.State"), required: true))
+            .WithOperation("health.get", configure: static operation => operation
+                .Response(200, "application/json", static schema => schema.Ref("ItemInfo"))))));
 
-        var state = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "ItemInfo").Properties.Single(static property => property.WireName == "state").Type;
+        var state = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "ItemInfo")
+            .Properties.Single(static property => property.WireName == "state").Type;
         await Assert.That(((NamedTypeReferencePlan)state).Name).IsEqualTo("ItemState");
-        await Assert.That(plan.Models.OfType<EnumModelPlan>().Single(static model => model.Name == "ItemState").Values.Select(static value => value.WireValue))
+        await Assert.That(plan.Models.OfType<EnumModelPlan>().Single(static model => model.Name == "ItemState")
+                .Values.Select(static value => value.WireValue))
             .IsEquivalentTo(["removed", "pending"], CollectionOrdering.Matching);
     }
 

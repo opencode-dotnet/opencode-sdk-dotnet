@@ -19,7 +19,8 @@ internal static class OpenEnumPolicy
         ArgumentNullException.ThrowIfNull(branches);
 
         int[] members = [.. Enumerable.Range(0, branches.Count).Where(index => specialNumber?.Contains(index) != true
-            && Resolve(branches[index]) is OpenApiSchema { Type: JsonSchemaType.String, Format: null } text && !UnionBranchShape.HasCompetingNodeConstraints(text)
+            && Resolve(branches[index]) is OpenApiSchema { Type: JsonSchemaType.String, Format: null } text
+            && !UnionBranchShape.HasCompetingNodeConstraints(text)
             && !IsNullSpelling(text)
             && (text.Enum ?? []).All(static value => value is JsonValue json && json.TryGetValue<string>(out _)))];
         var closed = members.Count(index => Resolve(branches[index]) is OpenApiSchema { Enum.Count: > 0 } or OpenApiSchema { Const: not null });
@@ -42,25 +43,21 @@ internal static class OpenEnumPolicy
         return members.Length == branches.Count ? enumNode : new NullableNode { Description = schema.Description, Inner = enumNode };
     }
 
-    /// <summary>The members of an open enum inside a wider union fold into one enum that keeps the first closed member's description.</summary>
-    public static EnumNode Project(IList<IOpenApiSchema> branches, int[] members)
+    /// <summary>The values of an open enum's members, in order and without repeats.</summary>
+    public static string[] Values(IList<IOpenApiSchema> branches, int[] members)
     {
         ArgumentNullException.ThrowIfNull(branches);
         ArgumentNullException.ThrowIfNull(members);
 
-        return new EnumNode
-        {
-            Description = members.Select(index => (OpenApiSchema)Resolve(branches[index])!).First(static branch => branch.Enum is { Count: > 0 } || branch.Const is not null).Description,
-            Values = Values(branches, members),
-        };
+        return
+        [
+            .. members.Select(index => (OpenApiSchema)Resolve(branches[index])!)
+                .SelectMany(static branch => branch.Const is { } constant
+                    ? [constant]
+                    : (branch.Enum ?? []).Select(static value => value.GetValue<string>()))
+                .Distinct(StringComparer.Ordinal),
+        ];
     }
-
-    private static string[] Values(IList<IOpenApiSchema> branches, int[] members) =>
-    [
-        .. members.Select(index => (OpenApiSchema)Resolve(branches[index])!)
-            .SelectMany(static branch => branch.Const is { } constant ? [constant] : (branch.Enum ?? []).Select(static value => value.GetValue<string>()))
-            .Distinct(StringComparer.Ordinal),
-    ];
 
     private static IOpenApiSchema? Resolve(IOpenApiSchema branch) => branch is OpenApiSchemaReference reference ? reference.Target : branch;
 

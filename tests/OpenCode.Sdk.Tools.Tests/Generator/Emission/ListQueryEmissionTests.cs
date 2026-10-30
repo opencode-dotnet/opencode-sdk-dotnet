@@ -26,7 +26,11 @@ public sealed class ListQueryEmissionTests
                 .Property("message", static property => property.Type("string"), required: true))
             .WithOperation("widget.list", path: "/api/widget", configure: operation => operation
                 .Parameter("modes", "query", schema => _ = flatOpenEnum
-                    ? schema.AnyOf(ModeValues, RpcSpelling, static branch => branch.Type("array").Items(static item => item.AnyOf(ModeValues, RpcSpelling)), static branch => branch.Type("null"))
+                    ? schema.AnyOf(
+                        ModeValues,
+                        RpcSpelling,
+                        static branch => branch.Type("array").Items(static item => item.AnyOf(ModeValues, RpcSpelling)),
+                        static branch => branch.Type("null"))
                     : schema.AnyOf(
                         static branch => branch.Ref("Widget.Mode"),
                         static branch => branch.Type("array").Items(static item => item.Ref("Widget.Mode")),
@@ -41,8 +45,10 @@ public sealed class ListQueryEmissionTests
         var request = EmitterSnapshot.Create([sources.Single(static source => source.RelativePath.EndsWith("WidgetListRequest.cs", StringComparison.Ordinal))]);
         var routes = EmitterSnapshot.Create([sources.Single(static source => source.RelativePath.EndsWith("OpenCodeRoutes.Widgets.cs", StringComparison.Ordinal))]);
         await Assert.That(request).Contains($"public IReadOnlyList<{enumName}>? Modes {{ get; init; }}");
-        await Assert.That(sources.Where(static source => source.RelativePath.StartsWith("Widgets/Internal/Widget", StringComparison.Ordinal) && source.RelativePath.EndsWith("JsonConverter.cs", StringComparison.Ordinal))
-            .Select(static source => source.RelativePath)).IsEquivalentTo([$"Widgets/Internal/{enumName}JsonConverter.cs"], CollectionOrdering.Matching);
+        await Assert.That(sources.Where(static source => source.RelativePath.StartsWith("Widgets/Internal/Widget", StringComparison.Ordinal)
+                && source.RelativePath.EndsWith("JsonConverter.cs", StringComparison.Ordinal))
+            .Select(static source => source.RelativePath))
+            .IsEquivalentTo([$"Widgets/Internal/{enumName}JsonConverter.cs"], CollectionOrdering.Matching);
         await Assert.That(routes).Contains("query.AddTextList(\"modes\", request.Modes?.Select(static item => ToWireValue(item)));");
         await Assert.That(await GeneratedSourceCompiler.CompileWithSdkCoreAsync(sources)).IsEmpty();
     }
