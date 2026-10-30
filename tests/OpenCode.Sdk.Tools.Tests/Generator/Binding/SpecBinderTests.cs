@@ -977,6 +977,21 @@ public sealed class SpecBinderTests
     }
 
     [Test]
+    public async Task Bind_Should_Keep_A_Component_Whose_Final_Segment_Is_Only_The_Suffix()
+    {
+        var document = await IngestAsync(SpecScenario.Define(spec => spec
+            .WithSchema("Foo.Encoded", schema => schema
+                .Type("object")
+                .Property("value", property => property.Type("string"), required: true))
+            .WithOperation("health.get", configure: operation => operation
+                .Response(200, "application/json", schema => schema.Ref("Foo.Encoded")))));
+
+        var plan = BindHealthRows(document);
+
+        await Assert.That(plan.Models).Contains(static model => model.Name == "FooEncoded");
+    }
+
+    [Test]
     public async Task Bind_Should_Refuse_A_Reachable_Encoded_Pair_Until_A_Row_Names_One_Side()
     {
         var document = await IngestAsync(SpecScenario.Define(spec => spec
