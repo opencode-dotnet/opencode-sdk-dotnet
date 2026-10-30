@@ -2,7 +2,7 @@
 A change that adds, removes or alters a suppression updates this file in the same commit.
 
 build-switch: 12
-editorconfig: 150
+editorconfig: 149
 globalconfig: 1
 no-warn: 18
 pragma: 26
@@ -42,14 +42,11 @@ editorconfig .editorconfig [*.cs] csharp_style_prefer_switch_expression = true:s
 editorconfig .editorconfig [*.cs] dotnet_analyzer_diagnostic.category-roslynator.severity = suggestion
 editorconfig .editorconfig [*.cs] dotnet_code_quality.CA1822.api_surface = private, internal
 editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1008.severity = suggestion
-editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1027.severity = none
 editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1031.severity = none
 editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1040.severity = suggestion
 editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1308.severity = suggestion
 editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1515.severity = none
-editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1716.severity = none
 editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1812.severity = suggestion
-editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1815.severity = none
 editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1819.severity = suggestion
 editorconfig .editorconfig [*.cs] dotnet_diagnostic.CA1848.severity = none
 editorconfig .editorconfig [*.cs] dotnet_diagnostic.IDE0032.severity = suggestion
@@ -93,6 +90,7 @@ editorconfig .editorconfig [src/OpenCode.Sdk/**.cs] dotnet_diagnostic.IDE0130.se
 editorconfig .editorconfig [src/OpenCode.Sdk/**/Models/**.cs] dotnet_diagnostic.CA1034.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/**/{ConfigInfoEnterprise,ConnectionStatus,ExperimentalIntegrationWellknownAddRequest,FormExternalField,IntegrationAttempt,McpOAuthConfig,McpRemoteConfig,McpResource,McpResourceTemplate,ProjectIcon,PromptFileSourceUri,PromptInputFileAttachment,ToolFileContent,VoiceWebSocketTransport,WebSearchResult}.cs] dotnet_diagnostic.CA1056.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/Common/Optional.cs] dotnet_diagnostic.CA1000.severity = none
+editorconfig .editorconfig [src/OpenCode.Sdk/Common/Optional.cs] dotnet_diagnostic.CA1716.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/Common/Optional.cs] dotnet_diagnostic.CA2225.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Contender/ServiceContender.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Contender/ServiceContenderSpawner.Windows.cs] dotnet_diagnostic.MA0045.severity = none
@@ -116,6 +114,7 @@ editorconfig .editorconfig [src/OpenCode.Sdk/Internal/Transport/CallerStreamCont
 editorconfig .editorconfig [src/OpenCode.Sdk/Internal/Transport/Pipeline.cs] dotnet_diagnostic.CA5399.severity = none
 editorconfig .editorconfig [src/OpenCode.Sdk/Internal/Transport/ProgressWindow.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.CA1707.severity = none
+editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.CA1716.severity = none
 editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.CA2007.severity = none
 editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.CS1591.severity = none
 editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.MA0004.severity = none

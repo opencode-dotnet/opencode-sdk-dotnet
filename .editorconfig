@@ -375,7 +375,7 @@ dotnet_diagnostic.CA1008.severity = suggestion
 dotnet_diagnostic.CA1012.severity = error
 dotnet_diagnostic.CA1018.severity = error
 # Mark enums with FlagsAttribute [opinionated]
-dotnet_diagnostic.CA1027.severity = none
+dotnet_diagnostic.CA1027.severity = error
 # Catch-general-exception: active rule, deliberately off [opinionated] -
 # transport/pipeline code catches broadly by design
 dotnet_diagnostic.CA1031.severity = none
@@ -422,7 +422,7 @@ dotnet_diagnostic.CA1515.severity = none
 # 6.4 Naming (CA1700-CA1799)
 # -----------------------------------------------------------------------------
 dotnet_diagnostic.CA1707.severity = error
-dotnet_diagnostic.CA1716.severity = none
+dotnet_diagnostic.CA1716.severity = error
 dotnet_diagnostic.CA1725.severity = error
 dotnet_diagnostic.CA1727.severity = error
 
@@ -438,7 +438,7 @@ dotnet_diagnostic.CA1810.severity = error
 # Keep it as an IDE hint, not as a CI gate.
 dotnet_diagnostic.CA1812.severity = suggestion
 dotnet_diagnostic.CA1813.severity = error
-dotnet_diagnostic.CA1815.severity = none
+dotnet_diagnostic.CA1815.severity = error
 # Properties should not return arrays [shipping API trade-off]
 dotnet_diagnostic.CA1819.severity = suggestion
 dotnet_diagnostic.CA1820.severity = error
