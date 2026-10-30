@@ -12,5 +12,5 @@ public sealed record ConfigWebSearchInfo
     /// Gets the provider value.
     /// </summary>
     [JsonPropertyName("provider")]
-    public required string Provider { get; init; }
+    public required ConfigWebSearchInfoProvider Provider { get; init; }
 }

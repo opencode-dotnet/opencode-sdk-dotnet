@@ -92,7 +92,7 @@ internal sealed class UnionNormalizer
     }
 
     /// <summary>A whole special-number union is one special-number node once each member passes the wall, nested members included.</summary>
-    private static SpecialNumberNode? ProjectSpecialNumber(OpenApiSchema schema, IList<IOpenApiSchema> branches, string keywordLocation,
+    private SpecialNumberNode? ProjectSpecialNumber(OpenApiSchema schema, IList<IOpenApiSchema> branches, string keywordLocation,
         IngestionErrorCollector errors)
     {
         if (!CheckBranchWalls(branches, keywordLocation, errors))
@@ -107,8 +107,11 @@ internal sealed class UnionNormalizer
         };
     }
 
-    /// <summary>A union whose branches fold into one node never projects them, so the wall checks each, and each nested anyOf member.</summary>
-    private static bool CheckBranchWalls(IList<IOpenApiSchema> branches, string keywordLocation, IngestionErrorCollector errors)
+    /// <summary>
+    /// A union whose branches fold into one node never projects them, so each branch, and each nested
+    /// anyOf member, passes the wall and the shape classification projection would give it.
+    /// </summary>
+    private bool CheckBranchWalls(IList<IOpenApiSchema> branches, string keywordLocation, IngestionErrorCollector errors)
     {
         var errorCount = errors.Count;
         for (var index = 0; index < branches.Count; index++)
@@ -120,6 +123,7 @@ internal sealed class UnionNormalizer
 
             var branchLocation = GraphKeyBuilder.Append(keywordLocation, index.ToString(CultureInfo.InvariantCulture));
             SchemaWallPolicy.Check(branch, branchLocation, errors);
+            _ = _shapeClassifier.Classify(branch, branchLocation, errors);
             if (branch.AnyOf is not { Count: > 0 } nested)
             {
                 continue;
@@ -129,7 +133,9 @@ internal sealed class UnionNormalizer
             {
                 if (nested[innerIndex] is OpenApiSchema inner)
                 {
-                    SchemaWallPolicy.Check(inner, GraphKeyBuilder.Append(GraphKeyBuilder.Append(branchLocation, "anyOf"), innerIndex.ToString(CultureInfo.InvariantCulture)), errors);
+                    var innerLocation = GraphKeyBuilder.Append(GraphKeyBuilder.Append(branchLocation, "anyOf"), innerIndex.ToString(CultureInfo.InvariantCulture));
+                    SchemaWallPolicy.Check(inner, innerLocation, errors);
+                    _ = _shapeClassifier.Classify(inner, innerLocation, errors);
                 }
             }
         }
@@ -149,17 +155,23 @@ internal sealed class UnionNormalizer
             var source = sourceBranches[index];
             if (specialNumber?.Contains(index) == true || openEnum?.Contains(index) == true)
             {
-                // A folded member is never projected on its own, so the wall checks it here.
+                // A folded member is never projected on its own, so the wall and the classifier check it here;
+                // a referenced member is checked where its component projects.
                 var foldPointer = GraphKeyBuilder.UnionBranch(pointer, keyword, index, marker: null);
                 var errorCount = state.Errors.Count;
-                SchemaWallPolicy.Check((OpenApiSchema)source, string.Concat(root, foldPointer), state.Errors);
+                if (source is OpenApiSchema inline)
+                {
+                    SchemaWallPolicy.Check(inline, string.Concat(root, foldPointer), state.Errors);
+                    _ = _shapeClassifier.Classify(inline, string.Concat(root, foldPointer), state.Errors);
+                }
+
                 failed |= state.Errors.Count != errorCount;
                 if (index == specialNumber?[0])
                 {
                     branches.Add(new ProjectedBranch(new SpecialNumberNode(), Marker: null, IsNull: false, IsMarkedUnionReference: false));
                 }
                 else if (index == openEnum?[0]
-                         && state.Register(new EnumNode { Values = OpenEnumPolicy.Values(sourceBranches, openEnum) }, root, foldPointer, string.Concat(root, foldPointer)) is { } registered)
+                         && state.Register(OpenEnumPolicy.Project(sourceBranches, openEnum), root, foldPointer, string.Concat(root, foldPointer)) is { } registered)
                 {
                     branches.Add(new ProjectedBranch(registered, Marker: null, IsNull: false, IsMarkedUnionReference: false));
                 }

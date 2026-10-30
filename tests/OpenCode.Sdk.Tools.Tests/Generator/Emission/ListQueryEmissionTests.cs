@@ -9,8 +9,8 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 public sealed class ListQueryEmissionTests
 {
     /// <summary>
-    /// A referenced enum, or an open enum spelled flat on both sides as upstream's event filter is, emits one
-    /// enum: the list item folds to the same values, so it adds no second type.
+    /// A referenced enum, or an open enum spelled flat on both the value and the list item, emits one enum:
+    /// the list item folds to the same values, so it adds no second type.
     /// </summary>
     [Test]
     [ParallelLimiter<RoslynCompilationSlots>]

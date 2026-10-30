@@ -69,6 +69,7 @@
 /Config/Internal/ConfigReferenceEntryJsonConverter.cs linguist-generated
 /Config/Internal/ConfigResponseAdapter.cs linguist-generated
 /Config/Internal/ConfigShellsResponseAdapter.cs linguist-generated
+/Config/Internal/ConfigWebSearchInfoProviderJsonConverter.cs linguist-generated
 /Config/Internal/OpenCodeRoutes.Config.cs linguist-generated
 /Config/Internal/UnknownConfigEntryJsonConverter.cs linguist-generated
 /Config/Internal/UnknownConfigModelReasoningJsonConverter.cs linguist-generated
@@ -147,6 +148,7 @@
 /Config/Models/ConfigUpdated.cs linguist-generated
 /Config/Models/ConfigWarming.cs linguist-generated
 /Config/Models/ConfigWebSearchInfo.cs linguist-generated
+/Config/Models/ConfigWebSearchInfoProvider.cs linguist-generated
 /Config/Models/ConfigWorktree.cs linguist-generated
 /Config/Models/IConfigEntry.cs linguist-generated
 /Config/Models/IConfigModelReasoning.cs linguist-generated
@@ -859,6 +861,7 @@
 /Sessions/Internal/SessionInboxListResponseEnvelope.cs linguist-generated
 /Sessions/Internal/SessionInboxUpdateResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionInfoOutcomeJsonConverter.cs linguist-generated
+/Sessions/Internal/SessionInstructionsUpdatedDataDeltaJsonConverter.cs linguist-generated
 /Sessions/Internal/SessionInterruptResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionListResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionListResponseEnvelope.cs linguist-generated
@@ -1004,6 +1007,7 @@
 /Sessions/Models/Lifecycle/SessionForkedDurable.cs linguist-generated
 /Sessions/Models/Lifecycle/SessionInstructionsUpdated.cs linguist-generated
 /Sessions/Models/Lifecycle/SessionInstructionsUpdatedData.cs linguist-generated
+/Sessions/Models/Lifecycle/SessionInstructionsUpdatedDataDelta.cs linguist-generated
 /Sessions/Models/Lifecycle/SessionInstructionsUpdatedDurable.cs linguist-generated
 /Sessions/Models/Lifecycle/SessionMetadataUpdated.cs linguist-generated
 /Sessions/Models/Lifecycle/SessionMetadataUpdatedData.cs linguist-generated

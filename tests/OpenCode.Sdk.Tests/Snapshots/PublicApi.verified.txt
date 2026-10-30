@@ -3099,7 +3099,27 @@ namespace OpenCode.Sdk.Models
     {
         public ConfigWebSearchInfo() { }
         [System.Text.Json.Serialization.JsonPropertyName("provider")]
-        public required string Provider { get; init; }
+        public required OpenCode.Sdk.Models.ConfigWebSearchInfoProvider Provider { get; init; }
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigWebSearchInfoProviderJsonConverter))]
+    public readonly struct ConfigWebSearchInfoProvider : System.IEquatable<OpenCode.Sdk.Models.ConfigWebSearchInfoProvider>
+    {
+        public ConfigWebSearchInfoProvider(string value) { }
+        public bool IsKnown { get; }
+        public string Value { get; }
+        public static OpenCode.Sdk.Models.ConfigWebSearchInfoProvider Random { get; }
+        public bool Equals(OpenCode.Sdk.Models.ConfigWebSearchInfoProvider other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ConfigWebSearchInfoProvider FromString(string value) { }
+        public static OpenCode.Sdk.Models.ConfigWebSearchInfoProvider op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ConfigWebSearchInfoProvider left, OpenCode.Sdk.Models.ConfigWebSearchInfoProvider right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ConfigWebSearchInfoProvider left, OpenCode.Sdk.Models.ConfigWebSearchInfoProvider right) { }
+        public static class Values
+        {
+            public const string Random = "random";
+        }
     }
     public sealed class ConfigWorktree : System.IEquatable<OpenCode.Sdk.Models.ConfigWorktree>
     {
@@ -8454,12 +8474,32 @@ namespace OpenCode.Sdk.Models
     {
         public SessionInstructionsUpdatedData() { }
         [System.Text.Json.Serialization.JsonPropertyName("delta")]
-        public required System.Collections.Generic.IReadOnlyDictionary<string, string> Delta { get; init; }
+        public required System.Collections.Generic.IReadOnlyDictionary<string, OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta> Delta { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
         public required string SessionId { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("text")]
         public string? Text { get; init; }
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionInstructionsUpdatedDataDeltaJsonConverter))]
+    public readonly struct SessionInstructionsUpdatedDataDelta : System.IEquatable<OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta>
+    {
+        public SessionInstructionsUpdatedDataDelta(string value) { }
+        public bool IsKnown { get; }
+        public string Value { get; }
+        public static OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta Removed { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta left, OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta left, OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta right) { }
+        public static class Values
+        {
+            public const string Removed = "removed";
+        }
     }
     public sealed class SessionInstructionsUpdatedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionInstructionsUpdatedDurable>
     {

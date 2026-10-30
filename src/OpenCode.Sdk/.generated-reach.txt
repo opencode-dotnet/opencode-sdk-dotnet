@@ -83,6 +83,7 @@ ConfigShellOption owner=Config reached-by=Config
 ConfigUpdated owner=Config reached-by=Events
 ConfigWarming owner=Config reached-by=Config
 ConfigWebSearchInfo owner=Config reached-by=Config
+ConfigWebSearchInfoProvider owner=Config reached-by=Config
 ConfigWorktree owner=Config reached-by=Config
 ConflictError owner=Common reached-by=Credentials,Experimental,Permissions,Sessions,Vcs
 ConnectionCredentialInfo owner=Integrations reached-by=Integrations
@@ -489,6 +490,7 @@ SessionInfoOutcome owner=Sessions reached-by=Experimental,Sessions
 SessionInfoTime owner=Sessions reached-by=Experimental,Sessions
 SessionInstructionsUpdated owner=Sessions reached-by=Events,Sessions
 SessionInstructionsUpdatedData owner=Sessions reached-by=Events,Sessions
+SessionInstructionsUpdatedDataDelta owner=Sessions reached-by=Events,Sessions
 SessionInstructionsUpdatedDurable owner=Sessions reached-by=Events,Sessions
 SessionInterruptOutcome owner=Sessions reached-by=Sessions
 SessionMessageAgentSelected owner=Sessions reached-by=Experimental,Sessions
