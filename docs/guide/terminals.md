@@ -64,7 +64,7 @@ is a bare Enter. Nothing is trimmed and nothing else is changed.
 
 `ReadAsync` yields `PtyFrame`, which has exactly two shapes:
 
-- **`PtyOutputFrame`** — terminal output, already decoded to `Text`.
+- **`PtyOutputFrame`** — terminal output, decoded to `Text` when you first read it.
 - **`PtyCursorFrame`** — one control frame, sent once when the replay ends, carrying the absolute
   output `Cursor` you have now caught up to.
 
@@ -285,11 +285,11 @@ throws, not a later one.
 
 **Frames you have not read are queued, and the queue is not history.** The receiver holds only what
 it has not handed you yet, so a connection nobody reads grows in memory. The queue is unbounded, as
-upstream's own clients and server are. A queued `PtySession` frame keeps about 2 bytes per output
-character, and a `PersistentPtySession` frame about 1 byte per byte: an unread `PtySession` through a
-verbose build (about 250,000 characters a second) grows by about 30 MB a minute, so read it or
-dispose it. It is not a replay buffer either — to go back,
-reconnect with a [cursor](#️-resuming-with-a-cursor).
+upstream's own clients and server are. A queued frame of either family keeps about 1 byte per byte
+of output, so characters outside ASCII cost their UTF-8 width (box-drawing and CJK characters take 3
+bytes each). An unread session through a verbose build (about 250,000 mostly ASCII characters a
+second) grows by about 15 MB a minute, so read it or dispose it. It is not a replay buffer either —
+to go back, reconnect with a [cursor](#️-resuming-with-a-cursor).
 
 **When the connection ends, you still get what it already had.** A remote close or a transport
 failure hands you the queued frames in order first, then completes normally or throws. That ending
