@@ -2606,13 +2606,15 @@ public sealed class OperationPlanBinderTests
         await Assert.That((property.Kind, property.EnumTypeName, property.IsRequired)).IsEqualTo((QueryValueKind.EnumList, "WidgetMode", required));
     }
 
-    /// <summary>A list whose item is another enum, or no enum at all, is not a value-or-list of the enum.</summary>
+    /// <summary>A list whose item is another enum or no enum, or a value-or-list of a plain string, is not a value-or-list of the enum.</summary>
     [Test]
-    [Arguments("Widget.Other")]
-    [Arguments("string")]
-    public async Task Bind_Should_Refuse_A_List_Whose_Item_Is_Not_The_Single_Enum(string item)
+    [Arguments("Widget.Other", false)]
+    [Arguments("string", false)]
+    [Arguments("string", true)]
+    public async Task Bind_Should_Refuse_A_List_Whose_Item_Is_Not_The_Single_Enum(string item, bool valueIsItem)
     {
-        var document = await IngestModesAsync(schema => _ = item == "string" ? schema.Type("string") : schema.Ref(item), required: false);
+        Action<SchemaBuilder> listItem = schema => _ = item == "string" ? schema.Type("string") : schema.Ref(item);
+        var document = await IngestModesAsync(listItem, required: false, valueIsItem ? listItem : null);
 
         var exception = Assert.Throws<BindingException>(() => _ = BindWidgets(document));
         await Assert.That(exception.Errors).IsEquivalentTo(
@@ -2620,11 +2622,11 @@ public sealed class OperationPlanBinderTests
             CollectionOrdering.Matching);
     }
 
-    private static Task<SpecDocument> IngestModesAsync(Action<SchemaBuilder> listItem, bool required) =>
+    private static Task<SpecDocument> IngestModesAsync(Action<SchemaBuilder> listItem, bool required, Action<SchemaBuilder>? value = null) =>
         BindingTestHost.IngestAsync(WidgetListScenario(
             operation => operation.Parameter("modes", "query", schema => _ = required
-                ? schema.AnyOf(static branch => branch.Ref("Widget.Mode"), branch => branch.Type("array").Items(listItem))
-                : schema.AnyOf(static branch => branch.Ref("Widget.Mode"), branch => branch.Type("array").Items(listItem), static branch => branch.Type("null")),
+                ? schema.AnyOf(value ?? (static branch => branch.Ref("Widget.Mode")), branch => branch.Type("array").Items(listItem))
+                : schema.AnyOf(value ?? (static branch => branch.Ref("Widget.Mode")), branch => branch.Type("array").Items(listItem), static branch => branch.Type("null")),
                 required: required),
             static spec => spec
                 .WithSchema("Widget.Mode", static schema => schema.Type("string").Enum("working", "branch"))
