@@ -81,10 +81,10 @@ jobs:
               *) code=true ;;
             esac
             case "$path" in
-              src/* | tools/OpenCode.Sdk.Tools/* | tools/curation.json | tools/generation-profile.txt | spec/* | tests/OpenCode.Sdk.Performance.Tests/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks=true ;;
+              src/* | tools/OpenCode.Sdk.Tools/* | tools/curation.json | tools/generation-profile.txt | spec/* | tests/OpenCode.Sdk.Performance.Tests/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Shared/GeneratorPeakMemoryPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks=true ;;
             esac
             case "$path" in
-              tools/* | tests/OpenCode.Sdk.Tools.Tests/* | tests/OpenCode.Sdk.Performance.Tests/* | spec/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks_generator=true ;;
+              tools/* | tests/OpenCode.Sdk.Tools.Tests/* | tests/OpenCode.Sdk.Performance.Tests/* | spec/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Shared/GeneratorPeakMemoryPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks_generator=true ;;
             esac
           done < "$RUNNER_TEMP/changed-paths"
           echo "code=$code" >> "$GITHUB_OUTPUT"

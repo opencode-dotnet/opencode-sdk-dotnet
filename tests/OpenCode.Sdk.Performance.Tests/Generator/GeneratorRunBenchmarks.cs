@@ -7,22 +7,24 @@ using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Performance.Tests.Support;
 using OpenCode.Sdk.Tools;
 using OpenCode.Sdk.Tools.Generator;
+using OpenCode.Sdk.Tools.Output;
 using OpenCode.Sdk.Tools.Output.Abstractions;
 using Testably.Abstractions;
 
 namespace OpenCode.Sdk.Performance.Tests.Generator;
 
 /// <summary>
-/// The generator's whole runs on the real pinned input: every in-process stage plus the writer and
-/// the manifest without formatting, the <c>dotnet format</c> pass over freshly emitted sources, and
-/// <c>generate --verify</c> end to end. Each run takes seconds, so the job monitors a few single
-/// invocations instead of piloting thousands.
+/// The generator's whole runs and writing row on the real pinned input: every in-process stage plus
+/// the writer and manifest without formatting, the <c>dotnet format</c> pass over freshly emitted
+/// sources, <c>generate --verify</c> end to end, and writing alone. Whole runs take seconds, so the job
+/// monitors a few single invocations instead of piloting thousands.
 /// </summary>
 /// <remarks>
 /// <para>
 /// The unformatted run writes into a copy of <c>src/OpenCode.Sdk</c> under a no-op formatter; less
 /// <see cref="GeneratorStageBenchmarks"/>' rows, it is the writer plus the run's own preparation
-/// (curation, source watch, identity map) and orchestration. The format row puts the emitted bytes
+/// (curation, source watch, identity map) and orchestration. It runs through the capture, with one
+/// capture field assignment per seconds-long run. The format row puts the emitted bytes
 /// back into the repository's generated tree before each iteration, outside the measurement, so it
 /// formats what a real run formats (the emitted bytes are the settled copy's, put back by file copy);
 /// its allocations are this process's wrapper around the
@@ -56,6 +58,8 @@ public class GeneratorRunBenchmarks : IDisposable
     private string? _workingDirectory;
     private GenerationCoordinator? _coordinator;
     private GenerationCoordinator? _unformattedCoordinator;
+    private GenerationWriter? _writer;
+    private GenerationWriteRequest? _writeRequest;
     private IProjectFormatter? _formatter;
     private string[] _generatedSources = [];
 
@@ -69,7 +73,11 @@ public class GeneratorRunBenchmarks : IDisposable
 
         _services = ToolApp.CreateServices().BuildServiceProvider();
         _unformattedServices = ToolApp
-            .CreateServices(static services => services.AddSingleton<IProjectFormatter, NoOpProjectFormatter>())
+            .CreateServices(static services => services
+                .AddSingleton<IProjectFormatter, NoOpProjectFormatter>()
+                .AddSingleton<GenerationWriter>()
+                .AddSingleton<CapturingGenerationWriter>()
+                .AddSingleton<IGenerationWriter>(static provider => provider.GetRequiredService<CapturingGenerationWriter>()))
             .BuildServiceProvider();
         _coordinator = _services.GetRequiredService<GenerationCoordinator>();
         _unformattedCoordinator = _unformattedServices.GetRequiredService<GenerationCoordinator>();
@@ -84,11 +92,21 @@ public class GeneratorRunBenchmarks : IDisposable
         // bytes, and every later run finds the copy settled.
         _ = await RunUnformattedAsync(_copyRoot).ConfigureAwait(false);
         RefuseChanges(await RunUnformattedAsync(_copyRoot).ConfigureAwait(false), "the unformatted run");
+        _writer = _unformattedServices.GetRequiredService<GenerationWriter>();
+        _writeRequest = _unformattedServices.GetRequiredService<CapturingGenerationWriter>().Request
+            ?? throw new InvalidOperationException("The coordinator did not write any output.");
     }
 
     /// <summary>Every in-process stage, the writer and the manifest, into a copy of the generated tree.</summary>
     [Benchmark]
     public Task GenerateWithoutFormattingAsync() => RunUnformattedAsync(_copyRoot!);
+
+    /// <summary>
+    /// Writes sources and the manifest over unchanged emitted output in the copy, without formatting.
+    /// The process's peak working set includes setup's coordinator runs, so it is not the write's own peak.
+    /// </summary>
+    [Benchmark]
+    public Task WriteAsync() => _writer!.WriteAsync(_writeRequest!, CancellationToken.None);
 
     /// <summary>
     /// Puts the emitted, unformatted sources back into the repository's tree for the next format
@@ -109,7 +127,11 @@ public class GeneratorRunBenchmarks : IDisposable
     [Benchmark]
     public Task FormatEmittedAsync() => _formatter!.FormatAsync(_input!.ProjectPath, _generatedSources, CancellationToken.None);
 
-    /// <summary><c>generate --verify</c> end to end on the repository's own generated tree.</summary>
+    /// <summary>
+    /// <c>generate --verify</c> end to end on the repository's own generated tree.
+    /// The pipeline's verify flag changes only the reported result, not the work, so this row also
+    /// measures <c>generate</c>'s whole-run cost, not the CLI's differing exit code and messages.
+    /// </summary>
     [Benchmark]
     public Task VerifyEndToEndAsync() => RunVerifiedAsync();
 
@@ -228,10 +250,5 @@ public class GeneratorRunBenchmarks : IDisposable
         }
     }
 
-    /// <summary>Formatting is measured on its own row, so the run without it leaves the sources as emitted.</summary>
-    private sealed class NoOpProjectFormatter : IProjectFormatter
-    {
-        public Task FormatAsync(string projectPath, IReadOnlyList<string> sourcePaths, CancellationToken cancellationToken) => Task.CompletedTask;
-    }
 }
 #endif

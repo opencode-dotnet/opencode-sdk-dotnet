@@ -28,6 +28,7 @@
     <ProjectReference Include="../../src/OpenCode.Sdk/OpenCode.Sdk.csproj"/>
     <ProjectReference Include="../../src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj"/>
     <Compile Include="../Shared/BenchmarkExitPolicy.cs" LinkBase="Shared" />
+    <Compile Include="../Shared/GeneratorPeakMemoryPolicy.cs" LinkBase="Shared" />
   </ItemGroup>
 
   <!-- The generator benchmarks measure the repository tool, which targets the default framework only.

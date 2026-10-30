@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-10-30
+Date: 2026-10-31
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -404,10 +404,11 @@ even after failure.
 
 The SDK guard selects changes under `src/`, `tools/OpenCode.Sdk.Tools/`, `spec/` and the performance
 project, plus `tools/curation.json`, `tools/generation-profile.txt`, the shared `BenchmarkExitPolicy.cs`,
-`tests/Directory.Build.props`, `Directory.Build.props`, `Directory.Build.targets`,
-`Directory.Packages.props`, `global.json`, `nuget.config` and the CI workflow itself. The stage job
-selects changes under `tools/`, `tests/OpenCode.Sdk.Tools.Tests/`, the performance project or
-`spec/` (including `tools/curation.json`), plus `tests/Shared/BenchmarkExitPolicy.cs`,
+`GeneratorPeakMemoryPolicy.cs`, `tests/Directory.Build.props`, `Directory.Build.props`,
+`Directory.Build.targets`, `Directory.Packages.props`, `global.json`, `nuget.config` and the CI
+workflow itself. The stage job selects changes under `tools/`, `tests/OpenCode.Sdk.Tools.Tests/`,
+the performance project or `spec/` (including `tools/curation.json`), plus
+`tests/Shared/BenchmarkExitPolicy.cs`, `tests/Shared/GeneratorPeakMemoryPolicy.cs`,
 `tests/Directory.Build.props`, `Directory.Build.props`, `Directory.Build.targets`,
 `Directory.Packages.props`, `global.json`, `nuget.config` and the CI workflow itself, not `src/` alone.
 Push runs always select both guards. `CI result` requires the SDK matrix and the stage job to succeed
@@ -443,6 +444,12 @@ naming both label sets, but only after the run's hours are already spent. An inc
 narrows `--filter` and adds `--job short`. `--artifacts` names the run's folder in the git-ignored
 `.benchmarks/` store; `compare-benchmarks` reads each folder's `results/*-report-full.json`, so
 those exports are the part of a run that must be preserved.
+
+The generator classes also report the benchmark process's peak working set, read after the measured
+iterations: a whole-process high-water mark that includes the class's setup, BenchmarkDotNet's engine
+and the warm-up, not a stage's own cost. It is compared by hand with the same row of another run, never
+quoted as what a stage needs, and the comparison tool does not carry it. An unreadable or non-positive
+value produces no metric, never a reported 0.
 
 The cold-start classes (`OpenCode.Sdk.Performance.Tests.ColdStart`) declare their own
 `RunStrategy.ColdStart` job and run as a separate invocation with neither `--job` nor `--runtimes`,
