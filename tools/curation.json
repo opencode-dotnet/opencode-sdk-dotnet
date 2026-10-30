@@ -3002,9 +3002,9 @@
       "reason": "Upstream's Config.ModelSelection (ConfigModel.Selection): a short provider/model#variant string or the explicit object; agents, commands and the root configuration share it through schemaAliases."
     },
     {
-      "schema": "Config.AgentEncoded#/properties/model/anyOf/providerID",
+      "schema": "Config.AgentEncoded#/properties/model/anyOf/1",
       "dotnetName": "ConfigModelSelectionExplicit",
-      "reason": "Upstream's Explicit member of Config.ModelSelection; the providerID key its branch is keyed by is a schema pointer detail."
+      "reason": "Upstream's Explicit member of Config.ModelSelection; the anyOf ordinal is a schema pointer detail."
     },
     {
       "schema": "Config.InfoEncoded#/properties/lsp/anyOf/1/additionalProperties",

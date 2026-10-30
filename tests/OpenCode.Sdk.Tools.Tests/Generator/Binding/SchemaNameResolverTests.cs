@@ -76,19 +76,50 @@ public sealed class SchemaNameResolverTests
         await Assert.That((names[Detail + "/anyOf/in"], names[Detail + "/anyOf/at"])).IsEqualTo(("WidgetInfoDetailIn", "WidgetInfoDetailAt"));
     }
 
-    /// <summary>A key a sibling also requires, even behind a reference, keys nothing.</summary>
+    /// <summary>A key a sibling also requires, even behind a reference, keys nothing; nor do two keys the branch alone requires, since a choice between them would move with property order.</summary>
     [Test]
     [Arguments("serial", false)]
     [Arguments("label", true)]
-    public async Task Resolve_Should_Keep_An_Ordinal_When_No_Required_Key_Is_The_Branch_Own(string key, bool shared)
+    [Arguments("label,size", false)]
+    public async Task Resolve_Should_Keep_An_Ordinal_When_No_Required_Key_Is_The_Branch_Own(string keys, bool shared)
     {
         var errors = new BindingErrorCollector();
-        Action<SchemaBuilder> arm = schema => schema.Type("object").Property(key, static property => property.Type("string"), required: true);
+        Action<SchemaBuilder> arm = schema =>
+        {
+            _ = schema.Type("object");
+            foreach (var key in keys.Split(','))
+            {
+                _ = schema.Property(key, static property => property.Type("string"), required: true);
+            }
+        };
         var sibling = shared ? arm : Gadget;
 
         var names = await ResolveAsync(DetailScenario("anyOf", sibling, arm), errors);
 
         await Assert.That(names.Keys).Contains(SecondBranch);
+    }
+
+    /// <summary>
+    /// The shape both rules exist for: each branch requires its own key and forbids the others as
+    /// optional never members, so the branches bind keyed by their keys and carry no forbidden key.
+    /// </summary>
+    [Test]
+    public async Task Bind_Should_Key_Exclusive_Branches_And_Drop_Their_Forbidden_Keys()
+    {
+        Action<SchemaBuilder> inArm = static schema => schema.Type("object")
+            .Property("in", static property => property.Type("string"), required: true)
+            .Property("at", static property => property.Raw("not", "{}"));
+        Action<SchemaBuilder> atArm = static schema => schema.Type("object")
+            .Property("at", static property => property.Type("string"), required: true)
+            .Property("in", static property => property.Raw("not", "{}"));
+        var document = await BindingTestHost.IngestAsync(DetailScenario("anyOf", inArm, atArm));
+
+        var plan = new BindingTestHost().Bind(document, Selection(OperationId), Curation(Groups("widget", RootGroup())));
+
+        var arms = plan.Models.OfType<ObjectModelPlan>().Where(static model => model.Name is "WidgetInfoDetailIn" or "WidgetInfoDetailAt")
+            .ToDictionary(static model => model.Name, static model => model.Properties.Select(static property => property.WireName).ToArray(), StringComparer.Ordinal);
+        await Assert.That(arms["WidgetInfoDetailIn"]).IsEquivalentTo(["in"], CollectionOrdering.Matching);
+        await Assert.That(arms["WidgetInfoDetailAt"]).IsEquivalentTo(["at"], CollectionOrdering.Matching);
     }
 
     [Test]

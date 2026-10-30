@@ -195,7 +195,7 @@ public sealed class UnionNormalizerTests
         var result = await ProjectUnionAsync("Value",
             branch => branch.Type("string"),
             branch => branch.Type("number"),
-            branch => branch.Type("string").Enum("Infinity", "-Infinity", "NaN"),
+            SpecialSpellings,
             branch => branch.Type("boolean"));
 
         await Assert.That(((UnionNode)result.Schemas["Value"]).Branches.Select(BranchKind))
@@ -207,7 +207,7 @@ public sealed class UnionNormalizerTests
     {
         var result = await ProjectUnionAsync("Dcid",
             branch => branch.Type("number"),
-            branch => branch.Type("string").Enum("Infinity", "-Infinity", "NaN"),
+            SpecialSpellings,
             branch => branch.Type("null"));
 
         await Assert.That(((NullableNode)result.Schemas["Dcid"]).Inner).IsTypeOf<SpecialNumberNode>();
@@ -216,16 +216,13 @@ public sealed class UnionNormalizerTests
     [Test]
     public async Task Project_Should_Fold_Several_Flat_Special_Spellings_Beside_Another_Branch()
     {
-        var host = new SchemaProjectionTestHost();
-        var scenario = SpecScenario.Define(spec => spec.WithSchema("NearMiss", schema => schema.AnyOf(
+        var result = await ProjectUnionAsync("NearMiss",
             branch => branch.Type("number"),
             branch => branch.Type("string").Enum("NaN"),
             branch => branch.Type("string").Enum("Infinity"),
             branch => branch.Type("string").Enum("-Infinity"),
-            branch => branch.Type("string").Enum("Infinity", "-Infinity", "NaN"),
-            branch => branch.Type("boolean"))));
-
-        var result = await host.ProjectAsync(scenario);
+            SpecialSpellings,
+            branch => branch.Type("boolean"));
 
         var union = (UnionNode)result.Schemas["NearMiss"];
         await Assert.That(union.Classification).IsEqualTo(UnionClassification.Structural);
@@ -238,7 +235,7 @@ public sealed class UnionNormalizerTests
         var result = await ProjectUnionAsync("Apart",
             branch => branch.Type("number"),
             branch => branch.Type("string"),
-            branch => branch.Type("string").Enum("Infinity", "-Infinity", "NaN"));
+            SpecialSpellings);
 
         await Assert.That(((UnionNode)result.Schemas["Apart"]).Branches.Select(BranchKind))
             .IsEquivalentTo(["Number", "String", nameof(RefNode)], CollectionOrdering.Matching);
@@ -254,6 +251,33 @@ public sealed class UnionNormalizerTests
 
         await Assert.That(((UnionNode)result.Schemas["NearMiss"]).Branches.Select(BranchKind))
             .IsEquivalentTo(["Number", nameof(RefNode), "Boolean"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Project_Should_Keep_Two_Numbers_Beside_Special_Spellings_As_Ordinary_Union()
+    {
+        var result = await ProjectUnionAsync("Twice",
+            branch => branch.Type("number"),
+            branch => branch.Type("number").Format("double"),
+            SpecialSpellings);
+
+        await Assert.That(((UnionNode)result.Schemas["Twice"]).Branches.Select(BranchKind))
+            .IsEquivalentTo(["Number", "Number", nameof(RefNode)], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Project_Should_Refuse_A_Folded_Member_The_Wall_Refuses()
+    {
+        var host = new SchemaProjectionTestHost();
+        var scenario = SpecScenario.Define(spec => spec.WithSchema("Value", schema => schema.AnyOf(
+            branch => branch.Type("string"),
+            branch => branch.Type("number").Raw("frobnicate", "1"),
+            SpecialSpellings)));
+
+        var exception = await host.ProjectExpectingRefusalAsync(scenario);
+
+        await Assert.That(exception.Errors).IsEquivalentTo(
+            [new IngestionError("Value/anyOf/1", "unrecognized schema keyword 'frobnicate' is not supported")], CollectionOrdering.Matching);
     }
 
     /// <summary>A branch keyed by its own required key refuses when that key is another branch's ordinal key.</summary>
@@ -367,6 +391,8 @@ public sealed class UnionNormalizerTests
 
     private static Task<SchemaProjectionResult> ProjectUnionAsync(string name, params Action<SchemaBuilder>[] branches) =>
         new SchemaProjectionTestHost().ProjectAsync(SpecScenario.Define(spec => spec.WithSchema(name, schema => schema.AnyOf(branches))));
+
+    private static void SpecialSpellings(SchemaBuilder branch) => branch.Type("string").Enum("Infinity", "-Infinity", "NaN");
 
     private static string BranchKind(SchemaNode branch) => branch is PrimitiveNode primitive ? primitive.Kind.ToString() : branch.GetType().Name;
 }
