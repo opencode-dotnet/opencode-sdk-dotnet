@@ -13,6 +13,11 @@ internal sealed class SpecBinder : ISpecBinder
         ArgumentNullException.ThrowIfNull(selection);
         ArgumentNullException.ThrowIfNull(curation);
 
+        return BindGrouped(OperationGroupPolicy.Apply(document, curation.Groups), selection, curation);
+    }
+
+    private static EmitPlan BindGrouped(SpecDocument document, OperationSelection selection, GenerationCuration curation)
+    {
         var errors = new BindingErrorCollector();
         var operationsById = document.Operations.ToDictionary(static operation => operation.OperationId, StringComparer.Ordinal);
         var selected = SelectOperations(selection, operationsById, errors);

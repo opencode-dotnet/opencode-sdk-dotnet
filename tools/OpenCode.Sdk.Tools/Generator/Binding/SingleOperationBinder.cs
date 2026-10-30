@@ -12,7 +12,7 @@ internal sealed class SingleOperationBinder(OperationFacetContext context, Error
 
     public BoundOperation? Bind()
     {
-        if (!_context.Curation.Groups.TryGetValue(_context.Operation.Segments[0], out var row))
+        if (!_context.Curation.Groups.TryGetValue(_context.Operation.Group, out var row))
         {
             // The curation validator already reported the missing row.
             return null;

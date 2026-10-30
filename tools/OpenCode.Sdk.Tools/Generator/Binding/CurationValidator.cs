@@ -561,5 +561,5 @@ internal static class CurationValidator
     private static bool IsSha256Hex(string? candidate) =>
         candidate is { Length: 64 } && candidate.All(static character => character is (>= '0' and <= '9') or (>= 'a' and <= 'f'));
 
-    private static string GetGroup(SpecOperation operation) => operation.Segments[0];
+    private static string GetGroup(SpecOperation operation) => operation.Group;
 }
