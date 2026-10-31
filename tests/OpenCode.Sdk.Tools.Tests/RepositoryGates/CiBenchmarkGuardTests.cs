@@ -90,12 +90,12 @@ public sealed class CiBenchmarkGuardTests
         var changes = Job(workflow, "changes");
         await Assert.That(changes).Contains("benchmarks: ${{ steps.diff.outputs.benchmarks }}");
         await Assert.That(changes).Contains("echo \"benchmarks=true\" >> \"$GITHUB_OUTPUT\"");
-        await Assert.That(changes).Contains("src/* | tools/OpenCode.Sdk.Tools/* | tools/curation.json | tools/generation-profile.txt | spec/* | tests/OpenCode.Sdk.Performance.Tests/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks=true ;;");
+        await Assert.That(changes).Contains("src/* | tools/OpenCode.Sdk.Tools/* | tools/curation.json | tools/generation-profile.txt | spec/* | tests/OpenCode.Sdk.Performance.Tests/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Shared/GeneratorPeakMemoryPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks=true ;;");
         await Assert.That(changes).Contains("echo \"benchmarks=$benchmarks\" >> \"$GITHUB_OUTPUT\"");
         await Assert.That(changes).Contains("benchmarks-generator: ${{ steps.diff.outputs.benchmarks-generator }}");
         await Assert.That(changes).Contains("echo \"benchmarks-generator=true\" >> \"$GITHUB_OUTPUT\"");
         await Assert.That(changes).Contains("benchmarks_generator=false");
-        await Assert.That(changes).Contains("              tools/* | tests/OpenCode.Sdk.Tools.Tests/* | tests/OpenCode.Sdk.Performance.Tests/* | spec/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks_generator=true ;;");
+        await Assert.That(changes).Contains("              tools/* | tests/OpenCode.Sdk.Tools.Tests/* | tests/OpenCode.Sdk.Performance.Tests/* | spec/* | tests/Shared/BenchmarkExitPolicy.cs | tests/Shared/GeneratorPeakMemoryPolicy.cs | tests/Directory.Build.props | Directory.Build.props | Directory.Build.targets | Directory.Packages.props | global.json | nuget.config | .github/workflows/ci.yml) benchmarks_generator=true ;;");
         await Assert.That(changes).Contains("echo \"benchmarks-generator=$benchmarks_generator\" >> \"$GITHUB_OUTPUT\"");
         var aggregate = Job(workflow, "ci-result");
         await Assert.That(aggregate).Contains("needs: [changes, lint, build-and-test, benchmark-sdk, benchmark-generator-stage]");

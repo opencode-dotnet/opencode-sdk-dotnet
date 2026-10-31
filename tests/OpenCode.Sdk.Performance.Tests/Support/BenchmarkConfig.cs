@@ -27,6 +27,7 @@ internal static class BenchmarkConfig
             .AddExporter(JsonExporter.Full)
             .AddJob(Job.Default.DontEnforcePowerPlan().AsMutator())
             .AddDiagnoser(new WireFixtureDiagnoser())
+            .AddDiagnoser(new GeneratorPeakMemoryDiagnoser())
             .AddColumn(
                 new AllocatedPerItemColumn(),
                 new AllocationAmplificationColumn())

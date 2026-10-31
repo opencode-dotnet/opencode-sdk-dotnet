@@ -45,6 +45,7 @@
     <Compile Include="../Shared/BestEffortDelete.cs" LinkBase="Shared" />
     <Compile Include="../Shared/ContenderLedger.cs" LinkBase="Shared" />
     <Compile Include="../Shared/FixtureLoader.cs" LinkBase="Shared" />
+    <Compile Include="../Shared/GeneratorPeakMemoryPolicy.cs" LinkBase="Shared" />
     <Compile Include="../Shared/LauncherHandleCensus.cs" LinkBase="Shared" />
     <Compile Include="../Shared/LauncherHandles.cs" LinkBase="Shared" />
     <Compile Include="../Shared/ProcessMark.cs" LinkBase="Shared" />
