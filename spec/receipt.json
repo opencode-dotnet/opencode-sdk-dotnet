@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
-  "releaseTag": "v2.2.2",
-  "upstreamCommit": "098aa7fd6e02b03d6fc410f0b052038c7d4c5e81",
-  "rawDocumentSha256": "06f518e16cfce7d1f7f1faf9ed027e57a542eee136586720b055caf06378a252",
-  "generatedBaselineSha256": "06f518e16cfce7d1f7f1faf9ed027e57a542eee136586720b055caf06378a252",
+  "releaseTag": "v2.2.5",
+  "upstreamCommit": "9bbb8ce18c80f099e0e448775f59d965ead40a21",
+  "rawDocumentSha256": "92cc33ef9a107c8af6295e6fcbdf6d339d4374955910924456bd91a76844a5db",
+  "generatedBaselineSha256": "92cc33ef9a107c8af6295e6fcbdf6d339d4374955910924456bd91a76844a5db",
   "patches": [
     {
       "manifest": "001-restore-sse-payloads.json",
@@ -20,54 +20,21 @@
       ]
     }
   ],
-  "normalizedDocumentSha256": "02773366efa95e6420879cdfa234a2e109ce39794b2c6571cda0b5bf88141d8e",
+  "normalizedDocumentSha256": "715e7ef8c6c7fff05d1afd5b51294c79574a44c812a21476dc015a8a4c8ac6eb",
   "normalizedDocumentPath": null,
-  "operationSetDigest": "83b6b9800e6dfc61d4c6ce46fedc02e0bdcd8a1c17cd8c619bccb47aee4d9c01",
-  "operationCount": 162,
+  "operationSetDigest": "ddc7e5551a8158140b530828d85d77a47622da4ae7f2fbd9fea09d04e0265681",
+  "operationCount": 169,
   "addedOperations": [
-    "experimental.fs.unwatch",
-    "experimental.fs.watch",
-    "experimental.generate.decisions",
-    "experimental.generate.image",
-    "experimental.generate.textLegacy",
-    "experimental.media.get",
-    "experimental.persistentPty.connect",
-    "experimental.persistentPty.connectToken",
-    "experimental.persistentPty.create",
-    "experimental.persistentPty.get",
-    "experimental.persistentPty.handoff",
-    "experimental.persistentPty.list",
-    "experimental.persistentPty.read",
-    "experimental.persistentPty.remove",
-    "experimental.persistentPty.shutdown",
-    "experimental.persistentPty.snapshot",
-    "experimental.persistentPty.update",
-    "experimental.schedule.create",
-    "experimental.schedule.delete",
-    "experimental.schedule.get",
-    "experimental.schedule.list",
-    "experimental.schedule.pause",
-    "experimental.schedule.resume",
-    "experimental.session.log",
-    "experimental.usage.limits",
-    "plugin.gui"
+    "experimental.artifacts.create",
+    "experimental.artifacts.delete",
+    "experimental.artifacts.get",
+    "experimental.artifacts.list",
+    "experimental.artifacts.providers",
+    "experimental.artifacts.update",
+    "experimental.artifacts.view"
   ],
-  "removedOperations": [
-    "experimental.voice.instructions",
-    "persistentPty.connect",
-    "server.experimental.persistentPty.connectToken",
-    "server.experimental.persistentPty.create",
-    "server.experimental.persistentPty.get",
-    "server.experimental.persistentPty.handoff",
-    "server.experimental.persistentPty.list",
-    "server.experimental.persistentPty.read",
-    "server.experimental.persistentPty.remove",
-    "server.experimental.persistentPty.shutdown",
-    "server.experimental.persistentPty.snapshot",
-    "server.experimental.persistentPty.update",
-    "session.log"
-  ],
-  "componentCount": 473,
+  "removedOperations": [],
+  "componentCount": 488,
   "contentSchemaCount": 2,
   "watchedSources": [
     {
@@ -112,32 +79,32 @@
     },
     {
       "path": "packages/server/src/routes.ts",
-      "sha256": "ac469897e1bb279d5becc66a9a8df87e2daea173f885d2c10499cecaacbe38c6",
+      "sha256": "284510fcdba864c46bfb382cf40acc3d473e61176b5e8999da7dc52efe5599c9",
       "anchorMatched": true
     },
     {
       "path": "packages/protocol/src/groups/persistent-pty.ts",
-      "sha256": "bb6835ef1e5be2a2791debdb6c188cd079508b81d107425bf83a483503a42db7",
+      "sha256": "3d6b0005f1f9abf2e484c3337076934205e14f8db2eda64ae1e2be6183d1b786",
       "anchorMatched": true
     },
     {
       "path": "packages/server/src/handlers/persistent-pty.ts",
-      "sha256": "d6cfa0442dce13a3499b2cf9c70e653d68725e4966b62e9df75602677bd7863f",
+      "sha256": "6ee754a9442aa878aaaa59e300a52a7a01d8a33bcd9e0147c47a5c3beb9d5e0a",
       "anchorMatched": true
     },
     {
       "path": "packages/core/src/persistent-pty/index.ts",
-      "sha256": "06a85c036034c8a36494d25f2b237987851d9b35101a20b4a2b3f3ce3a6153a2",
+      "sha256": "4708dc25062023764a392cd629234f0869c6fa8064f866b100b71bd027cd5472",
       "anchorMatched": true
     },
     {
       "path": "packages/core/src/persistent-pty/daemon.ts",
-      "sha256": "efe11493b479985eae263fb6bf43f7e66c098ff6bbc96d94539d8b8d0abc2ad2",
+      "sha256": "d687bd38b0b6e60a8041005ef8f74cf9f97b9b878ee8b12c68ee651cedfb9906",
       "anchorMatched": true
     },
     {
       "path": "packages/schema/src/persistent-pty.ts",
-      "sha256": "5c8de85db025c1be1d06693f86fb2297632c7043079e656247e1cbfb1cae094b",
+      "sha256": "ee12fe7b8fc4c2a3b2010ae1f3de258f27310cff25e735835a5bebb16b48faa1",
       "anchorMatched": true
     },
     {
@@ -157,27 +124,27 @@
     },
     {
       "path": "packages/cli/package.json",
-      "sha256": "19e74b145c1080361af6f6eddfb92cbcb470424fef8e7569fd1ece204faaab13",
+      "sha256": "1122bb624e458fceee34d0b13707104a52aa3238774291e5f68cff9d03fa9fa1",
       "anchorMatched": true
     },
     {
       "path": "packages/core/package.json",
-      "sha256": "47d47132d5a39da5a4a89de99a380bd85c684a2bb72d25cf799dfc124dbcc546",
+      "sha256": "652570afb6dfbd18b53f22c98d20af20cf00079b66dfef2dbf965462af970d1a",
       "anchorMatched": true
     },
     {
       "path": "packages/server/src/process.ts",
-      "sha256": "73506da171af2baaf947883fca9cc3805aaa40b6f904a10281f627611bdbc8a5",
+      "sha256": "33048eff5aeaa894bf511f4167389039b7d483e0dfb9d9429ce617ff1c160492",
       "anchorMatched": true
     },
     {
       "path": "packages/server/test/persistent-pty.test.ts",
-      "sha256": "da0bfc78a4531b64736b4c9207ac8d494895198c4cd5e250d09f85a3e1b72329",
+      "sha256": "d7af54c0245f7bff3485a61c9da43a6c60dd67dad952b922597cc7fdb06586da",
       "anchorMatched": true
     },
     {
       "path": "packages/client/src/solid/pty.ts",
-      "sha256": "45b17253a7faea39455022358ca6286137a65f20a75ed916c0b9de38bdd67714",
+      "sha256": "68ac510aa19c2dd76b1e8c3a4bcd73ef52aae74850e80f2cdc044abee1c817ee",
       "anchorMatched": true
     },
     {
@@ -187,7 +154,7 @@
     },
     {
       "path": "packages/tui/src/component/terminal-pane.tsx",
-      "sha256": "3d96e4c3ad741adbc7287fe8f4e37d34e4095147218bd2eb1aee017ebfb6929c",
+      "sha256": "be09359b6af772c032830b33bbde06eebcae69abe7e4eea2d3e03f007b86ec2e",
       "anchorMatched": true
     },
     {
@@ -282,7 +249,7 @@
     },
     {
       "path": "packages/protocol/src/errors.ts",
-      "sha256": "4c1db06c40a7d70d579dcf01a40f12f2fc52fe609b76b08cd0bbd75f297b78c5",
+      "sha256": "a83801eee4f838e431b4ac84c5b1f27f4e49f327d861055aaa51cffb56a6133e",
       "anchorMatched": true
     },
     {
@@ -402,7 +369,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "7e807299c3ec5215b6d66436c8406f9c9459584d9ad345bc5dd78757ddcef76c",
+      "sha256": "567803266dcf3477d078dc0234bf6dcb2fdb49eed2626486a945e8d4c67f4a54",
       "anchorMatched": true
     },
     {
@@ -422,7 +389,7 @@
     },
     {
       "path": "packages/cli/src/index.ts",
-      "sha256": "ece29308f549e5ae3413fa9efa9588957d1ffa3ca4229126de0d8ae342bf20fe",
+      "sha256": "11fc5776f91764feefecb2e7cb278f4da74f95172eabf1f4d38d08388385552d",
       "anchorMatched": true
     },
     {

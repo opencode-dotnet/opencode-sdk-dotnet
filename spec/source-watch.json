@@ -75,7 +75,7 @@
     },
     {
       "path": "packages/server/src/routes.ts",
-      "sha256": "ac469897e1bb279d5becc66a9a8df87e2daea173f885d2c10499cecaacbe38c6",
+      "sha256": "284510fcdba864c46bfb382cf40acc3d473e61176b5e8999da7dc52efe5599c9",
       "behavior": "The PTY ticket service and the persistent-PTY service are wired into the server layer graph.",
       "anchor": {
         "type": "contains",
@@ -84,7 +84,7 @@
     },
     {
       "path": "packages/protocol/src/groups/persistent-pty.ts",
-      "sha256": "bb6835ef1e5be2a2791debdb6c188cd079508b81d107425bf83a483503a42db7",
+      "sha256": "3d6b0005f1f9abf2e484c3337076934205e14f8db2eda64ae1e2be6183d1b786",
       "behavior": "The handoff response is a single-key body whose handoff value is nullable, and the persistent connect endpoint reuses the PTY ticket query and header. The terminal read decodes lines from the query text as an integer from 1 to 65535, which its int query type mirrors (ADR-0037).",
       "anchor": {
         "type": "contains",
@@ -93,7 +93,7 @@
     },
     {
       "path": "packages/server/src/handlers/persistent-pty.ts",
-      "sha256": "d6cfa0442dce13a3499b2cf9c70e653d68725e4966b62e9df75602677bd7863f",
+      "sha256": "6ee754a9442aa878aaaa59e300a52a7a01d8a33bcd9e0147c47a5c3beb9d5e0a",
       "behavior": "The persistent connect handler closes 4404 when the terminal is unavailable and 1000 on a normal end, consumes the ticket, and requires a cursor at or above 0. create answers 400 InvalidRequestError (kind invalid_cwd, field cwd) when the working directory is missing or not a directory, before the daemon starts.",
       "anchor": {
         "type": "contains",
@@ -102,7 +102,7 @@
     },
     {
       "path": "packages/core/src/persistent-pty/index.ts",
-      "sha256": "06a85c036034c8a36494d25f2b237987851d9b35101a20b4a2b3f3ce3a6153a2",
+      "sha256": "4708dc25062023764a392cd629234f0869c6fa8064f866b100b71bd027cd5472",
       "behavior": "The handoff call yields null when no daemon is running, and the service reports NotFoundError and UnavailableError, and create also reports InvalidCwdError when the working directory is missing or not a directory. Each server\u0027s daemon owns a fresh runtime directory under \u003Cstate\u003E/pty (or the root the options name); the former XDG_RUNTIME_DIR and temporary-directory roots and OPENCODE_PTY_RUNTIME_DIR are gone, and the available flag is re-exported for the server\u0027s info capabilities.",
       "anchor": {
         "type": "contains",
@@ -111,7 +111,7 @@
     },
     {
       "path": "packages/core/src/persistent-pty/daemon.ts",
-      "sha256": "efe11493b479985eae263fb6bf43f7e66c098ff6bbc96d94539d8b8d0abc2ad2",
+      "sha256": "d687bd38b0b6e60a8041005ef8f74cf9f97b9b878ee8b12c68ee651cedfb9906",
       "behavior": "The opencode-pty daemon wire protocol is version 7; the client refuses a daemon that registers another version. The daemon starts as opencode-pty daemon --runtime-dir \u003Croot\u003E --name \u003Cid\u003E, detached, hidden, and with stdio ignored, and a start that cannot connect retries once in a fresh directory. Inheriting a handoff is best-effort: an expired ticket, a changed daemon, or any other failure abandons the old daemon instead of failing the replacement\u0027s startup, and a handoff that names a directory outside the root is migrated into it by rename.",
       "anchor": {
         "type": "contains",
@@ -120,7 +120,7 @@
     },
     {
       "path": "packages/schema/src/persistent-pty.ts",
-      "sha256": "5c8de85db025c1be1d06693f86fb2297632c7043079e656247e1cbfb1cae094b",
+      "sha256": "ee12fe7b8fc4c2a3b2010ae1f3de258f27310cff25e735835a5bebb16b48faa1",
       "behavior": "The handoff record is the component PersistentPty.Handoff carrying the running daemon directory.",
       "anchor": {
         "type": "contains",
@@ -156,7 +156,7 @@
     },
     {
       "path": "packages/cli/package.json",
-      "sha256": "19e74b145c1080361af6f6eddfb92cbcb470424fef8e7569fd1ece204faaab13",
+      "sha256": "1122bb624e458fceee34d0b13707104a52aa3238774291e5f68cff9d03fa9fa1",
       "behavior": "The CLI package bin map names \u0022opencode\u0022 as the installed command and keeps \u0022opencode2\u0022 as a transitional alias of the same launcher, so the shipped launcher default resolves \u0022opencode\u0022 from PATH. The CLI depends on the opencode-pty package (\u0060@opencode/pty\u0060) at 0.4.0.",
       "anchor": {
         "type": "contains",
@@ -165,7 +165,7 @@
     },
     {
       "path": "packages/core/package.json",
-      "sha256": "47d47132d5a39da5a4a89de99a380bd85c684a2bb72d25cf799dfc124dbcc546",
+      "sha256": "652570afb6dfbd18b53f22c98d20af20cf00079b66dfef2dbf965462af970d1a",
       "behavior": "The opencode-pty daemon dependency is pinned at 0.4.0, which takes its runtime directory and name as arguments instead of OPENCODE_PTY_RUNTIME_DIR; the daemon protocol the persistent-PTY door speaks stays at version 7.",
       "anchor": {
         "type": "contains",
@@ -174,7 +174,7 @@
     },
     {
       "path": "packages/server/src/process.ts",
-      "sha256": "73506da171af2baaf947883fca9cc3805aaa40b6f904a10281f627611bdbc8a5",
+      "sha256": "33048eff5aeaa894bf511f4167389039b7d483e0dfb9d9429ce617ff1c160492",
       "behavior": "A ticketed PTY connect is admitted before the server reports ready. Uncredentialed or wrongly credentialed requests above the API layer receive a 401 whose JSON body is the UnauthorizedError the document declares, with the Basic challenge only for requests that are not browser fetches. While the server is not ready, GET /api/info is answered by the process layer under Basic auth with the version, pid, urls (the bound connection URLs, plus the remote-access URL while a service\u0027s tunnel is attached), and paths.tmp body at 500 when failed or 503 when starting or stopping, the latter two with retry-after: 1; once ready the request reaches the API group\u0027s server.info handler, which answers at 200 with the same members plus an optional hostname (os.hostname()) and capabilities.persistentPty.",
       "anchor": {
         "type": "contains",
@@ -183,7 +183,7 @@
     },
     {
       "path": "packages/server/test/persistent-pty.test.ts",
-      "sha256": "da0bfc78a4531b64736b4c9207ac8d494895198c4cd5e250d09f85a3e1b72329",
+      "sha256": "d7af54c0245f7bff3485a61c9da43a6c60dd67dad952b922597cc7fdb06586da",
       "behavior": "Behavioral oracle: the upstream suite asserts the 4404 close code, the null handoff body, terminal survival across an explicit restart handoff, and the migration of a handoff that names a legacy runtime directory.",
       "anchor": {
         "type": "contains",
@@ -192,7 +192,7 @@
     },
     {
       "path": "packages/client/src/solid/pty.ts",
-      "sha256": "45b17253a7faea39455022358ca6286137a65f20a75ed916c0b9de38bdd67714",
+      "sha256": "68ac510aa19c2dd76b1e8c3a4bcd73ef52aae74850e80f2cdc044abee1c817ee",
       "behavior": "Behavioral oracle: the reference client sends the ticket and cursor query parameters when it opens a PTY socket.",
       "anchor": {
         "type": "contains",
@@ -210,7 +210,7 @@
     },
     {
       "path": "packages/tui/src/component/terminal-pane.tsx",
-      "sha256": "3d96e4c3ad741adbc7287fe8f4e37d34e4095147218bd2eb1aee017ebfb6929c",
+      "sha256": "be09359b6af772c032830b33bbde06eebcae69abe7e4eea2d3e03f007b86ec2e",
       "behavior": "Behavioral oracle: the TUI resumes a terminal from the snapshot tail cursor.",
       "anchor": {
         "type": "contains",
@@ -381,7 +381,7 @@
     },
     {
       "path": "packages/protocol/src/errors.ts",
-      "sha256": "4c1db06c40a7d70d579dcf01a40f12f2fc52fe609b76b08cd0bbd75f297b78c5",
+      "sha256": "a83801eee4f838e431b4ac84c5b1f27f4e49f327d861055aaa51cffb56a6133e",
       "behavior": "The tagged error catalogue declares the wire discriminators the typed error family maps, so an added, removed or renamed tag changes the SDK\u0027s error union; LocationNotFoundError (404, location and message) is the location middlewares\u0027 error, and pty.connect declares it itself. Group files declare a few tagged errors of their own (WorktreeError, VcsInitNotSupportedError), which reach the SDK through the generated document rather than this file.",
       "anchor": {
         "type": "contains",
@@ -597,7 +597,7 @@
     },
     {
       "path": "package.json",
-      "sha256": "7e807299c3ec5215b6d66436c8406f9c9459584d9ad345bc5dd78757ddcef76c",
+      "sha256": "567803266dcf3477d078dc0234bf6dcb2fdb49eed2626486a945e8d4c67f4a54",
       "behavior": "The workspace catalog pins the Effect release the protocol document is generated with, whose JSON Schema encoding of StructWithRest (a struct\u0027s properties beside a single-element allOf carrying only the rest\u0027s additionalProperties) the projector admits as an open object, and whose union decode (SchemaAST Union.getParser: literal sentinels, then the first member in declaration order that decodes) the structural union first-match arm mirrors, as tools/oracles/first-match-union.ts proves; an Effect bump is reviewed against both, and the oracle re-run, before the snapshot moves.",
       "anchor": {
         "type": "contains",
@@ -633,7 +633,7 @@
     },
     {
       "path": "packages/cli/src/index.ts",
-      "sha256": "ece29308f549e5ae3413fa9efa9588957d1ffa3ca4229126de0d8ae342bf20fe",
+      "sha256": "11fc5776f91764feefecb2e7cb278f4da74f95172eabf1f4d38d08388385552d",
       "behavior": "The CLI\u0027s entry runs every command through NodeRuntime.runMain with its error reporting off, writes a fatal cause to stderr itself, and exits with process.exitCode (0 when unset): the stderr tail and exit status a contender\u0027s failure report carries, and the exit 0 the Ensure election reads as a loser that stood down. After SIGTERM or SIGINT, a teardown still unfinished after 10 seconds, or a second signal during teardown, writes the pending work to stderr and exits 1.",
       "anchor": {
         "type": "contains",
