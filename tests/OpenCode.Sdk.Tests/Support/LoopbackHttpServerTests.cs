@@ -1,11 +1,42 @@
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Tests.Support;
 
 public sealed class LoopbackHttpServerTests
 {
+    [Test]
+    public async Task ServeExchangeAsync_Should_Close_A_KeepOpen_Request_That_Arrives_After_The_Release()
+    {
+        await using var server = LoopbackHttpServer.Start(_ => new LoopbackHttpResponse
+        {
+            StatusCode = HttpStatusCode.ServiceUnavailable,
+            KeepOpen = true,
+        });
+        server.ReleaseResponses();
+        using var client = new TcpClient();
+
+        var read = await ReadResponseStartAsync(client, server.Endpoint);
+
+        await Assert.That(server.ReleasedHoldClosed).IsTrue();
+        await Assert.That(read).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ServeExchangeAsync_Should_Serve_A_Non_KeepOpen_Request_That_Arrives_After_The_Release()
+    {
+        await using var server = LoopbackHttpServer.Start(_ => new LoopbackHttpResponse { StatusCode = HttpStatusCode.OK });
+        server.ReleaseResponses();
+        using var client = new TcpClient();
+
+        var read = await ReadResponseStartAsync(client, server.Endpoint);
+
+        await Assert.That(read).IsGreaterThan(0);
+        await Assert.That(server.ReleasedHoldClosed).IsFalse();
+    }
+
     [Test]
     public async Task AcceptUntilShutdownAsync_Should_End_When_Shutdown_Stops_The_Listener_Between_The_Check_And_The_Accept()
     {
@@ -59,4 +90,15 @@ public sealed class LoopbackHttpServerTests
         _ = await Assert.That(server.ServeExchangeAsync(() => unreadable).WaitAsync(HangGuard.Bound, CancellationToken.None))
             .Throws<ArgumentException>();
     }
+
+    private static async Task<int> ReadResponseStartAsync(TcpClient client, Uri endpoint)
+    {
+        await client.ConnectAsync(endpoint.Host, endpoint.Port);
+        using var stream = client.GetStream();
+        await LoopbackHttpServer.WriteAsync(stream, RequestBytes(endpoint));
+        return await LoopbackHttpServer.ReadAsync(stream, new byte[1]).WaitAsync(HangGuard.Bound, CancellationToken.None);
+    }
+
+    private static byte[] RequestBytes(Uri endpoint) =>
+        Encoding.ASCII.GetBytes($"POST / HTTP/1.1\r\nHost: {endpoint.Authority}\r\nContent-Length: 0\r\n\r\n");
 }
