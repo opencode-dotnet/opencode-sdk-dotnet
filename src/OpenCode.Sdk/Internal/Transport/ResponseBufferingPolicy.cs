@@ -76,7 +76,7 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
         Debug.Assert(message.Response is not null, "The transport writes the response before this policy resumes.");
         if (ShouldBuffer(message))
         {
-            message.Body = await ReadAsync(message, progress).ConfigureAwait(false);
+            await ReadAsync(message, progress).ConfigureAwait(false);
         }
     }
 
@@ -90,12 +90,12 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
         return message.BufferBody || (int)message.Response!.StatusCode is < 200 or >= 300;
     }
 
-    private async ValueTask<ResponseBody> ReadAsync(PipelineMessage message, ProgressWindow progress)
+    private async ValueTask ReadAsync(PipelineMessage message, ProgressWindow progress)
     {
         var content = message.Response!.Content;
         if (content is null)
         {
-            return ResponseBody.Empty;
+            return;
         }
 
         // A read a token cannot reach still has to settle: downlevel socket reads ignore a
@@ -118,7 +118,7 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
         {
             progress.Restart();
             var body = await content.ReadAsStreamAsync(progress.Token).ConfigureAwait(false);
-            return await CopyToPooledAsync(body, content.Headers.ContentLength, progress).ConfigureAwait(false);
+            await CopyToPooledAsync(message, body, content.Headers.ContentLength, progress).ConfigureAwait(false);
         }
         catch (Exception exception) when (FailureClassification.Handles(exception, FailurePhase.ResponseBodyRead))
         {
@@ -144,7 +144,7 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
 #endif
     }
 
-    private async ValueTask<ResponseBody> CopyToPooledAsync(Stream body, long? declaredLength, ProgressWindow progress)
+    private async ValueTask CopyToPooledAsync(PipelineMessage message, Stream body, long? declaredLength, ProgressWindow progress)
     {
         var bytes = _pool.Rent(InitialRent(declaredLength));
         try
@@ -161,7 +161,8 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
                 if (read is 0)
                 {
                     // Ownership moves to the message; PipelineMessage.Dispose returns the array.
-                    return new ResponseBody(_pool, bytes, filled);
+                    message.AdoptBody(_pool, bytes, filled);
+                    return;
                 }
 
                 filled += read;

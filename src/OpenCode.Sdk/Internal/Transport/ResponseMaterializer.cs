@@ -16,10 +16,9 @@ internal static class ResponseMaterializer
         {
             case StatusVerdict.Success when adapter.BinarySuccess:
                 // Raw bytes are not text: no charset decode, no UTF-8 validation.
-                var raw = message.Body ?? ResponseBody.Empty;
                 return adapter.AdaptBinary(
                     status,
-                    raw.Bytes.AsSpan(0, raw.Length),
+                    message.BodyBytes.AsSpan(0, message.BodyLength),
                     message.Response.Content?.Headers.ContentType?.ToString());
             case StatusVerdict.Success:
                 var encodedBody = Decode(message);
@@ -44,12 +43,11 @@ internal static class ResponseMaterializer
 
     private static EncodedResponseBody Decode(PipelineMessage message)
     {
-        var body = message.Body ?? ResponseBody.Empty;
         try
         {
             return ResponseEncodingPolicy.Decode(
-                body.Bytes,
-                body.Length,
+                message.BodyBytes,
+                message.BodyLength,
                 message.Response!.Content?.Headers.ContentType?.CharSet);
         }
         catch (Exception exception) when (FailureClassification.Handles(exception, FailurePhase.ResponseBodyRead))

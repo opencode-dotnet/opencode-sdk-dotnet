@@ -35,7 +35,7 @@ public sealed class InternalNameCollisionCheckTests
     [Arguments(HoistedSlot, "ICursorPageAdapter")]
     [Arguments(ClientSlot, "TransportPolicy")]
     [Arguments(QueryRequestSlot, "DeclaredHeader")]
-    [Arguments(ResponseSlot, "ResponseBody")]
+    [Arguments(ResponseSlot, "PipelineMessage")]
     [Arguments(ResponseAdapterSlot, "ResponseAdapter")]
     [Arguments(EnvelopeDtoSlot, "EncodedResponseBody")]
     [Arguments(StreamAdapterSlot, "ServerSentEventReader")]
