@@ -1,5 +1,5 @@
 Generation is complete at the declared coverage; packages may be published.
-Selected operations: 157
+Selected operations: 164
 Pending operations: 0
 Declined operations: 3
 Transport-owned operations: 2
@@ -18,6 +18,13 @@ Selected:
 - debug.location.evict
 - debug.location.list
 - event.subscribe
+- experimental.artifacts.create
+- experimental.artifacts.delete
+- experimental.artifacts.get
+- experimental.artifacts.list
+- experimental.artifacts.providers
+- experimental.artifacts.update
+- experimental.artifacts.view
 - experimental.config.update
 - experimental.fs.unwatch
 - experimental.fs.watch

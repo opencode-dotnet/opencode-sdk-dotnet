@@ -1264,13 +1264,13 @@
     {
       "type": "ConfigInfoExperimental",
       "member": "PortableShellScanner",
-      "summary": "Enable the experimental portable shell permission scanner. Defaults to false.",
+      "summary": "Deprecated: the built-in shell permission scanner is now always enabled.",
       "remarks": null,
       "reason": "The projection omits the declared documentation for this setting.",
       "sources": [
         {
           "location": "packages/schema/src/config/experimental.ts:10",
-          "excerpt": "    description: \"Enable the experimental portable shell permission scanner. Defaults to false.\","
+          "excerpt": "    description: \"Deprecated: the built-in shell permission scanner is now always enabled.\","
         }
       ]
     },
@@ -1458,7 +1458,7 @@
       "reason": "Describe the upstream route group exposed by this family.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/persistent-pty.ts:128",
+          "location": "packages/protocol/src/groups/persistent-pty.ts:140",
           "excerpt": "  .annotateMerge(OpenApi.annotations({ title: \"persistentPty\", description: \"Prototype persistent PTY routes.\" }))"
         }
       ]
@@ -2312,7 +2312,7 @@
       "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
       "sources": [
         { "location": "packages/schema/src/schedule.ts:73", "excerpt": " * Runs `run` in the Session's directory before firing, with no model call. With none of `is`, `matches` or `changes`" },
-        { "location": "packages/schema/src/schedule.ts:87", "excerpt": "/** Checked before firing; the schedule wakes the Session only when the condition passes. */" }
+        { "location": "packages/schema/src/schedule.ts:98", "excerpt": "/** Checked before firing; the schedule wakes the Session only when the condition passes. */" }
       ]
     },
     {
@@ -2329,7 +2329,7 @@
       "summary": "When a schedule fires, as callers write it: exactly one of in, at, every or cron, with an optional time zone.",
       "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
       "sources": [
-        { "location": "packages/schema/src/schedule.ts:154", "excerpt": "/** The `when` callers write: exactly one of `in`, `at`, `every` or `cron`, with an optional `tz`. */" }
+        { "location": "packages/schema/src/schedule.ts:165", "excerpt": "/** The `when` callers write: exactly one of `in`, `at`, `every` or `cron`, with an optional `tz`. */" }
       ]
     },
     {
@@ -2345,36 +2345,36 @@
       "summary": "The at trigger as callers write it: an instant with an offset, or a wall-clock time in the trigger's time zone.",
       "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
       "sources": [
-        { "location": "packages/schema/src/schedule.ts:154", "excerpt": "/** The `when` callers write: exactly one of `in`, `at`, `every` or `cron`, with an optional `tz`. */" },
-        { "location": "packages/schema/src/schedule.ts:157", "excerpt": "  Schema.Struct({ at: At.fields.at, in: absent, every: absent, cron: absent, ...zone })," },
+        { "location": "packages/schema/src/schedule.ts:165", "excerpt": "/** The `when` callers write: exactly one of `in`, `at`, `every` or `cron`, with an optional `tz`. */" },
+        { "location": "packages/schema/src/schedule.ts:168", "excerpt": "  Schema.Struct({ at: At.fields.at, in: absent, every: absent, cron: absent, ...zone })," },
         { "location": "packages/schema/src/schedule.ts:37", "excerpt": "/** An instant with an offset, or a wall-clock time in `tz`, e.g. \"2026-10-27T09:00\". */" }
       ]
     },
     {
-      "type": "ScheduleConditionInput",
+      "type": "ScheduleConditionInputRun",
       "member": "Is",
       "summary": "Wakes the session when the command exits 0 and its trimmed standard output equals this value.",
       "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
       "sources": [
-        { "location": "packages/schema/src/schedule.ts:168", "excerpt": "    description: \"Wake when exit is 0 and trimmed stdout equals this value.\"," }
+        { "location": "packages/schema/src/schedule.ts:179", "excerpt": "    description: \"Wake when exit is 0 and trimmed stdout equals this value.\"," }
       ]
     },
     {
-      "type": "ScheduleConditionInput",
+      "type": "ScheduleConditionInputRun",
       "member": "Matches",
       "summary": "Wakes the session when the command exits 0 and its standard output matches this regular expression.",
       "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
       "sources": [
-        { "location": "packages/schema/src/schedule.ts:171", "excerpt": "    description: \"Wake when exit is 0 and stdout matches this regular expression.\"," }
+        { "location": "packages/schema/src/schedule.ts:182", "excerpt": "    description: \"Wake when exit is 0 and stdout matches this regular expression.\"," }
       ]
     },
     {
-      "type": "ScheduleConditionInput",
+      "type": "ScheduleConditionInputRun",
       "member": "Changes",
       "summary": "Wakes the session when the command exits 0 and its standard output differs from the previous check.",
       "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
       "sources": [
-        { "location": "packages/schema/src/schedule.ts:174", "excerpt": "    description: \"Wake when exit is 0 and stdout differs from the previous check.\"," }
+        { "location": "packages/schema/src/schedule.ts:185", "excerpt": "    description: \"Wake when exit is 0 and stdout differs from the previous check.\"," }
       ]
     }
   ],
@@ -2897,6 +2897,41 @@
       "operationId": "experimental.schedule.resume",
       "methodName": "ResumeScheduleAsync",
       "reason": "Upstream resumes a paused schedule; the name pairs with PauseScheduleAsync."
+    },
+    {
+      "operationId": "experimental.artifacts.list",
+      "methodName": "ListArtifactsAsync",
+      "reason": "The operation lists published artifacts, newest update first; its subject already ends in \"s\"."
+    },
+    {
+      "operationId": "experimental.artifacts.delete",
+      "methodName": "DeleteArtifactAsync",
+      "reason": "The operation removes one artifact and its stored files; delete is not a naming verb."
+    },
+    {
+      "operationId": "experimental.artifacts.get",
+      "methodName": "GetArtifactAsync",
+      "reason": "The operation reads one artifact's metadata and file contents; the group id is plural."
+    },
+    {
+      "operationId": "experimental.artifacts.create",
+      "methodName": "CreateArtifactAsync",
+      "reason": "The operation publishes one artifact; the group id is plural."
+    },
+    {
+      "operationId": "experimental.artifacts.update",
+      "methodName": "UpdateArtifactAsync",
+      "reason": "The operation replaces one artifact's files at the same ID and URL; the group id is plural."
+    },
+    {
+      "operationId": "experimental.artifacts.providers",
+      "methodName": "ListArtifactProvidersAsync",
+      "reason": "The operation returns the active artifact providers and the default."
+    },
+    {
+      "operationId": "experimental.artifacts.view",
+      "methodName": "GetArtifactFileAsync",
+      "reason": "The operation serves one file of a local artifact by its path, as raw bytes."
     }
   ],
   "parameterNames": [
@@ -3163,6 +3198,16 @@
       "operationId": "plugin.gui",
       "parameter": "id",
       "reason": "A plugin id; upstream's client takes a string."
+    },
+    {
+      "operationId": "experimental.artifacts.list",
+      "parameter": "sessionID",
+      "reason": "A session ID; upstream's client takes a string."
+    },
+    {
+      "operationId": "experimental.artifacts.list",
+      "parameter": "provider",
+      "reason": "An artifact provider ID; upstream's client takes a string."
     }
   ],
   "schemaNames": [
@@ -3607,6 +3652,11 @@
       "reason": "Generation questions, answers, results and image parts are the payloads of the experimental.generate operations, which only the flat Experimental client carries."
     },
     {
+      "match": "Artifact",
+      "owner": "Experimental",
+      "reason": "Artifacts, their providers, contents and update event belong to the experimental.artifacts operations, which only the flat Experimental client carries."
+    },
+    {
       "match": "UsageLimits",
       "owner": "Experimental",
       "reason": "Usage limits are the payload of experimental.usage.limits, which only the flat Experimental client carries."
@@ -3756,7 +3806,12 @@
     { "operationId": "server.connect", "name": "PairingSession", "reason": "The bare JSON response is PairingSession; the member names the pairing session returned when a code is redeemed, not the action Connect." },
     { "operationId": "vcs.diff", "name": "Diffs", "reason": "The data array contains FileDiff.Info records; Diffs names the multiple file diffs rather than the singular operation subject Diff." },
     { "operationId": "session.diff", "name": "Diffs", "reason": "The data array contains FileDiff.Info records for the session diff; Diffs names the collection consistently with vcs.diff rather than the singular subject Diff." },
-    { "operationId": "server.info", "name": "ServerInfo", "reason": "The bare response is ServerInfo; ServerInfo names the returned server identity and readiness information rather than the unqualified subject Info." }
+    { "operationId": "server.info", "name": "ServerInfo", "reason": "The bare response is ServerInfo; ServerInfo names the returned server identity and readiness information rather than the unqualified subject Info." },
+    {
+      "operationId": "experimental.artifacts.list",
+      "name": "Artifacts",
+      "reason": "The data array contains Artifact.Info records; Artifacts names them."
+    }
   ],
   "schemaAliases": [
     {

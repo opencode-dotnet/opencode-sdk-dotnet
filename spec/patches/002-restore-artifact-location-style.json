@@ -1,0 +1,24 @@
+{
+  "patch": "002-restore-artifact-location-style.patch",
+  "sha256": "e3673e7e6b502f04358da7b3b477c66e9636b5fd488036d480c52d0bc9402ec9",
+  "upstreamReport": "https://github.com/anomalyco/opencode/issues/60960",
+  "order": 2,
+  "touches": [
+    "packages/protocol/src/groups/artifact.ts"
+  ],
+  "repairPredicate": {
+    "type": "parameterLacksStyle",
+    "operations": [
+      "experimental.artifacts.create",
+      "experimental.artifacts.delete",
+      "experimental.artifacts.get",
+      "experimental.artifacts.list",
+      "experimental.artifacts.providers",
+      "experimental.artifacts.update",
+      "experimental.artifacts.view"
+    ],
+    "parameter": "location",
+    "style": "deepObject"
+  },
+  "retirement": "Raw upstream openapi.json gives the experimental.artifacts operations' location query parameter style deepObject (the artifact annotations keep locationQueryOpenApi's transform); prepare then refuses this patch and an empty-patch refresh retires it."
+}

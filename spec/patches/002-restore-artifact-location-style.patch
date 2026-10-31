@@ -1,0 +1,24 @@
+diff --git a/packages/protocol/src/groups/artifact.ts b/packages/protocol/src/groups/artifact.ts
+index 0d67982..1328822 100644
+--- a/packages/protocol/src/groups/artifact.ts
++++ b/packages/protocol/src/groups/artifact.ts
+@@ -31,7 +31,18 @@ const annotations = (identifier: string, summary: string, description: string) =
+     identifier: `experimental.artifacts.${identifier}`,
+     summary,
+     description: `${description} ${EXPERIMENTAL}`,
+-    transform: (operation) => ({ ...operation, tags: ["experimental"] }),
++    // This transform replaces locationQueryOpenApi's, so it also carries that transform's deepObject style.
++    transform: (operation) => ({
++      ...operation,
++      tags: ["experimental"],
++      parameters: Array.isArray(operation.parameters)
++        ? operation.parameters.map((parameter) =>
++            parameter?.name === "location" && parameter?.in === "query"
++              ? { ...parameter, style: "deepObject", explode: true }
++              : parameter,
++          )
++        : operation.parameters,
++    }),
+   })
+ 
+ const commonErrors = [ForbiddenError, LocationNotFoundError, ServiceUnavailableError] as const

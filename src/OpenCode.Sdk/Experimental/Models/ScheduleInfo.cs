@@ -46,14 +46,14 @@ public sealed record ScheduleInfo
     /// </summary>
     [JsonPropertyName("if")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ScheduleConditionShell? If { get; init; }
+    public IScheduleCondition? If { get; init; }
 
     /// <summary>
     /// Gets the until value.
     /// </summary>
     [JsonPropertyName("until")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ScheduleConditionShell? Until { get; init; }
+    public IScheduleCondition? Until { get; init; }
 
     /// <summary>
     /// Gets the action value.

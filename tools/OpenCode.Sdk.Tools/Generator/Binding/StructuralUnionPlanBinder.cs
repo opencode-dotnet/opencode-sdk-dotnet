@@ -335,7 +335,7 @@ internal static class StructuralUnionPlanBinder
     {
         NamedTypeReferencePlan { Name: "string" } => "Text",
         NamedTypeReferencePlan { Name: "double" } or SpecialNumberTypeReferencePlan => "Number",
-        NamedTypeReferencePlan { Name: "long" } => "Integer",
+        NamedTypeReferencePlan { Name: "long" } => "WholeNumber",
         NamedTypeReferencePlan { Name: "bool" } => "Boolean",
         NamedTypeReferencePlan named => CSharpNamePolicy.ToUnionConceptName(named.Name),
         ListTypeReferencePlan list => $"{ArmName(list.ElementType)}List",

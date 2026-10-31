@@ -11,6 +11,7 @@ internal sealed class EventJsonConverter : JsonConverter<IEvent>
     private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
     {
         ["agent.updated"] = typeof(AgentUpdated),
+        ["artifact.updated"] = typeof(ArtifactUpdated),
         ["command.updated"] = typeof(CommandUpdated),
         ["config.updated"] = typeof(ConfigUpdated),
         ["credential.switched"] = typeof(CredentialSwitched),
@@ -31,6 +32,7 @@ internal sealed class EventJsonConverter : JsonConverter<IEvent>
         ["permission.replied"] = typeof(PermissionReplied),
         ["persistent-pty.added"] = typeof(PersistentPtyAdded),
         ["persistent-pty.removed"] = typeof(PersistentPtyRemoved),
+        ["persistent-pty.updated"] = typeof(PersistentPtyUpdated),
         ["plugin.updated"] = typeof(PluginUpdated),
         ["project.updated"] = typeof(ProjectUpdated),
         ["provider.updated"] = typeof(ProviderUpdated),

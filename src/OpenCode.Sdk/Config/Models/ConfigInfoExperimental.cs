@@ -9,7 +9,7 @@ namespace OpenCode.Sdk.Models;
 public sealed record ConfigInfoExperimental
 {
     /// <summary>
-    /// Enable the experimental portable shell permission scanner. Defaults to false.
+    /// Deprecated: the built-in shell permission scanner is now always enabled.
     /// </summary>
     [JsonPropertyName("portable_shell_scanner")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -49,6 +49,13 @@ public sealed record ConfigInfoExperimental
     [JsonPropertyName("schedules")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? Schedules { get; init; }
+
+    /// <summary>
+    /// Gets the artifacts value.
+    /// </summary>
+    [JsonPropertyName("artifacts")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Artifacts { get; init; }
 
     /// <summary>
     /// Maximum subagent nesting depth. Defaults to 1.

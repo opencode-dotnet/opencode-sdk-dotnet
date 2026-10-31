@@ -9,6 +9,7 @@ internal sealed class PersistentPtyUpdateResponseAdapter : ResponseAdapter<Persi
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
     private static readonly string[] Status404Tags = ["PtyNotFoundError"];
+    private static readonly string[] Status501Tags = ["PtyFeatureUnsupportedError"];
     private static readonly string[] Status503Tags = ["ServiceUnavailableError"];
     private PersistentPtyUpdateResponseAdapter()
     {
@@ -29,6 +30,7 @@ internal sealed class PersistentPtyUpdateResponseAdapter : ResponseAdapter<Persi
         400 => StatusVerdict.DeclaredError,
         401 => StatusVerdict.DeclaredError,
         404 => StatusVerdict.DeclaredError,
+        501 => StatusVerdict.DeclaredError,
         503 => StatusVerdict.DeclaredError,
         _ => StatusVerdict.UndeclaredError
     };
@@ -57,6 +59,7 @@ internal sealed class PersistentPtyUpdateResponseAdapter : ResponseAdapter<Persi
             400 => new PersistentPtyUpdateResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
             401 => new PersistentPtyUpdateResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
             404 => new PersistentPtyUpdateResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
+            501 => new PersistentPtyUpdateResponse(status, ReadTolerantError(rawBody, Status501Tags), rawBody),
             503 => new PersistentPtyUpdateResponse(status, ReadTolerantError(rawBody, Status503Tags), rawBody),
             _ => new PersistentPtyUpdateResponse(status, ReadTolerantError(rawBody, null), rawBody)
         };

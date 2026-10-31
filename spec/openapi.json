@@ -13142,7 +13142,9 @@
                 }
               ]
             },
-            "required": false
+            "required": false,
+            "style": "deepObject",
+            "explode": true
           }
         ],
         "security": [],
@@ -13256,7 +13258,9 @@
                 }
               ]
             },
-            "required": false
+            "required": false,
+            "style": "deepObject",
+            "explode": true
           },
           {
             "name": "sessionID",
@@ -13405,7 +13409,9 @@
                 }
               ]
             },
-            "required": false
+            "required": false,
+            "style": "deepObject",
+            "explode": true
           }
         ],
         "security": [],
@@ -13544,7 +13550,9 @@
                 }
               ]
             },
-            "required": false
+            "required": false,
+            "style": "deepObject",
+            "explode": true
           }
         ],
         "security": [],
@@ -13668,7 +13676,9 @@
                 }
               ]
             },
-            "required": false
+            "required": false,
+            "style": "deepObject",
+            "explode": true
           }
         ],
         "security": [],
@@ -13805,7 +13815,9 @@
                 }
               ]
             },
-            "required": false
+            "required": false,
+            "style": "deepObject",
+            "explode": true
           }
         ],
         "security": [],
@@ -13914,7 +13926,9 @@
                 }
               ]
             },
-            "required": false
+            "required": false,
+            "style": "deepObject",
+            "explode": true
           }
         ],
         "security": [],

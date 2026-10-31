@@ -104,6 +104,24 @@ public class ExperimentalClient
     }
 
     /// <summary>
+    /// Create artifact. Publish a new artifact through the selected or default artifact provider. Experimental: needs experimental.artifacts in the Location&apos;s config and may change without notice.
+    /// </summary>
+    /// <param name = "request">The request body.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalArtifactsCreateResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.artifacts.create</c>: <c>POST /api/experimental/artifacts</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalArtifactsCreateResponse> CreateArtifactAsync(ExperimentalArtifactsCreateRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Pipeline.ExecuteAsync("experimental.artifacts.create", HttpMethod.Post, OpenCodeRoutes.Experimental.CreateArtifact(request), request, OpenCodeJsonContext.Default.ExperimentalArtifactsCreateRequest, ExperimentalArtifactsCreateResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
     /// Create schedule. Schedule a prompt that wakes the Session once after a delay, at a time, every interval, or on a cron. Experimental: needs experimental.schedules in the Session&apos;s config and may change without notice.
     /// </summary>
     /// <param name = "request">The request body.</param>
@@ -137,6 +155,25 @@ public class ExperimentalClient
     {
         ArgumentNullException.ThrowIfNull(request);
         return Pipeline.ExecuteAsync("experimental.voice.session", HttpMethod.Post, OpenCodeRoutes.Experimental.CreateVoiceSession, request, OpenCodeJsonContext.Default.ExperimentalVoiceSessionRequest, ExperimentalVoiceSessionResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Delete artifact. Remove an artifact and its stored files. Experimental: needs experimental.artifacts in the Location&apos;s config and may change without notice.
+    /// </summary>
+    /// <param name = "artifactId">The &apos;artifactID&apos; route value.</param>
+    /// <param name = "request">The request shaping the query.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalArtifactsDeleteResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.artifacts.delete</c>: <c>DELETE /api/experimental/artifacts/{artifactID}</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalArtifactsDeleteResponse> DeleteArtifactAsync(string artifactId, ExperimentalArtifactsDeleteRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(artifactId);
+        return Pipeline.ExecuteAsync("experimental.artifacts.delete", HttpMethod.Delete, OpenCodeRoutes.Experimental.DeleteArtifact(artifactId, request), ExperimentalArtifactsDeleteResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -228,6 +265,45 @@ public class ExperimentalClient
     {
         ArgumentNullException.ThrowIfNull(request);
         return Pipeline.ExecuteAsync("experimental.generate.text", HttpMethod.Post, OpenCodeRoutes.Experimental.GenerateText, request, OpenCodeJsonContext.Default.ExperimentalGenerateTextRequest, ExperimentalGenerateTextResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Read artifact. Read an artifact&apos;s metadata and file contents. Experimental: needs experimental.artifacts in the Location&apos;s config and may change without notice.
+    /// </summary>
+    /// <param name = "artifactId">The &apos;artifactID&apos; route value.</param>
+    /// <param name = "request">The request shaping the query.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalArtifactsResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.artifacts.get</c>: <c>GET /api/experimental/artifacts/{artifactID}</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalArtifactsResponse> GetArtifactAsync(string artifactId, ExperimentalArtifactsRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(artifactId);
+        return Pipeline.ExecuteAsync("experimental.artifacts.get", HttpMethod.Get, OpenCodeRoutes.Experimental.GetArtifact(artifactId, request), ExperimentalArtifactsResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// View local artifact. Serve HTML and static files from the local provider. Experimental: needs experimental.artifacts in the Location&apos;s config and may change without notice.
+    /// </summary>
+    /// <param name = "artifactId">The &apos;artifactID&apos; route value.</param>
+    /// <param name = "request">The request shaping the query; its required members have no server default.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalArtifactsViewResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.artifacts.view</c>: <c>GET /api/experimental/artifacts/{artifactID}/view/*</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalArtifactsViewResponse> GetArtifactFileAsync(string artifactId, ExperimentalArtifactsViewRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(artifactId);
+        ArgumentNullException.ThrowIfNull(request);
+        return Pipeline.ExecuteAsync("experimental.artifacts.view", HttpMethod.Get, OpenCodeRoutes.Experimental.GetArtifactFile(artifactId, request), ExperimentalArtifactsViewResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -351,6 +427,40 @@ public class ExperimentalClient
     {
         ArgumentNullException.ThrowIfNull(request);
         return Pipeline.ExecuteAsync("experimental.session.import", HttpMethod.Post, OpenCodeRoutes.Experimental.ImportSession, request, OpenCodeJsonContext.Default.ExperimentalSessionImportRequest, ExperimentalSessionImportResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// List artifact providers. Return active artifact providers and default. Experimental: needs experimental.artifacts in the Location&apos;s config and may change without notice.
+    /// </summary>
+    /// <param name = "request">The request shaping the query.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalArtifactsProvidersResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.artifacts.providers</c>: <c>GET /api/experimental/artifacts/providers</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalArtifactsProvidersResponse> ListArtifactProvidersAsync(ExperimentalArtifactsProvidersRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        return Pipeline.ExecuteAsync("experimental.artifacts.providers", HttpMethod.Get, OpenCodeRoutes.Experimental.ListArtifactProviders(request), ExperimentalArtifactsProvidersResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// List artifacts. List published artifacts, newest update first. Experimental: needs experimental.artifacts in the Location&apos;s config and may change without notice.
+    /// </summary>
+    /// <param name = "request">The request shaping the query.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalArtifactsListResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.artifacts.list</c>: <c>GET /api/experimental/artifacts</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalArtifactsListResponse> ListArtifactsAsync(ExperimentalArtifactsListRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        return Pipeline.ExecuteAsync("experimental.artifacts.list", HttpMethod.Get, OpenCodeRoutes.Experimental.ListArtifacts(request), ExperimentalArtifactsListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -538,6 +648,26 @@ public class ExperimentalClient
     {
         ArgumentNullException.ThrowIfNull(request);
         return Pipeline.ExecuteAsync("experimental.fs.unwatch", HttpMethod.Delete, OpenCodeRoutes.Experimental.UnwatchFile(request), request, OpenCodeJsonContext.Default.ExperimentalFsUnwatchRequest, ExperimentalFsUnwatchResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Update artifact. Replace an artifact&apos;s files at the same ID and URL. Experimental: needs experimental.artifacts in the Location&apos;s config and may change without notice.
+    /// </summary>
+    /// <param name = "artifactId">The &apos;artifactID&apos; route value.</param>
+    /// <param name = "request">The request body.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalArtifactsUpdateResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.artifacts.update</c>: <c>PATCH /api/experimental/artifacts/{artifactID}</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalArtifactsUpdateResponse> UpdateArtifactAsync(string artifactId, ExperimentalArtifactsUpdateRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(artifactId);
+        ArgumentNullException.ThrowIfNull(request);
+        return Pipeline.ExecuteAsync("experimental.artifacts.update", OpenCodeHttpMethod.Patch, OpenCodeRoutes.Experimental.UpdateArtifact(artifactId, request), request, OpenCodeJsonContext.Default.ExperimentalArtifactsUpdateRequest, ExperimentalArtifactsUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>

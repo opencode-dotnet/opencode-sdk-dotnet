@@ -11,8 +11,8 @@ Nightly builds of `master` are on
 
 ### 💥 Breaking changes
 
-- **The upstream pin moves to opencode v2.2.2.** The entries below are what the refresh changes in
-  the public surface; each follows a change upstream made between v2.1.4 and v2.2.2.
+- **The upstream pin moves to opencode v2.2.5.** The entries below are what the refresh changes in
+  the public surface; each follows a change upstream made between v2.1.4 and v2.2.5.
 - **The session log moves to `ExperimentalClient.ReadSessionLogAsync`.** Upstream serves it as
   `experimental.session.log`, so `SessionClient.ReadLogAsync` is gone and `SessionLogRequest` is
   `ExperimentalSessionLogRequest`, with the same `After` and `Follow`. Migrate
@@ -31,6 +31,21 @@ Nightly builds of `master` are on
   upstream separates a variant's settings from a model's.
 - **`VoiceModel.Integration`, `VoiceModel.Workspace` and `ExperimentalVoiceSessionData.Session`
   are removed**, with `VoiceSessionReference`: upstream no longer declares them.
+- **`ConfigInfoCompaction.Buffer` is `ConfigInfoCompactionBuffer?`, not `long?`.** Upstream now
+  accepts a share of the context window such as `"20%"` besides a token count, so the value is a
+  carrier: `Kind` says which arm it holds, `Text` the percentage and `WholeNumber` the token count.
+  Migrate `config.Compaction.Buffer` to `buffer.WholeNumber` after checking
+  `buffer.Kind == ConfigInfoCompactionBufferKind.WholeNumber`, and set it with
+  `ConfigInfoCompactionBuffer.FromWholeNumber(...)` or `FromText("20%")`.
+- **Schedule conditions are a union.** A condition is now a shell check or a Code Mode script.
+  `ScheduleInfo.If` and `Until` are `IScheduleCondition?` (`ScheduleConditionShell`,
+  `ScheduleConditionCode` or `UnknownScheduleCondition`), and `ScheduleConditionShell.Type` is its
+  fixed marker. `ScheduleConditionInput` is a carrier: build it with
+  `ScheduleConditionInput.FromScheduleConditionInputRun(new() { Run = … })` or
+  `FromScheduleConditionInputCode(new() { Code = … })`.
+- **`PersistentPtyInfo.UserTitle` is required.** It is the title a user gave the terminal, or
+  `null` when none was given; upstream always sends the key, so a terminal from a server that omits
+  it no longer deserializes, and an initializer that builds a `PersistentPtyInfo` must set it.
 - **Open enums are generated extensible enums, not `string`.** A string enum beside a free string,
   such as a reasoning field's known names, now binds a generated extensible enum that carries any
   other value too. `ModelCompatibility.ReasoningField` and `ProviderCompatibility.ReasoningField`
@@ -65,6 +80,13 @@ Nightly builds of `master` are on
   New members follow upstream too, among them `SessionInfoTime.Busy`, a `Cache` setting on models
   and providers, `ConfigInfo.Timezone` and `VcsDiffRequest.Untracked`, and a local plugin's
   `PluginSourceLocal.Path` is now the path it was configured with.
+- **The operations upstream v2.2.5 adds.** `ExperimentalClient` gains the artifacts operations
+  `ListArtifactsAsync`, `GetArtifactAsync`, `CreateArtifactAsync`, `UpdateArtifactAsync`,
+  `DeleteArtifactAsync`, `ListArtifactProvidersAsync` and `GetArtifactFileAsync`; they need
+  `experimental.artifacts` in the location's config. The event stream gains `ArtifactUpdated` and
+  `PersistentPtyUpdated`, the error family gains `ArtifactNotFoundError` and
+  `PtyFeatureUnsupportedError`, `ConfigInfoExperimental` gains `Artifacts`, and policy actions
+  gain `integration.connect`, `mcp.use`, `skill.use` and `plugin.use`.
 - **Terminal input reuses a pooled buffer for the message it sends.** A repeated large paste usually
   needs no new message buffer; a pool miss still allocates one.
 - **A terminal connection reuses a pooled 16 KiB receive buffer.** It rents it from the shared array

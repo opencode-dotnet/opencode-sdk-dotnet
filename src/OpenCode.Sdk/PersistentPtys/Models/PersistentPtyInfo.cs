@@ -64,6 +64,12 @@ public sealed record PersistentPtyInfo
     public required string SessionId { get; init; }
 
     /// <summary>
+    /// Gets the user title value.
+    /// </summary>
+    [JsonPropertyName("userTitle")]
+    public required string? UserTitle { get; init; }
+
+    /// <summary>
     /// Gets the foreground process value.
     /// </summary>
     [JsonPropertyName("foregroundProcess")]

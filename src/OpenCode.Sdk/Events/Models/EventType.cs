@@ -331,6 +331,10 @@ public readonly struct EventType : IEquatable<EventType>
         /// </summary>
         public const string PersistentPtyRemoved = "persistent-pty.removed";
         /// <summary>
+        /// The &apos;persistent-pty.updated&apos; wire spelling.
+        /// </summary>
+        public const string PersistentPtyUpdated = "persistent-pty.updated";
+        /// <summary>
         /// The &apos;shell.created&apos; wire spelling.
         /// </summary>
         public const string ShellCreated = "shell.created";
@@ -358,6 +362,10 @@ public readonly struct EventType : IEquatable<EventType>
         /// The &apos;websearch.updated&apos; wire spelling.
         /// </summary>
         public const string WebsearchUpdated = "websearch.updated";
+        /// <summary>
+        /// The &apos;artifact.updated&apos; wire spelling.
+        /// </summary>
+        public const string ArtifactUpdated = "artifact.updated";
         /// <summary>
         /// The &apos;session.status&apos; wire spelling.
         /// </summary>
@@ -709,6 +717,10 @@ public readonly struct EventType : IEquatable<EventType>
     /// </summary>
     public static EventType PersistentPtyRemoved { get; } = new(Values.PersistentPtyRemoved);
     /// <summary>
+    /// Gets the &apos;persistent-pty.updated&apos; wire value.
+    /// </summary>
+    public static EventType PersistentPtyUpdated { get; } = new(Values.PersistentPtyUpdated);
+    /// <summary>
     /// Gets the &apos;shell.created&apos; wire value.
     /// </summary>
     public static EventType ShellCreated { get; } = new(Values.ShellCreated);
@@ -736,6 +748,10 @@ public readonly struct EventType : IEquatable<EventType>
     /// Gets the &apos;websearch.updated&apos; wire value.
     /// </summary>
     public static EventType WebsearchUpdated { get; } = new(Values.WebsearchUpdated);
+    /// <summary>
+    /// Gets the &apos;artifact.updated&apos; wire value.
+    /// </summary>
+    public static EventType ArtifactUpdated { get; } = new(Values.ArtifactUpdated);
     /// <summary>
     /// Gets the &apos;session.status&apos; wire value.
     /// </summary>
@@ -787,7 +803,7 @@ public readonly struct EventType : IEquatable<EventType>
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is Values.LocationShutdown or Values.ModelsDevRefreshed or Values.CredentialUpdated or Values.CredentialSwitched or Values.IntegrationUpdated or Values.ProviderUpdated or Values.ModelUpdated or Values.AgentUpdated or Values.SessionCreated or Values.SessionAgentSelected or Values.SessionModelSelected or Values.SessionMoved or Values.SessionRenamed or Values.SessionMetadataUpdated or Values.SessionPermissions or Values.SessionViewed or Values.SessionArchived or Values.SessionUnarchived or Values.SessionUsageUpdated or Values.SessionDeleted or Values.SessionForked or Values.SessionInboxDelivered or Values.SessionInboxEnqueued or Values.SessionInboxCancelled or Values.SessionInboxDeliveryChanged or Values.SessionExecutionStarted or Values.SessionExecutionSucceeded or Values.SessionExecutionFailed or Values.SessionExecutionInterrupted or Values.SessionInstructionsUpdated or Values.SessionSynthetic or Values.SessionSkillActivated or Values.SessionShellStarted or Values.SessionShellEnded or Values.SessionStepStarted or Values.SessionStepStreamed or Values.SessionStepEnded or Values.SessionStepFailed or Values.SessionTextStarted or Values.SessionTextDelta or Values.SessionTextEnded or Values.SessionReasoningStarted or Values.SessionReasoningDelta or Values.SessionReasoningEnded or Values.SessionToolInputStarted or Values.SessionToolInputDelta or Values.SessionToolInputEnded or Values.SessionToolCalled or Values.SessionToolProgress or Values.SessionToolSuccess or Values.SessionToolFailed or Values.SessionRetryScheduled or Values.SessionCompactionStarted or Values.SessionCompactionDelta or Values.SessionCompactionEnded or Values.SessionCompactionFailed or Values.SessionRevertStaged or Values.SessionRevertCleared or Values.SessionRevertCommitted or Values.FilesystemChanged or Values.ReferenceUpdated or Values.PermissionAsked or Values.PermissionReplied or Values.PluginUpdated or Values.ProjectUpdated or Values.WorktreeUpdated or Values.WorktreeResolved or Values.CommandUpdated or Values.ConfigUpdated or Values.SkillUpdated or Values.PtyCreated or Values.PtyUpdated or Values.PtyExited or Values.PtyDeleted or Values.PersistentPtyAdded or Values.PersistentPtyRemoved or Values.ShellCreated or Values.ShellExited or Values.ShellDeleted or Values.FormCreated or Values.FormReplied or Values.FormCancelled or Values.WebsearchUpdated or Values.SessionStatus or Values.SessionIdle or Values.TuiPromptAppend or Values.TuiCommandExecute or Values.TuiToastShow or Values.TuiSessionSelect or Values.InstallationUpdated or Values.InstallationUpdateAvailable or Values.VcsBranchUpdated or Values.McpStatusChanged or Values.McpResourcesChanged;
+    public bool IsKnown => _value is Values.LocationShutdown or Values.ModelsDevRefreshed or Values.CredentialUpdated or Values.CredentialSwitched or Values.IntegrationUpdated or Values.ProviderUpdated or Values.ModelUpdated or Values.AgentUpdated or Values.SessionCreated or Values.SessionAgentSelected or Values.SessionModelSelected or Values.SessionMoved or Values.SessionRenamed or Values.SessionMetadataUpdated or Values.SessionPermissions or Values.SessionViewed or Values.SessionArchived or Values.SessionUnarchived or Values.SessionUsageUpdated or Values.SessionDeleted or Values.SessionForked or Values.SessionInboxDelivered or Values.SessionInboxEnqueued or Values.SessionInboxCancelled or Values.SessionInboxDeliveryChanged or Values.SessionExecutionStarted or Values.SessionExecutionSucceeded or Values.SessionExecutionFailed or Values.SessionExecutionInterrupted or Values.SessionInstructionsUpdated or Values.SessionSynthetic or Values.SessionSkillActivated or Values.SessionShellStarted or Values.SessionShellEnded or Values.SessionStepStarted or Values.SessionStepStreamed or Values.SessionStepEnded or Values.SessionStepFailed or Values.SessionTextStarted or Values.SessionTextDelta or Values.SessionTextEnded or Values.SessionReasoningStarted or Values.SessionReasoningDelta or Values.SessionReasoningEnded or Values.SessionToolInputStarted or Values.SessionToolInputDelta or Values.SessionToolInputEnded or Values.SessionToolCalled or Values.SessionToolProgress or Values.SessionToolSuccess or Values.SessionToolFailed or Values.SessionRetryScheduled or Values.SessionCompactionStarted or Values.SessionCompactionDelta or Values.SessionCompactionEnded or Values.SessionCompactionFailed or Values.SessionRevertStaged or Values.SessionRevertCleared or Values.SessionRevertCommitted or Values.FilesystemChanged or Values.ReferenceUpdated or Values.PermissionAsked or Values.PermissionReplied or Values.PluginUpdated or Values.ProjectUpdated or Values.WorktreeUpdated or Values.WorktreeResolved or Values.CommandUpdated or Values.ConfigUpdated or Values.SkillUpdated or Values.PtyCreated or Values.PtyUpdated or Values.PtyExited or Values.PtyDeleted or Values.PersistentPtyAdded or Values.PersistentPtyRemoved or Values.PersistentPtyUpdated or Values.ShellCreated or Values.ShellExited or Values.ShellDeleted or Values.FormCreated or Values.FormReplied or Values.FormCancelled or Values.WebsearchUpdated or Values.ArtifactUpdated or Values.SessionStatus or Values.SessionIdle or Values.TuiPromptAppend or Values.TuiCommandExecute or Values.TuiToastShow or Values.TuiSessionSelect or Values.InstallationUpdated or Values.InstallationUpdateAvailable or Values.VcsBranchUpdated or Values.McpStatusChanged or Values.McpResourcesChanged;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

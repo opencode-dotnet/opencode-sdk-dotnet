@@ -18,21 +18,23 @@
           "sha256": "5ee372848c93750bc7cd60e1b13464d4841b1c2e6e2ca93777c53ae8ffd6eea7"
         }
       ]
+    },
+    {
+      "manifest": "002-restore-artifact-location-style.json",
+      "patchSha256": "e3673e7e6b502f04358da7b3b477c66e9636b5fd488036d480c52d0bc9402ec9",
+      "preimages": [
+        {
+          "path": "packages/protocol/src/groups/artifact.ts",
+          "sha256": "06d3fc552eebdec7950baeb9f00a38f67951be52978b6ed49c035c6314cbd16a"
+        }
+      ]
     }
   ],
-  "normalizedDocumentSha256": "715e7ef8c6c7fff05d1afd5b51294c79574a44c812a21476dc015a8a4c8ac6eb",
+  "normalizedDocumentSha256": "408da901695461dee84629483183273c7635f07e4227831a65327efabdfd793c",
   "normalizedDocumentPath": null,
   "operationSetDigest": "ddc7e5551a8158140b530828d85d77a47622da4ae7f2fbd9fea09d04e0265681",
   "operationCount": 169,
-  "addedOperations": [
-    "experimental.artifacts.create",
-    "experimental.artifacts.delete",
-    "experimental.artifacts.get",
-    "experimental.artifacts.list",
-    "experimental.artifacts.providers",
-    "experimental.artifacts.update",
-    "experimental.artifacts.view"
-  ],
+  "addedOperations": [],
   "removedOperations": [],
   "componentCount": 488,
   "contentSchemaCount": 2,

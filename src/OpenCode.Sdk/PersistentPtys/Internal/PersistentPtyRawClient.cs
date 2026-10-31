@@ -8,6 +8,7 @@ namespace OpenCode.Sdk.Internal;
 /// </summary>
 internal sealed class PersistentPtyRawClient
 {
+    private static readonly PersistentPtyUpdateRequest EmptyPersistentPtyUpdateRequest = new();
     private readonly Pipeline? _pipeline;
     private readonly string? _ptyId;
     internal PersistentPtyRawClient(Pipeline pipeline, string ptyId)
@@ -98,20 +99,19 @@ internal sealed class PersistentPtyRawClient
     }
 
     /// <summary>
-    /// Calls the &apos;/api/experimental/persistent-pty/{ptyID}&apos; operation.
+    /// Resize when size is present and rename when title is present; a null title clears the user title so the shell&apos;s title shows again. Renaming fails with 501 while the terminal service predates renaming.
     /// </summary>
-    /// <param name = "request">The request body.</param>
+    /// <param name = "request">The request body; an empty body is sent when omitted.</param>
     /// <param name = "requestOptions">The per-call options.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;PersistentPtyUpdateResponse&apos; envelope.</returns>
-    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 501, 503) and NoThrow was not selected.</exception>
     /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
     /// Operation <c>experimental.persistentPty.update</c>: <c>PUT /api/experimental/persistent-pty/{ptyID}</c>.
     /// </remarks>
-    internal Task<PersistentPtyUpdateResponse> UpdateAsync(PersistentPtyUpdateRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    internal Task<PersistentPtyUpdateResponse> UpdateAsync(PersistentPtyUpdateRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync("experimental.persistentPty.update", HttpMethod.Put, OpenCodeRoutes.PersistentPtys.Update(PtyId), request, OpenCodeJsonContext.Default.PersistentPtyUpdateRequest, PersistentPtyUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.persistentPty.update", HttpMethod.Put, OpenCodeRoutes.PersistentPtys.Update(PtyId), request ?? EmptyPersistentPtyUpdateRequest, OpenCodeJsonContext.Default.PersistentPtyUpdateRequest, PersistentPtyUpdateResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 }
