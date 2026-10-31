@@ -31,7 +31,7 @@ internal static partial class OpenCodeRoutes
     }
 
     /// <summary>
-    /// Spells one &apos;EventSubscribeRequestTypes&apos; value the way the wire query expects it.
+    /// Spells one &apos;EventType&apos; value the way the wire query expects it.
     /// </summary>
-    private static string? ToWireValue(EventSubscribeRequestTypes? value) => value is not { } member ? null : member.Equals(default) ? throw new ArgumentException("A default EventSubscribeRequestTypes has no wire value.", nameof(value)) : member.ToString();
+    private static string? ToWireValue(EventType? value) => value is not { } member ? null : member.Equals(default) ? throw new ArgumentException("A default EventType has no wire value.", nameof(value)) : member.ToString();
 }

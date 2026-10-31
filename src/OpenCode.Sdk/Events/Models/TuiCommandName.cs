@@ -5,17 +5,17 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The tui command execute data command. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
+/// The tui command name. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
-[JsonConverter(typeof(TuiCommandExecuteDataCommandJsonConverter))]
-public readonly struct TuiCommandExecuteDataCommand : IEquatable<TuiCommandExecuteDataCommand>
+[JsonConverter(typeof(TuiCommandNameJsonConverter))]
+public readonly struct TuiCommandName : IEquatable<TuiCommandName>
 {
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
     /// </summary>
     /// <param name = "value">The wire spelling.</param>
-    public TuiCommandExecuteDataCommand(string value)
+    public TuiCommandName(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
         _value = value;
@@ -95,67 +95,67 @@ public readonly struct TuiCommandExecuteDataCommand : IEquatable<TuiCommandExecu
     /// <summary>
     /// Gets the &apos;session.list&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand SessionList { get; } = new(Values.SessionList);
+    public static TuiCommandName SessionList { get; } = new(Values.SessionList);
     /// <summary>
     /// Gets the &apos;session.new&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand SessionNew { get; } = new(Values.SessionNew);
+    public static TuiCommandName SessionNew { get; } = new(Values.SessionNew);
     /// <summary>
     /// Gets the &apos;session.interrupt&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand SessionInterrupt { get; } = new(Values.SessionInterrupt);
+    public static TuiCommandName SessionInterrupt { get; } = new(Values.SessionInterrupt);
     /// <summary>
     /// Gets the &apos;session.background&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand SessionBackground { get; } = new(Values.SessionBackground);
+    public static TuiCommandName SessionBackground { get; } = new(Values.SessionBackground);
     /// <summary>
     /// Gets the &apos;session.compact&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand SessionCompact { get; } = new(Values.SessionCompact);
+    public static TuiCommandName SessionCompact { get; } = new(Values.SessionCompact);
     /// <summary>
     /// Gets the &apos;session.page.up&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand SessionPageUp { get; } = new(Values.SessionPageUp);
+    public static TuiCommandName SessionPageUp { get; } = new(Values.SessionPageUp);
     /// <summary>
     /// Gets the &apos;session.page.down&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand SessionPageDown { get; } = new(Values.SessionPageDown);
+    public static TuiCommandName SessionPageDown { get; } = new(Values.SessionPageDown);
     /// <summary>
     /// Gets the &apos;session.line.up&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand SessionLineUp { get; } = new(Values.SessionLineUp);
+    public static TuiCommandName SessionLineUp { get; } = new(Values.SessionLineUp);
     /// <summary>
     /// Gets the &apos;session.line.down&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand SessionLineDown { get; } = new(Values.SessionLineDown);
+    public static TuiCommandName SessionLineDown { get; } = new(Values.SessionLineDown);
     /// <summary>
     /// Gets the &apos;session.half.page.up&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand SessionHalfPageUp { get; } = new(Values.SessionHalfPageUp);
+    public static TuiCommandName SessionHalfPageUp { get; } = new(Values.SessionHalfPageUp);
     /// <summary>
     /// Gets the &apos;session.half.page.down&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand SessionHalfPageDown { get; } = new(Values.SessionHalfPageDown);
+    public static TuiCommandName SessionHalfPageDown { get; } = new(Values.SessionHalfPageDown);
     /// <summary>
     /// Gets the &apos;session.first&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand SessionFirst { get; } = new(Values.SessionFirst);
+    public static TuiCommandName SessionFirst { get; } = new(Values.SessionFirst);
     /// <summary>
     /// Gets the &apos;session.last&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand SessionLast { get; } = new(Values.SessionLast);
+    public static TuiCommandName SessionLast { get; } = new(Values.SessionLast);
     /// <summary>
     /// Gets the &apos;prompt.clear&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand PromptClear { get; } = new(Values.PromptClear);
+    public static TuiCommandName PromptClear { get; } = new(Values.PromptClear);
     /// <summary>
     /// Gets the &apos;prompt.submit&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand PromptSubmit { get; } = new(Values.PromptSubmit);
+    public static TuiCommandName PromptSubmit { get; } = new(Values.PromptSubmit);
     /// <summary>
     /// Gets the &apos;agent.cycle&apos; wire value.
     /// </summary>
-    public static TuiCommandExecuteDataCommand AgentCycle { get; } = new(Values.AgentCycle);
+    public static TuiCommandName AgentCycle { get; } = new(Values.AgentCycle);
     /// <summary>
     /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
     /// </summary>
@@ -170,33 +170,33 @@ public readonly struct TuiCommandExecuteDataCommand : IEquatable<TuiCommandExecu
     /// </summary>
     /// <param name = "left">The first value.</param>
     /// <param name = "right">The second value.</param>
-    public static bool operator ==(TuiCommandExecuteDataCommand left, TuiCommandExecuteDataCommand right) => left.Equals(right);
+    public static bool operator ==(TuiCommandName left, TuiCommandName right) => left.Equals(right);
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally for inequality.
     /// </summary>
     /// <param name = "left">The first value.</param>
     /// <param name = "right">The second value.</param>
-    public static bool operator !=(TuiCommandExecuteDataCommand left, TuiCommandExecuteDataCommand right) => !left.Equals(right);
+    public static bool operator !=(TuiCommandName left, TuiCommandName right) => !left.Equals(right);
     /// <summary>
     /// Converts a wire spelling to a value.
     /// </summary>
     /// <param name = "value">The wire spelling.</param>
-    public static implicit operator TuiCommandExecuteDataCommand(string value) => new(value);
+    public static implicit operator TuiCommandName(string value) => new(value);
     /// <summary>
     /// Creates a value from its wire spelling, as the implicit conversion does.
     /// </summary>
     /// <param name = "value">The wire spelling.</param>
-    public static TuiCommandExecuteDataCommand FromString(string value) => new(value);
+    public static TuiCommandName FromString(string value) => new(value);
     /// <summary>
     /// Compares wire spellings ordinally: upstream compares string literals exactly.
     /// </summary>
     /// <param name = "other">The other value.</param>
-    public bool Equals(TuiCommandExecuteDataCommand other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+    public bool Equals(TuiCommandName other) => string.Equals(_value, other._value, StringComparison.Ordinal);
     /// <summary>
     /// Compares with another object: equal only to a value with the same wire spelling.
     /// </summary>
     /// <param name = "obj">The other object.</param>
-    public override bool Equals(object? obj) => obj is TuiCommandExecuteDataCommand other && Equals(other);
+    public override bool Equals(object? obj) => obj is TuiCommandName other && Equals(other);
     /// <summary>
     /// Hashes the wire spelling ordinally, as equality compares it.
     /// </summary>

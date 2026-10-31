@@ -11,5 +11,5 @@ public sealed record EventSubscribeRequest
     /// <summary>
     /// Only send events of these types, plus the initial server.connected event. When omitted, all events are sent.
     /// </summary>
-    public IReadOnlyList<EventSubscribeRequestTypes>? Types { get; init; }
+    public IReadOnlyList<EventType>? Types { get; init; }
 }

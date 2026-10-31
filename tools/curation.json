@@ -3295,6 +3295,26 @@
       "schema": "Config.InfoEncoded#/properties/experimental/properties/image_generate/anyOf/1",
       "dotnetName": "ConfigImageGenerateOptions",
       "reason": "The object form of the experimental image_generate setting, which names the tool's default model; the anyOf ordinal is a schema pointer detail."
+    },
+    {
+      "schema": "op:event.subscribe#/parameters/0/schema/anyOf/0",
+      "dotnetName": "EventType",
+      "reason": "Each value is the name of an event type a consumer filters a subscription on; the mechanical plural name reads as a collection and names a request detail."
+    },
+    {
+      "schema": "tui.command.execute#/properties/data/properties/command",
+      "dotnetName": "TuiCommandName",
+      "reason": "The value is the name of a TUI command; the mechanical name repeats the payload path."
+    },
+    {
+      "schema": "ConfigWebSearch.InfoEncoded#/properties/provider",
+      "dotnetName": "WebSearchProviderChoice",
+      "reason": "The value chooses a web search provider, by its id or random; it is not the provider itself."
+    },
+    {
+      "schema": "session.instructions.updated#/properties/data/properties/delta/additionalProperties",
+      "dotnetName": "SessionInstructionChange",
+      "reason": "Each value says how one instruction changed: its new content hash, or removed."
     }
   ],
   "enumMemberNames": [
@@ -3717,6 +3737,11 @@
     {
       "operationId": "experimental.mcp.client.token",
       "reason": "Deferred to a hand-written door in 1.1 (#529): the x-opencode-ticket header has no runtime channel for the client MCP attach."
+    },
+    {
+      "operationId": "experimental.generate.textLegacy",
+      "reason": "Both of upstream's first-party clients omit the legacy text generation endpoint, and the maintainer decided on 2026-10-31 that the SDK follows them.",
+      "upstreamOmitted": "generate.textLegacy"
     }
   ],
   "envelopePayloadNames": [

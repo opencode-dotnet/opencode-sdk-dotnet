@@ -34,9 +34,9 @@ Nightly builds of `master` are on
 - **Open enums are generated extensible enums, not `string`.** A string enum beside a free string,
   such as a reasoning field's known names, now binds a generated extensible enum that carries any
   other value too. `ModelCompatibility.ReasoningField` and `ProviderCompatibility.ReasoningField`
-  are `ModelReasoningField?`, `TuiCommandExecuteData.Command` is `TuiCommandExecuteDataCommand`,
-  `ConfigWebSearchInfo.Provider` is `ConfigWebSearchInfoProvider`, and
-  `SessionInstructionsUpdatedData.Delta`'s values are `SessionInstructionsUpdatedDataDelta`.
+  are `ModelReasoningField?`, `TuiCommandExecuteData.Command` is `TuiCommandName`,
+  `ConfigWebSearchInfo.Provider` is `WebSearchProviderChoice`, and
+  `SessionInstructionsUpdatedData.Delta`'s values are `SessionInstructionChange`.
   Migrate a comparison with `ModelReasoningField.ReasoningContent` (or the type's `Values` strings),
   and read the text with `ToString()`; nothing on the wire changes.
 - **`IMcp` is now `IMcpServerConfig`, and `UnknownMcp` is now `UnknownMcpServerConfig`.**
@@ -59,7 +59,9 @@ Nightly builds of `master` are on
   `UnwatchFileAsync`, `GenerateDecisionsAsync`, `GenerateImagesAsync`, `GetMediaAsync`,
   `GetUsageLimitsAsync`, and the schedule operations `CreateScheduleAsync`, `GetScheduleAsync`,
   `ListSchedulesAsync`, `PauseScheduleAsync`, `ResumeScheduleAsync` and `DeleteScheduleAsync`;
-  `PluginsClient` gains `GetGuiAsync`. `event.subscribe` and `model.list` take a `types` filter.
+  `PluginsClient` gains `GetGuiAsync`. `event.subscribe` takes a `types` filter of `EventType`
+  values, and `model.list` takes a `types` filter. Upstream's legacy text generation endpoint is
+  left out, as both of upstream's own clients leave it out.
   New members follow upstream too, among them `SessionInfoTime.Busy`, a `Cache` setting on models
   and providers, `ConfigInfo.Timezone` and `VcsDiffRequest.Untracked`, and a local plugin's
   `PluginSourceLocal.Path` is now the path it was configured with.

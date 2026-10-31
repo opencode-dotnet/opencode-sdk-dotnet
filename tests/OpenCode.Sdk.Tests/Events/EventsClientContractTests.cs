@@ -25,7 +25,7 @@ public sealed class EventsClientContractTests
         using var pipeline = PipelineFactory.Create(httpClient, time: time);
         var request = new EventSubscribeRequest
         {
-            Types = [new EventSubscribeRequestTypes(EventSubscribeRequestTypes.Values.SessionCreated), new EventSubscribeRequestTypes("rpc.sdk-test")],
+            Types = [new EventType(EventType.Values.SessionCreated), new EventType("rpc.sdk-test")],
         };
         await using var events = new EventsClient(pipeline).SubscribeAsync(request).GetAsyncEnumerator();
 

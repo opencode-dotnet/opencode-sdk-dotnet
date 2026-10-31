@@ -5,17 +5,17 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The session instructions updated data delta. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
+/// The session instruction change. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
-[JsonConverter(typeof(SessionInstructionsUpdatedDataDeltaJsonConverter))]
-public readonly struct SessionInstructionsUpdatedDataDelta : IEquatable<SessionInstructionsUpdatedDataDelta>
+[JsonConverter(typeof(SessionInstructionChangeJsonConverter))]
+public readonly struct SessionInstructionChange : IEquatable<SessionInstructionChange>
 {
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
     /// </summary>
     /// <param name = "value">The wire spelling.</param>
-    public SessionInstructionsUpdatedDataDelta(string value)
+    public SessionInstructionChange(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
         _value = value;
@@ -35,7 +35,7 @@ public readonly struct SessionInstructionsUpdatedDataDelta : IEquatable<SessionI
     /// <summary>
     /// Gets the &apos;removed&apos; wire value.
     /// </summary>
-    public static SessionInstructionsUpdatedDataDelta Removed { get; } = new(Values.Removed);
+    public static SessionInstructionChange Removed { get; } = new(Values.Removed);
     /// <summary>
     /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
     /// </summary>
@@ -50,33 +50,33 @@ public readonly struct SessionInstructionsUpdatedDataDelta : IEquatable<SessionI
     /// </summary>
     /// <param name = "left">The first value.</param>
     /// <param name = "right">The second value.</param>
-    public static bool operator ==(SessionInstructionsUpdatedDataDelta left, SessionInstructionsUpdatedDataDelta right) => left.Equals(right);
+    public static bool operator ==(SessionInstructionChange left, SessionInstructionChange right) => left.Equals(right);
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally for inequality.
     /// </summary>
     /// <param name = "left">The first value.</param>
     /// <param name = "right">The second value.</param>
-    public static bool operator !=(SessionInstructionsUpdatedDataDelta left, SessionInstructionsUpdatedDataDelta right) => !left.Equals(right);
+    public static bool operator !=(SessionInstructionChange left, SessionInstructionChange right) => !left.Equals(right);
     /// <summary>
     /// Converts a wire spelling to a value.
     /// </summary>
     /// <param name = "value">The wire spelling.</param>
-    public static implicit operator SessionInstructionsUpdatedDataDelta(string value) => new(value);
+    public static implicit operator SessionInstructionChange(string value) => new(value);
     /// <summary>
     /// Creates a value from its wire spelling, as the implicit conversion does.
     /// </summary>
     /// <param name = "value">The wire spelling.</param>
-    public static SessionInstructionsUpdatedDataDelta FromString(string value) => new(value);
+    public static SessionInstructionChange FromString(string value) => new(value);
     /// <summary>
     /// Compares wire spellings ordinally: upstream compares string literals exactly.
     /// </summary>
     /// <param name = "other">The other value.</param>
-    public bool Equals(SessionInstructionsUpdatedDataDelta other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+    public bool Equals(SessionInstructionChange other) => string.Equals(_value, other._value, StringComparison.Ordinal);
     /// <summary>
     /// Compares with another object: equal only to a value with the same wire spelling.
     /// </summary>
     /// <param name = "obj">The other object.</param>
-    public override bool Equals(object? obj) => obj is SessionInstructionsUpdatedDataDelta other && Equals(other);
+    public override bool Equals(object? obj) => obj is SessionInstructionChange other && Equals(other);
     /// <summary>
     /// Hashes the wire spelling ordinally, as equality compares it.
     /// </summary>

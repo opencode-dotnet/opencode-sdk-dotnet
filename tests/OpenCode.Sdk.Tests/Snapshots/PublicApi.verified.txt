@@ -150,7 +150,7 @@ namespace OpenCode.Sdk
     public sealed class EventSubscribeRequest : System.IEquatable<OpenCode.Sdk.EventSubscribeRequest>
     {
         public EventSubscribeRequest() { }
-        public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.EventSubscribeRequestTypes>? Types { get; init; }
+        public System.Collections.Generic.IReadOnlyList<OpenCode.Sdk.Models.EventType>? Types { get; init; }
     }
     public class EventsClient
     {
@@ -3288,27 +3288,7 @@ namespace OpenCode.Sdk.Models
     {
         public ConfigWebSearchInfo() { }
         [System.Text.Json.Serialization.JsonPropertyName("provider")]
-        public required OpenCode.Sdk.Models.ConfigWebSearchInfoProvider Provider { get; init; }
-    }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigWebSearchInfoProviderJsonConverter))]
-    public readonly struct ConfigWebSearchInfoProvider : System.IEquatable<OpenCode.Sdk.Models.ConfigWebSearchInfoProvider>
-    {
-        public ConfigWebSearchInfoProvider(string value) { }
-        public bool IsKnown { get; }
-        public string Value { get; }
-        public static OpenCode.Sdk.Models.ConfigWebSearchInfoProvider Random { get; }
-        public bool Equals(OpenCode.Sdk.Models.ConfigWebSearchInfoProvider other) { }
-        public override bool Equals(object? obj) { }
-        public override int GetHashCode() { }
-        public override string ToString() { }
-        public static OpenCode.Sdk.Models.ConfigWebSearchInfoProvider FromString(string value) { }
-        public static OpenCode.Sdk.Models.ConfigWebSearchInfoProvider op_Implicit(string value) { }
-        public static bool operator !=(OpenCode.Sdk.Models.ConfigWebSearchInfoProvider left, OpenCode.Sdk.Models.ConfigWebSearchInfoProvider right) { }
-        public static bool operator ==(OpenCode.Sdk.Models.ConfigWebSearchInfoProvider left, OpenCode.Sdk.Models.ConfigWebSearchInfoProvider right) { }
-        public static class Values
-        {
-            public const string Random = "random";
-        }
+        public required OpenCode.Sdk.Models.WebSearchProviderChoice Provider { get; init; }
     }
     public sealed class ConfigWorktree : System.IEquatable<OpenCode.Sdk.Models.ConfigWorktree>
     {
@@ -3585,114 +3565,114 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("type")]
         public string Type { get; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.EventSubscribeRequestTypesJsonConverter))]
-    public readonly struct EventSubscribeRequestTypes : System.IEquatable<OpenCode.Sdk.Models.EventSubscribeRequestTypes>
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.EventTypeJsonConverter))]
+    public readonly struct EventType : System.IEquatable<OpenCode.Sdk.Models.EventType>
     {
-        public EventSubscribeRequestTypes(string value) { }
+        public EventType(string value) { }
         public bool IsKnown { get; }
         public string Value { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes AgentUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes CommandUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes ConfigUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes CredentialSwitched { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes CredentialUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes FilesystemChanged { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes FormCancelled { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes FormCreated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes FormReplied { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes InstallationUpdateAvailable { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes InstallationUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes IntegrationUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes LocationShutdown { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes McpResourcesChanged { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes McpStatusChanged { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes ModelUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes ModelsDevRefreshed { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes PermissionAsked { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes PermissionReplied { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes PersistentPtyAdded { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes PersistentPtyRemoved { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes PluginUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes ProjectUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes ProviderUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes PtyCreated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes PtyDeleted { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes PtyExited { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes PtyUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes ReferenceUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionAgentSelected { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionArchived { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionCompactionDelta { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionCompactionEnded { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionCompactionFailed { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionCompactionStarted { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionCreated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionDeleted { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionExecutionFailed { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionExecutionInterrupted { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionExecutionStarted { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionExecutionSucceeded { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionForked { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionIdle { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionInboxCancelled { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionInboxDelivered { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionInboxDeliveryChanged { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionInboxEnqueued { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionInstructionsUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionMetadataUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionModelSelected { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionMoved { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionPermissions { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionReasoningDelta { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionReasoningEnded { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionReasoningStarted { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionRenamed { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionRetryScheduled { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionRevertCleared { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionRevertCommitted { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionRevertStaged { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionShellEnded { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionShellStarted { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionSkillActivated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionStatus { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionStepEnded { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionStepFailed { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionStepStarted { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionStepStreamed { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionSynthetic { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionTextDelta { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionTextEnded { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionTextStarted { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionToolCalled { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionToolFailed { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionToolInputDelta { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionToolInputEnded { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionToolInputStarted { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionToolProgress { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionToolSuccess { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionUnarchived { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionUsageUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SessionViewed { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes ShellCreated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes ShellDeleted { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes ShellExited { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes SkillUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes TuiCommandExecute { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes TuiPromptAppend { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes TuiSessionSelect { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes TuiToastShow { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes VcsBranchUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes WebsearchUpdated { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes WorktreeResolved { get; }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes WorktreeUpdated { get; }
-        public bool Equals(OpenCode.Sdk.Models.EventSubscribeRequestTypes other) { }
+        public static OpenCode.Sdk.Models.EventType AgentUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType CommandUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType ConfigUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType CredentialSwitched { get; }
+        public static OpenCode.Sdk.Models.EventType CredentialUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType FilesystemChanged { get; }
+        public static OpenCode.Sdk.Models.EventType FormCancelled { get; }
+        public static OpenCode.Sdk.Models.EventType FormCreated { get; }
+        public static OpenCode.Sdk.Models.EventType FormReplied { get; }
+        public static OpenCode.Sdk.Models.EventType InstallationUpdateAvailable { get; }
+        public static OpenCode.Sdk.Models.EventType InstallationUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType IntegrationUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType LocationShutdown { get; }
+        public static OpenCode.Sdk.Models.EventType McpResourcesChanged { get; }
+        public static OpenCode.Sdk.Models.EventType McpStatusChanged { get; }
+        public static OpenCode.Sdk.Models.EventType ModelUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType ModelsDevRefreshed { get; }
+        public static OpenCode.Sdk.Models.EventType PermissionAsked { get; }
+        public static OpenCode.Sdk.Models.EventType PermissionReplied { get; }
+        public static OpenCode.Sdk.Models.EventType PersistentPtyAdded { get; }
+        public static OpenCode.Sdk.Models.EventType PersistentPtyRemoved { get; }
+        public static OpenCode.Sdk.Models.EventType PluginUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType ProjectUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType ProviderUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType PtyCreated { get; }
+        public static OpenCode.Sdk.Models.EventType PtyDeleted { get; }
+        public static OpenCode.Sdk.Models.EventType PtyExited { get; }
+        public static OpenCode.Sdk.Models.EventType PtyUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType ReferenceUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType SessionAgentSelected { get; }
+        public static OpenCode.Sdk.Models.EventType SessionArchived { get; }
+        public static OpenCode.Sdk.Models.EventType SessionCompactionDelta { get; }
+        public static OpenCode.Sdk.Models.EventType SessionCompactionEnded { get; }
+        public static OpenCode.Sdk.Models.EventType SessionCompactionFailed { get; }
+        public static OpenCode.Sdk.Models.EventType SessionCompactionStarted { get; }
+        public static OpenCode.Sdk.Models.EventType SessionCreated { get; }
+        public static OpenCode.Sdk.Models.EventType SessionDeleted { get; }
+        public static OpenCode.Sdk.Models.EventType SessionExecutionFailed { get; }
+        public static OpenCode.Sdk.Models.EventType SessionExecutionInterrupted { get; }
+        public static OpenCode.Sdk.Models.EventType SessionExecutionStarted { get; }
+        public static OpenCode.Sdk.Models.EventType SessionExecutionSucceeded { get; }
+        public static OpenCode.Sdk.Models.EventType SessionForked { get; }
+        public static OpenCode.Sdk.Models.EventType SessionIdle { get; }
+        public static OpenCode.Sdk.Models.EventType SessionInboxCancelled { get; }
+        public static OpenCode.Sdk.Models.EventType SessionInboxDelivered { get; }
+        public static OpenCode.Sdk.Models.EventType SessionInboxDeliveryChanged { get; }
+        public static OpenCode.Sdk.Models.EventType SessionInboxEnqueued { get; }
+        public static OpenCode.Sdk.Models.EventType SessionInstructionsUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType SessionMetadataUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType SessionModelSelected { get; }
+        public static OpenCode.Sdk.Models.EventType SessionMoved { get; }
+        public static OpenCode.Sdk.Models.EventType SessionPermissions { get; }
+        public static OpenCode.Sdk.Models.EventType SessionReasoningDelta { get; }
+        public static OpenCode.Sdk.Models.EventType SessionReasoningEnded { get; }
+        public static OpenCode.Sdk.Models.EventType SessionReasoningStarted { get; }
+        public static OpenCode.Sdk.Models.EventType SessionRenamed { get; }
+        public static OpenCode.Sdk.Models.EventType SessionRetryScheduled { get; }
+        public static OpenCode.Sdk.Models.EventType SessionRevertCleared { get; }
+        public static OpenCode.Sdk.Models.EventType SessionRevertCommitted { get; }
+        public static OpenCode.Sdk.Models.EventType SessionRevertStaged { get; }
+        public static OpenCode.Sdk.Models.EventType SessionShellEnded { get; }
+        public static OpenCode.Sdk.Models.EventType SessionShellStarted { get; }
+        public static OpenCode.Sdk.Models.EventType SessionSkillActivated { get; }
+        public static OpenCode.Sdk.Models.EventType SessionStatus { get; }
+        public static OpenCode.Sdk.Models.EventType SessionStepEnded { get; }
+        public static OpenCode.Sdk.Models.EventType SessionStepFailed { get; }
+        public static OpenCode.Sdk.Models.EventType SessionStepStarted { get; }
+        public static OpenCode.Sdk.Models.EventType SessionStepStreamed { get; }
+        public static OpenCode.Sdk.Models.EventType SessionSynthetic { get; }
+        public static OpenCode.Sdk.Models.EventType SessionTextDelta { get; }
+        public static OpenCode.Sdk.Models.EventType SessionTextEnded { get; }
+        public static OpenCode.Sdk.Models.EventType SessionTextStarted { get; }
+        public static OpenCode.Sdk.Models.EventType SessionToolCalled { get; }
+        public static OpenCode.Sdk.Models.EventType SessionToolFailed { get; }
+        public static OpenCode.Sdk.Models.EventType SessionToolInputDelta { get; }
+        public static OpenCode.Sdk.Models.EventType SessionToolInputEnded { get; }
+        public static OpenCode.Sdk.Models.EventType SessionToolInputStarted { get; }
+        public static OpenCode.Sdk.Models.EventType SessionToolProgress { get; }
+        public static OpenCode.Sdk.Models.EventType SessionToolSuccess { get; }
+        public static OpenCode.Sdk.Models.EventType SessionUnarchived { get; }
+        public static OpenCode.Sdk.Models.EventType SessionUsageUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType SessionViewed { get; }
+        public static OpenCode.Sdk.Models.EventType ShellCreated { get; }
+        public static OpenCode.Sdk.Models.EventType ShellDeleted { get; }
+        public static OpenCode.Sdk.Models.EventType ShellExited { get; }
+        public static OpenCode.Sdk.Models.EventType SkillUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType TuiCommandExecute { get; }
+        public static OpenCode.Sdk.Models.EventType TuiPromptAppend { get; }
+        public static OpenCode.Sdk.Models.EventType TuiSessionSelect { get; }
+        public static OpenCode.Sdk.Models.EventType TuiToastShow { get; }
+        public static OpenCode.Sdk.Models.EventType VcsBranchUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType WebsearchUpdated { get; }
+        public static OpenCode.Sdk.Models.EventType WorktreeResolved { get; }
+        public static OpenCode.Sdk.Models.EventType WorktreeUpdated { get; }
+        public bool Equals(OpenCode.Sdk.Models.EventType other) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
         public override string ToString() { }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes FromString(string value) { }
-        public static OpenCode.Sdk.Models.EventSubscribeRequestTypes op_Implicit(string value) { }
-        public static bool operator !=(OpenCode.Sdk.Models.EventSubscribeRequestTypes left, OpenCode.Sdk.Models.EventSubscribeRequestTypes right) { }
-        public static bool operator ==(OpenCode.Sdk.Models.EventSubscribeRequestTypes left, OpenCode.Sdk.Models.EventSubscribeRequestTypes right) { }
+        public static OpenCode.Sdk.Models.EventType FromString(string value) { }
+        public static OpenCode.Sdk.Models.EventType op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.EventType left, OpenCode.Sdk.Models.EventType right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.EventType left, OpenCode.Sdk.Models.EventType right) { }
         public static class Values
         {
             public const string AgentUpdated = "agent.updated";
@@ -9765,6 +9745,26 @@ namespace OpenCode.Sdk.Models
         [System.Text.Json.Serialization.JsonPropertyName("viewed")]
         public double? Viewed { get; init; }
     }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionInstructionChangeJsonConverter))]
+    public readonly struct SessionInstructionChange : System.IEquatable<OpenCode.Sdk.Models.SessionInstructionChange>
+    {
+        public SessionInstructionChange(string value) { }
+        public bool IsKnown { get; }
+        public string Value { get; }
+        public static OpenCode.Sdk.Models.SessionInstructionChange Removed { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionInstructionChange other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionInstructionChange FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionInstructionChange op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionInstructionChange left, OpenCode.Sdk.Models.SessionInstructionChange right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionInstructionChange left, OpenCode.Sdk.Models.SessionInstructionChange right) { }
+        public static class Values
+        {
+            public const string Removed = "removed";
+        }
+    }
     public sealed class SessionInstructionsUpdated : OpenCode.Sdk.Models.IEvent, OpenCode.Sdk.Models.ISessionEventDurable, OpenCode.Sdk.Models.ISessionLogItem, OpenCode.Sdk.Models.ISessionScopedEvent, System.IEquatable<OpenCode.Sdk.Models.SessionInstructionsUpdated>
     {
         public SessionInstructionsUpdated() { }
@@ -9789,32 +9789,12 @@ namespace OpenCode.Sdk.Models
     {
         public SessionInstructionsUpdatedData() { }
         [System.Text.Json.Serialization.JsonPropertyName("delta")]
-        public required System.Collections.Generic.IReadOnlyDictionary<string, OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta> Delta { get; init; }
+        public required System.Collections.Generic.IReadOnlyDictionary<string, OpenCode.Sdk.Models.SessionInstructionChange> Delta { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
         public required string SessionId { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("text")]
         public string? Text { get; init; }
-    }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionInstructionsUpdatedDataDeltaJsonConverter))]
-    public readonly struct SessionInstructionsUpdatedDataDelta : System.IEquatable<OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta>
-    {
-        public SessionInstructionsUpdatedDataDelta(string value) { }
-        public bool IsKnown { get; }
-        public string Value { get; }
-        public static OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta Removed { get; }
-        public bool Equals(OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta other) { }
-        public override bool Equals(object? obj) { }
-        public override int GetHashCode() { }
-        public override string ToString() { }
-        public static OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta FromString(string value) { }
-        public static OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta op_Implicit(string value) { }
-        public static bool operator !=(OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta left, OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta right) { }
-        public static bool operator ==(OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta left, OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta right) { }
-        public static class Values
-        {
-            public const string Removed = "removed";
-        }
     }
     public sealed class SessionInstructionsUpdatedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionInstructionsUpdatedDurable>
     {
@@ -12831,38 +12811,38 @@ namespace OpenCode.Sdk.Models
     {
         public TuiCommandExecuteData() { }
         [System.Text.Json.Serialization.JsonPropertyName("command")]
-        public required OpenCode.Sdk.Models.TuiCommandExecuteDataCommand Command { get; init; }
+        public required OpenCode.Sdk.Models.TuiCommandName Command { get; init; }
     }
-    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.TuiCommandExecuteDataCommandJsonConverter))]
-    public readonly struct TuiCommandExecuteDataCommand : System.IEquatable<OpenCode.Sdk.Models.TuiCommandExecuteDataCommand>
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.TuiCommandNameJsonConverter))]
+    public readonly struct TuiCommandName : System.IEquatable<OpenCode.Sdk.Models.TuiCommandName>
     {
-        public TuiCommandExecuteDataCommand(string value) { }
+        public TuiCommandName(string value) { }
         public bool IsKnown { get; }
         public string Value { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand AgentCycle { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand PromptClear { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand PromptSubmit { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionBackground { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionCompact { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionFirst { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionHalfPageDown { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionHalfPageUp { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionInterrupt { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionLast { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionLineDown { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionLineUp { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionList { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionNew { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionPageDown { get; }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionPageUp { get; }
-        public bool Equals(OpenCode.Sdk.Models.TuiCommandExecuteDataCommand other) { }
+        public static OpenCode.Sdk.Models.TuiCommandName AgentCycle { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName PromptClear { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName PromptSubmit { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName SessionBackground { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName SessionCompact { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName SessionFirst { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName SessionHalfPageDown { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName SessionHalfPageUp { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName SessionInterrupt { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName SessionLast { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName SessionLineDown { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName SessionLineUp { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName SessionList { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName SessionNew { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName SessionPageDown { get; }
+        public static OpenCode.Sdk.Models.TuiCommandName SessionPageUp { get; }
+        public bool Equals(OpenCode.Sdk.Models.TuiCommandName other) { }
         public override bool Equals(object? obj) { }
         public override int GetHashCode() { }
         public override string ToString() { }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand FromString(string value) { }
-        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand op_Implicit(string value) { }
-        public static bool operator !=(OpenCode.Sdk.Models.TuiCommandExecuteDataCommand left, OpenCode.Sdk.Models.TuiCommandExecuteDataCommand right) { }
-        public static bool operator ==(OpenCode.Sdk.Models.TuiCommandExecuteDataCommand left, OpenCode.Sdk.Models.TuiCommandExecuteDataCommand right) { }
+        public static OpenCode.Sdk.Models.TuiCommandName FromString(string value) { }
+        public static OpenCode.Sdk.Models.TuiCommandName op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.TuiCommandName left, OpenCode.Sdk.Models.TuiCommandName right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.TuiCommandName left, OpenCode.Sdk.Models.TuiCommandName right) { }
         public static class Values
         {
             public const string AgentCycle = "agent.cycle";
@@ -13814,6 +13794,26 @@ namespace OpenCode.Sdk.Models
         public required string Id { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         public required string Name { get; init; }
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.WebSearchProviderChoiceJsonConverter))]
+    public readonly struct WebSearchProviderChoice : System.IEquatable<OpenCode.Sdk.Models.WebSearchProviderChoice>
+    {
+        public WebSearchProviderChoice(string value) { }
+        public bool IsKnown { get; }
+        public string Value { get; }
+        public static OpenCode.Sdk.Models.WebSearchProviderChoice Random { get; }
+        public bool Equals(OpenCode.Sdk.Models.WebSearchProviderChoice other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.WebSearchProviderChoice FromString(string value) { }
+        public static OpenCode.Sdk.Models.WebSearchProviderChoice op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.WebSearchProviderChoice left, OpenCode.Sdk.Models.WebSearchProviderChoice right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.WebSearchProviderChoice left, OpenCode.Sdk.Models.WebSearchProviderChoice right) { }
+        public static class Values
+        {
+            public const string Random = "random";
+        }
     }
     public sealed class WebSearchResponse : System.IEquatable<OpenCode.Sdk.Models.WebSearchResponse>
     {

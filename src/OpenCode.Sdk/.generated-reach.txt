@@ -87,7 +87,6 @@ ConfigShellOption owner=Config reached-by=Config
 ConfigUpdated owner=Config reached-by=Events
 ConfigWarming owner=Config reached-by=Config
 ConfigWebSearchInfo owner=Config reached-by=Config
-ConfigWebSearchInfoProvider owner=Config reached-by=Config
 ConfigWorktree owner=Config reached-by=Config
 ConflictError owner=Common reached-by=Credentials,Experimental,Permissions,Sessions,Vcs
 ConnectionCredentialInfo owner=Integrations reached-by=Integrations
@@ -108,7 +107,7 @@ DebugHeapDumpMemory owner=Debug reached-by=Debug
 EventLogSynced owner=Events reached-by=Experimental
 EventRpc owner=Events reached-by=Events
 EventServerConnected owner=Events reached-by=Events
-EventSubscribeRequestTypes owner=Events reached-by=Events
+EventType owner=Events reached-by=Events
 ExperimentalConfigUpdateRequest owner=Experimental reached-by=Experimental
 ExperimentalFsUnwatchRequest owner=Experimental reached-by=Experimental
 ExperimentalFsWatchRequest owner=Experimental reached-by=Experimental
@@ -551,9 +550,9 @@ SessionInfo owner=Sessions reached-by=Experimental,Sessions
 SessionInfoFork owner=Sessions reached-by=Experimental,Sessions
 SessionInfoOutcome owner=Sessions reached-by=Experimental,Sessions
 SessionInfoTime owner=Sessions reached-by=Experimental,Sessions
+SessionInstructionChange owner=Sessions reached-by=Events,Experimental
 SessionInstructionsUpdated owner=Sessions reached-by=Events,Experimental
 SessionInstructionsUpdatedData owner=Sessions reached-by=Events,Experimental
-SessionInstructionsUpdatedDataDelta owner=Sessions reached-by=Events,Experimental
 SessionInstructionsUpdatedDurable owner=Sessions reached-by=Events,Experimental
 SessionInterruptOutcome owner=Sessions reached-by=Sessions
 SessionMessageAgentSelected owner=Sessions reached-by=Experimental,Sessions
@@ -761,7 +760,7 @@ ToolFileContent owner=Sessions reached-by=Events,Experimental,Sessions
 ToolTextContent owner=Sessions reached-by=Events,Experimental,Sessions
 TuiCommandExecute owner=Events reached-by=Events
 TuiCommandExecuteData owner=Events reached-by=Events
-TuiCommandExecuteDataCommand owner=Events reached-by=Events
+TuiCommandName owner=Events reached-by=Events
 TuiPromptAppend owner=Events reached-by=Events
 TuiPromptAppendData owner=Events reached-by=Events
 TuiSessionSelect owner=Events reached-by=Events
@@ -836,6 +835,7 @@ VoiceWebRtcTransportInput owner=Experimental reached-by=Experimental
 VoiceWebSocketTransport owner=Experimental reached-by=Experimental
 VoiceWebSocketTransportInput owner=Experimental reached-by=Experimental
 WebSearchProvider owner=Websearch reached-by=Websearch
+WebSearchProviderChoice owner=Websearch reached-by=Config
 WebSearchResponse owner=Websearch reached-by=Websearch
 WebSearchResult owner=Websearch reached-by=Websearch
 WebSearchResultTime owner=Websearch reached-by=Websearch

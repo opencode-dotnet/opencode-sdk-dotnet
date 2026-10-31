@@ -833,12 +833,12 @@ public sealed class OperationPlanBinderTests
     /// pair and the deferred client MCP pair binds; nothing remains pending.
     /// </summary>
     [Test]
-    public async Task Bind_Should_Decline_Only_The_Client_Mcp_Pair_At_The_Pin()
+    public async Task Bind_Should_Decline_The_Client_Mcp_Pair_And_Legacy_Text_Generation_At_The_Pin()
     {
         var plan = await new BindingTestHost().BindPinnedAsync();
 
         await Assert.That(plan.DeclinedOperations.Select(static operation => operation.OperationId))
-            .IsEquivalentTo(["experimental.mcp.client", "experimental.mcp.client.token"], StringComparer.Ordinal, CollectionOrdering.Matching);
+            .IsEquivalentTo(["experimental.generate.textLegacy", "experimental.mcp.client", "experimental.mcp.client.token"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(plan.PendingOperations).IsEmpty();
     }
 

@@ -5,17 +5,17 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The event subscribe request types. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
+/// The event type. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
-[JsonConverter(typeof(EventSubscribeRequestTypesJsonConverter))]
-public readonly struct EventSubscribeRequestTypes : IEquatable<EventSubscribeRequestTypes>
+[JsonConverter(typeof(EventTypeJsonConverter))]
+public readonly struct EventType : IEquatable<EventType>
 {
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
     /// </summary>
     /// <param name = "value">The wire spelling.</param>
-    public EventSubscribeRequestTypes(string value)
+    public EventType(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
         _value = value;
@@ -407,379 +407,379 @@ public readonly struct EventSubscribeRequestTypes : IEquatable<EventSubscribeReq
     /// <summary>
     /// Gets the &apos;location.shutdown&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes LocationShutdown { get; } = new(Values.LocationShutdown);
+    public static EventType LocationShutdown { get; } = new(Values.LocationShutdown);
     /// <summary>
     /// Gets the &apos;models-dev.refreshed&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes ModelsDevRefreshed { get; } = new(Values.ModelsDevRefreshed);
+    public static EventType ModelsDevRefreshed { get; } = new(Values.ModelsDevRefreshed);
     /// <summary>
     /// Gets the &apos;credential.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes CredentialUpdated { get; } = new(Values.CredentialUpdated);
+    public static EventType CredentialUpdated { get; } = new(Values.CredentialUpdated);
     /// <summary>
     /// Gets the &apos;credential.switched&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes CredentialSwitched { get; } = new(Values.CredentialSwitched);
+    public static EventType CredentialSwitched { get; } = new(Values.CredentialSwitched);
     /// <summary>
     /// Gets the &apos;integration.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes IntegrationUpdated { get; } = new(Values.IntegrationUpdated);
+    public static EventType IntegrationUpdated { get; } = new(Values.IntegrationUpdated);
     /// <summary>
     /// Gets the &apos;provider.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes ProviderUpdated { get; } = new(Values.ProviderUpdated);
+    public static EventType ProviderUpdated { get; } = new(Values.ProviderUpdated);
     /// <summary>
     /// Gets the &apos;model.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes ModelUpdated { get; } = new(Values.ModelUpdated);
+    public static EventType ModelUpdated { get; } = new(Values.ModelUpdated);
     /// <summary>
     /// Gets the &apos;agent.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes AgentUpdated { get; } = new(Values.AgentUpdated);
+    public static EventType AgentUpdated { get; } = new(Values.AgentUpdated);
     /// <summary>
     /// Gets the &apos;session.created&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionCreated { get; } = new(Values.SessionCreated);
+    public static EventType SessionCreated { get; } = new(Values.SessionCreated);
     /// <summary>
     /// Gets the &apos;session.agent.selected&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionAgentSelected { get; } = new(Values.SessionAgentSelected);
+    public static EventType SessionAgentSelected { get; } = new(Values.SessionAgentSelected);
     /// <summary>
     /// Gets the &apos;session.model.selected&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionModelSelected { get; } = new(Values.SessionModelSelected);
+    public static EventType SessionModelSelected { get; } = new(Values.SessionModelSelected);
     /// <summary>
     /// Gets the &apos;session.moved&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionMoved { get; } = new(Values.SessionMoved);
+    public static EventType SessionMoved { get; } = new(Values.SessionMoved);
     /// <summary>
     /// Gets the &apos;session.renamed&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionRenamed { get; } = new(Values.SessionRenamed);
+    public static EventType SessionRenamed { get; } = new(Values.SessionRenamed);
     /// <summary>
     /// Gets the &apos;session.metadata.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionMetadataUpdated { get; } = new(Values.SessionMetadataUpdated);
+    public static EventType SessionMetadataUpdated { get; } = new(Values.SessionMetadataUpdated);
     /// <summary>
     /// Gets the &apos;session.permissions&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionPermissions { get; } = new(Values.SessionPermissions);
+    public static EventType SessionPermissions { get; } = new(Values.SessionPermissions);
     /// <summary>
     /// Gets the &apos;session.viewed&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionViewed { get; } = new(Values.SessionViewed);
+    public static EventType SessionViewed { get; } = new(Values.SessionViewed);
     /// <summary>
     /// Gets the &apos;session.archived&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionArchived { get; } = new(Values.SessionArchived);
+    public static EventType SessionArchived { get; } = new(Values.SessionArchived);
     /// <summary>
     /// Gets the &apos;session.unarchived&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionUnarchived { get; } = new(Values.SessionUnarchived);
+    public static EventType SessionUnarchived { get; } = new(Values.SessionUnarchived);
     /// <summary>
     /// Gets the &apos;session.usage.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionUsageUpdated { get; } = new(Values.SessionUsageUpdated);
+    public static EventType SessionUsageUpdated { get; } = new(Values.SessionUsageUpdated);
     /// <summary>
     /// Gets the &apos;session.deleted&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionDeleted { get; } = new(Values.SessionDeleted);
+    public static EventType SessionDeleted { get; } = new(Values.SessionDeleted);
     /// <summary>
     /// Gets the &apos;session.forked&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionForked { get; } = new(Values.SessionForked);
+    public static EventType SessionForked { get; } = new(Values.SessionForked);
     /// <summary>
     /// Gets the &apos;session.inbox.delivered&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionInboxDelivered { get; } = new(Values.SessionInboxDelivered);
+    public static EventType SessionInboxDelivered { get; } = new(Values.SessionInboxDelivered);
     /// <summary>
     /// Gets the &apos;session.inbox.enqueued&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionInboxEnqueued { get; } = new(Values.SessionInboxEnqueued);
+    public static EventType SessionInboxEnqueued { get; } = new(Values.SessionInboxEnqueued);
     /// <summary>
     /// Gets the &apos;session.inbox.cancelled&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionInboxCancelled { get; } = new(Values.SessionInboxCancelled);
+    public static EventType SessionInboxCancelled { get; } = new(Values.SessionInboxCancelled);
     /// <summary>
     /// Gets the &apos;session.inbox.delivery.changed&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionInboxDeliveryChanged { get; } = new(Values.SessionInboxDeliveryChanged);
+    public static EventType SessionInboxDeliveryChanged { get; } = new(Values.SessionInboxDeliveryChanged);
     /// <summary>
     /// Gets the &apos;session.execution.started&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionExecutionStarted { get; } = new(Values.SessionExecutionStarted);
+    public static EventType SessionExecutionStarted { get; } = new(Values.SessionExecutionStarted);
     /// <summary>
     /// Gets the &apos;session.execution.succeeded&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionExecutionSucceeded { get; } = new(Values.SessionExecutionSucceeded);
+    public static EventType SessionExecutionSucceeded { get; } = new(Values.SessionExecutionSucceeded);
     /// <summary>
     /// Gets the &apos;session.execution.failed&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionExecutionFailed { get; } = new(Values.SessionExecutionFailed);
+    public static EventType SessionExecutionFailed { get; } = new(Values.SessionExecutionFailed);
     /// <summary>
     /// Gets the &apos;session.execution.interrupted&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionExecutionInterrupted { get; } = new(Values.SessionExecutionInterrupted);
+    public static EventType SessionExecutionInterrupted { get; } = new(Values.SessionExecutionInterrupted);
     /// <summary>
     /// Gets the &apos;session.instructions.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionInstructionsUpdated { get; } = new(Values.SessionInstructionsUpdated);
+    public static EventType SessionInstructionsUpdated { get; } = new(Values.SessionInstructionsUpdated);
     /// <summary>
     /// Gets the &apos;session.synthetic&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionSynthetic { get; } = new(Values.SessionSynthetic);
+    public static EventType SessionSynthetic { get; } = new(Values.SessionSynthetic);
     /// <summary>
     /// Gets the &apos;session.skill.activated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionSkillActivated { get; } = new(Values.SessionSkillActivated);
+    public static EventType SessionSkillActivated { get; } = new(Values.SessionSkillActivated);
     /// <summary>
     /// Gets the &apos;session.shell.started&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionShellStarted { get; } = new(Values.SessionShellStarted);
+    public static EventType SessionShellStarted { get; } = new(Values.SessionShellStarted);
     /// <summary>
     /// Gets the &apos;session.shell.ended&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionShellEnded { get; } = new(Values.SessionShellEnded);
+    public static EventType SessionShellEnded { get; } = new(Values.SessionShellEnded);
     /// <summary>
     /// Gets the &apos;session.step.started&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionStepStarted { get; } = new(Values.SessionStepStarted);
+    public static EventType SessionStepStarted { get; } = new(Values.SessionStepStarted);
     /// <summary>
     /// Gets the &apos;session.step.streamed&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionStepStreamed { get; } = new(Values.SessionStepStreamed);
+    public static EventType SessionStepStreamed { get; } = new(Values.SessionStepStreamed);
     /// <summary>
     /// Gets the &apos;session.step.ended&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionStepEnded { get; } = new(Values.SessionStepEnded);
+    public static EventType SessionStepEnded { get; } = new(Values.SessionStepEnded);
     /// <summary>
     /// Gets the &apos;session.step.failed&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionStepFailed { get; } = new(Values.SessionStepFailed);
+    public static EventType SessionStepFailed { get; } = new(Values.SessionStepFailed);
     /// <summary>
     /// Gets the &apos;session.text.started&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionTextStarted { get; } = new(Values.SessionTextStarted);
+    public static EventType SessionTextStarted { get; } = new(Values.SessionTextStarted);
     /// <summary>
     /// Gets the &apos;session.text.delta&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionTextDelta { get; } = new(Values.SessionTextDelta);
+    public static EventType SessionTextDelta { get; } = new(Values.SessionTextDelta);
     /// <summary>
     /// Gets the &apos;session.text.ended&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionTextEnded { get; } = new(Values.SessionTextEnded);
+    public static EventType SessionTextEnded { get; } = new(Values.SessionTextEnded);
     /// <summary>
     /// Gets the &apos;session.reasoning.started&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionReasoningStarted { get; } = new(Values.SessionReasoningStarted);
+    public static EventType SessionReasoningStarted { get; } = new(Values.SessionReasoningStarted);
     /// <summary>
     /// Gets the &apos;session.reasoning.delta&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionReasoningDelta { get; } = new(Values.SessionReasoningDelta);
+    public static EventType SessionReasoningDelta { get; } = new(Values.SessionReasoningDelta);
     /// <summary>
     /// Gets the &apos;session.reasoning.ended&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionReasoningEnded { get; } = new(Values.SessionReasoningEnded);
+    public static EventType SessionReasoningEnded { get; } = new(Values.SessionReasoningEnded);
     /// <summary>
     /// Gets the &apos;session.tool.input.started&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionToolInputStarted { get; } = new(Values.SessionToolInputStarted);
+    public static EventType SessionToolInputStarted { get; } = new(Values.SessionToolInputStarted);
     /// <summary>
     /// Gets the &apos;session.tool.input.delta&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionToolInputDelta { get; } = new(Values.SessionToolInputDelta);
+    public static EventType SessionToolInputDelta { get; } = new(Values.SessionToolInputDelta);
     /// <summary>
     /// Gets the &apos;session.tool.input.ended&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionToolInputEnded { get; } = new(Values.SessionToolInputEnded);
+    public static EventType SessionToolInputEnded { get; } = new(Values.SessionToolInputEnded);
     /// <summary>
     /// Gets the &apos;session.tool.called&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionToolCalled { get; } = new(Values.SessionToolCalled);
+    public static EventType SessionToolCalled { get; } = new(Values.SessionToolCalled);
     /// <summary>
     /// Gets the &apos;session.tool.progress&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionToolProgress { get; } = new(Values.SessionToolProgress);
+    public static EventType SessionToolProgress { get; } = new(Values.SessionToolProgress);
     /// <summary>
     /// Gets the &apos;session.tool.success&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionToolSuccess { get; } = new(Values.SessionToolSuccess);
+    public static EventType SessionToolSuccess { get; } = new(Values.SessionToolSuccess);
     /// <summary>
     /// Gets the &apos;session.tool.failed&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionToolFailed { get; } = new(Values.SessionToolFailed);
+    public static EventType SessionToolFailed { get; } = new(Values.SessionToolFailed);
     /// <summary>
     /// Gets the &apos;session.retry.scheduled&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionRetryScheduled { get; } = new(Values.SessionRetryScheduled);
+    public static EventType SessionRetryScheduled { get; } = new(Values.SessionRetryScheduled);
     /// <summary>
     /// Gets the &apos;session.compaction.started&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionCompactionStarted { get; } = new(Values.SessionCompactionStarted);
+    public static EventType SessionCompactionStarted { get; } = new(Values.SessionCompactionStarted);
     /// <summary>
     /// Gets the &apos;session.compaction.delta&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionCompactionDelta { get; } = new(Values.SessionCompactionDelta);
+    public static EventType SessionCompactionDelta { get; } = new(Values.SessionCompactionDelta);
     /// <summary>
     /// Gets the &apos;session.compaction.ended&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionCompactionEnded { get; } = new(Values.SessionCompactionEnded);
+    public static EventType SessionCompactionEnded { get; } = new(Values.SessionCompactionEnded);
     /// <summary>
     /// Gets the &apos;session.compaction.failed&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionCompactionFailed { get; } = new(Values.SessionCompactionFailed);
+    public static EventType SessionCompactionFailed { get; } = new(Values.SessionCompactionFailed);
     /// <summary>
     /// Gets the &apos;session.revert.staged&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionRevertStaged { get; } = new(Values.SessionRevertStaged);
+    public static EventType SessionRevertStaged { get; } = new(Values.SessionRevertStaged);
     /// <summary>
     /// Gets the &apos;session.revert.cleared&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionRevertCleared { get; } = new(Values.SessionRevertCleared);
+    public static EventType SessionRevertCleared { get; } = new(Values.SessionRevertCleared);
     /// <summary>
     /// Gets the &apos;session.revert.committed&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionRevertCommitted { get; } = new(Values.SessionRevertCommitted);
+    public static EventType SessionRevertCommitted { get; } = new(Values.SessionRevertCommitted);
     /// <summary>
     /// Gets the &apos;filesystem.changed&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes FilesystemChanged { get; } = new(Values.FilesystemChanged);
+    public static EventType FilesystemChanged { get; } = new(Values.FilesystemChanged);
     /// <summary>
     /// Gets the &apos;reference.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes ReferenceUpdated { get; } = new(Values.ReferenceUpdated);
+    public static EventType ReferenceUpdated { get; } = new(Values.ReferenceUpdated);
     /// <summary>
     /// Gets the &apos;permission.asked&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes PermissionAsked { get; } = new(Values.PermissionAsked);
+    public static EventType PermissionAsked { get; } = new(Values.PermissionAsked);
     /// <summary>
     /// Gets the &apos;permission.replied&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes PermissionReplied { get; } = new(Values.PermissionReplied);
+    public static EventType PermissionReplied { get; } = new(Values.PermissionReplied);
     /// <summary>
     /// Gets the &apos;plugin.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes PluginUpdated { get; } = new(Values.PluginUpdated);
+    public static EventType PluginUpdated { get; } = new(Values.PluginUpdated);
     /// <summary>
     /// Gets the &apos;project.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes ProjectUpdated { get; } = new(Values.ProjectUpdated);
+    public static EventType ProjectUpdated { get; } = new(Values.ProjectUpdated);
     /// <summary>
     /// Gets the &apos;worktree.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes WorktreeUpdated { get; } = new(Values.WorktreeUpdated);
+    public static EventType WorktreeUpdated { get; } = new(Values.WorktreeUpdated);
     /// <summary>
     /// Gets the &apos;worktree.resolved&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes WorktreeResolved { get; } = new(Values.WorktreeResolved);
+    public static EventType WorktreeResolved { get; } = new(Values.WorktreeResolved);
     /// <summary>
     /// Gets the &apos;command.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes CommandUpdated { get; } = new(Values.CommandUpdated);
+    public static EventType CommandUpdated { get; } = new(Values.CommandUpdated);
     /// <summary>
     /// Gets the &apos;config.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes ConfigUpdated { get; } = new(Values.ConfigUpdated);
+    public static EventType ConfigUpdated { get; } = new(Values.ConfigUpdated);
     /// <summary>
     /// Gets the &apos;skill.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SkillUpdated { get; } = new(Values.SkillUpdated);
+    public static EventType SkillUpdated { get; } = new(Values.SkillUpdated);
     /// <summary>
     /// Gets the &apos;pty.created&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes PtyCreated { get; } = new(Values.PtyCreated);
+    public static EventType PtyCreated { get; } = new(Values.PtyCreated);
     /// <summary>
     /// Gets the &apos;pty.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes PtyUpdated { get; } = new(Values.PtyUpdated);
+    public static EventType PtyUpdated { get; } = new(Values.PtyUpdated);
     /// <summary>
     /// Gets the &apos;pty.exited&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes PtyExited { get; } = new(Values.PtyExited);
+    public static EventType PtyExited { get; } = new(Values.PtyExited);
     /// <summary>
     /// Gets the &apos;pty.deleted&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes PtyDeleted { get; } = new(Values.PtyDeleted);
+    public static EventType PtyDeleted { get; } = new(Values.PtyDeleted);
     /// <summary>
     /// Gets the &apos;persistent-pty.added&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes PersistentPtyAdded { get; } = new(Values.PersistentPtyAdded);
+    public static EventType PersistentPtyAdded { get; } = new(Values.PersistentPtyAdded);
     /// <summary>
     /// Gets the &apos;persistent-pty.removed&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes PersistentPtyRemoved { get; } = new(Values.PersistentPtyRemoved);
+    public static EventType PersistentPtyRemoved { get; } = new(Values.PersistentPtyRemoved);
     /// <summary>
     /// Gets the &apos;shell.created&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes ShellCreated { get; } = new(Values.ShellCreated);
+    public static EventType ShellCreated { get; } = new(Values.ShellCreated);
     /// <summary>
     /// Gets the &apos;shell.exited&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes ShellExited { get; } = new(Values.ShellExited);
+    public static EventType ShellExited { get; } = new(Values.ShellExited);
     /// <summary>
     /// Gets the &apos;shell.deleted&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes ShellDeleted { get; } = new(Values.ShellDeleted);
+    public static EventType ShellDeleted { get; } = new(Values.ShellDeleted);
     /// <summary>
     /// Gets the &apos;form.created&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes FormCreated { get; } = new(Values.FormCreated);
+    public static EventType FormCreated { get; } = new(Values.FormCreated);
     /// <summary>
     /// Gets the &apos;form.replied&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes FormReplied { get; } = new(Values.FormReplied);
+    public static EventType FormReplied { get; } = new(Values.FormReplied);
     /// <summary>
     /// Gets the &apos;form.cancelled&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes FormCancelled { get; } = new(Values.FormCancelled);
+    public static EventType FormCancelled { get; } = new(Values.FormCancelled);
     /// <summary>
     /// Gets the &apos;websearch.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes WebsearchUpdated { get; } = new(Values.WebsearchUpdated);
+    public static EventType WebsearchUpdated { get; } = new(Values.WebsearchUpdated);
     /// <summary>
     /// Gets the &apos;session.status&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionStatus { get; } = new(Values.SessionStatus);
+    public static EventType SessionStatus { get; } = new(Values.SessionStatus);
     /// <summary>
     /// Gets the &apos;session.idle&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes SessionIdle { get; } = new(Values.SessionIdle);
+    public static EventType SessionIdle { get; } = new(Values.SessionIdle);
     /// <summary>
     /// Gets the &apos;tui.prompt.append&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes TuiPromptAppend { get; } = new(Values.TuiPromptAppend);
+    public static EventType TuiPromptAppend { get; } = new(Values.TuiPromptAppend);
     /// <summary>
     /// Gets the &apos;tui.command.execute&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes TuiCommandExecute { get; } = new(Values.TuiCommandExecute);
+    public static EventType TuiCommandExecute { get; } = new(Values.TuiCommandExecute);
     /// <summary>
     /// Gets the &apos;tui.toast.show&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes TuiToastShow { get; } = new(Values.TuiToastShow);
+    public static EventType TuiToastShow { get; } = new(Values.TuiToastShow);
     /// <summary>
     /// Gets the &apos;tui.session.select&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes TuiSessionSelect { get; } = new(Values.TuiSessionSelect);
+    public static EventType TuiSessionSelect { get; } = new(Values.TuiSessionSelect);
     /// <summary>
     /// Gets the &apos;installation.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes InstallationUpdated { get; } = new(Values.InstallationUpdated);
+    public static EventType InstallationUpdated { get; } = new(Values.InstallationUpdated);
     /// <summary>
     /// Gets the &apos;installation.update-available&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes InstallationUpdateAvailable { get; } = new(Values.InstallationUpdateAvailable);
+    public static EventType InstallationUpdateAvailable { get; } = new(Values.InstallationUpdateAvailable);
     /// <summary>
     /// Gets the &apos;vcs.branch.updated&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes VcsBranchUpdated { get; } = new(Values.VcsBranchUpdated);
+    public static EventType VcsBranchUpdated { get; } = new(Values.VcsBranchUpdated);
     /// <summary>
     /// Gets the &apos;mcp.status.changed&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes McpStatusChanged { get; } = new(Values.McpStatusChanged);
+    public static EventType McpStatusChanged { get; } = new(Values.McpStatusChanged);
     /// <summary>
     /// Gets the &apos;mcp.resources.changed&apos; wire value.
     /// </summary>
-    public static EventSubscribeRequestTypes McpResourcesChanged { get; } = new(Values.McpResourcesChanged);
+    public static EventType McpResourcesChanged { get; } = new(Values.McpResourcesChanged);
     /// <summary>
     /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
     /// </summary>
@@ -794,33 +794,33 @@ public readonly struct EventSubscribeRequestTypes : IEquatable<EventSubscribeReq
     /// </summary>
     /// <param name = "left">The first value.</param>
     /// <param name = "right">The second value.</param>
-    public static bool operator ==(EventSubscribeRequestTypes left, EventSubscribeRequestTypes right) => left.Equals(right);
+    public static bool operator ==(EventType left, EventType right) => left.Equals(right);
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally for inequality.
     /// </summary>
     /// <param name = "left">The first value.</param>
     /// <param name = "right">The second value.</param>
-    public static bool operator !=(EventSubscribeRequestTypes left, EventSubscribeRequestTypes right) => !left.Equals(right);
+    public static bool operator !=(EventType left, EventType right) => !left.Equals(right);
     /// <summary>
     /// Converts a wire spelling to a value.
     /// </summary>
     /// <param name = "value">The wire spelling.</param>
-    public static implicit operator EventSubscribeRequestTypes(string value) => new(value);
+    public static implicit operator EventType(string value) => new(value);
     /// <summary>
     /// Creates a value from its wire spelling, as the implicit conversion does.
     /// </summary>
     /// <param name = "value">The wire spelling.</param>
-    public static EventSubscribeRequestTypes FromString(string value) => new(value);
+    public static EventType FromString(string value) => new(value);
     /// <summary>
     /// Compares wire spellings ordinally: upstream compares string literals exactly.
     /// </summary>
     /// <param name = "other">The other value.</param>
-    public bool Equals(EventSubscribeRequestTypes other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+    public bool Equals(EventType other) => string.Equals(_value, other._value, StringComparison.Ordinal);
     /// <summary>
     /// Compares with another object: equal only to a value with the same wire spelling.
     /// </summary>
     /// <param name = "obj">The other object.</param>
-    public override bool Equals(object? obj) => obj is EventSubscribeRequestTypes other && Equals(other);
+    public override bool Equals(object? obj) => obj is EventType other && Equals(other);
     /// <summary>
     /// Hashes the wire spelling ordinally, as equality compares it.
     /// </summary>

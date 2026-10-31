@@ -70,7 +70,6 @@
 /Config/Internal/ConfigReferenceEntryJsonConverter.cs linguist-generated
 /Config/Internal/ConfigResponseAdapter.cs linguist-generated
 /Config/Internal/ConfigShellsResponseAdapter.cs linguist-generated
-/Config/Internal/ConfigWebSearchInfoProviderJsonConverter.cs linguist-generated
 /Config/Internal/OpenCodeRoutes.Config.cs linguist-generated
 /Config/Internal/UnknownConfigEntryJsonConverter.cs linguist-generated
 /Config/Internal/UnknownConfigModelReasoningJsonConverter.cs linguist-generated
@@ -153,7 +152,6 @@
 /Config/Models/ConfigUpdated.cs linguist-generated
 /Config/Models/ConfigWarming.cs linguist-generated
 /Config/Models/ConfigWebSearchInfo.cs linguist-generated
-/Config/Models/ConfigWebSearchInfoProvider.cs linguist-generated
 /Config/Models/ConfigWorktree.cs linguist-generated
 /Config/Models/IConfigEntry.cs linguist-generated
 /Config/Models/IConfigModelReasoning.cs linguist-generated
@@ -201,16 +199,16 @@
 /Events/EventSubscribeRequest.cs linguist-generated
 /Events/EventsClient.cs linguist-generated
 /Events/Internal/EventJsonConverter.cs linguist-generated
-/Events/Internal/EventSubscribeRequestTypesJsonConverter.cs linguist-generated
 /Events/Internal/EventSubscribeResponseStreamAdapter.cs linguist-generated
+/Events/Internal/EventTypeJsonConverter.cs linguist-generated
 /Events/Internal/OpenCodeRoutes.Events.cs linguist-generated
-/Events/Internal/TuiCommandExecuteDataCommandJsonConverter.cs linguist-generated
+/Events/Internal/TuiCommandNameJsonConverter.cs linguist-generated
 /Events/Internal/TuiToastShowDataVariantJsonConverter.cs linguist-generated
 /Events/Internal/UnknownEventJsonConverter.cs linguist-generated
 /Events/Models/EventLogSynced.cs linguist-generated
 /Events/Models/EventRpc.cs linguist-generated
 /Events/Models/EventServerConnected.cs linguist-generated
-/Events/Models/EventSubscribeRequestTypes.cs linguist-generated
+/Events/Models/EventType.cs linguist-generated
 /Events/Models/IEvent.cs linguist-generated
 /Events/Models/InstallationUpdateAvailable.cs linguist-generated
 /Events/Models/InstallationUpdateAvailableData.cs linguist-generated
@@ -218,7 +216,7 @@
 /Events/Models/InstallationUpdatedData.cs linguist-generated
 /Events/Models/TuiCommandExecute.cs linguist-generated
 /Events/Models/TuiCommandExecuteData.cs linguist-generated
-/Events/Models/TuiCommandExecuteDataCommand.cs linguist-generated
+/Events/Models/TuiCommandName.cs linguist-generated
 /Events/Models/TuiPromptAppend.cs linguist-generated
 /Events/Models/TuiPromptAppendData.cs linguist-generated
 /Events/Models/TuiSessionSelect.cs linguist-generated
@@ -997,7 +995,7 @@
 /Sessions/Internal/SessionInboxListResponseEnvelope.cs linguist-generated
 /Sessions/Internal/SessionInboxUpdateResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionInfoOutcomeJsonConverter.cs linguist-generated
-/Sessions/Internal/SessionInstructionsUpdatedDataDeltaJsonConverter.cs linguist-generated
+/Sessions/Internal/SessionInstructionChangeJsonConverter.cs linguist-generated
 /Sessions/Internal/SessionInterruptResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionListResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionListResponseEnvelope.cs linguist-generated
@@ -1142,7 +1140,6 @@
 /Sessions/Models/Lifecycle/SessionForkedDurable.cs linguist-generated
 /Sessions/Models/Lifecycle/SessionInstructionsUpdated.cs linguist-generated
 /Sessions/Models/Lifecycle/SessionInstructionsUpdatedData.cs linguist-generated
-/Sessions/Models/Lifecycle/SessionInstructionsUpdatedDataDelta.cs linguist-generated
 /Sessions/Models/Lifecycle/SessionInstructionsUpdatedDurable.cs linguist-generated
 /Sessions/Models/Lifecycle/SessionMetadataUpdated.cs linguist-generated
 /Sessions/Models/Lifecycle/SessionMetadataUpdatedData.cs linguist-generated
@@ -1255,6 +1252,7 @@
 /Sessions/Models/SessionInfoFork.cs linguist-generated
 /Sessions/Models/SessionInfoOutcome.cs linguist-generated
 /Sessions/Models/SessionInfoTime.cs linguist-generated
+/Sessions/Models/SessionInstructionChange.cs linguist-generated
 /Sessions/Models/SessionNotFoundError.cs linguist-generated
 /Sessions/Models/SessionPermissionCreateData.cs linguist-generated
 /Sessions/Models/SessionStructuredError.cs linguist-generated
@@ -1514,11 +1512,13 @@
 /Vcs/VcsStatusRequest.cs linguist-generated
 /Vcs/VcsStatusResponse.cs linguist-generated
 /Websearch/Internal/OpenCodeRoutes.Websearch.cs linguist-generated
+/Websearch/Internal/WebSearchProviderChoiceJsonConverter.cs linguist-generated
 /Websearch/Internal/WebsearchProvidersResponseAdapter.cs linguist-generated
 /Websearch/Internal/WebsearchProvidersResponseEnvelope.cs linguist-generated
 /Websearch/Internal/WebsearchQueryResponseAdapter.cs linguist-generated
 /Websearch/Internal/WebsearchQueryResponseEnvelope.cs linguist-generated
 /Websearch/Models/WebSearchProvider.cs linguist-generated
+/Websearch/Models/WebSearchProviderChoice.cs linguist-generated
 /Websearch/Models/WebSearchResponse.cs linguist-generated
 /Websearch/Models/WebSearchResult.cs linguist-generated
 /Websearch/Models/WebSearchResultTime.cs linguist-generated

@@ -5,17 +5,17 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The config web search info provider. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
+/// The web search provider choice. The pinned server&apos;s values are the static properties; a value a newer server sends is kept as it arrived, and IsKnown tells the two apart.
 /// </summary>
-[JsonConverter(typeof(ConfigWebSearchInfoProviderJsonConverter))]
-public readonly struct ConfigWebSearchInfoProvider : IEquatable<ConfigWebSearchInfoProvider>
+[JsonConverter(typeof(WebSearchProviderChoiceJsonConverter))]
+public readonly struct WebSearchProviderChoice : IEquatable<WebSearchProviderChoice>
 {
     private readonly string? _value;
     /// <summary>
     /// Creates a value from its wire spelling; any spelling is accepted, pinned or not.
     /// </summary>
     /// <param name = "value">The wire spelling.</param>
-    public ConfigWebSearchInfoProvider(string value)
+    public WebSearchProviderChoice(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
         _value = value;
@@ -35,7 +35,7 @@ public readonly struct ConfigWebSearchInfoProvider : IEquatable<ConfigWebSearchI
     /// <summary>
     /// Gets the &apos;random&apos; wire value.
     /// </summary>
-    public static ConfigWebSearchInfoProvider Random { get; } = new(Values.Random);
+    public static WebSearchProviderChoice Random { get; } = new(Values.Random);
     /// <summary>
     /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
     /// </summary>
@@ -50,33 +50,33 @@ public readonly struct ConfigWebSearchInfoProvider : IEquatable<ConfigWebSearchI
     /// </summary>
     /// <param name = "left">The first value.</param>
     /// <param name = "right">The second value.</param>
-    public static bool operator ==(ConfigWebSearchInfoProvider left, ConfigWebSearchInfoProvider right) => left.Equals(right);
+    public static bool operator ==(WebSearchProviderChoice left, WebSearchProviderChoice right) => left.Equals(right);
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally for inequality.
     /// </summary>
     /// <param name = "left">The first value.</param>
     /// <param name = "right">The second value.</param>
-    public static bool operator !=(ConfigWebSearchInfoProvider left, ConfigWebSearchInfoProvider right) => !left.Equals(right);
+    public static bool operator !=(WebSearchProviderChoice left, WebSearchProviderChoice right) => !left.Equals(right);
     /// <summary>
     /// Converts a wire spelling to a value.
     /// </summary>
     /// <param name = "value">The wire spelling.</param>
-    public static implicit operator ConfigWebSearchInfoProvider(string value) => new(value);
+    public static implicit operator WebSearchProviderChoice(string value) => new(value);
     /// <summary>
     /// Creates a value from its wire spelling, as the implicit conversion does.
     /// </summary>
     /// <param name = "value">The wire spelling.</param>
-    public static ConfigWebSearchInfoProvider FromString(string value) => new(value);
+    public static WebSearchProviderChoice FromString(string value) => new(value);
     /// <summary>
     /// Compares wire spellings ordinally: upstream compares string literals exactly.
     /// </summary>
     /// <param name = "other">The other value.</param>
-    public bool Equals(ConfigWebSearchInfoProvider other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+    public bool Equals(WebSearchProviderChoice other) => string.Equals(_value, other._value, StringComparison.Ordinal);
     /// <summary>
     /// Compares with another object: equal only to a value with the same wire spelling.
     /// </summary>
     /// <param name = "obj">The other object.</param>
-    public override bool Equals(object? obj) => obj is ConfigWebSearchInfoProvider other && Equals(other);
+    public override bool Equals(object? obj) => obj is WebSearchProviderChoice other && Equals(other);
     /// <summary>
     /// Hashes the wire spelling ordinally, as equality compares it.
     /// </summary>
