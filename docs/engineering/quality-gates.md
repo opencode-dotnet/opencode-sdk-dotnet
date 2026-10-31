@@ -150,8 +150,7 @@ dotnet test --project "$PWD/tests/OpenCode.Sdk.Tools.Tests/OpenCode.Sdk.Tools.Te
 
 The project path is absolute because the .NET 11 release-candidate SDK resolves a relative
 `--project` path, file or directory, a second time against the project's own directory when the
-project has more than one target framework and no `-f` selects one. A harness task file writes
-`"$PWD/<path>"`: its verify commands run from the worktree root.
+project has more than one target framework and no `-f` selects one.
 
 Changes to the protocol, generator, curation, or generated output also run:
 
