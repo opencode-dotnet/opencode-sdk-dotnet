@@ -19,49 +19,6 @@ namespace OpenCode.Sdk.Tests.Events;
 public sealed class EventsClientReconnectTests
 {
     [Test]
-    public async Task SubscribeAsync_Should_Send_Types_On_Every_Reconnect_Attempt()
-    {
-        var time = new ManualTimeProvider();
-        using var handler = CreateReconnectHandler();
-        using var httpClient = new HttpClient(handler);
-        using var pipeline = PipelineFactory.Create(httpClient, time: time);
-        var request = new EventSubscribeRequest
-        {
-            Types = [new EventSubscribeRequestTypes(EventSubscribeRequestTypes.Values.SessionCreated), new EventSubscribeRequestTypes("rpc.sdk-test")],
-        };
-        await using var events = new EventsClient(pipeline).SubscribeAsync(request).GetAsyncEnumerator();
-
-        var reconnect = await PullAfterConnectionAsync(events);
-        await time.WaitForArmedAsync(Delay, HangGuard.Bound);
-        time.Advance(Delay);
-        await Assert.That(await reconnect.WaitAsync(HangGuard.Bound)).IsTrue();
-        await Assert.That(events.Current).IsTypeOf<EventServerConnected>();
-
-        await Assert.That(handler.Requests.Count).IsEqualTo(2);
-        await Assert.That(handler.Requests.Select(static attempt => attempt.RequestUri!.Query))
-            .IsEquivalentTo(["?types=session.created&types=rpc.sdk-test", "?types=session.created&types=rpc.sdk-test"], CollectionOrdering.Matching);
-    }
-
-    [Test]
-    [Arguments(0)]
-    [Arguments(1)]
-    [Arguments(2)]
-    public async Task SubscribeAsync_Should_Omit_The_Query_Without_Types(int kind)
-    {
-        using var scenario = ContractScenario.RespondingWithFrames(ConnectedFrame);
-        var request = kind switch
-        {
-            0 => null,
-            1 => new EventSubscribeRequest(),
-            _ => new EventSubscribeRequest { Types = [] },
-        };
-        await using var events = scenario.Client.Events.SubscribeAsync(request).GetAsyncEnumerator();
-
-        await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
-        await Assert.That(scenario.Requests.Single().RequestUri!.Query).IsEqualTo(string.Empty);
-    }
-
-    [Test]
     [Arguments("door")]
     [Arguments("spine")]
     public async Task Per_Call_Location_Should_Be_Sent_On_Every_Reconnect_Attempt(string entry)
@@ -681,9 +638,6 @@ public sealed class EventsClientReconnectTests
         server.Time.Advance(TimeSpan.FromMinutes(2));
         await Assert.That(server.RequestCount).IsEqualTo(1);
     }
-
-    private static RecordingHttpHandler CreateReconnectHandler() =>
-        new(static _ => ScriptedEventServer.StreamOf(ConnectedFrame, ends: true));
 
     /// <summary>Asserts the pull ends in the caller's own cancellation with the stream's canceled text.</summary>
     private static async Task AssertReadCanceledByCallerAsync(Task<OperationCanceledException?> pending, CancellationToken caller)

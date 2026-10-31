@@ -20,6 +20,9 @@ internal sealed class EventStreamSteps
 
     internal static readonly string ConnectedFrame = WireBodyData.Frames(ScriptedEventServer.Connected);
 
+    internal static RecordingHttpHandler CreateReconnectHandler() =>
+        new(static _ => ScriptedEventServer.StreamOf(ConnectedFrame, ends: true));
+
     internal static async Task<Task<bool>> PullAfterConnectionAsync(IAsyncEnumerator<IEvent> events)
     {
         await Assert.That(await NextAsync(events)).IsTypeOf<EventServerConnected>();
