@@ -50,7 +50,14 @@ function New-TrackedEntry($entry, [string] $role) {
     try {
         $process = [System.Diagnostics.Process]::GetProcessById([int]$entry.ProcessId)
         $null = $process.get_Handle()
-        $trackedEntry.Process = $process
+        $start = $process.get_StartTime()
+        $created = $entry.CreationDate
+        if ([math]::Abs(($start - $created).TotalSeconds) -le 1) {
+            $trackedEntry.Process = $process
+        } else {
+            # A reused PID belongs to a different process than the snapshot captured.
+            $trackedEntry.Finished = $true
+        }
     } catch [System.ArgumentException] {
         # The process is no longer running.
         $trackedEntry.Finished = $true
@@ -64,14 +71,22 @@ function New-TrackedEntry($entry, [string] $role) {
     }
     return $trackedEntry
 }
-function Get-Descendants([int] $rootId, $byParent) {
-    $queue = [System.Collections.Generic.Queue[int]]::new()
-    $queue.Enqueue($rootId)
+function Get-Descendants([int] $rootId, [datetime] $rootCreated, $byParent) {
+    $queue = [System.Collections.Generic.Queue[object]]::new()
+    $queue.Enqueue(@{
+        ProcessId = $rootId
+        CreationDate = $rootCreated
+    })
+    $visited = [System.Collections.Generic.HashSet[int]]::new()
+    $null = $visited.Add($rootId)
     while ($queue.Count -gt 0) {
-        $parentId = $queue.Dequeue()
+        $parent = $queue.Dequeue()
+        $parentId = $parent.ProcessId
         foreach ($child in $byParent["$parentId"]) {
-            $child
-            $queue.Enqueue([int]$child.ProcessId)
+            if ($child.CreationDate -ge $parent.CreationDate -and $visited.Add([int]$child.ProcessId)) {
+                $child
+                $queue.Enqueue($child)
+            }
         }
     }
 }
@@ -88,14 +103,16 @@ for ($run = 1; $run -le $Runs; $run++) {
     $tracked = @{}
     $formatId = $null
     try {
+        $rootCreated = $root.get_StartTime()
         while (-not $root.get_HasExited()) {
-            $snapshot = @(Get-CimInstance Win32_Process -Property ProcessId, ParentProcessId, CommandLine, Name)
+            $snapshot = @(Get-CimInstance Win32_Process -Property ProcessId, ParentProcessId, CommandLine, Name, CreationDate)
             $byParent = $snapshot | Group-Object ParentProcessId -AsHashTable -AsString
             if ($null -eq $formatId) {
-                $format = Get-Descendants $root.Id $byParent |
+                $format = Get-Descendants $root.Id $rootCreated $byParent |
                     Where-Object { $_.CommandLine -like '*dotnet-format*' } | Select-Object -First 1
                 if ($null -ne $format) {
                     $formatId = [int]$format.ProcessId
+                    $formatCreated = $format.CreationDate
                     $tracked[$formatId] = New-TrackedEntry $format 'format'
                 }
             }
@@ -104,7 +121,7 @@ for ($run = 1; $run -le $Runs; $run++) {
             }
             if ($null -ne $formatId -and $null -ne $formatProcess -and -not $formatProcess.get_HasExited()) {
                 $subtree = @($snapshot | Where-Object { $_.ProcessId -eq $formatId }) +
-                    @(Get-Descendants $formatId $byParent)
+                    @(Get-Descendants $formatId $formatCreated $byParent)
                 foreach ($entry in $subtree) {
                     $processId = [int]$entry.ProcessId
                     if (-not $tracked.ContainsKey($processId)) {
@@ -196,6 +213,6 @@ for ($run = 1; $run -le $Runs; $run++) {
 $ordered = $rows | Sort-Object Run, { @('format', 'buildhost', 'descendant').IndexOf($_.Role) }, Pid
 $ordered | Format-Table -AutoSize
 if ($Output) {
-    $ordered | Export-Csv -Path $Output -NoTypeInformation
+    $ordered | Export-Csv -LiteralPath $Output -NoTypeInformation
 }
 exit 0
