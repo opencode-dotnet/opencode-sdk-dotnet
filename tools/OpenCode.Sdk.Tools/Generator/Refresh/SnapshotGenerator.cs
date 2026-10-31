@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
 using OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
@@ -97,17 +98,17 @@ internal sealed partial class SnapshotGenerator(IFileSystem fileSystem, IProcess
         foreach (var patch in patches)
         {
             var predicate = patch.Manifest.RepairPredicate;
-            foreach (var component in predicate.Components)
+            foreach (var (target, presence) in CheckTargets(baselineBytes, predicate))
             {
-                switch (DocumentInspector.CheckComponentKeyword(baselineBytes, component, predicate.Keyword))
+                switch (presence)
                 {
                     case KeywordPresence.Carries:
                         throw new SnapshotRefreshException(
-                            $"upstream's generator already satisfies patch '{patch.ManifestName}' (component '{component}' "
-                            + $"carries '{predicate.Keyword}'); retire the patch with an empty-patch refresh");
+                            $"upstream's generator already satisfies patch '{patch.ManifestName}' ({target} "
+                            + $"carries {DescribeRequirement(predicate)}); retire the patch with an empty-patch refresh");
                     case KeywordPresence.ComponentMissing:
                         throw new SnapshotRefreshException(
-                            $"component '{component}' named by patch '{patch.ManifestName}' is absent from the generated "
+                            $"{target} named by patch '{patch.ManifestName}' is absent from the generated "
                             + "baseline; the patch needs human review");
                     case KeywordPresence.Lacks:
                     default:
@@ -121,14 +122,39 @@ internal sealed partial class SnapshotGenerator(IFileSystem fileSystem, IProcess
     {
         foreach (var patch in patches)
         {
-            var predicate = patch.Manifest.RepairPredicate;
-            var unrepaired = predicate.Components.FirstOrDefault(component =>
-                DocumentInspector.CheckComponentKeyword(normalizedBytes, component, predicate.Keyword) is not KeywordPresence.Carries);
-            if (unrepaired is not null)
+            foreach (var (target, presence) in CheckTargets(normalizedBytes, patch.Manifest.RepairPredicate))
             {
-                throw new SnapshotRefreshException(
-                    $"patch '{patch.ManifestName}' did not repair component '{unrepaired}' (it still lacks "
-                    + $"'{predicate.Keyword}' after the patched generator run); the patch needs human review");
+                if (presence is not KeywordPresence.Carries)
+                {
+                    throw new SnapshotRefreshException(
+                        $"patch '{patch.ManifestName}' did not repair {target} (it still lacks "
+                        + $"{DescribeRequirement(patch.Manifest.RepairPredicate)} after the patched generator run); the patch needs human review");
+                }
+            }
+        }
+    }
+
+    private static string DescribeRequirement(PatchPredicate predicate) =>
+        predicate.Type == PatchPredicate.ParameterLacksStyle ? $"style '{predicate.Style}'" : $"'{predicate.Keyword}'";
+
+    private static IEnumerable<(string Target, KeywordPresence Presence)> CheckTargets(byte[] documentBytes, PatchPredicate predicate)
+    {
+        if (predicate.Type == PatchPredicate.ComponentLacksKeyword)
+        {
+            Debug.Assert(predicate.Components is not null && predicate.Keyword is not null, "PatchSetLoader validates component predicate fields.");
+            foreach (var component in predicate.Components)
+            {
+                yield return ($"component '{component}'", DocumentInspector.CheckComponentKeyword(documentBytes, component, predicate.Keyword));
+            }
+        }
+        else
+        {
+            Debug.Assert(predicate.Operations is not null && predicate.Parameter is not null && predicate.Style is not null,
+                "PatchSetLoader validates parameter predicate fields.");
+            foreach (var operation in predicate.Operations)
+            {
+                yield return ($"operation '{operation}' parameter '{predicate.Parameter}'",
+                    DocumentInspector.CheckParameterStyle(documentBytes, operation, predicate.Parameter, predicate.Style));
             }
         }
     }

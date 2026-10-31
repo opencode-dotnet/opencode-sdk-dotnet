@@ -3,28 +3,43 @@ using System.Text.Json.Serialization;
 namespace OpenCode.Sdk.Tools.Generator.Refresh.Models;
 
 /// <summary>
-/// A machine-checkable repair predicate. The single supported kind,
-/// <c>componentLacksKeyword</c>, holds while every named component schema exists and lacks the
-/// keyword; a component already carrying it retires the patch, and a missing component demands
-/// human review.
+/// A machine-checkable repair predicate: <c>componentLacksKeyword</c> names components and a
+/// keyword; <c>parameterLacksStyle</c> names operations, a parameter and a style. A target already
+/// satisfying the repair retires the patch, and a missing target demands human review.
 /// </summary>
 internal sealed record PatchPredicate
 {
-    /// <summary>The only supported predicate kind today.</summary>
+    /// <summary>A repair over component schemas and a keyword.</summary>
     public const string ComponentLacksKeyword = "componentLacksKeyword";
+
+    /// <summary>A repair over operation parameters and a style.</summary>
+    public const string ParameterLacksStyle = "parameterLacksStyle";
 
     [JsonPropertyName("type")] public required string Type { get; init; }
 
     [JsonPropertyName("components")]
-    public required IReadOnlyList<string> Components
+    public IReadOnlyList<string>? Components
     {
         get;
         init
         {
-            ArgumentNullException.ThrowIfNull(value);
-            field = Array.AsReadOnly([.. value]);
+            field = value is null ? null : Array.AsReadOnly([.. value]);
         }
     }
 
-    [JsonPropertyName("keyword")] public required string Keyword { get; init; }
+    [JsonPropertyName("keyword")] public string? Keyword { get; init; }
+
+    [JsonPropertyName("operations")]
+    public IReadOnlyList<string>? Operations
+    {
+        get;
+        init
+        {
+            field = value is null ? null : Array.AsReadOnly([.. value]);
+        }
+    }
+
+    [JsonPropertyName("parameter")] public string? Parameter { get; init; }
+
+    [JsonPropertyName("style")] public string? Style { get; init; }
 }

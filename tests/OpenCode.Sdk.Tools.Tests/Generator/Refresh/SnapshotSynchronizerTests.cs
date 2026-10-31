@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using OpenCode.Sdk.Tools.Generator.Refresh;
 using OpenCode.Sdk.Tools.Generator.Refresh.Models;
 using OpenCode.Sdk.Tools.Serialization;
@@ -30,6 +31,52 @@ public sealed class SnapshotSynchronizerTests
         .WithSchema("V2EventEncoded", schema => schema
             .Type("string")
             .ContentSchema("application/json", payload => payload.Ref("Plain"))));
+
+    private static readonly byte[] LacksParameterStyle = ParameterDocument(styled: false);
+    private static readonly byte[] CarriesParameterStyle = ParameterDocument(styled: true);
+
+    [Test]
+    [Arguments("satisfied", "upstream's generator already satisfies patch '001-test.json' (operation 'experimental.artifacts.list' parameter 'location' carries style 'deepObject'); retire the patch with an empty-patch refresh")]
+    [Arguments("absent", "operation 'experimental.artifacts.list' parameter 'location' named by patch '001-test.json' is absent from the generated baseline; the patch needs human review")]
+    [Arguments("unrepaired", "patch '001-test.json' did not repair operation 'experimental.artifacts.list' parameter 'location' (it still lacks style 'deepObject' after the patched generator run); the patch needs human review")]
+    public async Task Prepare_Should_Refuse_An_Invalid_Parameter_Style_Repair(string variation, string diagnostic)
+    {
+        var fileSystem = await CreateRepositoryAsync();
+        await WriteParameterPatchSetAsync(fileSystem);
+        using var scenario = new RefreshScenario(fileSystem);
+        var runner = scenario.ExpectReference(LacksParameterStyle);
+        var baseline = variation switch
+        {
+            "satisfied" => CarriesParameterStyle,
+            "absent" => CandidateDocument,
+            _ => LacksParameterStyle,
+        };
+        ExpectGeneration(runner, fileSystem, baseline, patched: variation == "unrepaired" ? LacksParameterStyle : null);
+
+        var exception = await scenario.PrepareRefusalAsync();
+
+        await Assert.That(exception.Message).IsEqualTo(diagnostic);
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
+    }
+
+    [Test]
+    public async Task Prepare_Should_Accept_A_Patch_That_Adds_The_Parameter_Style()
+    {
+        var fileSystem = await CreateRepositoryAsync();
+        await WriteParameterPatchSetAsync(fileSystem);
+        using var scenario = new RefreshScenario(fileSystem);
+        var runner = scenario.ExpectReference(LacksParameterStyle);
+        ExpectGeneration(runner, fileSystem, LacksParameterStyle, patched: CarriesParameterStyle);
+
+        PrepareOutcome? outcome = null;
+        await Assert.That(async () => outcome = await scenario.Synchronizer.PrepareAsync("origin/v2", CancellationToken.None)).ThrowsNothing();
+
+        // A successful PrepareAsync returns its non-null outcome.
+        await Assert.That(outcome!.Receipt.Patches.Single().Manifest).IsEqualTo("001-test.json");
+        await Assert.That(await fileSystem.File.ReadAllBytesAsync(outcome.NormalizedDocumentPath, CancellationToken.None))
+            .IsEquivalentTo(CarriesParameterStyle, CollectionOrdering.Matching);
+        await Assert.That(runner.Invocations[^1]).StartsWith("git -c core.longpaths=true worktree remove");
+    }
 
     [Test]
     public async Task Prepare_Should_Run_The_Pinned_Generator_Without_Patches()
@@ -536,6 +583,26 @@ public sealed class SnapshotSynchronizerTests
         await fileSystem.File.WriteAllTextAsync(SnapshotPaths.SnapshotMarkdown, RefreshScenarioData.SnapshotMarkdown);
         _ = fileSystem.Directory.CreateDirectory(SnapshotPaths.Submodule);
         return fileSystem;
+    }
+
+    private static byte[] ParameterDocument(bool styled) => RefreshScenarioData.DocumentBytes(spec => spec
+        .WithOperation("experimental.artifacts.list", configure: operation => operation
+            .Parameter("location", "query", schema => schema.Type("object"), deepObject: styled), path: "/artifacts"));
+
+    private static async Task WriteParameterPatchSetAsync(MockFileSystem fileSystem)
+    {
+        await WritePatchSetAsync(fileSystem);
+        var path = fileSystem.Path.Combine(SnapshotPaths.PatchesRoot, "001-test.json");
+        // WritePatchSetAsync serializes a non-null typed manifest.
+        var manifest = JsonNode.Parse(await fileSystem.File.ReadAllTextAsync(path))!;
+        manifest["repairPredicate"] = new JsonObject
+        {
+            ["type"] = "parameterLacksStyle",
+            ["operations"] = new JsonArray("experimental.artifacts.list"),
+            ["parameter"] = "location",
+            ["style"] = "deepObject",
+        };
+        await fileSystem.File.WriteAllTextAsync(path, manifest.ToJsonString());
     }
 
     private static async Task WritePatchSetAsync(MockFileSystem fileSystem)

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using OpenCode.Sdk.Tests.Harness;
@@ -71,6 +72,7 @@ internal sealed class AutocrlfRefreshScenario : IProcessRunner, IDisposable
             var patched = _generation++ > 0;
             var document = RefreshScenarioData.DocumentBytes(spec =>
             {
+                Debug.Assert(_patch.Manifest.RepairPredicate.Components is not null, "The committed SSE patch declares component targets.");
                 foreach (var component in _patch.Manifest.RepairPredicate.Components)
                 {
                     _ = spec.WithSchema(component, schema =>
