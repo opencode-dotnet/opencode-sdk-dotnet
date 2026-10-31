@@ -451,6 +451,14 @@ and the warm-up, not a stage's own cost. It is compared by hand with the same ro
 quoted as what a stage needs, and the comparison tool does not carry it. An unreadable or non-positive
 value produces no metric, never a reported 0.
 
+The `dotnet format` subprocess's own cost is measured outside BenchmarkDotNet by
+`tools/measure-format.ps1`, which is Windows-only. In a disposable clone it runs `generate --verify`
+five times, finds the run's `dotnet-format` descendant and that process's own descendants (Roslyn's
+BuildHost among them), and reports each one's peak working set and CPU time, polled as fast as one
+process snapshot allows. Every figure is a lower bound read up to one poll interval before the process
+exits, and the report's last-read gap approximates that interval; BuildHost, read only a few times in
+its short life, gives a weak one. The script exits non-zero when it finds no format process.
+
 The cold-start classes (`OpenCode.Sdk.Performance.Tests.ColdStart`) declare their own
 `RunStrategy.ColdStart` job and run as a separate invocation with neither `--job` nor `--runtimes`,
 either of which would add a second job to every class; CI runs that invocation once, on the `net10`
