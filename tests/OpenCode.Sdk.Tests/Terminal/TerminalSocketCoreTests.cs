@@ -2,6 +2,7 @@ using System.Net.WebSockets;
 using NSubstitute;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Terminal;
 
@@ -13,6 +14,106 @@ namespace OpenCode.Sdk.Tests.Terminal;
 /// </summary>
 public sealed class TerminalSocketCoreTests
 {
+    [Test]
+    public async Task ReadAsync_Should_Limit_An_Oversized_Rent_And_Return_It_After_Normal_Close()
+    {
+        var pool = new TrackingByteArrayPool(spareCapacity: 64);
+        using var socket = Substitute.For<ITerminalWebSocket>();
+        var receivedCount = 0;
+        _ = socket.CloseStatus.Returns(WebSocketCloseStatus.NormalClosure);
+        _ = socket.ReceiveAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<CancellationToken>()).Returns(call =>
+        {
+            receivedCount = call.Arg<ArraySegment<byte>>().Count;
+            return Task.FromResult(new PtyReceiveResult(WebSocketMessageType.Close, 0, true));
+        });
+        await using var core = CreateCore(socket, pool);
+
+        await core.DisposeAsync();
+
+        await Assert.That(receivedCount).IsEqualTo(TerminalSocketBounds.ReceiveBufferSize);
+        await Assert.That(pool.RequestedLengths).IsEquivalentTo([TerminalSocketBounds.ReceiveBufferSize], CollectionOrdering.Matching);
+        await AssertReturnedOnceAsync(pool);
+    }
+
+    [Test]
+    public async Task DisposeAsync_Should_Return_The_Receive_Buffer_When_Receive_Faults()
+    {
+        var pool = new TrackingByteArrayPool();
+        using var socket = Substitute.For<ITerminalWebSocket>();
+        _ = socket.ReceiveAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<PtyReceiveResult>(new WebSocketException(WebSocketError.ConnectionClosedPrematurely)));
+        await using var core = CreateCore(socket, pool);
+
+        await core.DisposeAsync();
+
+        await AssertReturnedOnceAsync(pool);
+    }
+
+    [Test]
+    [Arguments(true)]
+    [Arguments(false)]
+    public async Task DisposeAsync_Should_Return_The_Receive_Buffer_When_A_Collaborator_Throws(bool decoderThrows)
+    {
+        var pool = new TrackingByteArrayPool();
+        var injected = new FormatException("Injected terminal collaborator failure.");
+        using var socket = Substitute.For<ITerminalWebSocket>();
+        var decoder = Substitute.For<ITerminalFrameDecoder<PtyFrame>>();
+        _ = decoder.Decode(Arg.Any<WebSocketMessageType>(), Arg.Any<byte[]>(), Arg.Any<int>()).Returns(_ => throw injected);
+        var closePolicy = Substitute.For<ITerminalClosePolicy>();
+        _ = closePolicy.Map(Arg.Any<WebSocketCloseStatus?>(), Arg.Any<string?>()).Returns(_ => throw injected);
+        var messageType = decoderThrows ? WebSocketMessageType.Text : WebSocketMessageType.Close;
+        _ = socket.CloseStatus.Returns(WebSocketCloseStatus.NormalClosure);
+        _ = socket.ReceiveAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new PtyReceiveResult(messageType, 0, true)));
+        FormatException? failure = null;
+        try
+        {
+            await using var core = new TerminalSocketCore<PtyFrame>(
+                socket, decoderThrows ? decoder : PtyFrameDecoder.Instance, decoderThrows ? PtyClosePolicy.Instance : closePolicy,
+                typeof(PtySession), new ManualTimeProvider(), pool);
+
+            await core.DisposeAsync();
+        }
+        catch (FormatException exception)
+        {
+            failure = exception;
+        }
+
+        await Assert.That(failure).IsSameReferenceAs(injected);
+        await AssertReturnedOnceAsync(pool);
+    }
+
+    [Test]
+    public async Task DisposeAsync_Should_Return_The_Receive_Buffer_When_It_Cancels_A_Parked_Receive()
+    {
+        var pool = new TrackingByteArrayPool();
+        using var socket = Substitute.For<ITerminalWebSocket>();
+        var receiveToken = CancellationToken.None;
+        _ = socket.ReceiveAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<CancellationToken>()).Returns(async call =>
+        {
+            receiveToken = call.Arg<CancellationToken>();
+            var receive = new TaskCompletionSource<PtyReceiveResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var cancellation = receiveToken.Register(() => receive.TrySetCanceled());
+            return await receive.Task;
+        });
+        await using var core = CreateCore(socket, pool);
+
+        await core.DisposeAsync();
+
+        await Assert.That(receiveToken.IsCancellationRequested).IsTrue();
+        await AssertReturnedOnceAsync(pool);
+    }
+
+    private static TerminalSocketCore<PtyFrame> CreateCore(ITerminalWebSocket socket, TrackingByteArrayPool pool) =>
+        new(socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider(), pool);
+
+    private static async Task AssertReturnedOnceAsync(TrackingByteArrayPool pool)
+    {
+        await Assert.That(pool.RentCount).IsEqualTo(1);
+        await Assert.That(pool.ReturnCount).IsEqualTo(1);
+        await Assert.That(pool.OutstandingCount).IsEqualTo(0);
+    }
+
     [Test]
     public async Task SendAsync_Should_Preserve_A_Reset_Completed_Before_Deadline_Interruption()
     {

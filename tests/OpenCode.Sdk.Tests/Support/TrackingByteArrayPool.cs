@@ -1,9 +1,9 @@
 using System.Buffers;
 
-namespace OpenCode.Sdk.Tests.Transport.Support;
+namespace OpenCode.Sdk.Tests.Support;
 
 /// <summary>Tracks byte-array ownership and pre-fills spare capacity so tests catch out-of-range reads.</summary>
-internal sealed class TrackingByteArrayPool : ArrayPool<byte>
+internal sealed class TrackingByteArrayPool(int spareCapacity = 0) : ArrayPool<byte>
 {
     private readonly Lock _gate = new();
     private readonly HashSet<byte[]> _outstanding = [];
@@ -40,7 +40,7 @@ internal sealed class TrackingByteArrayPool : ArrayPool<byte>
         ArgumentOutOfRangeException.ThrowIfNegative(minimumLength);
         lock (_gate)
         {
-            var buffer = new byte[Math.Max(minimumLength, 64)];
+            var buffer = new byte[Math.Max(minimumLength, 64) + spareCapacity];
             for (var index = 0; index < buffer.Length; index++)
             {
                 buffer[index] = 0xff;

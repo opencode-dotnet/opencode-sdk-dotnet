@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
 
@@ -34,7 +35,8 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         ITerminalFrameDecoder<TFrame> decoder,
         ITerminalClosePolicy closePolicy,
         Type owner,
-        TimeProvider time)
+        TimeProvider time,
+        ArrayPool<byte>? pool = null)
     {
         ArgumentNullException.ThrowIfNull(socket);
         ArgumentNullException.ThrowIfNull(decoder);
@@ -46,7 +48,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         _sendGate = new TerminalSendQueue(socket, time);
         _owner = owner;
         _sendEndedToken = _sendEnded.Token;
-        _receiver = new TerminalReceivePump<TFrame>(socket, decoder, closePolicy, _sendEnded.CancelOnWorkerAsync);
+        _receiver = new TerminalReceivePump<TFrame>(socket, decoder, closePolicy, _sendEnded.CancelOnWorkerAsync, pool ?? ArrayPool<byte>.Shared);
         _getOutcome = () => _receiver.Outcome;
     }
 

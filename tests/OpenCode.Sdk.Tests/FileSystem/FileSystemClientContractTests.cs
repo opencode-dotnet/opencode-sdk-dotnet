@@ -2,7 +2,6 @@ using System.Net;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
-using OpenCode.Sdk.Tests.Transport.Support;
 
 using TUnit.Assertions.Enums;
 
