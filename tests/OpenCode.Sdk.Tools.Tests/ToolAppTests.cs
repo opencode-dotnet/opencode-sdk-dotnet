@@ -251,6 +251,19 @@ public sealed class ToolAppTests
     }
 
     [Test]
+    public async Task RunAsync_Should_Accept_A_Bindable_Decline_Upstream_Omits()
+    {
+        var fileSystem = GenerationTestData.CreateUpstreamOmittedDeclineCommandFileSystem();
+        var result = await RunWithoutPropagationAsync(fileSystem);
+
+        // The decline covers a bindable operation, and its row rests on upstream's omission, not a wall.
+        await Assert.That(result.Output).DoesNotContain("cannot be declined");
+        await Assert.That(result.ExitCode).IsEqualTo(0);
+        await Assert.That(await fileSystem.File.ReadAllTextAsync(GenerationTestData.MarkerPath, CancellationToken.None)).Contains(
+            "Declined:\n- plugin.list [declined: Both first-party clients omit the operation.] [omitted upstream as plugin.list] [bindable]\n");
+    }
+
+    [Test]
     public async Task RunAsync_Should_Keep_The_Marker_When_Every_Gap_Is_Declined()
     {
         var fileSystem = GenerationTestData.CreateFullyDeclinedCommandFileSystem();

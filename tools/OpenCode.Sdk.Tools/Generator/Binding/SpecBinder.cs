@@ -203,7 +203,7 @@ internal sealed class SpecBinder : ISpecBinder
         .. curation.Declined
             .DistinctBy(static row => row.OperationId, StringComparer.Ordinal)
             .OrderBy(static row => row.OperationId, StringComparer.Ordinal)
-            .Select(static row => new DeclinedOperationPlan { OperationId = row.OperationId, Reason = row.Reason }),
+            .Select(static row => new DeclinedOperationPlan { OperationId = row.OperationId, Reason = row.Reason, UpstreamOmitted = row.UpstreamOmitted }),
     ];
 
     /// <summary>Every operation the selection, a transport-owned row and a declined row all leave out, ordinal-sorted.</summary>
@@ -216,9 +216,10 @@ internal sealed class SpecBinder : ISpecBinder
         // row on every bind — existence, reason, and the subtree fingerprint are that wall.
         var transportOwnedIds = curation.TransportOwned.Select(static row => row.OperationId).ToHashSet(StringComparer.Ordinal);
         // A declined operation is likewise neither selected nor pending: a standing wall refuses
-        // it and the maintainer decided the wall stands. The curation validator proves every row
-        // (existence, reason, no overlap with selection or a transport-owned row); the
-        // coordinator's probe proves the remaining claim — that the wall is real.
+        // it and the maintainer decided the wall stands, or upstream's clients omit it. The
+        // curation validator proves every row (existence, reason, no overlap with selection or a
+        // transport-owned row); the coordinator's probe proves a wall is real, and a pinned test
+        // proves an omission.
         var declinedIds = curation.Declined.Select(static row => row.OperationId).ToHashSet(StringComparer.Ordinal);
         return
         [

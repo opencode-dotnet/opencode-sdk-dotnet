@@ -29,11 +29,15 @@ internal static class PartialMarkerComposer
     /// A decline states that a wall stands over the operation. The probe binds it through the real
     /// selection path, so a bindable mark means the wall the row cites is gone — an upstream fix or
     /// a generator mechanism landed — and the decision has to be taken again rather than inherited.
+    /// A row that names an upstream omission is exempt: the omission, not a wall, is its reason.
     /// </summary>
-    internal static void RefuseBindableDeclines(IReadOnlyList<PendingOperationMark> declinedMarks)
+    internal static void RefuseBindableDeclines(IReadOnlyList<DeclinedOperationPlan> declined,
+        IReadOnlyList<PendingOperationMark> declinedMarks)
     {
+        var omitted = declined.Where(static operation => !string.IsNullOrWhiteSpace(operation.UpstreamOmitted))
+            .Select(static operation => operation.OperationId).ToHashSet(StringComparer.Ordinal);
         var errors = new BindingErrorCollector();
-        foreach (var mark in declinedMarks.Where(static mark => mark.IsBindable))
+        foreach (var mark in declinedMarks.Where(mark => mark.IsBindable && !omitted.Contains(mark.OperationId)))
         {
             errors.Add(
                 BindingErrorCategory.Curation,
@@ -85,15 +89,18 @@ internal static class PartialMarkerComposer
         mark.IsBindable ? "[bindable]" : $"[refused: {mark.RefusalMessage}]";
 
     /// <summary>
-    /// Each declined line carries the decision and the wall it rests on, so the reason and the
-    /// verbatim refusal the binder finds today are reviewed against each other in one place.
+    /// Each declined line carries the decision and what it rests on — the wall, or the upstream
+    /// omission beside the bindability — so the reason and what the binder finds today are
+    /// reviewed against each other in one place.
     /// </summary>
     private static IEnumerable<string> FormatDeclinedLines(IReadOnlyList<DeclinedOperationPlan> declined,
         IReadOnlyList<PendingOperationMark> declinedMarks)
     {
         var marksById = declinedMarks.ToDictionary(static mark => mark.OperationId, StringComparer.Ordinal);
         return declined.Select(operation =>
-            $"{operation.OperationId} [declined: {operation.Reason}] {FormatBindability(marksById[operation.OperationId])}");
+            $"{operation.OperationId} [declined: {operation.Reason}]"
+            + (operation.UpstreamOmitted is { } key ? $" [omitted upstream as {key}]" : string.Empty)
+            + $" {FormatBindability(marksById[operation.OperationId])}");
     }
 
     /// <summary>The curation validator has already proven the row's subtree fingerprint on this bind.</summary>

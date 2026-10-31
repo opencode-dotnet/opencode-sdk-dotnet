@@ -243,11 +243,13 @@ internal static class BindingScenarioData
         };
 
     public static DeclinedCuration Declined(string operationId,
-        string reason = "A standing wall refuses the operation and the maintainer decided the wall stands.") =>
+        string reason = "A standing wall refuses the operation and the maintainer decided the wall stands.",
+        string? upstreamOmitted = null) =>
         new()
         {
             OperationId = operationId,
             Reason = reason,
+            UpstreamOmitted = upstreamOmitted,
         };
 
     public static TransportOwnedCuration TransportOwned(string operationId, string subtreeSha256,

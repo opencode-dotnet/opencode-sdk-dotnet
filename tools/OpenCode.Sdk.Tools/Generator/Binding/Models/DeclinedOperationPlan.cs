@@ -6,4 +6,6 @@ internal sealed record DeclinedOperationPlan
     public required string OperationId { get; init; }
 
     public required string Reason { get; init; }
+
+    public string? UpstreamOmitted { get; init; }
 }

@@ -50,6 +50,7 @@ public sealed class PartialMarkerComposerTests
     public async Task RefuseBindableDeclines_Should_Report_Ordered_Errors()
     {
         var exception = Assert.Throws<BindingException>(() => PartialMarkerComposer.RefuseBindableDeclines(
+            [Declined("widget.get"), Declined("widget.tail"), Declined("widget.update")],
             [Mark("widget.get"), Mark("widget.tail", WebSocketRefusal), Mark("widget.update")]));
 
         await Assert.That(exception.Errors).IsEquivalentTo(new BindingError[]
@@ -57,6 +58,33 @@ public sealed class PartialMarkerComposerTests
             new(BindingErrorCategory.Curation, "widget.get", "a bindable operation cannot be declined — select it or leave it pending"),
             new(BindingErrorCategory.Curation, "widget.update", "a bindable operation cannot be declined — select it or leave it pending"),
         }, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task RefuseBindableDeclines_Should_Exempt_Only_An_Upstream_Omission()
+    {
+        var exception = Assert.Throws<BindingException>(() => PartialMarkerComposer.RefuseBindableDeclines(
+            [Declined("widget.get") with { UpstreamOmitted = "widget.get" }, Declined("widget.update") with { UpstreamOmitted = " " }],
+            [Mark("widget.get"), Mark("widget.update")]));
+
+        await Assert.That(exception.Errors).IsEquivalentTo(new BindingError[]
+        {
+            new(BindingErrorCategory.Curation, "widget.update", "a bindable operation cannot be declined — select it or leave it pending"),
+        }, CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Compose_Should_Name_The_Omitted_Endpoint_Key()
+    {
+        var marker = PartialMarkerComposer.Compose(
+            [],
+            [],
+            [Declined("widget.legacy") with { UpstreamOmitted = "legacy" }],
+            [Mark("widget.legacy")],
+            []);
+
+        await Assert.That(marker).Contains(
+            "Declined:\n- widget.legacy [declined: Both first-party clients omit it.] [omitted upstream as legacy] [bindable]\n");
     }
 
     [Test]
@@ -72,6 +100,9 @@ public sealed class PartialMarkerComposerTests
             new(BindingErrorCategory.Curation, "ZuluModel", "the model has no family prefix and no modelOwners row: add a row naming its owner, with its reason"),
         }, CollectionOrdering.Matching);
     }
+
+    private static DeclinedOperationPlan Declined(string operationId) =>
+        new() { OperationId = operationId, Reason = "Both first-party clients omit it." };
 
     private static PendingOperationMark Mark(string operationId, string? refusal = null) =>
         new()

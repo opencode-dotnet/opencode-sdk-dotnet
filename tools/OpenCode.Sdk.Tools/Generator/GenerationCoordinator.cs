@@ -53,12 +53,13 @@ internal sealed class GenerationCoordinator(
         // Declined operations are not pending either, but they are probed all the same: the
         // decline claims a standing wall, and the probe is what proves that claim. A declined
         // operation the probe finds bindable refuses the run — the wall it cites is gone, so the
-        // decision behind the row has to be reviewed rather than outlive its reason.
+        // decision behind the row has to be reviewed rather than outlive its reason — unless its
+        // row rests on upstream's client omission instead of a wall.
         var declined = plan.DeclinedOperations;
         var declinedMarks = declined.Count > 0
             ? _pendingProbe.Probe(document, [.. declined.Select(static operation => operation.OperationId)])
             : [];
-        PartialMarkerComposer.RefuseBindableDeclines(declinedMarks);
+        PartialMarkerComposer.RefuseBindableDeclines(declined, declinedMarks);
 
         // Transport-owned operations are not pending — the binder keeps them out — so they are
         // never probed; the marker lists them beside the pending map as fingerprint-pinned. The
