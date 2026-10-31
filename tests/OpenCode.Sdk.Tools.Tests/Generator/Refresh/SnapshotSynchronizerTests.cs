@@ -35,6 +35,56 @@ public sealed class SnapshotSynchronizerTests
     private static readonly byte[] LacksParameterStyle = ParameterDocument(styled: false);
     private static readonly byte[] CarriesParameterStyle = ParameterDocument(styled: true);
 
+    private static readonly string[] RepairComponents = ["V2EventEncoded", "Plain", "Missing"];
+    private static readonly string[] RepairOperations = ["experimental.artifacts.list", "experimental.artifacts.get", "experimental.artifacts.delete"];
+
+    [Test]
+    [Arguments("cl", "upstream's generator satisfies patch '001-test.json' for only some components (component 'V2EventEncoded' carries 'contentSchema', component 'Plain' lacks it); the patch needs human review")]
+    [Arguments("lc", "upstream's generator satisfies patch '001-test.json' for only some components (component 'Plain' carries 'contentSchema', component 'V2EventEncoded' lacks it); the patch needs human review")]
+    [Arguments("ca", "component 'Plain' named by patch '001-test.json' is absent from the generated baseline; the patch needs human review")]
+    [Arguments("cla", "component 'Missing' named by patch '001-test.json' is absent from the generated baseline; the patch needs human review")]
+    [Arguments("cc", "upstream's generator already satisfies patch '001-test.json' (component 'V2EventEncoded' carries 'contentSchema'); retire the patch with an empty-patch refresh")]
+    public async Task Prepare_Should_Review_Or_Retire_A_Multi_Component_Patch(string presence, string diagnostic)
+    {
+        ArgumentNullException.ThrowIfNull(presence);
+        using var scenario = await MultiTargetScenarioAsync(parameters: false, presence);
+
+        var exception = await scenario.PrepareRefusalAsync();
+
+        await Assert.That(exception.Message).IsEqualTo(diagnostic);
+    }
+
+    [Test]
+    [Arguments("cl", "upstream's generator satisfies patch '001-test.json' for only some targets (operation 'experimental.artifacts.list' parameter 'location' carries style 'deepObject', operation 'experimental.artifacts.get' parameter 'location' lacks it); the patch needs human review")]
+    [Arguments("lc", "upstream's generator satisfies patch '001-test.json' for only some targets (operation 'experimental.artifacts.get' parameter 'location' carries style 'deepObject', operation 'experimental.artifacts.list' parameter 'location' lacks it); the patch needs human review")]
+    [Arguments("ca", "operation 'experimental.artifacts.get' parameter 'location' named by patch '001-test.json' is absent from the generated baseline; the patch needs human review")]
+    [Arguments("cla", "operation 'experimental.artifacts.delete' parameter 'location' named by patch '001-test.json' is absent from the generated baseline; the patch needs human review")]
+    [Arguments("cc", "upstream's generator already satisfies patch '001-test.json' (operation 'experimental.artifacts.list' parameter 'location' carries style 'deepObject'); retire the patch with an empty-patch refresh")]
+    public async Task Prepare_Should_Review_Or_Retire_A_Multi_Parameter_Patch(string presence, string diagnostic)
+    {
+        ArgumentNullException.ThrowIfNull(presence);
+        using var scenario = await MultiTargetScenarioAsync(parameters: true, presence);
+
+        var exception = await scenario.PrepareRefusalAsync();
+
+        await Assert.That(exception.Message).IsEqualTo(diagnostic);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Prepare_Should_Keep_A_Multi_Target_Patch_When_Every_Target_Lacks_The_Repair(bool parameters)
+    {
+        using var scenario = await MultiTargetScenarioAsync(parameters, "ll");
+
+        var outcome = await scenario.Synchronizer.PrepareAsync("origin/v2", CancellationToken.None);
+
+        await Assert.That(outcome.Receipt.Patches.Select(static patch => patch.Manifest))
+            .IsEquivalentTo(["001-test.json"], CollectionOrdering.Matching);
+        await Assert.That(await scenario.FileSystem.File.ReadAllBytesAsync(outcome.NormalizedDocumentPath, CancellationToken.None))
+            .IsEquivalentTo(MultiTargetDocument(parameters, "cc"), CollectionOrdering.Matching);
+    }
+
     [Test]
     [Arguments("satisfied", "upstream's generator already satisfies patch '001-test.json' (operation 'experimental.artifacts.list' parameter 'location' carries style 'deepObject'); retire the patch with an empty-patch refresh")]
     [Arguments("absent", "operation 'experimental.artifacts.list' parameter 'location' named by patch '001-test.json' is absent from the generated baseline; the patch needs human review")]
@@ -584,6 +634,63 @@ public sealed class SnapshotSynchronizerTests
         _ = fileSystem.Directory.CreateDirectory(SnapshotPaths.Submodule);
         return fileSystem;
     }
+
+    private static async Task<RefreshScenario> MultiTargetScenarioAsync(bool parameters, string presence)
+    {
+        var fileSystem = await CreateRepositoryAsync();
+        if (parameters)
+        {
+            await WriteParameterPatchSetAsync(fileSystem);
+        }
+        else
+        {
+            await WritePatchSetAsync(fileSystem);
+        }
+
+        var path = fileSystem.Path.Combine(SnapshotPaths.PatchesRoot, "001-test.json");
+        // The existing patch writers serialize a non-null typed manifest.
+        var manifest = JsonSerializer.Deserialize(await fileSystem.File.ReadAllTextAsync(path), ToolJsonContext.Default.PatchManifest)!;
+        var predicate = manifest.RepairPredicate with
+        {
+            Components = parameters ? null : RepairComponents[..presence.Length],
+            Operations = parameters ? RepairOperations[..presence.Length] : null,
+        };
+        await fileSystem.File.WriteAllTextAsync(path, RefreshScenarioData.Serialize(manifest with { RepairPredicate = predicate }));
+        var scenario = new RefreshScenario(fileSystem);
+        var baseline = MultiTargetDocument(parameters, presence);
+        var runner = scenario.ExpectReference(baseline);
+        ExpectGeneration(runner, fileSystem, baseline, patched: presence == "ll" ? MultiTargetDocument(parameters, "cc") : null);
+        return scenario;
+    }
+
+    private static byte[] MultiTargetDocument(bool parameters, string presence) => RefreshScenarioData.DocumentBytes(spec =>
+    {
+        for (var index = 0; index < presence.Length; index++)
+        {
+            var state = presence[index];
+            if (state == 'a')
+            {
+                continue;
+            }
+
+            if (parameters)
+            {
+                spec.WithOperation(RepairOperations[index], path: "/" + RepairOperations[index], configure: operation => operation
+                    .Parameter("location", "query", schema => schema.Type("object"), deepObject: state == 'c'));
+            }
+            else
+            {
+                spec.WithSchema(RepairComponents[index], schema =>
+                {
+                    schema.Type("string");
+                    if (state == 'c')
+                    {
+                        schema.ContentSchema("application/json", payload => payload.Type("string"));
+                    }
+                });
+            }
+        }
+    });
 
     private static byte[] ParameterDocument(bool styled) => RefreshScenarioData.DocumentBytes(spec => spec
         .WithOperation("experimental.artifacts.list", configure: operation => operation

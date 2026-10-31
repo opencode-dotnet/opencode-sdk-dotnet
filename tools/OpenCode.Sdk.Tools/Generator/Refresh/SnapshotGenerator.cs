@@ -98,23 +98,33 @@ internal sealed partial class SnapshotGenerator(IFileSystem fileSystem, IProcess
         foreach (var patch in patches)
         {
             var predicate = patch.Manifest.RepairPredicate;
-            foreach (var (target, presence) in CheckTargets(baselineBytes, predicate))
+            var targets = CheckTargets(baselineBytes, predicate).ToArray();
+            var absent = targets.FirstOrDefault(static target => target.Presence is KeywordPresence.ComponentMissing).Target;
+            if (absent is not null)
             {
-                switch (presence)
-                {
-                    case KeywordPresence.Carries:
-                        throw new SnapshotRefreshException(
-                            $"upstream's generator already satisfies patch '{patch.ManifestName}' ({target} "
-                            + $"carries {DescribeRequirement(predicate)}); retire the patch with an empty-patch refresh");
-                    case KeywordPresence.ComponentMissing:
-                        throw new SnapshotRefreshException(
-                            $"{target} named by patch '{patch.ManifestName}' is absent from the generated "
-                            + "baseline; the patch needs human review");
-                    case KeywordPresence.Lacks:
-                    default:
-                        break;
-                }
+                throw new SnapshotRefreshException(
+                    $"{absent} named by patch '{patch.ManifestName}' is absent from the generated "
+                    + "baseline; the patch needs human review");
             }
+
+            var carrying = targets.FirstOrDefault(static target => target.Presence is KeywordPresence.Carries).Target;
+            if (carrying is null)
+            {
+                continue;
+            }
+
+            var lacking = targets.FirstOrDefault(static target => target.Presence is KeywordPresence.Lacks).Target;
+            if (lacking is not null)
+            {
+                var kind = predicate.Type == PatchPredicate.ComponentLacksKeyword ? "components" : "targets";
+                throw new SnapshotRefreshException(
+                    $"upstream's generator satisfies patch '{patch.ManifestName}' for only some {kind} "
+                    + $"({carrying} carries {DescribeRequirement(predicate)}, {lacking} lacks it); the patch needs human review");
+            }
+
+            throw new SnapshotRefreshException(
+                $"upstream's generator already satisfies patch '{patch.ManifestName}' ({carrying} "
+                + $"carries {DescribeRequirement(predicate)}); retire the patch with an empty-patch refresh");
         }
     }
 

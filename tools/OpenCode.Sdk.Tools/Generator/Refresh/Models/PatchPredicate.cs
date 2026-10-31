@@ -4,8 +4,8 @@ namespace OpenCode.Sdk.Tools.Generator.Refresh.Models;
 
 /// <summary>
 /// A machine-checkable repair predicate: <c>componentLacksKeyword</c> names components and a
-/// keyword; <c>parameterLacksStyle</c> names operations, a parameter and a style. A target already
-/// satisfying the repair retires the patch, and a missing target demands human review.
+/// keyword; <c>parameterLacksStyle</c> names operations, a parameter and a style. Every target
+/// satisfying the repair retires the patch; a partial repair or missing target demands human review.
 /// </summary>
 internal sealed record PatchPredicate
 {
