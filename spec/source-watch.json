@@ -157,7 +157,7 @@
     {
       "path": "packages/cli/package.json",
       "sha256": "19e74b145c1080361af6f6eddfb92cbcb470424fef8e7569fd1ece204faaab13",
-      "behavior": "The CLI package bin map names \u0022opencode\u0022 as the installed command and keeps \u0022opencode2\u0022 as a transitional alias of the same launcher, so the shipped launcher default resolves \u0022opencode\u0022 from PATH. The CLI depends on the opencode-pty package (\u0060@opencode/pty\u0060) at 0.3.3.",
+      "behavior": "The CLI package bin map names \u0022opencode\u0022 as the installed command and keeps \u0022opencode2\u0022 as a transitional alias of the same launcher, so the shipped launcher default resolves \u0022opencode\u0022 from PATH. The CLI depends on the opencode-pty package (\u0060@opencode/pty\u0060) at 0.4.0.",
       "anchor": {
         "type": "contains",
         "text": "\u0022opencode\u0022: \u0022./bin/opencode.cjs\u0022"
@@ -166,10 +166,10 @@
     {
       "path": "packages/core/package.json",
       "sha256": "47d47132d5a39da5a4a89de99a380bd85c684a2bb72d25cf799dfc124dbcc546",
-      "behavior": "The opencode-pty daemon dependency is pinned at 0.3.3, which takes its runtime directory and name as arguments instead of OPENCODE_PTY_RUNTIME_DIR; the daemon protocol the persistent-PTY door speaks stays at version 7.",
+      "behavior": "The opencode-pty daemon dependency is pinned at 0.4.0, which takes its runtime directory and name as arguments instead of OPENCODE_PTY_RUNTIME_DIR; the daemon protocol the persistent-PTY door speaks stays at version 7.",
       "anchor": {
         "type": "contains",
-        "text": "\u0022@opencode/pty\u0022: \u00220.3.3\u0022"
+        "text": "\u0022@opencode/pty\u0022: \u00220.4.0\u0022"
       }
     },
     {
