@@ -100,7 +100,11 @@
     <EmbeddedResource Include="Hosting/BackgroundService/Fixtures/pty-handoff-unknown-members.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.pty-handoff-unknown-members.json" />
     <EmbeddedResource Include="Hosting/BackgroundService/Fixtures/pty-handoff-valid.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.pty-handoff-valid.json" />
     <EmbeddedResource Include="Hosting/BackgroundService/Fixtures/registration-modern.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.registration-modern.json" />
+    <EmbeddedResource Include="Hosting/BackgroundService/Fixtures/service-config-env-state-home-lowercase.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.service-config-env-state-home-lowercase.json" />
+    <EmbeddedResource Include="Hosting/BackgroundService/Fixtures/service-config-env-state-home-only.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.service-config-env-state-home-only.json" />
+    <EmbeddedResource Include="Hosting/BackgroundService/Fixtures/service-config-env-state-home.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.service-config-env-state-home.json" />
     <EmbeddedResource Include="Hosting/BackgroundService/Fixtures/service-config-env.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.BackgroundService.service-config-env.json" />
+    <EmbeddedResource Include="PersistentPtys/Fixtures/invalid-cwd-error.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.PersistentPtys.invalid-cwd-error.json" />
     <EmbeddedResource Include="Ptys/Fixtures/cursor-second-value.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Ptys.cursor-second-value.json" />
     <EmbeddedResource Include="Ptys/Fixtures/cursor-trailing-garbage.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Ptys.cursor-trailing-garbage.json" />
     <EmbeddedResource Include="Ptys/Fixtures/cursor-truncated-after-value.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Ptys.cursor-truncated-after-value.json" />

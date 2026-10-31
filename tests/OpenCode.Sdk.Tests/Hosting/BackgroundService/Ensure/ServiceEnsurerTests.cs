@@ -457,6 +457,57 @@ public sealed class ServiceEnsurerTests
     }
 
     [Test]
+    public async Task EnsureAsync_Should_Ignore_The_Saved_State_Home_And_Keep_Other_Entries()
+    {
+        var environment = await EnsureEnvironmentFromConfigAsync("BackgroundService.service-config-env-state-home.json");
+
+        await Assert.That(environment["A"]).IsEqualTo("1");
+        await Assert.That(environment.Keys).DoesNotContain("XDG_STATE_HOME");
+    }
+
+    [Test]
+    public async Task EnsureAsync_Should_Ignore_The_Saved_State_Home_With_An_Unrelated_Caller_Environment()
+    {
+        var environment = await EnsureEnvironmentFromConfigAsync(
+            "BackgroundService.service-config-env-state-home.json",
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["B"] = "2" });
+
+        await Assert.That(environment["A"]).IsEqualTo("1");
+        await Assert.That(environment["B"]).IsEqualTo("2");
+        await Assert.That(environment.Keys).DoesNotContain("XDG_STATE_HOME");
+    }
+
+    [Test]
+    public async Task EnsureAsync_Should_Keep_The_Saved_Lowercase_State_Home()
+    {
+        var environment = await EnsureEnvironmentFromConfigAsync("BackgroundService.service-config-env-state-home-lowercase.json");
+
+        await Assert.That(environment["xdg_state_home"]).IsEqualTo("/elsewhere/state");
+    }
+
+    [Test]
+    public async Task EnsureAsync_Should_Keep_The_Caller_State_Home_Over_The_Saved_Value()
+    {
+        var environment = await EnsureEnvironmentFromConfigAsync(
+            "BackgroundService.service-config-env-state-home.json",
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["XDG_STATE_HOME"] = "/caller/state" });
+
+        await Assert.That(environment["XDG_STATE_HOME"]).IsEqualTo("/caller/state");
+    }
+
+    [Test]
+    public async Task EnsureAsync_Should_Succeed_When_Only_The_State_Home_Is_Saved()
+    {
+        Seed(ConfigPath(), new FixtureLoader().LoadJson("BackgroundService.service-config-env-state-home-only.json"));
+        ElectOnSpawn(Version);
+
+        var registration = await Ensurer().EnsureAsync(options: null, CancellationToken.None);
+
+        await Assert.That(registration.ProcessId).IsEqualTo(ElectedPid);
+        await Assert.That(_starts.Single().Environment.Keys).DoesNotContain("XDG_STATE_HOME");
+    }
+
+    [Test]
     public async Task EnsureAsync_Should_Refuse_An_Empty_Command_Before_Touching_Anything()
     {
         var exception = await Assert
@@ -922,6 +973,19 @@ public sealed class ServiceEnsurerTests
         _ = await Assert
             .That(async () => _ = await Ensurer().EnsureAsync(options: null, new CancellationToken(canceled: true)))
             .Throws<OperationCanceledException>();
+    }
+
+    private async Task<IReadOnlyDictionary<string, string?>> EnsureEnvironmentFromConfigAsync(
+        string fixtureName, IReadOnlyDictionary<string, string>? callerEnvironment = null)
+    {
+        Seed(ConfigPath(), new FixtureLoader().LoadJson(fixtureName));
+        ElectOnSpawn(Version);
+
+        _ = await Ensurer().EnsureAsync(
+            options: callerEnvironment is null ? null : new OpenCodeServerEnsureOptions { Environment = callerEnvironment },
+            CancellationToken.None);
+
+        return _starts.Single().Environment;
     }
 
     private async Task EnsureReplacementAsync()

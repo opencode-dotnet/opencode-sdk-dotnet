@@ -91,6 +91,27 @@ public sealed class PersistentPtysClientContractTests
     }
 
     [Test]
+    public async Task CreatePersistentPtyAsync_Should_Materialize_The_Invalid_Cwd_Error()
+    {
+        var payload = new FixtureLoader().LoadJson("PersistentPtys.invalid-cwd-error.json");
+        using var scenario = ContractScenario.Responding(HttpStatusCode.BadRequest, payload);
+
+        var exception = await Assert
+            .That(async () => _ = await scenario.Client.PersistentPtys.CreatePersistentPtyAsync(
+                "ses_1", CreateRequest() with { Cwd = "/no/such/dir" }))
+            .Throws<OpenCodeApiException>();
+
+        await Assert.That(scenario.Requests.Single().Body).IsEqualTo(
+            "{\"args\":[\"-l\"],\"cwd\":\"/no/such/dir\",\"title\":\"sdk terminal\",\"env\":{}}");
+        await Assert.That(exception!.Status).IsEqualTo(400);
+        await Assert.That(exception.Error).IsTypeOf<InvalidRequestError>();
+        var error = (InvalidRequestError)exception.Error!;
+        await Assert.That(error.Message).IsEqualTo("cwd is not a directory: /no/such/dir");
+        await Assert.That(error.Kind).IsEqualTo("invalid_cwd");
+        await Assert.That(error.Field).IsEqualTo("cwd");
+    }
+
+    [Test]
     public async Task CreatePersistentPtyAsync_Should_Throw_The_Declared_503_Daemon_Arm()
     {
         using var scenario = ContractScenario.Responding(HttpStatusCode.ServiceUnavailable, WireBodyData.ServiceUnavailableError);

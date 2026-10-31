@@ -83,6 +83,9 @@ public class PersistentPtysClient
     /// <exception cref="OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
     /// Operation <c>experimental.persistentPty.create</c>: <c>POST /api/experimental/session/{sessionID}/terminal</c>.
+    /// A given <c>Cwd</c> whose path doesn't exist or isn't a directory is refused with a 400 whose
+    /// <see cref="InvalidRequestError"/> has the <c>Kind</c> <c>invalid_cwd</c> and the <c>Field</c>
+    /// <c>cwd</c>; no terminal starts.
     /// </remarks>
     public virtual Task<PersistentPtyCreateResponse> CreatePersistentPtyAsync(string sessionId,
         PersistentPtyCreateRequest request, OpenCodeRequestOptions? requestOptions = null,

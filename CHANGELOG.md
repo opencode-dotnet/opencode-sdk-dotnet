@@ -103,6 +103,14 @@ Nightly builds of `master` are on
   saved or caller entry always replaced the host's value, so a saved `xdg_state_home` moved the
   registration away from clients looking under the host's root. A caller's `PATH` still replaces
   the host's `Path`.
+- **A saved `XDG_STATE_HOME` no longer moves a background service.** `EnsureAsync` used to pass the
+  channel's saved value to the service it spawned, which moved the registration away from every
+  client looking for it. A saved value is now ignored, as the CLI ignores it; a caller's own
+  `Environment` entry still applies.
+- **A persistent PTY's bad `Cwd` is now refused.** A given `Cwd` whose path doesn't exist or isn't a
+  directory used to start the terminal in the home directory. The server now answers 400 with an
+  `InvalidRequestError` whose `Kind` is `invalid_cwd`, and no terminal starts. The SDK's code didn't
+  change.
 
 ### 📚 Documentation
 
