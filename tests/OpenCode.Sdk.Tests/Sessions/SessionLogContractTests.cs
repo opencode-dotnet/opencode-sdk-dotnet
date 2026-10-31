@@ -240,7 +240,7 @@ public sealed class SessionLogContractTests
         using var scenario = ContractScenario.RespondingWithFrames(
             WireBodyData.Frames(WireBodyData.LogSyncedEvent));
 
-        _ = await CollectAsync(scenario, new SessionLogRequest
+        _ = await CollectAsync(scenario, new ExperimentalSessionLogRequest
         {
             After = 12,
             Follow = true,
@@ -253,10 +253,10 @@ public sealed class SessionLogContractTests
     }
 
     private static async Task<List<ISessionLogItem>> CollectAsync(ContractScenario scenario,
-        SessionLogRequest? request = null)
+        ExperimentalSessionLogRequest? request = null)
     {
         var items = new List<ISessionLogItem>();
-        await foreach (var item in scenario.Client.Sessions.GetSessionClient("ses_9").ReadLogAsync(request))
+        await foreach (var item in scenario.Client.Experimental.ReadSessionLogAsync("ses_9", request))
         {
             items.Add(item);
         }

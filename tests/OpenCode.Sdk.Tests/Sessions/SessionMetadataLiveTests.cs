@@ -55,8 +55,8 @@ public sealed class SessionMetadataLiveTests(SimulatedDriveServerFixture server)
             await Assert.That(reread.Session.Metadata!.Keys).IsEquivalentTo(["source"], CollectionOrdering.Any);
             await Assert.That(reread.Session.Metadata["source"].GetString()).IsEqualTo("patch");
 
-            var replay = await new SessionLogTranscript(session).ReadToEndAsync(
-                new SessionLogRequest { Follow = false },
+            var replay = await new SessionLogTranscript(client.Experimental, sessionId).ReadToEndAsync(
+                new ExperimentalSessionLogRequest { Follow = false },
                 cancellationToken);
             var logged = replay.OfType<SessionMetadataUpdated>().Single();
             await Assert.That(logged.Data.SessionId).IsEqualTo(sessionId);

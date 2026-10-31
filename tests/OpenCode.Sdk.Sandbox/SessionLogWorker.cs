@@ -7,6 +7,7 @@ namespace OpenCode.Sdk.Sandbox;
 internal sealed partial class SessionLogWorker(
     OpenCodeClient client,
     SessionsClient sessions,
+    ExperimentalClient experimental,
     IHostApplicationLifetime applicationLifetime,
     ILogger<SessionLogWorker> logger) : BackgroundService
 {
@@ -25,11 +26,10 @@ internal sealed partial class SessionLogWorker(
                     Title = "sdk Generic Host stream demo",
                 }, cancellationToken: stoppingToken)
                 .ConfigureAwait(false);
-            var session = sessions.GetSessionClient(created.Session.Id);
 
             LogFollowingSession(logger, created.Session.Id);
-            await foreach (var item in session
-                               .ReadLogAsync(new SessionLogRequest
+            await foreach (var item in experimental
+                               .ReadSessionLogAsync(created.Session.Id, new ExperimentalSessionLogRequest
                                {
                                    Follow = true,
                                }, cancellationToken: stoppingToken)

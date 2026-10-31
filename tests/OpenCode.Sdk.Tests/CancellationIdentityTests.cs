@@ -52,8 +52,8 @@ public sealed class CancellationIdentityTests
             yield return new("events", "live-read/" + entry, caller => AtStreamReadAsync(events: true, entry, caller));
             yield return new("events", "reconnect-delay/" + entry, caller => AtEventWaitAsync("delay", entry, caller));
             yield return new("other-sse", "headers/" + entry, caller => AtHeadersAsync(
-                (client, token) => PullAsync(client.Sessions.GetSessionClient(SessionId).ReadLogAsync(
-                    cancellationToken: MethodToken(entry, token)), EnumerationToken(entry, token)), caller));
+                (client, token) => PullAsync(client.Experimental.ReadSessionLogAsync(
+                    SessionId, cancellationToken: MethodToken(entry, token)), EnumerationToken(entry, token)), caller));
             yield return new("other-sse", "live-read/" + entry, caller => AtStreamReadAsync(events: false, entry, caller));
             yield return new("cursor-items", "page-request/" + entry, caller => AtCursorRequestAsync(pages: false, entry, caller));
             yield return new("cursor-items", "buffered-item/" + entry, caller => BetweenItemsAsync(entry, caller));
@@ -218,8 +218,8 @@ public sealed class CancellationIdentityTests
             return await AtSecondReadAsync(new EventsClient(pipeline).SubscribeAsync(cancellationToken: MethodToken(entry, caller.Token)), entry, body, caller);
         }
 
-        return await AtSecondReadAsync(new SessionClient(pipeline, SessionId).ReadLogAsync(
-            cancellationToken: MethodToken(entry, caller.Token)), entry, body, caller);
+        return await AtSecondReadAsync(new ExperimentalClient(pipeline).ReadSessionLogAsync(
+            SessionId, cancellationToken: MethodToken(entry, caller.Token)), entry, body, caller);
     }
 
     private static HttpResponseMessage StreamResponse(Stream body)

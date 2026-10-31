@@ -108,7 +108,7 @@ public sealed class FrameDispatchTests
         TestFrames.FromText(ServerSentEvent.DefaultName, body), EventSubscribeResponseStreamAdapter.Instance));
 
     public static IEnumerable<(string Name, string Body, Func<string, object> Read)> LogRefusals() => Refusals(static body => FrameDispatch.ReadPayload(
-        TestFrames.FromText(ServerSentEvent.DefaultName, body), SessionLogResponseStreamAdapter.Instance));
+        TestFrames.FromText(ServerSentEvent.DefaultName, body), ExperimentalSessionLogResponseStreamAdapter.Instance));
 
     private static IEnumerable<(string Name, string Body, Func<string, object> Read)> Refusals(Func<string, object> read) =>
     [
