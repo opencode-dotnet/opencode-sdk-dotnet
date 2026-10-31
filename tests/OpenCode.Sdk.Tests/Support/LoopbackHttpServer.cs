@@ -21,6 +21,7 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
     private readonly Func<string, LoopbackHttpResponse> _respond;
     private readonly CancellationTokenSource _shutdown = new();
     private volatile bool _released;
+    private volatile bool _releasedHoldClosed;
 
     private LoopbackHttpServer(Func<string, LoopbackHttpResponse> respond)
     {
@@ -33,6 +34,12 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
     }
 
     public Uri Endpoint { get; }
+
+    /// <summary>
+    /// Reports whether a post-release held request was closed without a response.
+    /// It is set before the client can observe anything on that connection.
+    /// </summary>
+    public bool ReleasedHoldClosed => _releasedHoldClosed;
 
 #pragma warning disable VSTHRD003 // Test signals complete on their own source and resume asynchronously; exposing the task is the signal's contract.
     public Task ClientDisconnected => _clientDisconnected.Task;
@@ -128,6 +135,12 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
 
             _requests.Enqueue(request);
             var response = _respond(request.Path);
+            if (_released && response.KeepOpen)
+            {
+                _releasedHoldClosed = true;
+                return;
+            }
+
             await WriteResponseAsync(stream, response);
             if (response.KeepOpen)
             {
@@ -287,7 +300,7 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
         _ => statusCode.ToString(),
     };
 
-    private static Task WriteAsync(Stream stream, byte[] content)
+    internal static Task WriteAsync(Stream stream, byte[] content)
     {
 #if NET
         return stream.WriteAsync(content).AsTask();
@@ -296,7 +309,7 @@ internal sealed class LoopbackHttpServer : IAsyncDisposable
 #endif
     }
 
-    private static Task<int> ReadAsync(Stream stream, byte[] buffer)
+    internal static Task<int> ReadAsync(Stream stream, byte[] buffer)
     {
 #if NET
         return stream.ReadAsync(buffer).AsTask();

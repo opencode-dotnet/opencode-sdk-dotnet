@@ -291,20 +291,38 @@ public sealed class ServicePtyHandoffTests
     public async Task PrepareAsync_Should_Return_When_A_Concurrent_Caller_Published_A_Fresh_Matching_Sidecar()
     {
         var arrived = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        await using var server = LoopbackHttpServer.Start(path => path == ShutdownPath ? NoContent() : Pending(arrived));
-        var registration = ServicePtyHandoffScenario.Registration(server.Endpoint);
+        // No request starts until both captured locals are assigned below.
+        LoopbackHttpServer? respondingServer = null;
+        ServiceRegistration? registration = null;
+        await using var server = LoopbackHttpServer.Start(path =>
+        {
+            if (path == ShutdownPath)
+            {
+                return NoContent();
+            }
+
+            if (!arrived.Task.IsCompleted)
+            {
+                Seed(_scenario.SidecarPath(), Sidecar(registration!, Ticket, NowMilliseconds + 60_000).ToUtf8Json());
+                respondingServer!.ReleaseResponses();
+            }
+
+            return Pending(arrived);
+        });
+        respondingServer = server;
+        registration = ServicePtyHandoffScenario.Registration(server.Endpoint);
 
         var pending = Handoff().PrepareAsync(_scenario.RegistrationPath(), registration, RequestTimeout, CancellationToken.None);
-        Task[] arrival = [arrived.Task, pending];
-        _ = await BoundedWait.CompletesWithinAsync(Task.WhenAny(arrival), HangGuard, TimeProvider.System);
-        await Assert.That(arrived.Task.IsCompleted).IsTrue();
-        Seed(_scenario.SidecarPath(), Sidecar(registration, Ticket, NowMilliseconds + 60_000).ToUtf8Json());
-        server.ReleaseResponses();
+        await AssertTicketRequestArrivedAsync(arrived, pending);
 
-        await pending;
+        await pending.WaitAsync(HangGuard);
 
         await Assert.That(server.RequestPaths).DoesNotContain(ShutdownPath);
         await Assert.That(_scenario.ReadSidecar()!.Handoff).IsNotNull();
+#if NET
+        // The platform handler retries a request whose connection closed before any response.
+        await Assert.That(server.RequestPaths.Count(static path => path == HandoffPath)).IsGreaterThan(1);
+#endif
     }
 
     [Test]
@@ -475,9 +493,7 @@ public sealed class ServicePtyHandoffTests
         using var caller = new CancellationTokenSource();
 
         var pending = Handoff().PrepareAsync(_scenario.RegistrationPath(), ServicePtyHandoffScenario.Registration(server.Endpoint), RequestTimeout, caller.Token);
-        Task[] arrival = [arrived.Task, pending];
-        _ = await BoundedWait.CompletesWithinAsync(Task.WhenAny(arrival), HangGuard, TimeProvider.System);
-        await Assert.That(arrived.Task.IsCompleted).IsTrue();
+        await AssertTicketRequestArrivedAsync(arrived, pending);
         await caller.CancelOnWorkerAsync();
 
         OperationCanceledException? caught = null;
@@ -645,6 +661,14 @@ public sealed class ServicePtyHandoffTests
         var overlay = await EnvironmentAsync(caller: null);
 
         await Assert.That(overlay["OPENCODE_PTY_HANDOFF"]).IsEqualTo(Ticket.GetRawText());
+    }
+
+    /// <summary>The wait is a hang guard; the assertion names a ticket request that never arrived.</summary>
+    private static async Task AssertTicketRequestArrivedAsync(TaskCompletionSource<bool> arrived, Task pending)
+    {
+        Task[] arrival = [arrived.Task, pending];
+        _ = await BoundedWait.CompletesWithinAsync(Task.WhenAny(arrival), HangGuard, TimeProvider.System);
+        await Assert.That(arrived.Task.IsCompleted).IsTrue();
     }
 
     private async Task AdvanceToJustBeforeRequestTimeoutAsync()
