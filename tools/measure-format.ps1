@@ -5,8 +5,8 @@ Windows-only: measures the dotnet-format subprocess's peak working set and CPU
 Use a disposable clone already prepared with the submodule, pinned installs and
 one tool build. Generation rewrites its generated tree with identical bytes.
 Without -Output, no report file is written. Every figure is a lower bound read
-up to one poll interval (the report's LastGapMs) before exit; BuildHost's few
-reads give a weak one.
+up to one poll interval (the report's LastGapMs approximates it) before exit;
+BuildHost's few reads give a weak one.
 Usage: pwsh -File tools/measure-format.ps1 -Clone <path> [-Runs 5] [-Output <csv path>]
 #>
 param(
@@ -24,7 +24,8 @@ if ($LASTEXITCODE -ne 0) {
     Write-Output 'Clone is not a git work tree'
     exit 1
 }
-if ((Resolve-Path $topLevel).Path -ne (Resolve-Path $Clone).Path) {
+if ((Resolve-Path -LiteralPath $topLevel).Path.TrimEnd('\', '/') -ne
+    (Resolve-Path -LiteralPath $Clone).Path.TrimEnd('\', '/')) {
     Write-Output 'Clone must be the git work tree root'
     exit 1
 }
@@ -36,6 +37,32 @@ if ($LASTEXITCODE -ne 0) {
 if ($status) {
     Write-Output 'Clone is not clean (including untracked files and submodule changes)'
     exit 1
+}
+function New-TrackedEntry($entry, [string] $role) {
+    $trackedEntry = @{
+        Name = $entry.Name
+        Role = $role
+        Reads = [System.Collections.Generic.List[object]]::new()
+        Process = $null
+        Finished = $false
+    }
+    $process = $null
+    try {
+        $process = [System.Diagnostics.Process]::GetProcessById([int]$entry.ProcessId)
+        $null = $process.get_Handle()
+        $trackedEntry.Process = $process
+    } catch [System.ArgumentException] {
+        # The process is no longer running.
+        $trackedEntry.Finished = $true
+    } catch [System.InvalidOperationException] {
+        # The process exited before its handle was taken.
+        $trackedEntry.Finished = $true
+    } finally {
+        if ($null -eq $trackedEntry.Process -and $null -ne $process) {
+            $process.Dispose()
+        }
+    }
+    return $trackedEntry
 }
 function Get-Descendants([int] $rootId, $byParent) {
     $queue = [System.Collections.Generic.Queue[int]]::new()
@@ -51,7 +78,7 @@ function Get-Descendants([int] $rootId, $byParent) {
 $rows = [System.Collections.Generic.List[object]]::new()
 for ($run = 1; $run -le $Runs; $run++) {
     $startInfo = [System.Diagnostics.ProcessStartInfo]::new('dotnet', 'run --file tools/opencode-tool.cs -- generate --verify')
-    $startInfo.WorkingDirectory = (Resolve-Path $Clone).Path
+    $startInfo.WorkingDirectory = (Resolve-Path -LiteralPath $Clone).Path
     $startInfo.UseShellExecute = $false
     $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
@@ -61,7 +88,7 @@ for ($run = 1; $run -le $Runs; $run++) {
     $tracked = @{}
     $formatId = $null
     try {
-        while (-not $root.HasExited) {
+        while (-not $root.get_HasExited()) {
             $snapshot = @(Get-CimInstance Win32_Process -Property ProcessId, ParentProcessId, CommandLine, Name)
             $byParent = $snapshot | Group-Object ParentProcessId -AsHashTable -AsString
             if ($null -eq $formatId) {
@@ -69,9 +96,13 @@ for ($run = 1; $run -le $Runs; $run++) {
                     Where-Object { $_.CommandLine -like '*dotnet-format*' } | Select-Object -First 1
                 if ($null -ne $format) {
                     $formatId = [int]$format.ProcessId
+                    $tracked[$formatId] = New-TrackedEntry $format 'format'
                 }
             }
             if ($null -ne $formatId) {
+                $formatProcess = $tracked[$formatId].Process
+            }
+            if ($null -ne $formatId -and $null -ne $formatProcess -and -not $formatProcess.get_HasExited()) {
                 $subtree = @($snapshot | Where-Object { $_.ProcessId -eq $formatId }) +
                     @(Get-Descendants $formatId $byParent)
                 foreach ($entry in $subtree) {
@@ -84,52 +115,59 @@ for ($run = 1; $run -le $Runs; $run++) {
                         } else {
                             'descendant'
                         }
-                        $tracked[$processId] = @{
-                            Name = $entry.Name
-                            Role = $role
-                            Reads = [System.Collections.Generic.List[object]]::new()
-                        }
+                        $tracked[$processId] = New-TrackedEntry $entry $role
                     }
                 }
             }
             foreach ($processId in $tracked.Keys) {
-                $process = Get-Process -Id $processId -ErrorAction SilentlyContinue
-                if ($null -eq $process) {
+                $entry = $tracked[$processId]
+                $process = $entry.Process
+                if ($null -eq $process -or $entry.Finished) {
+                    continue
+                }
+                if ($process.get_HasExited()) {
+                    $entry.Finished = $true
                     continue
                 }
                 try {
-                    try {
-                        $peak = $process.PeakWorkingSet64
-                        $cpu = $process.TotalProcessorTime.TotalSeconds
-                    } catch [System.InvalidOperationException] {
-                        # The process exited between the lookup and the read.
-                        continue
+                    $process.Refresh()
+                    $peak = $process.get_PeakWorkingSet64()
+                    $cpu = $process.get_TotalProcessorTime().TotalSeconds
+                } catch [System.InvalidOperationException] {
+                    # The process exited between the get_HasExited() check and the read.
+                    if ($_.Exception.InnerException -is [System.ComponentModel.Win32Exception]) {
+                        throw
                     }
-                    $tracked[$processId].Reads.Add(@{
-                        Time = Get-Date
-                        Peak = $peak
-                        Cpu = $cpu
-                    })
-                } finally {
-                    $process.Dispose()
+                    continue
                 }
+                $entry.Reads.Add(@{
+                    Time = Get-Date
+                    Peak = $peak
+                    Cpu = $cpu
+                })
             }
         }
     } finally {
         try {
-            if (-not $root.HasExited) {
+            if (-not $root.get_HasExited()) {
                 $root.Kill($true)
             }
             $root.WaitForExit()
-            $null = $stdout.GetAwaiter().GetResult()
+            $outputText = $stdout.GetAwaiter().GetResult()
             $errorText = $stderr.GetAwaiter().GetResult()
             $exitCode = $root.ExitCode
         } finally {
+            foreach ($entry in $tracked.Values) {
+                if ($null -ne $entry.Process) {
+                    $entry.Process.Dispose()
+                }
+            }
             $root.Dispose()
         }
     }
     if ($exitCode -ne 0) {
         Write-Output "run ${run}: generate --verify exited $exitCode"
+        $outputText -split '\r?\n' | Select-Object -Last 20 | Write-Output
         $errorText -split '\r?\n' | Select-Object -Last 20 | Write-Output
         exit 1
     }

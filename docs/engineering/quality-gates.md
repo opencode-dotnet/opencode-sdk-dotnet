@@ -456,8 +456,8 @@ The `dotnet format` subprocess's own cost is measured outside BenchmarkDotNet by
 five times, finds the run's `dotnet-format` descendant and that process's own descendants (Roslyn's
 BuildHost among them), and reports each one's peak working set and CPU time, polled as fast as one
 process snapshot allows. Every figure is a lower bound read up to one poll interval before the process
-exits, and the report's last-read gap gives that interval for the run; BuildHost, read only a few times
-in its short life, gives a weak one. The script exits non-zero when it finds no format process.
+exits, and the report's last-read gap approximates that interval; BuildHost, read only a few times in
+its short life, gives a weak one. The script exits non-zero when it finds no format process.
 
 The cold-start classes (`OpenCode.Sdk.Performance.Tests.ColdStart`) declare their own
 `RunStrategy.ColdStart` job and run as a separate invocation with neither `--job` nor `--runtimes`,
