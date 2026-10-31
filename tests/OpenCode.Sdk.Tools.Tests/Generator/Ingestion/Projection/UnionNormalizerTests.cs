@@ -234,11 +234,11 @@ public sealed class UnionNormalizerTests
     {
         var result = await ProjectUnionAsync("Apart",
             branch => branch.Type("number"),
-            branch => branch.Type("string"),
+            branch => branch.Type("boolean"),
             SpecialSpellings);
 
         await Assert.That(((UnionNode)result.Schemas["Apart"]).Branches.Select(BranchKind))
-            .IsEquivalentTo(["Number", "String", nameof(RefNode)], CollectionOrdering.Matching);
+            .IsEquivalentTo(["Number", "Boolean", nameof(RefNode)], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -278,6 +278,121 @@ public sealed class UnionNormalizerTests
 
         await Assert.That(exception.Errors).IsEquivalentTo(
             [new IngestionError("Value/anyOf/1", "unrecognized schema keyword 'frobnicate' is not supported")], CollectionOrdering.Matching);
+    }
+
+    /// <summary>A string enum or literal beside a free string is an open enum: the union is one enum of their values.</summary>
+    [Test]
+    [Arguments(false, false)]
+    [Arguments(true, false)]
+    [Arguments(false, true)]
+    public async Task Project_Should_Fold_An_Open_Enum_Into_One_Enum(bool nullable, bool literal)
+    {
+        Action<SchemaBuilder>[] branches =
+        [
+            literal ? static branch => branch.Type("string").Raw("const", "\"chat\"") : static branch => branch.Type("string").Enum("chat"),
+            static branch => branch.Type("string").Enum("image"),
+            static branch => branch.Type("string").Raw("pattern", "\"^rpc\\\\.\""),
+        ];
+        var result = await ProjectUnionAsync("Kind", nullable ? [.. branches, static branch => branch.Type("null")] : branches);
+
+        var node = result.Schemas["Kind"] is NullableNode { Inner: var inner } ? inner : result.Schemas["Kind"];
+        await Assert.That(result.Schemas["Kind"] is NullableNode).IsEqualTo(nullable);
+        await Assert.That(((EnumNode)node).Values).IsEquivalentTo(["chat", "image"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Project_Should_Fold_An_Open_Enum_Beside_A_List_Of_It()
+    {
+        var result = await ProjectUnionAsync("Kinds",
+            static branch => branch.Type("string").Enum("chat", "image"),
+            static branch => branch.Type("string"),
+            static branch => branch.Type("array").Items(static item => item.AnyOf(
+                static arm => arm.Type("string").Enum("chat", "image"),
+                static arm => arm.Type("string"))),
+            static branch => branch.Type("null"));
+
+        var branches = ((UnionNode)((NullableNode)result.Schemas["Kinds"]).Inner).Branches;
+        await Assert.That(branches.Select(BranchKind)).IsEquivalentTo([nameof(RefNode), nameof(ArrayNode)], CollectionOrdering.Matching);
+        await Assert.That(new[] { branches[0], ((ArrayNode)branches[1]).Item }
+                .SelectMany(node => ((EnumNode)result.Schemas[((RefNode)node).Target]).Values))
+            .IsEquivalentTo(["chat", "image", "chat", "image"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Project_Should_Keep_An_Enum_Apart_From_A_Free_String_As_Ordinary_Union()
+    {
+        var result = await ProjectUnionAsync("Apart",
+            static branch => branch.Type("string").Enum("chat", "image"),
+            static branch => branch.Type("boolean"),
+            static branch => branch.Type("string"));
+
+        await Assert.That(((UnionNode)result.Schemas["Apart"]).Branches.Select(BranchKind))
+            .IsEquivalentTo([nameof(RefNode), "Boolean", "String"], CollectionOrdering.Matching);
+    }
+
+    /// <summary>
+    /// The folds never project their members, so a member the wall or the shape classification refuses still
+    /// refuses: open enum or special number, whole, partial or nested.
+    /// </summary>
+    [Test]
+    [Arguments("wall", "Kind/anyOf/1", "unrecognized schema keyword 'frobnicate' is not supported")]
+    [Arguments("wall-beside-list", "Kind/anyOf/1", "unrecognized schema keyword 'frobnicate' is not supported")]
+    [Arguments("prefixItems", "Kind/anyOf/1", "schema node-kind constraints 'type, prefixItems' do not form a supported core shape")]
+    [Arguments("const", "Kind/anyOf/0", "schema node-kind constraints 'type, const, enum' do not form a supported core shape")]
+    [Arguments("null", "Kind/anyOf/2", "schema node-kind constraints 'type, enum' do not form a supported core shape")]
+    [Arguments("number-nested", "Kind/anyOf/1/anyOf/1", "unrecognized schema keyword 'frobnicate' is not supported")]
+    [Arguments("shape-beside-list", "Kind/anyOf/1", "schema node-kind constraints 'type, prefixItems' do not form a supported core shape")]
+    [Arguments("number-nested-shape", "Kind/anyOf/1/anyOf/1",
+        "schema node-kind constraints 'type, enum, prefixItems' do not form a supported core shape")]
+    [Arguments("referenced-beside-list", "Kind/anyOf/0", "unrecognized schema keyword 'frobnicate' is not supported")]
+    [Arguments("wall-and-shape", "Kind/anyOf/1", "unrecognized schema keyword 'frobnicate' is not supported")]
+    public async Task Project_Should_Refuse_A_Folded_Member_Projection_Would_Refuse(string member, string location, string problem)
+    {
+        var scenario = SpecScenario.Define(spec => spec
+            .WithSchema("Session.ID", static schema => schema.Type("string"))
+            .WithSchema("Kind", schema => schema.AnyOf(FoldedUnion(member))));
+
+        var exception = await new SchemaProjectionTestHost().ProjectExpectingRefusalAsync(scenario);
+
+        await Assert.That(exception.Errors).IsEquivalentTo([new IngestionError(location, problem)], CollectionOrdering.Matching);
+    }
+
+    /// <summary>
+    /// A free string reached through a reference is free too, so the union is an open enum; the lone "null"
+    /// spelling beside it is the parent-session filter, as upstream spells it, and stays a union.
+    /// </summary>
+    [Test]
+    [Arguments("random", nameof(EnumNode))]
+    [Arguments("null", nameof(UnionNode))]
+    [Arguments("const-null", nameof(UnionNode))]
+    [Arguments("const-nullable", nameof(EnumNode))]
+    [Arguments("null-and-more", nameof(EnumNode))]
+    [Arguments("referenced", nameof(EnumNode))]
+    public async Task Project_Should_Fold_A_Referenced_Free_String_Unless_Its_Literal_Spells_Null(string closed, string kind)
+    {
+        var result = await new SchemaProjectionTestHost().ProjectAsync(SpecScenario.Define(spec => spec
+            .WithSchema("Session.ID", static schema => schema.Type("string").Pattern("^ses"))
+            .WithSchema("Mode", static schema => schema.Type("string").Enum("random"))
+            .WithSchema("Kind", schema => schema.AnyOf(
+                branch => branch.AnyOf(static arm => arm.Ref("Session.ID"), arm => ClosedMember(arm, closed)),
+                static branch => branch.Type("null")))));
+
+        await Assert.That(result.Schemas[((RefNode)((NullableNode)result.Schemas["Kind"]).Inner).Target].GetType().Name).IsEqualTo(kind);
+    }
+
+    /// <summary>An enum beside no free string, a non-string, or a formatted string is no open enum.</summary>
+    [Test]
+    [Arguments("boolean", "Boolean")]
+    [Arguments("date-time", "String")]
+    [Arguments("enum", nameof(RefNode))]
+    public async Task Project_Should_Keep_An_Enum_Beside_No_Free_String_As_Ordinary_Union(string other, string otherKind)
+    {
+        var result = await ProjectUnionAsync("Mixed",
+            static branch => branch.Type("string").Enum("chat", "image"),
+            branch => OtherBranch(branch, other));
+
+        await Assert.That(((UnionNode)result.Schemas["Mixed"]).Branches.Select(BranchKind))
+            .IsEquivalentTo([nameof(RefNode), otherKind], CollectionOrdering.Matching);
     }
 
     /// <summary>A branch keyed by its own required key refuses when that key is another branch's ordinal key.</summary>
@@ -392,7 +507,44 @@ public sealed class UnionNormalizerTests
     private static Task<SchemaProjectionResult> ProjectUnionAsync(string name, params Action<SchemaBuilder>[] branches) =>
         new SchemaProjectionTestHost().ProjectAsync(SpecScenario.Define(spec => spec.WithSchema(name, schema => schema.AnyOf(branches))));
 
+    private static void OtherBranch(SchemaBuilder branch, string other) => _ = other switch
+    {
+        "boolean" => branch.Type("boolean"),
+        "date-time" => branch.Type("string").Format("date-time"),
+        _ => branch.Type("string").Enum("audio", "video"),
+    };
+
     private static void SpecialSpellings(SchemaBuilder branch) => branch.Type("string").Enum("Infinity", "-Infinity", "NaN");
+
+    private static Action<SchemaBuilder>[] FoldedUnion(string member) => member switch
+    {
+        "wall" => [ChatOrImage, static branch => branch.Type("string").Raw("frobnicate", "1")],
+        "wall-beside-list" => [ChatOrImage, static branch => branch.Type("string").Raw("frobnicate", "1"), StringList],
+        "prefixItems" => [ChatOrImage, static branch => branch.Type("string").Raw("prefixItems", "[{}]")],
+        "const" => [static branch => branch.Type("string").Enum("chat").Raw("const", "\"image\""), static branch => branch.Type("string")],
+        "null" => [ChatOrImage, static branch => branch.Type("string"), static branch => branch.Type("null").Raw("enum", "[null]")],
+        "shape-beside-list" => [ChatOrImage, static branch => branch.Type("string").Raw("prefixItems", "[{}]"), StringList],
+        "number-nested-shape" => [static branch => branch.Type("number"), static branch => branch.AnyOf(
+            static arm => arm.Type("string").Enum("NaN"), static arm => arm.Type("string").Enum("Infinity").Raw("prefixItems", "[{}]"))],
+        "wall-and-shape" => [ChatOrImage, static branch => branch.Type("string").Raw("frobnicate", "1").Raw("prefixItems", "[{}]")],
+        "referenced-beside-list" =>
+            [static branch => branch.Type("string").Enum("chat").Raw("frobnicate", "1"), static branch => branch.Ref("Session.ID"), StringList],
+        _ => [static branch => branch.Type("number"), static branch => branch.AnyOf(
+            static arm => arm.Type("string").Enum("NaN"), static arm => arm.Type("string").Enum("Infinity").Raw("frobnicate", "1"))],
+    };
+
+    private static void ClosedMember(SchemaBuilder arm, string closed) => _ = closed switch
+    {
+        "const-null" => arm.Type("string").Raw("const", "\"null\""),
+        "const-nullable" => arm.Type("string").Raw("const", "\"nullable\""),
+        "null-and-more" => arm.Type("string").Enum("null", "x"),
+        "referenced" => arm.Ref("Mode"),
+        _ => arm.Type("string").Enum(closed),
+    };
+
+    private static void StringList(SchemaBuilder branch) => branch.Type("array").Items(static item => item.Type("string"));
+
+    private static void ChatOrImage(SchemaBuilder branch) => branch.Type("string").Enum("chat", "image");
 
     private static string BranchKind(SchemaNode branch) => branch is PrimitiveNode primitive ? primitive.Kind.ToString() : branch.GetType().Name;
 }

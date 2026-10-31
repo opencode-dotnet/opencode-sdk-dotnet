@@ -3099,7 +3099,27 @@ namespace OpenCode.Sdk.Models
     {
         public ConfigWebSearchInfo() { }
         [System.Text.Json.Serialization.JsonPropertyName("provider")]
-        public required string Provider { get; init; }
+        public required OpenCode.Sdk.Models.ConfigWebSearchInfoProvider Provider { get; init; }
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ConfigWebSearchInfoProviderJsonConverter))]
+    public readonly struct ConfigWebSearchInfoProvider : System.IEquatable<OpenCode.Sdk.Models.ConfigWebSearchInfoProvider>
+    {
+        public ConfigWebSearchInfoProvider(string value) { }
+        public bool IsKnown { get; }
+        public string Value { get; }
+        public static OpenCode.Sdk.Models.ConfigWebSearchInfoProvider Random { get; }
+        public bool Equals(OpenCode.Sdk.Models.ConfigWebSearchInfoProvider other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ConfigWebSearchInfoProvider FromString(string value) { }
+        public static OpenCode.Sdk.Models.ConfigWebSearchInfoProvider op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ConfigWebSearchInfoProvider left, OpenCode.Sdk.Models.ConfigWebSearchInfoProvider right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ConfigWebSearchInfoProvider left, OpenCode.Sdk.Models.ConfigWebSearchInfoProvider right) { }
+        public static class Values
+        {
+            public const string Random = "random";
+        }
     }
     public sealed class ConfigWorktree : System.IEquatable<OpenCode.Sdk.Models.ConfigWorktree>
     {
@@ -5491,7 +5511,7 @@ namespace OpenCode.Sdk.Models
         public OpenCode.Sdk.Models.ModelMaxTokensField? MaxTokensField { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("reasoningField")]
-        public string? ReasoningField { get; init; }
+        public OpenCode.Sdk.Models.ModelReasoningField? ReasoningField { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("requireAssistantAfterTool")]
         public bool? RequireAssistantAfterTool { get; init; }
@@ -5654,6 +5674,30 @@ namespace OpenCode.Sdk.Models
         {
             public const string MaxCompletionTokens = "max_completion_tokens";
             public const string MaxTokens = "max_tokens";
+        }
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.ModelReasoningFieldJsonConverter))]
+    public readonly struct ModelReasoningField : System.IEquatable<OpenCode.Sdk.Models.ModelReasoningField>
+    {
+        public ModelReasoningField(string value) { }
+        public bool IsKnown { get; }
+        public string Value { get; }
+        public static OpenCode.Sdk.Models.ModelReasoningField Reasoning { get; }
+        public static OpenCode.Sdk.Models.ModelReasoningField ReasoningContent { get; }
+        public static OpenCode.Sdk.Models.ModelReasoningField ReasoningText { get; }
+        public bool Equals(OpenCode.Sdk.Models.ModelReasoningField other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.ModelReasoningField FromString(string value) { }
+        public static OpenCode.Sdk.Models.ModelReasoningField op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.ModelReasoningField left, OpenCode.Sdk.Models.ModelReasoningField right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.ModelReasoningField left, OpenCode.Sdk.Models.ModelReasoningField right) { }
+        public static class Values
+        {
+            public const string Reasoning = "reasoning";
+            public const string ReasoningContent = "reasoning_content";
+            public const string ReasoningText = "reasoning_text";
         }
     }
     public sealed class ModelRef : System.IEquatable<OpenCode.Sdk.Models.ModelRef>
@@ -6549,7 +6593,7 @@ namespace OpenCode.Sdk.Models
         public OpenCode.Sdk.Models.ModelMaxTokensField? MaxTokensField { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("reasoningField")]
-        public string? ReasoningField { get; init; }
+        public OpenCode.Sdk.Models.ModelReasoningField? ReasoningField { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("requireAssistantAfterTool")]
         public bool? RequireAssistantAfterTool { get; init; }
@@ -8430,12 +8474,32 @@ namespace OpenCode.Sdk.Models
     {
         public SessionInstructionsUpdatedData() { }
         [System.Text.Json.Serialization.JsonPropertyName("delta")]
-        public required System.Collections.Generic.IReadOnlyDictionary<string, string> Delta { get; init; }
+        public required System.Collections.Generic.IReadOnlyDictionary<string, OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta> Delta { get; init; }
         [System.Text.Json.Serialization.JsonPropertyName("sessionID")]
         public required string SessionId { get; init; }
         [System.Text.Json.Serialization.JsonIgnore(Condition=System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("text")]
         public string? Text { get; init; }
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.SessionInstructionsUpdatedDataDeltaJsonConverter))]
+    public readonly struct SessionInstructionsUpdatedDataDelta : System.IEquatable<OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta>
+    {
+        public SessionInstructionsUpdatedDataDelta(string value) { }
+        public bool IsKnown { get; }
+        public string Value { get; }
+        public static OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta Removed { get; }
+        public bool Equals(OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta FromString(string value) { }
+        public static OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta left, OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta left, OpenCode.Sdk.Models.SessionInstructionsUpdatedDataDelta right) { }
+        public static class Values
+        {
+            public const string Removed = "removed";
+        }
     }
     public sealed class SessionInstructionsUpdatedDurable : OpenCode.Sdk.Models.IDurableEnvelope, System.IEquatable<OpenCode.Sdk.Models.SessionInstructionsUpdatedDurable>
     {
@@ -11452,7 +11516,57 @@ namespace OpenCode.Sdk.Models
     {
         public TuiCommandExecuteData() { }
         [System.Text.Json.Serialization.JsonPropertyName("command")]
-        public required string Command { get; init; }
+        public required OpenCode.Sdk.Models.TuiCommandExecuteDataCommand Command { get; init; }
+    }
+    [System.Text.Json.Serialization.JsonConverter(typeof(OpenCode.Sdk.Internal.TuiCommandExecuteDataCommandJsonConverter))]
+    public readonly struct TuiCommandExecuteDataCommand : System.IEquatable<OpenCode.Sdk.Models.TuiCommandExecuteDataCommand>
+    {
+        public TuiCommandExecuteDataCommand(string value) { }
+        public bool IsKnown { get; }
+        public string Value { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand AgentCycle { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand PromptClear { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand PromptSubmit { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionBackground { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionCompact { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionFirst { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionHalfPageDown { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionHalfPageUp { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionInterrupt { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionLast { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionLineDown { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionLineUp { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionList { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionNew { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionPageDown { get; }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand SessionPageUp { get; }
+        public bool Equals(OpenCode.Sdk.Models.TuiCommandExecuteDataCommand other) { }
+        public override bool Equals(object? obj) { }
+        public override int GetHashCode() { }
+        public override string ToString() { }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand FromString(string value) { }
+        public static OpenCode.Sdk.Models.TuiCommandExecuteDataCommand op_Implicit(string value) { }
+        public static bool operator !=(OpenCode.Sdk.Models.TuiCommandExecuteDataCommand left, OpenCode.Sdk.Models.TuiCommandExecuteDataCommand right) { }
+        public static bool operator ==(OpenCode.Sdk.Models.TuiCommandExecuteDataCommand left, OpenCode.Sdk.Models.TuiCommandExecuteDataCommand right) { }
+        public static class Values
+        {
+            public const string AgentCycle = "agent.cycle";
+            public const string PromptClear = "prompt.clear";
+            public const string PromptSubmit = "prompt.submit";
+            public const string SessionBackground = "session.background";
+            public const string SessionCompact = "session.compact";
+            public const string SessionFirst = "session.first";
+            public const string SessionHalfPageDown = "session.half.page.down";
+            public const string SessionHalfPageUp = "session.half.page.up";
+            public const string SessionInterrupt = "session.interrupt";
+            public const string SessionLast = "session.last";
+            public const string SessionLineDown = "session.line.down";
+            public const string SessionLineUp = "session.line.up";
+            public const string SessionList = "session.list";
+            public const string SessionNew = "session.new";
+            public const string SessionPageDown = "session.page.down";
+            public const string SessionPageUp = "session.page.up";
+        }
     }
     public sealed class TuiPromptAppend : OpenCode.Sdk.Models.IEvent, System.IEquatable<OpenCode.Sdk.Models.TuiPromptAppend>
     {

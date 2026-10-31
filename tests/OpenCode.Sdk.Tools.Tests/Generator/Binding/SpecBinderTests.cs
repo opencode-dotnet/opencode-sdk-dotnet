@@ -1564,6 +1564,27 @@ public sealed class SpecBinderTests
     }
 
     [Test]
+    public async Task Bind_Should_Bind_An_Open_Enum_As_A_Generated_Extensible_Enum()
+    {
+        var plan = BindHealth(await IngestAsync(SpecScenario.Define(static spec => spec
+            .WithSchema("Item.State", static schema => schema.AnyOf(
+                static branch => branch.Type("string").Enum("removed", "pending"),
+                static branch => branch.Type("string")))
+            .WithSchema("ItemInfo", static schema => schema
+                .Type("object")
+                .Property("state", static property => property.Ref("Item.State"), required: true))
+            .WithOperation("health.get", configure: static operation => operation
+                .Response(200, "application/json", static schema => schema.Ref("ItemInfo"))))));
+
+        var state = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "ItemInfo")
+            .Properties.Single(static property => property.WireName == "state").Type;
+        await Assert.That(((NamedTypeReferencePlan)state).Name).IsEqualTo("ItemState");
+        await Assert.That(plan.Models.OfType<EnumModelPlan>().Single(static model => model.Name == "ItemState")
+                .Values.Select(static value => value.WireValue))
+            .IsEquivalentTo(["removed", "pending"], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task Bind_Should_Collapse_A_Union_Of_Refinements_Over_One_Primitive()
     {
         var document = await IngestAsync(SpecScenario.Define(spec => spec
@@ -1571,17 +1592,11 @@ public sealed class SpecBinderTests
                 .Type("object")
                 .Property("digest", property => property.AnyOf(
                     branch => branch.Type("string").Raw("pattern", "\"^[a-f0-9]{64}$\""),
-                    branch => branch.Type("string").Enum("removed")), required: true))
+                    branch => branch.Type("string").Raw("pattern", "\"^[0-9]+$\"")), required: true))
             .WithOperation("health.get", configure: operation => operation
                 .Response(200, "application/json", schema => schema.Ref("ItemInfo")))));
 
-        var plan = new BindingTestHost().Bind(
-            document,
-            Selection("health.get"),
-            Curation(new Dictionary<string, GroupCuration>(StringComparer.Ordinal)
-            {
-                ["health"] = RootGroup(),
-            }));
+        var plan = BindHealth(document);
 
         var item = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "ItemInfo");
         var digest = item.Properties.Single(static property => property.WireName == "digest").Type;

@@ -11,6 +11,14 @@ Nightly builds of `master` are on
 
 ### 💥 Breaking changes
 
+- **Open enums are generated extensible enums, not `string`.** A string enum beside a free string,
+  such as a reasoning field's known names, now binds a generated extensible enum that carries any
+  other value too. `ModelCompatibility.ReasoningField` and `ProviderCompatibility.ReasoningField`
+  are `ModelReasoningField?`, `TuiCommandExecuteData.Command` is `TuiCommandExecuteDataCommand`,
+  `ConfigWebSearchInfo.Provider` is `ConfigWebSearchInfoProvider`, and
+  `SessionInstructionsUpdatedData.Delta`'s values are `SessionInstructionsUpdatedDataDelta`.
+  Migrate a comparison with `ModelReasoningField.ReasoningContent` (or the type's `Values` strings),
+  and read the text with `ToString()`; nothing on the wire changes.
 - **`IMcp` is now `IMcpServerConfig`, and `UnknownMcp` is now `UnknownMcpServerConfig`.**
   The union represents one MCP server's configuration, the value type of `ConfigInfoMcp.Servers`
   and of `ExperimentalMcpAddRequest.Config`. Migrate by renaming type references; `IMcpTimeout`

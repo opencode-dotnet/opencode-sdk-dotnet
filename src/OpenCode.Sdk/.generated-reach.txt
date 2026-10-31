@@ -83,6 +83,7 @@ ConfigShellOption owner=Config reached-by=Config
 ConfigUpdated owner=Config reached-by=Events
 ConfigWarming owner=Config reached-by=Config
 ConfigWebSearchInfo owner=Config reached-by=Config
+ConfigWebSearchInfoProvider owner=Config reached-by=Config
 ConfigWorktree owner=Config reached-by=Config
 ConflictError owner=Common reached-by=Credentials,Experimental,Permissions,Sessions,Vcs
 ConnectionCredentialInfo owner=Integrations reached-by=Integrations
@@ -286,6 +287,7 @@ ModelInfoLimit owner=LanguageModels reached-by=LanguageModels
 ModelInfoStatus owner=LanguageModels reached-by=LanguageModels
 ModelInfoTime owner=LanguageModels reached-by=LanguageModels
 ModelMaxTokensField owner=LanguageModels reached-by=Config,LanguageModels,Providers
+ModelReasoningField owner=LanguageModels reached-by=Config,LanguageModels,Providers
 ModelRef owner=LanguageModels reached-by=Agents,Events,Experimental,Sessions
 ModelSettings owner=LanguageModels reached-by=LanguageModels
 ModelUpdated owner=LanguageModels reached-by=Events
@@ -488,6 +490,7 @@ SessionInfoOutcome owner=Sessions reached-by=Experimental,Sessions
 SessionInfoTime owner=Sessions reached-by=Experimental,Sessions
 SessionInstructionsUpdated owner=Sessions reached-by=Events,Sessions
 SessionInstructionsUpdatedData owner=Sessions reached-by=Events,Sessions
+SessionInstructionsUpdatedDataDelta owner=Sessions reached-by=Events,Sessions
 SessionInstructionsUpdatedDurable owner=Sessions reached-by=Events,Sessions
 SessionInterruptOutcome owner=Sessions reached-by=Sessions
 SessionMessageAgentSelected owner=Sessions reached-by=Experimental,Sessions
@@ -695,6 +698,7 @@ ToolFileContent owner=Sessions reached-by=Events,Experimental,Sessions
 ToolTextContent owner=Sessions reached-by=Events,Experimental,Sessions
 TuiCommandExecute owner=Events reached-by=Events
 TuiCommandExecuteData owner=Events reached-by=Events
+TuiCommandExecuteDataCommand owner=Events reached-by=Events
 TuiPromptAppend owner=Events reached-by=Events
 TuiPromptAppendData owner=Events reached-by=Events
 TuiSessionSelect owner=Events reached-by=Events

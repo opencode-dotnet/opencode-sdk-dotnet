@@ -1721,8 +1721,8 @@ public sealed class OperationPlanBinderTests
     {
         var document = await BindingTestHost.IngestAsync(DataLocationScenario(
             data: static property => property.AnyOf(
-                static branch => branch.Type("string"),
-                static branch => branch.Type("string").Enum("fast", "slow"))));
+                static branch => branch.Type("string").Raw("pattern", "\"^a\""),
+                static branch => branch.Type("string").Raw("pattern", "\"^b\""))));
 
         await AssertWidgetRefusalAsync(document, "named component schema");
     }
