@@ -100,7 +100,7 @@ internal sealed class ServiceFileSystem : IServiceFileSystem
     {
         if (_renameKernel is { } kernel)
         {
-            var error = kernel.Replace(source, destination);
+            var error = kernel.Replace(source, destination, out var sourceOpenFailed);
             if (error is 0)
             {
                 return;
@@ -108,21 +108,28 @@ internal sealed class ServiceFileSystem : IServiceFileSystem
 
             if (error is not (WindowsInterop.InvalidParameter or WindowsInterop.NotSupported or WindowsInterop.InvalidFunction))
             {
-                throw RenameFailure(error, source, destination);
+                throw RenameFailure(error, source, destination, sourceOpenFailed);
             }
         }
 
         ReplaceByPlatform(source, destination);
     }
 
-    /// <summary>The exception the platform's own replace throws for the same Windows error.</summary>
-    internal static Exception RenameFailure(int error, string source, string destination) =>
+    /// <summary>
+    /// The platform replace's exception type for the Windows error: access-denied and other I/O
+    /// failures identify the failed call; not-found failures keep the platform replace's message.
+    /// </summary>
+    internal static Exception RenameFailure(int error, string source, string destination, bool sourceOpenFailed) =>
         error switch
         {
             WindowsInterop.FileNotFound => new FileNotFoundException($"Could not find file '{source}'.", source),
             WindowsInterop.PathNotFound => new DirectoryNotFoundException($"Could not find a part of the path '{source}'."),
-            WindowsInterop.AccessDenied => new UnauthorizedAccessException($"Access to the path '{destination}' is denied."),
-            _ => new IOException($"'{source}' could not replace '{destination}': {new Win32Exception(error).Message}", unchecked((int)0x80070000) | error),
+            WindowsInterop.AccessDenied => new UnauthorizedAccessException($"Access to the path '{(sourceOpenFailed ? source : destination)}' is denied."),
+            _ => new IOException(
+                sourceOpenFailed
+                    ? $"'{source}' could not be opened to replace '{destination}': {new Win32Exception(error).Message}"
+                    : $"'{source}' could not replace '{destination}': {new Win32Exception(error).Message}",
+                unchecked((int)0x80070000) | error),
         };
 
     private static void ReplaceByPlatform(string source, string destination)

@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using NSubstitute;
@@ -16,6 +18,12 @@ namespace OpenCode.Sdk.Tests.Hosting.BackgroundService;
 public sealed class ServiceFileSystemTests
 {
     private static readonly byte[] Content = Encoding.UTF8.GetBytes("{\"url\":\"http://127.0.0.1:1\"}");
+
+    private static class ServiceFileSystemData
+    {
+        public const int SharingViolation = 32;
+        public const int SharingViolationHResult = unchecked((int)0x80070000) | SharingViolation;
+    }
 
     [Test]
     public async Task TryCreateExclusiveAsync_Should_Create_A_Missing_File_With_Its_Bytes()
@@ -239,6 +247,75 @@ public sealed class ServiceFileSystemTests
         }
     }
 
+    [Test]
+    public async Task Rename_Should_Name_A_Delete_Pending_Source_When_Opening_It_Is_Denied_On_Windows()
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var (source, destination) = directory.Publication();
+        if (!OperatingSystem.IsWindows())
+        {
+            directory.FileSystem.File.Delete(source);
+            _ = Assert.Throws<FileNotFoundException>(() => new ServiceFileSystem().Rename(source, destination));
+            Console.WriteLine("branch: Unix (" + RuntimeInformation.OSDescription + ") — an unlinked source cannot replace the destination");
+        }
+        else
+        {
+            // File.Delete uses POSIX semantics on current Windows, leaving no delete-pending state.
+            const int fileDispositionInfo = 4;
+            using var reader = ServiceFileSystem.OpenRead(source);
+            using (var deleter = WindowsInterop.CreateFile(
+                source, WindowsInterop.DeleteAccess, WindowsInterop.ShareReadWriteDelete, IntPtr.Zero, WindowsInterop.OpenExisting, 0, IntPtr.Zero))
+            {
+                await Assert.That(deleter.IsInvalid).IsFalse();
+                var information = Marshal.AllocHGlobal(1);
+                try
+                {
+                    Marshal.WriteByte(information, 1);
+                    await Assert.That(WindowsInterop.SetFileInformationByHandle(deleter, fileDispositionInfo, information, 1)).IsTrue();
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(information);
+                }
+            }
+
+            var failure = Assert.Throws<UnauthorizedAccessException>(() => new ServiceFileSystem().Rename(source, destination));
+            Console.WriteLine("branch: Windows — " + failure.Message);
+            await Assert.That(failure.Message).Contains(directory.FileSystem.Path.GetFileName(source));
+            await Assert.That(failure.Message).DoesNotContain(directory.FileSystem.Path.GetFileName(destination));
+        }
+
+        await Assert.That(directory.FileSystem.File.ReadAllText(destination)).IsEqualTo("previous");
+    }
+
+    [Test]
+    public async Task Rename_Should_Name_A_Read_Only_Destination_When_The_Rename_Is_Denied_On_Windows()
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var (source, destination) = directory.Publication();
+        directory.FileSystem.File.SetAttributes(destination, FileAttributes.ReadOnly);
+        try
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                new ServiceFileSystem().Rename(source, destination);
+                Console.WriteLine("branch: Unix (" + RuntimeInformation.OSDescription + ") — rename(2) replaces a read-only destination");
+                await Assert.That(directory.FileSystem.File.ReadAllText(destination)).IsEqualTo("published");
+                return;
+            }
+
+            var failure = Assert.Throws<UnauthorizedAccessException>(() => new ServiceFileSystem().Rename(source, destination));
+            Console.WriteLine("branch: Windows — " + failure.Message);
+            await Assert.That(failure.Message).Contains(directory.FileSystem.Path.GetFileName(destination));
+            await Assert.That(failure.Message).DoesNotContain(directory.FileSystem.Path.GetFileName(source));
+            await Assert.That(directory.FileSystem.File.ReadAllText(destination)).IsEqualTo("previous");
+        }
+        finally
+        {
+            directory.FileSystem.File.SetAttributes(destination, FileAttributes.Normal);
+        }
+    }
+
 #if NET
     // .NET Framework's path handling refuses a path of MAX_PATH characters or more in every System.IO
     // call this host makes (PathTooLongException from GetFullPath and CreateDirectory alike), so no
@@ -286,19 +363,21 @@ public sealed class ServiceFileSystemTests
 
     /// <summary>A system or volume without POSIX-semantics rename refuses the call with these errors: Windows before 10 1607, some Windows Server 2016 installations, FAT, ReFS, some network shares.</summary>
     [Test]
-    [Arguments(WindowsInterop.InvalidParameter)]
-    [Arguments(WindowsInterop.NotSupported)]
-    [Arguments(WindowsInterop.InvalidFunction)]
-    public async Task Rename_Should_Fall_Back_To_The_Platform_Replace_When_The_Volume_Refuses_The_Posix_Rename(int error)
+    [Arguments(WindowsInterop.InvalidParameter, false)]
+    [Arguments(WindowsInterop.InvalidParameter, true)]
+    [Arguments(WindowsInterop.NotSupported, false)]
+    [Arguments(WindowsInterop.NotSupported, true)]
+    [Arguments(WindowsInterop.InvalidFunction, false)]
+    [Arguments(WindowsInterop.InvalidFunction, true)]
+    public async Task Rename_Should_Fall_Back_To_The_Platform_Replace_When_The_Volume_Refuses_The_Posix_Rename(int error, bool sourceOpenFailed)
     {
         using var directory = new OwnedTemporaryDirectory();
         var (source, destination) = directory.Publication();
-        var kernel = Substitute.For<IFileRenameKernel>();
-        _ = kernel.Replace(source, destination).Returns(error);
+        var kernel = RefusingKernel(source, destination, error, sourceOpenFailed);
 
         new ServiceFileSystem(kernel).Rename(source, destination);
 
-        _ = kernel.Received(1).Replace(source, destination);
+        _ = kernel.Received(1).Replace(source, destination, out _);
         await Assert.That(directory.FileSystem.File.ReadAllText(destination)).IsEqualTo("published");
         await Assert.That(source).Satisfies(path => !directory.FileSystem.File.Exists(path));
     }
@@ -308,8 +387,7 @@ public sealed class ServiceFileSystemTests
     {
         using var directory = new OwnedTemporaryDirectory();
         var (source, destination) = directory.Publication();
-        var kernel = Substitute.For<IFileRenameKernel>();
-        _ = kernel.Replace(source, destination).Returns(WindowsInterop.AccessDenied);
+        var kernel = RefusingKernel(source, destination, WindowsInterop.AccessDenied, sourceOpenFailed: false);
 
         _ = Assert.Throws<UnauthorizedAccessException>(() => new ServiceFileSystem(kernel).Rename(source, destination));
 
@@ -317,21 +395,44 @@ public sealed class ServiceFileSystemTests
         await Assert.That(directory.FileSystem.File.ReadAllText(source)).IsEqualTo("published");
     }
 
+    [Test]
+    [Arguments(true, WindowsInterop.AccessDenied, "Access to the path '{0}' is denied.")]
+    [Arguments(false, WindowsInterop.AccessDenied, "Access to the path '{1}' is denied.")]
+    [Arguments(true, ServiceFileSystemData.SharingViolation, "'{0}' could not be opened to replace '{1}': {2}")]
+    [Arguments(false, ServiceFileSystemData.SharingViolation, "'{0}' could not replace '{1}': {2}")]
+    public async Task Rename_Should_Name_The_Failing_Call_And_Path(bool sourceOpenFailed, int error, string message)
+    {
+        using var directory = new OwnedTemporaryDirectory();
+        var (source, destination) = directory.Publication();
+        var kernel = RefusingKernel(source, destination, error, sourceOpenFailed);
+
+        var failure = Assert.Throws<Exception>(() => new ServiceFileSystem(kernel).Rename(source, destination));
+
+        await Assert.That(failure.Message).IsEqualTo(string.Format(CultureInfo.InvariantCulture, message, source, destination, new Win32Exception(error).Message));
+        if (error is WindowsInterop.AccessDenied)
+        {
+            await Assert.That(failure).IsTypeOf<UnauthorizedAccessException>();
+        }
+        else
+        {
+            await Assert.That(failure).IsTypeOf<IOException>();
+            await Assert.That(failure.HResult).IsEqualTo(ServiceFileSystemData.SharingViolationHResult);
+        }
+    }
+
     /// <summary>A failed POSIX-semantics rename throws what the platform's replace throws for the same error, so the publication's handling is unchanged.</summary>
     [Test]
     public async Task RenameFailure_Should_Map_Windows_Errors_To_The_Platform_Replace_Exceptions()
     {
-        const int sharingViolation = 32;
-
-        var missing = ServiceFileSystem.RenameFailure(WindowsInterop.FileNotFound, "a.tmp", "a.json");
-        var denied = ServiceFileSystem.RenameFailure(WindowsInterop.AccessDenied, "a.tmp", "a.json");
-        var shared = ServiceFileSystem.RenameFailure(sharingViolation, "a.tmp", "a.json");
+        var missing = ServiceFileSystem.RenameFailure(WindowsInterop.FileNotFound, "a.tmp", "a.json", sourceOpenFailed: false);
+        var denied = ServiceFileSystem.RenameFailure(WindowsInterop.AccessDenied, "a.tmp", "a.json", sourceOpenFailed: false);
+        var shared = ServiceFileSystem.RenameFailure(ServiceFileSystemData.SharingViolation, "a.tmp", "a.json", sourceOpenFailed: false);
 
         await Assert.That(missing).IsTypeOf<FileNotFoundException>();
         await Assert.That(((FileNotFoundException)missing).FileName).IsEqualTo("a.tmp");
         await Assert.That(denied).IsTypeOf<UnauthorizedAccessException>();
         await Assert.That(shared).IsTypeOf<IOException>();
-        await Assert.That(shared.HResult).IsEqualTo(unchecked((int)0x80070020));
+        await Assert.That(shared.HResult).IsEqualTo(ServiceFileSystemData.SharingViolationHResult);
     }
 
 #if NET
@@ -355,6 +456,17 @@ public sealed class ServiceFileSystemTests
             .IsEqualTo(UnixFileMode.UserRead | UnixFileMode.UserWrite);
     }
 #endif
+
+    private static IFileRenameKernel RefusingKernel(string source, string destination, int error, bool sourceOpenFailed)
+    {
+        var kernel = Substitute.For<IFileRenameKernel>();
+        _ = kernel.Replace(source, destination, out Arg.Any<bool>()).Returns(call =>
+        {
+            call[2] = sourceOpenFailed;
+            return error;
+        });
+        return kernel;
+    }
 
     /// <summary>One per-test directory under the temp root, removed with everything it holds.</summary>
     private sealed class OwnedTemporaryDirectory : IDisposable
