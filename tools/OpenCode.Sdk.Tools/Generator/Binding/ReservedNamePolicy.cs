@@ -289,6 +289,7 @@ internal static class ReservedNamePolicy
             "ServerSentEventReader",
             "ServiceConfigReader",
             "ServiceContender",
+            "ServiceContenderEnvironmentComposer",
             "ServiceContenderSpawner",
             "ServiceDiscovery",
             "ServiceElection",

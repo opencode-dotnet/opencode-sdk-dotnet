@@ -1,6 +1,6 @@
 # 🔌 Connection modes
 
-Date: 2026-10-26
+Date: 2026-10-31
 
 There are three ways to get a client bound to a running opencode server: **let the SDK start one**,
 **point it at one you already have**, or **discover the background service the opencode CLI runs
@@ -613,7 +613,7 @@ What it does:
 | `ExpectedVersion` | The version a reused service must report. Null accepts any ready, compatible service. |
 | `VersionPolicy` | What a service at another version gets: `Ignore` (the default) reuses it, `Replace` ends it and starts one at the expected version, `Error` throws without touching it. `Replace` and `Error` need `ExpectedVersion`. |
 | `Command` | The service command, `opencode serve --service` by default. The first entry is resolved the way `StartAsync` resolves it. |
-| `Environment` | Extra variables for a spawned service, over the channel's service-config `env` at spawn; a 2.0.32 service re-applies its saved `env` over them once it starts, so a key set in both takes the saved value for everything read after startup: set a key in one place, the caller's `Environment` or the saved `env`, not both. |
+| `Environment` | Extra variables for a spawned service, over the channel's service-config `env` at spawn; a 2.0.32 service re-applies its saved `env` over them once it starts, so a key set in both takes the saved value for everything read after startup: set a key in one place, the caller's `Environment` or the saved `env`, not both. On Windows, a key spelled in another case resolves as upstream's client resolves it: the first spelling in ordinal order wins, whichever side set it. |
 | `OnStart` | Called synchronously at most once, before a new service process starts, with an `OpenCodeServerEnsureStartContext` carrying the reason (`Missing` or `VersionMismatch`) and the version the registered service reported (set only for a version mismatch, and null if it reported none). |
 
 The spawned command registers where its own build and environment say. A released `opencode` build
