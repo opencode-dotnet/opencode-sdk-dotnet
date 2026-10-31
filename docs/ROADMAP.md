@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-10-23
+Date: 2026-10-31
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -193,8 +193,7 @@ These do not block `1.0.0` and run beside the road.
   ([anomalyco/opencode#44911](https://github.com/anomalyco/opencode/issues/44911); the restoring
   [PR #45182](https://github.com/anomalyco/opencode/pull/45182) closed unmerged on 2026-09-26);
   further candidates are parked for filing at the maintainer's choosing
-  ([#212](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/212)) — off-convention `persistentPty.*` operation ids,
-  a missing security-scheme declaration, 25 lost `Config.Info` descriptions, an undeclared header
+  ([#212](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/212)) — a missing security-scheme declaration, 25 lost `Config.Info` descriptions, an undeclared header
   value, a numeric range and a file path both invisible behind bare strings, a WebSocket close code
   overloaded across two causes, and two declared arms the handler cannot produce. Findings stay
   diagnostic and never feed generation or curation (ADR-0013).

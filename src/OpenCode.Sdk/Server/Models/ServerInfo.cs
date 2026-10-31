@@ -21,6 +21,13 @@ public sealed record ServerInfo
     public required long Pid { get; init; }
 
     /// <summary>
+    /// Gets the hostname value.
+    /// </summary>
+    [JsonPropertyName("hostname")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Hostname { get; init; }
+
+    /// <summary>
     /// Gets the urls value.
     /// </summary>
     [JsonPropertyName("urls")]

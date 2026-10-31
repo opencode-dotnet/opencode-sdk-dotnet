@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk.Tests.Support;
 
-internal sealed class EventDiagnosticScenario : SessionClient
+internal sealed class EventDiagnosticScenario : ExperimentalClient
 {
     public Exception? Failure { get; init; }
 
@@ -17,8 +17,8 @@ internal sealed class EventDiagnosticScenario : SessionClient
 
     public TaskCompletionSource<bool> Stalled { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-    public override async IAsyncEnumerable<ISessionLogItem> ReadLogAsync(
-        SessionLogRequest? request = null, OpenCodeRequestOptions? requestOptions = null,
+    public override async IAsyncEnumerable<ISessionLogItem> ReadSessionLogAsync(
+        string sessionId, ExperimentalSessionLogRequest? request = null, OpenCodeRequestOptions? requestOptions = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         await Task.CompletedTask;

@@ -58,10 +58,13 @@ public sealed class OpenCodeServerEnsureOptions
 
     /// <summary>
     /// Gets or sets extra environment entries layered onto a spawned contender after the channel's
-    /// service-config map and before the handoff variable. An opencode 2.0.32 service re-applies its
-    /// saved service-config <c>env</c> when it starts, so a key set in both takes the saved value for
-    /// everything the service reads after startup.
+    /// service-config map and before the handoff variable.
     /// </summary>
+    /// <remarks>
+    /// The service re-applies its saved service-config <c>env</c> when it starts, so a key set in both
+    /// takes the saved value for everything the service reads after startup. The exception is
+    /// <c>XDG_STATE_HOME</c>, which the saved map never supplies: an entry here wins for it.
+    /// </remarks>
     public IReadOnlyDictionary<string, string>? Environment { get; set; }
 
     /// <summary>

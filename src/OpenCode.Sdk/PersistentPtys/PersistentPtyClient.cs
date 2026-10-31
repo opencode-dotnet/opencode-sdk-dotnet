@@ -46,7 +46,7 @@ public class PersistentPtyClient
     /// <exception cref="OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 503) and NoThrow was not selected.</exception>
     /// <exception cref="OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>persistentPty.get</c>: <c>GET /api/experimental/persistent-pty/{ptyID}</c>.
+    /// Operation <c>experimental.persistentPty.get</c>: <c>GET /api/experimental/persistent-pty/{ptyID}</c>.
     /// </remarks>
     public virtual Task<PersistentPtyResponse> GetAsync(
         OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
@@ -62,7 +62,7 @@ public class PersistentPtyClient
     /// <exception cref="OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 503) and NoThrow was not selected.</exception>
     /// <exception cref="OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>persistentPty.update</c>: <c>PUT /api/experimental/persistent-pty/{ptyID}</c>.
+    /// Operation <c>experimental.persistentPty.update</c>: <c>PUT /api/experimental/persistent-pty/{ptyID}</c>.
     /// </remarks>
     public virtual Task<PersistentPtyUpdateResponse> UpdateAsync(PersistentPtyUpdateRequest request,
         OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
@@ -77,7 +77,7 @@ public class PersistentPtyClient
     /// <exception cref="OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 503) and NoThrow was not selected.</exception>
     /// <exception cref="OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>persistentPty.remove</c>: <c>DELETE /api/experimental/persistent-pty/{ptyID}</c>.
+    /// Operation <c>experimental.persistentPty.remove</c>: <c>DELETE /api/experimental/persistent-pty/{ptyID}</c>.
     /// </remarks>
     public virtual Task<PersistentPtyRemoveResponse> RemoveAsync(
         OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
@@ -93,7 +93,7 @@ public class PersistentPtyClient
     /// <exception cref="OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 503) and NoThrow was not selected.</exception>
     /// <exception cref="OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>persistentPty.snapshot</c>: <c>GET /api/experimental/persistent-pty/{ptyID}/snapshot</c>.
+    /// Operation <c>experimental.persistentPty.snapshot</c>: <c>GET /api/experimental/persistent-pty/{ptyID}/snapshot</c>.
     /// </remarks>
     public virtual Task<PersistentPtySnapshotResponse> GetSnapshotAsync(
         OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
@@ -110,7 +110,7 @@ public class PersistentPtyClient
     /// <exception cref="OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404, 503) and NoThrow was not selected.</exception>
     /// <exception cref="OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>persistentPty.connectToken</c>: <c>POST /api/experimental/persistent-pty/{ptyID}/connect-token</c>.
+    /// Operation <c>experimental.persistentPty.connectToken</c>: <c>POST /api/experimental/persistent-pty/{ptyID}/connect-token</c>.
     /// </remarks>
     public virtual Task<PersistentPtyConnectTokenResponse> CreateConnectTokenAsync(
         OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
@@ -138,7 +138,7 @@ public class PersistentPtyClient
     /// <see cref="PlatformNotSupportedException"/>.
     /// </exception>
     /// <remarks>
-    /// Operation <c>persistentPty.connect</c>: <c>GET /api/experimental/persistent-pty/{ptyID}/connect</c>.
+    /// Operation <c>experimental.persistentPty.connect</c>: <c>GET /api/experimental/persistent-pty/{ptyID}/connect</c>.
     /// </remarks>
     public virtual async Task<PersistentPtySession> ConnectAsync(PersistentPtyConnectOptions? options = null,
         CancellationToken cancellationToken = default)

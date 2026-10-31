@@ -5,7 +5,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The body of &apos;persistentPty.create&apos; (POST /api/experimental/session/{sessionID}/terminal).
+/// The body of &apos;experimental.persistentPty.create&apos; (POST /api/experimental/session/{sessionID}/terminal).
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
 public sealed record PersistentPtyCreateRequest

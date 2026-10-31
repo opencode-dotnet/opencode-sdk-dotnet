@@ -11,12 +11,32 @@ Nightly builds of `master` are on
 
 ### 💥 Breaking changes
 
+- **The upstream pin moves to opencode v2.2.2.** The entries below are what the refresh changes in
+  the public surface; each follows a change upstream made between v2.1.4 and v2.2.2.
+- **The session log moves to `ExperimentalClient.ReadSessionLogAsync`.** Upstream serves it as
+  `experimental.session.log`, so `SessionClient.ReadLogAsync` is gone and `SessionLogRequest` is
+  `ExperimentalSessionLogRequest`, with the same `After` and `Follow`. Migrate
+  `client.Sessions.GetSessionClient(id).ReadLogAsync(new SessionLogRequest { … })` to
+  `client.Experimental.ReadSessionLogAsync(id, new ExperimentalSessionLogRequest { … })`. The
+  session-log types now carry `OPENCODE001`, the experimental client's diagnostic, and `OPENCODE003`
+  is retired: a suppression of `OPENCODE003` becomes one of `OPENCODE001`.
+- **`ExperimentalClient.SetVoiceSessionInstructionsAsync` is removed**, with
+  `ExperimentalVoiceInstructionsRequest` and `ExperimentalVoiceInstructionsResponse`: upstream
+  removed the operation.
+- **`EventsClient.SubscribeAsync` takes an optional `EventSubscribeRequest` first.** Its `Types`
+  limits the stream to the listed event types. A call that passed `requestOptions` by position
+  names it instead: `SubscribeAsync(requestOptions: options)`.
+- **Model variants have their own settings type.** `ModelVariant.Settings` is
+  `ModelVariantSettings?` and `ConfigModelVariants.Settings` is `ConfigModelVariantSettings?`, as
+  upstream separates a variant's settings from a model's.
+- **`VoiceModel.Integration`, `VoiceModel.Workspace` and `ExperimentalVoiceSessionData.Session`
+  are removed**, with `VoiceSessionReference`: upstream no longer declares them.
 - **Open enums are generated extensible enums, not `string`.** A string enum beside a free string,
   such as a reasoning field's known names, now binds a generated extensible enum that carries any
   other value too. `ModelCompatibility.ReasoningField` and `ProviderCompatibility.ReasoningField`
-  are `ModelReasoningField?`, `TuiCommandExecuteData.Command` is `TuiCommandExecuteDataCommand`,
-  `ConfigWebSearchInfo.Provider` is `ConfigWebSearchInfoProvider`, and
-  `SessionInstructionsUpdatedData.Delta`'s values are `SessionInstructionsUpdatedDataDelta`.
+  are `ModelReasoningField?`, `TuiCommandExecuteData.Command` is `TuiCommandName`,
+  `ConfigWebSearchInfo.Provider` is `WebSearchProviderChoice`, and
+  `SessionInstructionsUpdatedData.Delta`'s values are `SessionInstructionChange`.
   Migrate a comparison with `ModelReasoningField.ReasoningContent` (or the type's `Values` strings),
   and read the text with `ToString()`; nothing on the wire changes.
 - **`IMcp` is now `IMcpServerConfig`, and `UnknownMcp` is now `UnknownMcpServerConfig`.**
@@ -35,10 +55,20 @@ Nightly builds of `master` are on
 
 ### 🔧 Changes
 
+- **The operations upstream v2.2.2 adds.** `ExperimentalClient` gains `WatchFileAsync`,
+  `UnwatchFileAsync`, `GenerateDecisionsAsync`, `GenerateImagesAsync`, `GetMediaAsync`,
+  `GetUsageLimitsAsync`, and the schedule operations `CreateScheduleAsync`, `GetScheduleAsync`,
+  `ListSchedulesAsync`, `PauseScheduleAsync`, `ResumeScheduleAsync` and `DeleteScheduleAsync`;
+  `PluginsClient` gains `GetGuiAsync`. `event.subscribe` takes a `types` filter of `EventType`
+  values, and `model.list` takes a `types` filter. Upstream's legacy text generation endpoint is
+  left out, as both of upstream's own clients leave it out.
+  New members follow upstream too, among them `SessionInfoTime.Busy`, a `Cache` setting on models
+  and providers, `ConfigInfo.Timezone` and `VcsDiffRequest.Untracked`, and a local plugin's
+  `PluginSourceLocal.Path` is now the path it was configured with.
 - **Clearer IntelliSense documentation.** `EnumerateSessionsAsync` and `EnumerateMessagesAsync`
   link their page methods and carry those methods' summaries; `server.connected` renders as code in
   `SubscribeAsync`'s remarks.
-- **Known stream tags can now arrive as the unknown arm.** On `event.subscribe` and `session.log`,
+- **Known stream tags can now arrive as the unknown arm.** On `event.subscribe` and the session log,
   a frame whose normal decoding fails arrives as `UnknownEvent` or `UnknownSessionLogItem` when
   the existing carrier can preserve it; its neighbours continue on the same connection or request.
   Invalid JSON and carrier refusals keep their original failures.
@@ -103,6 +133,14 @@ Nightly builds of `master` are on
   saved or caller entry always replaced the host's value, so a saved `xdg_state_home` moved the
   registration away from clients looking under the host's root. A caller's `PATH` still replaces
   the host's `Path`.
+- **A saved `XDG_STATE_HOME` no longer moves a background service.** `EnsureAsync` used to pass the
+  channel's saved value to the service it spawned, which moved the registration away from every
+  client looking for it. A saved value is now ignored, as the CLI ignores it; a caller's own
+  `Environment` entry still applies.
+- **A persistent PTY's bad `Cwd` is now refused.** A given `Cwd` whose path doesn't exist or isn't a
+  directory used to start the terminal in the home directory. The server now answers 400 with an
+  `InvalidRequestError` whose `Kind` is `invalid_cwd`, and no terminal starts. The SDK's code didn't
+  change.
 
 ### 📚 Documentation
 

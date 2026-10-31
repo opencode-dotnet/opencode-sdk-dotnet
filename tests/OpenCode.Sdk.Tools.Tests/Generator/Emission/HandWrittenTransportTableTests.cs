@@ -31,6 +31,8 @@ public sealed class HandWrittenTransportTableTests(PinnedBinding pinnedBinding)
         await Assert.That(ids).IsEquivalentTo(
         [
             "event.subscribe",
+            "experimental.generate.decisions",
+            "experimental.generate.image",
             "experimental.generate.text",
             "experimental.session.wait",
             "session.command",

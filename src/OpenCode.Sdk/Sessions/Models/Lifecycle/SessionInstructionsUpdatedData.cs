@@ -18,7 +18,7 @@ public sealed record SessionInstructionsUpdatedData
     /// Gets the delta value.
     /// </summary>
     [JsonPropertyName("delta")]
-    public required IReadOnlyDictionary<string, SessionInstructionsUpdatedDataDelta> Delta { get; init; }
+    public required IReadOnlyDictionary<string, SessionInstructionChange> Delta { get; init; }
 
     /// <summary>
     /// Gets the text value.

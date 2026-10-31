@@ -21,7 +21,7 @@ public sealed class ExperimentalGenerationClientContractTests
         await Assert.That(response.GenerateText.Text).IsEqualTo("hello");
         var request = scenario.Requests.Single();
         await Assert.That(request.Method).IsEqualTo(HttpMethod.Post);
-        await Assert.That(request.RequestUri).IsEqualTo(new Uri("http://localhost:4096/api/experimental/generate"));
+        await Assert.That(request.RequestUri).IsEqualTo(new Uri("http://localhost:4096/api/experimental/generate/text"));
         await Assert.That(request.Body).IsEqualTo("{\"prompt\":\"say hello\"}");
     }
 }

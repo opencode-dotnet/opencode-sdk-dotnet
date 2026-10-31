@@ -104,7 +104,25 @@ public class ExperimentalClient
     }
 
     /// <summary>
-    /// Create voice session. Create a server-brokered voice session using the server&apos;s configured provider credentials, or the connected OpenCode Console when it hosts the model, and return the WebRTC SDP answer or WebSocket ephemeral token.
+    /// Create schedule. Schedule a prompt that wakes the Session once after a delay, at a time, every interval, or on a cron. Experimental: needs experimental.schedules in the Session&apos;s config and may change without notice.
+    /// </summary>
+    /// <param name = "request">The request body.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalScheduleCreateResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.schedule.create</c>: <c>POST /api/experimental/schedule</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalScheduleCreateResponse> CreateScheduleAsync(ExperimentalScheduleCreateRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Pipeline.ExecuteAsync("experimental.schedule.create", HttpMethod.Post, OpenCodeRoutes.Experimental.CreateSchedule, request, OpenCodeJsonContext.Default.ExperimentalScheduleCreateRequest, ExperimentalScheduleCreateResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Create voice session. Create a server-brokered voice session using the server&apos;s configured provider credentials and return the WebRTC SDP answer or WebSocket ephemeral token.
     /// </summary>
     /// <param name = "request">The request body.</param>
     /// <param name = "requestOptions">The per-call options.</param>
@@ -119,6 +137,24 @@ public class ExperimentalClient
     {
         ArgumentNullException.ThrowIfNull(request);
         return Pipeline.ExecuteAsync("experimental.voice.session", HttpMethod.Post, OpenCodeRoutes.Experimental.CreateVoiceSession, request, OpenCodeJsonContext.Default.ExperimentalVoiceSessionRequest, ExperimentalVoiceSessionResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Delete schedule. Delete a schedule. Experimental: needs experimental.schedules in the Session&apos;s config and may change without notice.
+    /// </summary>
+    /// <param name = "scheduleId">The &apos;scheduleID&apos; route value.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalScheduleDeleteResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.schedule.delete</c>: <c>DELETE /api/experimental/schedule/{scheduleID}</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalScheduleDeleteResponse> DeleteScheduleAsync(string scheduleId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(scheduleId);
+        return Pipeline.ExecuteAsync("experimental.schedule.delete", HttpMethod.Delete, OpenCodeRoutes.Experimental.DeleteSchedule(scheduleId), ExperimentalScheduleDeleteResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -141,21 +177,75 @@ public class ExperimentalClient
     }
 
     /// <summary>
+    /// Generate decisions. Ask a decision model typed predicate, choice and score questions about the input and return one probability-bearing answer per question, in question order. Stateless: nothing is stored.
+    /// </summary>
+    /// <param name = "request">The request body.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalGenerateDecisionsResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 422, 502, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.generate.decisions</c>: <c>POST /api/experimental/generate/decisions</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalGenerateDecisionsResponse> GenerateDecisionsAsync(ExperimentalGenerateDecisionsRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Pipeline.ExecuteAsync("experimental.generate.decisions", HttpMethod.Post, OpenCodeRoutes.Experimental.GenerateDecisions, request, OpenCodeJsonContext.Default.ExperimentalGenerateDecisionsRequest, ExperimentalGenerateDecisionsResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Generate images. Generate or edit images with an image model using the server&apos;s base configuration and return them as base64. Stateless: nothing is stored.
+    /// </summary>
+    /// <param name = "request">The request body.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalGenerateImageResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 422, 502, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.generate.image</c>: <c>POST /api/experimental/generate/image</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalGenerateImageResponse> GenerateImagesAsync(ExperimentalGenerateImageRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Pipeline.ExecuteAsync("experimental.generate.image", HttpMethod.Post, OpenCodeRoutes.Experimental.GenerateImages, request, OpenCodeJsonContext.Default.ExperimentalGenerateImageRequest, ExperimentalGenerateImageResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
     /// Generate text. Run one stateless model generation using the server&apos;s base configuration and return the assistant text. Uses the base configuration&apos;s default model when none is specified.
     /// </summary>
     /// <param name = "request">The request body.</param>
     /// <param name = "requestOptions">The per-call options.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;ExperimentalGenerateTextResponse&apos; envelope.</returns>
-    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 422, 502, 503) and NoThrow was not selected.</exception>
     /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>experimental.generate.text</c>: <c>POST /api/experimental/generate</c>.
+    /// Operation <c>experimental.generate.text</c>: <c>POST /api/experimental/generate/text</c>.
     /// </remarks>
     public virtual Task<ExperimentalGenerateTextResponse> GenerateTextAsync(ExperimentalGenerateTextRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
         return Pipeline.ExecuteAsync("experimental.generate.text", HttpMethod.Post, OpenCodeRoutes.Experimental.GenerateText, request, OpenCodeJsonContext.Default.ExperimentalGenerateTextRequest, ExperimentalGenerateTextResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Read media blob. Read a content-addressed media blob by SHA-256 hash with immutable Cache-Control, ETag, and 304 Not Modified support. Only blobs a stored message or inbox item still references are served. Experimental: may change without compatibility guarantees.
+    /// </summary>
+    /// <param name = "hash">The &apos;hash&apos; route value.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalMediaResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.media.get</c>: <c>GET /api/experimental/media/{hash}</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalMediaResponse> GetMediaAsync(string hash, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(hash);
+        return Pipeline.ExecuteAsync("experimental.media.get", HttpMethod.Get, OpenCodeRoutes.Experimental.GetMedia(hash), ExperimentalMediaResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -172,6 +262,24 @@ public class ExperimentalClient
     public virtual Task<ExperimentalMigrationV1StatusResponse> GetMigrationV1StatusAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         return Pipeline.ExecuteAsync("experimental.migration.v1.status", HttpMethod.Get, OpenCodeRoutes.Experimental.GetMigrationV1Status, ExperimentalMigrationV1StatusResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Get schedule. Read one schedule. Experimental: needs experimental.schedules in the Session&apos;s config and may change without notice.
+    /// </summary>
+    /// <param name = "scheduleId">The &apos;scheduleID&apos; route value.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalScheduleResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.schedule.get</c>: <c>GET /api/experimental/schedule/{scheduleID}</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalScheduleResponse> GetScheduleAsync(string scheduleId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(scheduleId);
+        return Pipeline.ExecuteAsync("experimental.schedule.get", HttpMethod.Get, OpenCodeRoutes.Experimental.GetSchedule(scheduleId), ExperimentalScheduleResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -211,6 +319,23 @@ public class ExperimentalClient
     }
 
     /// <summary>
+    /// Get usage limits. Return the OpenCode Go allowance and Console budgets of the OpenCode Console workspace the location is signed in to, or null when it isn&apos;t signed in.
+    /// </summary>
+    /// <param name = "request">The request shaping the query.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalUsageLimitsResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.usage.limits</c>: <c>GET /api/experimental/usage/limits</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalUsageLimitsResponse> GetUsageLimitsAsync(ExperimentalUsageLimitsRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        return Pipeline.ExecuteAsync("experimental.usage.limits", HttpMethod.Get, OpenCodeRoutes.Experimental.GetUsageLimits(request), ExperimentalUsageLimitsResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
     /// Import session. Import a projected session transcript at the requested location. Accepts transcripts exported by earlier releases. If parentID is supplied, the parent session must already exist; import parents before children.
     /// </summary>
     /// <param name = "request">The request body.</param>
@@ -226,6 +351,24 @@ public class ExperimentalClient
     {
         ArgumentNullException.ThrowIfNull(request);
         return Pipeline.ExecuteAsync("experimental.session.import", HttpMethod.Post, OpenCodeRoutes.Experimental.ImportSession, request, OpenCodeJsonContext.Default.ExperimentalSessionImportRequest, ExperimentalSessionImportResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// List schedules. List a Session&apos;s schedules, oldest first. Experimental: needs experimental.schedules in the Session&apos;s config and may change without notice.
+    /// </summary>
+    /// <param name = "request">The request shaping the query; its required members have no server default.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalScheduleListResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.schedule.list</c>: <c>GET /api/experimental/schedule</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalScheduleListResponse> ListSchedulesAsync(ExperimentalScheduleListRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Pipeline.ExecuteAsync("experimental.schedule.list", HttpMethod.Get, OpenCodeRoutes.Experimental.ListSchedules(request), ExperimentalScheduleListResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -247,7 +390,7 @@ public class ExperimentalClient
     }
 
     /// <summary>
-    /// List voice models. List supported voice models, their transports, whether the server has a usable API key for each provider or the connected OpenCode Console hosts the model, and the Console workspace a hosted model bills to.
+    /// List voice models. List supported voice models, their transports, and whether the server has a usable API key for each provider.
     /// </summary>
     /// <param name = "requestOptions">The per-call options.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
@@ -260,6 +403,44 @@ public class ExperimentalClient
     public virtual Task<ExperimentalVoiceModelsResponse> ListVoiceModelsAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
         return Pipeline.ExecuteAsync("experimental.voice.models", HttpMethod.Get, OpenCodeRoutes.Experimental.ListVoiceModels, ExperimentalVoiceModelsResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Pause schedule. Stop a schedule from firing until it is resumed. Experimental: needs experimental.schedules in the Session&apos;s config and may change without notice.
+    /// </summary>
+    /// <param name = "scheduleId">The &apos;scheduleID&apos; route value.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalSchedulePauseResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.schedule.pause</c>: <c>POST /api/experimental/schedule/{scheduleID}/pause</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalSchedulePauseResponse> PauseScheduleAsync(string scheduleId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(scheduleId);
+        return Pipeline.ExecuteAsync("experimental.schedule.pause", HttpMethod.Post, OpenCodeRoutes.Experimental.PauseSchedule(scheduleId), ExperimentalSchedulePauseResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Read the session log. Experimental durable session event log. Reads events after an exclusive aggregate sequence and continues with live events when follow=true.
+    /// </summary>
+    /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>
+    /// <param name = "request">The request shaping the query.</param>
+    /// <param name = "requestOptions">The per-call options; NoThrow is refused. NetworkTimeout bounds only the opening and is refused for reconnecting streams, including Timeout.InfiniteTimeSpan.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ISessionLogItem&apos; stream.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned a declared error status (declared: 400, 401, 404); streaming API errors always throw.</exception>
+    /// <exception cref = "OpenCodeStreamFailureException">The opened stream reported a schema-valid failure with a typed cause.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached, the stream could not be read, or a frame or failure cause was malformed.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.session.log</c>: <c>GET /api/experimental/session/{sessionID}/log</c>.
+    /// </remarks>
+    public virtual IAsyncEnumerable<ISessionLogItem> ReadSessionLogAsync(string sessionId, ExperimentalSessionLogRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(sessionId);
+        return Pipeline.ExecuteStreamAsync("experimental.session.log", HttpMethod.Get, OpenCodeRoutes.Experimental.ReadSessionLog(sessionId, request), ExperimentalSessionLogResponseStreamAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -302,6 +483,24 @@ public class ExperimentalClient
     }
 
     /// <summary>
+    /// Resume schedule. Resume a paused schedule. A one-shot that fell due while paused fires once; a repeating schedule resumes at its next slot. Experimental: needs experimental.schedules in the Session&apos;s config and may change without notice.
+    /// </summary>
+    /// <param name = "scheduleId">The &apos;scheduleID&apos; route value.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalScheduleResumeResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 403, 404) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.schedule.resume</c>: <c>POST /api/experimental/schedule/{scheduleID}/resume</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalScheduleResumeResponse> ResumeScheduleAsync(string scheduleId, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(scheduleId);
+        return Pipeline.ExecuteAsync("experimental.schedule.resume", HttpMethod.Post, OpenCodeRoutes.Experimental.ResumeSchedule(scheduleId), ExperimentalScheduleResumeResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
     /// Put instruction entry. Attach or replace one durable instruction entry. Changes announce as updates at the next step boundary.
     /// </summary>
     /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>
@@ -324,23 +523,21 @@ public class ExperimentalClient
     }
 
     /// <summary>
-    /// Replace voice session instructions. Replace the backend instructions of a running session the connected OpenCode Console hosts, whose data channel can&apos;t change them.
+    /// Unwatch file. Stop watching one file relative to the requested location. Experimental: may change without compatibility guarantees.
     /// </summary>
-    /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>
     /// <param name = "request">The request body.</param>
     /// <param name = "requestOptions">The per-call options.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
-    /// <returns>The &apos;ExperimentalVoiceInstructionsResponse&apos; envelope.</returns>
-    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 503) and NoThrow was not selected.</exception>
+    /// <returns>The &apos;ExperimentalFsUnwatchResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404) and NoThrow was not selected.</exception>
     /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>experimental.voice.instructions</c>: <c>POST /api/experimental/voice/session/{sessionID}/instructions</c>.
+    /// Operation <c>experimental.fs.unwatch</c>: <c>DELETE /api/experimental/fs/watch</c>.
     /// </remarks>
-    public virtual Task<ExperimentalVoiceInstructionsResponse> SetVoiceSessionInstructionsAsync(string sessionId, ExperimentalVoiceInstructionsRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    public virtual Task<ExperimentalFsUnwatchResponse> UnwatchFileAsync(ExperimentalFsUnwatchRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrEmpty(sessionId);
         ArgumentNullException.ThrowIfNull(request);
-        return Pipeline.ExecuteAsync("experimental.voice.instructions", HttpMethod.Post, OpenCodeRoutes.Experimental.SetVoiceSessionInstructions(sessionId), request, OpenCodeJsonContext.Default.ExperimentalVoiceInstructionsRequest, ExperimentalVoiceInstructionsResponseAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteAsync("experimental.fs.unwatch", HttpMethod.Delete, OpenCodeRoutes.Experimental.UnwatchFile(request), request, OpenCodeJsonContext.Default.ExperimentalFsUnwatchRequest, ExperimentalFsUnwatchResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>
@@ -377,6 +574,24 @@ public class ExperimentalClient
     {
         ArgumentException.ThrowIfNullOrEmpty(sessionId);
         return Pipeline.ExecuteAsync("experimental.session.wait", HttpMethod.Post, OpenCodeRoutes.Experimental.WaitForSession(sessionId), ExperimentalSessionWaitResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
+    /// Watch file. Watch one file relative to the requested location for 24 hours, publishing filesystem.changed on that location when it changes. Watching an already watched file resets its expiry. Paths follow read confinement. Experimental: may change without compatibility guarantees.
+    /// </summary>
+    /// <param name = "request">The request body.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;ExperimentalFsWatchResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>experimental.fs.watch</c>: <c>POST /api/experimental/fs/watch</c>.
+    /// </remarks>
+    public virtual Task<ExperimentalFsWatchResponse> WatchFileAsync(ExperimentalFsWatchRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Pipeline.ExecuteAsync("experimental.fs.watch", HttpMethod.Post, OpenCodeRoutes.Experimental.WatchFile(request), request, OpenCodeJsonContext.Default.ExperimentalFsWatchRequest, ExperimentalFsWatchResponseAdapter.Instance, requestOptions, cancellationToken);
     }
 
     /// <summary>

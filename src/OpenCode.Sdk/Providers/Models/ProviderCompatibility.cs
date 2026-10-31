@@ -63,4 +63,11 @@ public sealed record ProviderCompatibility
     [JsonPropertyName("cacheFormat")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public ModelCacheFormat? CacheFormat { get; init; }
+
+    /// <summary>
+    /// Gets the media input value.
+    /// </summary>
+    [JsonPropertyName("mediaInput")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ModelMediaInput? MediaInput { get; init; }
 }

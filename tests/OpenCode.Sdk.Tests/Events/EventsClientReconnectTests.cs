@@ -24,7 +24,7 @@ public sealed class EventsClientReconnectTests
     public async Task Per_Call_Location_Should_Be_Sent_On_Every_Reconnect_Attempt(string entry)
     {
         var time = new ManualTimeProvider();
-        using var handler = new RecordingHttpHandler(static _ => ScriptedEventServer.StreamOf(ConnectedFrame, ends: true));
+        using var handler = CreateReconnectHandler();
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient, location: new LocationSelector { Directory = "/ambient" }, time: time);
         var stream = Subscribe(entry, pipeline, new OpenCodeRequestOptions { Location = new LocationSelector { Directory = "/override/ç" } });

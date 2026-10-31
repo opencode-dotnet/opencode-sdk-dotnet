@@ -1,6 +1,6 @@
 # 📝 Requests
 
-Date: 2026-10-24
+Date: 2026-10-31
 
 Every operation that sends anything takes one request record. They are plain immutable records you
 fill with an object initializer — with one twist worth knowing before you write your first `PATCH`:
@@ -254,7 +254,7 @@ Both members take a value above zero and at most `int.MaxValue` milliseconds, or
 
 Most generated members say no more than "Gets the action value", because the pinned API document
 describes no more. Some members need more than their types to use correctly. Where a rule below
-comes from upstream's implementation at the pin (`v2.1.4`) rather than from the pinned contract,
+comes from upstream's implementation at the pin (`v2.2.2`) rather than from the pinned contract,
 it says so.
 
 ### Session permissions
@@ -302,7 +302,10 @@ if (asked.Permission.Effect == PermissionEffect.Ask)
 How the server evaluates, as upstream implements it at the pin:
 
 - `Action` and `Resource` are wildcard patterns — `*` matches any run of characters, `?` one
-  character — and the **last** matching rule wins. When no rule matches, the effect is `Ask`.
+  character — and the **last** matching rule wins. When no rule matches, the rule evaluator yields
+  `Ask`; saved grants and permission hooks can still change the final effect, and for unattended
+  work an otherwise-`Ask` result is allowed only when the unattended rules allow every resource,
+  and denied otherwise.
 - The session's rules come after its agent's rules, so a session rule overrides an agent rule for
   the same match. A `Deny` from those rules wins over any saved grant.
 - Replying `Always` to a request created with `Save` stores a standing grant for the `Save`
@@ -311,8 +314,9 @@ How the server evaluates, as upstream implements it at the pin:
 
 ### Worktree paths
 
-`WorktreeCreateRequest.Directory` is the **parent** directory and `Name` the child: the worktree is
-created at their join, and the response's `Worktree.Directory` reports the path. `ProjectId` comes
+`WorktreeCreateRequest.Directory` is the **parent** directory and `Name` the child: the server
+joins them to choose the destination, and the response's `Worktree.Directory` reports the canonical
+directory the project's worktree strategy created. `ProjectId` comes
 from resolving a location:
 
 ```csharp
@@ -334,7 +338,7 @@ Console.WriteLine(created.Worktree.Directory); // /work/trees/feature-x
 Upstream fills the gaps itself at the pin: an unset `Directory` uses the project's configured
 worktree directory, or else a folder under the server's data directory; an unset `Name` gets a
 generated name; and when the path already exists, the server tries the name with `-2` through
-`-10` appended before it refuses with 400 "Worktree destination already exists". Removing a
+`-10` appended before it refuses with 400 "Worktree destination already exists: <path>". Removing a
 worktree has its own pitfalls — see
 [when a worktree remove is refused](errors-and-responses.md#when-a-worktree-remove-is-refused).
 
@@ -356,7 +360,8 @@ members are also epoch milliseconds as upstream's writers produce them at the pi
 
 `VoiceWebSocketTransport.ExpiresAt` is provider-specific in upstream's implementation at the pin
 (for Gemini it is seconds).
-`PersistentPtyHandoff.ExpiresAt`'s unit is not established.
+`PersistentPtyHandoff.ExpiresAt` is milliseconds since the Unix epoch, as upstream's daemon writes
+it at the pin.
 
 ### Shell timeout
 

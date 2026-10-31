@@ -5,16 +5,18 @@ namespace OpenCode.Sdk.Tests.Sessions.Support;
 
 public sealed class SessionLogTranscriptTests
 {
+    private const string SessionId = "ses_owned";
+
     [Test]
     public async Task ReadToEndAsync_Should_Preserve_The_Failure_With_Bounded_Observations()
     {
         var failure = new InvalidOperationException("log enumeration failed");
-        var transcript = new SessionLogTranscript(new EventDiagnosticScenario { Failure = failure });
+        var transcript = new SessionLogTranscript(new EventDiagnosticScenario { Failure = failure }, SessionId);
 
         var thrown = await Assert.That(async () =>
         {
             _ = await transcript.ReadToEndAsync(
-                new SessionLogRequest { Follow = false }, CancellationToken.None);
+                new ExperimentalSessionLogRequest { Follow = false }, CancellationToken.None);
         })
             .Throws<InvalidOperationException>();
 
@@ -30,10 +32,10 @@ public sealed class SessionLogTranscriptTests
     [Test]
     public async Task ReadToEndAsync_Should_Preserve_The_Complete_Successful_Transcript()
     {
-        var transcript = new SessionLogTranscript(new EventDiagnosticScenario());
+        var transcript = new SessionLogTranscript(new EventDiagnosticScenario(), SessionId);
 
         var items = await transcript.ReadToEndAsync(
-            new SessionLogRequest { Follow = false }, CancellationToken.None);
+            new ExperimentalSessionLogRequest { Follow = false }, CancellationToken.None);
 
         await Assert.That(items).Count().IsEqualTo(100);
         await Assert.That(items).All().Satisfy(item => item.Type.Length, value => value.IsGreaterThan(4000));
@@ -43,11 +45,11 @@ public sealed class SessionLogTranscriptTests
     [Test]
     public async Task ReadTurnAsync_Should_Bound_Follow_Diagnostics_Without_Truncating_Observed_Items()
     {
-        var transcript = new SessionLogTranscript(new EventDiagnosticScenario { IncludeMarker = true });
+        var transcript = new SessionLogTranscript(new EventDiagnosticScenario { IncludeMarker = true }, SessionId);
         try
         {
             await transcript.AttachAsync(1, CancellationToken.None);
-            var thrown = await Assert.That(() => transcript.ReadTurnAsync("ses_owned", "reply"))
+            var thrown = await Assert.That(() => transcript.ReadTurnAsync(SessionId, "reply"))
                 .Throws<InvalidOperationException>();
 
             await Assert.That(thrown!.Message.Length).IsLessThan(2000);

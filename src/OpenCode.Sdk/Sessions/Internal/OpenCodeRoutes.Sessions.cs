@@ -522,32 +522,6 @@ internal static partial class OpenCodeRoutes
         }
 
         /// <summary>
-        /// Builds the &apos;/api/experimental/session/{sessionID}/log&apos; route.
-        /// </summary>
-        /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>
-        /// <param name = "request">The request shaping the query.</param>
-        /// <returns>The escaped route.</returns>
-        public static string ReadLog(string sessionId, SessionLogRequest? request = null)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
-            if (sessionId is "." or "..")
-            {
-                throw new ArgumentException("Route values must not be dot segments.", nameof(sessionId));
-            }
-
-            var path = "/api/experimental/session/" + RouteValuePolicy.Escape(sessionId, nameof(sessionId)) + "/log";
-            if (request is null)
-            {
-                return path;
-            }
-
-            var query = new QueryStringBuilder();
-            query.AddInteger("after", request.After);
-            query.AddBoolean("follow", request.Follow);
-            return path + query.Value;
-        }
-
-        /// <summary>
         /// Builds the &apos;/api/session/{sessionID}&apos; route.
         /// </summary>
         /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>

@@ -39,8 +39,8 @@ public sealed class ExperimentalDiagnosticCurationTests(PinnedBinding pinned)
 
         await Assert.That(plan.Unions.Single(static union => union.Name == "ISessionLogItem").ExperimentalDiagnostic).IsNull();
         await Assert.That(plan.HoistedInterfaces.Single(static value => value.Name == "IDurableEnvelope").ExperimentalDiagnostic).IsNull();
-        await Assert.That(plan.Clients.SelectMany(static client => client.Operations).Single(static operation => operation.OperationId == "session.log")
-            .ExperimentalDiagnostic).IsEqualTo("OPENCODE003");
+        await Assert.That(plan.Clients.SelectMany(static client => client.Operations).Single(static operation => operation.OperationId == "experimental.session.log")
+            .ExperimentalDiagnostic).IsEqualTo("OPENCODE001");
     }
 
     [Test]

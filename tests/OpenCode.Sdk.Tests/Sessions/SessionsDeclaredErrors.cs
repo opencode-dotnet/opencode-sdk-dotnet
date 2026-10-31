@@ -355,7 +355,7 @@ public static class SessionsDeclaredErrors
             WireBodyData.SessionNotFoundError,
             "SessionNotFoundError",
             typeof(SessionNotFoundError),
-            "#/paths/~1api~1experimental~1session~1{sessionID}~1instructions~1entries/get/responses/404/content/application~1json/schema/anyOf/0"),
+            "#/paths/~1api~1experimental~1session~1{sessionID}~1instructions~1entries/get/responses/404/content/application~1json/schema"),
         static () => new(
             "experimental.session.instructions.entry.list:401:UnauthorizedError",
             ListSessionInstructionsEntriesSes100Door,

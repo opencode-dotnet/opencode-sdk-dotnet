@@ -823,7 +823,7 @@ public sealed class OpenCodeJsonContextTests
     [Test]
     public async Task Delta_Should_Retain_The_Required_Caller_Owned_Collection_Reference()
     {
-        var delta = new Dictionary<string, SessionInstructionsUpdatedDataDelta>(StringComparer.Ordinal)
+        var delta = new Dictionary<string, SessionInstructionChange>(StringComparer.Ordinal)
         {
             ["original"] = "one",
         };

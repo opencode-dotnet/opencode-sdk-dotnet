@@ -1,7 +1,7 @@
 Generation is complete at the declared coverage; packages may be published.
-Selected operations: 145
+Selected operations: 157
 Pending operations: 0
-Declined operations: 2
+Declined operations: 3
 Transport-owned operations: 2
 Selected:
 - agent.get
@@ -19,23 +19,45 @@ Selected:
 - debug.location.list
 - event.subscribe
 - experimental.config.update
+- experimental.fs.unwatch
+- experimental.fs.watch
 - experimental.fs.write
+- experimental.generate.decisions
+- experimental.generate.image
 - experimental.generate.text
 - experimental.integration.wellknown.add
 - experimental.mcp.add
 - experimental.mcp.connect
 - experimental.mcp.disconnect
 - experimental.mcp.remove
+- experimental.media.get
 - experimental.migration.v1.status
+- experimental.persistentPty.connectToken
+- experimental.persistentPty.create
+- experimental.persistentPty.get
+- experimental.persistentPty.handoff
+- experimental.persistentPty.list
+- experimental.persistentPty.read
+- experimental.persistentPty.remove
+- experimental.persistentPty.shutdown
+- experimental.persistentPty.snapshot
+- experimental.persistentPty.update
+- experimental.schedule.create
+- experimental.schedule.delete
+- experimental.schedule.get
+- experimental.schedule.list
+- experimental.schedule.pause
+- experimental.schedule.resume
 - experimental.session.export
 - experimental.session.import
 - experimental.session.instructions.entry.list
 - experimental.session.instructions.entry.put
 - experimental.session.instructions.entry.remove
+- experimental.session.log
 - experimental.session.skill
 - experimental.session.stats
 - experimental.session.wait
-- experimental.voice.instructions
+- experimental.usage.limits
 - experimental.voice.models
 - experimental.voice.session
 - form.list
@@ -63,17 +85,8 @@ Selected:
 - permission.saved.list
 - permission.saved.remove
 - permission.saved.update
-- persistentPty.connectToken
-- persistentPty.create
-- persistentPty.get
-- persistentPty.handoff
-- persistentPty.list
-- persistentPty.read
-- persistentPty.remove
-- persistentPty.shutdown
-- persistentPty.snapshot
-- persistentPty.update
 - plugin.check
+- plugin.gui
 - plugin.list
 - plugin.update
 - project.list
@@ -112,7 +125,6 @@ Selected:
 - session.inbox.update
 - session.interrupt
 - session.list
-- session.log
 - session.message.get
 - session.message.list
 - session.move
@@ -151,8 +163,9 @@ Selected:
 - worktree.remove
 Pending:
 Declined:
+- experimental.generate.textLegacy [declined: Both of upstream's first-party clients omit the legacy text generation endpoint, and the maintainer decided on 2026-10-31 that the SDK follows them.] [omitted upstream as generate.textLegacy] [bindable]
 - experimental.mcp.client [declined: Deferred to a hand-written door in 1.1 (#529): the WebSocket attach needs a client-hosted MCP runtime channel.] [refused: WebSocket operations are not supported]
 - experimental.mcp.client.token [declined: Deferred to a hand-written door in 1.1 (#529): the x-opencode-ticket header has no runtime channel for the client MCP attach.] [refused: header parameter 'x-opencode-ticket' has no runtime channel]
 Transport-owned:
-- persistentPty.connect [fingerprint-pinned]
+- experimental.persistentPty.connect [fingerprint-pinned]
 - pty.connect [fingerprint-pinned]

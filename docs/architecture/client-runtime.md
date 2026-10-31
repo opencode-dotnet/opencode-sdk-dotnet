@@ -337,7 +337,8 @@ resolves the message's network window from those carried traits.
   when set; otherwise an ordinary operation takes `OpenCodeClientOptions.NetworkTimeout`, or 100 s,
   the .NET convention. The operations that answer only when work ends —
   `experimental.session.wait`, `session.shell`, `session.command`, `session.generate`,
-  `experimental.generate.text` — run with no window
+  `experimental.generate.text`, `experimental.generate.image`,
+  `experimental.generate.decisions` — run with no window
   unless the call sets one, so the caller's token is their deadline, as upstream's client bounds
   them; a client-wide value does not reach them. A hand-written table keyed by operation id names
   them; a Tools test holds its ids to the pinned document, and the source watch pins the upstream
@@ -425,7 +426,7 @@ resolves the message's network window from those carried traits.
   - `OpenCodeClientOptions.NetworkTimeout` does not reach `event.subscribe`, and a non-null per-call
     `NetworkTimeout` is refused, including `Timeout.InfiniteTimeSpan`. The 2 s connect bound and the
     1 s delay are fixed, as in upstream; per-call `Location` is sent on every reconnect attempt.
-- Durable continuation is requested explicitly through `session.log`'s `after` parameter, an
+- Durable continuation is requested explicitly through `experimental.session.log`'s `after` parameter, an
   exclusive aggregate sequence read from a durable envelope or from the sync marker. One
   `log.synced` marker reports the watermark the replay was captured at; it is a boundary rather
   than a durable event, and under `follow` the events committed while that replay was in flight
@@ -453,7 +454,7 @@ resolves the message's network window from those carried traits.
   governed by ADR-0009 and are not confused with unknown frame names. A known tag whose schema is
   impossible is a protocol failure, not an unknown variant (ADR-0015). A stream payload union that
   reaches one is refused at generation, so the tolerance below never reaches it (ADR-0038).
-- On `event.subscribe` and `session.log`, a payload whose normal materialization throws
+- On `event.subscribe` and `experimental.session.log`, a payload whose normal materialization throws
   `JsonException` arrives as its union's existing unknown arm when that arm's converter can hold
   the same frame; the connection or request continues (ADR-0038). Invalid JSON and refused carriers
   keep the malformed-payload transport failure with the original decode exception as inner. A null
@@ -778,6 +779,7 @@ The launcher's recorded divergences from upstream on Linux and macOS (ADR-0031, 
 | Signal end | Fails `exited` with `KilledBySignal`, carrying the signal's name | Completes `Exited` with the signal as a value: its name and its number | A task that never faults is the idiomatic form, and the number is a superset. |
 | Stderr | Discards it | Drains it into a bounded tail for startup diagnostics, and honours `OPENCODE_PRINT_LOGS=1` by handing over the host's stderr | A superset of upstream's behaviour. |
 | Signals to the owner | Closes the scope on `SIGINT` and `SIGTERM` | Installs no process-wide signal handler | A library does not take over its host's signal handling; the host ends the server through `DisposeAsync`. |
+| Children at exit | A synchronous exit hook sends `SIGKILL` to the group of every detached child still running | Installs no process-exit hook | The hook covers a process's own detached children, so the server applies it to the tool processes it spawns. The SDK's only child, the server, ends through the job on Windows and the stdin lease elsewhere, and a managed exit hook would not run on a crash or a `SIGKILL`. |
 | Waiting for the group | Waits for the root's own output pipes to close | Waits for the root's exit, then probes the group until it is empty | No dependency on who holds the pipes. Three consequences at the edges: a same-group member that ignores `SIGTERM` but holds none of the root's pipes is ended by `SIGKILL`, where upstream leaves it running; a detached descendant that holds the root's stdout does not delay the close beyond a collector's one-second drain, where upstream waits the full grace and then sends `SIGKILL` to the group; a root that exits with code 0 while its stdout is still open leaves the group untouched, where upstream sends `SIGTERM` to it within its one-second output deadline. |
 
 The launcher's recorded divergences from upstream on Windows (ADR-0031, ADR-0032):

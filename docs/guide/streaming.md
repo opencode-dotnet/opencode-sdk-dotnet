@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-10-25
+Date: 2026-10-31
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **global event bus** for everything happening in the server
@@ -412,18 +412,19 @@ guarantees below has the whole story.
 
 ## 📜 A single session's log
 
-`SessionClient.ReadLogAsync(SessionLogRequest?, OpenCodeRequestOptions?, CancellationToken)` yields `ISessionLogItem` for one
-session. Upstream serves it as an experimental route, so it needs an
-[opt-in](experimental.md#opencode003) (`OPENCODE003`).
+`ExperimentalClient.ReadSessionLogAsync(string, ExperimentalSessionLogRequest?, OpenCodeRequestOptions?, CancellationToken)`
+yields `ISessionLogItem` for one session, named by its id. Upstream serves it as an experimental
+route, so it needs an [opt-in](experimental.md#opencode001) (`OPENCODE001`).
 
 ```csharp
 using System.Text.Json;
 ```
 
 ```csharp
-var session = client.Sessions.GetSessionClient(sessionId);
-
-await foreach (var item in session.ReadLogAsync(new SessionLogRequest { Follow = true }, cancellationToken: cancellationToken))
+await foreach (var item in client.Experimental.ReadSessionLogAsync(
+    sessionId,
+    new ExperimentalSessionLogRequest { Follow = true },
+    cancellationToken: cancellationToken))
 {
     if (item.Type is "log.synced")
     {
@@ -467,7 +468,7 @@ and materialize no typed member. An unrecognized `type` arrives as `UnknownSessi
 `SessionCreated.Durable` is a `SessionCreatedDurable` — so only the interface route needs the
 `?.`.
 
-`SessionLogRequest` has two members and both matter:
+`ExperimentalSessionLogRequest` has two members and both matter:
 
 | Member | Type | Meaning |
 |---|---|---|
@@ -479,9 +480,9 @@ you processed — through the union interface, so the recipe works for every dur
 than one leaf type — and pass it back as it is:
 
 ```csharp
-static SessionLogRequest? FollowAfter(ISessionEventDurable lastProcessed) =>
+static ExperimentalSessionLogRequest? FollowAfter(ISessionEventDurable lastProcessed) =>
     lastProcessed.Durable is { } envelope
-        ? new SessionLogRequest
+        ? new ExperimentalSessionLogRequest
         {
             After = envelope.Seq,
             Follow = true,
@@ -504,17 +505,17 @@ them. The marker is a transition boundary, not a durable event to save as the ne
 > and the log reads its events back from that persisted store — the live part of `Follow = True`
 > included. A server without persistence answers a replay and a follow alike with the marker alone.
 >
-> **The distributed `opencode` CLI starts its server without event persistence and exposes no
-> switch for it** — no serve flag, no environment variable, no configuration key. Observed on
-> `@opencode/cli@2.0.15`. So `ReadLogAsync` against a CLI-started server is not an error and not
-> empty: with `Follow` unset or `False` it is one `log.synced` frame and the end of the stream, and
-> with `Follow = True` it is the same single marker and then nothing, however many durable changes
-> the session goes through while you listen. The marker's wire `seq` (normally `EventLogSynced.Seq`)
-> is the session's current aggregate sequence, which moves with every durable change although nothing
-> is stored. An unknown marker keeps it in `Payload`; handle an absent or unusable value. That is the
-> signature to look for — a marker, and no durable events ahead of it or after it. Persisted replay and
-> follow need a host that embeds the opencode server library with persistence enabled; this
-> repository's own simulation host does exactly that for its tests.
+> **The distributed `opencode` CLI starts its server without event persistence and exposes no switch
+> for it** — no serve flag, no environment variable, no configuration key. Observed on
+> `@opencode/cli@2.0.15`. So `ReadSessionLogAsync` against a CLI-started server is not an error and
+> not empty: with `Follow` unset or `False` it is one `log.synced` frame and the end of the stream,
+> and with `Follow = True` it is the same single marker and then nothing, however many durable
+> changes the session goes through while you listen. The marker's wire `seq` (normally
+> `EventLogSynced.Seq`) is the session's current aggregate sequence, which moves with every durable
+> change although nothing is stored. An unknown marker keeps it in `Payload`; handle an absent or
+> unusable value. That is the signature to look for — a marker, and no durable events ahead of it or
+> after it. Persisted replay and follow need a host that embeds the opencode server library with
+> persistence enabled; this repository's own simulation host does exactly that for its tests.
 >
 > For live session activity from a CLI-started server, subscribe to the
 > [global event bus](#-the-global-event-bus) and filter by session id —
@@ -561,8 +562,9 @@ prefix rule. These failures reconnect the bus and end the session log, as before
 
 ## ⏹️ Cancellation and lifetime
 
-- **Streams open lazily.** Calling `SubscribeAsync` or `ReadLogAsync` does not touch the network;
-  the request goes out on the first `MoveNextAsync`, which is to say on the first `await foreach`.
+- **Streams open lazily.** Calling `SubscribeAsync` or `ReadSessionLogAsync` does not touch the
+  network; the request goes out on the first `MoveNextAsync`, which is to say on the first
+  `await foreach`.
 - **The enumeration token is the off switch.** Cancelling it closes the stream and surfaces as
   `OperationCanceledException` carrying your token. Pass one token at either entry point, or the
   same token at both, for this identity guarantee; two distinct cancellable entry tokens are both

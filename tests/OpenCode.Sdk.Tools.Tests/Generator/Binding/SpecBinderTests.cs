@@ -555,13 +555,17 @@ public sealed class SpecBinderTests
         "LocationNotFoundError",
         "McpServerNotFoundError",
         "MessageNotFoundError",
+        "ModelNotFoundError",
         "PermissionNotFoundError",
         "PermissionSavedNotFoundError",
+        "PluginNotFoundError",
         "ProjectNotFoundError",
         "ProviderNotFoundError",
+        "ProviderRequestError",
         "PtyNotFoundError",
         "RpcError",
         "RpcInternalError",
+        "ScheduleNotFoundError",
         "ServiceUnavailableError",
         "SessionBusyError",
         "SessionNotFoundError",
@@ -569,6 +573,7 @@ public sealed class SpecBinderTests
         "SkillNotFoundError",
         "UnauthorizedError",
         "UnknownError",
+        "UnsupportedModelError",
         "VcsInitNotSupportedError",
         "WorktreeError",
     ];
@@ -665,7 +670,7 @@ public sealed class SpecBinderTests
     }
 
     [Test]
-    public async Task Bind_Should_Carry_The_Pinned_Global_Event_Stream_Without_Request_Parameters()
+    public async Task Bind_Should_Carry_The_Pinned_Global_Event_Stream_With_Only_Its_Types_Filter()
     {
         var (document, selection, curation) = await LoadPinnedInputsAsync();
 
@@ -677,7 +682,8 @@ public sealed class SpecBinderTests
         await Assert.That(operation.RouteTemplate).IsEqualTo("/api/event");
         await Assert.That(operation.RouteMemberName).IsEqualTo("Subscribe");
         await Assert.That(operation.Parameters).IsEmpty();
-        await Assert.That(operation.QueryRequest).IsNull();
+        await Assert.That(operation.QueryRequest?.Properties.Select(static property => (property.WireName, property.Kind)))
+            .IsEquivalentTo([("types", QueryValueKind.EnumList)], CollectionOrdering.Matching);
         await Assert.That(operation.RequestBody).IsNull();
         await Assert.That(operation.Stream!.PayloadTypeName).IsEqualTo("IEvent");
         await Assert.That(operation.ErrorMap.Statuses.Select(static status => status.StatusCode).Order())

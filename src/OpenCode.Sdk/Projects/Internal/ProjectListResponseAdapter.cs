@@ -8,7 +8,6 @@ internal sealed class ProjectListResponseAdapter : ResponseAdapter<ProjectListRe
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["LocationNotFoundError"];
     private ProjectListResponseAdapter()
     {
     }
@@ -27,7 +26,6 @@ internal sealed class ProjectListResponseAdapter : ResponseAdapter<ProjectListRe
         >= 200 and < 300 => StatusVerdict.UndeclaredSuccess,
         400 => StatusVerdict.DeclaredError,
         401 => StatusVerdict.DeclaredError,
-        404 => StatusVerdict.DeclaredError,
         _ => StatusVerdict.UndeclaredError
     };
     /// <summary>
@@ -54,7 +52,6 @@ internal sealed class ProjectListResponseAdapter : ResponseAdapter<ProjectListRe
             >= 200 and < 300 => throw StatusVerdictFailures.UndeclaredSuccess(status),
             400 => new ProjectListResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
             401 => new ProjectListResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
-            404 => new ProjectListResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
             _ => new ProjectListResponse(status, ReadTolerantError(rawBody, null), rawBody)
         };
     }

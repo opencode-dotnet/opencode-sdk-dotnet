@@ -28,4 +28,11 @@ public sealed record PluginFeatures
     [JsonPropertyName("rpc")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? Rpc { get; init; }
+
+    /// <summary>
+    /// Gets the gui value.
+    /// </summary>
+    [JsonPropertyName("gui")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Gui { get; init; }
 }

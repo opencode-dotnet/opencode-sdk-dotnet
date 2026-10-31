@@ -8,16 +8,19 @@ internal sealed class SessionLogTranscript
     private static readonly TimeSpan FollowWindow = TimeSpan.FromSeconds(120);
     private readonly List<ISessionLogItem> _liveItems = [];
     private readonly List<ISessionLogItem> _replayItems = [];
-    private readonly SessionClient? _session;
+    private readonly ExperimentalClient? _experimental;
+    private readonly string? _sessionId;
     private readonly EventDiagnosticSummary _observed = new();
     private CancellationToken _callerToken;
     private IAsyncEnumerator<ISessionLogItem>? _enumerator;
     private CancellationTokenSource? _window;
 
-    public SessionLogTranscript(SessionClient session)
+    public SessionLogTranscript(ExperimentalClient experimental, string sessionId)
     {
-        ArgumentNullException.ThrowIfNull(session);
-        _session = session;
+        ArgumentNullException.ThrowIfNull(experimental);
+        ArgumentException.ThrowIfNullOrEmpty(sessionId);
+        _experimental = experimental;
+        _sessionId = sessionId;
     }
 
     internal SessionLogTranscript(
@@ -41,14 +44,14 @@ internal sealed class SessionLogTranscript
     public SessionTextEnded? TextEnded { get; private set; }
 
     public async Task<List<ISessionLogItem>> ReadToEndAsync(
-        SessionLogRequest request,
+        ExperimentalSessionLogRequest request,
         CancellationToken cancellationToken)
     {
         var items = new List<ISessionLogItem>();
         var observed = new EventDiagnosticSummary();
         try
         {
-            await foreach (var item in Session.ReadLogAsync(request, cancellationToken: cancellationToken))
+            await foreach (var item in ReadLog(request, cancellationToken))
             {
                 items.Add(item);
                 observed.Add(item.Type);
@@ -73,9 +76,7 @@ internal sealed class SessionLogTranscript
         _callerToken = cancellationToken;
         _window = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _window.CancelAfter(FollowWindow);
-        _enumerator = Session.ReadLogAsync(
-                new SessionLogRequest { After = after, Follow = true },
-                cancellationToken: _window.Token)
+        _enumerator = ReadLog(new ExperimentalSessionLogRequest { After = after, Follow = true }, _window.Token)
             .GetAsyncEnumerator(_window.Token);
         while (await MoveNextAsync("the log.synced attachment marker"))
         {
@@ -146,8 +147,10 @@ internal sealed class SessionLogTranscript
         }
     }
 
-    private SessionClient Session =>
-        _session ?? throw new InvalidOperationException("The injected transcript has no session client.");
+    private IAsyncEnumerable<ISessionLogItem> ReadLog(ExperimentalSessionLogRequest request, CancellationToken cancellationToken) =>
+        _experimental is { } experimental && _sessionId is { } sessionId
+            ? experimental.ReadSessionLogAsync(sessionId, request, cancellationToken: cancellationToken)
+            : throw new InvalidOperationException("The injected transcript has no experimental client.");
 
     private async Task<bool> MoveNextAsync(string target)
     {

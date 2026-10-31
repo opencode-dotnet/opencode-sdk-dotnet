@@ -124,7 +124,7 @@ public sealed class SessionInboxLiveTests(SimulatedDriveServerFixture server)
             var waited = await wait;
             await AssertNoContentAsync(waited);
 
-            var log = await ReadFiniteLogAsync(session, cancellationToken);
+            var log = await ReadFiniteLogAsync(client.Experimental, sessionId, cancellationToken);
             await AssertCancellationLogAsync(log, sessionId, inboxId, promptB, replyA);
             var finalInbox = await session.ListInboxAsync(cancellationToken: cancellationToken);
             await AssertInboxAbsentAsync(finalInbox, inboxId);
@@ -208,7 +208,7 @@ public sealed class SessionInboxLiveTests(SimulatedDriveServerFixture server)
             var waited = await client.Experimental.WaitForSessionAsync(sessionId, cancellationToken: cancellationToken);
             await AssertNoContentAsync(waited);
 
-            var log = await ReadFiniteLogAsync(session, cancellationToken);
+            var log = await ReadFiniteLogAsync(client.Experimental, sessionId, cancellationToken);
             await AssertSteerLogAsync(log, sessionId, inboxId, promptB, replyA, replyB);
             var finalInbox = await session.ListInboxAsync(cancellationToken: cancellationToken);
             await AssertInboxAbsentAsync(finalInbox, inboxId);
@@ -245,12 +245,13 @@ public sealed class SessionInboxLiveTests(SimulatedDriveServerFixture server)
     }
 
     private static async Task<List<ISessionLogItem>> ReadFiniteLogAsync(
-        SessionClient session,
+        ExperimentalClient experimental,
+        string sessionId,
         CancellationToken cancellationToken)
     {
-        var transcript = new SessionLogTranscript(session);
+        var transcript = new SessionLogTranscript(experimental, sessionId);
         return await transcript.ReadToEndAsync(
-            new SessionLogRequest { Follow = false },
+            new ExperimentalSessionLogRequest { Follow = false },
             cancellationToken);
     }
 

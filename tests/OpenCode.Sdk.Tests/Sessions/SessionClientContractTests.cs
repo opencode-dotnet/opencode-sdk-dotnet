@@ -53,7 +53,7 @@ public sealed class SessionClientContractTests
     [Test]
     [Arguments(false)]
     [Arguments(true)]
-    public async Task ReadLogAsync_Should_Apply_NetworkTimeout_Only_While_Opening(bool live)
+    public async Task ReadSessionLogAsync_Should_Apply_NetworkTimeout_Only_While_Opening(bool live)
     {
         var time = new ManualTimeProvider();
         var window = TimeSpan.FromSeconds(3);
@@ -65,8 +65,8 @@ public sealed class SessionClientContractTests
         using var httpClient = new HttpClient(handler);
         using var pipeline = PipelineFactory.Create(httpClient, networkTimeout: TimeSpan.FromMinutes(1), time: time);
         using var caller = new CancellationTokenSource();
-        await using var log = new SessionClient(pipeline, "ses_9").ReadLogAsync(
-            new SessionLogRequest(), new OpenCodeRequestOptions { NetworkTimeout = window }, caller.Token).GetAsyncEnumerator();
+        await using var log = new ExperimentalClient(pipeline).ReadSessionLogAsync(
+            "ses_9", new ExperimentalSessionLogRequest(), new OpenCodeRequestOptions { NetworkTimeout = window }, caller.Token).GetAsyncEnumerator();
         if (live)
         {
             await Assert.That(await ReadNextLogAsync(log).WaitAsync(HangGuard.Bound)).IsTrue();
@@ -110,11 +110,11 @@ public sealed class SessionClientContractTests
     [Arguments(WireBodyData.StreamInterruptNullCause, "Interrupt")]
     [Arguments(WireBodyData.StreamInterruptNumberCause, "Interrupt")]
     [Arguments(WireBodyData.UnknownStreamFailureCause, "FutureCause")]
-    public async Task ReadLogAsync_Should_Expose_Each_Causes_Wire_Tag_Through_The_Marker(string body, string tag)
+    public async Task ReadSessionLogAsync_Should_Expose_Each_Causes_Wire_Tag_Through_The_Marker(string body, string tag)
     {
         using var scenario = ContractScenario.Responding(_ => ScriptedEventServer.StreamOf(
             WireBodyData.NamedFrame("effect/http-api/stream/failure", body), ends: true));
-        await using var log = scenario.Client.Sessions.GetSessionClient("ses_9").ReadLogAsync().GetAsyncEnumerator();
+        await using var log = scenario.Client.Experimental.ReadSessionLogAsync("ses_9").GetAsyncEnumerator();
 
         var exception = await Assert.That(async () => _ = await log.MoveNextAsync()).Throws<OpenCodeStreamFailureException>();
 
@@ -131,7 +131,7 @@ public sealed class SessionClientContractTests
         var session = scenario.Client.Sessions.GetSessionClient("ses_100");
         if (stream)
         {
-            var refusal = await Assert.That(() => session.ReadLogAsync(requestOptions: OpenCodeRequestOptions.NoThrow))
+            var refusal = await Assert.That(() => scenario.Client.Experimental.ReadSessionLogAsync("ses_100", requestOptions: OpenCodeRequestOptions.NoThrow))
                 .Throws<ArgumentException>();
             await Assert.That(refusal!.GetType()).IsEqualTo(typeof(ArgumentException));
             await Assert.That(refusal.ParamName).IsEqualTo("requestOptions");

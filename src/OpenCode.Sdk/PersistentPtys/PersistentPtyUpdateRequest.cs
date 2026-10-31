@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// The body of &apos;persistentPty.update&apos; (PUT /api/experimental/persistent-pty/{ptyID}).
+/// The body of &apos;experimental.persistentPty.update&apos; (PUT /api/experimental/persistent-pty/{ptyID}).
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
 public sealed record PersistentPtyUpdateRequest

@@ -65,6 +65,13 @@ public sealed record ConfigInfo
     public string? Username { get; init; }
 
     /// <summary>
+    /// Gets the timezone value.
+    /// </summary>
+    [JsonPropertyName("timezone")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Timezone { get; init; }
+
+    /// <summary>
     /// Gets the permissions value.
     /// </summary>
     [JsonPropertyName("permissions")]

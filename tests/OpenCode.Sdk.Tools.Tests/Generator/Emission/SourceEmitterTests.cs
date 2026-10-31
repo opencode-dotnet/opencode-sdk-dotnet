@@ -148,7 +148,7 @@ public sealed class SourceEmitterTests(PinnedBinding pinned)
         var streams = plan.Clients.SelectMany(static client => client.Operations).Select(static operation => operation.Stream)
             .OfType<StreamPlan>().ToDictionary(static stream => stream.AdapterTypeName, static stream => stream.UnknownPayloadTypeName, StringComparer.Ordinal);
         await Assert.That(streams["EventSubscribeResponseStreamAdapter"]).IsEqualTo("UnknownEvent");
-        await Assert.That(streams["SessionLogResponseStreamAdapter"]).IsEqualTo("UnknownSessionLogItem");
+        await Assert.That(streams["ExperimentalSessionLogResponseStreamAdapter"]).IsEqualTo("UnknownSessionLogItem");
         await Assert.That(plan.Unions.Where(static union => union.IsStreamFallbackCarrier).Select(static union => union.Name).Order(StringComparer.Ordinal))
             .IsEquivalentTo(["IEvent", "ISessionLogItem"], StringComparer.Ordinal, CollectionOrdering.Matching);
         var client = plan.Clients.Single(static client => client.Name == "EventsClient");

@@ -28,6 +28,7 @@ public class EventsClient
     /// <summary>
     /// Subscribe to events. Subscribe to native events and plugin RPC events across all server locations. Volatile by contract: a slow consumer overflows and fails the stream, and events during disconnection are missed.
     /// </summary>
+    /// <param name = "request">The request shaping the query.</param>
     /// <param name = "requestOptions">The per-call options; NoThrow is refused. NetworkTimeout bounds only the opening and is refused for reconnecting streams, including Timeout.InfiniteTimeSpan.</param>
     /// <param name = "cancellationToken">The cancellation token.</param>
     /// <returns>The &apos;IEvent&apos; stream.</returns>
@@ -37,8 +38,8 @@ public class EventsClient
     /// <remarks>
     /// Operation <c>event.subscribe</c>: <c>GET /api/event</c>. The stream reconnects after a failure, with a new attempt 1 s later and no backoff. It does not complete on its own; caller cancellation or root-client disposal ends it. After 1 minute in which every attempt fails, it throws the last failure. A repeated <c>server.connected</c> event means events published in between were missed; refresh authoritative state.
     /// </remarks>
-    public virtual IAsyncEnumerable<IEvent> SubscribeAsync(OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    public virtual IAsyncEnumerable<IEvent> SubscribeAsync(EventSubscribeRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
     {
-        return Pipeline.ExecuteStreamAsync("event.subscribe", HttpMethod.Get, OpenCodeRoutes.Events.Subscribe, EventSubscribeResponseStreamAdapter.Instance, requestOptions, cancellationToken);
+        return Pipeline.ExecuteStreamAsync("event.subscribe", HttpMethod.Get, OpenCodeRoutes.Events.Subscribe(request), EventSubscribeResponseStreamAdapter.Instance, requestOptions, cancellationToken);
     }
 }

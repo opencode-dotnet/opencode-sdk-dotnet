@@ -24,7 +24,7 @@ clearing the variable.
 
 ## Live legs against a Linux-hosted server
 
-The `opencode-pty` daemon (`@opencode-ai/pty`) ships a win32 package too, so a persistent PTY live
+The `opencode-pty` daemon (`@opencode/pty`) ships a win32 package too, so a persistent PTY live
 run directly on Windows drives the round trip. To prove the live leg against a Linux server from a
 Windows workstation, `PinnedOpenCodeServerFixture`'s external-endpoint mode plus
 `PersistentPtyDaemonGate`'s override run it against a server hosted in WSL2.
@@ -44,7 +44,7 @@ so the two installs clobber each other's daemon binary.
    curl -fsSL https://bun.sh/install | bash -s "bun-v$(grep -o '"packageManager": *"bun@[0-9.]*"' \
      external/opencode/package.json | grep -o '[0-9][0-9.]*')"
    ```
-3. Install the dependencies — this is what places `@opencode-ai/pty-<platform>/bin/opencode-pty`,
+3. Install the dependencies — this is what places `@opencode/pty-<platform>/bin/opencode-pty`,
    which `packages/core` resolves as its `binaryPath`:
    ```sh
    cd ~/repos/opencode-sdk-dotnet/external/opencode

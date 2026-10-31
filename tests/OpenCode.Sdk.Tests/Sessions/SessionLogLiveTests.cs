@@ -56,9 +56,9 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             var terminal = await turn.CompleteAsync(ReplayPrompt, ReplayReply, cancellationToken);
             cleanup.MarkTurnCompleted();
 
-            var transcript = new SessionLogTranscript(session);
+            var transcript = new SessionLogTranscript(client.Experimental, sessionId);
             var replay = await transcript.ReadToEndAsync(
-                new SessionLogRequest { Follow = false },
+                new ExperimentalSessionLogRequest { Follow = false },
                 cancellationToken);
             var markers = replay.OfType<EventLogSynced>().ToList();
             await Assert.That(markers).Count().IsEqualTo(1);
@@ -89,7 +89,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             var anchor = anchors[0];
 
             var resumed = await transcript.ReadToEndAsync(
-                new SessionLogRequest
+                new ExperimentalSessionLogRequest
                 {
                     After = anchor.Durable.Seq,
                     Follow = false,
@@ -129,7 +129,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
         var sessionId = await CreateOwnedSessionAsync(client, workspace.Path, "session-log-follow", cancellationToken);
         var session = client.Sessions.GetSessionClient(sessionId);
         var cleanup = new OwnedSessionCleanup(session, CleanupTimeout);
-        var transcript = new SessionLogTranscript(session);
+        var transcript = new SessionLogTranscript(client.Experimental, sessionId);
         cleanup.Own("session log enumerator", transcript.DisposeAsync);
         Exception? primaryFailure = null;
 
@@ -139,7 +139,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             _ = await firstTurn.CompleteAsync(FollowFirstPrompt, FollowFirstReply, cancellationToken);
             cleanup.MarkTurnCompleted();
             var finite = await transcript.ReadToEndAsync(
-                new SessionLogRequest { Follow = false },
+                new ExperimentalSessionLogRequest { Follow = false },
                 cancellationToken);
             var finiteMarkers = finite.OfType<EventLogSynced>().ToList();
             await Assert.That(finiteMarkers).Count().IsEqualTo(1);
@@ -205,20 +205,20 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
 
         try
         {
-            var transcript = new SessionLogTranscript(session);
+            var transcript = new SessionLogTranscript(client.Experimental, sessionId);
             var turn = new SimulatedSessionTurn(server, client, session, sessionId);
             var terminal = await turn.CompleteAsync(PastTailPrompt, PastTailReply, cancellationToken);
             cleanup.MarkTurnCompleted();
 
             var settled = await transcript.ReadToEndAsync(
-                new SessionLogRequest { Follow = false }, cancellationToken);
+                new ExperimentalSessionLogRequest { Follow = false }, cancellationToken);
             await AssertSucceededAsync(settled, terminal.Durable.Seq);
             var watermark = settled.OfType<EventLogSynced>().Single().Seq;
             await Assert.That(watermark).IsNotNull();
             var beyond = watermark!.Value + PastTailOffset;
 
             var answered = await transcript.ReadToEndAsync(
-                new SessionLogRequest
+                new ExperimentalSessionLogRequest
                 {
                     After = beyond,
                     Follow = false,
@@ -264,7 +264,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
         var sessionId = await CreateOwnedSessionAsync(client, workspace.Path, "session-log-skipped", cancellationToken);
         var session = client.Sessions.GetSessionClient(sessionId);
         var cleanup = new OwnedSessionCleanup(session, CleanupTimeout);
-        var transcript = new SessionLogTranscript(session);
+        var transcript = new SessionLogTranscript(client.Experimental, sessionId);
         cleanup.Own("session log enumerator", transcript.DisposeAsync);
         Exception? primaryFailure = null;
 
@@ -275,7 +275,7 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
             cleanup.MarkTurnCompleted();
 
             var settled = await transcript.ReadToEndAsync(
-                new SessionLogRequest { Follow = false }, cancellationToken);
+                new ExperimentalSessionLogRequest { Follow = false }, cancellationToken);
             await AssertSucceededAsync(settled, openingTerminal.Durable.Seq);
             var watermark = settled.OfType<EventLogSynced>().Single().Seq;
             await Assert.That(watermark).IsNotNull();
@@ -300,8 +300,8 @@ public sealed class SessionLogLiveTests(SimulatedDriveServerFixture server)
 
             // The correct cursor returns an execution start inside the covered range on this same
             // session, so what the attachment never delivered was written and is readable.
-            var control = await new SessionLogTranscript(session).ReadToEndAsync(
-                new SessionLogRequest
+            var control = await new SessionLogTranscript(client.Experimental, sessionId).ReadToEndAsync(
+                new ExperimentalSessionLogRequest
                 {
                     After = watermark.Value,
                     Follow = false,

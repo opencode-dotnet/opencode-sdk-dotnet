@@ -1,6 +1,6 @@
 # 🖥️ Terminals
 
-Date: 2026-10-26
+Date: 2026-10-31
 
 opencode has two terminal families, and they are genuinely different animals:
 
@@ -178,6 +178,9 @@ if (created is { Status: 503, Error: ServiceUnavailableError { Service: "opencod
 
 var terminal = client.PersistentPtys.GetPersistentPtyClient(created.PersistentPty.Id);
 ```
+
+A given `Cwd` whose path doesn't exist or isn't a directory is refused with a 400: `Error` is an
+`InvalidRequestError` with the `Kind` `invalid_cwd` and the `Field` `cwd`, and no terminal starts.
 
 Then attach and drive it:
 

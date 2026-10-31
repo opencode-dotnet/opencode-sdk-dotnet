@@ -293,18 +293,23 @@ internal sealed class ServiceElection(ServiceElectionSeams seams, EnsureRequest 
 
     /// <summary>
     /// The channel's service-config <c>env</c> (the CLI's <c>ServiceConfig.options()</c>), with the
-    /// caller's entries winning at spawn for a key spelled the same. The pinned server
-    /// (<c>server-process.ts</c>, service mode) re-applies its saved <c>env</c> over everything inherited,
-    /// so saved entries win for everything
-    /// the server reads after startup.
+    /// caller's entries winning at spawn for a key spelled the same.
     /// </summary>
+    /// <remarks>
+    /// The saved map never supplies <c>XDG_STATE_HOME</c>: clients find the service at its registration
+    /// under that directory, so the service keeps the one it was launched with. The pinned server
+    /// (<c>server-process.ts</c>, service mode) re-applies its other saved entries over everything
+    /// inherited, so those win for everything the server reads after startup.
+    /// </remarks>
     private async Task<IReadOnlyDictionary<string, string>?> OverlayAsync(CancellationToken cancellationToken)
     {
-        IReadOnlyDictionary<string, string>? configured = null;
+        Dictionary<string, string>? configured = null;
         if (paths.ConfigFile is { } configFile &&
             await seams.FileSystem.TryReadAllBytesAsync(configFile, cancellationToken).ConfigureAwait(false) is { } bytes)
         {
-            configured = ServiceConfigReader.TryReadEnvironment(bytes);
+            configured = ServiceConfigReader.TryReadEnvironment(bytes)?
+                .Where(static entry => !string.Equals(entry.Key, "XDG_STATE_HOME", StringComparison.Ordinal))
+                .ToDictionary(static entry => entry.Key, static entry => entry.Value, StringComparer.Ordinal);
         }
 
         if (configured is null || request.Environment is null)

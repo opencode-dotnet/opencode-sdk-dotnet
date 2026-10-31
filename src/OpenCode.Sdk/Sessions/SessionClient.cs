@@ -485,25 +485,6 @@ public class SessionClient
     }
 
     /// <summary>
-    /// Read the session log. Experimental durable session event log. Reads events after an exclusive aggregate sequence and continues with live events when follow=true.
-    /// </summary>
-    /// <param name = "request">The request shaping the query.</param>
-    /// <param name = "requestOptions">The per-call options; NoThrow is refused. NetworkTimeout bounds only the opening and is refused for reconnecting streams, including Timeout.InfiniteTimeSpan.</param>
-    /// <param name = "cancellationToken">The cancellation token.</param>
-    /// <returns>The &apos;ISessionLogItem&apos; stream.</returns>
-    /// <exception cref = "OpenCodeApiException">The API returned a declared error status (declared: 400, 401, 404); streaming API errors always throw.</exception>
-    /// <exception cref = "OpenCodeStreamFailureException">The opened stream reported a schema-valid failure with a typed cause.</exception>
-    /// <exception cref = "OpenCodeTransportException">The server could not be reached, the stream could not be read, or a frame or failure cause was malformed.</exception>
-    /// <remarks>
-    /// Operation <c>session.log</c>: <c>GET /api/experimental/session/{sessionID}/log</c>.
-    /// </remarks>
-    [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
-    public virtual IAsyncEnumerable<ISessionLogItem> ReadLogAsync(SessionLogRequest? request = null, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
-    {
-        return Pipeline.ExecuteStreamAsync("session.log", HttpMethod.Get, OpenCodeRoutes.Sessions.ReadLog(SessionId, request), SessionLogResponseStreamAdapter.Instance, requestOptions, cancellationToken);
-    }
-
-    /// <summary>
     /// Delete session. Delete a session and its child sessions.
     /// </summary>
     /// <param name = "requestOptions">The per-call options.</param>
