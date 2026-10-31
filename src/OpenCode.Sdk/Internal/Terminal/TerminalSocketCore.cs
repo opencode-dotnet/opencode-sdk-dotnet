@@ -48,12 +48,16 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         _sendGate = new TerminalSendQueue(socket, time);
         _owner = owner;
         _sendEndedToken = _sendEnded.Token;
-        _receiver = new TerminalReceivePump<TFrame>(socket, decoder, closePolicy, _sendEnded.CancelOnWorkerAsync, pool ?? ArrayPool<byte>.Shared);
+        SendPool = pool ?? ArrayPool<byte>.Shared;
+        _receiver = new TerminalReceivePump<TFrame>(socket, decoder, closePolicy, _sendEnded.CancelOnWorkerAsync, SendPool);
         _getOutcome = () => _receiver.Outcome;
     }
 
     /// <summary>Gets whether the core has been disposed.</summary>
     public bool IsDisposed => Volatile.Read(ref _disposed) is 1;
+
+    /// <summary>Gets the pool from which producers rent owned send payloads.</summary>
+    public ArrayPool<byte> SendPool { get; }
 
     /// <summary>Gets the fixed per-send budget captured by the connection.</summary>
     public TimeSpan SendTimeout { get; init; } = TerminalSocketBounds.DefaultSendTimeout;
@@ -130,51 +134,63 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
 
         using var deadline = new TerminalSendDeadline(_owner, SendTimeout, _time, _getOutcome, cancellationToken);
         var payload = createPayload();
-        using var admission = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token, _sendEndedToken);
         try
         {
-            await _sendGate.WaitAsync(admission.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException exception)
-        {
-            throw deadline.Map(exception, queued: true, IsDisposed, _receiver.Outcome);
-        }
-
-        try
-        {
-            // Re-checked behind the gate: a disposal can land while a queued send waits. It sits
-            // outside the mapping block deliberately — ObjectDisposedException is in the write
-            // phase's fault set, so a refusal raised inside it would be remapped into a transport
-            // failure instead of reaching the caller as the misuse it is.
-            ObjectDisposedException.ThrowIf(IsDisposed, _owner);
-            ThrowIfSendFailed();
+            using var admission = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token, _sendEndedToken);
             try
             {
-                deadline.Token.ThrowIfCancellationRequested();
+                await _sendGate.WaitAsync(admission.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException exception)
             {
                 throw deadline.Map(exception, queued: true, IsDisposed, _receiver.Outcome);
             }
 
-            actions?.Prepare?.Invoke();
-
             try
             {
-                await deadline.SendAsync(_socket, payload, messageType).ConfigureAwait(false);
-            }
-            catch (Exception exception) when (FailureClassification.Handles(exception, FailurePhase.PtyWebSocketWrite))
-            {
-                var failure = deadline.Map(exception, queued: false, IsDisposed, _receiver.Outcome);
-                await FailSendAsync(failure).ConfigureAwait(false);
-                throw failure;
-            }
+                // Re-checked behind the gate: a disposal can land while a queued send waits. It sits
+                // outside the mapping block deliberately — ObjectDisposedException is in the write
+                // phase's fault set, so a refusal raised inside it would be remapped into a transport
+                // failure instead of reaching the caller as the misuse it is.
+                ObjectDisposedException.ThrowIf(IsDisposed, _owner);
+                ThrowIfSendFailed();
+                try
+                {
+                    deadline.Token.ThrowIfCancellationRequested();
+                }
+                catch (OperationCanceledException exception)
+                {
+                    throw deadline.Map(exception, queued: true, IsDisposed, _receiver.Outcome);
+                }
 
-            actions?.OnSent?.Invoke();
+                actions?.Prepare?.Invoke(payload);
+
+                try
+                {
+                    await deadline.SendAsync(_socket, payload, messageType).ConfigureAwait(false);
+                }
+                catch (Exception exception) when (FailureClassification.Handles(exception, FailurePhase.PtyWebSocketWrite))
+                {
+                    var failure = deadline.Map(exception, queued: false, IsDisposed, _receiver.Outcome);
+                    await FailSendAsync(failure).ConfigureAwait(false);
+                    throw failure;
+                }
+
+                actions?.OnSent?.Invoke();
+            }
+            finally
+            {
+                _sendGate.Release();
+            }
         }
         finally
         {
-            _sendGate.Release();
+            if (actions?.PayloadRented is true)
+            {
+                // Input can carry typed secrets: clearing keeps this buffer's copy from its next renter.
+                // The socket's own send buffer is out of reach, so this is not a process-memory guarantee.
+                SendPool.Return(payload.Array!, clearArray: true);
+            }
         }
     }
 

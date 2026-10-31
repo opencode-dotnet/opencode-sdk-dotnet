@@ -3,7 +3,7 @@ using System.Buffers;
 namespace OpenCode.Sdk.Tests.Support;
 
 /// <summary>Tracks byte-array ownership and pre-fills spare capacity so tests catch out-of-range reads.</summary>
-internal sealed class TrackingByteArrayPool(int spareCapacity = 0) : ArrayPool<byte>
+internal sealed class TrackingByteArrayPool(int spareCapacity = 0, Action<byte[]>? onReturn = null) : ArrayPool<byte>
 {
     private readonly Lock _gate = new();
     private readonly HashSet<byte[]> _outstanding = [];
@@ -56,6 +56,7 @@ internal sealed class TrackingByteArrayPool(int spareCapacity = 0) : ArrayPool<b
     public override void Return(byte[] array, bool clearArray = false)
     {
         ArgumentNullException.ThrowIfNull(array);
+        onReturn?.Invoke(array);
         lock (_gate)
         {
             if (!_outstanding.Remove(array))

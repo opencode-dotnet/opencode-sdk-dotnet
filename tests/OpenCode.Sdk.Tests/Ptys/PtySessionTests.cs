@@ -10,6 +10,53 @@ namespace OpenCode.Sdk.Tests.Ptys;
 
 public sealed class PtySessionTests
 {
+    private const string MultibyteInput = "ş€😀";
+
+    [Test]
+    public async Task WriteAsync_Should_Preserve_Multibyte_Submit_And_Empty_Text_Messages()
+    {
+        using var socket = new ScriptedTerminalWebSocket();
+        await using var session = new PtySession(socket, new ManualTimeProvider());
+        await WriteSubmitAndEmptyAsync(session);
+        await Assert.That(socket.SentMessages[0]).IsEquivalentTo(Encoding.UTF8.GetBytes(MultibyteInput), CollectionOrdering.Matching);
+        await Assert.That(socket.SentMessages[1]).IsEquivalentTo(Encoding.UTF8.GetBytes(MultibyteInput + Enter), CollectionOrdering.Matching);
+        await Assert.That(socket.SentMessages[2]).IsEquivalentTo(Array.Empty<byte>(), CollectionOrdering.Matching);
+        await Assert.That(socket.SentMessageTypes).IsEquivalentTo(
+            [WebSocketMessageType.Text, WebSocketMessageType.Text, WebSocketMessageType.Text], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task WriteAsync_Should_Return_And_Clear_Each_Input_Rent()
+    {
+        var returned = new List<byte[]>();
+        var pool = new TrackingByteArrayPool(spareCapacity: 64, onReturn: returned.Add);
+        using var socket = new ScriptedTerminalWebSocket();
+        await using var core = new TerminalSocketCore<PtyFrame>(socket, PtyFrameDecoder.Instance,
+            PtyClosePolicy.Instance, typeof(PtySession), new ManualTimeProvider(), pool);
+        await using var session = new PtySession(core);
+        await WriteSubmitAndEmptyAsync(session);
+
+        // This pool gives a zero-length request a non-empty array too; all three frames return one.
+        await Assert.That(pool.RequestedLengths).IsEquivalentTo([TerminalSocketBounds.ReceiveBufferSize, 9, 10, 0], CollectionOrdering.Matching);
+        await Assert.That(pool.ReturnCount).IsEqualTo(3);
+        await Assert.That(pool.OutstandingCount).IsEqualTo(1);
+        foreach (var buffer in returned)
+        {
+            await Assert.That(buffer).IsEquivalentTo(new byte[buffer.Length], CollectionOrdering.Matching);
+        }
+
+        await session.DisposeAsync();
+        await Assert.That(pool.ReturnCount).IsEqualTo(4);
+        await Assert.That(pool.OutstandingCount).IsEqualTo(0);
+    }
+
+    private static async Task WriteSubmitAndEmptyAsync(PtySession session)
+    {
+        await session.WriteAsync(MultibyteInput);
+        await session.SubmitAsync(MultibyteInput);
+        await session.WriteAsync(string.Empty);
+    }
+
     [Test]
     public async Task WriteAsync_Should_Use_The_Connections_Configured_Send_Timer()
     {

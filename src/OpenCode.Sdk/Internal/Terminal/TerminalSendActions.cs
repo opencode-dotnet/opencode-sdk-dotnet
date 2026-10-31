@@ -6,4 +6,10 @@ namespace OpenCode.Sdk.Internal;
 /// </summary>
 /// <param name="Prepare">Prepares the payload while holding the send gate.</param>
 /// <param name="OnSent">Publishes state after a successful send, before releasing the gate.</param>
-internal sealed record TerminalSendActions(Action? Prepare = null, Action? OnSent = null);
+/// <param name="PayloadRented">createPayload returned an offset-zero segment over an array rented from
+/// the core's SendPool; the core owns that array from then on.</param>
+internal sealed record TerminalSendActions(Action<ArraySegment<byte>>? Prepare = null, Action? OnSent = null, bool PayloadRented = false)
+{
+    /// <summary>Gets shared actions for an owned rented payload with no family-specific work.</summary>
+    public static TerminalSendActions Rented { get; } = new(PayloadRented: true);
+}
