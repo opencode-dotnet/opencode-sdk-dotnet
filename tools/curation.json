@@ -43,7 +43,7 @@
       "summary": "Creation time in milliseconds since the Unix epoch.",
       "reason": "The shared Base declares the epoch-millisecond codec, but OpenAPI retains only its numeric representation.",
       "sources": [
-        { "location": "packages/schema/src/session-message.ts:36", "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis })," }
+        { "location": "packages/schema/src/session-message.ts:34", "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis })," }
       ]
     },
     {
@@ -52,8 +52,8 @@
       "summary": "Enqueue time in milliseconds since the Unix epoch.",
       "reason": "The shared enqueued shape declares the epoch-millisecond codec, but OpenAPI retains only its numeric representation.",
       "sources": [
-        { "location": "packages/schema/src/session-inbox.ts:52", "excerpt": "const Enqueued = {" },
-        { "location": "packages/schema/src/session-inbox.ts:55", "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis })," }
+        { "location": "packages/schema/src/session-inbox.ts:59", "excerpt": "const Enqueued = {" },
+        { "location": "packages/schema/src/session-inbox.ts:62", "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis })," }
       ]
     },
     {
@@ -81,9 +81,9 @@
       "summary": "An assistant message with text, reasoning or tool-call output parts.",
       "reason": "Retain the declared output alternatives without the implementation-only per-step and failure lifecycle.",
       "sources": [
-        { "location": "packages/schema/src/session-message.ts:215", "excerpt": "  type: Schema.tag(\"assistant\")," },
-        { "location": "packages/schema/src/session-message.ts:218", "excerpt": "  content: AssistantContent.pipe(Schema.Array)," },
-        { "location": "packages/schema/src/session-message.ts:195", "excerpt": "export const AssistantContent = Schema.Union([AssistantText, AssistantReasoning, AssistantTool]).pipe(" }
+        { "location": "packages/schema/src/session-message.ts:223", "excerpt": "  type: Schema.tag(\"assistant\")," },
+        { "location": "packages/schema/src/session-message.ts:226", "excerpt": "  content: AssistantContent.pipe(Schema.Array)," },
+        { "location": "packages/schema/src/session-message.ts:203", "excerpt": "export const AssistantContent = Schema.Union([AssistantText, AssistantReasoning, AssistantTool]).pipe(" }
       ]
     },
     {
@@ -92,7 +92,7 @@
       "summary": "The finish reason; the pinned values are stop, length, tool-calls, content-filter, error and unknown.",
       "reason": "Retain the declared reason set without running-null or failure-normalization claims.",
       "sources": [
-        { "location": "packages/schema/src/session-message.ts:224", "excerpt": "  finish: FinishReason.pipe(optional)," },
+        { "location": "packages/schema/src/session-message.ts:232", "excerpt": "  finish: FinishReason.pipe(optional)," },
         { "location": "packages/schema/src/llm.ts:5", "excerpt": "export const FinishReason = Schema.Literals([\"stop\", \"length\", \"tool-calls\", \"content-filter\", \"error\", \"unknown\"])" }
       ]
     },
@@ -102,8 +102,8 @@
       "summary": "Assistant output parts: text, reasoning and tool calls.",
       "reason": "Retain the declared output alternatives without inferring streaming order.",
       "sources": [
-        { "location": "packages/schema/src/session-message.ts:218", "excerpt": "  content: AssistantContent.pipe(Schema.Array)," },
-        { "location": "packages/schema/src/session-message.ts:195", "excerpt": "export const AssistantContent = Schema.Union([AssistantText, AssistantReasoning, AssistantTool]).pipe(" }
+        { "location": "packages/schema/src/session-message.ts:226", "excerpt": "  content: AssistantContent.pipe(Schema.Array)," },
+        { "location": "packages/schema/src/session-message.ts:203", "excerpt": "export const AssistantContent = Schema.Union([AssistantText, AssistantReasoning, AssistantTool]).pipe(" }
       ]
     },
     {
@@ -112,7 +112,7 @@
       "summary": "Cost in US dollars recorded on the assistant message.",
       "reason": "Retain the declared currency without inferring computation, per-step scope or absence lifecycle.",
       "sources": [
-        { "location": "packages/schema/src/session-message.ts:227", "excerpt": "  cost: Money.USD.pipe(optional)," },
+        { "location": "packages/schema/src/session-message.ts:236", "excerpt": "  cost: Money.USD.pipe(optional)," },
         { "location": "packages/schema/src/money.ts:7", "excerpt": "  Schema.brand(\"Money.USD\")," }
       ]
     },
@@ -122,8 +122,8 @@
       "summary": "A live-only text fragment.",
       "reason": "Retain the declared fragment role without the implementation-only batching policy.",
       "sources": [
-        { "location": "packages/schema/src/session-event.ts:403", "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary." },
-        { "location": "packages/schema/src/session-event.ts:410", "excerpt": "      delta: Schema.String," }
+        { "location": "packages/schema/src/session-event.ts:408", "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary." },
+        { "location": "packages/schema/src/session-event.ts:415", "excerpt": "      delta: Schema.String," }
       ]
     },
     {
@@ -132,8 +132,8 @@
       "summary": "The complete text of the part at the replayable full-value boundary.",
       "reason": "Retain the declared full-value boundary without prescribing replacement of accumulated deltas.",
       "sources": [
-        { "location": "packages/schema/src/session-event.ts:403", "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary." },
-        { "location": "packages/schema/src/session-event.ts:422", "excerpt": "      text: Schema.String," }
+        { "location": "packages/schema/src/session-event.ts:408", "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary." },
+        { "location": "packages/schema/src/session-event.ts:427", "excerpt": "      text: Schema.String," }
       ]
     },
     {
@@ -151,8 +151,8 @@
       "summary": "A session input durably admitted to the inbox, scheduling agent-loop execution unless Resume is false.",
       "reason": "Retain the route's admission and scheduling contract without inferring response-before-model timing.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:344", "excerpt": "        success: Schema.Struct({ data: SessionInbox.User })," },
-        { "location": "packages/protocol/src/groups/session.ts:352", "excerpt": "            description: \"Durably admit one session input and schedule agent-loop execution unless resume is false.\"," }
+        { "location": "packages/protocol/src/groups/session.ts:346", "excerpt": "        success: Schema.Struct({ data: SessionInbox.User })," },
+        { "location": "packages/protocol/src/groups/session.ts:354", "excerpt": "            description: \"Durably admit one session input and schedule agent-loop execution unless resume is false.\"," }
       ]
     },
     {
@@ -161,8 +161,8 @@
       "summary": "An optional message identifier starting with msg_.",
       "reason": "Retain the declared identifier prefix without inferring idempotence or conflict behavior.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:399", "excerpt": "          id: SessionMessage.ID.pipe(Schema.optional)," },
-        { "location": "packages/schema/src/session-message.ts:23", "excerpt": "export const ID = Schema.String.check(Schema.isStartingWith(\"msg_\")).pipe(" }
+        { "location": "packages/protocol/src/groups/session.ts:401", "excerpt": "          id: SessionMessage.ID.pipe(Schema.optional)," },
+        { "location": "packages/schema/src/session-message.ts:21", "excerpt": "export const ID = Schema.String.check(Schema.isStartingWith(\"msg_\")).pipe(" }
       ]
     },
     {
@@ -171,7 +171,7 @@
       "summary": "File attachments, each referencing a file by its Uri member.",
       "reason": "Retain the declared attachment reference without inventing URI schemes, size limits or file-reading policy.",
       "sources": [
-        { "location": "packages/schema/src/prompt-input.ts:25", "excerpt": "  files: Schema.Array(FileAttachment).pipe(optional)," },
+        { "location": "packages/schema/src/prompt-input.ts:27", "excerpt": "  files: Schema.Array(FileAttachment).pipe(optional)," },
         { "location": "packages/schema/src/prompt-input.ts:10", "excerpt": "  uri: Schema.String," }
       ]
     },
@@ -181,8 +181,8 @@
       "summary": "Skills to attach by identifier.",
       "reason": "Retain the declared attachment role without inferring text placement or unknown-identifier errors.",
       "sources": [
-        { "location": "packages/schema/src/prompt-input.ts:27", "excerpt": "  skills: Schema.Array(SkillAttachment).pipe(optional)," },
-        { "location": "packages/schema/src/prompt-input.ts:19", "excerpt": "  id: Skill.ID," }
+        { "location": "packages/schema/src/prompt-input.ts:29", "excerpt": "  skills: Schema.Array(SkillAttachment).pipe(optional)," },
+        { "location": "packages/schema/src/prompt-input.ts:21", "excerpt": "  id: Skill.ID," }
       ]
     },
     {
@@ -191,7 +191,7 @@
       "summary": "The input delivery mode; the pinned values are steer and queue.",
       "reason": "Retain the declared modes without inferring a default or boundary-ordering policy.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:402", "excerpt": "          delivery: SessionInbox.Delivery.pipe(Schema.optional)," },
+        { "location": "packages/protocol/src/groups/session.ts:405", "excerpt": "          delivery: SessionInbox.Delivery.pipe(Schema.optional)," },
         { "location": "packages/schema/src/session-inbox.ts:11", "excerpt": "export const Delivery = Schema.Literals([\"steer\", \"queue\"]).annotate({ identifier: \"Session.Inbox.Delivery\" })" }
       ]
     },
@@ -201,7 +201,7 @@
       "summary": "Controls scheduling of agent-loop execution after durable admission: false omits that scheduling.",
       "reason": "Retain the route's scheduling qualification without inferring a true default or pending-input lifecycle.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:352", "excerpt": "            description: \"Durably admit one session input and schedule agent-loop execution unless resume is false.\"," }
+        { "location": "packages/protocol/src/groups/session.ts:354", "excerpt": "            description: \"Durably admit one session input and schedule agent-loop execution unless resume is false.\"," }
       ]
     },
     {
@@ -209,7 +209,7 @@
       "summary": "A request to create a session at the requested location; ParentId links a child at its parent's location.",
       "reason": "Retain the route's create and parent-location roles without inferring existing-identifier adoption.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:174", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
+        { "location": "packages/protocol/src/groups/session.ts:183", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
       ]
     },
     {
@@ -218,7 +218,7 @@
       "summary": "Links a child session to its parent at the parent's location.",
       "reason": "Retain the declared parent-location relationship without inferring metadata, permission, agent or model inheritance.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:174", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
+        { "location": "packages/protocol/src/groups/session.ts:183", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
       ]
     },
     {
@@ -227,7 +227,7 @@
       "summary": "The requested location for a session; ParentId places a child at its parent's location.",
       "reason": "Retain the declared parent-location qualification without inferring a process-working-directory default.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:174", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
+        { "location": "packages/protocol/src/groups/session.ts:183", "excerpt": "            \"Create a session at the requested location. A parentID creates a linked child session at its parent's location.\"," }
       ]
     },
     {
@@ -236,8 +236,8 @@
       "summary": "When at least one rule matches, the last matching rule wins; session rules are evaluated after the agent's rules.",
       "reason": "Retain the declared ordering and precedence without implying what happens when no rule matches.",
       "sources": [
-        { "location": "packages/schema/src/session.ts:56", "excerpt": "  /** Evaluated after the agent's rules; the last matching rule wins. */" },
-        { "location": "packages/protocol/src/groups/session.ts:165", "excerpt": "          permissions: Permission.Ruleset.pipe(Schema.optional)," }
+        { "location": "packages/schema/src/session.ts:60", "excerpt": "  /** Evaluated after the agent's rules; the last matching rule wins. */" },
+        { "location": "packages/protocol/src/groups/session.ts:174", "excerpt": "          permissions: Permission.Ruleset.pipe(Schema.optional)," }
       ]
     },
     {
@@ -245,8 +245,8 @@
       "summary": "Reports an execution failure with its error in Data.Error.",
       "reason": "Retain the declared failure payload without inferring idle transitions or exhausted-restart publication.",
       "sources": [
-        { "location": "packages/schema/src/session-event.ts:247", "excerpt": "    type: \"session.execution.failed\"," },
-        { "location": "packages/schema/src/session-event.ts:249", "excerpt": "    schema: { ...Base, error: SessionError.Error }," }
+        { "location": "packages/schema/src/session-event.ts:252", "excerpt": "    type: \"session.execution.failed\"," },
+        { "location": "packages/schema/src/session-event.ts:254", "excerpt": "    schema: { ...Base, error: SessionError.Error }," }
       ]
     },
     {
@@ -254,8 +254,8 @@
       "summary": "Reports interrupted execution; the pinned Data.Reason values are user, shutdown, superseded and inactivity.",
       "reason": "Retain the declared interruption reasons without inferring preservation, resumption or restart-exhaustion behavior.",
       "sources": [
-        { "location": "packages/schema/src/session-event.ts:254", "excerpt": "    type: \"session.execution.interrupted\"," },
-        { "location": "packages/schema/src/session-event.ts:256", "excerpt": "    schema: { ...Base, reason: Schema.Literals([\"user\", \"shutdown\", \"superseded\", \"inactivity\"]) }," }
+        { "location": "packages/schema/src/session-event.ts:259", "excerpt": "    type: \"session.execution.interrupted\"," },
+        { "location": "packages/schema/src/session-event.ts:261", "excerpt": "    schema: { ...Base, reason: Schema.Literals([\"user\", \"shutdown\", \"superseded\", \"inactivity\"]) }," }
       ]
     },
     {
@@ -265,7 +265,7 @@
       "reason": "Retain the declared identifier prefix without inferring existing-session adoption.",
       "sources": [
         { "location": "packages/schema/src/session-id.ts:5", "excerpt": "export const SessionID = Schema.String.check(Schema.isStartingWith(\"ses\")).pipe(" },
-        { "location": "packages/protocol/src/groups/session.ts:158", "excerpt": "          id: Session.ID.pipe(Schema.optional)," }
+        { "location": "packages/protocol/src/groups/session.ts:167", "excerpt": "          id: Session.ID.pipe(Schema.optional)," }
       ]
     },
     {
@@ -274,7 +274,7 @@
       "summary": "Token usage with input, output, reasoning and cache read/write parts.",
       "reason": "Retain the declared usage structure without inferring per-step scope or absence lifecycle.",
       "sources": [
-        { "location": "packages/schema/src/session-message.ts:228", "excerpt": "  tokens: TokenUsage.Info.pipe(optional)," },
+        { "location": "packages/schema/src/session-message.ts:237", "excerpt": "  tokens: TokenUsage.Info.pipe(optional)," },
         { "location": "packages/schema/src/token-usage.ts:6", "excerpt": "export const Info = Schema.Struct({" },
         { "location": "packages/schema/src/token-usage.ts:10", "excerpt": "  cache: Schema.Struct({" }
       ]
@@ -285,10 +285,10 @@
       "summary": "Retry information containing an attempt number, time and error.",
       "reason": "Retain the declared retry structure without inferring attempt numbering or clearing lifecycle.",
       "sources": [
-        { "location": "packages/schema/src/session-message.ts:230", "excerpt": "  retry: AssistantRetry.pipe(optional)," },
-        { "location": "packages/schema/src/session-message.ts:207", "excerpt": "  attempt: PositiveInt," },
-        { "location": "packages/schema/src/session-message.ts:208", "excerpt": "  at: DateTimeUtcFromMillis," },
-        { "location": "packages/schema/src/session-message.ts:209", "excerpt": "  error: SessionError.Error," }
+        { "location": "packages/schema/src/session-message.ts:239", "excerpt": "  retry: AssistantRetry.pipe(optional)," },
+        { "location": "packages/schema/src/session-message.ts:215", "excerpt": "  attempt: PositiveInt," },
+        { "location": "packages/schema/src/session-message.ts:216", "excerpt": "  at: DateTimeUtcFromMillis," },
+        { "location": "packages/schema/src/session-message.ts:217", "excerpt": "  error: SessionError.Error," }
       ]
     },
     {
@@ -297,8 +297,8 @@
       "summary": "A non-negative ordinal for this text part.",
       "reason": "Retain the declared non-negative ordinal without inferring zero-based indexing or separate reasoning numbering.",
       "sources": [
-        { "location": "packages/schema/src/session-event.ts:405", "excerpt": "    type: \"session.text.delta\"," },
-        { "location": "packages/schema/src/session-event.ts:409", "excerpt": "      ordinal: NonNegativeInt," },
+        { "location": "packages/schema/src/session-event.ts:410", "excerpt": "    type: \"session.text.delta\"," },
+        { "location": "packages/schema/src/session-event.ts:414", "excerpt": "      ordinal: NonNegativeInt," },
         { "location": "packages/schema/src/schema.ts:4", "excerpt": "export const NonNegativeInt = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))" }
       ]
     },
@@ -308,7 +308,7 @@
       "summary": "A model reference identifying the provider, model and optional variant.",
       "reason": "Retain the declared model-reference structure without inferring defaults or validation timing.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:162", "excerpt": "          model: Model.Ref.pipe(Schema.optional)," },
+        { "location": "packages/protocol/src/groups/session.ts:171", "excerpt": "          model: Model.Ref.pipe(Schema.optional)," },
         { "location": "packages/schema/src/model.ts:19", "excerpt": "export const Ref = Schema.Struct({" },
         { "location": "packages/schema/src/model.ts:21", "excerpt": "  providerID: Provider.ID," },
         { "location": "packages/schema/src/model.ts:22", "excerpt": "  variant: VariantID.pipe(optional)," }
@@ -320,8 +320,8 @@
       "summary": "The start of the aggregated time range.",
       "reason": "Retain the declared time-range role without inferring a unit or bound inclusion.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:139", "excerpt": "          from: Schema.NumberFromString.pipe(Schema.optional)," },
-        { "location": "packages/protocol/src/groups/session.ts:151", "excerpt": "          description: \"Aggregate local session activity, usage, and tool reliability for a time range.\"," }
+        { "location": "packages/protocol/src/groups/session.ts:148", "excerpt": "          from: Schema.NumberFromString.pipe(Schema.optional)," },
+        { "location": "packages/protocol/src/groups/session.ts:160", "excerpt": "          description: \"Aggregate local session activity, usage, and tool reliability for a time range.\"," }
       ]
     },
     {
@@ -330,8 +330,8 @@
       "summary": "The end of the aggregated time range.",
       "reason": "Retain the declared time-range role without inferring a unit or bound inclusion.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:140", "excerpt": "          to: Schema.NumberFromString.pipe(Schema.optional)," },
-        { "location": "packages/protocol/src/groups/session.ts:151", "excerpt": "          description: \"Aggregate local session activity, usage, and tool reliability for a time range.\"," }
+        { "location": "packages/protocol/src/groups/session.ts:149", "excerpt": "          to: Schema.NumberFromString.pipe(Schema.optional)," },
+        { "location": "packages/protocol/src/groups/session.ts:160", "excerpt": "          description: \"Aggregate local session activity, usage, and tool reliability for a time range.\"," }
       ]
     },
     {
@@ -342,19 +342,19 @@
       "reason": "Builders kept only deltas and lost text across reconnects; upstream declares stream fragments live-only.",
       "sources": [
         {
-          "location": "packages/schema/src/session-event.ts:403",
+          "location": "packages/schema/src/session-event.ts:408",
           "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary."
         },
         {
-          "location": "packages/schema/src/session-event.ts:408",
+          "location": "packages/schema/src/session-event.ts:413",
           "excerpt": "      assistantMessageID: SessionMessage.ID,"
         },
         {
-          "location": "packages/schema/src/session-event.ts:409",
+          "location": "packages/schema/src/session-event.ts:414",
           "excerpt": "      ordinal: NonNegativeInt,"
         },
         {
-          "location": "packages/schema/src/session-event.ts:410",
+          "location": "packages/schema/src/session-event.ts:415",
           "excerpt": "      delta: Schema.String,"
         }
       ]
@@ -367,15 +367,15 @@
       "reason": "Upstream declares Text.Ended the replayable full-value boundary.",
       "sources": [
         {
-          "location": "packages/schema/src/session-event.ts:403",
+          "location": "packages/schema/src/session-event.ts:408",
           "excerpt": "  // Stream fragments are live-only; Text.Ended is the replayable full-value boundary."
         },
         {
-          "location": "packages/schema/src/session-event.ts:415",
+          "location": "packages/schema/src/session-event.ts:420",
           "excerpt": "  export const Ended = Event.durable({"
         },
         {
-          "location": "packages/schema/src/session-event.ts:422",
+          "location": "packages/schema/src/session-event.ts:427",
           "excerpt": "      text: Schema.String,"
         }
       ]
@@ -719,7 +719,7 @@
       "summary": "Filter by archive state: true returns only archived sessions, false excludes them, and omitting it includes both.",
       "reason": "The declared archive-filter description does not reach the OpenAPI parameter.",
       "sources": [
-        { "location": "packages/schema/src/session.ts:96", "excerpt": "Filter by archive state. Use true to return only archived sessions or false to exclude them. Omit to include both." }
+        { "location": "packages/schema/src/session.ts:99", "excerpt": "Filter by archive state. Use true to return only archived sessions or false to exclude them. Omit to include both." }
       ]
     },
     {
@@ -730,7 +730,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session.ts:46",
+          "location": "packages/schema/src/session.ts:47",
           "excerpt": "    created: DateTimeUtcFromMillis,"
         },
         {
@@ -747,7 +747,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session.ts:47",
+          "location": "packages/schema/src/session.ts:48",
           "excerpt": "    updated: DateTimeUtcFromMillis,"
         },
         {
@@ -764,7 +764,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session.ts:48",
+          "location": "packages/schema/src/session.ts:52",
           "excerpt": "    idle: DateTimeUtcFromMillis.pipe(optional),"
         },
         {
@@ -781,7 +781,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session.ts:49",
+          "location": "packages/schema/src/session.ts:53",
           "excerpt": "    viewed: DateTimeUtcFromMillis.pipe(optional),"
         },
         {
@@ -798,7 +798,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session.ts:50",
+          "location": "packages/schema/src/session.ts:54",
           "excerpt": "    archived: DateTimeUtcFromMillis.pipe(optional),"
         },
         {
@@ -813,7 +813,7 @@
       "summary": "Idle time in milliseconds since the Unix epoch.",
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:829", "excerpt": "payload: Schema.Struct({ idle: DateTimeUtcFromMillis })," },
+        { "location": "packages/protocol/src/groups/session.ts:816", "excerpt": "payload: Schema.Struct({ idle: DateTimeUtcFromMillis })," },
         { "location": "packages/schema/src/schema.ts:36", "excerpt": "export const DateTimeUtcFromMillis = Schema.Finite.pipe(" },
         { "location": "packages/schema/src/schema.ts:39", "excerpt": "encode: SchemaGetter.transform((value) => DateTime.toEpochMillis(value))," }
       ]
@@ -836,7 +836,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:36",
+          "location": "packages/schema/src/session-message.ts:34",
           "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
         },
         {
@@ -853,7 +853,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:190",
+          "location": "packages/schema/src/session-message.ts:198",
           "excerpt": "    created: DateTimeUtcFromMillis,"
         },
         {
@@ -870,7 +870,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:191",
+          "location": "packages/schema/src/session-message.ts:199",
           "excerpt": "    completed: DateTimeUtcFromMillis.pipe(optional),"
         },
         {
@@ -887,7 +887,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:208",
+          "location": "packages/schema/src/session-message.ts:216",
           "excerpt": "  at: DateTimeUtcFromMillis,"
         },
         {
@@ -904,7 +904,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:232",
+          "location": "packages/schema/src/session-message.ts:241",
           "excerpt": "    created: DateTimeUtcFromMillis,"
         },
         {
@@ -921,7 +921,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:235",
+          "location": "packages/schema/src/session-message.ts:244",
           "excerpt": "    completed: DateTimeUtcFromMillis.pipe(optional),"
         },
         {
@@ -938,7 +938,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:171",
+          "location": "packages/schema/src/session-message.ts:179",
           "excerpt": "    created: DateTimeUtcFromMillis,"
         },
         {
@@ -955,7 +955,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:172",
+          "location": "packages/schema/src/session-message.ts:180",
           "excerpt": "    ran: DateTimeUtcFromMillis.pipe(optional),"
         },
         {
@@ -972,7 +972,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:173",
+          "location": "packages/schema/src/session-message.ts:181",
           "excerpt": "    completed: DateTimeUtcFromMillis.pipe(optional),"
         },
         {
@@ -989,7 +989,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:36",
+          "location": "packages/schema/src/session-message.ts:34",
           "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
         },
         {
@@ -1006,7 +1006,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:36",
+          "location": "packages/schema/src/session-message.ts:34",
           "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
         },
         {
@@ -1023,7 +1023,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:36",
+          "location": "packages/schema/src/session-message.ts:34",
           "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
         },
         {
@@ -1040,7 +1040,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:121",
+          "location": "packages/schema/src/session-message.ts:130",
           "excerpt": "    created: DateTimeUtcFromMillis,"
         },
         {
@@ -1057,7 +1057,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:122",
+          "location": "packages/schema/src/session-message.ts:131",
           "excerpt": "    completed: DateTimeUtcFromMillis.pipe(optional),"
         },
         {
@@ -1074,7 +1074,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:36",
+          "location": "packages/schema/src/session-message.ts:34",
           "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
         },
         {
@@ -1091,7 +1091,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:36",
+          "location": "packages/schema/src/session-message.ts:34",
           "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
         },
         {
@@ -1108,7 +1108,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:36",
+          "location": "packages/schema/src/session-message.ts:34",
           "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
         },
         {
@@ -1125,7 +1125,7 @@
       "reason": "The named schema codec declares the encoded timestamp unit.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:36",
+          "location": "packages/schema/src/session-message.ts:34",
           "excerpt": "  time: Schema.Struct({ created: DateTimeUtcFromMillis }),"
         },
         {
@@ -1142,11 +1142,11 @@
       "reason": "The projection omits the declared documentation for this setting.",
       "sources": [
         {
-          "location": "packages/schema/src/session-message.ts:233",
+          "location": "packages/schema/src/session-message.ts:242",
           "excerpt": "    /** When the provider response body ended, before tool settlement. */"
         },
         {
-          "location": "packages/schema/src/session-message.ts:234",
+          "location": "packages/schema/src/session-message.ts:243",
           "excerpt": "    streamed: DateTimeUtcFromMillis.pipe(optional),"
         },
         {
@@ -1256,7 +1256,7 @@
       "reason": "The projection omits the declared documentation for this setting.",
       "sources": [
         {
-          "location": "packages/schema/src/config/experimental.ts:19",
+          "location": "packages/schema/src/config/experimental.ts:41",
           "excerpt": "    description: \"Maximum subagent nesting depth. Defaults to 1.\","
         }
       ]
@@ -1269,7 +1269,7 @@
       "reason": "The projection omits the declared documentation for this setting.",
       "sources": [
         {
-          "location": "packages/schema/src/config/experimental.ts:9",
+          "location": "packages/schema/src/config/experimental.ts:10",
           "excerpt": "    description: \"Enable the experimental portable shell permission scanner. Defaults to false.\","
         }
       ]
@@ -1316,7 +1316,7 @@
       "reason": "The projection omits the declared documentation for this setting.",
       "sources": [
         {
-          "location": "packages/schema/src/tui-event.ts:48",
+          "location": "packages/schema/src/tui-event.ts:47",
           "excerpt": "      description: \"Duration in milliseconds\","
         }
       ]
@@ -1329,7 +1329,7 @@
       "reason": "The projection omits the declared documentation for this setting.",
       "sources": [
         {
-          "location": "packages/core/src/tool/plugin/opencode.ts:68",
+          "location": "packages/core/src/tool/plugin/opencode.ts:75",
           "excerpt": "    description: \"Release date as a Unix timestamp in milliseconds, or 0 when unknown.\","
         }
       ]
@@ -1368,7 +1368,7 @@
       "reason": "Describe the upstream route group exposed by this family.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/event.ts:55",
+          "location": "packages/protocol/src/groups/event.ts:73",
           "excerpt": "      .annotateMerge(OpenApi.annotations({ title: \"event\", description: \"Experimental event stream routes.\" })),"
         }
       ]
@@ -1381,7 +1381,7 @@
       "reason": "Describe the upstream route group exposed by this family.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/event.ts:55",
+          "location": "packages/protocol/src/groups/event.ts:73",
           "excerpt": "      .annotateMerge(OpenApi.annotations({ title: \"event\", description: \"Experimental event stream routes.\" })),"
         }
       ]
@@ -1432,7 +1432,7 @@
       "reason": "Describe the upstream route group exposed by this family.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/model.ts:43",
+          "location": "packages/protocol/src/groups/model.ts:50",
           "excerpt": "      description: \"Experimental model routes.\","
         }
       ]
@@ -1445,7 +1445,7 @@
       "reason": "Describe the upstream route group exposed by this family.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/model.ts:43",
+          "location": "packages/protocol/src/groups/model.ts:50",
           "excerpt": "      description: \"Experimental model routes.\","
         }
       ]
@@ -1458,7 +1458,7 @@
       "reason": "Describe the upstream route group exposed by this family.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/persistent-pty.ts:127",
+          "location": "packages/protocol/src/groups/persistent-pty.ts:128",
           "excerpt": "  .annotateMerge(OpenApi.annotations({ title: \"persistentPty\", description: \"Prototype persistent PTY routes.\" }))"
         }
       ]
@@ -1471,7 +1471,7 @@
       "reason": "Describe the upstream route group exposed by this family.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/plugin.ts:59",
+          "location": "packages/protocol/src/groups/plugin.ts:78",
           "excerpt": "      description: \"Experimental plugin routes.\","
         }
       ]
@@ -1484,7 +1484,7 @@
       "reason": "Describe the upstream route group exposed by this family.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/plugin.ts:59",
+          "location": "packages/protocol/src/groups/plugin.ts:78",
           "excerpt": "      description: \"Experimental plugin routes.\","
         }
       ]
@@ -1666,7 +1666,7 @@
       "reason": "Describe the upstream route group exposed by this family.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/vcs.ts:128",
+          "location": "packages/protocol/src/groups/vcs.ts:129",
           "excerpt": "      description: \"Location-scoped version control routes.\","
         }
       ]
@@ -1679,7 +1679,7 @@
       "reason": "Describe the upstream route group exposed by this family.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/vcs.ts:128",
+          "location": "packages/protocol/src/groups/vcs.ts:129",
           "excerpt": "      description: \"Location-scoped version control routes.\","
         }
       ]
@@ -1748,7 +1748,7 @@
           "excerpt": "    HttpApiEndpoint.get(\"agent.list\", \"/api/agent\", {"
         },
         {
-          "location": "packages/protocol/src/groups/agent.ts:24",
+          "location": "packages/protocol/src/groups/agent.ts:25",
           "excerpt": "    HttpApiEndpoint.get(\"agent.get\", \"/api/agent/:agentID\", {"
         }
       ]
@@ -1765,7 +1765,7 @@
           "excerpt": "    HttpApiEndpoint.get(\"agent.list\", \"/api/agent\", {"
         },
         {
-          "location": "packages/protocol/src/groups/agent.ts:24",
+          "location": "packages/protocol/src/groups/agent.ts:25",
           "excerpt": "    HttpApiEndpoint.get(\"agent.get\", \"/api/agent/:agentID\", {"
         }
       ]
@@ -1872,11 +1872,11 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/generate.ts:8",
-          "excerpt": "    HttpApiEndpoint.post(\"generate.text\", \"/api/experimental/generate\", {"
+          "location": "packages/protocol/src/groups/generate.ts:38",
+          "excerpt": "    HttpApiEndpoint.post(\"generate.text\", \"/api/experimental/generate/text\", textContract).annotateMerge("
         },
         {
-          "location": "packages/protocol/src/groups/session.ts:137",
+          "location": "packages/protocol/src/groups/session.ts:146",
           "excerpt": "      HttpApiEndpoint.get(\"session.stats\", \"/api/experimental/session/stats\", {"
         },
         {
@@ -1897,11 +1897,11 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/generate.ts:8",
-          "excerpt": "    HttpApiEndpoint.post(\"generate.text\", \"/api/experimental/generate\", {"
+          "location": "packages/protocol/src/groups/generate.ts:38",
+          "excerpt": "    HttpApiEndpoint.post(\"generate.text\", \"/api/experimental/generate/text\", textContract).annotateMerge("
         },
         {
-          "location": "packages/protocol/src/groups/session.ts:137",
+          "location": "packages/protocol/src/groups/session.ts:146",
           "excerpt": "      HttpApiEndpoint.get(\"session.stats\", \"/api/experimental/session/stats\", {"
         },
         {
@@ -1922,15 +1922,15 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/fs.ts:33",
+          "location": "packages/protocol/src/groups/fs.ts:37",
           "excerpt": "    HttpApiEndpoint.get(\"fs.read\", \"/api/fs/read/*\", {"
         },
         {
-          "location": "packages/protocol/src/groups/fs.ts:49",
+          "location": "packages/protocol/src/groups/fs.ts:53",
           "excerpt": "    HttpApiEndpoint.get(\"fs.list\", \"/api/fs/list\", {"
         },
         {
-          "location": "packages/protocol/src/groups/fs.ts:65",
+          "location": "packages/protocol/src/groups/fs.ts:69",
           "excerpt": "    HttpApiEndpoint.get(\"fs.find\", \"/api/fs/find\", {"
         }
       ]
@@ -1943,15 +1943,15 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/fs.ts:33",
+          "location": "packages/protocol/src/groups/fs.ts:37",
           "excerpt": "    HttpApiEndpoint.get(\"fs.read\", \"/api/fs/read/*\", {"
         },
         {
-          "location": "packages/protocol/src/groups/fs.ts:49",
+          "location": "packages/protocol/src/groups/fs.ts:53",
           "excerpt": "    HttpApiEndpoint.get(\"fs.list\", \"/api/fs/list\", {"
         },
         {
-          "location": "packages/protocol/src/groups/fs.ts:65",
+          "location": "packages/protocol/src/groups/fs.ts:69",
           "excerpt": "    HttpApiEndpoint.get(\"fs.find\", \"/api/fs/find\", {"
         }
       ]
@@ -2024,15 +2024,15 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/permission.ts:38",
+          "location": "packages/protocol/src/groups/permission.ts:39",
           "excerpt": "            description: \"Retrieve pending permission requests for a location.\","
         },
         {
-          "location": "packages/protocol/src/groups/permission.ts:50",
+          "location": "packages/protocol/src/groups/permission.ts:53",
           "excerpt": "          description: \"Retrieve saved permissions, optionally filtered by project.\","
         },
         {
-          "location": "packages/protocol/src/groups/permission.ts:80",
+          "location": "packages/protocol/src/groups/permission.ts:83",
           "excerpt": "          description: \"Remove a saved permission by ID.\","
         }
       ]
@@ -2045,15 +2045,15 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/permission.ts:38",
+          "location": "packages/protocol/src/groups/permission.ts:39",
           "excerpt": "            description: \"Retrieve pending permission requests for a location.\","
         },
         {
-          "location": "packages/protocol/src/groups/permission.ts:50",
+          "location": "packages/protocol/src/groups/permission.ts:53",
           "excerpt": "          description: \"Retrieve saved permissions, optionally filtered by project.\","
         },
         {
-          "location": "packages/protocol/src/groups/permission.ts:80",
+          "location": "packages/protocol/src/groups/permission.ts:83",
           "excerpt": "          description: \"Remove a saved permission by ID.\","
         }
       ]
@@ -2066,15 +2066,15 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/server.ts:49",
+          "location": "packages/protocol/src/groups/server.ts:51",
           "excerpt": "        description: \"Return the server identity, connection URLs, paths, and readiness status.\","
         },
         {
-          "location": "packages/protocol/src/groups/server.ts:54",
+          "location": "packages/protocol/src/groups/server.ts:56",
           "excerpt": "    HttpApiEndpoint.post(\"server.pair\", \"/api/pair\", {"
         },
         {
-          "location": "packages/protocol/src/groups/server.ts:65",
+          "location": "packages/protocol/src/groups/server.ts:67",
           "excerpt": "    HttpApiEndpoint.get(\"server.connect\", PAIRING_CONNECT_PATH, {"
         }
       ]
@@ -2087,15 +2087,15 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/server.ts:49",
+          "location": "packages/protocol/src/groups/server.ts:51",
           "excerpt": "        description: \"Return the server identity, connection URLs, paths, and readiness status.\","
         },
         {
-          "location": "packages/protocol/src/groups/server.ts:54",
+          "location": "packages/protocol/src/groups/server.ts:56",
           "excerpt": "    HttpApiEndpoint.post(\"server.pair\", \"/api/pair\", {"
         },
         {
-          "location": "packages/protocol/src/groups/server.ts:65",
+          "location": "packages/protocol/src/groups/server.ts:67",
           "excerpt": "    HttpApiEndpoint.get(\"server.connect\", PAIRING_CONNECT_PATH, {"
         }
       ]
@@ -2108,19 +2108,19 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/session.ts:115",
+          "location": "packages/protocol/src/groups/session.ts:124",
           "excerpt": "  HttpApiGroup.make(\"server.session\")"
         },
         {
-          "location": "packages/protocol/src/groups/session.ts:335",
+          "location": "packages/protocol/src/groups/session.ts:337",
           "excerpt": "      HttpApiEndpoint.post(\"session.prompt\", \"/api/session/:sessionID/prompt\", {"
         },
         {
-          "location": "packages/protocol/src/groups/message.ts:68",
+          "location": "packages/protocol/src/groups/message.ts:102",
           "excerpt": "    HttpApiEndpoint.get(\"session.messages\", \"/api/session/:sessionID/message\", {"
         },
         {
-          "location": "packages/protocol/src/groups/permission.ts:87",
+          "location": "packages/protocol/src/groups/permission.ts:88",
           "excerpt": "      HttpApiEndpoint.post(\"session.permission.create\", \"/api/session/:sessionID/permission\", {"
         }
       ]
@@ -2133,19 +2133,19 @@
       "reason": "Describe the purpose of the generated family rather than repeat its name.",
       "sources": [
         {
-          "location": "packages/protocol/src/groups/session.ts:115",
+          "location": "packages/protocol/src/groups/session.ts:124",
           "excerpt": "  HttpApiGroup.make(\"server.session\")"
         },
         {
-          "location": "packages/protocol/src/groups/session.ts:335",
+          "location": "packages/protocol/src/groups/session.ts:337",
           "excerpt": "      HttpApiEndpoint.post(\"session.prompt\", \"/api/session/:sessionID/prompt\", {"
         },
         {
-          "location": "packages/protocol/src/groups/message.ts:68",
+          "location": "packages/protocol/src/groups/message.ts:102",
           "excerpt": "    HttpApiEndpoint.get(\"session.messages\", \"/api/session/:sessionID/message\", {"
         },
         {
-          "location": "packages/protocol/src/groups/permission.ts:87",
+          "location": "packages/protocol/src/groups/permission.ts:88",
           "excerpt": "      HttpApiEndpoint.post(\"session.permission.create\", \"/api/session/:sessionID/permission\", {"
         }
       ]

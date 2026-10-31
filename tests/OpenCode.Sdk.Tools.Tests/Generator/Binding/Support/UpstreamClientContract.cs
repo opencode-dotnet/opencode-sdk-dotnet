@@ -263,7 +263,7 @@ internal sealed partial class UpstreamClientContract
     // These read the pinned upstream client and test constants, never untrusted input, in time linear in
     // it. A wall-clock match timeout would only fail them on a stalled CI runner.
     [GeneratedRegex(
-        @"\(input\??: (?<input>\w+)Input, requestOptions\?: RequestOptions\)(?:: [^=]*?)? =>\s*\w+<[^\n]*?>\(\s*\{\s*method: ""(?<method>\w+)"",\s*path: `(?<path>[^`]*)`,(?:\s*query: \{(?<query>[^}]*)\},)?",
+        @"\(\s*input\??: (?<input>\w+)Input,\s*requestOptions\?: RequestOptions,?\s*\)(?:: [^=]*?)? =>\s*\w+<[^\n]*?>\(\s*\{\s*method: ""(?<method>\w+)"",\s*path: `(?<path>[^`]*)`,(?:\s*query: \{(?<query>[^}]*)\},)?",
         RegexOptions.CultureInvariant, matchTimeoutMilliseconds: Timeout.Infinite)]
     private static partial Regex RouteCall();
 

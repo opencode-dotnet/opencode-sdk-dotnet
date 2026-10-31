@@ -109,7 +109,7 @@ public sealed class EventsClientLiveTests(PinnedOpenCodeServerFixture server)
         var owned = ownedEntries.Single();
         await Assert.That(owned.Source).IsTypeOf<PluginSourceLocal>();
         var local = owned.Source as PluginSourceLocal;
-        await Assert.That(local?.Path).IsEqualTo(ownedPlugin.EntryPoint);
+        await Assert.That(local?.Path).IsEqualTo(ownedPlugin.Directory);
         await Assert.That(owned.State).IsTypeOf<PluginStateActive>();
     }
 

@@ -11,6 +11,26 @@ Nightly builds of `master` are on
 
 ### 💥 Breaking changes
 
+- **The upstream pin moves to opencode v2.2.2.** The entries below are what the refresh changes in
+  the public surface; each follows a change upstream made between v2.1.4 and v2.2.2.
+- **The session log moves to `ExperimentalClient.ReadSessionLogAsync`.** Upstream serves it as
+  `experimental.session.log`, so `SessionClient.ReadLogAsync` is gone and `SessionLogRequest` is
+  `ExperimentalSessionLogRequest`, with the same `After` and `Follow`. Migrate
+  `client.Sessions.GetSessionClient(id).ReadLogAsync(new SessionLogRequest { … })` to
+  `client.Experimental.ReadSessionLogAsync(id, new ExperimentalSessionLogRequest { … })`. The
+  session-log types now carry `OPENCODE001`, the experimental client's diagnostic, and `OPENCODE003`
+  is retired: a suppression of `OPENCODE003` becomes one of `OPENCODE001`.
+- **`ExperimentalClient.SetVoiceSessionInstructionsAsync` is removed**, with
+  `ExperimentalVoiceInstructionsRequest` and `ExperimentalVoiceInstructionsResponse`: upstream
+  removed the operation.
+- **`EventsClient.SubscribeAsync` takes an optional `EventSubscribeRequest` first.** Its `Types`
+  limits the stream to the listed event types. A call that passed `requestOptions` by position
+  names it instead: `SubscribeAsync(requestOptions: options)`.
+- **Model variants have their own settings type.** `ModelVariant.Settings` is
+  `ModelVariantSettings?` and `ConfigModelVariants.Settings` is `ConfigModelVariantSettings?`, as
+  upstream separates a variant's settings from a model's.
+- **`VoiceModel.Integration`, `VoiceModel.Workspace` and `ExperimentalVoiceSessionData.Session`
+  are removed**, with `VoiceSessionReference`: upstream no longer declares them.
 - **Open enums are generated extensible enums, not `string`.** A string enum beside a free string,
   such as a reasoning field's known names, now binds a generated extensible enum that carries any
   other value too. `ModelCompatibility.ReasoningField` and `ProviderCompatibility.ReasoningField`
@@ -35,6 +55,11 @@ Nightly builds of `master` are on
 
 ### 🔧 Changes
 
+- **The operations upstream v2.2.2 adds.** `ExperimentalClient` gains `WatchFileAsync`,
+  `UnwatchFileAsync`, `GenerateDecisionsAsync`, `GenerateImagesAsync`, `GetMediaAsync`,
+  `GetUsageLimitsAsync`, and the schedule operations `CreateScheduleAsync`, `GetScheduleAsync`,
+  `ListSchedulesAsync`, `PauseScheduleAsync`, `ResumeScheduleAsync` and `DeleteScheduleAsync`;
+  `PluginsClient` gains `GetGuiAsync`. `event.subscribe` and `model.list` take a `types` filter.
 - **Clearer IntelliSense documentation.** `EnumerateSessionsAsync` and `EnumerateMessagesAsync`
   link their page methods and carry those methods' summaries; `server.connected` renders as code in
   `SubscribeAsync`'s remarks.

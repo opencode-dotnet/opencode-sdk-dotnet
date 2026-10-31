@@ -697,7 +697,7 @@ public sealed class CancellationIdentityTests
             _ when IsCursorEnumerator(member) => "cursor-items",
             _ when ClientFamilies.Contains(member.DeclaringType) && IsGeneric(member.ReturnType, typeof(CursorSequence<,>)) => "cursor-items",
             _ when member.Is(typeof(EventsClient), nameof(EventsClient.SubscribeAsync), typeof(IAsyncEnumerable<IEvent>),
-                typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "events",
+                typeof(EventSubscribeRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "events",
             _ when ClientFamilies.Contains(member.DeclaringType) && IsGeneric(member.ReturnType, typeof(IAsyncEnumerable<>)) => "other-sse",
             _ when member.Is(typeof(PtyClient), nameof(PtyClient.UpdateAsync), typeof(Task<PtyUpdateResponse>),
                 typeof(PtyUpdateRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "pty-resize-http",

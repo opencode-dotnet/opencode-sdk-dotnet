@@ -203,7 +203,7 @@ public sealed class SecretMemberPrintingTests
         var settings = JsonSerializer.Deserialize($$"""{"apiKey":"{{Secret}}"}""", OpenCodeJsonContext.Default.ProviderSettings)!;
 
         await Assert.That(settings.ToString()).IsEqualTo(
-            "ProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Transport = , Encoding = , AdditionalProperties = [REDACTED] }");
+            "ProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Cache = , Transport = , Encoding = , AdditionalProperties = [REDACTED] }");
     }
 
     [Test]
@@ -212,7 +212,7 @@ public sealed class SecretMemberPrintingTests
         var settings = new ProviderSettings();
 
         await Assert.That(settings.ToString()).IsEqualTo(
-            "ProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Transport = , Encoding = , AdditionalProperties =  }");
+            "ProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Cache = , Transport = , Encoding = , AdditionalProperties =  }");
     }
 
     /// <summary>Masking is the printed form only: the open members still go back on the wire.</summary>
@@ -250,7 +250,7 @@ public sealed class SecretMemberPrintingTests
         var settings = JsonSerializer.Deserialize($$"""{"bearerToken":"{{Secret}}"}""", OpenCodeJsonContext.Default.ConfigProviderSettings)!;
 
         await Assert.That(settings.ToString()).IsEqualTo(
-            "ConfigProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Transport = , Encoding = , AdditionalProperties = [REDACTED] }");
+            "ConfigProviderSettings { Timeout = , HeaderTimeout = , ChunkTimeout = , Compaction = , Cache = , Transport = , Encoding = , AdditionalProperties = [REDACTED] }");
     }
 
     [Test]
@@ -258,7 +258,7 @@ public sealed class SecretMemberPrintingTests
     {
         var settings = JsonSerializer.Deserialize($$"""{"apiKey":"{{Secret}}"}""", OpenCodeJsonContext.Default.ModelSettings)!;
 
-        await Assert.That(settings.ToString()).IsEqualTo("ModelSettings { Compaction = , Encoding = , AdditionalProperties = [REDACTED] }");
+        await Assert.That(settings.ToString()).IsEqualTo("ModelSettings { Compaction = , Cache = , Encoding = , AdditionalProperties = [REDACTED] }");
     }
 
     [Test]
@@ -266,8 +266,8 @@ public sealed class SecretMemberPrintingTests
     {
         var settings = JsonSerializer.Deserialize($$"""{"apiKey":"{{Secret}}"}""", OpenCodeJsonContext.Default.ConfigModelSettings)!;
 
-        await Assert.That(settings.ToString()).IsEqualTo("ConfigModelSettings { Compaction = , Encoding = , AdditionalProperties = [REDACTED] }");
-        await Assert.That(new ConfigModelSettings().ToString()).IsEqualTo("ConfigModelSettings { Compaction = , Encoding = , AdditionalProperties =  }");
+        await Assert.That(settings.ToString()).IsEqualTo("ConfigModelSettings { Compaction = , Cache = , Encoding = , AdditionalProperties = [REDACTED] }");
+        await Assert.That(new ConfigModelSettings().ToString()).IsEqualTo("ConfigModelSettings { Compaction = , Cache = , Encoding = , AdditionalProperties =  }");
     }
 
     [Test]

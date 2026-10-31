@@ -94,6 +94,24 @@ public sealed class UpstreamClientContractTests
         await Assert.That(type).IsEqualTo("number");
     }
 
+    /// <summary>A signature the upstream printer wraps across lines, with a trailing comma, still declares its route.</summary>
+    [Test]
+    public async Task Parse_Should_Read_A_Route_Whose_Signature_Wraps_Across_Lines()
+    {
+        var contract = UpstreamClientContract.Parse(
+            Client.Replace(
+                "log: (input: SessionLogInput, requestOptions?: RequestOptions): AsyncIterable<SessionLogOutput> =>",
+                "log: (\n  input: SessionLogInput,\n  requestOptions?: RequestOptions,\n): AsyncIterable<SessionLogOutput> =>",
+                StringComparison.Ordinal),
+            Api,
+            PromiseTypes);
+
+        var found = contract.TryGetQueryType("GET", "/api/session/{sessionID}/log", "after", out var type, out var problem);
+
+        await Assert.That(found).IsTrue().Because(problem);
+        await Assert.That(type).IsEqualTo("Event.Seq");
+    }
+
     /// <summary>Quotes, braces and the word readonly inside a string literal do not split or end a field.</summary>
     [Test]
     public async Task Parse_Should_Keep_A_Literal_With_Escaped_Quotes_And_Braces_Whole()
