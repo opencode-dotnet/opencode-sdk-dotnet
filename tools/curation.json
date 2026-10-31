@@ -161,7 +161,7 @@
       "summary": "An optional message identifier starting with msg_.",
       "reason": "Retain the declared identifier prefix without inferring idempotence or conflict behavior.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:401", "excerpt": "          id: SessionMessage.ID.pipe(Schema.optional)," },
+        { "location": "packages/protocol/src/groups/session.ts:340", "excerpt": "          id: SessionMessage.ID.pipe(Schema.optional)," },
         { "location": "packages/schema/src/session-message.ts:21", "excerpt": "export const ID = Schema.String.check(Schema.isStartingWith(\"msg_\")).pipe(" }
       ]
     },
@@ -191,7 +191,7 @@
       "summary": "The input delivery mode; the pinned values are steer and queue.",
       "reason": "Retain the declared modes without inferring a default or boundary-ordering policy.",
       "sources": [
-        { "location": "packages/protocol/src/groups/session.ts:405", "excerpt": "          delivery: SessionInbox.Delivery.pipe(Schema.optional)," },
+        { "location": "packages/protocol/src/groups/session.ts:343", "excerpt": "          delivery: SessionInbox.Delivery.pipe(Schema.optional)," },
         { "location": "packages/schema/src/session-inbox.ts:11", "excerpt": "export const Delivery = Schema.Literals([\"steer\", \"queue\"]).annotate({ identifier: \"Session.Inbox.Delivery\" })" }
       ]
     },

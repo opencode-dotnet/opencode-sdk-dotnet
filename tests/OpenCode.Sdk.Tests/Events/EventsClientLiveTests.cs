@@ -93,7 +93,7 @@ public sealed class EventsClientLiveTests(PinnedOpenCodeServerFixture server)
 
     /// <summary>
     /// Activation is awaited in the client's location before the event proof depends on the plugin,
-    /// and the exact owned entry must be the active local file the fixture seeded.
+    /// and the exact owned entry must be the active local directory the fixture seeded.
     /// </summary>
     private static async Task AssertOwnedPluginActiveAsync(
         OpenCodeClient client,

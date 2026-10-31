@@ -3,7 +3,9 @@ SessionMessageAssistant
 SessionMessageAssistant.Content
 SessionTextDeltaData.Delta
 SessionTextEndedData.Text
+SessionPromptRequest.Id
 SessionPromptRequest.Skills
+SessionPromptRequest.Delivery
 SessionExecutionFailed
 SessionExecutionInterrupted
 SessionCreateRequest.Id

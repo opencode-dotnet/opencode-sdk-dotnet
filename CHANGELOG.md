@@ -60,10 +60,13 @@ Nightly builds of `master` are on
   `GetUsageLimitsAsync`, and the schedule operations `CreateScheduleAsync`, `GetScheduleAsync`,
   `ListSchedulesAsync`, `PauseScheduleAsync`, `ResumeScheduleAsync` and `DeleteScheduleAsync`;
   `PluginsClient` gains `GetGuiAsync`. `event.subscribe` and `model.list` take a `types` filter.
+  New members follow upstream too, among them `SessionInfoTime.Busy`, a `Cache` setting on models
+  and providers, `ConfigInfo.Timezone` and `VcsDiffRequest.Untracked`, and a local plugin's
+  `PluginSourceLocal.Path` is now the path it was configured with.
 - **Clearer IntelliSense documentation.** `EnumerateSessionsAsync` and `EnumerateMessagesAsync`
   link their page methods and carry those methods' summaries; `server.connected` renders as code in
   `SubscribeAsync`'s remarks.
-- **Known stream tags can now arrive as the unknown arm.** On `event.subscribe` and `session.log`,
+- **Known stream tags can now arrive as the unknown arm.** On `event.subscribe` and the session log,
   a frame whose normal decoding fails arrives as `UnknownEvent` or `UnknownSessionLogItem` when
   the existing carrier can preserve it; its neighbours continue on the same connection or request.
   Invalid JSON and carrier refusals keep their original failures.

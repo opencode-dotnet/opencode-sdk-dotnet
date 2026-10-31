@@ -426,7 +426,7 @@ resolves the message's network window from those carried traits.
   - `OpenCodeClientOptions.NetworkTimeout` does not reach `event.subscribe`, and a non-null per-call
     `NetworkTimeout` is refused, including `Timeout.InfiniteTimeSpan`. The 2 s connect bound and the
     1 s delay are fixed, as in upstream; per-call `Location` is sent on every reconnect attempt.
-- Durable continuation is requested explicitly through `session.log`'s `after` parameter, an
+- Durable continuation is requested explicitly through `experimental.session.log`'s `after` parameter, an
   exclusive aggregate sequence read from a durable envelope or from the sync marker. One
   `log.synced` marker reports the watermark the replay was captured at; it is a boundary rather
   than a durable event, and under `follow` the events committed while that replay was in flight
@@ -454,7 +454,7 @@ resolves the message's network window from those carried traits.
   governed by ADR-0009 and are not confused with unknown frame names. A known tag whose schema is
   impossible is a protocol failure, not an unknown variant (ADR-0015). A stream payload union that
   reaches one is refused at generation, so the tolerance below never reaches it (ADR-0038).
-- On `event.subscribe` and `session.log`, a payload whose normal materialization throws
+- On `event.subscribe` and `experimental.session.log`, a payload whose normal materialization throws
   `JsonException` arrives as its union's existing unknown arm when that arm's converter can hold
   the same frame; the connection or request continues (ADR-0038). Invalid JSON and refused carriers
   keep the malformed-payload transport failure with the original decode exception as inner. A null
