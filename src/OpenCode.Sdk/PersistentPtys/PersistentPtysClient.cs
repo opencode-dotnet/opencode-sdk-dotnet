@@ -63,7 +63,7 @@ public class PersistentPtysClient
     /// <exception cref="OpenCodeApiException">The API returned an error status (declared: 400, 401, 503) and NoThrow was not selected.</exception>
     /// <exception cref="OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>persistentPty.list</c>: <c>GET /api/experimental/session/{sessionID}/terminal</c>.
+    /// Operation <c>experimental.persistentPty.list</c>: <c>GET /api/experimental/session/{sessionID}/terminal</c>.
     /// </remarks>
     public virtual Task<PersistentPtyListResponse> ListPersistentPtysAsync(string sessionId,
         OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
@@ -82,7 +82,7 @@ public class PersistentPtysClient
     /// <exception cref="OpenCodeApiException">The API returned an error status (declared: 400, 401, 503) and NoThrow was not selected.</exception>
     /// <exception cref="OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>persistentPty.create</c>: <c>POST /api/experimental/session/{sessionID}/terminal</c>.
+    /// Operation <c>experimental.persistentPty.create</c>: <c>POST /api/experimental/session/{sessionID}/terminal</c>.
     /// </remarks>
     public virtual Task<PersistentPtyCreateResponse> CreatePersistentPtyAsync(string sessionId,
         PersistentPtyCreateRequest request, OpenCodeRequestOptions? requestOptions = null,
@@ -101,7 +101,7 @@ public class PersistentPtysClient
     /// <exception cref="OpenCodeApiException">The API returned an error status (declared: 400, 401, 503) and NoThrow was not selected.</exception>
     /// <exception cref="OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>persistentPty.read</c>: <c>GET /api/experimental/session/{sessionID}/terminal/read</c>.
+    /// Operation <c>experimental.persistentPty.read</c>: <c>GET /api/experimental/session/{sessionID}/terminal/read</c>.
     /// </remarks>
     public virtual Task<PersistentPtyReadResponse> ReadAsync(string sessionId,
         PersistentPtyReadRequest? request = null, OpenCodeRequestOptions? requestOptions = null,
@@ -119,7 +119,7 @@ public class PersistentPtysClient
     /// <exception cref="OpenCodeApiException">The API returned an error status (declared: 400, 401, 503) and NoThrow was not selected.</exception>
     /// <exception cref="OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>persistentPty.handoff</c>: <c>POST /api/experimental/persistent-pty/handoff</c>.
+    /// Operation <c>experimental.persistentPty.handoff</c>: <c>POST /api/experimental/persistent-pty/handoff</c>.
     /// </remarks>
     public virtual Task<PersistentPtyHandoffResponse> HandoffAsync(
         OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
@@ -135,7 +135,7 @@ public class PersistentPtysClient
     /// <exception cref="OpenCodeApiException">The API returned an error status (declared: 400, 401, 503) and NoThrow was not selected.</exception>
     /// <exception cref="OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
-    /// Operation <c>persistentPty.shutdown</c>: <c>POST /api/experimental/persistent-pty/shutdown</c>.
+    /// Operation <c>experimental.persistentPty.shutdown</c>: <c>POST /api/experimental/persistent-pty/shutdown</c>.
     /// </remarks>
     public virtual Task<PersistentPtyShutdownResponse> ShutdownAsync(
         OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>

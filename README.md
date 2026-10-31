@@ -85,9 +85,9 @@ The HTTP API has no file-content search: `FileSystemClient.FindEntriesAsync` ran
 | Web search and RPC | `client.Websearch`, `client.Rpc` | — |
 | Operations upstream marks experimental | `client.Experimental` | [Experimental APIs](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md) |
 
-The two terminal connections (`pty.connect`, `persistentPty.connect`) are WebSocket upgrades that
-the HTTP pipeline cannot carry. They are fully usable through the hand-written `PtySession` and
-`PersistentPtySession` types. Nothing is declined:
+The two terminal connections (`pty.connect`, `experimental.persistentPty.connect`) are WebSocket
+upgrades that the HTTP pipeline cannot carry. They are fully usable through the hand-written
+`PtySession` and `PersistentPtySession` types. Nothing is declined:
 [`src/OpenCode.Sdk/.generation-incomplete`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/src/OpenCode.Sdk/.generation-incomplete)
 is the machine-readable map that the build reads.
 
