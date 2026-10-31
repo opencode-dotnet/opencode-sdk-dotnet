@@ -1,6 +1,8 @@
 using System.Net;
+using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Support;
+using OpenCode.Sdk.Tests.Transport.Support;
 
 using TUnit.Assertions.Enums;
 
@@ -106,6 +108,22 @@ public sealed class FileSystemClientContractTests
         await Assert.That(response.ContentType).IsEqualTo("image/png");
         await Assert.That(scenario.Requests.Single().RequestUri)
             .IsEqualTo(new Uri("http://localhost:4096/api/fs/read/assets/logo.png"));
+    }
+
+    [Test]
+    public async Task ReadFileAsync_Should_Return_Only_The_Body_Without_Pooled_Spare_Capacity()
+    {
+        byte[] bytes = [0x00, 0x89, 0xFE, 0x0A];
+        var pool = new TrackingByteArrayPool();
+        using var scenario = PipelineScenario.Buffering(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(bytes),
+        }, bufferPool: pool);
+
+        var response = await scenario.Pipeline.ExecuteAsync("fs.read", HttpMethod.Get, "/api/fs/read/file.bin",
+            FsReadResponseAdapter.Instance, options: null, CancellationToken.None);
+
+        await Assert.That(response.Content.ToArray()).IsEquivalentTo(bytes, CollectionOrdering.Matching);
     }
 
     [Test]

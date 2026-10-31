@@ -274,7 +274,6 @@ internal static class ReservedNamePolicy
             "RequestDecorationPolicy",
             "ResolvedExecutable",
             "ResponseAdapter",
-            "ResponseBody",
             "ResponseBufferingPolicy",
             "ResponseEncodingPolicy",
             "ResponseMaterializer",

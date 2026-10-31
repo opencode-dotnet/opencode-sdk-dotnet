@@ -34,17 +34,27 @@ public sealed class PipelineMessageTests
     public async Task Dispose_Should_Return_The_Pooled_Body()
     {
         var pool = new TrackingByteArrayPool();
+        var bytes = pool.Rent(16);
         using var request = new HttpRequestMessage(HttpMethod.Get, new Uri("http://localhost:4096/api/info"));
         var message = new PipelineMessage
         {
             NetworkTimeout = NetworkTimeouts.DefaultNetworkTimeout,
             Request = request,
-            Body = new ResponseBody(pool, pool.Rent(16), 3),
         };
+        message.AdoptBody(pool, bytes, 3);
+
+        await Assert.That(message.BodyLength).IsEqualTo(3);
+        await Assert.That(message.BodyBytes).IsSameReferenceAs(bytes);
 
         message.Dispose();
 
         await Assert.That(pool.OutstandingCount).IsEqualTo(0);
+        await Assert.That(message.BodyLength).IsEqualTo(0);
+        await Assert.That(message.BodyBytes).IsEmpty();
+
+        message.Dispose();
+
+        await Assert.That(pool.ReturnCount).IsEqualTo(1);
     }
 
     [Test]
@@ -56,6 +66,9 @@ public sealed class PipelineMessageTests
             Request = request,
             NetworkTimeout = NetworkTimeouts.DefaultNetworkTimeout,
         };
+
+        await Assert.That(message.BodyLength).IsEqualTo(0);
+        await Assert.That(message.BodyBytes).IsEmpty();
 
         message.Dispose();
 

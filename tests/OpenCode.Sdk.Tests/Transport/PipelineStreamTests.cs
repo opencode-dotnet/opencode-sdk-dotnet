@@ -375,6 +375,24 @@ public sealed class PipelineStreamTests
     }
 
     [Test]
+    public async Task ExecuteStreamAsync_Should_Return_The_Pooled_Error_Body()
+    {
+        var pool = new TrackingByteArrayPool();
+        using var scenario = PipelineScenario.Buffering(static _ => new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        {
+            Content = new StringContent(FirstPayload),
+        }, bufferPool: pool);
+
+        var exception = await Assert
+            .That(async () => _ = await CollectAsync(scenario.Pipeline))
+            .Throws<OpenCodeApiException>();
+
+        await Assert.That(exception!.RawBody).IsEqualTo(FirstPayload);
+        await Assert.That(pool.RentCount).IsGreaterThan(0);
+        await Assert.That(pool.OutstandingCount).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task ExecuteStreamAsync_Should_Throw_The_Typed_Error_Before_Opening_The_Stream()
     {
         using var scenario = PipelineScenario.Responding(static _ => new HttpResponseMessage(HttpStatusCode.NotFound)

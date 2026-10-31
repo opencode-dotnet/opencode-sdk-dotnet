@@ -1,3 +1,5 @@
+using System.Buffers;
+
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
@@ -7,6 +9,9 @@ namespace OpenCode.Sdk.Internal;
 /// </summary>
 internal sealed class PipelineMessage : IDisposable
 {
+    private ArrayPool<byte>? _bodyPool;
+    private byte[]? _bodyBytes;
+
     /// <summary>Gets the decorated request; built by the plane, sent by <see cref="TransportPolicy"/>.</summary>
     public required HttpRequestMessage Request { get; init; }
 
@@ -56,10 +61,25 @@ internal sealed class PipelineMessage : IDisposable
     public HttpResponseMessage? Response { get; internal set; }
 
     /// <summary>
-    /// Gets the buffered body; written by <see cref="ResponseBufferingPolicy"/>, consumed by
-    /// <see cref="ResponseMaterializer"/>.
+    /// Gets the buffered body, still encoded as the wire sent it; only the first
+    /// <see cref="BodyLength"/> bytes are the body. The array goes back to its pool through
+    /// <see cref="Dispose"/>, never earlier, so no consumer can observe a recycled buffer.
+    /// Empty before buffering and after disposal.
     /// </summary>
-    public ResponseBody? Body { get; internal set; }
+    public byte[] BodyBytes => _bodyBytes ?? [];
+
+    /// <summary>Gets the count of body bytes; zero before buffering and after disposal.</summary>
+    public int BodyLength { get; private set; }
+
+    /// <summary>Takes ownership of the buffered body from <see cref="ResponseBufferingPolicy"/>.</summary>
+    public void AdoptBody(ArrayPool<byte> pool, byte[] bytes, int length)
+    {
+        System.Diagnostics.Debug.Assert(_bodyBytes is null, "A message adopts one body.");
+        System.Diagnostics.Debug.Assert(length >= 0 && length <= bytes.Length, "The length is inside the array.");
+        _bodyPool = pool;
+        _bodyBytes = bytes;
+        BodyLength = length;
+    }
 
     /// <summary>
     /// Gets or sets the progress window the buffering policy arms for the exchange; null outside
@@ -72,7 +92,17 @@ internal sealed class PipelineMessage : IDisposable
 
     public void Dispose()
     {
-        Body?.Dispose();
+        if (_bodyPool is { } pool && _bodyBytes is { } bytes)
+        {
+            _bodyBytes = null;
+            BodyLength = 0;
+
+            // Parity with the runtime's own pooled response buffering: the array is not
+            // cleared on return; a response body is not treated as a secret against the
+            // process's own memory.
+            pool.Return(bytes);
+        }
+
         Response?.Dispose();
         Request.Dispose();
     }
