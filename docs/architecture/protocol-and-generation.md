@@ -129,11 +129,14 @@ evidence and may contain superseded positions.
 - A writer-owned `.generated-reach.txt` beside the manifest lists each generated type's owning
   slice and the families whose operations reach it, so a refresh shows reach changes in its
   diff; reach never moves a file. Neither file ships in a package.
-- Pending (unselected and not transport-owned) operations are recorded in the committed
-  `.generation-incomplete` marker, each carrying the bindability the same selection-path binder
-  finds today — `[bindable]`, or `[refused: <verbatim wall messages>]` — so wall-free drift among
-  pending operations surfaces as a reviewed diff instead of accumulating silently; the marker also
-  lists the fingerprint-pinned transport-owned operations beside them while it exists. Selected
+- Pending (unselected, not transport-owned and not declined) operations are recorded in the
+  committed `.generation-incomplete` marker, each carrying the bindability the same selection-path
+  binder finds today — `[bindable]`, or `[refused: <verbatim wall messages>]` — so wall-free drift
+  among pending operations surfaces as a reviewed diff instead of accumulating silently; the marker
+  also lists the fingerprint-pinned transport-owned operations beside them while it exists. Declined
+  operations are listed with their reason and bindability; a decline rests on a standing wall and a
+  bindable declined operation refuses, unless its row names the endpoint key both of upstream's
+  first-party client omit lists carry, which a pinned test re-proves at every refresh. Selected
   operations are listed in `tools/generation-profile.txt`; admitting an upstream operation adds its
   id there, along with its naming and owner curation rows.
 

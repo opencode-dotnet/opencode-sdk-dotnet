@@ -92,6 +92,17 @@ internal static class GenerationTestData
         return fileSystem;
     }
 
+    /// <summary>The command roots with a decline over the operation that binds cleanly, which upstream's clients omit.</summary>
+    public static MockFileSystem CreateUpstreamOmittedDeclineCommandFileSystem()
+    {
+        var fileSystem = CreateCommandRoots(extend: null);
+        WriteCuration(
+            fileSystem,
+            transportOwned: [],
+            declined: [Declined("plugin.list", "Both first-party clients omit the operation.", upstreamOmitted: "plugin.list")]);
+        return fileSystem;
+    }
+
     /// <summary>
     /// The command roots plus a WebSocket operation covered by a <c>transportOwned</c> row whose
     /// fingerprint is computed from the scenario's own ingested shape, the way the committed row is.
@@ -173,7 +184,7 @@ internal static class GenerationTestData
             .WithOperation("widget.tail", method: "put", path: "/api/widget/tail", configure: operation => operation
                 .Extension("x-websocket", "true"));
         // The bindable pending operation is the drift telltale's subject; roots that must reach
-        // pending = 0 leave it out, because a bindable operation can never be declined.
+        // pending = 0 leave it out, because only an upstream omission lets a bindable operation be declined.
         if (withBindablePending)
         {
             _ = spec

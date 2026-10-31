@@ -530,16 +530,23 @@ internal static class CurationValidator
     /// when upstream removes or reshapes the operation, retiring the row is a conscious diff.
     /// A row over a selected operation refuses because the two states contradict, and a row that
     /// repeats a transport-owned row refuses because both states would claim the same operation
-    /// and the marker would count it twice. The remaining wall — that a declined operation must
-    /// actually be walled — needs the bindability probe and therefore lives in
+    /// and the marker would count it twice. A row that claims an upstream omission must name the
+    /// omitted endpoint key. The remaining wall — that a declined operation must actually be walled
+    /// unless upstream omits it — needs the bindability probe and therefore lives in
     /// <see cref="GenerationCoordinator"/>, which owns the probe.
     /// </summary>
     private static void ValidateDeclined(HashSet<string> documentIds, HashSet<string> selectedIds, GenerationCuration curation,
         BindingErrorCollector errors)
     {
         var transportOwnedIds = curation.TransportOwned.Select(static row => row.OperationId).ToHashSet(StringComparer.Ordinal);
-        foreach (var operationId in curation.Declined.Select(static row => row.OperationId))
+        foreach (var row in curation.Declined)
         {
+            var operationId = row.OperationId;
+            if (row.UpstreamOmitted is { } key && string.IsNullOrWhiteSpace(key))
+            {
+                errors.Add(BindingErrorCategory.Curation, operationId, "upstreamOmitted must name the endpoint key upstream's clients omit");
+            }
+
             if (!documentIds.Contains(operationId))
             {
                 errors.Add(BindingErrorCategory.Curation, operationId, "curated operation does not exist in the spec");

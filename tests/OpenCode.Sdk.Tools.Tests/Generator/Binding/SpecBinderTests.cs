@@ -354,6 +354,18 @@ public sealed class SpecBinderTests
     }
 
     [Test]
+    [Arguments("")]
+    [Arguments(" ")]
+    public async Task Bind_Should_Refuse_A_Declined_Row_With_A_Blank_Upstream_Key(string key)
+    {
+        var document = await IngestAsync(TransportOwnedScenario());
+        var curation = Curation(Groups("health", RootGroup()), declined: [Declined("pty.connect", upstreamOmitted: key)]);
+        var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("health.get"), curation));
+        await Assert.That(exception.Errors.Single(error => error.Category == BindingErrorCategory.Curation && error.Subject == "pty.connect"))
+            .IsEqualTo(new BindingError(BindingErrorCategory.Curation, "pty.connect", "upstreamOmitted must name the endpoint key upstream's clients omit"));
+    }
+
+    [Test]
     [Arguments("self", "GadgetError1", "GadgetError1", "schema alias cannot target itself")]
     [Arguments("source", "GhostError", "GadgetError", "aliased schema does not exist in the spec")]
     [Arguments("target", "GadgetError1", "GhostError", "alias target 'GhostError' does not exist in the spec")]

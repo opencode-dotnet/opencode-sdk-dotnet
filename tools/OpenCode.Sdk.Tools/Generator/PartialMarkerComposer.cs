@@ -29,11 +29,15 @@ internal static class PartialMarkerComposer
     /// A decline states that a wall stands over the operation. The probe binds it through the real
     /// selection path, so a bindable mark means the wall the row cites is gone — an upstream fix or
     /// a generator mechanism landed — and the decision has to be taken again rather than inherited.
+    /// A row that names an upstream omission is exempt: the omission, not a wall, is its reason.
     /// </summary>
-    internal static void RefuseBindableDeclines(IReadOnlyList<PendingOperationMark> declinedMarks)
+    internal static void RefuseBindableDeclines(IReadOnlyList<DeclinedOperationPlan> declined,
+        IReadOnlyList<PendingOperationMark> declinedMarks)
     {
+        var omitted = declined.Where(static operation => operation.UpstreamOmitted is not null)
+            .Select(static operation => operation.OperationId).ToHashSet(StringComparer.Ordinal);
         var errors = new BindingErrorCollector();
-        foreach (var mark in declinedMarks.Where(static mark => mark.IsBindable))
+        foreach (var mark in declinedMarks.Where(mark => mark.IsBindable && !omitted.Contains(mark.OperationId)))
         {
             errors.Add(
                 BindingErrorCategory.Curation,
@@ -93,7 +97,9 @@ internal static class PartialMarkerComposer
     {
         var marksById = declinedMarks.ToDictionary(static mark => mark.OperationId, StringComparer.Ordinal);
         return declined.Select(operation =>
-            $"{operation.OperationId} [declined: {operation.Reason}] {FormatBindability(marksById[operation.OperationId])}");
+            $"{operation.OperationId} [declined: {operation.Reason}]"
+            + (operation.UpstreamOmitted is { } key ? $" [omitted upstream as {key}]" : string.Empty)
+            + $" {FormatBindability(marksById[operation.OperationId])}");
     }
 
     /// <summary>The curation validator has already proven the row's subtree fingerprint on this bind.</summary>

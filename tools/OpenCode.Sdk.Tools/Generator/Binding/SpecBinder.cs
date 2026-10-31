@@ -203,7 +203,7 @@ internal sealed class SpecBinder : ISpecBinder
         .. curation.Declined
             .DistinctBy(static row => row.OperationId, StringComparer.Ordinal)
             .OrderBy(static row => row.OperationId, StringComparer.Ordinal)
-            .Select(static row => new DeclinedOperationPlan { OperationId = row.OperationId, Reason = row.Reason }),
+            .Select(static row => new DeclinedOperationPlan { OperationId = row.OperationId, Reason = row.Reason, UpstreamOmitted = row.UpstreamOmitted }),
     ];
 
     /// <summary>Every operation the selection, a transport-owned row and a declined row all leave out, ordinal-sorted.</summary>
