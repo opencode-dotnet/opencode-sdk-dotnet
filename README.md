@@ -30,8 +30,8 @@ Console.WriteLine($"session {created.Session.Id}");
 
 ## 🎉 Project Status
 
-**Pre-1.0, and the protocol surface is complete.** **All 142 operations** in the pinned OpenAPI
-snapshot are callable — 140 as generated HTTP calls, and the two terminal WebSocket connections
+**Pre-1.0, and the protocol surface is complete.** **159 of 162 operations** in the pinned OpenAPI
+snapshot are callable — 157 as generated HTTP calls, and the two terminal WebSocket connections
 through hand-written transports. All three connection modes work: a private server the SDK
 starts, a server you already run, and the background service that the opencode CLI registers.
 
@@ -87,7 +87,9 @@ The HTTP API has no file-content search: `FileSystemClient.FindEntriesAsync` ran
 
 The two terminal connections (`pty.connect`, `experimental.persistentPty.connect`) are WebSocket
 upgrades that the HTTP pipeline cannot carry. They are fully usable through the hand-written
-`PtySession` and `PersistentPtySession` types. Nothing is declined:
+`PtySession` and `PersistentPtySession` types. Three are declined by decision: the client-hosted MCP
+attach and its token, deferred to a hand-written door in 1.1 (#529), and the legacy text generation
+endpoint, which upstream's own clients omit.
 [`src/OpenCode.Sdk/.generation-incomplete`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/src/OpenCode.Sdk/.generation-incomplete)
 is the machine-readable map that the build reads.
 

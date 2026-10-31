@@ -830,7 +830,8 @@ public sealed class OperationPlanBinderTests
 
     /// <summary>
     /// The committed curation against the pinned spec: every operation outside the transport-owned
-    /// pair and the deferred client MCP pair binds; nothing remains pending.
+    /// pair, the deferred client MCP pair and the upstream-omitted legacy text generation binds;
+    /// nothing remains pending.
     /// </summary>
     [Test]
     public async Task Bind_Should_Decline_The_Client_Mcp_Pair_And_Legacy_Text_Generation_At_The_Pin()

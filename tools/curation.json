@@ -3740,7 +3740,7 @@
     },
     {
       "operationId": "experimental.generate.textLegacy",
-      "reason": "Both of upstream's first-party clients omit the legacy text generation endpoint, and the maintainer decided on 2026-10-31 that the SDK follows them.",
+      "reason": "Both of upstream's first-party clients omit the legacy text generation endpoint; the SDK follows them.",
       "upstreamOmitted": "generate.textLegacy"
     }
   ],
