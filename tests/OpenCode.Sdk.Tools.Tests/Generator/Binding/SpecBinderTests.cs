@@ -354,15 +354,28 @@ public sealed class SpecBinderTests
     }
 
     [Test]
-    [Arguments("")]
-    [Arguments(" ")]
-    public async Task Bind_Should_Refuse_A_Declined_Row_With_A_Blank_Upstream_Key(string key)
+    [Arguments("", "upstreamOmitted must name the endpoint key upstream's clients omit")]
+    [Arguments(" ", "upstreamOmitted must name the endpoint key upstream's clients omit")]
+    [Arguments("health.get", "upstreamOmitted must be the operation's own key: its id, or the id after a group prefix")]
+    [Arguments("ty.connect", "upstreamOmitted must be the operation's own key: its id, or the id after a group prefix")]
+    public async Task Bind_Should_Refuse_A_Declined_Row_With_Another_Upstream_Key(string key, string problem)
     {
         var document = await IngestAsync(TransportOwnedScenario());
         var curation = Curation(Groups("health", RootGroup()), declined: [Declined("pty.connect", upstreamOmitted: key)]);
         var exception = Assert.Throws<BindingException>(() => new BindingTestHost().Bind(document, Selection("health.get"), curation));
         await Assert.That(exception.Errors.Single(error => error.Category == BindingErrorCategory.Curation && error.Subject == "pty.connect"))
-            .IsEqualTo(new BindingError(BindingErrorCategory.Curation, "pty.connect", "upstreamOmitted must name the endpoint key upstream's clients omit"));
+            .IsEqualTo(new BindingError(BindingErrorCategory.Curation, "pty.connect", problem));
+    }
+
+    [Test]
+    [Arguments("pty.connect")]
+    [Arguments("connect")]
+    public async Task Bind_Should_Carry_The_Operations_Own_Upstream_Key(string key)
+    {
+        var document = await IngestAsync(TransportOwnedScenario());
+        var curation = Curation(Groups("health", RootGroup()), declined: [Declined("pty.connect", upstreamOmitted: key)]);
+        var plan = new BindingTestHost().Bind(document, Selection("health.get"), curation);
+        await Assert.That(plan.DeclinedOperations.Single().UpstreamOmitted).IsEqualTo(key);
     }
 
     [Test]

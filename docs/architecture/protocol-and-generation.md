@@ -134,9 +134,10 @@ evidence and may contain superseded positions.
   binder finds today — `[bindable]`, or `[refused: <verbatim wall messages>]` — so wall-free drift
   among pending operations surfaces as a reviewed diff instead of accumulating silently; the marker
   also lists the fingerprint-pinned transport-owned operations beside them while it exists. Declined
-  operations are listed with their reason and bindability; a decline rests on a standing wall and a
-  bindable declined operation refuses, unless its row names the endpoint key both of upstream's
-  first-party client omit lists carry, which a pinned test re-proves at every refresh. Selected
+  operations are listed with their reason and bindability. A decline rests on a standing wall, so a
+  bindable declined operation refuses; the one exception is a row naming the operation's own
+  endpoint key that both of upstream's first-party client omit lists carry, and a pinned test
+  re-proves that membership at every refresh. Selected
   operations are listed in `tools/generation-profile.txt`; admitting an upstream operation adds its
   id there, along with its naming and owner curation rows.
 

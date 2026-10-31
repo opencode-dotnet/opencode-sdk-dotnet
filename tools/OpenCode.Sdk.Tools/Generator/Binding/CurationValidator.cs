@@ -531,7 +531,7 @@ internal static class CurationValidator
     /// A row over a selected operation refuses because the two states contradict, and a row that
     /// repeats a transport-owned row refuses because both states would claim the same operation
     /// and the marker would count it twice. A row that claims an upstream omission must name the
-    /// omitted endpoint key. The remaining wall — that a declined operation must actually be walled
+    /// operation's own endpoint key: upstream's ids add only a group prefix to it. The remaining wall — that a declined operation must actually be walled
     /// unless upstream omits it — needs the bindability probe and therefore lives in
     /// <see cref="GenerationCoordinator"/>, which owns the probe.
     /// </summary>
@@ -545,6 +545,10 @@ internal static class CurationValidator
             if (row.UpstreamOmitted is { } key && string.IsNullOrWhiteSpace(key))
             {
                 errors.Add(BindingErrorCategory.Curation, operationId, "upstreamOmitted must name the endpoint key upstream's clients omit");
+            }
+            else if (row.UpstreamOmitted is { } own && own != operationId && !operationId.EndsWith("." + own, StringComparison.Ordinal))
+            {
+                errors.Add(BindingErrorCategory.Curation, operationId, "upstreamOmitted must be the operation's own key: its id, or the id after a group prefix");
             }
 
             if (!documentIds.Contains(operationId))

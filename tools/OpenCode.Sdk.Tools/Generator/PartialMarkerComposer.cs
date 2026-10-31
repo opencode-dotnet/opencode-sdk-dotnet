@@ -34,7 +34,7 @@ internal static class PartialMarkerComposer
     internal static void RefuseBindableDeclines(IReadOnlyList<DeclinedOperationPlan> declined,
         IReadOnlyList<PendingOperationMark> declinedMarks)
     {
-        var omitted = declined.Where(static operation => operation.UpstreamOmitted is not null)
+        var omitted = declined.Where(static operation => !string.IsNullOrWhiteSpace(operation.UpstreamOmitted))
             .Select(static operation => operation.OperationId).ToHashSet(StringComparer.Ordinal);
         var errors = new BindingErrorCollector();
         foreach (var mark in declinedMarks.Where(mark => mark.IsBindable && !omitted.Contains(mark.OperationId)))
@@ -89,8 +89,9 @@ internal static class PartialMarkerComposer
         mark.IsBindable ? "[bindable]" : $"[refused: {mark.RefusalMessage}]";
 
     /// <summary>
-    /// Each declined line carries the decision and the wall it rests on, so the reason and the
-    /// verbatim refusal the binder finds today are reviewed against each other in one place.
+    /// Each declined line carries the decision and what it rests on — the wall, or the upstream
+    /// omission beside the bindability — so the reason and what the binder finds today are
+    /// reviewed against each other in one place.
     /// </summary>
     private static IEnumerable<string> FormatDeclinedLines(IReadOnlyList<DeclinedOperationPlan> declined,
         IReadOnlyList<PendingOperationMark> declinedMarks)

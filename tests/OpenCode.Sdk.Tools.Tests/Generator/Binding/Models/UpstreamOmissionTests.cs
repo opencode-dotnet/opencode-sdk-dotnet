@@ -1,3 +1,5 @@
+using System.IO.Abstractions;
+using System.Text.RegularExpressions;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions;
 using Testably.Abstractions.Testing;
@@ -5,9 +7,12 @@ using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Binding.Models;
 
-public sealed class UpstreamOmissionTests
+public sealed partial class UpstreamOmissionTests
 {
+    private const string ClientPath = "packages/protocol/src/client.ts";
     private const string Key = "widget.legacy";
+
+    private static readonly string[] ListNames = ["promiseOmitEndpoints", "effectOmitEndpoints"];
 
     [Test]
     public async Task Omissions_Should_Stand_In_The_Pinned_Upstream_Tree()
@@ -17,7 +22,7 @@ public sealed class UpstreamOmissionTests
         var (_, _, curation) = await BindingTestHost.LoadPinnedInputsAsync();
         string[] keys = [.. curation.Declined.Select(static row => row.UpstreamOmitted).OfType<string>()];
 
-        await Assert.That(await UpstreamOmissionOracle.CheckAsync(fileSystem, root, keys)).IsEmpty();
+        await Assert.That(await CheckAsync(fileSystem, root, keys)).IsEmpty();
     }
 
     [Test]
@@ -28,14 +33,16 @@ public sealed class UpstreamOmissionTests
     [Arguments("neither", "promiseOmitEndpoints does not name the key|effectOmitEndpoints does not name the key")]
     [Arguments("outside", "promiseOmitEndpoints does not name the key|effectOmitEndpoints does not name the key")]
     [Arguments("renamed", "promiseOmitEndpoints is not one Set literal of plain strings")]
-    [Arguments("commented", "promiseOmitEndpoints is not one Set literal of plain strings")]
+    [Arguments("twice", "promiseOmitEndpoints is not one Set literal of plain strings")]
+    [Arguments("line", "promiseOmitEndpoints is not one Set literal of plain strings")]
+    [Arguments("block", "promiseOmitEndpoints is not one Set literal of plain strings")]
     [Arguments("expression", "promiseOmitEndpoints is not one Set literal of plain strings|effectOmitEndpoints is not one Set literal of plain strings")]
     [Arguments("missing", "packages/protocol/src/client.ts does not exist under external/opencode")]
     public async Task Omissions_Should_Refuse_An_Unproven_Key(string fault, string? problems)
     {
         var fileSystem = new MockFileSystem();
         var root = fileSystem.Directory.GetCurrentDirectory();
-        var path = fileSystem.Path.Combine(root, "external", "opencode", UpstreamOmissionOracle.ClientPath);
+        var path = fileSystem.Path.Combine(root, "external", "opencode", ClientPath);
         fileSystem.Directory.CreateDirectory(fileSystem.Path.GetDirectoryName(path)!);
         if (fault != "missing")
         {
@@ -43,8 +50,7 @@ public sealed class UpstreamOmissionTests
         }
 
         string[] expected = problems is null ? [] : [.. problems.Split('|').Select(static problem => Key + ": " + problem)];
-        await Assert.That(await UpstreamOmissionOracle.CheckAsync(fileSystem, root, [Key]))
-            .IsEquivalentTo(expected, CollectionOrdering.Matching);
+        await Assert.That(await CheckAsync(fileSystem, root, [Key])).IsEquivalentTo(expected, CollectionOrdering.Matching);
     }
 
     private static string Client(string fault) => fault switch
@@ -53,10 +59,11 @@ public sealed class UpstreamOmissionTests
             export const promiseOmitEndpoints = new Set(["pty.connect", "{{Key}}"])
             export const effectOmitEndpoints = new Set(["fs.read", "{{Key}}"])
             """,
-        "commented" => $$"""
-            /*
-            export const promiseOmitEndpoints = new Set(["{{Key}}"])
-            */
+        "twice" or "line" or "block" => $$"""
+            {{(fault == "block" ? "/*" : "")}}
+            {{(fault == "line" ? "// " : "")}}export const promiseOmitEndpoints = new Set(["{{Key}}"])
+            {{(fault == "block" ? "*/" : "")}}
+            {{(fault == "twice" ? $"export const promiseOmitEndpoints = new Set([\"{Key}\"])" : "")}}
             export const effectOmitEndpoints = new Set(["{{Key}}"])
             """,
         "expression" => $$"""
@@ -76,4 +83,66 @@ public sealed class UpstreamOmissionTests
             ])
             """,
     };
+
+    /// <summary>Each problem with the keys against upstream's two client omit lists, as <c>key: problem</c>.</summary>
+    /// <remarks>
+    /// Each list is read from its one <c>new Set([...])</c> declaration at the start of a line as plain
+    /// string literals; a missing, repeated or commented-out list, or one holding anything else,
+    /// refuses. The reader guards a pinned upstream file against ordinary change, not a file written
+    /// to deceive it.
+    /// </remarks>
+    private static async Task<IReadOnlyList<string>> CheckAsync(IFileSystem fileSystem, string root, string[] keys)
+    {
+        // A pin whose curation names no omitted key has nothing to prove.
+        if (keys.Length == 0)
+        {
+            return [];
+        }
+
+        var path = fileSystem.Path.Combine(root, "external", "opencode", ClientPath);
+        if (!fileSystem.File.Exists(path))
+        {
+            return [.. keys.Select(static key => $"{key}: {ClientPath} does not exist under external/opencode")];
+        }
+
+        var source = await fileSystem.File.ReadAllTextAsync(path, CancellationToken.None);
+        var lists = ListNames.Select(name => (Name: name, Elements: ReadList(source, name))).ToArray();
+        return
+        [
+            .. keys.SelectMany(key => lists.Select(list => list.Elements switch
+            {
+                null => $"{key}: {list.Name} is not one Set literal of plain strings",
+                { } elements when !elements.Contains(key) => $"{key}: {list.Name} does not name the key",
+                _ => null,
+            })).OfType<string>(),
+        ];
+    }
+
+    private static HashSet<string>? ReadList(string source, string name)
+    {
+        Match[] matches = [.. SetLiteral().Matches(source).Where(match => match.Groups["name"].Value == name)];
+        if (matches.Length != 1)
+        {
+            return null;
+        }
+
+        // A block comment opened above the declaration and not yet closed has commented it out.
+        var above = source[..matches[0].Index];
+        if (above.LastIndexOf("/*", StringComparison.Ordinal) > above.LastIndexOf("*/", StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        // Anything left beside the literals and their commas means the list is no longer plain strings.
+        var body = matches[0].Groups["body"].Value;
+        return StringElement().Replace(body, string.Empty).All(static character => character == ',' || char.IsWhiteSpace(character))
+            ? [.. StringElement().Matches(body).Select(static match => match.Groups["key"].Value)]
+            : null;
+    }
+
+    [GeneratedRegex(@"^export const (?<name>\w+) = new Set\(\[(?<body>[^\]]*)\]\)", RegexOptions.Multiline, Timeout.Infinite)]
+    private static partial Regex SetLiteral();
+
+    [GeneratedRegex("\"(?<key>[^\"]*)\"", RegexOptions.None, Timeout.Infinite)]
+    private static partial Regex StringElement();
 }
