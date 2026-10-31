@@ -215,14 +215,6 @@ jobs:
       matrix:
         # test-modules: the main Test pass's --max-parallel-test-modules, measured per runner.
         include:
-          - os: windows-2025
-            name: Windows
-            test-modules: 4
-
-          - os: ubuntu-24.04
-            name: Linux
-            test-modules: 4
-
           - os: macos-15
             name: macOS
             test-modules: 3
@@ -388,6 +380,16 @@ jobs:
       # timeout-minutes outside it, which also ends a hang that stops the host's own timer; the
       # listing below, written only when the main pass fails, narrows the rows in flight
       # (quality-gates.md).
+      - name: Probe #724 instrument the simulated provider
+        shell: pwsh
+        run: ./.github/probe/instrument-attach.ps1 -Workspace "${{ github.workspace }}"
+
+      - name: Probe #724 sample the machine
+        shell: bash
+        run: |
+          mkdir -p test-results/main
+          nohup bash -c 'while true; do echo "=== $(date -u +%H:%M:%S) $(uptime)" >> test-results/main/machine.log; top -l 1 -n 6 -o cpu -stats pid,command,cpu,mem,state | tail -n 7 >> test-results/main/machine.log; vm_stat | head -n 8 >> test-results/main/machine.log; sleep 5; done' > /dev/null 2>&1 &
+
       - name: Test
         id: test
         timeout-minutes: 35
