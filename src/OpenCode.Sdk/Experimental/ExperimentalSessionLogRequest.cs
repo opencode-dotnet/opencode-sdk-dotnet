@@ -2,10 +2,10 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk;
 /// <summary>
-/// The query of &apos;session.log&apos; (GET /api/experimental/session/{sessionID}/log).
+/// The query of &apos;experimental.session.log&apos; (GET /api/experimental/session/{sessionID}/log).
 /// </summary>
-[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE003", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode003")]
-public sealed record SessionLogRequest
+[System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
+public sealed record ExperimentalSessionLogRequest
 {
     /// <summary>
     /// Gets the &apos;after&apos; query value; the server default applies when unset.

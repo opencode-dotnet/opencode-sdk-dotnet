@@ -42,7 +42,7 @@ public class LanguageModelsClient
     }
 
     /// <summary>
-    /// List models. Retrieve the current snapshot of available models ordered by release date. The snapshot may precede initial plugin settlement.
+    /// List models. Retrieve the current snapshot of available models of the requested types, chat by default, ordered by release date within each type. The snapshot may precede initial plugin settlement.
     /// </summary>
     /// <param name = "request">The request shaping the query.</param>
     /// <param name = "requestOptions">The per-call options.</param>

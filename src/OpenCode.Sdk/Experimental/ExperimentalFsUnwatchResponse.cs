@@ -5,15 +5,15 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The response of &apos;experimental.voice.instructions&apos; (POST /api/experimental/voice/session/{sessionID}/instructions).
+/// The response of &apos;experimental.fs.unwatch&apos; (DELETE /api/experimental/fs/watch).
 /// </summary>
 [Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
-public sealed record ExperimentalVoiceInstructionsResponse : OpenCodeResponse
+public sealed record ExperimentalFsUnwatchResponse : OpenCodeResponse
 {
     /// <summary>
-    /// Initializes a success instance of the &apos;ExperimentalVoiceInstructionsResponse&apos; envelope.
+    /// Initializes a success instance of the &apos;ExperimentalFsUnwatchResponse&apos; envelope.
     /// </summary>
-    public ExperimentalVoiceInstructionsResponse()
+    public ExperimentalFsUnwatchResponse()
     {
     }
 
@@ -21,7 +21,7 @@ public sealed record ExperimentalVoiceInstructionsResponse : OpenCodeResponse
     /// Initializes an error-path instance.
     /// </summary>
     [SetsRequiredMembers]
-    internal ExperimentalVoiceInstructionsResponse(int status, IOpenCodeError? error, string? rawBody)
+    internal ExperimentalFsUnwatchResponse(int status, IOpenCodeError? error, string? rawBody)
     {
         Status = status;
         IsError = true;

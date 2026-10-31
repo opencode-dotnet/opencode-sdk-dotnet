@@ -5,7 +5,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The response of &apos;persistentPty.shutdown&apos; (POST /api/experimental/persistent-pty/shutdown).
+/// The response of &apos;experimental.persistentPty.shutdown&apos; (POST /api/experimental/persistent-pty/shutdown).
 /// </summary>
 [Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
 public sealed record PersistentPtyShutdownResponse : OpenCodeResponse

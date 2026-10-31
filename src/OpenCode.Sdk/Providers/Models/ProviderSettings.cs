@@ -39,6 +39,13 @@ public sealed record ProviderSettings
     public IProviderCompaction? Compaction { get; init; }
 
     /// <summary>
+    /// Gets the cache value.
+    /// </summary>
+    [JsonPropertyName("cache")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ProviderCache? Cache { get; init; }
+
+    /// <summary>
     /// Gets the transport value.
     /// </summary>
     [JsonPropertyName("transport")]
@@ -76,5 +83,5 @@ public sealed record ProviderSettings
     /// <summary>
     /// Prints the record&apos;s members with its secret members masked.
     /// </summary>
-    public override string ToString() => RecordPrinter.Format(nameof(ProviderSettings), ("Timeout", Timeout), ("HeaderTimeout", HeaderTimeout), ("ChunkTimeout", ChunkTimeout), ("Compaction", Compaction), ("Transport", Transport), ("Encoding", Encoding), ("AdditionalProperties", RecordPrinter.RedactEntries(AdditionalProperties)));
+    public override string ToString() => RecordPrinter.Format(nameof(ProviderSettings), ("Timeout", Timeout), ("HeaderTimeout", HeaderTimeout), ("ChunkTimeout", ChunkTimeout), ("Compaction", Compaction), ("Cache", Cache), ("Transport", Transport), ("Encoding", Encoding), ("AdditionalProperties", RecordPrinter.RedactEntries(AdditionalProperties)));
 }

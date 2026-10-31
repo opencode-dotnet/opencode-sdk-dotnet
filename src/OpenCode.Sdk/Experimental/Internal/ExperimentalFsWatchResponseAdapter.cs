@@ -2,22 +2,22 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk.Internal;
 /// <summary>
-/// Adapts the &apos;POST /api/experimental/voice/session/{sessionID}/instructions&apos; responses onto &apos;ExperimentalVoiceInstructionsResponse&apos;.
+/// Adapts the &apos;POST /api/experimental/fs/watch&apos; responses onto &apos;ExperimentalFsWatchResponse&apos;.
 /// </summary>
-internal sealed class ExperimentalVoiceInstructionsResponseAdapter : ResponseAdapter<ExperimentalVoiceInstructionsResponse>
+internal sealed class ExperimentalFsWatchResponseAdapter : ResponseAdapter<ExperimentalFsWatchResponse>
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["LocationNotFoundError"];
+    private static readonly string[] Status404Tags = ["FileNotFoundError", "LocationNotFoundError"];
     private static readonly string[] Status503Tags = ["ServiceUnavailableError"];
-    private ExperimentalVoiceInstructionsResponseAdapter()
+    private ExperimentalFsWatchResponseAdapter()
     {
     }
 
     /// <summary>
     /// Gets the shared adapter instance.
     /// </summary>
-    public static ExperimentalVoiceInstructionsResponseAdapter Instance { get; } = new ExperimentalVoiceInstructionsResponseAdapter();
+    public static ExperimentalFsWatchResponseAdapter Instance { get; } = new ExperimentalFsWatchResponseAdapter();
 
     /// <summary>
     /// Classifies a status under this operation&apos;s pinned contract.
@@ -35,28 +35,28 @@ internal sealed class ExperimentalVoiceInstructionsResponseAdapter : ResponseAda
     /// <summary>
     /// Creates the typed envelope for a success that carries no body.
     /// </summary>
-    public override ExperimentalVoiceInstructionsResponse AdaptSuccess(int status, ReadOnlySpan<byte> utf8Body) => new()
+    public override ExperimentalFsWatchResponse AdaptSuccess(int status, ReadOnlySpan<byte> utf8Body) => new()
     {
         Status = status
     };
     /// <summary>
     /// Maps one buffered response onto the typed envelope.
     /// </summary>
-    public override ExperimentalVoiceInstructionsResponse Adapt(int status, string rawBody)
+    public override ExperimentalFsWatchResponse Adapt(int status, string rawBody)
     {
         ArgumentNullException.ThrowIfNull(rawBody);
         return status switch
         {
-            204 => new ExperimentalVoiceInstructionsResponse
+            204 => new ExperimentalFsWatchResponse
             {
                 Status = status
             },
             >= 200 and < 300 => throw StatusVerdictFailures.UndeclaredSuccess(status),
-            400 => new ExperimentalVoiceInstructionsResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
-            401 => new ExperimentalVoiceInstructionsResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
-            404 => new ExperimentalVoiceInstructionsResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
-            503 => new ExperimentalVoiceInstructionsResponse(status, ReadTolerantError(rawBody, Status503Tags), rawBody),
-            _ => new ExperimentalVoiceInstructionsResponse(status, ReadTolerantError(rawBody, null), rawBody)
+            400 => new ExperimentalFsWatchResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
+            401 => new ExperimentalFsWatchResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
+            404 => new ExperimentalFsWatchResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
+            503 => new ExperimentalFsWatchResponse(status, ReadTolerantError(rawBody, Status503Tags), rawBody),
+            _ => new ExperimentalFsWatchResponse(status, ReadTolerantError(rawBody, null), rawBody)
         };
     }
 }

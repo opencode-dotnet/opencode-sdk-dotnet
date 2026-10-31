@@ -21,6 +21,13 @@ public sealed record McpServer
     public required IMcpStatus Status { get; init; }
 
     /// <summary>
+    /// Gets the title value.
+    /// </summary>
+    [JsonPropertyName("title")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Title { get; init; }
+
+    /// <summary>
     /// Gets the integration id value.
     /// </summary>
     [JsonPropertyName("integrationID")]

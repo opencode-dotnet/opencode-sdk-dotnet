@@ -8,7 +8,7 @@ internal sealed class PermissionSavedUpdateResponseAdapter : ResponseAdapter<Per
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["LocationNotFoundError", "PermissionSavedNotFoundError"];
+    private static readonly string[] Status404Tags = ["PermissionSavedNotFoundError"];
     private static readonly string[] Status409Tags = ["ConflictError"];
     private PermissionSavedUpdateResponseAdapter()
     {

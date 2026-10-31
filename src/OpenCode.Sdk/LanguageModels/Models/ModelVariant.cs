@@ -21,7 +21,7 @@ public sealed record ModelVariant
     /// </summary>
     [JsonPropertyName("settings")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public ModelSettings? Settings { get; init; }
+    public ModelVariantSettings? Settings { get; init; }
 
     /// <summary>
     /// Gets the headers value.

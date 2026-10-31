@@ -96,9 +96,29 @@ internal static partial class OpenCodeRoutes
         }
 
         /// <summary>
+        /// The &apos;POST /api/experimental/schedule&apos; route.
+        /// </summary>
+        public const string CreateSchedule = "/api/experimental/schedule";
+        /// <summary>
         /// The &apos;POST /api/experimental/voice/session&apos; route.
         /// </summary>
         public const string CreateVoiceSession = "/api/experimental/voice/session";
+        /// <summary>
+        /// Builds the &apos;/api/experimental/schedule/{scheduleID}&apos; route.
+        /// </summary>
+        /// <param name = "scheduleId">The &apos;scheduleID&apos; route value.</param>
+        /// <returns>The escaped route.</returns>
+        public static string DeleteSchedule(string scheduleId)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(scheduleId);
+            if (scheduleId is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(scheduleId));
+            }
+
+            return "/api/experimental/schedule/" + RouteValuePolicy.Escape(scheduleId, nameof(scheduleId));
+        }
+
         /// <summary>
         /// Builds the &apos;/api/experimental/mcp/{server}/disconnect&apos; route.
         /// </summary>
@@ -125,13 +145,53 @@ internal static partial class OpenCodeRoutes
         }
 
         /// <summary>
-        /// The &apos;POST /api/experimental/generate&apos; route.
+        /// The &apos;POST /api/experimental/generate/decisions&apos; route.
         /// </summary>
-        public const string GenerateText = "/api/experimental/generate";
+        public const string GenerateDecisions = "/api/experimental/generate/decisions";
+        /// <summary>
+        /// The &apos;POST /api/experimental/generate/image&apos; route.
+        /// </summary>
+        public const string GenerateImages = "/api/experimental/generate/image";
+        /// <summary>
+        /// The &apos;POST /api/experimental/generate/text&apos; route.
+        /// </summary>
+        public const string GenerateText = "/api/experimental/generate/text";
+        /// <summary>
+        /// Builds the &apos;/api/experimental/media/{hash}&apos; route.
+        /// </summary>
+        /// <param name = "hash">The &apos;hash&apos; route value.</param>
+        /// <returns>The escaped route.</returns>
+        public static string GetMedia(string hash)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(hash);
+            if (hash is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(hash));
+            }
+
+            return "/api/experimental/media/" + RouteValuePolicy.Escape(hash, nameof(hash));
+        }
+
         /// <summary>
         /// The &apos;GET /api/experimental/migration/v1&apos; route.
         /// </summary>
         public const string GetMigrationV1Status = "/api/experimental/migration/v1";
+        /// <summary>
+        /// Builds the &apos;/api/experimental/schedule/{scheduleID}&apos; route.
+        /// </summary>
+        /// <param name = "scheduleId">The &apos;scheduleID&apos; route value.</param>
+        /// <returns>The escaped route.</returns>
+        public static string GetSchedule(string scheduleId)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(scheduleId);
+            if (scheduleId is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(scheduleId));
+            }
+
+            return "/api/experimental/schedule/" + RouteValuePolicy.Escape(scheduleId, nameof(scheduleId));
+        }
+
         /// <summary>
         /// Builds the &apos;/api/experimental/session/{sessionID}/export&apos; route.
         /// </summary>
@@ -180,9 +240,41 @@ internal static partial class OpenCodeRoutes
         }
 
         /// <summary>
+        /// Builds the &apos;/api/experimental/usage/limits&apos; route.
+        /// </summary>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string GetUsageLimits(ExperimentalUsageLimitsRequest? request = null)
+        {
+            var path = "/api/experimental/usage/limits";
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddLocation("location", request.Location);
+            return path + query.Value;
+        }
+
+        /// <summary>
         /// The &apos;POST /api/experimental/session/import&apos; route.
         /// </summary>
         public const string ImportSession = "/api/experimental/session/import";
+        /// <summary>
+        /// Builds the &apos;/api/experimental/schedule&apos; route.
+        /// </summary>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string ListSchedules(ExperimentalScheduleListRequest request)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            var path = "/api/experimental/schedule";
+            var query = new QueryStringBuilder();
+            query.AddText("sessionID", request.SessionId);
+            return path + query.Value;
+        }
+
         /// <summary>
         /// Builds the &apos;/api/experimental/session/{sessionID}/instructions/entries&apos; route.
         /// </summary>
@@ -203,6 +295,48 @@ internal static partial class OpenCodeRoutes
         /// The &apos;GET /api/experimental/voice/models&apos; route.
         /// </summary>
         public const string ListVoiceModels = "/api/experimental/voice/models";
+        /// <summary>
+        /// Builds the &apos;/api/experimental/schedule/{scheduleID}/pause&apos; route.
+        /// </summary>
+        /// <param name = "scheduleId">The &apos;scheduleID&apos; route value.</param>
+        /// <returns>The escaped route.</returns>
+        public static string PauseSchedule(string scheduleId)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(scheduleId);
+            if (scheduleId is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(scheduleId));
+            }
+
+            return "/api/experimental/schedule/" + RouteValuePolicy.Escape(scheduleId, nameof(scheduleId)) + "/pause";
+        }
+
+        /// <summary>
+        /// Builds the &apos;/api/experimental/session/{sessionID}/log&apos; route.
+        /// </summary>
+        /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string ReadSessionLog(string sessionId, ExperimentalSessionLogRequest? request = null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+            if (sessionId is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(sessionId));
+            }
+
+            var path = "/api/experimental/session/" + RouteValuePolicy.Escape(sessionId, nameof(sessionId)) + "/log";
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddInteger("after", request.After);
+            query.AddBoolean("follow", request.Follow);
+            return path + query.Value;
+        }
+
         /// <summary>
         /// Builds the &apos;/api/experimental/mcp/{server}&apos; route.
         /// </summary>
@@ -252,6 +386,22 @@ internal static partial class OpenCodeRoutes
         }
 
         /// <summary>
+        /// Builds the &apos;/api/experimental/schedule/{scheduleID}/resume&apos; route.
+        /// </summary>
+        /// <param name = "scheduleId">The &apos;scheduleID&apos; route value.</param>
+        /// <returns>The escaped route.</returns>
+        public static string ResumeSchedule(string scheduleId)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(scheduleId);
+            if (scheduleId is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(scheduleId));
+            }
+
+            return "/api/experimental/schedule/" + RouteValuePolicy.Escape(scheduleId, nameof(scheduleId)) + "/resume";
+        }
+
+        /// <summary>
         /// Builds the &apos;/api/experimental/session/{sessionID}/instructions/entries/{key}&apos; route.
         /// </summary>
         /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>
@@ -275,19 +425,21 @@ internal static partial class OpenCodeRoutes
         }
 
         /// <summary>
-        /// Builds the &apos;/api/experimental/voice/session/{sessionID}/instructions&apos; route.
+        /// Builds the &apos;/api/experimental/fs/watch&apos; route.
         /// </summary>
-        /// <param name = "sessionId">The &apos;sessionID&apos; route value.</param>
+        /// <param name = "request">The request shaping the query.</param>
         /// <returns>The escaped route.</returns>
-        public static string SetVoiceSessionInstructions(string sessionId)
+        public static string UnwatchFile(ExperimentalFsUnwatchRequest? request = null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
-            if (sessionId is "." or "..")
+            var path = "/api/experimental/fs/watch";
+            if (request is null)
             {
-                throw new ArgumentException("Route values must not be dot segments.", nameof(sessionId));
+                return path;
             }
 
-            return "/api/experimental/voice/session/" + RouteValuePolicy.Escape(sessionId, nameof(sessionId)) + "/instructions";
+            var query = new QueryStringBuilder();
+            query.AddLocation("location", request.Location);
+            return path + query.Value;
         }
 
         /// <summary>
@@ -308,6 +460,24 @@ internal static partial class OpenCodeRoutes
             }
 
             return "/api/experimental/session/" + RouteValuePolicy.Escape(sessionId, nameof(sessionId)) + "/wait";
+        }
+
+        /// <summary>
+        /// Builds the &apos;/api/experimental/fs/watch&apos; route.
+        /// </summary>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string WatchFile(ExperimentalFsWatchRequest? request = null)
+        {
+            var path = "/api/experimental/fs/watch";
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddLocation("location", request.Location);
+            return path + query.Value;
         }
 
         /// <summary>

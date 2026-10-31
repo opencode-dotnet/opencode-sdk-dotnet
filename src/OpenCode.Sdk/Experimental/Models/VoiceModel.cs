@@ -32,18 +32,4 @@ public sealed record VoiceModel
     /// </summary>
     [JsonPropertyName("available")]
     public required bool Available { get; init; }
-
-    /// <summary>
-    /// Gets the integration value.
-    /// </summary>
-    [JsonPropertyName("integration")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Integration { get; init; }
-
-    /// <summary>
-    /// Gets the workspace value.
-    /// </summary>
-    [JsonPropertyName("workspace")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Workspace { get; init; }
 }

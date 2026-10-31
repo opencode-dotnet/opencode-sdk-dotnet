@@ -4,14 +4,20 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a voice session reference value.
+/// Represents an experimental fs unwatch request value.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
-public sealed record VoiceSessionReference
+public sealed record ExperimentalFsUnwatchRequest
 {
     /// <summary>
-    /// Gets the id value.
+    /// A file path relative to the requested location.
     /// </summary>
-    [JsonPropertyName("id")]
-    public required string Id { get; init; }
+    [JsonPropertyName("path")]
+    public required string Path { get; init; }
+
+    /// <summary>
+    /// Gets the &apos;location&apos; query value; the server default applies when unset.
+    /// </summary>
+    [JsonIgnore]
+    public LocationSelector? Location { get; init; }
 }

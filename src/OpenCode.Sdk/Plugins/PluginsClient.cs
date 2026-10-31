@@ -44,6 +44,24 @@ public class PluginsClient
     }
 
     /// <summary>
+    /// Read plugin GUI bundle. Read an active plugin&apos;s prebuilt CommonJS `./gui-experimental` bundle. Desktop app windows run its default export; the desktop app&apos;s main process runs its `main` export. Fails with not found when no active plugin has the id or the plugin exports no `./gui-experimental`.
+    /// </summary>
+    /// <param name = "request">The request shaping the query; its required members have no server default.</param>
+    /// <param name = "requestOptions">The per-call options.</param>
+    /// <param name = "cancellationToken">The cancellation token.</param>
+    /// <returns>The &apos;PluginGuiResponse&apos; envelope.</returns>
+    /// <exception cref = "OpenCodeApiException">The API returned an error status (declared: 400, 401, 404) and NoThrow was not selected.</exception>
+    /// <exception cref = "OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
+    /// <remarks>
+    /// Operation <c>plugin.gui</c>: <c>GET /api/plugin/gui</c>.
+    /// </remarks>
+    public virtual Task<PluginGuiResponse> GetGuiAsync(PluginGuiRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return Pipeline.ExecuteAsync("plugin.gui", HttpMethod.Get, OpenCodeRoutes.Plugins.GetGui(request), PluginGuiResponseAdapter.Instance, requestOptions, cancellationToken);
+    }
+
+    /// <summary>
     /// List plugins. Retrieve enabled server plugins and their current status.
     /// </summary>
     /// <param name = "request">The request shaping the query.</param>

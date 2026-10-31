@@ -7,19 +7,19 @@ namespace OpenCode.Sdk.Internal;
 /// <summary>
 /// Carries the &apos;GET /api/experimental/session/{sessionID}/log&apos; stream contract.
 /// </summary>
-internal sealed class SessionLogResponseStreamAdapter : IStreamAdapter<ISessionLogItem, IStreamFailureCause[]>
+internal sealed class ExperimentalSessionLogResponseStreamAdapter : IStreamAdapter<ISessionLogItem, IStreamFailureCause[]>
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
     private static readonly string[] Status404Tags = ["SessionNotFoundError"];
-    private SessionLogResponseStreamAdapter()
+    private ExperimentalSessionLogResponseStreamAdapter()
     {
     }
 
     /// <summary>
     /// Gets the shared adapter instance.
     /// </summary>
-    public static SessionLogResponseStreamAdapter Instance { get; } = new SessionLogResponseStreamAdapter();
+    public static ExperimentalSessionLogResponseStreamAdapter Instance { get; } = new ExperimentalSessionLogResponseStreamAdapter();
 
     /// <summary>
     /// Classifies a status under this operation&apos;s pinned contract.

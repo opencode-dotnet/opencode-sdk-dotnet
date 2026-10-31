@@ -36,6 +36,13 @@ public sealed record ModelInfo
     public string? Canonical { get; init; }
 
     /// <summary>
+    /// Gets the type value.
+    /// </summary>
+    [JsonPropertyName("type")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ModelType? Type { get; init; }
+
+    /// <summary>
     /// Gets the family value.
     /// </summary>
     [JsonPropertyName("family")]
@@ -128,5 +135,5 @@ public sealed record ModelInfo
     /// <summary>
     /// Prints the record&apos;s members with its secret members masked.
     /// </summary>
-    public override string ToString() => RecordPrinter.Format(nameof(ModelInfo), ("Id", Id), ("ModelId", ModelId), ("ProviderId", ProviderId), ("Canonical", Canonical), ("Family", Family), ("Name", Name), ("Compatibility", Compatibility), ("Package", Package), ("Settings", Settings), ("Headers", RecordPrinter.Redact(Headers)), ("Body", Body), ("Capabilities", Capabilities), ("Variants", Variants), ("Time", Time), ("Cost", Cost), ("Status", Status), ("Enabled", Enabled), ("Limit", Limit));
+    public override string ToString() => RecordPrinter.Format(nameof(ModelInfo), ("Id", Id), ("ModelId", ModelId), ("ProviderId", ProviderId), ("Canonical", Canonical), ("Type", Type), ("Family", Family), ("Name", Name), ("Compatibility", Compatibility), ("Package", Package), ("Settings", Settings), ("Headers", RecordPrinter.Redact(Headers)), ("Body", Body), ("Capabilities", Capabilities), ("Variants", Variants), ("Time", Time), ("Cost", Cost), ("Status", Status), ("Enabled", Enabled), ("Limit", Limit));
 }
