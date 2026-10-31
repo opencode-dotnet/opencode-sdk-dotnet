@@ -64,7 +64,7 @@ public sealed class PartialMarkerComposerTests
     public async Task RefuseBindableDeclines_Should_Exempt_Only_An_Upstream_Omission()
     {
         var exception = Assert.Throws<BindingException>(() => PartialMarkerComposer.RefuseBindableDeclines(
-            [Declined("widget.get") with { UpstreamOmitted = "widget.get" }, Declined("widget.update")],
+            [Declined("widget.get") with { UpstreamOmitted = "widget.get" }, Declined("widget.update") with { UpstreamOmitted = " " }],
             [Mark("widget.get"), Mark("widget.update")]));
 
         await Assert.That(exception.Errors).IsEquivalentTo(new BindingError[]
@@ -79,12 +79,12 @@ public sealed class PartialMarkerComposerTests
         var marker = PartialMarkerComposer.Compose(
             [],
             [],
-            [Declined("widget.legacy") with { UpstreamOmitted = "legacy.widget" }],
+            [Declined("widget.legacy") with { UpstreamOmitted = "legacy" }],
             [Mark("widget.legacy")],
             []);
 
         await Assert.That(marker).Contains(
-            "Declined:\n- widget.legacy [declined: Both first-party clients omit it.] [omitted upstream as legacy.widget] [bindable]\n");
+            "Declined:\n- widget.legacy [declined: Both first-party clients omit it.] [omitted upstream as legacy] [bindable]\n");
     }
 
     [Test]
