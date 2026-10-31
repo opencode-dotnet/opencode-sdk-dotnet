@@ -37,4 +37,11 @@ public sealed record FileDiffInfo
     /// </summary>
     [JsonPropertyName("status")]
     public required FileDiffInfoStatus Status { get; init; }
+
+    /// <summary>
+    /// Gets the more value.
+    /// </summary>
+    [JsonPropertyName("more")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? More { get; init; }
 }

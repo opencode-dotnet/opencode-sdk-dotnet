@@ -800,12 +800,18 @@ public sealed class OperationPlanBinderTests
     [Test]
     public async Task Bind_Should_Carry_The_Repaired_Operation_Identity_Onto_The_Plan()
     {
-        var plan = await new BindingTestHost().BindPinnedAsync();
+        var curation = Curation(Groups("widget", ClientGroup(clientName: "Widgets", handleName: null, handleParameter: null)),
+            operationIdentities: [OperationIdentity("server.widget.list", "widget.list")]);
+        var context = SpecScenario.Define(static spec => spec
+            .WithSchema("WidgetInfo", static schema => schema.Type("object").Property("id", static property => property.Type("string"), required: true))
+            .WithOperation("server.widget.list", path: "/api/widget", configure: static operation => operation
+                .Response(200, "application/json", static schema => schema.Ref("WidgetInfo")))).Build();
+        var document = await new SpecIngestion(context.FileSystem)
+            .IngestAsync(context.SpecPath, OperationIdentityPolicy.BuildMap(curation), CancellationToken.None);
 
-        var create = plan.Clients.Single(static client => client.Name == "PersistentPtysRawClient")
-            .Operations.Single(static operation => operation.MethodName == "CreatePersistentPtyAsync");
-        await Assert.That(create.OperationId).IsEqualTo("persistentPty.create");
-        await Assert.That(create.RouteTemplate).IsEqualTo("/api/experimental/session/{sessionID}/terminal");
+        var list = new BindingTestHost().Bind(document, Selection("widget.list"), curation)
+            .Clients.SelectMany(static client => client.Operations).Single();
+        await Assert.That((list.OperationId, list.RouteTemplate)).IsEqualTo(("widget.list", "/api/widget"));
     }
 
     /// <summary>
@@ -819,20 +825,21 @@ public sealed class OperationPlanBinderTests
         var plan = await new BindingTestHost().BindPinnedAsync();
 
         await Assert.That(plan.TransportOwnedOperationIds)
-            .IsEquivalentTo(["persistentPty.connect", "pty.connect"], StringComparer.Ordinal, CollectionOrdering.Matching);
+            .IsEquivalentTo(["experimental.persistentPty.connect", "pty.connect"], StringComparer.Ordinal, CollectionOrdering.Matching);
     }
 
     /// <summary>
     /// The committed curation against the pinned spec: every operation outside the transport-owned
-    /// pair and the deferred client MCP pair binds; nothing remains pending.
+    /// pair, the deferred client MCP pair and the upstream-omitted legacy text generation binds;
+    /// nothing remains pending.
     /// </summary>
     [Test]
-    public async Task Bind_Should_Decline_Only_The_Client_Mcp_Pair_At_The_Pin()
+    public async Task Bind_Should_Decline_The_Client_Mcp_Pair_And_Legacy_Text_Generation_At_The_Pin()
     {
         var plan = await new BindingTestHost().BindPinnedAsync();
 
         await Assert.That(plan.DeclinedOperations.Select(static operation => operation.OperationId))
-            .IsEquivalentTo(["experimental.mcp.client", "experimental.mcp.client.token"], StringComparer.Ordinal, CollectionOrdering.Matching);
+            .IsEquivalentTo(["experimental.generate.textLegacy", "experimental.mcp.client", "experimental.mcp.client.token"], StringComparer.Ordinal, CollectionOrdering.Matching);
         await Assert.That(plan.PendingOperations).IsEmpty();
     }
 
@@ -982,7 +989,6 @@ public sealed class OperationPlanBinderTests
         "MoveAsync",
         "MoveToolsToBackgroundAsync",
         "PromptAsync",
-        "ReadLogAsync",
         "RemoveAsync",
         "ReplyToFormAsync",
         "ReplyToPermissionAsync",
@@ -1151,7 +1157,8 @@ public sealed class OperationPlanBinderTests
             .That(messageList.QueryRequest.Properties.Single(static property => property.WireName == "cursor").Kind)
             .IsEqualTo(QueryValueKind.Text);
 
-        var sessionLog = session.Operations.Single(static operation => operation.MethodName == "ReadLogAsync");
+        var sessionLog = plan.Clients.Single(static client => client.Name == "ExperimentalClient")
+            .Operations.Single(static operation => operation.MethodName == "ReadSessionLogAsync");
         await Assert
             .That(sessionLog.QueryRequest!.Properties.Single(static property => property.WireName == "after").Kind)
             .IsEqualTo(QueryValueKind.Int64);

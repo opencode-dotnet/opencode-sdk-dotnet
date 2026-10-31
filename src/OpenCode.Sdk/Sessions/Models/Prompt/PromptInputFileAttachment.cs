@@ -15,6 +15,13 @@ public sealed record PromptInputFileAttachment
     public required string Uri { get; init; }
 
     /// <summary>
+    /// Gets the source value.
+    /// </summary>
+    [JsonPropertyName("source")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IPromptFileSource? Source { get; init; }
+
+    /// <summary>
     /// Gets the name value.
     /// </summary>
     [JsonPropertyName("name")]

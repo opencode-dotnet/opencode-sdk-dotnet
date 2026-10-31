@@ -18,6 +18,13 @@ public sealed record ModelSettings
     public IProviderCompaction? Compaction { get; init; }
 
     /// <summary>
+    /// Gets the cache value.
+    /// </summary>
+    [JsonPropertyName("cache")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ProviderCache? Cache { get; init; }
+
+    /// <summary>
     /// Gets the encoding value.
     /// </summary>
     [JsonPropertyName("encoding")]
@@ -48,5 +55,5 @@ public sealed record ModelSettings
     /// <summary>
     /// Prints the record&apos;s members with its secret members masked.
     /// </summary>
-    public override string ToString() => RecordPrinter.Format(nameof(ModelSettings), ("Compaction", Compaction), ("Encoding", Encoding), ("AdditionalProperties", RecordPrinter.RedactEntries(AdditionalProperties)));
+    public override string ToString() => RecordPrinter.Format(nameof(ModelSettings), ("Compaction", Compaction), ("Cache", Cache), ("Encoding", Encoding), ("AdditionalProperties", RecordPrinter.RedactEntries(AdditionalProperties)));
 }

@@ -30,6 +30,21 @@ internal static partial class OpenCodeRoutes
         }
 
         /// <summary>
+        /// Builds the &apos;/api/plugin/gui&apos; route.
+        /// </summary>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string GetGui(PluginGuiRequest request)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            var path = "/api/plugin/gui";
+            var query = new QueryStringBuilder();
+            query.AddLocation("location", request.Location);
+            query.AddText("id", request.Id);
+            return path + query.Value;
+        }
+
+        /// <summary>
         /// Builds the &apos;/api/plugin&apos; route.
         /// </summary>
         /// <param name = "request">The request shaping the query.</param>

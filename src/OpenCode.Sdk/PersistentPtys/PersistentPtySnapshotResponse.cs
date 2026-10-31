@@ -6,7 +6,7 @@ using OpenCode.Sdk.Models;
 
 namespace OpenCode.Sdk;
 /// <summary>
-/// The response of &apos;persistentPty.snapshot&apos; (GET /api/experimental/persistent-pty/{ptyID}/snapshot).
+/// The response of &apos;experimental.persistentPty.snapshot&apos; (GET /api/experimental/persistent-pty/{ptyID}/snapshot).
 /// </summary>
 [Experimental("OPENCODE002", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode002")]
 public sealed record PersistentPtySnapshotResponse : OpenCodeResponse

@@ -27,7 +27,7 @@ public sealed class PinnedSpecSmokeTests(PinnedBinding pinned)
     {
         var document = pinned.Document;
 
-        var sessionLog = document.Operations.Single(static operation => operation.OperationId == "session.log");
+        var sessionLog = document.Operations.Single(static operation => operation.OperationId == "experimental.session.log");
         await Assert.That(sessionLog.IsSse).IsTrue();
         await Assert.That(sessionLog.Responses.Single(static response => response.IsSse).EffectStream).IsNotNull();
         await Assert
@@ -85,7 +85,7 @@ public sealed class PinnedSpecSmokeTests(PinnedBinding pinned)
     {
         var document = pinned.Document;
 
-        foreach (var operationId in new[] { "session.log", "event.subscribe", })
+        foreach (var operationId in new[] { "experimental.session.log", "event.subscribe", })
         {
             var causeKey = $"op:{operationId}#/responses/200/content/text~1event-stream/x-effect-stream/causeSchema/items";
             var found = document.Schemas.TryGetValue(causeKey, out var causeNode);

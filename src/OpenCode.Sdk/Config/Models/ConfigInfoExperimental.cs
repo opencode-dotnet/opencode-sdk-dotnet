@@ -30,6 +30,27 @@ public sealed record ConfigInfoExperimental
     public bool? BackgroundCompaction { get; init; }
 
     /// <summary>
+    /// Gets the media blob value.
+    /// </summary>
+    [JsonPropertyName("media_blob")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? MediaBlob { get; init; }
+
+    /// <summary>
+    /// Gets the image generate value.
+    /// </summary>
+    [JsonPropertyName("image_generate")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ConfigInfoExperimentalImageGenerate? ImageGenerate { get; init; }
+
+    /// <summary>
+    /// Gets the schedules value.
+    /// </summary>
+    [JsonPropertyName("schedules")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? Schedules { get; init; }
+
+    /// <summary>
     /// Maximum subagent nesting depth. Defaults to 1.
     /// </summary>
     [JsonPropertyName("subagent_depth")]

@@ -26,6 +26,7 @@ public class SessionLogStreamBenchmarks : IDisposable
     private const int LargeTitleCharacters = 2048;
     private const int MixedFrameCount = 256;
     private const int MixedTitleCharacters = 512;
+    private const string SessionId = "ses_bench";
     private const int SmallFrameCount = 1024;
     private const int StructuredContentParts = 16;
     private const int SocketChunkBytes = 1460;
@@ -42,11 +43,11 @@ public class SessionLogStreamBenchmarks : IDisposable
     private HttpClient? _httpClient;
     private OpenCodeClient? _client;
     private CannedExchange? _raw;
-    private SessionClient? _session;
+    private ExperimentalClient? _experimental;
     private CannedResponseHandler? _suspendingHandler;
     private HttpClient? _suspendingHttpClient;
     private OpenCodeClient? _suspendingClient;
-    private SessionClient? _suspendingSession;
+    private ExperimentalClient? _suspendingExperimental;
     private CannedExchange? _suspendingRaw;
 
     public static IEnumerable<WireFixture> Fixtures()
@@ -69,17 +70,17 @@ public class SessionLogStreamBenchmarks : IDisposable
         _client = new OpenCodeClient(_httpClient, Options);
         _raw = new CannedExchange(_httpClient, HttpMethod.Get, Options.Endpoint!);
         await _raw.RequireDrainAsync(_body.Length).ConfigureAwait(false);
-        _session = _client.Sessions.GetSessionClient("ses_bench");
+        _experimental = _client.Experimental;
         _suspendingHandler = new CannedResponseHandler(_body, "text/event-stream", suspendingChunkBytes: SocketChunkBytes);
         _suspendingHttpClient = new HttpClient(_suspendingHandler);
         _suspendingClient = new OpenCodeClient(_suspendingHttpClient, Options);
-        _suspendingSession = _suspendingClient.Sessions.GetSessionClient("ses_bench");
+        _suspendingExperimental = _suspendingClient.Experimental;
         _suspendingRaw = new CannedExchange(_suspendingHttpClient, HttpMethod.Get, Options.Endpoint!);
         await _suspendingRaw.RequireDrainAsync(_body.Length).ConfigureAwait(false);
         _frames = await CollectFramesAsync(_body).ConfigureAwait(false);
 
         var count = 0;
-        await foreach (var item in _session.ReadLogAsync().ConfigureAwait(false))
+        await foreach (var item in _experimental.ReadSessionLogAsync(SessionId).ConfigureAwait(false))
         {
             if (item is UnknownSessionLogItem)
             {
@@ -95,7 +96,7 @@ public class SessionLogStreamBenchmarks : IDisposable
         }
 
         var suspended = 0;
-        await foreach (var item in _suspendingSession.ReadLogAsync().ConfigureAwait(false))
+        await foreach (var item in _suspendingExperimental.ReadSessionLogAsync(SessionId).ConfigureAwait(false))
         {
             if (item is UnknownSessionLogItem)
             {
@@ -115,9 +116,10 @@ public class SessionLogStreamBenchmarks : IDisposable
     [Benchmark]
     public async Task<int> ReadLogAsync()
     {
-        var session = _session!;
+        // GlobalSetup assigns the client before any benchmark runs.
+        var experimental = _experimental!;
         var count = 0;
-        await foreach (var item in session.ReadLogAsync().ConfigureAwait(false))
+        await foreach (var item in experimental.ReadSessionLogAsync(SessionId).ConfigureAwait(false))
         {
             _ = item;
             count++;
@@ -130,9 +132,10 @@ public class SessionLogStreamBenchmarks : IDisposable
     [Benchmark]
     public async Task<int> ReadLogSuspendingAsync()
     {
-        var session = _suspendingSession!;
+        // GlobalSetup assigns the client before any benchmark runs.
+        var experimental = _suspendingExperimental!;
         var count = 0;
-        await foreach (var item in session.ReadLogAsync().ConfigureAwait(false))
+        await foreach (var item in experimental.ReadSessionLogAsync(SessionId).ConfigureAwait(false))
         {
             _ = item;
             count++;

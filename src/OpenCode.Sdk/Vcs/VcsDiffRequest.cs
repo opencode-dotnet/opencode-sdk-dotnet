@@ -24,4 +24,8 @@ public sealed record VcsDiffRequest
     /// Gets the &apos;context&apos; query value; the server default applies when unset.
     /// </summary>
     public int? Context { get; init; }
+    /// <summary>
+    /// Gets the &apos;untracked&apos; query value; the server default applies when unset.
+    /// </summary>
+    public VcsUntracked? Untracked { get; init; }
 }

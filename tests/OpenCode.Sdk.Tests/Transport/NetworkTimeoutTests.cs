@@ -101,6 +101,8 @@ public sealed class NetworkTimeoutTests
         var expected = new Dictionary<string, OperationTraits>(StringComparer.Ordinal)
         {
             ["event.subscribe"] = new(Reconnects: true, HasNoNetworkWindow: false),
+            ["experimental.generate.decisions"] = new(Reconnects: false, HasNoNetworkWindow: true),
+            ["experimental.generate.image"] = new(Reconnects: false, HasNoNetworkWindow: true),
             ["experimental.generate.text"] = new(Reconnects: false, HasNoNetworkWindow: true),
             ["experimental.session.wait"] = new(Reconnects: false, HasNoNetworkWindow: true),
             ["session.command"] = new(Reconnects: false, HasNoNetworkWindow: true),

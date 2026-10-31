@@ -18,6 +18,13 @@ public sealed record ConfigModel
     public string? ModelId { get; init; }
 
     /// <summary>
+    /// Gets the type value.
+    /// </summary>
+    [JsonPropertyName("type")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ModelType? Type { get; init; }
+
+    /// <summary>
     /// Gets the family value.
     /// </summary>
     [JsonPropertyName("family")]
@@ -111,5 +118,5 @@ public sealed record ConfigModel
     /// <summary>
     /// Prints the record&apos;s members with its secret members masked.
     /// </summary>
-    public override string ToString() => RecordPrinter.Format(nameof(ConfigModel), ("ModelId", ModelId), ("Family", Family), ("Name", Name), ("ReleaseDate", ReleaseDate), ("Compatibility", Compatibility), ("Package", Package), ("Settings", Settings), ("Headers", RecordPrinter.Redact(Headers)), ("Body", Body), ("Capabilities", Capabilities), ("Variants", Variants), ("Cost", Cost), ("Disabled", Disabled), ("Limit", Limit));
+    public override string ToString() => RecordPrinter.Format(nameof(ConfigModel), ("ModelId", ModelId), ("Type", Type), ("Family", Family), ("Name", Name), ("ReleaseDate", ReleaseDate), ("Compatibility", Compatibility), ("Package", Package), ("Settings", Settings), ("Headers", RecordPrinter.Redact(Headers)), ("Body", Body), ("Capabilities", Capabilities), ("Variants", Variants), ("Cost", Cost), ("Disabled", Disabled), ("Limit", Limit));
 }

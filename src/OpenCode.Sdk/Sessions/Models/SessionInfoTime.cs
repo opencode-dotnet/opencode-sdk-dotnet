@@ -21,6 +21,13 @@ public sealed record SessionInfoTime
     public required double Updated { get; init; }
 
     /// <summary>
+    /// Gets the busy value.
+    /// </summary>
+    [JsonPropertyName("busy")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? Busy { get; init; }
+
+    /// <summary>
     /// Idle time in milliseconds since the Unix epoch.
     /// </summary>
     [JsonPropertyName("idle")]

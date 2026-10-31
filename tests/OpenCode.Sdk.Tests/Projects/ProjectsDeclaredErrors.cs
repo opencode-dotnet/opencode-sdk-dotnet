@@ -53,7 +53,7 @@ public static class ProjectsDeclaredErrors
             WireBodyData.ProjectNotFoundError,
             "ProjectNotFoundError",
             typeof(ProjectNotFoundError),
-            "#/paths/~1api~1project~1{projectID}/patch/responses/404/content/application~1json/schema/anyOf/0"),
+            "#/paths/~1api~1project~1{projectID}/patch/responses/404/content/application~1json/schema"),
         static () => new(
             "project.update:401:UnauthorizedError",
             UpdateProjectPrj1Door,

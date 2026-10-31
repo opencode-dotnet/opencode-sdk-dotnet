@@ -12,5 +12,5 @@ public sealed record TuiCommandExecuteData
     /// Gets the command value.
     /// </summary>
     [JsonPropertyName("command")]
-    public required TuiCommandExecuteDataCommand Command { get; init; }
+    public required TuiCommandName Command { get; init; }
 }

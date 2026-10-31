@@ -13,10 +13,7 @@ internal sealed class TestRpcPlugin
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
 
         Directory = fileSystem.Path.Combine(repositoryRoot, "tests", "OpenCode.Sdk.Tests", "Harness", "Plugins", "sdk-test-rpc");
-        EntryPoint = fileSystem.Path.Combine(Directory, "index.js");
     }
 
     internal string Directory { get; }
-
-    internal string EntryPoint { get; }
 }

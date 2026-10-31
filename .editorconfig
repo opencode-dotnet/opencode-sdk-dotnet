@@ -824,7 +824,7 @@ dotnet_diagnostic.CA1034.severity = none
 # The pinned OpenAPI schemas declare these wire members as plain strings without
 # format: uri. Winner: the sole protocol input's declared type; CA1056's name
 # inference remains enabled for every other property.
-[src/OpenCode.Sdk/**/{ConfigInfoEnterprise,ConnectionStatus,ExperimentalIntegrationWellknownAddRequest,FormExternalField,IntegrationAttempt,McpOAuthConfig,McpRemoteConfig,McpResource,McpResourceTemplate,ProjectIcon,PromptFileSourceUri,PromptInputFileAttachment,ToolFileContent,VoiceWebSocketTransport,WebSearchResult}.cs]
+[src/OpenCode.Sdk/**/{ConfigInfoEnterprise,ConnectionStatus,ExperimentalIntegrationWellknownAddRequest,FormExternalField,IntegrationAttempt,McpOAuthConfig,McpRemoteConfig,McpResource,McpResourceTemplate,ProjectIcon,PromptFileSourceUri,PromptInputFileAttachment,ToolFileContent,UsageLimitsInfoWorkspace,VoiceWebSocketTransport,WebSearchResult}.cs]
 dotnet_diagnostic.CA1056.severity = none
 
 # The SDK's namespaces are API surface, not placement: a public type declares OpenCode.Sdk or

@@ -77,4 +77,11 @@ public sealed record ModelCompatibility
     [JsonPropertyName("supportsEffortUpdates")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? SupportsEffortUpdates { get; init; }
+
+    /// <summary>
+    /// Gets the media input value.
+    /// </summary>
+    [JsonPropertyName("mediaInput")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ModelMediaInput? MediaInput { get; init; }
 }

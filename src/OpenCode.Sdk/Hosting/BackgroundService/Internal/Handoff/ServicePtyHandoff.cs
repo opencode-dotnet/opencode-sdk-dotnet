@@ -153,7 +153,7 @@ internal sealed class ServicePtyHandoff(IServiceFileSystem fileSystem, TimeProvi
         using var deadline = TimedCancellation.Create(timeout, time);
         using var bound = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
         return await pipeline
-            .ExecuteAsync("persistentPty.handoff", HttpMethod.Post, OpenCodeRoutes.PersistentPtys.Handoff, ServiceHandoffTicketAdapter.Instance, options: null, bound.Token)
+            .ExecuteAsync("experimental.persistentPty.handoff", HttpMethod.Post, OpenCodeRoutes.PersistentPtys.Handoff, ServiceHandoffTicketAdapter.Instance, options: null, bound.Token)
             .ConfigureAwait(false);
     }
 

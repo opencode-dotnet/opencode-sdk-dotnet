@@ -2,13 +2,15 @@
 // Do not edit by hand — change tools/curation.json or the emitters, then regenerate.
 namespace OpenCode.Sdk.Internal;
 /// <summary>
-/// Adapts the &apos;POST /api/experimental/generate&apos; responses onto &apos;ExperimentalGenerateTextResponse&apos;.
+/// Adapts the &apos;POST /api/experimental/generate/text&apos; responses onto &apos;ExperimentalGenerateTextResponse&apos;.
 /// </summary>
 internal sealed class ExperimentalGenerateTextResponseAdapter : ResponseAdapter<ExperimentalGenerateTextResponse>
 {
     private static readonly string[] Status400Tags = ["InvalidRequestError"];
     private static readonly string[] Status401Tags = ["UnauthorizedError"];
-    private static readonly string[] Status404Tags = ["LocationNotFoundError"];
+    private static readonly string[] Status404Tags = ["LocationNotFoundError", "ModelNotFoundError", "ProviderNotFoundError"];
+    private static readonly string[] Status422Tags = ["UnsupportedModelError"];
+    private static readonly string[] Status502Tags = ["ProviderRequestError"];
     private static readonly string[] Status503Tags = ["ServiceUnavailableError"];
     private ExperimentalGenerateTextResponseAdapter()
     {
@@ -29,6 +31,8 @@ internal sealed class ExperimentalGenerateTextResponseAdapter : ResponseAdapter<
         400 => StatusVerdict.DeclaredError,
         401 => StatusVerdict.DeclaredError,
         404 => StatusVerdict.DeclaredError,
+        422 => StatusVerdict.DeclaredError,
+        502 => StatusVerdict.DeclaredError,
         503 => StatusVerdict.DeclaredError,
         _ => StatusVerdict.UndeclaredError
     };
@@ -57,6 +61,8 @@ internal sealed class ExperimentalGenerateTextResponseAdapter : ResponseAdapter<
             400 => new ExperimentalGenerateTextResponse(status, ReadTolerantError(rawBody, Status400Tags), rawBody),
             401 => new ExperimentalGenerateTextResponse(status, ReadTolerantError(rawBody, Status401Tags), rawBody),
             404 => new ExperimentalGenerateTextResponse(status, ReadTolerantError(rawBody, Status404Tags), rawBody),
+            422 => new ExperimentalGenerateTextResponse(status, ReadTolerantError(rawBody, Status422Tags), rawBody),
+            502 => new ExperimentalGenerateTextResponse(status, ReadTolerantError(rawBody, Status502Tags), rawBody),
             503 => new ExperimentalGenerateTextResponse(status, ReadTolerantError(rawBody, Status503Tags), rawBody),
             _ => new ExperimentalGenerateTextResponse(status, ReadTolerantError(rawBody, null), rawBody)
         };

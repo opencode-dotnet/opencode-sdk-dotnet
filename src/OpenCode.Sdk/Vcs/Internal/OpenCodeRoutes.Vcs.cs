@@ -43,6 +43,7 @@ internal static partial class OpenCodeRoutes
             query.AddText("mode", ToWireValue(request.Mode));
             query.AddText("base", request.Base);
             query.AddInteger("context", request.Context);
+            query.AddText("untracked", ToWireValue(request.Untracked));
             return path + query.Value;
         }
 
@@ -126,4 +127,8 @@ internal static partial class OpenCodeRoutes
     /// Spells one &apos;VcsMode&apos; value the way the wire query expects it.
     /// </summary>
     private static string? ToWireValue(VcsMode? value) => value is not { } member ? null : member.Equals(default) ? throw new ArgumentException("A default VcsMode has no wire value.", nameof(value)) : member.ToString();
+    /// <summary>
+    /// Spells one &apos;VcsUntracked&apos; value the way the wire query expects it.
+    /// </summary>
+    private static string? ToWireValue(VcsUntracked? value) => value is not { } member ? null : member.Equals(default) ? throw new ArgumentException("A default VcsUntracked has no wire value.", nameof(value)) : member.ToString();
 }
