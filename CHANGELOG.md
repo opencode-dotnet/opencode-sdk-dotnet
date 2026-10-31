@@ -98,6 +98,11 @@ Nightly builds of `master` are on
   so a command entry with a NUL could reach the contender's spawn and be cut short there. It now
   refuses it with `ArgumentException` for `options` before the registration is read or anything is
   spawned, as it does for the environment.
+- **On Windows, a background service's environment now resolves a key that differs only in case as
+  upstream does.** The first spelling in ordinal order wins, whichever side set it. Before, a
+  saved or caller entry always replaced the host's value, so a saved `xdg_state_home` moved the
+  registration away from clients looking under the host's root. A caller's `PATH` still replaces
+  the host's `Path`.
 
 ### 📚 Documentation
 

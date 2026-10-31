@@ -1,4 +1,3 @@
-using System.Collections;
 using static OpenCode.Sdk.Internal.WindowsPlatform;
 
 namespace OpenCode.Sdk.Internal;
@@ -73,34 +72,15 @@ internal sealed partial class ServiceContenderSpawner(IPosixSpawn posixSpawn, IW
     }
 
     /// <summary>
-    /// Layers the overlay over the launching process's own environment, the way the pinned client
-    /// spreads <c>process.env</c> under its service env. A null overlay value removes the variable;
-    /// an empty handoff is removed too rather than passed as an empty ticket.
+    /// Layers exact overlay keys over the host's environment. On Windows the first spelling in
+    /// ordinal order wins, as the pinned client's spawn does, before null values are removed.
+    /// An empty handoff is removed rather than passed as an empty ticket.
     /// </summary>
     private static Dictionary<string, string> MergeEnvironment(
         IReadOnlyDictionary<string, string?> overlay, out string? redaction)
     {
-        var merged = new Dictionary<string, string>(
-            IsWindows ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
-        foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
-        {
-            if (entry.Key is string key && entry.Value is string value)
-            {
-                merged[key] = value;
-            }
-        }
-
-        foreach (var entry in overlay)
-        {
-            if (entry.Value is null)
-            {
-                merged.Remove(entry.Key);
-            }
-            else
-            {
-                merged[entry.Key] = entry.Value;
-            }
-        }
+        var entries = ServiceContenderEnvironmentComposer.Overlay(Environment.GetEnvironmentVariables(), overlay);
+        var merged = ServiceContenderEnvironmentComposer.Resolve(entries);
 
         redaction = null;
         if (merged.TryGetValue(HandoffVariable, out var ticket) && !string.IsNullOrEmpty(ticket))

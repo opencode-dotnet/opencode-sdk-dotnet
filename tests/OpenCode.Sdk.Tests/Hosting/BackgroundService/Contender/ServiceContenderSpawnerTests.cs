@@ -312,14 +312,13 @@ public sealed class ServiceContenderSpawnerTests
     }
 
     /// <summary>
-    /// Environment names are case-insensitive on Windows and case-sensitive on Unix, as libuv and
-    /// the platforms treat them: an overlay key spelled differently from the host's variable
-    /// replaces it on Windows, where two spellings in one block would leave the child to pick
-    /// either, and stands beside it on Unix.
+    /// On Windows the first spelling in ordinal order wins, as the pinned client's spawn resolves
+    /// environment names: this host spelling sorts before the overlay's. On Unix both exact
+    /// spellings stand independently.
     /// </summary>
     [Test]
     [Timeout(120_000)]
-    public async Task Spawn_Should_Match_Environment_Names_The_Way_The_Platform_Does(CancellationToken cancellationToken)
+    public async Task Spawn_Should_Resolve_A_Case_Only_Collision_As_The_Pinned_Client_Does(CancellationToken cancellationToken)
     {
         const string hostName = "SDK_CONTENDER_CASED";
         const string overlayName = "sdk_contender_CASED";
@@ -337,8 +336,8 @@ public sealed class ServiceContenderSpawnerTests
                     .Because(contender.Stderr);
                 var report = ParseEchoReport(contender.Stderr);
 
-                await Assert.That(report.Environment[hostName]).IsEqualTo(OperatingSystem.IsWindows() ? "overlay" : "host");
-                await Assert.That(report.Environment[overlayName]).IsEqualTo("overlay");
+                await Assert.That(report.Environment[hostName]).IsEqualTo("host");
+                await Assert.That(report.Environment[overlayName]).IsEqualTo(OperatingSystem.IsWindows() ? "host" : "overlay");
             }
             finally
             {

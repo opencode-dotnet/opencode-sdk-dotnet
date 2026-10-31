@@ -4,6 +4,7 @@ using NSubstitute;
 using NSubstitute.Extensions;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Tests.Support;
+using TUnit.Assertions.Enums;
 
 namespace OpenCode.Sdk.Tests.Hosting.BackgroundService.Contender;
 
@@ -108,6 +109,63 @@ public sealed class ServiceContenderSpawnerRequestTests
             await Assert.That(request.StandardOutput).IsEqualTo(ChildStreamRoute.Null);
             await Assert.That(request.StandardError).IsEqualTo(ChildStreamRoute.Pipe);
             BranchReport.Print("POSIX — contender request uses null/null/pipe");
+        }
+    }
+
+    [Test]
+    [Arguments("OCSDK_PROBE", new[] { "ocsdk_probe" }, new[] { "S" }, new[] { "OCSDK_PROBE" }, new[] { "H" }, new[] { "OCSDK_PROBE", "ocsdk_probe" }, new[] { "H", "S" })]
+    [Arguments("ocsdk_probe", new[] { "OCSDK_PROBE" }, new[] { "S" }, new[] { "OCSDK_PROBE" }, new[] { "S" }, new[] { "OCSDK_PROBE", "ocsdk_probe" }, new[] { "S", "H" })]
+    [Arguments("Ocsdk_Probe", new[] { "OCSDK_PROBE" }, new[] { "S" }, new[] { "OCSDK_PROBE" }, new[] { "S" }, new[] { "OCSDK_PROBE", "Ocsdk_Probe" }, new[] { "S", "H" })]
+    [Arguments("OCSDK_PROBE", new[] { "Ocsdk_Probe" }, new[] { "S" }, new[] { "OCSDK_PROBE" }, new[] { "H" }, new[] { "OCSDK_PROBE", "Ocsdk_Probe" }, new[] { "H", "S" })]
+    [Arguments("Ocsdk_Probe", new[] { "ocsdk_probe" }, new[] { "S" }, new[] { "Ocsdk_Probe" }, new[] { "H" }, new[] { "Ocsdk_Probe", "ocsdk_probe" }, new[] { "H", "S" })]
+    [Arguments("OCSDK_PROBE", new[] { "OCSDK_PROBE" }, new[] { "S" }, new[] { "OCSDK_PROBE" }, new[] { "S" }, new[] { "OCSDK_PROBE" }, new[] { "S" })]
+    [Arguments(null, new[] { "ocsdk_probe", "OCSDK_PROBE" }, new[] { "S", "T" }, new[] { "OCSDK_PROBE" }, new[] { "T" }, new[] { "OCSDK_PROBE", "ocsdk_probe" }, new[] { "T", "S" })]
+    [Arguments(null, new[] { "Ocsdk_Probe", "oCSDK_probe" }, new[] { "T", "S" }, new[] { "Ocsdk_Probe" }, new[] { "T" }, new[] { "Ocsdk_Probe", "oCSDK_probe" }, new[] { "T", "S" })]
+    [Arguments("OCSDK_PROBE", new[] { "OCSDK_PROBE", "ocsdk_probe" }, new[] { "S", "T" }, new[] { "OCSDK_PROBE" }, new[] { "S" }, new[] { "OCSDK_PROBE", "ocsdk_probe" }, new[] { "S", "T" })]
+    [Arguments("OCSDK_PROBE", new[] { "ocsdk_probe" }, new string?[] { null }, new[] { "OCSDK_PROBE" }, new[] { "H" }, new[] { "OCSDK_PROBE" }, new[] { "H" })]
+    [Arguments("OCSDK_PROBE", new[] { "OCSDK_PROBE" }, new string?[] { null }, new string[0], new string[0], new string[0], new string[0])]
+    [Arguments("ocsdk_probe", new[] { "OCSDK_PROBE" }, new string?[] { null }, new string[0], new string[0], new[] { "ocsdk_probe" }, new[] { "H" })]
+    [Arguments("OCSDK_PROBE", new[] { "ocsdk_probe" }, new[] { "" }, new[] { "OCSDK_PROBE" }, new[] { "H" }, new[] { "OCSDK_PROBE", "ocsdk_probe" }, new[] { "H", "" })]
+    [Arguments("ocsdk_probe", new[] { "OCSDK_PROBE" }, new[] { "" }, new[] { "OCSDK_PROBE" }, new[] { "" }, new[] { "OCSDK_PROBE", "ocsdk_probe" }, new[] { "", "H" })]
+    public async Task Spawn_Should_Resolve_Environment_Spellings_As_The_Pinned_Client_Does(
+        string? hostName, string[] overlayNames, string?[] overlayValues,
+        string[] windowsNames, string[] windowsValues, string[] unixNames, string[] unixValues)
+    {
+        ArgumentNullException.ThrowIfNull(overlayNames);
+        ArgumentNullException.ThrowIfNull(overlayValues);
+        var suffix = "_" + Guid.NewGuid().ToString("N");
+        var overlay = new Dictionary<string, string?>(StringComparer.Ordinal);
+        for (var index = 0; index < overlayNames.Length; index++)
+        {
+            overlay.Add(overlayNames[index] + suffix, overlayValues[index]);
+        }
+
+        try
+        {
+            if (hostName is not null)
+            {
+                Environment.SetEnvironmentVariable(hostName + suffix, "H");
+            }
+
+            var recording = new RecordingSpawn();
+            await Assert.That(() => Spawner(recording).Spawn(Start(environment: overlay))).Throws<OpenCodeServerException>();
+
+            var entries = recording.Environment.Where(entry => entry.Key.EndsWith(suffix, StringComparison.Ordinal))
+                .OrderBy(static entry => entry.Key, StringComparer.Ordinal).ToArray();
+            var expectedNames = OperatingSystem.IsWindows() ? windowsNames : unixNames;
+            var expectedValues = OperatingSystem.IsWindows() ? windowsValues : unixValues;
+            await Assert.That(entries.Select(static entry => entry.Key)).IsEquivalentTo(
+                expectedNames.Select(name => name + suffix), StringComparer.Ordinal, CollectionOrdering.Matching);
+            await Assert.That(entries.Select(static entry => entry.Value)).IsEquivalentTo(
+                expectedValues, StringComparer.Ordinal, CollectionOrdering.Matching);
+            BranchReport.Print(OperatingSystem.IsWindows() ? "Windows — first ordinal spelling wins" : "POSIX — exact spellings stand independently");
+        }
+        finally
+        {
+            if (hostName is not null)
+            {
+                Environment.SetEnvironmentVariable(hostName + suffix, null);
+            }
         }
     }
 

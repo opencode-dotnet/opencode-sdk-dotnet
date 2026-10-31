@@ -988,11 +988,12 @@ registration (or whose registration is gone) as `OPENCODE_PTY_HANDOFF` and remov
 otherwise; `complete` clears only a sidecar a different source wrote, with no expiry check; and
 `clear` removes it idempotently, the same seam Stop's sidecar clear routes through.
 
-The background service's recorded divergence from upstream on Windows (ADR-0031):
+The background service's recorded divergences from upstream on Windows (ADR-0031):
 
 | Divergence | Upstream | SDK | Reason |
 |---|---|---|---|
 | Sidecar publish | The pinned client's `publish` (`packages/client/src/pty-handoff.ts`) renames the temporary file over the sidecar with `node:fs` `rename`, which fails with `EPERM` while any handle holds the destination, whatever that handle shares | A POSIX-semantics rename: `SetFileInformationByHandle(FileRenameInfoEx)` with `FILE_RENAME_FLAG_REPLACE_IF_EXISTS` and `FILE_RENAME_FLAG_POSIX_SEMANTICS`, on a source opened with `DELETE` access. A system or volume that refuses it with `ERROR_INVALID_PARAMETER`, `ERROR_NOT_SUPPORTED`, or `ERROR_INVALID_FUNCTION` (Windows before 10 1607, some Windows Server 2016 installations, FAT, ReFS, some network shares; the codes Git's own POSIX-semantics rename falls back on) takes the platform replace instead: `MoveFileEx` with `MOVEFILE_REPLACE_EXISTING`, or `File.Replace` on the downlevel targets | The sidecar's readers include holders the SDK does not control, such as real-time antivirus and the indexer, and they open a fresh file with delete sharing, as the SDK's own reader does. The POSIX-semantics rename replaces the destination under them, and they keep reading the contents they opened, so the failure class is removed rather than retried. It is the rename Bun itself makes in its install path. A holder that opened the sidecar without delete sharing still fails the publish, and the replacement then starts without a handoff, as after any failed publish. |
+| Case-only collision in a non-ASCII name | Bun's spawn groups spellings with JavaScript's `toUpperCase`, which applies full Unicode case mapping, so `straße` and `STRASSE` are one variable | Groups with `ToUpperInvariant`, so those two stay separate variables. 158 code points map differently, none of them ASCII: those with a multi-character uppercase (`ß`, `ŉ`, `ΐ`) or a mapping .NET doesn't have (`ı`, `ƛ`) | No ASCII name is affected. The base class library has no full case mapping, so matching it would mean carrying a case table in the SDK for names that environment variables rarely use. |
 
 The divergence is reversed when upstream changes its publish to one that survives such holders, or
 when the POSIX-semantics rename proves unsound on a volume the SDK supports.
