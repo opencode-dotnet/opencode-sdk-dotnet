@@ -4,7 +4,7 @@ A change that adds, removes or alters a suppression updates this file in the sam
 build-switch: 12
 editorconfig: 149
 globalconfig: 1
-no-warn: 18
+no-warn: 13
 pragma: 26
 slopwatch-ignore: 7
 slopwatch-suppress: 32
@@ -174,22 +174,17 @@ editorconfig .editorconfig [tools/opencode-tool.cs] dotnet_diagnostic.MA0048.sev
 globalconfig .globalconfig dotnet_diagnostic.VSTHRD010.severity = none
 no-warn src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj OPENCODE001
 no-warn src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj OPENCODE002
-no-warn src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj OPENCODE003
 no-warn src/OpenCode.Sdk/OpenCode.Sdk.csproj OPENCODE001
 no-warn src/OpenCode.Sdk/OpenCode.Sdk.csproj OPENCODE002
-no-warn src/OpenCode.Sdk/OpenCode.Sdk.csproj OPENCODE003
 no-warn tests/OpenCode.Sdk.Extensions.Tests/OpenCode.Sdk.Extensions.Tests.csproj S1075
 no-warn tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj OPENCODE001
 no-warn tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj OPENCODE002
-no-warn tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj OPENCODE003
 no-warn tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj S1075
 no-warn tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj S2068
 no-warn tests/OpenCode.Sdk.Sandbox/OpenCode.Sdk.Sandbox.csproj OPENCODE001
 no-warn tests/OpenCode.Sdk.Sandbox/OpenCode.Sdk.Sandbox.csproj OPENCODE002
-no-warn tests/OpenCode.Sdk.Sandbox/OpenCode.Sdk.Sandbox.csproj OPENCODE003
 no-warn tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj OPENCODE001
 no-warn tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj OPENCODE002
-no-warn tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj OPENCODE003
 pragma src/OpenCode.Sdk/Common/Internal/ExperimentalDiagnostics.cs S1075
 pragma src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Handoff/PtyHandoffSidecar.cs MA0045
 pragma src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Registration/StrictJson.cs S1244
