@@ -6,7 +6,8 @@ namespace OpenCode.Sdk.Internal;
 /// The shipped <see cref="IFileRenameKernel"/>: <c>SetFileInformationByHandle(FileRenameInfoEx)</c>
 /// with <c>FILE_RENAME_FLAG_REPLACE_IF_EXISTS | FILE_RENAME_FLAG_POSIX_SEMANTICS</c>, on a source
 /// handle opened with <c>DELETE</c> access, which the call needs. It is the rename Bun makes in its
-/// own install path. The handle is released, and the information buffer freed, on every path.
+/// own install path. A failure identifies the source open or rename; the handle is released,
+/// and the information buffer freed, on every path.
 /// </summary>
 internal sealed class FileRenameKernel : IFileRenameKernel
 {
@@ -26,7 +27,7 @@ internal sealed class FileRenameKernel : IFileRenameKernel
     public static FileRenameKernel Instance { get; } = new();
 
     /// <inheritdoc />
-    public int Replace(string source, string destination)
+    public int Replace(string source, string destination, out bool sourceOpenFailed)
     {
         using var handle = WindowsInterop.CreateFile(
             ExtendedPath(source),
@@ -36,7 +37,8 @@ internal sealed class FileRenameKernel : IFileRenameKernel
             WindowsInterop.OpenExisting,
             flagsAndAttributes: 0,
             IntPtr.Zero);
-        if (handle.IsInvalid)
+        sourceOpenFailed = handle.IsInvalid;
+        if (sourceOpenFailed)
         {
             return Marshal.GetLastWin32Error();
         }
