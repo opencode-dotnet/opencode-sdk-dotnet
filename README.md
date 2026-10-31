@@ -334,8 +334,8 @@ has the two properties to set.
   `chmod` child process rather than at creation, and a failed `chmod` fails the write. No CI leg runs
   .NET Framework or Mono on Unix.
 
-- **Each terminal connection allocates a 16 KiB receive buffer**, reused across reads. The receiver
-  also queues frames that nobody reads, so a slow or absent consumer can grow memory. See the
+- **A terminal's receiver queues frames that nobody reads**, so a slow or absent consumer can grow
+  memory. See the
   [terminal lifetime contract](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/architecture/client-runtime.md).
 
 ## Developing

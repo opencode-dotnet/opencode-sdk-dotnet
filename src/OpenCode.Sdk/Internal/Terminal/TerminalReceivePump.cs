@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.WebSockets;
 using System.Threading.Channels;
@@ -17,6 +18,7 @@ internal sealed class TerminalReceivePump<TFrame> : IAsyncDisposable
     private readonly CancellationTokenSource _lifetime = new();
     private readonly Lock _sync = new();
     private readonly Task _completion;
+    private readonly ArrayPool<byte> _pool;
     private bool _abandoned;
     private TerminalConnectionOutcome? _outcome;
 
@@ -24,8 +26,10 @@ internal sealed class TerminalReceivePump<TFrame> : IAsyncDisposable
         ITerminalWebSocket socket,
         ITerminalFrameDecoder<TFrame> decoder,
         ITerminalClosePolicy closePolicy,
-        Func<Task> onEnded)
+        Func<Task> onEnded,
+        ArrayPool<byte> pool)
     {
+        _pool = pool;
         _completion = ReceiveAsync(socket, decoder, closePolicy, onEnded);
     }
 
@@ -149,44 +153,52 @@ internal sealed class TerminalReceivePump<TFrame> : IAsyncDisposable
         ITerminalFrameDecoder<TFrame> decoder,
         ITerminalClosePolicy closePolicy)
     {
-        var buffer = new byte[TerminalSocketBounds.ReceiveBufferSize];
-        var segment = new ArraySegment<byte>(buffer);
-        PtyMessageAssembler? assembly = null;
-        while (Outcome is null)
+        var buffer = _pool.Rent(TerminalSocketBounds.ReceiveBufferSize);
+        try
         {
-            var received = await socket.ReceiveAsync(segment, _lifetime.Token).ConfigureAwait(false);
-            if (received.MessageType is WebSocketMessageType.Close)
+            var segment = new ArraySegment<byte>(buffer, 0, TerminalSocketBounds.ReceiveBufferSize);
+            PtyMessageAssembler? assembly = null;
+            while (Outcome is null)
             {
-                Complete(closePolicy.Map(socket.CloseStatus, socket.CloseStatusDescription));
-                return;
-            }
-
-            if (!received.EndOfMessage)
-            {
-                assembly ??= new PtyMessageAssembler();
-                assembly.Append(buffer, received.Count);
-                continue;
-            }
-
-            TFrame frame;
-            if (assembly is null || assembly.Length is 0)
-            {
-                frame = decoder.Decode(received.MessageType, buffer, received.Count);
-            }
-            else
-            {
-                assembly.Append(buffer, received.Count);
-                frame = decoder.Decode(received.MessageType, assembly.Buffer, assembly.Length);
-                assembly.Reset();
-            }
-
-            lock (_sync)
-            {
-                if (_outcome is null)
+                var received = await socket.ReceiveAsync(segment, _lifetime.Token).ConfigureAwait(false);
+                if (received.MessageType is WebSocketMessageType.Close)
                 {
-                    _ = _frames.Writer.TryWrite(frame);
+                    Complete(closePolicy.Map(socket.CloseStatus, socket.CloseStatusDescription));
+                    return;
+                }
+
+                if (!received.EndOfMessage)
+                {
+                    assembly ??= new PtyMessageAssembler();
+                    assembly.Append(buffer, received.Count);
+                    continue;
+                }
+
+                TFrame frame;
+                if (assembly is null || assembly.Length is 0)
+                {
+                    frame = decoder.Decode(received.MessageType, buffer, received.Count);
+                }
+                else
+                {
+                    assembly.Append(buffer, received.Count);
+                    frame = decoder.Decode(received.MessageType, assembly.Buffer, assembly.Length);
+                    assembly.Reset();
+                }
+
+                lock (_sync)
+                {
+                    if (_outcome is null)
+                    {
+                        _ = _frames.Writer.TryWrite(frame);
+                    }
                 }
             }
+        }
+        finally
+        {
+            // Terminal bytes are not treated as a secret against the process's own memory.
+            _pool.Return(buffer);
         }
     }
 }
