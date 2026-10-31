@@ -107,7 +107,7 @@ You also need the `opencode` CLI, from the `@opencode/cli` npm scope. Install th
 repository pins — later releases usually work, but they are not what the tests run against:
 
 ```sh
-npm install -g @opencode/cli@2.1.4
+npm install -g @opencode/cli@2.2.2
 ```
 
 You do not have to start it. `OpenCodeServer.StartAsync()` in the [quick start](#-quick-start)
@@ -269,7 +269,7 @@ binding uses reflection, so that overload is annotated `[RequiresDynamicCode]` a
 | [Errors and responses](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/errors-and-responses.md) | Throwing versus `NoThrow`, and the typed error model |
 | [Pagination](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/pagination.md) | Cursor-carrying list envelopes, `Enumerate*Async`, and its `Pages` |
 | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md) | Request records, the absent/null/set states of `Optional<T>`, query members, per-call location, and the permission, worktree, and shell-timeout members |
-| [Experimental APIs](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md) | What upstream serves as experimental, the `OPENCODE001`–`OPENCODE003` diagnostics, and how to opt in |
+| [Experimental APIs](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md) | What upstream serves as experimental, the `OPENCODE001` and `OPENCODE002` diagnostics, and how to opt in |
 
 Architecture, decision records, and engineering policy live under
 [`docs/`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/tree/master/docs). Start at
@@ -319,11 +319,11 @@ has the two properties to set.
 - **A CLI-started server's session log holds only the sync marker.** The per-session log reads from
   the server's event store, and the distributed `opencode` CLI starts its server without event
   persistence. No flag, environment variable, or configuration key turns it on (confirmed at the
-  pin; observed on `@opencode/cli@2.0.15`). `SessionClient.ReadLogAsync` does not fail: with or
-  without `Follow`, it delivers one `log.synced` frame, normally materialized as `EventLogSynced`,
-  and no durable events. For live session activity, subscribe to the global event bus and filter by
-  session id. Persisted replay needs a host that embeds the opencode server library with persistence
-  enabled.
+  pin; observed on `@opencode/cli@2.0.15`). `ExperimentalClient.ReadSessionLogAsync` does not
+  fail: with or without `Follow`, it delivers one `log.synced` frame, normally materialized as
+  `EventLogSynced`, and no durable events. For live session activity, subscribe to the global event
+  bus and filter by session id. Persisted replay needs a host that embeds the opencode server
+  library with persistence enabled.
 
 - **On `net472` and `netstandard2.0`, two costs are larger than on modern targets.** A response body
   over 16 MiB gets a newly allocated buffer on every call. Bodies between 1 and 16 MiB come from a pool

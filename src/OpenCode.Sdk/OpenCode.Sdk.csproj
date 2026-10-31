@@ -18,8 +18,8 @@
     <PolyUseEmbeddedAttribute>true</PolyUseEmbeddedAttribute>
     <!-- Roslyn workspace matching needs project-produced reference assemblies for downlevel multi-TFM references. -->
     <ProduceReferenceAssembly Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">true</ProduceReferenceAssembly>
-    <!-- slopwatch-ignore: SW005 experimental-family arbitration: the SDK implements its own experimental families (OPENCODE001-003), so using them inside it is not a consumer's opt-in -->
-    <NoWarn>$(NoWarn);OPENCODE001;OPENCODE002;OPENCODE003</NoWarn>
+    <!-- slopwatch-ignore: SW005 experimental-family arbitration: the SDK implements its own experimental families (OPENCODE001 and OPENCODE002), so using them inside it is not a consumer's opt-in -->
+    <NoWarn>$(NoWarn);OPENCODE001;OPENCODE002</NoWarn>
   </PropertyGroup>
 
   <!-- System.Text.Json is inbox on every modern target, so only the downlevel targets take the
