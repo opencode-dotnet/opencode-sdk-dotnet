@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a schedule condition shell value.
+/// A shell check run in the session&apos;s directory before the schedule fires, with no model call; the schedule wakes the session only when it passes.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record ScheduleConditionShell
@@ -16,7 +16,7 @@ public sealed record ScheduleConditionShell
     public required string Type { get; init; }
 
     /// <summary>
-    /// Gets the run value.
+    /// The shell command the condition runs in the session&apos;s directory.
     /// </summary>
     [JsonPropertyName("run")]
     public required string Run { get; init; }

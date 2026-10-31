@@ -23,7 +23,7 @@ public sealed record UsageLimitsInfoWorkspace
     public string? Name { get; init; }
 
     /// <summary>
-    /// Gets the usage url value.
+    /// The member&apos;s usage page in OpenCode Console.
     /// </summary>
     [JsonPropertyName("usageURL")]
     public required string UsageUrl { get; init; }

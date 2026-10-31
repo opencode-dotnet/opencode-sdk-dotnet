@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents an usage limits budget value.
+/// A monthly spend limit the OpenCode Console workspace sets on the member.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record UsageLimitsBudget
@@ -22,25 +22,25 @@ public sealed record UsageLimitsBudget
     public required double Limit { get; init; }
 
     /// <summary>
-    /// Gets the spent value.
+    /// The member&apos;s spend this month, or the pooled spend of a combined budget; for a per-model budget, the most spent on one model.
     /// </summary>
     [JsonPropertyName("spent")]
     public required double Spent { get; init; }
 
     /// <summary>
-    /// Gets the scope value.
+    /// Whether the budget limits each member separately (each) or pools everyone&apos;s spend against one limit (combined).
     /// </summary>
     [JsonPropertyName("scope")]
     public required UsageLimitsBudgetScope Scope { get; init; }
 
     /// <summary>
-    /// Gets the per value.
+    /// Whether the budget counts spend across its models together (set) or limits each model separately (model).
     /// </summary>
     [JsonPropertyName("per")]
     public required UsageLimitsBudgetPer Per { get; init; }
 
     /// <summary>
-    /// Gets the coverage value.
+    /// Whether the budget covers every model and billable service (all) or only its models (models).
     /// </summary>
     [JsonPropertyName("coverage")]
     public required UsageLimitsBudgetCoverage Coverage { get; init; }
@@ -52,26 +52,26 @@ public sealed record UsageLimitsBudget
     public required IReadOnlyList<UsageLimitsBudgetModel> Models { get; init; }
 
     /// <summary>
-    /// Gets the vendors value.
+    /// The vendors whose models the budget counts, by name; empty when it does not count by vendor.
     /// </summary>
     [JsonPropertyName("vendors")]
     public required IReadOnlyList<string> Vendors { get; init; }
 
     /// <summary>
-    /// Gets the input price at least value.
+    /// The input price per million tokens from which the budget counts a model, when it sets one.
     /// </summary>
     [JsonPropertyName("inputPriceAtLeast")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public double? InputPriceAtLeast { get; init; }
 
     /// <summary>
-    /// Gets the picked value.
+    /// Whether the budget counts models picked one by one, rather than by vendor or price.
     /// </summary>
     [JsonPropertyName("picked")]
     public required bool Picked { get; init; }
 
     /// <summary>
-    /// Gets the shared value.
+    /// Whether everyone in the workspace pools spend against the budget, so reaching it pauses model use for all of them.
     /// </summary>
     [JsonPropertyName("shared")]
     public required bool Shared { get; init; }

@@ -16,21 +16,21 @@ public sealed record ScheduleConditionInput
     public required string Run { get; init; }
 
     /// <summary>
-    /// Gets the is value.
+    /// Wakes the session when the command exits 0 and its trimmed standard output equals this value.
     /// </summary>
     [JsonPropertyName("is")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Is { get; init; }
 
     /// <summary>
-    /// Gets the matches value.
+    /// Wakes the session when the command exits 0 and its standard output matches this regular expression.
     /// </summary>
     [JsonPropertyName("matches")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Matches { get; init; }
 
     /// <summary>
-    /// Gets the changes value.
+    /// Wakes the session when the command exits 0 and its standard output differs from the previous check.
     /// </summary>
     [JsonPropertyName("changes")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

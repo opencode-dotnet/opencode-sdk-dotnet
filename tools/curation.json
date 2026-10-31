@@ -2149,6 +2149,233 @@
           "excerpt": "      HttpApiEndpoint.post(\"session.permission.create\", \"/api/session/:sessionID/permission\", {"
         }
       ]
+    },
+    {
+      "type": "UsageLimitsMeter",
+      "summary": "One window of the OpenCode Go allowance.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:12", "excerpt": "/** One window of the OpenCode Go allowance. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsMeter",
+      "member": "Percent",
+      "summary": "How much of the window's allowance is used.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:15", "excerpt": "  /** How much of the window's allowance is used. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsMeter",
+      "member": "Limited",
+      "summary": "Whether Go refuses requests until the window resets.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:17", "excerpt": "  /** Go refuses requests until the window resets. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsGo",
+      "summary": "The OpenCode Go allowance of a workspace the member subscribes to Go in.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:22", "excerpt": "/** The OpenCode Go allowance of a workspace the member subscribes to Go in. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsBudgetModel",
+      "summary": "A model a budget covers, by the identifiers OpenCode knows it by.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:30", "excerpt": "/** A model a budget covers, by the IDs OpenCode knows it by. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsBudgetModel",
+      "member": "Spent",
+      "summary": "What the member has spent on this model this month under a per-model budget.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:36", "excerpt": "  /** What a per-model budget's member has spent on this model this month. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsBudget",
+      "summary": "A monthly spend limit the OpenCode Console workspace sets on the member.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:40", "excerpt": "/** A monthly spend limit the OpenCode Console workspace sets on the member. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsBudget",
+      "member": "Spent",
+      "summary": "The member's spend this month, or the pooled spend of a combined budget; for a per-model budget, the most spent on one model.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:45", "excerpt": "  /** The member's spend this month, or the pooled spend of a combined budget; per model, the most on one model. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsBudget",
+      "member": "Scope",
+      "summary": "Whether the budget limits each member separately (each) or pools everyone's spend against one limit (combined).",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:47", "excerpt": "  /** `each` limits every member separately; `combined` pools everyone's spend against one limit. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsBudget",
+      "member": "Per",
+      "summary": "Whether the budget counts spend across its models together (set) or limits each model separately (model).",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:49", "excerpt": "  /** `set` counts spend across the budget's models; `model` limits each model separately. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsBudget",
+      "member": "Coverage",
+      "summary": "Whether the budget covers every model and billable service (all) or only its models (models).",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:51", "excerpt": "  /** `all` covers every model and billable service; `models` covers only `models`. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsBudget",
+      "member": "Vendors",
+      "summary": "The vendors whose models the budget counts, by name; empty when it does not count by vendor.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:54", "excerpt": "  /** The vendors whose models the budget counts, by name; empty when it doesn't count by vendor. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsBudget",
+      "member": "InputPriceAtLeast",
+      "summary": "The input price per million tokens from which the budget counts a model, when it sets one.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:56", "excerpt": "  /** The input price per 1M tokens from which the budget counts a model, when it sets one. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsBudget",
+      "member": "Picked",
+      "summary": "Whether the budget counts models picked one by one, rather than by vendor or price.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:58", "excerpt": "  /** The budget counts models picked one by one, rather than by vendor or price. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsBudget",
+      "member": "Shared",
+      "summary": "Whether everyone in the workspace pools spend against the budget, so reaching it pauses model use for all of them.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:60", "excerpt": "  /** Everyone in the workspace pools spend against it, so reaching it pauses model use for all of them. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsInfo",
+      "summary": "The usage limits of the OpenCode Console workspace a location is signed in to.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:65", "excerpt": "/** The usage limits of the OpenCode Console workspace a location is signed in to. */" }
+      ]
+    },
+    {
+      "type": "UsageLimitsInfoWorkspace",
+      "member": "UsageUrl",
+      "summary": "The member's usage page in OpenCode Console.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/usage-limits.ts:71", "excerpt": "    /** The member's usage page in OpenCode Console. */" }
+      ]
+    },
+    {
+      "type": "ScheduleEnds",
+      "summary": "Stops a repeating schedule at whichever limit comes first.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/schedule.ts:54", "excerpt": "/** Stops a repeating schedule at whichever limit comes first. */" }
+      ]
+    },
+    {
+      "type": "ScheduleConditionShell",
+      "summary": "A shell check run in the session's directory before the schedule fires, with no model call; the schedule wakes the session only when it passes.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/schedule.ts:73", "excerpt": " * Runs `run` in the Session's directory before firing, with no model call. With none of `is`, `matches` or `changes`" },
+        { "location": "packages/schema/src/schedule.ts:87", "excerpt": "/** Checked before firing; the schedule wakes the Session only when the condition passes. */" }
+      ]
+    },
+    {
+      "type": "ScheduleConditionShell",
+      "member": "Run",
+      "summary": "The shell command the condition runs in the session's directory.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/schedule.ts:73", "excerpt": " * Runs `run` in the Session's directory before firing, with no model call. With none of `is`, `matches` or `changes`" }
+      ]
+    },
+    {
+      "type": "ScheduleWhenInput",
+      "summary": "When a schedule fires, as callers write it: exactly one of in, at, every or cron, with an optional time zone.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/schedule.ts:154", "excerpt": "/** The `when` callers write: exactly one of `in`, `at`, `every` or `cron`, with an optional `tz`. */" }
+      ]
+    },
+    {
+      "type": "ScheduleWhenAt",
+      "summary": "An instant with an offset, or a wall-clock time in the trigger's time zone.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/schedule.ts:37", "excerpt": "/** An instant with an offset, or a wall-clock time in `tz`, e.g. \"2026-10-27T09:00\". */" }
+      ]
+    },
+    {
+      "type": "ScheduleWhenInputAt",
+      "summary": "The at trigger as callers write it: an instant with an offset, or a wall-clock time in the trigger's time zone.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/schedule.ts:154", "excerpt": "/** The `when` callers write: exactly one of `in`, `at`, `every` or `cron`, with an optional `tz`. */" },
+        { "location": "packages/schema/src/schedule.ts:157", "excerpt": "  Schema.Struct({ at: At.fields.at, in: absent, every: absent, cron: absent, ...zone })," },
+        { "location": "packages/schema/src/schedule.ts:37", "excerpt": "/** An instant with an offset, or a wall-clock time in `tz`, e.g. \"2026-10-27T09:00\". */" }
+      ]
+    },
+    {
+      "type": "ScheduleConditionInput",
+      "member": "Is",
+      "summary": "Wakes the session when the command exits 0 and its trimmed standard output equals this value.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/schedule.ts:168", "excerpt": "    description: \"Wake when exit is 0 and trimmed stdout equals this value.\"," }
+      ]
+    },
+    {
+      "type": "ScheduleConditionInput",
+      "member": "Matches",
+      "summary": "Wakes the session when the command exits 0 and its standard output matches this regular expression.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/schedule.ts:171", "excerpt": "    description: \"Wake when exit is 0 and stdout matches this regular expression.\"," }
+      ]
+    },
+    {
+      "type": "ScheduleConditionInput",
+      "member": "Changes",
+      "summary": "Wakes the session when the command exits 0 and its standard output differs from the previous check.",
+      "reason": "Upstream documents this declaration in its schema source, which the OpenAPI projection does not carry.",
+      "sources": [
+        { "location": "packages/schema/src/schedule.ts:174", "excerpt": "    description: \"Wake when exit is 0 and stdout differs from the previous check.\"," }
+      ]
     }
   ],
   "sessionScopedEvent": {

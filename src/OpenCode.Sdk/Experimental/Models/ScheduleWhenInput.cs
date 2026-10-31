@@ -6,7 +6,7 @@ using OpenCode.Sdk.Internal;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents a schedule when input structural union.
+/// When a schedule fires, as callers write it: exactly one of in, at, every or cron, with an optional time zone.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 [JsonConverter(typeof(ScheduleWhenInputJsonConverter))]

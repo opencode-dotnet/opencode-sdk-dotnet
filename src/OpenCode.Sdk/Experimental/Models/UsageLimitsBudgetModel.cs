@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents an usage limits budget model value.
+/// A model a budget covers, by the identifiers OpenCode knows it by.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record UsageLimitsBudgetModel
@@ -28,7 +28,7 @@ public sealed record UsageLimitsBudgetModel
     public required string Name { get; init; }
 
     /// <summary>
-    /// Gets the spent value.
+    /// What the member has spent on this model this month under a per-model budget.
     /// </summary>
     [JsonPropertyName("spent")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

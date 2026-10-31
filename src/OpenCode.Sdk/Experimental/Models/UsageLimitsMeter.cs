@@ -4,19 +4,19 @@ using System.Text.Json.Serialization;
 
 namespace OpenCode.Sdk.Models;
 /// <summary>
-/// Represents an usage limits meter value.
+/// One window of the OpenCode Go allowance.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
 public sealed record UsageLimitsMeter
 {
     /// <summary>
-    /// Gets the percent value.
+    /// How much of the window&apos;s allowance is used.
     /// </summary>
     [JsonPropertyName("percent")]
     public required double Percent { get; init; }
 
     /// <summary>
-    /// Gets the limited value.
+    /// Whether Go refuses requests until the window resets.
     /// </summary>
     [JsonPropertyName("limited")]
     public required bool Limited { get; init; }
