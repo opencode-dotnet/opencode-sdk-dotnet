@@ -26,6 +26,10 @@ public class SessionDiffBenchmarks : IDisposable
 
     public static IEnumerable<WireFixture> Fixtures()
     {
+        // 17,909,180, 35,929,182 and 71,969,182 bytes: under and over the downlevel response pool's 64 MiB ceiling.
+        yield return Envelope("diff-17m", 170_000);
+        yield return Envelope("diff-35m", 340_000);
+        yield return Envelope("diff-70m", 680_000);
         // UTF-8 body sizes after JSON escaping and the nine-byte data envelope: 4,550 and 1,249,176.
         // The large body is 19.13% above the downlevel shared pool's 1,048,576-byte boundary.
         yield return Envelope("diff-4k", 42);

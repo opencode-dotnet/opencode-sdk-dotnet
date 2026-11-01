@@ -24,7 +24,7 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
     private const int SharedMaxArrayLength = 1_048_576;
 
     /// <summary>The largest array retained by the downlevel large-response pool.</summary>
-    private const int LargeMaxArrayLength = 16 * 1024 * 1024;
+    private const int LargeMaxArrayLength = 64 * 1024 * 1024;
 
     /// <summary>The retention limit for each large-response size class.</summary>
     private const int LargeMaxArraysPerBucket = 2;
@@ -207,9 +207,9 @@ internal sealed class ResponseBufferingPolicy : PipelinePolicy
     /// Keeps rents up to 1 MiB on the shared pool, whose downlevel form retains nothing larger,
     /// and routes larger rents, and returns by array length, to a dedicated large pool. The large
     /// pool retains returned arrays without trimming, bounded by two arrays in each
-    /// large size class (2, 4, 8 and 16 MiB): about 60 MiB worst case, and in practice one array
-    /// per size class the process has used. A body above 16 MiB still allocates, as every body
-    /// above 1 MiB did before.
+    /// large size class (2, 4, 8, 16, 32 and 64 MiB): about 250 MiB worst case, and in practice one array
+    /// per size class the process has used, where a body with no declared length uses every class up
+    /// to its own. A body of 64 MiB or more still allocates, as every body above 1 MiB did before.
     /// </summary>
     internal sealed class DownlevelResponsePool : ArrayPool<byte>
     {

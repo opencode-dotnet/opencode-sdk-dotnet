@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-11-01
+Date: 2026-11-02
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -233,10 +233,6 @@ These do not block `1.0.0` and run beside the road.
   first look to its last signal — the upstream client compares registration fields only — and the
   residual before it is upstream's too. Recorded, not solved; the registration file's write time
   could bound it if it ever matters.
-- **One allocation follow-up is queued behind a benchmark gate** — on `net472` and
-  `netstandard2.0` a response body over 16 MiB gets a newly allocated buffer on every call (bodies
-  of 1-16 MiB are pooled). It is described for consumers in the README's Known Issues; the 1.0
-  performance gate's baseline decides whether it is fixed before `1.0.0`.
 - **Durable session-log replay cannot be enabled on any distributed CLI build.** `events.persist`
   is a server-library option: the `opencode` serve command declares no flag for it, bridges no
   environment variable to it, and reads no configuration key for it, so a replay from a CLI-started
