@@ -65,6 +65,8 @@ Nightly builds of `master` are on
   New members follow upstream too, among them `SessionInfoTime.Busy`, a `Cache` setting on models
   and providers, `ConfigInfo.Timezone` and `VcsDiffRequest.Untracked`, and a local plugin's
   `PluginSourceLocal.Path` is now the path it was configured with.
+- **A terminal connection reuses a pooled 16 KiB receive buffer.** It rents it from the shared array
+  pool for as long as the connection reads, so a connection after the first usually allocates none.
 - **Clearer IntelliSense documentation.** `EnumerateSessionsAsync` and `EnumerateMessagesAsync`
   link their page methods and carry those methods' summaries; `server.connected` renders as code in
   `SubscribeAsync`'s remarks.
