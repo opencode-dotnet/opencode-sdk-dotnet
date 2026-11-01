@@ -76,7 +76,7 @@ Nightly builds of `master` are on
   or null to clear the user's title; a terminal service that predates renaming answers 501 with
   `PtyFeatureUnsupportedError`.
 - Deleting a session now removes its persistent terminals.
-- **The operations upstream v2.2.2 adds.** `ExperimentalClient` gains `WatchFileAsync`,
+- **The operations the refresh adds.** `ExperimentalClient` gains `WatchFileAsync`,
   `UnwatchFileAsync`, `GenerateDecisionsAsync`, `GenerateImagesAsync`, `GetMediaAsync`,
   `GetUsageLimitsAsync`, and the schedule operations `CreateScheduleAsync`, `GetScheduleAsync`,
   `ListSchedulesAsync`, `PauseScheduleAsync`, `ResumeScheduleAsync` and `DeleteScheduleAsync`;
@@ -86,7 +86,7 @@ Nightly builds of `master` are on
   New members follow upstream too, among them `SessionInfoTime.Busy`, a `Cache` setting on models
   and providers, `ConfigInfo.Timezone` and `VcsDiffRequest.Untracked`, and a local plugin's
   `PluginSourceLocal.Path` is now the path it was configured with.
-- **The operations upstream v2.2.5 adds.** `ExperimentalClient` gains the artifacts operations
+  `ExperimentalClient` also gains the artifacts operations
   `ListArtifactsAsync`, `GetArtifactAsync`, `CreateArtifactAsync`, `UpdateArtifactAsync`,
   `DeleteArtifactAsync`, `ListArtifactProvidersAsync` and `GetArtifactFileAsync`; they need
   `experimental.artifacts` in the location's config. The event stream gains `ArtifactUpdated` and
