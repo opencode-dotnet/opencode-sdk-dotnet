@@ -9,10 +9,21 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+## [0.9.0-preview.15] - 2026-11-01
+
+**The SDK speaks opencode 2.2.x and allocates much less.** The pinned server moves from 2.1.4 to
+2.2.5. That moves the session log to `ExperimentalClient`, changes several generated protocol models
+(listed below), and adds experimental schedules, artifacts, image and decision generation, usage
+limits and file watching, a `types` filter on the event stream, and renaming of persistent terminals.
+Open enums become generated extensible enums. On .NET 10, a prompt's event stream allocates about a
+third less per frame, a one-shot call about a quarter less, and a 16 KiB terminal paste about 1 KB
+instead of about 17 KB; the Performance section has the figures and the two trade-offs.
+
 ### 💥 Breaking changes
 
-- **The upstream pin moves to opencode v2.2.5.** The entries below are what the refresh changes in
-  the public surface; each follows a change upstream made between v2.1.4 and v2.2.5.
+- **The upstream pin moves to opencode v2.2.5.** Most entries below follow a change upstream made
+  between v2.1.4 and v2.2.5. The open-enum, `IMcp`, `savedPermissionId`, `OnStart` and `Optional<T>`
+  entries are the SDK's own.
 - **The session log moves to `ExperimentalClient.ReadSessionLogAsync`.** Upstream serves it as
   `experimental.session.log`, so `SessionClient.ReadLogAsync` is gone and `SessionLogRequest` is
   `ExperimentalSessionLogRequest`, with the same `After` and `Follow`. Migrate
@@ -37,12 +48,6 @@ Nightly builds of `master` are on
   Migrate `config.Compaction.Buffer` to `buffer.WholeNumber` after checking
   `buffer.Kind == ConfigInfoCompactionBufferKind.WholeNumber`, and set it with
   `ConfigInfoCompactionBuffer.FromWholeNumber(...)` or `FromText("20%")`.
-- **Schedule conditions are a union.** A condition is now a shell check or a Code Mode script.
-  `ScheduleInfo.If` and `Until` are `IScheduleCondition?` (`ScheduleConditionShell`,
-  `ScheduleConditionCode` or `UnknownScheduleCondition`), and `ScheduleConditionShell.Type` is its
-  fixed marker. `ScheduleConditionInput` is a carrier: build it with
-  `ScheduleConditionInput.FromScheduleConditionInputRun(new() { Run = … })` or
-  `FromScheduleConditionInputCode(new() { Code = … })`.
 - **`PersistentPtyInfo.UserTitle` is required.** It is the title a user gave the terminal, or
   `null` when none was given; upstream always sends the key, so a terminal from a server that omits
   it no longer deserializes, and an initializer that builds a `PersistentPtyInfo` must set it.
@@ -70,6 +75,38 @@ Nightly builds of `master` are on
   Reading an `Optional<string>` (non-nullable `T`) may produce a new nullable warning.
   Migrate a receiving `string` local to `string?` and check for null before dereferencing it.
 
+### ⚡ Performance
+
+Figures are approximate, from short benchmark runs on .NET 10 unless stated.
+
+- **The event stream and the session log read on bytes.** The reader no longer builds a UTF-16 string
+  per frame, and it is faster. Its own cost falls from about 5 KB to under 10 B per large frame, and
+  from about 25 KB to about 400 B per enumeration. A prompt's event stream allocates about 1,430 B per
+  frame instead of about 2,210 B, and the largest session-log items about 5,900 B instead of about
+  11,300 B.
+- **A one-shot call allocates about a quarter less.** About 2,000 B instead of about 2,600 B on a call
+  that doesn't suspend (`HttpClient` alone takes about 940 B), and about 3,400 B instead of about
+  3,900 B on one that does. Part of that comes from pooled state-machine boxes on .NET, a saving that
+  shrinks as concurrency grows.
+- **A `JsonElement` dictionary shares one document.** A large message allocates about 5.1 MB instead of
+  about 5.5 MB. **The trade-off:** a value you keep holds the whole dictionary's JSON alive, and
+  `Clone()` doesn't detach it; `JsonElement.Parse(value.GetRawText())` does.
+- **On net472 and netstandard2.0, a known union tag allocates no marker string.** A large message
+  allocates about 5.2 MB instead of about 5.4 MB on net472.
+- **A terminal connection reuses a pooled 16 KiB receive buffer.** It rents it from the shared array
+  pool for as long as the connection reads, so a connection after the first usually allocates about
+  16 KB less.
+- **Terminal input reuses a pooled buffer for the message it sends.** A 16 KiB paste allocates about
+  1 KB instead of about 17 KB; a pool miss still allocates one. The buffer is cleared when it goes back
+  to the pool, because input can carry typed secrets, and that isn't a process-memory guarantee: the
+  socket keeps its own buffer. A persistent paste on net472 takes about 3.7 µs instead of about 2.0 µs;
+  how much of that is the clearing wasn't measured.
+- **A `PtySession` frame keeps the UTF-8 it was received as.** `PtyOutputFrame.Text` decodes on its
+  first read, with the same replacement decoding, and every read returns the same string. A queued
+  frame of mostly ASCII output now holds about half what it did; box-drawing and CJK output holds about
+  1.5 times more, since those characters take 3 bytes in UTF-8 and 2 in UTF-16. **The trade-off:** the
+  decode moves to the consumer's first read, so draining a queued burst takes longer.
+
 ### 🔧 Changes
 
 - **Rename persistent terminals through `PersistentPtyClient.UpdateAsync`.** Set `Title` to a non-empty string,
@@ -92,11 +129,13 @@ Nightly builds of `master` are on
   `experimental.artifacts` in the location's config. The event stream gains `ArtifactUpdated` and
   `PersistentPtyUpdated`, the error family gains `ArtifactNotFoundError` and
   `PtyFeatureUnsupportedError`, `ConfigInfoExperimental` gains `Artifacts`, and policy actions
-  gain `integration.connect`, `mcp.use`, `skill.use` and `plugin.use`.
-- **Terminal input reuses a pooled buffer for the message it sends.** A repeated large paste usually
-  needs no new message buffer; a pool miss still allocates one.
-- **A terminal connection reuses a pooled 16 KiB receive buffer.** It rents it from the shared array
-  pool for as long as the connection reads, so a connection after the first usually allocates none.
+  gain `integration.connect`, `mcp.use`, `skill.use` and `plugin.use`. A schedule's condition is a
+  shell check or a Code Mode script: `ScheduleInfo.If` and `Until` are `IScheduleCondition?`, and
+  `ScheduleConditionInput` is built with `FromScheduleConditionInputRun` or
+  `FromScheduleConditionInputCode`. Other new members include `ConfigInfoExperimental.Schedules`,
+  `MediaBlob` and `ImageGenerate`, `PromptInputFileAttachment.Source`, `ModelCompatibility.MediaInput`,
+  `ModelInfo.Type`, `ServerInfo.Hostname`, `FileDiffInfo.More`, `McpServer.Title` and
+  `PluginFeatures.Gui`.
 - **Clearer IntelliSense documentation.** `EnumerateSessionsAsync` and `EnumerateMessagesAsync`
   link their page methods and carry those methods' summaries; `server.connected` renders as code in
   `SubscribeAsync`'s remarks.
@@ -121,15 +160,11 @@ Nightly builds of `master` are on
   XML now states the reconnect and termination contract; the session list's archive filter and the
   two idle timestamps now state their meaning or unit.
 - **The guides explain file-system entry path formats and timestamp units**, including
-  provider-specific voice expiry and the unestablished persistent-PTY expiry unit.
+  provider-specific voice expiry and the persistent-PTY handoff's expiry in milliseconds since the
+  Unix epoch.
 - **Repeated JSON literals in a `JsonElement` dictionary no longer compare equal by default.**
   Repeated `true`, `false` and `null` values no longer compare equal under `JsonElement`'s default
   equality; compare JSON values with `JsonElement.DeepEquals`, as System.Text.Json recommends.
-
-- **A `PtySession` frame keeps the UTF-8 it was received as.** `PtyOutputFrame.Text` decodes on
-  its first read, with the same replacement decoding, and every read returns the same string. A
-  queued frame of mostly ASCII output now holds about half what it did; box-drawing and CJK output
-  holds about 1.5 times more, since those characters take 3 bytes in UTF-8 and 2 in UTF-16.
 
 ### 🐛 Fixes
 
@@ -167,8 +202,8 @@ Nightly builds of `master` are on
   the host's `Path`.
 - **A saved `XDG_STATE_HOME` no longer moves a background service.** `EnsureAsync` used to pass the
   channel's saved value to the service it spawned, which moved the registration away from every
-  client looking for it. A saved value is now ignored, as the CLI ignores it; a caller's own
-  `Environment` entry still applies.
+  client looking for it. A value saved under that exact spelling is now ignored, as the CLI ignores
+  it; a caller's own `Environment` entry still applies.
 - **A persistent PTY's bad `Cwd` is now refused.** A given `Cwd` whose path doesn't exist or isn't a
   directory used to start the terminal in the home directory. The server now answers 400 with an
   `InvalidRequestError` whose `Kind` is `invalid_cwd`, and no terminal starts. The SDK's code didn't
@@ -179,6 +214,14 @@ Nightly builds of `master` are on
 - **What an unread terminal costs.** The terminals guide now says that a queued frame of either
   terminal family keeps about 1 byte per byte of output, that an unread session through a verbose
   build grows by about 15 MB a minute, and that the queue is unbounded as upstream's is.
+- **The guides cover more.** Connection modes gain exit kinds, the Windows shim's linger, fixed
+  endpoints, cancelled starts and what a server shares or a private launch inherits. New sections cover
+  handing events off from a slow handler, what a shell exit does to a normal PTY read, choosing a
+  model, scoping session lists, and replaying sessions with fork, revert and export.
+- **The requests guide and README are corrected.** The requests guide fixes four claims: what an
+  unmatched permission rule evaluates to, a worktree's `Directory`, the collision refusal text, and
+  `PersistentPtyHandoff.ExpiresAt`. The README now says bodies of 1-16 MiB are pooled on net472 and
+  netstandard2.0.
 
 ## [0.9.0-preview.14] - 2026-10-23
 
@@ -1965,6 +2008,7 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[0.9.0-preview.15]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.15
 [0.9.0-preview.14]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.14
 [0.9.0-preview.13]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.13
 [0.9.0-preview.12]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.12
