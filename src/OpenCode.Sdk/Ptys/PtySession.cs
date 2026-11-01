@@ -14,6 +14,11 @@ public class PtySession : IAsyncDisposable
 {
     private readonly TerminalSocketCore<PtyFrame>? _core;
 
+    internal PtySession(TerminalSocketCore<PtyFrame> core)
+    {
+        _core = core;
+    }
+
     internal PtySession(ITerminalWebSocket socket, TimeProvider time, TimeSpan? sendTimeout = null)
     {
         ArgumentNullException.ThrowIfNull(socket);
@@ -74,9 +79,7 @@ public class PtySession : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(input);
 
-        var core = Core;
-        return core.SendAsync(() => new ArraySegment<byte>(Encoding.UTF8.GetBytes(input)),
-            WebSocketMessageType.Text, null, cancellationToken);
+        return SendInputAsync(input, cancellationToken);
     }
 
     /// <summary>
@@ -98,9 +101,19 @@ public class PtySession : IAsyncDisposable
         ArgumentNullException.ThrowIfNull(line);
 
         var submitted = TerminalSubmission.Compose(line, nameof(line));
+        return SendInputAsync(submitted, cancellationToken);
+    }
+
+    private Task SendInputAsync(string input, CancellationToken cancellationToken)
+    {
         var core = Core;
-        return core.SendAsync(() => new ArraySegment<byte>(Encoding.UTF8.GetBytes(submitted)),
-            WebSocketMessageType.Text, null, cancellationToken);
+        return core.SendAsync(() =>
+        {
+            var length = Encoding.UTF8.GetByteCount(input);
+            var payload = core.SendPool.Rent(length);
+            _ = Encoding.UTF8.GetBytes(input, 0, input.Length, payload, 0);
+            return new ArraySegment<byte>(payload, 0, length);
+        }, WebSocketMessageType.Text, TerminalSendActions.Rented, cancellationToken);
     }
 
     /// <summary>

@@ -65,6 +65,8 @@ Nightly builds of `master` are on
   New members follow upstream too, among them `SessionInfoTime.Busy`, a `Cache` setting on models
   and providers, `ConfigInfo.Timezone` and `VcsDiffRequest.Untracked`, and a local plugin's
   `PluginSourceLocal.Path` is now the path it was configured with.
+- **Terminal input reuses a pooled buffer for the message it sends.** A repeated large paste usually
+  needs no new message buffer; a pool miss still allocates one.
 - **A terminal connection reuses a pooled 16 KiB receive buffer.** It rents it from the shared array
   pool for as long as the connection reads, so a connection after the first usually allocates none.
 - **Clearer IntelliSense documentation.** `EnumerateSessionsAsync` and `EnumerateMessagesAsync`

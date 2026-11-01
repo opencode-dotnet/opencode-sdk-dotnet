@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Net.WebSockets;
-using System.Text;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 
@@ -21,6 +20,7 @@ public class PersistentPtySession : IAsyncDisposable
 
     private readonly PersistentPtyAttachment? _attachment;
     private readonly TerminalSocketCore<PersistentPtyFrame>? _core;
+    private readonly TerminalSendActions? _inputActions;
     private PersistentPtyInfoSize? _viewport;
 
     internal PersistentPtySession(TerminalSocketCore<PersistentPtyFrame> core, PersistentPtyAttachment attachment)
@@ -31,6 +31,11 @@ public class PersistentPtySession : IAsyncDisposable
         _core = core;
         _attachment = attachment;
         _viewport = attachment.Info.Size;
+        _inputActions = new TerminalSendActions(Prepare: payload =>
+        {
+            var viewport = _viewport;
+            PersistentPtyInputFrame.WriteViewport(payload.Array!, viewport.Cols, viewport.Rows);
+        }, PayloadRented: true);
     }
 
     /// <summary>
@@ -81,8 +86,14 @@ public class PersistentPtySession : IAsyncDisposable
     /// <returns>A task that completes once the message is sent.</returns>
     /// <exception cref="ObjectDisposedException">The session has been disposed.</exception>
     /// <exception cref="OpenCodeTransportException">The connection failed while sending.</exception>
-    public virtual Task WriteAsync(ReadOnlyMemory<byte> input, CancellationToken cancellationToken = default) =>
-        SendFrameAsync(PersistentPtyInputFrame.InputType, input, cancellationToken);
+    public virtual Task WriteAsync(ReadOnlyMemory<byte> input, CancellationToken cancellationToken = default)
+    {
+        var core = Core;
+        // Copy caller-owned input synchronously before the first wait; fill the viewport behind the send gate.
+        return core.SendAsync(
+            () => PersistentPtyInputFrame.Encode(PersistentPtyInputFrame.InputType, 1, 1, input.Span, core.SendPool),
+            WebSocketMessageType.Binary, _inputActions, cancellationToken);
+    }
 
     /// <summary>
     /// Submits one line to the terminal: the line plus the carriage return a terminal's Enter key
@@ -104,8 +115,9 @@ public class PersistentPtySession : IAsyncDisposable
         ArgumentNullException.ThrowIfNull(line);
 
         var submitted = TerminalSubmission.Compose(line, nameof(line));
-        return SendFrameAsync(
-            PersistentPtyInputFrame.InputType, Encoding.UTF8.GetBytes(submitted), cancellationToken);
+        var core = Core;
+        return core.SendAsync(() => PersistentPtyInputFrame.Encode(submitted, core.SendPool),
+            WebSocketMessageType.Binary, _inputActions, cancellationToken);
     }
 
     /// <summary>
@@ -253,26 +265,9 @@ public class PersistentPtySession : IAsyncDisposable
     {
         var core = Core;
         var viewport = new PersistentPtyInfoSize { Cols = cols, Rows = rows };
-        var actions = new TerminalSendActions(OnSent: () => _viewport = viewport);
+        var actions = new TerminalSendActions(OnSent: () => _viewport = viewport, PayloadRented: true);
         return core.SendAsync(
-            () => new ArraySegment<byte>(PersistentPtyInputFrame.Encode(PersistentPtyInputFrame.ControlType, cols, rows, [])),
+            () => PersistentPtyInputFrame.Encode(PersistentPtyInputFrame.ControlType, cols, rows, [], core.SendPool),
             WebSocketMessageType.Binary, actions, cancellationToken);
-    }
-
-    private Task SendFrameAsync(byte type, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
-    {
-        var core = Core;
-        // Copy caller-owned input now; fill the viewport only after this send acquires its turn.
-        byte[]? frame = null;
-        var actions = new TerminalSendActions(Prepare: () =>
-        {
-            var viewport = _viewport!;
-            PersistentPtyInputFrame.WriteViewport(frame!, viewport.Cols, viewport.Rows);
-        });
-        return core.SendAsync(() =>
-        {
-            frame = PersistentPtyInputFrame.Encode(type, 1, 1, data.Span);
-            return new ArraySegment<byte>(frame);
-        }, WebSocketMessageType.Binary, actions, cancellationToken);
     }
 }
