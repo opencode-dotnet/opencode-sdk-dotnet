@@ -123,6 +123,27 @@ public sealed class SimulatedDriveServerFixture : IAsyncInitializer, IAsyncDispo
 
     public TestWorkspace CreateWorkspace() => new(_fileSystem, RunRoot.Path);
 
+    internal async Task EvictFinishedLocationsAsync(CancellationToken cancellationToken)
+    {
+        using var client = CreateClient();
+        var owned = await client.GetLocationAsync(cancellationToken: cancellationToken);
+        var loaded = await client.Debug.ListLocationsAsync(cancellationToken: cancellationToken);
+        foreach (var location in loaded.Locations.Where(location =>
+            !string.Equals(location.Directory, owned.ResolvedLocation.Directory, StringComparison.Ordinal)))
+        {
+            // PublicRef omits workspaceID: this API evicts directory-only keys, not workspace keys.
+            var eviction = await client.Debug.EvictLocationAsync(new DebugLocationEvictRequest
+            {
+                Location = new LocationSelector { Directory = location.Directory },
+            }, OpenCodeRequestOptions.NoThrow, cancellationToken);
+            if (eviction.Status != 204 || eviction.IsError)
+            {
+                throw new InvalidOperationException(
+                    $"Eviction of location '{location.Directory}' returned status {eviction.Status.ToString(System.Globalization.CultureInfo.InvariantCulture)}.");
+            }
+        }
+    }
+
     public Task<GitRepositoryWorkspace> CreateGitRepositoryWorkspaceAsync(CancellationToken cancellationToken) =>
         GitRepositoryWorkspace.CreateAsync(_fileSystem, _gitProcess, RunRoot.Path, cancellationToken);
 
@@ -161,7 +182,26 @@ public sealed class SimulatedDriveServerFixture : IAsyncInitializer, IAsyncDispo
             }
         }
 
-        await EnsureNoInvocationLeftPendingAsync(context, failure);
+        try
+        {
+            var testEnd = new SimulatedTestEnd(new OwnedOperationDeadline(), TeardownTimeout);
+            await testEnd.CompleteAsync(new TestEndWork(this, context, failure), failure is not null, context.Execution.CancellationToken);
+        }
+        catch (Exception exception)
+        {
+            MarkFailure(exception, context.Metadata.TestDetails.ClassType.FullName + "." + context.Metadata.TestName,
+                "phase=test end: the pending-invocation check or location eviction");
+            throw;
+        }
+    }
+
+    private sealed class TestEndWork(SimulatedDriveServerFixture fixture, TestContext context, Exception? failure) : ITestEndWork
+    {
+        public Task CheckNoInvocationLeftPendingAsync() => fixture.EnsureNoInvocationLeftPendingAsync(context, failure);
+
+        public Task EvictFinishedLocationsAsync(CancellationToken cancellationToken) => fixture.EvictFinishedLocationsAsync(cancellationToken);
+
+        public void ReportEvictionFailure(Exception exception) => context.Output.WriteError("Finished location eviction failed: " + exception);
     }
 
     /// <summary>
