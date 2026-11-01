@@ -82,25 +82,25 @@ using OpenCode.Sdk.Models;
 namespace OpenCode.Sdk.Internal;
 internal sealed class ExampleEventJsonConverter : JsonConverter<IExampleEvent>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IExampleEvent>> ArmsByTag = new Dictionary<string, UnionArm<IExampleEvent>>(StringComparer.Ordinal)
     {
-        ["created"] = typeof(CreatedEvent),
-        ["deleted"] = typeof(DeletedEvent)
+        ["created"] = UnionArm<IExampleEvent>.Of<CreatedEvent>(),
+        ["deleted"] = UnionArm<IExampleEvent>.Of<DeletedEvent>()
     }.ToUnionTagTable();
+    private static readonly UnionArm<IExampleEvent> PrefixArm = UnionArm<IExampleEvent>.Of<RpcEvent>();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new UnionDiscriminatorReader();
     public override IExampleEvent Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ExampleEvent", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ExampleEvent", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for ExampleEvent.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IExampleEvent ?? throw new JsonException("The ExampleEvent payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The ExampleEvent payload deserialized to null.");
         }
 
         if (marker.StartsWith("rpc.", StringComparison.Ordinal))
         {
-            return JsonSerializer.Deserialize(ref reader, OpenCodeJsonContext.Default.RpcEvent) ?? throw new JsonException("The ExampleEvent payload deserialized to null.");
+            return PrefixArm.Read(ref reader) ?? throw new JsonException("The ExampleEvent payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);
@@ -250,9 +250,9 @@ using OpenCode.Sdk.Models;
 namespace OpenCode.Sdk.Internal;
 internal sealed class ExamplePhaseJsonConverter : JsonConverter<IExamplePhase>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IExamplePhase>> ArmsByTag = new Dictionary<string, UnionArm<IExamplePhase>>(StringComparer.Ordinal)
     {
-        ["started"] = typeof(PhaseStartedEvent)
+        ["started"] = UnionArm<IExamplePhase>.Of<PhaseStartedEvent>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new UnionDiscriminatorReader();
     public override IExamplePhase Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -260,10 +260,9 @@ internal sealed class ExamplePhaseJsonConverter : JsonConverter<IExamplePhase>
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
         DiscriminatorReader.RequireString(ref reader, "type", "phase", "ExamplePhase");
-        if (DiscriminatorReader.TryFindKnown(ref reader, "status", "ExamplePhase", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "status", "ExamplePhase", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for ExamplePhase.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IExamplePhase ?? throw new JsonException("The ExamplePhase payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The ExamplePhase payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

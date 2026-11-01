@@ -8,29 +8,28 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class SessionMessageInfoJsonConverter : JsonConverter<ISessionMessageInfo>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<ISessionMessageInfo>> ArmsByTag = new Dictionary<string, UnionArm<ISessionMessageInfo>>(StringComparer.Ordinal)
     {
-        ["agent-switched"] = typeof(SessionMessageAgentSelected),
-        ["assistant"] = typeof(SessionMessageAssistant),
-        ["compaction"] = typeof(ISessionMessageCompaction),
-        ["idle"] = typeof(SessionMessageIdle),
-        ["location-switched"] = typeof(SessionMessageLocationSwitched),
-        ["model-switched"] = typeof(SessionMessageModelSelected),
-        ["shell"] = typeof(SessionMessageShell),
-        ["skill"] = typeof(SessionMessageSkill),
-        ["synthetic"] = typeof(SessionMessageSynthetic),
-        ["system"] = typeof(SessionMessageSystem),
-        ["user"] = typeof(SessionMessageUser)
+        ["agent-switched"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageAgentSelected>(),
+        ["assistant"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageAssistant>(),
+        ["compaction"] = UnionArm<ISessionMessageInfo>.Of<ISessionMessageCompaction>(),
+        ["idle"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageIdle>(),
+        ["location-switched"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageLocationSwitched>(),
+        ["model-switched"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageModelSelected>(),
+        ["shell"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageShell>(),
+        ["skill"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageSkill>(),
+        ["synthetic"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageSynthetic>(),
+        ["system"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageSystem>(),
+        ["user"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageUser>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override ISessionMessageInfo Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "SessionMessageInfo", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "SessionMessageInfo", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for SessionMessageInfo.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as ISessionMessageInfo ?? throw new JsonException("The SessionMessageInfo payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The SessionMessageInfo payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

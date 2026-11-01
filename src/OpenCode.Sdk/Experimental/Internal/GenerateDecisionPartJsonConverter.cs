@@ -8,21 +8,20 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class GenerateDecisionPartJsonConverter : JsonConverter<IGenerateDecisionPart>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IGenerateDecisionPart>> ArmsByTag = new Dictionary<string, UnionArm<IGenerateDecisionPart>>(StringComparer.Ordinal)
     {
-        ["file"] = typeof(GenerateDecisionFilePart),
-        ["json"] = typeof(GenerateDecisionJsonPart),
-        ["text"] = typeof(GenerateDecisionTextPart)
+        ["file"] = UnionArm<IGenerateDecisionPart>.Of<GenerateDecisionFilePart>(),
+        ["json"] = UnionArm<IGenerateDecisionPart>.Of<GenerateDecisionJsonPart>(),
+        ["text"] = UnionArm<IGenerateDecisionPart>.Of<GenerateDecisionTextPart>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IGenerateDecisionPart Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "GenerateDecisionPart", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "GenerateDecisionPart", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for GenerateDecisionPart.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IGenerateDecisionPart ?? throw new JsonException("The GenerateDecisionPart payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The GenerateDecisionPart payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

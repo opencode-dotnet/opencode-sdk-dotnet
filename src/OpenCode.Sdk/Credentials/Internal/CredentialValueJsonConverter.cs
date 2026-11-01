@@ -8,21 +8,20 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class CredentialValueJsonConverter : JsonConverter<ICredentialValue>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<ICredentialValue>> ArmsByTag = new Dictionary<string, UnionArm<ICredentialValue>>(StringComparer.Ordinal)
     {
-        ["external"] = typeof(CredentialExternal),
-        ["key"] = typeof(CredentialKey),
-        ["oauth"] = typeof(CredentialOAuth)
+        ["external"] = UnionArm<ICredentialValue>.Of<CredentialExternal>(),
+        ["key"] = UnionArm<ICredentialValue>.Of<CredentialKey>(),
+        ["oauth"] = UnionArm<ICredentialValue>.Of<CredentialOAuth>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override ICredentialValue Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "CredentialValue", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "CredentialValue", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for CredentialValue.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as ICredentialValue ?? throw new JsonException("The CredentialValue payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The CredentialValue payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

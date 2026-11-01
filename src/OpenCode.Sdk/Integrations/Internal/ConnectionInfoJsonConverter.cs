@@ -8,20 +8,19 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class ConnectionInfoJsonConverter : JsonConverter<IConnectionInfo>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IConnectionInfo>> ArmsByTag = new Dictionary<string, UnionArm<IConnectionInfo>>(StringComparer.Ordinal)
     {
-        ["credential"] = typeof(ConnectionCredentialInfo),
-        ["env"] = typeof(ConnectionEnvInfo)
+        ["credential"] = UnionArm<IConnectionInfo>.Of<ConnectionCredentialInfo>(),
+        ["env"] = UnionArm<IConnectionInfo>.Of<ConnectionEnvInfo>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IConnectionInfo Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ConnectionInfo", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ConnectionInfo", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for ConnectionInfo.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IConnectionInfo ?? throw new JsonException("The ConnectionInfo payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The ConnectionInfo payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

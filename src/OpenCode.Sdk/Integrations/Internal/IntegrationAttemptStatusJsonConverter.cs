@@ -8,22 +8,21 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class IntegrationAttemptStatusJsonConverter : JsonConverter<IIntegrationAttemptStatus>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IIntegrationAttemptStatus>> ArmsByTag = new Dictionary<string, UnionArm<IIntegrationAttemptStatus>>(StringComparer.Ordinal)
     {
-        ["complete"] = typeof(IntegrationAttemptStatusComplete),
-        ["expired"] = typeof(IntegrationAttemptStatusExpired),
-        ["failed"] = typeof(IntegrationAttemptStatusFailed),
-        ["pending"] = typeof(IntegrationAttemptStatusPending)
+        ["complete"] = UnionArm<IIntegrationAttemptStatus>.Of<IntegrationAttemptStatusComplete>(),
+        ["expired"] = UnionArm<IIntegrationAttemptStatus>.Of<IntegrationAttemptStatusExpired>(),
+        ["failed"] = UnionArm<IIntegrationAttemptStatus>.Of<IntegrationAttemptStatusFailed>(),
+        ["pending"] = UnionArm<IIntegrationAttemptStatus>.Of<IntegrationAttemptStatusPending>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IIntegrationAttemptStatus Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "status", "IntegrationAttemptStatus", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "status", "IntegrationAttemptStatus", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for IntegrationAttemptStatus.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IIntegrationAttemptStatus ?? throw new JsonException("The IntegrationAttemptStatus payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The IntegrationAttemptStatus payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

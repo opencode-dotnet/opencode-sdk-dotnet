@@ -8,22 +8,21 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class SessionInboxItemJsonConverter : JsonConverter<ISessionInboxItem>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<ISessionInboxItem>> ArmsByTag = new Dictionary<string, UnionArm<ISessionInboxItem>>(StringComparer.Ordinal)
     {
-        ["compaction"] = typeof(SessionInboxItemCompaction),
-        ["move"] = typeof(SessionInboxItemMove),
-        ["synthetic"] = typeof(SessionInboxItemSynthetic),
-        ["user"] = typeof(SessionInboxItemUser)
+        ["compaction"] = UnionArm<ISessionInboxItem>.Of<SessionInboxItemCompaction>(),
+        ["move"] = UnionArm<ISessionInboxItem>.Of<SessionInboxItemMove>(),
+        ["synthetic"] = UnionArm<ISessionInboxItem>.Of<SessionInboxItemSynthetic>(),
+        ["user"] = UnionArm<ISessionInboxItem>.Of<SessionInboxItemUser>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override ISessionInboxItem Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "SessionInboxItem", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "SessionInboxItem", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for SessionInboxItem.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as ISessionInboxItem ?? throw new JsonException("The SessionInboxItem payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The SessionInboxItem payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

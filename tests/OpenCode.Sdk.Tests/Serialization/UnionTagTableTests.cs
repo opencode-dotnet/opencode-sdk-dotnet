@@ -67,11 +67,12 @@ public sealed class UnionTagTableTests
         var misses = new List<string>();
         foreach (var (converter, table) in tables)
         {
-            var variants = converter.BaseType?.GetGenericArguments() is [var union]
-                ? assembly.GetTypes().Where(type => type is { IsClass: true, IsAbstract: false } && union.IsAssignableFrom(type) && !IsUnknownCarrier(type))
-                : [];
+            var union = converter.BaseType?.GetGenericArguments().SingleOrDefault();
+            var variants = union is null
+                ? []
+                : assembly.GetTypes().Where(type => type is { IsClass: true, IsAbstract: false } && union.IsAssignableFrom(type) && !IsUnknownCarrier(type));
             var tagged = variants.Select(static variant => (Variant: variant, Tags: ConstantTags(variant))).Where(static pair => pair.Tags.Count > 0).ToList();
-            misses.AddRange(tagged.Where(pair => !pair.Tags.Any(tag => Finds(table, tag, pair.Variant))).Select(pair => $"{converter.Name}: {pair.Variant.Name}"));
+            misses.AddRange(tagged.Where(pair => !pair.Tags.Any(tag => Finds(table, tag, pair.Variant, union))).Select(pair => $"{converter.Name}: {pair.Variant.Name}"));
             if (tagged.Count is 0)
             {
                 misses.Add($"{converter.Name}: no variant with a constant tag");
@@ -84,7 +85,7 @@ public sealed class UnionTagTableTests
 
     private static IEnumerable<(Type Converter, object Table)> GeneratedTables(Assembly assembly) =>
         from type in assembly.GetTypes()
-        let field = type.GetField("TypesByTag", BindingFlags.NonPublic | BindingFlags.Static)
+        let field = type.GetField("ArmsByTag", BindingFlags.NonPublic | BindingFlags.Static)
         where field is { FieldType.IsGenericType: true } && field.FieldType.GetGenericTypeDefinition() == typeof(UnionTagTable<>)
         let table = field.GetValue(null)
         where table is not null
@@ -111,11 +112,14 @@ public sealed class UnionTagTableTests
         ];
     }
 
-    private static bool Finds(object table, string tag, Type variant)
+    private static bool Finds(object table, string tag, Type variant, Type? union)
     {
         object?[] arguments = [tag, null];
         var lookup = table.GetType().GetMethod("TryGetValue", [typeof(string), table.GetType().GetGenericArguments()[0].MakeByRefType()]);
-        // A nested union's outer tag maps to the inner union's interface.
-        return lookup?.Invoke(table, arguments) is true && arguments[1] is Type mapped && mapped.IsAssignableFrom(variant);
+        // A nested union's outer tag maps to the inner union's interface, never to the union's own.
+        return lookup?.Invoke(table, arguments) is true
+               && arguments[1]?.GetType().GetProperty("Type")?.GetValue(arguments[1]) is Type mapped
+               && mapped != union
+               && mapped.IsAssignableFrom(variant);
     }
 }

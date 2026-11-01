@@ -8,20 +8,19 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class ReferenceSourceJsonConverter : JsonConverter<IReferenceSource>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IReferenceSource>> ArmsByTag = new Dictionary<string, UnionArm<IReferenceSource>>(StringComparer.Ordinal)
     {
-        ["git"] = typeof(ReferenceGitSource),
-        ["local"] = typeof(ReferenceLocalSource)
+        ["git"] = UnionArm<IReferenceSource>.Of<ReferenceGitSource>(),
+        ["local"] = UnionArm<IReferenceSource>.Of<ReferenceLocalSource>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IReferenceSource Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ReferenceSource", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ReferenceSource", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for ReferenceSource.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IReferenceSource ?? throw new JsonException("The ReferenceSource payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The ReferenceSource payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

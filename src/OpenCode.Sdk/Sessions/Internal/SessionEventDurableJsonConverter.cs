@@ -8,65 +8,64 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class SessionEventDurableJsonConverter : JsonConverter<ISessionEventDurable>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<ISessionEventDurable>> ArmsByTag = new Dictionary<string, UnionArm<ISessionEventDurable>>(StringComparer.Ordinal)
     {
-        ["session.agent.selected"] = typeof(SessionAgentSelected),
-        ["session.archived"] = typeof(SessionArchived),
-        ["session.compaction.ended"] = typeof(SessionCompactionEnded),
-        ["session.compaction.failed"] = typeof(SessionCompactionFailed),
-        ["session.compaction.started"] = typeof(SessionCompactionStarted),
-        ["session.created"] = typeof(SessionCreated),
-        ["session.deleted"] = typeof(SessionDeleted),
-        ["session.execution.failed"] = typeof(SessionExecutionFailed),
-        ["session.execution.interrupted"] = typeof(SessionExecutionInterrupted),
-        ["session.execution.started"] = typeof(SessionExecutionStarted),
-        ["session.execution.succeeded"] = typeof(SessionExecutionSucceeded),
-        ["session.forked"] = typeof(SessionForked),
-        ["session.inbox.cancelled"] = typeof(SessionInboxCancelled),
-        ["session.inbox.delivered"] = typeof(SessionInboxDelivered),
-        ["session.inbox.delivery.changed"] = typeof(SessionInboxDeliveryChanged),
-        ["session.inbox.enqueued"] = typeof(SessionInboxEnqueued),
-        ["session.instructions.updated"] = typeof(SessionInstructionsUpdated),
-        ["session.message.content.updated"] = typeof(SessionMessageContentUpdated),
-        ["session.metadata.updated"] = typeof(SessionMetadataUpdated),
-        ["session.model.selected"] = typeof(SessionModelSelected),
-        ["session.moved"] = typeof(SessionMoved),
-        ["session.permissions"] = typeof(SessionPermissions),
-        ["session.reasoning.ended"] = typeof(SessionReasoningEnded),
-        ["session.reasoning.started"] = typeof(SessionReasoningStarted),
-        ["session.renamed"] = typeof(SessionRenamed),
-        ["session.retry.scheduled"] = typeof(SessionRetryScheduled),
-        ["session.revert.cleared"] = typeof(SessionRevertCleared),
-        ["session.revert.committed"] = typeof(SessionRevertCommitted),
-        ["session.revert.staged"] = typeof(SessionRevertStaged),
-        ["session.shell.ended"] = typeof(SessionShellEnded),
-        ["session.shell.started"] = typeof(SessionShellStarted),
-        ["session.skill.activated"] = typeof(SessionSkillActivated),
-        ["session.step.ended"] = typeof(SessionStepEnded),
-        ["session.step.failed"] = typeof(SessionStepFailed),
-        ["session.step.started"] = typeof(SessionStepStarted),
-        ["session.step.streamed"] = typeof(SessionStepStreamed),
-        ["session.synthetic"] = typeof(SessionSynthetic),
-        ["session.text.ended"] = typeof(SessionTextEnded),
-        ["session.text.started"] = typeof(SessionTextStarted),
-        ["session.tool.called"] = typeof(SessionToolCalled),
-        ["session.tool.failed"] = typeof(SessionToolFailed),
-        ["session.tool.input.ended"] = typeof(SessionToolInputEnded),
-        ["session.tool.input.started"] = typeof(SessionToolInputStarted),
-        ["session.tool.success"] = typeof(SessionToolSuccess),
-        ["session.unarchived"] = typeof(SessionUnarchived),
-        ["session.usage.recorded"] = typeof(SessionUsageRecorded),
-        ["session.viewed"] = typeof(SessionViewed)
+        ["session.agent.selected"] = UnionArm<ISessionEventDurable>.Of<SessionAgentSelected>(),
+        ["session.archived"] = UnionArm<ISessionEventDurable>.Of<SessionArchived>(),
+        ["session.compaction.ended"] = UnionArm<ISessionEventDurable>.Of<SessionCompactionEnded>(),
+        ["session.compaction.failed"] = UnionArm<ISessionEventDurable>.Of<SessionCompactionFailed>(),
+        ["session.compaction.started"] = UnionArm<ISessionEventDurable>.Of<SessionCompactionStarted>(),
+        ["session.created"] = UnionArm<ISessionEventDurable>.Of<SessionCreated>(),
+        ["session.deleted"] = UnionArm<ISessionEventDurable>.Of<SessionDeleted>(),
+        ["session.execution.failed"] = UnionArm<ISessionEventDurable>.Of<SessionExecutionFailed>(),
+        ["session.execution.interrupted"] = UnionArm<ISessionEventDurable>.Of<SessionExecutionInterrupted>(),
+        ["session.execution.started"] = UnionArm<ISessionEventDurable>.Of<SessionExecutionStarted>(),
+        ["session.execution.succeeded"] = UnionArm<ISessionEventDurable>.Of<SessionExecutionSucceeded>(),
+        ["session.forked"] = UnionArm<ISessionEventDurable>.Of<SessionForked>(),
+        ["session.inbox.cancelled"] = UnionArm<ISessionEventDurable>.Of<SessionInboxCancelled>(),
+        ["session.inbox.delivered"] = UnionArm<ISessionEventDurable>.Of<SessionInboxDelivered>(),
+        ["session.inbox.delivery.changed"] = UnionArm<ISessionEventDurable>.Of<SessionInboxDeliveryChanged>(),
+        ["session.inbox.enqueued"] = UnionArm<ISessionEventDurable>.Of<SessionInboxEnqueued>(),
+        ["session.instructions.updated"] = UnionArm<ISessionEventDurable>.Of<SessionInstructionsUpdated>(),
+        ["session.message.content.updated"] = UnionArm<ISessionEventDurable>.Of<SessionMessageContentUpdated>(),
+        ["session.metadata.updated"] = UnionArm<ISessionEventDurable>.Of<SessionMetadataUpdated>(),
+        ["session.model.selected"] = UnionArm<ISessionEventDurable>.Of<SessionModelSelected>(),
+        ["session.moved"] = UnionArm<ISessionEventDurable>.Of<SessionMoved>(),
+        ["session.permissions"] = UnionArm<ISessionEventDurable>.Of<SessionPermissions>(),
+        ["session.reasoning.ended"] = UnionArm<ISessionEventDurable>.Of<SessionReasoningEnded>(),
+        ["session.reasoning.started"] = UnionArm<ISessionEventDurable>.Of<SessionReasoningStarted>(),
+        ["session.renamed"] = UnionArm<ISessionEventDurable>.Of<SessionRenamed>(),
+        ["session.retry.scheduled"] = UnionArm<ISessionEventDurable>.Of<SessionRetryScheduled>(),
+        ["session.revert.cleared"] = UnionArm<ISessionEventDurable>.Of<SessionRevertCleared>(),
+        ["session.revert.committed"] = UnionArm<ISessionEventDurable>.Of<SessionRevertCommitted>(),
+        ["session.revert.staged"] = UnionArm<ISessionEventDurable>.Of<SessionRevertStaged>(),
+        ["session.shell.ended"] = UnionArm<ISessionEventDurable>.Of<SessionShellEnded>(),
+        ["session.shell.started"] = UnionArm<ISessionEventDurable>.Of<SessionShellStarted>(),
+        ["session.skill.activated"] = UnionArm<ISessionEventDurable>.Of<SessionSkillActivated>(),
+        ["session.step.ended"] = UnionArm<ISessionEventDurable>.Of<SessionStepEnded>(),
+        ["session.step.failed"] = UnionArm<ISessionEventDurable>.Of<SessionStepFailed>(),
+        ["session.step.started"] = UnionArm<ISessionEventDurable>.Of<SessionStepStarted>(),
+        ["session.step.streamed"] = UnionArm<ISessionEventDurable>.Of<SessionStepStreamed>(),
+        ["session.synthetic"] = UnionArm<ISessionEventDurable>.Of<SessionSynthetic>(),
+        ["session.text.ended"] = UnionArm<ISessionEventDurable>.Of<SessionTextEnded>(),
+        ["session.text.started"] = UnionArm<ISessionEventDurable>.Of<SessionTextStarted>(),
+        ["session.tool.called"] = UnionArm<ISessionEventDurable>.Of<SessionToolCalled>(),
+        ["session.tool.failed"] = UnionArm<ISessionEventDurable>.Of<SessionToolFailed>(),
+        ["session.tool.input.ended"] = UnionArm<ISessionEventDurable>.Of<SessionToolInputEnded>(),
+        ["session.tool.input.started"] = UnionArm<ISessionEventDurable>.Of<SessionToolInputStarted>(),
+        ["session.tool.success"] = UnionArm<ISessionEventDurable>.Of<SessionToolSuccess>(),
+        ["session.unarchived"] = UnionArm<ISessionEventDurable>.Of<SessionUnarchived>(),
+        ["session.usage.recorded"] = UnionArm<ISessionEventDurable>.Of<SessionUsageRecorded>(),
+        ["session.viewed"] = UnionArm<ISessionEventDurable>.Of<SessionViewed>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override ISessionEventDurable Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "SessionEventDurable", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "SessionEventDurable", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for SessionEventDurable.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as ISessionEventDurable ?? throw new JsonException("The SessionEventDurable payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The SessionEventDurable payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

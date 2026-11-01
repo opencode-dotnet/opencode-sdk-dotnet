@@ -8,21 +8,20 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class GenerateDecisionQuestionJsonConverter : JsonConverter<IGenerateDecisionQuestion>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IGenerateDecisionQuestion>> ArmsByTag = new Dictionary<string, UnionArm<IGenerateDecisionQuestion>>(StringComparer.Ordinal)
     {
-        ["choice"] = typeof(GenerateChoiceQuestion),
-        ["predicate"] = typeof(GeneratePredicateQuestion),
-        ["score"] = typeof(GenerateScoreQuestion)
+        ["choice"] = UnionArm<IGenerateDecisionQuestion>.Of<GenerateChoiceQuestion>(),
+        ["predicate"] = UnionArm<IGenerateDecisionQuestion>.Of<GeneratePredicateQuestion>(),
+        ["score"] = UnionArm<IGenerateDecisionQuestion>.Of<GenerateScoreQuestion>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IGenerateDecisionQuestion Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "GenerateDecisionQuestion", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "GenerateDecisionQuestion", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for GenerateDecisionQuestion.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IGenerateDecisionQuestion ?? throw new JsonException("The GenerateDecisionQuestion payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The GenerateDecisionQuestion payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

@@ -8,20 +8,19 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class PluginStateJsonConverter : JsonConverter<IPluginState>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IPluginState>> ArmsByTag = new Dictionary<string, UnionArm<IPluginState>>(StringComparer.Ordinal)
     {
-        ["active"] = typeof(PluginStateActive),
-        ["failed"] = typeof(PluginStateFailed)
+        ["active"] = UnionArm<IPluginState>.Of<PluginStateActive>(),
+        ["failed"] = UnionArm<IPluginState>.Of<PluginStateFailed>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IPluginState Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "status", "PluginState", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "status", "PluginState", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for PluginState.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IPluginState ?? throw new JsonException("The PluginState payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The PluginState payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

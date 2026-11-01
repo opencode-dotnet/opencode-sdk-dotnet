@@ -9,10 +9,10 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class ConfigModelReasoningJsonConverter : JsonConverter<IConfigModelReasoning>
 {
-    private static readonly FrozenDictionary<bool, Type> TypesByTag = new Dictionary<bool, Type>()
+    private static readonly FrozenDictionary<bool, UnionArm<IConfigModelReasoning>> ArmsByTag = new Dictionary<bool, UnionArm<IConfigModelReasoning>>()
     {
-        [false] = typeof(ConfigModelReasoningUnsupported),
-        [true] = typeof(ConfigModelReasoningSupported)
+        [false] = UnionArm<IConfigModelReasoning>.Of<ConfigModelReasoningUnsupported>(),
+        [true] = UnionArm<IConfigModelReasoning>.Of<ConfigModelReasoningSupported>()
     }.ToFrozenDictionary();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IConfigModelReasoning Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -20,10 +20,9 @@ internal sealed class ConfigModelReasoningJsonConverter : JsonConverter<IConfigM
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
         var marker = DiscriminatorReader.ReadBoolean(ref reader, "supported", "ConfigModelReasoning");
-        if (TypesByTag.TryGetValue(marker, out var targetType))
+        if (ArmsByTag.TryGetValue(marker, out var arm))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for ConfigModelReasoning.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IConfigModelReasoning ?? throw new JsonException("The ConfigModelReasoning payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The ConfigModelReasoning payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

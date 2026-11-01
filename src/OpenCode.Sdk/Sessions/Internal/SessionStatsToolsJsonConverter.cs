@@ -8,21 +8,20 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class SessionStatsToolsJsonConverter : JsonConverter<ISessionStatsTools>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<ISessionStatsTools>> ArmsByTag = new Dictionary<string, UnionArm<ISessionStatsTools>>(StringComparer.Ordinal)
     {
-        ["detail"] = typeof(SessionStatsToolsDetail),
-        ["none"] = typeof(SessionStatsToolsNone),
-        ["summary"] = typeof(SessionStatsToolsSummary)
+        ["detail"] = UnionArm<ISessionStatsTools>.Of<SessionStatsToolsDetail>(),
+        ["none"] = UnionArm<ISessionStatsTools>.Of<SessionStatsToolsNone>(),
+        ["summary"] = UnionArm<ISessionStatsTools>.Of<SessionStatsToolsSummary>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override ISessionStatsTools Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "mode", "SessionStatsTools", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "mode", "SessionStatsTools", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for SessionStatsTools.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as ISessionStatsTools ?? throw new JsonException("The SessionStatsTools payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The SessionStatsTools payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

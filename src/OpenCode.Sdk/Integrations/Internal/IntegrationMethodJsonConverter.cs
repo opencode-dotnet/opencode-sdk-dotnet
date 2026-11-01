@@ -8,23 +8,22 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class IntegrationMethodJsonConverter : JsonConverter<IIntegrationMethod>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IIntegrationMethod>> ArmsByTag = new Dictionary<string, UnionArm<IIntegrationMethod>>(StringComparer.Ordinal)
     {
-        ["command"] = typeof(IntegrationCommandMethod),
-        ["env"] = typeof(IntegrationEnvMethod),
-        ["external"] = typeof(IntegrationExternalMethod),
-        ["key"] = typeof(IntegrationKeyMethod),
-        ["oauth"] = typeof(IntegrationOAuthMethod)
+        ["command"] = UnionArm<IIntegrationMethod>.Of<IntegrationCommandMethod>(),
+        ["env"] = UnionArm<IIntegrationMethod>.Of<IntegrationEnvMethod>(),
+        ["external"] = UnionArm<IIntegrationMethod>.Of<IntegrationExternalMethod>(),
+        ["key"] = UnionArm<IIntegrationMethod>.Of<IntegrationKeyMethod>(),
+        ["oauth"] = UnionArm<IIntegrationMethod>.Of<IntegrationOAuthMethod>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IIntegrationMethod Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "IntegrationMethod", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "IntegrationMethod", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for IntegrationMethod.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IIntegrationMethod ?? throw new JsonException("The IntegrationMethod payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The IntegrationMethod payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

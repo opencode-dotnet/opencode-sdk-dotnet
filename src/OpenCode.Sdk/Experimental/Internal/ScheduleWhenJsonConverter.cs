@@ -8,22 +8,21 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class ScheduleWhenJsonConverter : JsonConverter<IScheduleWhen>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IScheduleWhen>> ArmsByTag = new Dictionary<string, UnionArm<IScheduleWhen>>(StringComparer.Ordinal)
     {
-        ["at"] = typeof(ScheduleWhenAt),
-        ["cron"] = typeof(ScheduleWhenCron),
-        ["every"] = typeof(ScheduleWhenEvery),
-        ["in"] = typeof(ScheduleWhenIn)
+        ["at"] = UnionArm<IScheduleWhen>.Of<ScheduleWhenAt>(),
+        ["cron"] = UnionArm<IScheduleWhen>.Of<ScheduleWhenCron>(),
+        ["every"] = UnionArm<IScheduleWhen>.Of<ScheduleWhenEvery>(),
+        ["in"] = UnionArm<IScheduleWhen>.Of<ScheduleWhenIn>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IScheduleWhen Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ScheduleWhen", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ScheduleWhen", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for ScheduleWhen.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IScheduleWhen ?? throw new JsonException("The ScheduleWhen payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The ScheduleWhen payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

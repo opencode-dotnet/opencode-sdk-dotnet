@@ -8,26 +8,25 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class StreamFailureCauseJsonConverter : JsonConverter<IStreamFailureCause>
 {
-    private static readonly UnionTagTable<Type?> TypesByTag = new Dictionary<string, Type?>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IStreamFailureCause>?> ArmsByTag = new Dictionary<string, UnionArm<IStreamFailureCause>?>(StringComparer.Ordinal)
     {
-        ["Die"] = typeof(StreamFailureCauseDie),
+        ["Die"] = UnionArm<IStreamFailureCause>.Of<StreamFailureCauseDie>(),
         ["Fail"] = null,
-        ["Interrupt"] = typeof(StreamFailureCauseInterrupt)
+        ["Interrupt"] = UnionArm<IStreamFailureCause>.Of<StreamFailureCauseInterrupt>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IStreamFailureCause Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "_tag", "StreamFailureCause", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "_tag", "StreamFailureCause", ArmsByTag, out var arm, out var marker))
         {
-            if (targetType is null)
+            if (arm is null)
             {
                 throw new JsonException("The StreamFailureCause payload uses a declared marker whose schema admits no JSON value.");
             }
 
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for StreamFailureCause.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IStreamFailureCause ?? throw new JsonException("The StreamFailureCause payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The StreamFailureCause payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

@@ -8,20 +8,19 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class ConfigEntryJsonConverter : JsonConverter<IConfigEntry>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IConfigEntry>> ArmsByTag = new Dictionary<string, UnionArm<IConfigEntry>>(StringComparer.Ordinal)
     {
-        ["directory"] = typeof(ConfigDirectory),
-        ["document"] = typeof(ConfigDocument)
+        ["directory"] = UnionArm<IConfigEntry>.Of<ConfigDirectory>(),
+        ["document"] = UnionArm<IConfigEntry>.Of<ConfigDocument>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IConfigEntry Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ConfigEntry", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ConfigEntry", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for ConfigEntry.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IConfigEntry ?? throw new JsonException("The ConfigEntry payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The ConfigEntry payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

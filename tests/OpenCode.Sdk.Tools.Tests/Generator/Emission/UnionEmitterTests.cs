@@ -77,7 +77,9 @@ public sealed class UnionEmitterTests
         await Assert.That(known).IsGreaterThan(-1);
         await Assert.That(prefix).IsGreaterThan(known);
         await Assert.That(unknown).IsGreaterThan(prefix);
-        await Assert.That(converter).Contains("OpenCodeJsonContext.Default.RpcEvent");
+        await Assert.That(converter).Contains("PrefixArm = UnionArm<IExampleEvent>.Of<RpcEvent>()");
+        await Assert.That(converter).Contains("return PrefixArm.Read(ref reader)");
+        await Assert.That(converter).DoesNotContain("JsonSerializer.Deserialize(ref reader");
     }
 
     [Test]
@@ -116,10 +118,10 @@ public sealed class UnionEmitterTests
             UnionEmitter.Emit(booleanPhase, ModelPlacementFixture.SingleSlice(booleanPhase), EmitterPlanFixture.Create().Namespaces),
             "Example/Internal/ExamplePhaseJsonConverter.cs");
 
-        await Assert.That(strings).Contains("private static readonly UnionTagTable<Type> TypesByTag");
+        await Assert.That(strings).Contains("private static readonly UnionTagTable<UnionArm<IExampleEvent>> ArmsByTag");
         await Assert.That(strings).DoesNotContain("FrozenDictionary<string");
         await Assert.That(strings).DoesNotContain("using System.Collections.Frozen;");
-        await Assert.That(booleans).Contains("private static readonly FrozenDictionary<bool, Type> TypesByTag");
+        await Assert.That(booleans).Contains("private static readonly FrozenDictionary<bool, UnionArm<IExamplePhase>> ArmsByTag");
         await Assert.That(booleans).Contains("using System.Collections.Frozen;");
     }
 

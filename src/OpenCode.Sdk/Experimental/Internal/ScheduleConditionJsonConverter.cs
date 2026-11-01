@@ -8,20 +8,19 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class ScheduleConditionJsonConverter : JsonConverter<IScheduleCondition>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IScheduleCondition>> ArmsByTag = new Dictionary<string, UnionArm<IScheduleCondition>>(StringComparer.Ordinal)
     {
-        ["code"] = typeof(ScheduleConditionCode),
-        ["shell"] = typeof(ScheduleConditionShell)
+        ["code"] = UnionArm<IScheduleCondition>.Of<ScheduleConditionCode>(),
+        ["shell"] = UnionArm<IScheduleCondition>.Of<ScheduleConditionShell>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IScheduleCondition Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ScheduleCondition", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ScheduleCondition", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for ScheduleCondition.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IScheduleCondition ?? throw new JsonException("The ScheduleCondition payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The ScheduleCondition payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

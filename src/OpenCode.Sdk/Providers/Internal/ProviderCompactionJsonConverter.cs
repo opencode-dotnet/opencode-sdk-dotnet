@@ -8,20 +8,19 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class ProviderCompactionJsonConverter : JsonConverter<IProviderCompaction>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IProviderCompaction>> ArmsByTag = new Dictionary<string, UnionArm<IProviderCompaction>>(StringComparer.Ordinal)
     {
-        ["native"] = typeof(ProviderCompactionNative),
-        ["summary"] = typeof(ProviderCompactionSummary)
+        ["native"] = UnionArm<IProviderCompaction>.Of<ProviderCompactionNative>(),
+        ["summary"] = UnionArm<IProviderCompaction>.Of<ProviderCompactionSummary>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IProviderCompaction Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ProviderCompaction", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ProviderCompaction", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for ProviderCompaction.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IProviderCompaction ?? throw new JsonException("The ProviderCompaction payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The ProviderCompaction payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

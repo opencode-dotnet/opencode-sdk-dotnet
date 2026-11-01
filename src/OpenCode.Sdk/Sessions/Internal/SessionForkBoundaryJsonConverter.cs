@@ -8,20 +8,19 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class SessionForkBoundaryJsonConverter : JsonConverter<ISessionForkBoundary>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<ISessionForkBoundary>> ArmsByTag = new Dictionary<string, UnionArm<ISessionForkBoundary>>(StringComparer.Ordinal)
     {
-        ["before"] = typeof(SessionForkBoundaryBefore),
-        ["through"] = typeof(SessionForkBoundaryThrough)
+        ["before"] = UnionArm<ISessionForkBoundary>.Of<SessionForkBoundaryBefore>(),
+        ["through"] = UnionArm<ISessionForkBoundary>.Of<SessionForkBoundaryThrough>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override ISessionForkBoundary Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "SessionForkBoundary", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "SessionForkBoundary", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for SessionForkBoundary.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as ISessionForkBoundary ?? throw new JsonException("The SessionForkBoundary payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The SessionForkBoundary payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

@@ -14,6 +14,7 @@ internal static class UnionDispatchEmitter
         var declaration = ConverterSyntax.Declaration(converterName, TypeSyntaxEmitter.EmitNamed(union.Name),
             [
                 .. EmitDispatchMaps(union),
+                .. EmitPrefixArm(union),
                 EmitDiscriminatorReader(),
                 EmitRead(union),
                 UnionDispatchWriteEmitter.EmitWrite(union),
@@ -33,15 +34,26 @@ internal static class UnionDispatchEmitter
     }
 
     /// <summary>
-    /// The table of the union's declared tags; an impossible tag maps to no type.
+    /// The table of the union's declared tags; an impossible tag maps to no arm.
     /// </summary>
     private static List<MemberDeclarationSyntax> EmitDispatchMaps(UnionPlan union)
     {
+        var armType = ArmType(union);
         var valueType = union.KnownImpossibleTags.Count > 0
-            ? (TypeSyntax)SyntaxFactory.NullableType(SyntaxFactory.IdentifierName("Type"))
-            : SyntaxFactory.IdentifierName("Type");
+            ? (TypeSyntax)SyntaxFactory.NullableType(armType)
+            : armType;
         return [EmitDispatchMap(union, valueType)];
     }
+
+    private static GenericNameSyntax ArmType(UnionPlan union) =>
+        TypeSyntaxEmitter.Generic("UnionArm", TypeSyntaxEmitter.EmitNamed(union.Name));
+
+    /// <summary><c>UnionArm&lt;TUnion&gt;.Of&lt;TArm&gt;()</c>: the arm that reads one variant through its own converter.</summary>
+    private static InvocationExpressionSyntax ArmOf(UnionPlan union, string typeName) =>
+        EmissionSyntax.Invocation(SyntaxFactory.MemberAccessExpression(
+            SyntaxKind.SimpleMemberAccessExpression,
+            ArmType(union),
+            TypeSyntaxEmitter.Generic("Of", TypeSyntaxEmitter.EmitNamed(typeName))));
 
     private static FieldDeclarationSyntax EmitDispatchMap(UnionPlan union, TypeSyntax valueType)
     {
@@ -59,7 +71,7 @@ internal static class UnionDispatchEmitter
                     SyntaxFactory.SingletonSeparatedList(SyntaxFactory.Argument(EmissionSyntax.MarkerLiteral(union.MarkerKind, entry.Key))))),
                 entry.Value is null
                     ? SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)
-                    : SyntaxFactory.TypeOfExpression(TypeSyntaxEmitter.EmitNamed(entry.Value))))
+                    : ArmOf(union, entry.Value)))
             .ToArray();
         var initializer = SyntaxFactory
             .ObjectCreationExpression(dictionaryType)
@@ -80,7 +92,7 @@ internal static class UnionDispatchEmitter
                 .VariableDeclaration(fieldType)
                 .WithVariables(SyntaxFactory.SingletonSeparatedList(
                     SyntaxFactory
-                        .VariableDeclarator("TypesByTag")
+                        .VariableDeclarator("ArmsByTag")
                         .WithInitializer(SyntaxFactory.EqualsValueClause(EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(initializer, factory)))))))
             .WithModifiers(SyntaxFactory.TokenList(
                 SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
@@ -191,62 +203,69 @@ internal static class UnionDispatchEmitter
     private static InvocationExpressionSyntax EmitDispatchProbe(UnionPlan union) =>
         union.MarkerKind is not LiteralKind.String
             ? EmissionSyntax.Invocation(
-                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("TypesByTag"), "TryGetValue"),
+                EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("ArmsByTag"), "TryGetValue"),
                 SyntaxFactory.Argument(SyntaxFactory.IdentifierName("marker")),
-                OutVariableArgument("targetType"))
+                OutVariableArgument("arm"))
             : EmissionSyntax.Invocation(
                 EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("DiscriminatorReader"), "TryFindKnown"),
                 SyntaxFactory.Argument(SyntaxFactory.IdentifierName("reader"))
                     .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword)),
                 RuntimeStringArgument(union.MarkerWireName),
                 RuntimeStringArgument(union.ConceptName),
-                SyntaxFactory.Argument(SyntaxFactory.IdentifierName("TypesByTag")),
-                OutVariableArgument("targetType"),
+                SyntaxFactory.Argument(SyntaxFactory.IdentifierName("ArmsByTag")),
+                OutVariableArgument("arm"),
                 OutVariableArgument("marker"));
 
     private static IfStatementSyntax EmitKnownDispatch(UnionPlan union)
     {
         var tryGet = EmitDispatchProbe(union);
-        var getTypeInfo = EmissionSyntax.Invocation(
-            EmissionSyntax.MemberAccess(
-                RegistryNames.Default,
-                "GetTypeInfo"),
-            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("targetType")));
-        var typeInfo = SyntaxFactory.BinaryExpression(
-            SyntaxKind.CoalesceExpression,
-            getTypeInfo,
-            SyntaxFactory.ThrowExpression(EmissionSyntax.JsonException($"The generated context has no metadata for {union.ConceptName}.")));
-        var deserialize = EmissionSyntax.Invocation(
-            EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonSerializer"), "Deserialize"),
-            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("reader"))
-                .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword)),
-            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("typeInfo")));
-        var result = SyntaxFactory.BinaryExpression(
-            SyntaxKind.CoalesceExpression,
-            SyntaxFactory.BinaryExpression(
-                SyntaxKind.AsExpression,
-                deserialize,
-                TypeSyntaxEmitter.EmitNamed(union.Name)),
-            SyntaxFactory.ThrowExpression(EmissionSyntax.JsonException($"The {union.ConceptName} payload deserialized to null.")));
+        var result = ReadArm(union, SyntaxFactory.IdentifierName("arm"));
         var statements = new List<StatementSyntax>();
         if (union.KnownImpossibleTags.Count > 0)
         {
             statements.Add(SyntaxFactory.IfStatement(
                 SyntaxFactory.IsPatternExpression(
-                    SyntaxFactory.IdentifierName("targetType"),
+                    SyntaxFactory.IdentifierName("arm"),
                     SyntaxFactory.ConstantPattern(SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression))),
                 ConverterSyntax.ThrowJson($"The {union.ConceptName} payload uses a declared marker whose schema admits no JSON value.")));
         }
 
-        statements.Add(EmissionSyntax.Local("typeInfo", typeInfo));
         statements.Add(SyntaxFactory.ReturnStatement(result));
         return SyntaxFactory.IfStatement(tryGet, SyntaxFactory.Block(statements));
     }
 
+    /// <summary><c>arm.Read(ref reader) ?? throw …</c>: a known arm reads through its own converter, without re-entering the serializer.</summary>
+    private static BinaryExpressionSyntax ReadArm(UnionPlan union, ExpressionSyntax arm) =>
+        SyntaxFactory.BinaryExpression(
+            SyntaxKind.CoalesceExpression,
+            EmissionSyntax.Invocation(
+                EmissionSyntax.MemberAccess(arm, "Read"),
+                SyntaxFactory.Argument(SyntaxFactory.IdentifierName("reader"))
+                    .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword))),
+            SyntaxFactory.ThrowExpression(EmissionSyntax.JsonException($"The {union.ConceptName} payload deserialized to null.")));
+
+    private static IReadOnlyList<MemberDeclarationSyntax> EmitPrefixArm(UnionPlan union) =>
+        union.PrefixVariant is not { } prefix
+            ? []
+            :
+            [
+                SyntaxFactory
+                    .FieldDeclaration(SyntaxFactory
+                        .VariableDeclaration(ArmType(union))
+                        .WithVariables(SyntaxFactory.SingletonSeparatedList(
+                            SyntaxFactory
+                                .VariableDeclarator("PrefixArm")
+                                .WithInitializer(SyntaxFactory.EqualsValueClause(ArmOf(union, prefix.TypeName))))))
+                    .WithModifiers(SyntaxFactory.TokenList(
+                        SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
+                        SyntaxFactory.Token(SyntaxKind.StaticKeyword),
+                        SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword))),
+            ];
+
     /// <summary>
     /// The prefix-tagged arm dispatches after every literal tag has missed and before the
     /// unknown carrier: <c>marker</c> is the string the known-dispatch probe materialized on
-    /// its miss, and the arm reads through its own registered metadata.
+    /// its miss, and the arm reads through its own converter.
     /// </summary>
     private static IReadOnlyList<StatementSyntax> EmitPrefixDispatch(UnionPlan union)
     {
@@ -261,17 +280,7 @@ internal static class UnionDispatchEmitter
                 $"Union '{union.ConceptName}' carries a prefix-tagged arm on a '{union.MarkerKind}' marker, which has no emission consumer.");
         }
 
-        var deserialize = EmissionSyntax.Invocation(
-            EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonSerializer"), "Deserialize"),
-            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("reader"))
-                .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword)),
-            SyntaxFactory.Argument(EmissionSyntax.MemberAccess(
-                RegistryNames.Default,
-                prefix.TypeName)));
-        var result = SyntaxFactory.BinaryExpression(
-            SyntaxKind.CoalesceExpression,
-            deserialize,
-            SyntaxFactory.ThrowExpression(EmissionSyntax.JsonException($"The {union.ConceptName} payload deserialized to null.")));
+        var result = ReadArm(union, SyntaxFactory.IdentifierName("PrefixArm"));
         return
         [
             SyntaxFactory.IfStatement(
