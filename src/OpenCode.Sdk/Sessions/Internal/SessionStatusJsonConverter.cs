@@ -8,21 +8,20 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class SessionStatusJsonConverter : JsonConverter<ISessionStatus>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<ISessionStatus>> ArmsByTag = new Dictionary<string, UnionArm<ISessionStatus>>(StringComparer.Ordinal)
     {
-        ["busy"] = typeof(SessionStatusBusy),
-        ["idle"] = typeof(SessionStatusIdle),
-        ["retry"] = typeof(SessionStatusRetry)
+        ["busy"] = UnionArm<ISessionStatus>.Of<SessionStatusBusy>(),
+        ["idle"] = UnionArm<ISessionStatus>.Of<SessionStatusIdle>(),
+        ["retry"] = UnionArm<ISessionStatus>.Of<SessionStatusRetry>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override ISessionStatus Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "SessionStatus", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "SessionStatus", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for SessionStatus.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as ISessionStatus ?? throw new JsonException("The SessionStatus payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The SessionStatus payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

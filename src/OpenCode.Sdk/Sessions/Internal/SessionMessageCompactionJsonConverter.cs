@@ -8,11 +8,11 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class SessionMessageCompactionJsonConverter : JsonConverter<ISessionMessageCompaction>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<ISessionMessageCompaction>> ArmsByTag = new Dictionary<string, UnionArm<ISessionMessageCompaction>>(StringComparer.Ordinal)
     {
-        ["completed"] = typeof(SessionMessageCompactionCompleted),
-        ["failed"] = typeof(SessionMessageCompactionFailed),
-        ["running"] = typeof(SessionMessageCompactionRunning)
+        ["completed"] = UnionArm<ISessionMessageCompaction>.Of<SessionMessageCompactionCompleted>(),
+        ["failed"] = UnionArm<ISessionMessageCompaction>.Of<SessionMessageCompactionFailed>(),
+        ["running"] = UnionArm<ISessionMessageCompaction>.Of<SessionMessageCompactionRunning>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override ISessionMessageCompaction Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -20,10 +20,9 @@ internal sealed class SessionMessageCompactionJsonConverter : JsonConverter<ISes
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
         DiscriminatorReader.RequireString(ref reader, "type", "compaction", "SessionMessageCompaction");
-        if (DiscriminatorReader.TryFindKnown(ref reader, "status", "SessionMessageCompaction", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "status", "SessionMessageCompaction", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for SessionMessageCompaction.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as ISessionMessageCompaction ?? throw new JsonException("The SessionMessageCompaction payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The SessionMessageCompaction payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

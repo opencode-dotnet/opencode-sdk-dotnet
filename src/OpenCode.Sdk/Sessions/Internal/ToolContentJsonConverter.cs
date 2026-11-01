@@ -8,20 +8,19 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class ToolContentJsonConverter : JsonConverter<IToolContent>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IToolContent>> ArmsByTag = new Dictionary<string, UnionArm<IToolContent>>(StringComparer.Ordinal)
     {
-        ["file"] = typeof(ToolFileContent),
-        ["text"] = typeof(ToolTextContent)
+        ["file"] = UnionArm<IToolContent>.Of<ToolFileContent>(),
+        ["text"] = UnionArm<IToolContent>.Of<ToolTextContent>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IToolContent Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ToolContent", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "ToolContent", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for ToolContent.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IToolContent ?? throw new JsonException("The ToolContent payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The ToolContent payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

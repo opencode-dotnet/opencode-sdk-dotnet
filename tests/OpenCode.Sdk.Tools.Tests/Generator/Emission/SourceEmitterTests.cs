@@ -269,16 +269,22 @@ public sealed class SourceEmitterTests(PinnedBinding pinned)
             .. root
                 .DescendantNodes()
                 .OfType<AssignmentExpressionSyntax>()
-                .Where(static assignment =>
-                    assignment.Left is ImplicitElementAccessSyntax && assignment.Right is TypeOfExpressionSyntax)
-                .Select(static assignment => new KeyValuePair<string, string>(
-                    ((LiteralExpressionSyntax)((ImplicitElementAccessSyntax)assignment.Left)
-                        .ArgumentList.Arguments.Single()
-                        .Expression).Token.ValueText,
-                    ((TypeOfExpressionSyntax)assignment.Right).Type.ToString()))
+                .Select(static assignment =>
+                    assignment is { Left: ImplicitElementAccessSyntax access } && ArmTypeOf(assignment.Right) is { } arm
+                        ? new KeyValuePair<string, string>(
+                            ((LiteralExpressionSyntax)access.ArgumentList.Arguments.Single().Expression).Token.ValueText,
+                            arm)
+                        : (KeyValuePair<string, string>?)null)
+                .OfType<KeyValuePair<string, string>>()
                 .OrderBy(static mapping => mapping.Key, StringComparer.Ordinal),
         ];
     }
+
+    /// <summary>The variant a tag-table entry names: <c>UnionArm&lt;TUnion&gt;.Of&lt;TArm&gt;()</c>.</summary>
+    private static string? ArmTypeOf(ExpressionSyntax value) =>
+        value is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax { Name: GenericNameSyntax { Identifier.ValueText: "Of" } of } }
+            ? of.TypeArgumentList.Arguments.Single().ToString()
+            : null;
 
     [Test]
     public async Task Emit_Should_Refuse_Two_Optional_Instantiations_That_Share_A_Converter_Name()

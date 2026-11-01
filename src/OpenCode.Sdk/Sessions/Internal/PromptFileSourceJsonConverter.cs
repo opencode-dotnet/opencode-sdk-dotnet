@@ -8,20 +8,19 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class PromptFileSourceJsonConverter : JsonConverter<IPromptFileSource>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IPromptFileSource>> ArmsByTag = new Dictionary<string, UnionArm<IPromptFileSource>>(StringComparer.Ordinal)
     {
-        ["inline"] = typeof(PromptFileSourceInline),
-        ["uri"] = typeof(PromptFileSourceUri)
+        ["inline"] = UnionArm<IPromptFileSource>.Of<PromptFileSourceInline>(),
+        ["uri"] = UnionArm<IPromptFileSource>.Of<PromptFileSourceUri>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IPromptFileSource Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "PromptFileSource", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "PromptFileSource", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for PromptFileSource.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IPromptFileSource ?? throw new JsonException("The PromptFileSource payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The PromptFileSource payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

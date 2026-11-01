@@ -8,22 +8,21 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class GenerateDecisionAnswerJsonConverter : JsonConverter<IGenerateDecisionAnswer>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IGenerateDecisionAnswer>> ArmsByTag = new Dictionary<string, UnionArm<IGenerateDecisionAnswer>>(StringComparer.Ordinal)
     {
-        ["choice"] = typeof(GenerateChoiceAnswer),
-        ["error"] = typeof(GenerateErrorAnswer),
-        ["predicate"] = typeof(GeneratePredicateAnswer),
-        ["score"] = typeof(GenerateScoreAnswer)
+        ["choice"] = UnionArm<IGenerateDecisionAnswer>.Of<GenerateChoiceAnswer>(),
+        ["error"] = UnionArm<IGenerateDecisionAnswer>.Of<GenerateErrorAnswer>(),
+        ["predicate"] = UnionArm<IGenerateDecisionAnswer>.Of<GeneratePredicateAnswer>(),
+        ["score"] = UnionArm<IGenerateDecisionAnswer>.Of<GenerateScoreAnswer>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IGenerateDecisionAnswer Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "GenerateDecisionAnswer", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "GenerateDecisionAnswer", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for GenerateDecisionAnswer.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IGenerateDecisionAnswer ?? throw new JsonException("The GenerateDecisionAnswer payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The GenerateDecisionAnswer payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

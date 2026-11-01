@@ -8,22 +8,21 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class PluginSourceJsonConverter : JsonConverter<IPluginSource>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IPluginSource>> ArmsByTag = new Dictionary<string, UnionArm<IPluginSource>>(StringComparer.Ordinal)
     {
-        ["builtin"] = typeof(PluginSourceBuiltin),
-        ["local"] = typeof(PluginSourceLocal),
-        ["package"] = typeof(PluginSourcePackage),
-        ["sdk"] = typeof(PluginSourceSdk)
+        ["builtin"] = UnionArm<IPluginSource>.Of<PluginSourceBuiltin>(),
+        ["local"] = UnionArm<IPluginSource>.Of<PluginSourceLocal>(),
+        ["package"] = UnionArm<IPluginSource>.Of<PluginSourcePackage>(),
+        ["sdk"] = UnionArm<IPluginSource>.Of<PluginSourceSdk>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IPluginSource Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "PluginSource", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "PluginSource", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for PluginSource.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IPluginSource ?? throw new JsonException("The PluginSource payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The PluginSource payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

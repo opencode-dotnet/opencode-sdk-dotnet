@@ -8,21 +8,20 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class SessionMessageAssistantContentJsonConverter : JsonConverter<ISessionMessageAssistantContent>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<ISessionMessageAssistantContent>> ArmsByTag = new Dictionary<string, UnionArm<ISessionMessageAssistantContent>>(StringComparer.Ordinal)
     {
-        ["reasoning"] = typeof(SessionMessageAssistantReasoning),
-        ["text"] = typeof(SessionMessageAssistantText),
-        ["tool"] = typeof(SessionMessageAssistantTool)
+        ["reasoning"] = UnionArm<ISessionMessageAssistantContent>.Of<SessionMessageAssistantReasoning>(),
+        ["text"] = UnionArm<ISessionMessageAssistantContent>.Of<SessionMessageAssistantText>(),
+        ["tool"] = UnionArm<ISessionMessageAssistantContent>.Of<SessionMessageAssistantTool>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override ISessionMessageAssistantContent Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "SessionMessageAssistantContent", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "SessionMessageAssistantContent", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for SessionMessageAssistantContent.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as ISessionMessageAssistantContent ?? throw new JsonException("The SessionMessageAssistantContent payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The SessionMessageAssistantContent payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

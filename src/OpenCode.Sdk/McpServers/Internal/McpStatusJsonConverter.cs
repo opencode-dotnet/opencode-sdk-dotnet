@@ -8,23 +8,22 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class McpStatusJsonConverter : JsonConverter<IMcpStatus>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IMcpStatus>> ArmsByTag = new Dictionary<string, UnionArm<IMcpStatus>>(StringComparer.Ordinal)
     {
-        ["connected"] = typeof(McpStatusConnected),
-        ["disabled"] = typeof(McpStatusDisabled),
-        ["failed"] = typeof(McpStatusFailed),
-        ["needs_auth"] = typeof(McpStatusNeedsAuth),
-        ["pending"] = typeof(McpStatusPending)
+        ["connected"] = UnionArm<IMcpStatus>.Of<McpStatusConnected>(),
+        ["disabled"] = UnionArm<IMcpStatus>.Of<McpStatusDisabled>(),
+        ["failed"] = UnionArm<IMcpStatus>.Of<McpStatusFailed>(),
+        ["needs_auth"] = UnionArm<IMcpStatus>.Of<McpStatusNeedsAuth>(),
+        ["pending"] = UnionArm<IMcpStatus>.Of<McpStatusPending>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IMcpStatus Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "status", "McpStatus", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "status", "McpStatus", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for McpStatus.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IMcpStatus ?? throw new JsonException("The McpStatus payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The McpStatus payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

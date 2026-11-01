@@ -8,21 +8,20 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class FormStateJsonConverter : JsonConverter<IFormState>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IFormState>> ArmsByTag = new Dictionary<string, UnionArm<IFormState>>(StringComparer.Ordinal)
     {
-        ["answered"] = typeof(FormStateAnswered),
-        ["cancelled"] = typeof(FormStateCancelled),
-        ["pending"] = typeof(FormStatePending)
+        ["answered"] = UnionArm<IFormState>.Of<FormStateAnswered>(),
+        ["cancelled"] = UnionArm<IFormState>.Of<FormStateCancelled>(),
+        ["pending"] = UnionArm<IFormState>.Of<FormStatePending>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IFormState Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "status", "FormState", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "status", "FormState", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for FormState.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IFormState ?? throw new JsonException("The FormState payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The FormState payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

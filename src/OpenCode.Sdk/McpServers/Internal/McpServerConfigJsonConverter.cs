@@ -8,20 +8,19 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class McpServerConfigJsonConverter : JsonConverter<IMcpServerConfig>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IMcpServerConfig>> ArmsByTag = new Dictionary<string, UnionArm<IMcpServerConfig>>(StringComparer.Ordinal)
     {
-        ["local"] = typeof(McpLocalConfig),
-        ["remote"] = typeof(McpRemoteConfig)
+        ["local"] = UnionArm<IMcpServerConfig>.Of<McpLocalConfig>(),
+        ["remote"] = UnionArm<IMcpServerConfig>.Of<McpRemoteConfig>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IMcpServerConfig Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "McpServerConfig", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "McpServerConfig", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for McpServerConfig.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IMcpServerConfig ?? throw new JsonException("The McpServerConfig payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The McpServerConfig payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

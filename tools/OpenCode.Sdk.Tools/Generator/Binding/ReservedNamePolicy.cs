@@ -342,6 +342,7 @@ internal static class ReservedNamePolicy
             "TimerBounds",
             "TransportPolicy",
             "TreeKillOutcome",
+            "UnionArm",
             "UnionDiscriminatorReader",
             "UnionPayloadGuard",
             "UnionTagTable",

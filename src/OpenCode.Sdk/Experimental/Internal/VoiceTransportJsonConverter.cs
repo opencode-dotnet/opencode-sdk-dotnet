@@ -8,20 +8,19 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class VoiceTransportJsonConverter : JsonConverter<IVoiceTransport>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IVoiceTransport>> ArmsByTag = new Dictionary<string, UnionArm<IVoiceTransport>>(StringComparer.Ordinal)
     {
-        ["webrtc"] = typeof(VoiceWebRtcTransport),
-        ["websocket"] = typeof(VoiceWebSocketTransport)
+        ["webrtc"] = UnionArm<IVoiceTransport>.Of<VoiceWebRtcTransport>(),
+        ["websocket"] = UnionArm<IVoiceTransport>.Of<VoiceWebSocketTransport>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IVoiceTransport Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "VoiceTransport", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "VoiceTransport", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for VoiceTransport.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IVoiceTransport ?? throw new JsonException("The VoiceTransport payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The VoiceTransport payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

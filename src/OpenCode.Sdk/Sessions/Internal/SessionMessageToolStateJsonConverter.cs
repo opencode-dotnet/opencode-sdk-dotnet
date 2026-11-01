@@ -8,22 +8,21 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class SessionMessageToolStateJsonConverter : JsonConverter<ISessionMessageToolState>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<ISessionMessageToolState>> ArmsByTag = new Dictionary<string, UnionArm<ISessionMessageToolState>>(StringComparer.Ordinal)
     {
-        ["completed"] = typeof(SessionMessageToolStateCompleted),
-        ["error"] = typeof(SessionMessageToolStateError),
-        ["running"] = typeof(SessionMessageToolStateRunning),
-        ["streaming"] = typeof(SessionMessageToolStateStreaming)
+        ["completed"] = UnionArm<ISessionMessageToolState>.Of<SessionMessageToolStateCompleted>(),
+        ["error"] = UnionArm<ISessionMessageToolState>.Of<SessionMessageToolStateError>(),
+        ["running"] = UnionArm<ISessionMessageToolState>.Of<SessionMessageToolStateRunning>(),
+        ["streaming"] = UnionArm<ISessionMessageToolState>.Of<SessionMessageToolStateStreaming>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override ISessionMessageToolState Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "status", "SessionMessageToolState", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "status", "SessionMessageToolState", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for SessionMessageToolState.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as ISessionMessageToolState ?? throw new JsonException("The SessionMessageToolState payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The SessionMessageToolState payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

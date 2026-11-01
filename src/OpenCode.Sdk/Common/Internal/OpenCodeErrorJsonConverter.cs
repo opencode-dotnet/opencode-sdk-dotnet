@@ -8,59 +8,58 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class OpenCodeErrorJsonConverter : JsonConverter<IOpenCodeError>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IOpenCodeError>> ArmsByTag = new Dictionary<string, UnionArm<IOpenCodeError>>(StringComparer.Ordinal)
     {
-        ["AgentNotFoundError"] = typeof(AgentNotFoundError),
-        ["ArtifactNotFoundError"] = typeof(ArtifactNotFoundError),
-        ["CommandExecutionError"] = typeof(CommandExecutionError),
-        ["CommandNotFoundError"] = typeof(CommandNotFoundError),
-        ["ConflictError"] = typeof(ConflictError),
-        ["FileNotFoundError"] = typeof(FileNotFoundError),
-        ["ForbiddenError"] = typeof(ForbiddenError),
-        ["FormAlreadySettledError"] = typeof(FormAlreadySettledError),
-        ["FormInvalidAnswerError"] = typeof(FormInvalidAnswerError),
-        ["FormNotFoundError"] = typeof(FormNotFoundError),
-        ["InstructionEntryValueTooLargeError"] = typeof(InstructionEntryValueTooLargeError),
-        ["IntegrationAttemptNotFoundError"] = typeof(IntegrationAttemptNotFoundError),
-        ["IntegrationMethodNotFoundError"] = typeof(IntegrationMethodNotFoundError),
-        ["IntegrationNotFoundError"] = typeof(IntegrationNotFoundError),
-        ["InvalidCursorError"] = typeof(InvalidCursorError),
-        ["InvalidRequestError"] = typeof(InvalidRequestError),
-        ["LocationNotFoundError"] = typeof(LocationNotFoundError),
-        ["McpServerNotFoundError"] = typeof(McpServerNotFoundError),
-        ["MessageNotFoundError"] = typeof(MessageNotFoundError),
-        ["ModelNotFoundError"] = typeof(ModelNotFoundError),
-        ["PermissionNotFoundError"] = typeof(PermissionNotFoundError),
-        ["PermissionSavedNotFoundError"] = typeof(PermissionSavedNotFoundError),
-        ["PluginNotFoundError"] = typeof(PluginNotFoundError),
-        ["ProjectNotFoundError"] = typeof(ProjectNotFoundError),
-        ["ProviderNotFoundError"] = typeof(ProviderNotFoundError),
-        ["ProviderRequestError"] = typeof(ProviderRequestError),
-        ["PtyFeatureUnsupportedError"] = typeof(PtyFeatureUnsupportedError),
-        ["PtyNotFoundError"] = typeof(PtyNotFoundError),
-        ["RpcError"] = typeof(RpcError),
-        ["RpcInternalError"] = typeof(RpcInternalError),
-        ["ScheduleNotFoundError"] = typeof(ScheduleNotFoundError),
-        ["ServiceUnavailableError"] = typeof(ServiceUnavailableError),
-        ["SessionBusyError"] = typeof(SessionBusyError),
-        ["SessionNotFoundError"] = typeof(SessionNotFoundError),
-        ["ShellNotFoundError"] = typeof(ShellNotFoundError),
-        ["SkillNotFoundError"] = typeof(SkillNotFoundError),
-        ["UnauthorizedError"] = typeof(UnauthorizedError),
-        ["UnknownError"] = typeof(UnknownError),
-        ["UnsupportedModelError"] = typeof(UnsupportedModelError),
-        ["VcsInitNotSupportedError"] = typeof(VcsInitNotSupportedError),
-        ["WorktreeError"] = typeof(WorktreeError)
+        ["AgentNotFoundError"] = UnionArm<IOpenCodeError>.Of<AgentNotFoundError>(),
+        ["ArtifactNotFoundError"] = UnionArm<IOpenCodeError>.Of<ArtifactNotFoundError>(),
+        ["CommandExecutionError"] = UnionArm<IOpenCodeError>.Of<CommandExecutionError>(),
+        ["CommandNotFoundError"] = UnionArm<IOpenCodeError>.Of<CommandNotFoundError>(),
+        ["ConflictError"] = UnionArm<IOpenCodeError>.Of<ConflictError>(),
+        ["FileNotFoundError"] = UnionArm<IOpenCodeError>.Of<FileNotFoundError>(),
+        ["ForbiddenError"] = UnionArm<IOpenCodeError>.Of<ForbiddenError>(),
+        ["FormAlreadySettledError"] = UnionArm<IOpenCodeError>.Of<FormAlreadySettledError>(),
+        ["FormInvalidAnswerError"] = UnionArm<IOpenCodeError>.Of<FormInvalidAnswerError>(),
+        ["FormNotFoundError"] = UnionArm<IOpenCodeError>.Of<FormNotFoundError>(),
+        ["InstructionEntryValueTooLargeError"] = UnionArm<IOpenCodeError>.Of<InstructionEntryValueTooLargeError>(),
+        ["IntegrationAttemptNotFoundError"] = UnionArm<IOpenCodeError>.Of<IntegrationAttemptNotFoundError>(),
+        ["IntegrationMethodNotFoundError"] = UnionArm<IOpenCodeError>.Of<IntegrationMethodNotFoundError>(),
+        ["IntegrationNotFoundError"] = UnionArm<IOpenCodeError>.Of<IntegrationNotFoundError>(),
+        ["InvalidCursorError"] = UnionArm<IOpenCodeError>.Of<InvalidCursorError>(),
+        ["InvalidRequestError"] = UnionArm<IOpenCodeError>.Of<InvalidRequestError>(),
+        ["LocationNotFoundError"] = UnionArm<IOpenCodeError>.Of<LocationNotFoundError>(),
+        ["McpServerNotFoundError"] = UnionArm<IOpenCodeError>.Of<McpServerNotFoundError>(),
+        ["MessageNotFoundError"] = UnionArm<IOpenCodeError>.Of<MessageNotFoundError>(),
+        ["ModelNotFoundError"] = UnionArm<IOpenCodeError>.Of<ModelNotFoundError>(),
+        ["PermissionNotFoundError"] = UnionArm<IOpenCodeError>.Of<PermissionNotFoundError>(),
+        ["PermissionSavedNotFoundError"] = UnionArm<IOpenCodeError>.Of<PermissionSavedNotFoundError>(),
+        ["PluginNotFoundError"] = UnionArm<IOpenCodeError>.Of<PluginNotFoundError>(),
+        ["ProjectNotFoundError"] = UnionArm<IOpenCodeError>.Of<ProjectNotFoundError>(),
+        ["ProviderNotFoundError"] = UnionArm<IOpenCodeError>.Of<ProviderNotFoundError>(),
+        ["ProviderRequestError"] = UnionArm<IOpenCodeError>.Of<ProviderRequestError>(),
+        ["PtyFeatureUnsupportedError"] = UnionArm<IOpenCodeError>.Of<PtyFeatureUnsupportedError>(),
+        ["PtyNotFoundError"] = UnionArm<IOpenCodeError>.Of<PtyNotFoundError>(),
+        ["RpcError"] = UnionArm<IOpenCodeError>.Of<RpcError>(),
+        ["RpcInternalError"] = UnionArm<IOpenCodeError>.Of<RpcInternalError>(),
+        ["ScheduleNotFoundError"] = UnionArm<IOpenCodeError>.Of<ScheduleNotFoundError>(),
+        ["ServiceUnavailableError"] = UnionArm<IOpenCodeError>.Of<ServiceUnavailableError>(),
+        ["SessionBusyError"] = UnionArm<IOpenCodeError>.Of<SessionBusyError>(),
+        ["SessionNotFoundError"] = UnionArm<IOpenCodeError>.Of<SessionNotFoundError>(),
+        ["ShellNotFoundError"] = UnionArm<IOpenCodeError>.Of<ShellNotFoundError>(),
+        ["SkillNotFoundError"] = UnionArm<IOpenCodeError>.Of<SkillNotFoundError>(),
+        ["UnauthorizedError"] = UnionArm<IOpenCodeError>.Of<UnauthorizedError>(),
+        ["UnknownError"] = UnionArm<IOpenCodeError>.Of<UnknownError>(),
+        ["UnsupportedModelError"] = UnionArm<IOpenCodeError>.Of<UnsupportedModelError>(),
+        ["VcsInitNotSupportedError"] = UnionArm<IOpenCodeError>.Of<VcsInitNotSupportedError>(),
+        ["WorktreeError"] = UnionArm<IOpenCodeError>.Of<WorktreeError>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IOpenCodeError Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "_tag", "OpenCodeError", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "_tag", "OpenCodeError", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for OpenCodeError.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IOpenCodeError ?? throw new JsonException("The OpenCodeError payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The OpenCodeError payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);

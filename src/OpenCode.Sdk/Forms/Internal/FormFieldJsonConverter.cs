@@ -8,24 +8,23 @@ namespace OpenCode.Sdk.Internal;
 
 internal sealed class FormFieldJsonConverter : JsonConverter<IFormField>
 {
-    private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
+    private static readonly UnionTagTable<UnionArm<IFormField>> ArmsByTag = new Dictionary<string, UnionArm<IFormField>>(StringComparer.Ordinal)
     {
-        ["boolean"] = typeof(FormBooleanField),
-        ["external"] = typeof(FormExternalField),
-        ["integer"] = typeof(FormIntegerField),
-        ["multiselect"] = typeof(FormMultiselectField),
-        ["number"] = typeof(FormNumberField),
-        ["string"] = typeof(FormStringField)
+        ["boolean"] = UnionArm<IFormField>.Of<FormBooleanField>(),
+        ["external"] = UnionArm<IFormField>.Of<FormExternalField>(),
+        ["integer"] = UnionArm<IFormField>.Of<FormIntegerField>(),
+        ["multiselect"] = UnionArm<IFormField>.Of<FormMultiselectField>(),
+        ["number"] = UnionArm<IFormField>.Of<FormNumberField>(),
+        ["string"] = UnionArm<IFormField>.Of<FormStringField>()
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IFormField Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(typeToConvert);
         ArgumentNullException.ThrowIfNull(options);
-        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "FormField", TypesByTag, out var targetType, out var marker))
+        if (DiscriminatorReader.TryFindKnown(ref reader, "type", "FormField", ArmsByTag, out var arm, out var marker))
         {
-            var typeInfo = OpenCodeJsonContext.Default.GetTypeInfo(targetType) ?? throw new JsonException("The generated context has no metadata for FormField.");
-            return JsonSerializer.Deserialize(ref reader, typeInfo) as IFormField ?? throw new JsonException("The FormField payload deserialized to null.");
+            return arm.Read(ref reader) ?? throw new JsonException("The FormField payload deserialized to null.");
         }
 
         using var document = JsonDocument.ParseValue(ref reader);
