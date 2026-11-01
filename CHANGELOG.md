@@ -13,8 +13,8 @@ Nightly builds of `master` are on
 
 - **A union payload reads its known variant without re-entering the serializer.** Each known variant
   is read through its own source-generated converter. On .NET 10, a large message of 2,400 parts
-  deserializes in about 12.1 ms instead of about 16.4 ms, a medium one about 28% faster, and a
-  prompt's event stream about 15% faster. Allocations are unchanged.
+  deserializes in about 12.2 ms instead of about 16.4 ms, a medium one about 27% faster, and a
+  prompt's event frames about 17% faster. Allocations are unchanged.
 
 ## [0.9.0-preview.15] - 2026-11-01
 

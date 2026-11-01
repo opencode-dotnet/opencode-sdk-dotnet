@@ -31,7 +31,19 @@ internal abstract class UnionArm<TUnion>
             // union converters reach each other while they initialize.
             var typeInfo = _typeInfo ??= OpenCodeJsonContext.Default.GetTypeInfo(typeof(TArm)) as JsonTypeInfo<TArm>
                 ?? throw new JsonException($"The generated context has no metadata for {typeof(TArm).Name}.");
-            return ((JsonConverter<TArm>)typeInfo.Converter).Read(ref reader, typeof(TArm), typeInfo.Options);
+            var start = reader;
+            try
+            {
+                return ((JsonConverter<TArm>)typeInfo.Converter).Read(ref reader, typeof(TArm), typeInfo.Options);
+            }
+            catch (Exception exception) when (exception is JsonException or InvalidOperationException or FormatException or NotSupportedException)
+            {
+                // A direct converter call skips the serializer's error handling, which names the failing
+                // member and turns a token-type failure into a JsonException. Reading the same payload
+                // again through the serializer reports it as the arm's metadata always has.
+                reader = start;
+                return JsonSerializer.Deserialize(ref reader, typeInfo);
+            }
         }
     }
 }

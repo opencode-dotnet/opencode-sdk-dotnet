@@ -32,6 +32,16 @@ public sealed class OpenCodeJsonContextTests
     }
 
     [Test]
+    public async Task Deserialize_Should_Report_The_Failing_Member_Of_A_Known_Variant()
+    {
+        var json = _fixtures.LoadJson("Serialization.retry-status-with-string-attempt.json");
+
+        var exception = await Assert.That(() => _serializer.Deserialize<ISessionStatus>(json)).Throws<JsonException>();
+
+        await Assert.That(exception?.Path).IsEqualTo("$.attempt");
+    }
+
+    [Test]
     public async Task Deserialize_Should_Create_The_Idle_Turn_Marker_With_Its_Outcome()
     {
         var json = _fixtures.LoadJson("Serialization.known-session-message-idle.json");

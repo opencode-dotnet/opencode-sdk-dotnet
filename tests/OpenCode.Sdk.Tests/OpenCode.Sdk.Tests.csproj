@@ -152,6 +152,7 @@
     <EmbeddedResource Include="Serialization/Fixtures/null-optional-collection.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.null-optional-collection.json" />
     <EmbeddedResource Include="Serialization/Fixtures/numeric-diff-status.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.numeric-diff-status.json" />
     <EmbeddedResource Include="Sessions/Fixtures/numeric-status-session.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.numeric-status-session.json" />
+    <EmbeddedResource Include="Serialization/Fixtures/retry-status-with-string-attempt.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.retry-status-with-string-attempt.json" />
     <EmbeddedResource Include="Serialization/Fixtures/session-create-request-absent.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.session-create-request-absent.json" />
     <EmbeddedResource Include="Serialization/Fixtures/session-create-request-cleared.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.session-create-request-cleared.json" />
     <EmbeddedResource Include="Serialization/Fixtures/session-create-request-set.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.session-create-request-set.json" />
