@@ -287,8 +287,8 @@ resolves the message's network window from those carried traits.
   upgrades and then closes 4404.
 - **Daemon facts a caller must know.** These terminals belong to the `opencode-pty` daemon rather
   than to the server process: the server spawns it as its own child, and the terminals survive a
-  server restart through `handoff`. At the accepted pin the daemon ships darwin and linux platform
-  packages only, so on any other platform `create` — the one route that starts it — answers the
+  server restart through `handoff`. At the accepted pin the daemon ships darwin, linux and win32
+  platform packages. Where it can't start, `create` — the one route that starts it — answers the
   declared 503 whose `service` is `opencode-pty`, while the rest take their daemon-absent arms:
   `list` an empty list, `read` a null payload, the id-keyed reads and writes a 404 they share with
   an unknown id, `shutdown` a 204, and `connect` a 4404 close. `ShutdownAsync` ends every terminal
