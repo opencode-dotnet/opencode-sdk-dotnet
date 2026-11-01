@@ -96,6 +96,24 @@ internal static partial class OpenCodeRoutes
         }
 
         /// <summary>
+        /// Builds the &apos;/api/experimental/artifacts&apos; route.
+        /// </summary>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string CreateArtifact(ExperimentalArtifactsCreateRequest? request = null)
+        {
+            var path = "/api/experimental/artifacts";
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddLocation("location", request.Location);
+            return path + query.Value;
+        }
+
+        /// <summary>
         /// The &apos;POST /api/experimental/schedule&apos; route.
         /// </summary>
         public const string CreateSchedule = "/api/experimental/schedule";
@@ -103,6 +121,31 @@ internal static partial class OpenCodeRoutes
         /// The &apos;POST /api/experimental/voice/session&apos; route.
         /// </summary>
         public const string CreateVoiceSession = "/api/experimental/voice/session";
+        /// <summary>
+        /// Builds the &apos;/api/experimental/artifacts/{artifactID}&apos; route.
+        /// </summary>
+        /// <param name = "artifactId">The &apos;artifactID&apos; route value.</param>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string DeleteArtifact(string artifactId, ExperimentalArtifactsDeleteRequest? request = null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
+            if (artifactId is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(artifactId));
+            }
+
+            var path = "/api/experimental/artifacts/" + RouteValuePolicy.Escape(artifactId, nameof(artifactId));
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddLocation("location", request.Location);
+            return path + query.Value;
+        }
+
         /// <summary>
         /// Builds the &apos;/api/experimental/schedule/{scheduleID}&apos; route.
         /// </summary>
@@ -156,6 +199,52 @@ internal static partial class OpenCodeRoutes
         /// The &apos;POST /api/experimental/generate/text&apos; route.
         /// </summary>
         public const string GenerateText = "/api/experimental/generate/text";
+        /// <summary>
+        /// Builds the &apos;/api/experimental/artifacts/{artifactID}&apos; route.
+        /// </summary>
+        /// <param name = "artifactId">The &apos;artifactID&apos; route value.</param>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string GetArtifact(string artifactId, ExperimentalArtifactsRequest? request = null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
+            if (artifactId is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(artifactId));
+            }
+
+            var path = "/api/experimental/artifacts/" + RouteValuePolicy.Escape(artifactId, nameof(artifactId));
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddLocation("location", request.Location);
+            return path + query.Value;
+        }
+
+        /// <summary>
+        /// Builds the &apos;/api/experimental/artifacts/{artifactID}/view/*&apos; route.
+        /// </summary>
+        /// <param name = "artifactId">The &apos;artifactID&apos; route value.</param>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string GetArtifactFile(string artifactId, ExperimentalArtifactsViewRequest request)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
+            if (artifactId is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(artifactId));
+            }
+
+            ArgumentNullException.ThrowIfNull(request);
+            var path = "/api/experimental/artifacts/" + RouteValuePolicy.Escape(artifactId, nameof(artifactId)) + "/view/" + RouteValuePolicy.EscapeTail(request.Path, nameof(request));
+            var query = new QueryStringBuilder();
+            query.AddLocation("location", request.Location);
+            return path + query.Value;
+        }
+
         /// <summary>
         /// Builds the &apos;/api/experimental/media/{hash}&apos; route.
         /// </summary>
@@ -261,6 +350,44 @@ internal static partial class OpenCodeRoutes
         /// The &apos;POST /api/experimental/session/import&apos; route.
         /// </summary>
         public const string ImportSession = "/api/experimental/session/import";
+        /// <summary>
+        /// Builds the &apos;/api/experimental/artifacts/providers&apos; route.
+        /// </summary>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string ListArtifactProviders(ExperimentalArtifactsProvidersRequest? request = null)
+        {
+            var path = "/api/experimental/artifacts/providers";
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddLocation("location", request.Location);
+            return path + query.Value;
+        }
+
+        /// <summary>
+        /// Builds the &apos;/api/experimental/artifacts&apos; route.
+        /// </summary>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string ListArtifacts(ExperimentalArtifactsListRequest? request = null)
+        {
+            var path = "/api/experimental/artifacts";
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddLocation("location", request.Location);
+            query.AddText("sessionID", request.SessionId);
+            query.AddText("provider", request.Provider);
+            return path + query.Value;
+        }
+
         /// <summary>
         /// Builds the &apos;/api/experimental/schedule&apos; route.
         /// </summary>
@@ -432,6 +559,31 @@ internal static partial class OpenCodeRoutes
         public static string UnwatchFile(ExperimentalFsUnwatchRequest? request = null)
         {
             var path = "/api/experimental/fs/watch";
+            if (request is null)
+            {
+                return path;
+            }
+
+            var query = new QueryStringBuilder();
+            query.AddLocation("location", request.Location);
+            return path + query.Value;
+        }
+
+        /// <summary>
+        /// Builds the &apos;/api/experimental/artifacts/{artifactID}&apos; route.
+        /// </summary>
+        /// <param name = "artifactId">The &apos;artifactID&apos; route value.</param>
+        /// <param name = "request">The request shaping the query.</param>
+        /// <returns>The escaped route.</returns>
+        public static string UpdateArtifact(string artifactId, ExperimentalArtifactsUpdateRequest? request = null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(artifactId);
+            if (artifactId is "." or "..")
+            {
+                throw new ArgumentException("Route values must not be dot segments.", nameof(artifactId));
+            }
+
+            var path = "/api/experimental/artifacts/" + RouteValuePolicy.Escape(artifactId, nameof(artifactId));
             if (request is null)
             {
                 return path;

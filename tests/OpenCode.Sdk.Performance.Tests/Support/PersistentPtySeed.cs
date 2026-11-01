@@ -15,7 +15,7 @@ internal sealed class PersistentPtySeed
     public const string AttachmentId = "att_bench";
 
     private const string InfoJson =
-        "{\"id\":\"pty_bench\",\"title\":\"bench\",\"command\":\"/bin/bash\",\"args\":[],\"cwd\":\"/\",\"status\":\"running\","
+        "{\"id\":\"pty_bench\",\"title\":\"bench\",\"userTitle\":null,\"command\":\"/bin/bash\",\"args\":[],\"cwd\":\"/\",\"status\":\"running\","
         + "\"pid\":1,\"sessionID\":\"ses_bench\",\"foregroundProcess\":null,\"size\":{\"cols\":80,\"rows\":24},"
         + "\"output\":{\"head\":0,\"tail\":0}}";
 

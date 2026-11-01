@@ -35,9 +35,25 @@ public readonly struct ConfigInfoExperimentalPoliciesAction : IEquatable<ConfigI
         /// </summary>
         public const string ToolUse = "tool.use";
         /// <summary>
+        /// The &apos;integration.connect&apos; wire spelling.
+        /// </summary>
+        public const string IntegrationConnect = "integration.connect";
+        /// <summary>
         /// The &apos;integration.use&apos; wire spelling.
         /// </summary>
         public const string IntegrationUse = "integration.use";
+        /// <summary>
+        /// The &apos;mcp.use&apos; wire spelling.
+        /// </summary>
+        public const string McpUse = "mcp.use";
+        /// <summary>
+        /// The &apos;skill.use&apos; wire spelling.
+        /// </summary>
+        public const string SkillUse = "skill.use";
+        /// <summary>
+        /// The &apos;plugin.use&apos; wire spelling.
+        /// </summary>
+        public const string PluginUse = "plugin.use";
     }
 
     /// <summary>
@@ -49,9 +65,25 @@ public readonly struct ConfigInfoExperimentalPoliciesAction : IEquatable<ConfigI
     /// </summary>
     public static ConfigInfoExperimentalPoliciesAction ToolUse { get; } = new(Values.ToolUse);
     /// <summary>
+    /// Gets the &apos;integration.connect&apos; wire value.
+    /// </summary>
+    public static ConfigInfoExperimentalPoliciesAction IntegrationConnect { get; } = new(Values.IntegrationConnect);
+    /// <summary>
     /// Gets the &apos;integration.use&apos; wire value.
     /// </summary>
     public static ConfigInfoExperimentalPoliciesAction IntegrationUse { get; } = new(Values.IntegrationUse);
+    /// <summary>
+    /// Gets the &apos;mcp.use&apos; wire value.
+    /// </summary>
+    public static ConfigInfoExperimentalPoliciesAction McpUse { get; } = new(Values.McpUse);
+    /// <summary>
+    /// Gets the &apos;skill.use&apos; wire value.
+    /// </summary>
+    public static ConfigInfoExperimentalPoliciesAction SkillUse { get; } = new(Values.SkillUse);
+    /// <summary>
+    /// Gets the &apos;plugin.use&apos; wire value.
+    /// </summary>
+    public static ConfigInfoExperimentalPoliciesAction PluginUse { get; } = new(Values.PluginUse);
     /// <summary>
     /// Gets the wire spelling, or an empty string for a default value, which has none; match it against Values.
     /// </summary>
@@ -59,7 +91,7 @@ public readonly struct ConfigInfoExperimentalPoliciesAction : IEquatable<ConfigI
     /// <summary>
     /// Gets whether the value is one the pinned server defines; a newer SDK can know a value this one does not.
     /// </summary>
-    public bool IsKnown => _value is Values.ProviderUse or Values.ToolUse or Values.IntegrationUse;
+    public bool IsKnown => _value is Values.ProviderUse or Values.ToolUse or Values.IntegrationConnect or Values.IntegrationUse or Values.McpUse or Values.SkillUse or Values.PluginUse;
 
     /// <summary>
     /// Compares two values&apos; wire spellings ordinally.

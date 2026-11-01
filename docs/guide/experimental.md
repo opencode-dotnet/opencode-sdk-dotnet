@@ -1,6 +1,6 @@
 # 🧪 Experimental APIs
 
-Date: 2026-10-31
+Date: 2026-11-01
 
 Upstream serves some of its API under `/api/experimental/`. The SDK exposes all of it, and marks
 every member that reaches it with .NET's `[Experimental]` attribute, so the compiler tells you
@@ -41,9 +41,9 @@ later. Older compilers ignore the attribute.
 
 The `ExperimentalClient` (`client.Experimental`) and the types only it uses: session stats, import
 and export, skills, the session wait, the session log, instruction entries, text, image and
-decision generation, schedules, usage limits, media, well-known integrations, adding, removing,
-connecting and disconnecting MCP servers, voice models and sessions, file write and file watching,
-the v1 migration status, and the config update. The
+decision generation, schedules, usage limits, media, artifacts, well-known integrations, adding,
+removing, connecting and disconnecting MCP servers, voice models and sessions, file write and file
+watching, the v1 migration status, and the config update. The
 [streaming guide](streaming.md#-a-single-sessions-log) covers the session log.
 
 ## OPENCODE002

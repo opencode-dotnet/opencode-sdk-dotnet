@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Tools.Generator.Refresh;
 
 /// <summary>
 /// Pure, read-only probes over an OpenAPI document's bytes: the operation set, its digest, the
-/// component count, the <c>contentSchema</c> signal, and the patch predicates' keyword checks.
+/// component count, the <c>contentSchema</c> signal, and the patch predicates' keyword and style checks.
 /// The synchronizer never interprets documents beyond these invariants — semantic understanding
 /// stays with ingestion.
 /// </summary>
@@ -86,6 +86,49 @@ internal static class DocumentInspector
         return schema.TryGetProperty(keyword, out _) ? KeywordPresence.Carries : KeywordPresence.Lacks;
     }
 
+    public static KeywordPresence CheckParameterStyle(byte[] documentBytes, string operationId, string parameter, string style)
+    {
+        ArgumentNullException.ThrowIfNull(documentBytes);
+        ArgumentException.ThrowIfNullOrWhiteSpace(operationId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(parameter);
+        ArgumentException.ThrowIfNullOrWhiteSpace(style);
+
+        using var document = Parse(documentBytes);
+        var found = false;
+        foreach (var operation in ReadOperations(document.RootElement))
+        {
+            if (!operation.TryGetProperty("operationId", out var id)
+                || id.ValueKind is not JsonValueKind.String
+                || !string.Equals(id.GetString(), operationId, StringComparison.Ordinal)
+                || !operation.TryGetProperty("parameters", out var parameters)
+                || parameters.ValueKind is not JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            foreach (var candidate in parameters.EnumerateArray())
+            {
+                if (candidate.ValueKind is not JsonValueKind.Object
+                    || !candidate.TryGetProperty("name", out var name)
+                    || name.ValueKind is not JsonValueKind.String
+                    || !string.Equals(name.GetString(), parameter, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                found = true;
+                if (!candidate.TryGetProperty("style", out var declaredStyle)
+                    || declaredStyle.ValueKind is not JsonValueKind.String
+                    || !string.Equals(declaredStyle.GetString(), style, StringComparison.Ordinal))
+                {
+                    return KeywordPresence.Lacks;
+                }
+            }
+        }
+
+        return found ? KeywordPresence.Carries : KeywordPresence.ComponentMissing;
+    }
+
     private static JsonDocument Parse(byte[] documentBytes)
     {
         try
@@ -101,16 +144,7 @@ internal static class DocumentInspector
     private static List<string> ReadOperationIds(JsonElement root)
     {
         var operationIds = new List<string>();
-        if (!root.TryGetProperty("paths", out var paths) || paths.ValueKind is not JsonValueKind.Object)
-        {
-            return operationIds;
-        }
-
-        foreach (var operation in paths.EnumerateObject()
-                     .Where(static path => path.Value.ValueKind is JsonValueKind.Object)
-                     .SelectMany(static path => path.Value.EnumerateObject())
-                     .Select(static member => member.Value)
-                     .Where(static value => value.ValueKind is JsonValueKind.Object))
+        foreach (var operation in ReadOperations(root))
         {
             if (operation.TryGetProperty("operationId", out var operationId) && operationId.ValueKind is JsonValueKind.String)
             {
@@ -121,6 +155,15 @@ internal static class DocumentInspector
         operationIds.Sort(StringComparer.Ordinal);
         return operationIds;
     }
+
+    private static IEnumerable<JsonElement> ReadOperations(JsonElement root) =>
+        root.TryGetProperty("paths", out var paths) && paths.ValueKind is JsonValueKind.Object
+            ? paths.EnumerateObject()
+                .Where(static path => path.Value.ValueKind is JsonValueKind.Object)
+                .SelectMany(static path => path.Value.EnumerateObject())
+                .Select(static member => member.Value)
+                .Where(static value => value.ValueKind is JsonValueKind.Object)
+            : [];
 
     private static int CountPropertyOccurrences(JsonElement element, string propertyName)
     {

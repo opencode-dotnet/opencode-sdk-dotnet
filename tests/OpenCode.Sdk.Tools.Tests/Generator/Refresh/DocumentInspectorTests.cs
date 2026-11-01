@@ -60,6 +60,31 @@ public sealed class DocumentInspectorTests
     }
 
     [Test]
+    public async Task CheckParameterStyle_Should_Answer_All_Three_Ways()
+    {
+        var document = RefreshScenarioData.DocumentBytes(spec => spec
+            .WithOperation("styled", configure: operation => operation.Parameter("location", "query", schema => schema.Type("object"), deepObject: true), path: "/styled")
+            .WithOperation("unstyled", configure: operation => operation.Parameter("location", "query", schema => schema.Type("object")), path: "/unstyled")
+            .WithOperation("otherStyle", configure: operation => operation.ParameterWithStyle("location", "form", explode: true), path: "/other")
+            .WithOperation("otherCase", configure: operation => operation.Parameter("Location", "query", schema => schema.Type("object"), deepObject: true), path: "/case")
+            .WithOperation("otherIn", configure: operation => operation.Parameter("location", "header", schema => schema.Type("object"), deepObject: true), path: "/header")
+            .WithOperation("mixed", configure: operation => operation
+                .Parameter("location", "query", schema => schema.Type("object"), deepObject: true)
+                .Parameter("location", "header", schema => schema.Type("object")), path: "/mixed"));
+
+        await Assert.That(DocumentInspector.CheckParameterStyle(document, "styled", "location", "deepObject")).IsEqualTo(KeywordPresence.Carries);
+        await Assert.That(DocumentInspector.CheckParameterStyle(document, "unstyled", "location", "deepObject")).IsEqualTo(KeywordPresence.Lacks);
+        await Assert.That(DocumentInspector.CheckParameterStyle(document, "otherStyle", "location", "deepObject")).IsEqualTo(KeywordPresence.Lacks);
+        await Assert.That(DocumentInspector.CheckParameterStyle(document, "styled", "location", "DeepObject")).IsEqualTo(KeywordPresence.Lacks);
+        await Assert.That(DocumentInspector.CheckParameterStyle(document, "styled", "absent", "deepObject")).IsEqualTo(KeywordPresence.ComponentMissing);
+        await Assert.That(DocumentInspector.CheckParameterStyle(document, "absent", "location", "deepObject")).IsEqualTo(KeywordPresence.ComponentMissing);
+        await Assert.That(DocumentInspector.CheckParameterStyle(document, "Styled", "location", "deepObject")).IsEqualTo(KeywordPresence.ComponentMissing);
+        await Assert.That(DocumentInspector.CheckParameterStyle(document, "otherCase", "location", "deepObject")).IsEqualTo(KeywordPresence.ComponentMissing);
+        await Assert.That(DocumentInspector.CheckParameterStyle(document, "otherIn", "location", "deepObject")).IsEqualTo(KeywordPresence.Carries);
+        await Assert.That(DocumentInspector.CheckParameterStyle(document, "mixed", "location", "deepObject")).IsEqualTo(KeywordPresence.Lacks);
+    }
+
+    [Test]
     public async Task Inspect_Should_Refuse_Invalid_Json()
     {
         var exception = Assert.Throws<SnapshotRefreshException>(() => _ = DocumentInspector.Inspect([0x7B]));

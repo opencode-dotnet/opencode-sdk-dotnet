@@ -7,13 +7,13 @@ namespace OpenCode.Sdk.Models;
 /// A shell check run in the session&apos;s directory before the schedule fires, with no model call; the schedule wakes the session only when it passes.
 /// </summary>
 [System.Diagnostics.CodeAnalysis.Experimental("OPENCODE001", UrlFormat = "https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/experimental.md#opencode001")]
-public sealed record ScheduleConditionShell
+public sealed record ScheduleConditionShell : IScheduleCondition
 {
     /// <summary>
     /// Gets the type value.
     /// </summary>
     [JsonPropertyName("type")]
-    public required string Type { get; init; }
+    public string Type => "shell";
 
     /// <summary>
     /// The shell command the condition runs in the session&apos;s directory.

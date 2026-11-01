@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Nodes;
 using OpenCode.Sdk.Tools.Generator.Refresh;
 using OpenCode.Sdk.Tools.Generator.Refresh.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
@@ -111,11 +112,66 @@ public sealed class PatchSetLoaderTests
         await Assert.That(exception!.Message).Contains("unsupported predicate type 'mystery'");
     }
 
-    private static async Task<MockFileSystem> CreatePatchSetAsync(PatchManifest manifest)
+    [Test]
+    public async Task LoadAsync_Should_Refuse_A_Component_Predicate_Without_A_Keyword()
+    {
+        var manifest = RefreshScenarioData.Manifest(sha256: PatchSha());
+        // The typed builder emits a non-null manifest with a repairPredicate object.
+        var json = JsonNode.Parse(RefreshScenarioData.Serialize(manifest))!;
+        _ = json["repairPredicate"]!.AsObject().Remove("keyword");
+        var loader = new PatchSetLoader(await CreatePatchSetAsync(manifest, json.ToJsonString()));
+
+        var exception = await Assert.That(async () => _ = await loader.LoadAsync(CancellationToken.None))
+            .Throws<SnapshotRefreshException>();
+
+        await Assert.That(exception!.Message).IsEqualTo("patch manifest '001-test.json' declares an incomplete repair predicate");
+    }
+
+    [Test]
+    [Arguments("valid")]
+    [Arguments("empty operations")]
+    [Arguments("blank operation")]
+    [Arguments("blank parameter")]
+    [Arguments("blank style")]
+    public async Task LoadAsync_Should_Validate_A_Parameter_Style_Predicate(string variation)
+    {
+        var manifest = RefreshScenarioData.Manifest(sha256: PatchSha());
+        // The typed builder emits a non-null manifest with a repairPredicate object.
+        var json = JsonNode.Parse(RefreshScenarioData.Serialize(manifest))!;
+        var predicate = json["repairPredicate"]!.AsObject();
+        predicate.Clear();
+        predicate["type"] = "parameterLacksStyle";
+        predicate["operations"] = variation switch
+        {
+            "empty operations" => [],
+            "blank operation" => new JsonArray("experimental.artifacts.list", " "),
+            _ => new JsonArray("experimental.artifacts.list"),
+        };
+        predicate["parameter"] = variation == "blank parameter" ? " " : "location";
+        predicate["style"] = variation == "blank style" ? " " : "deepObject";
+        var loader = new PatchSetLoader(await CreatePatchSetAsync(manifest, json.ToJsonString()));
+
+        if (variation == "valid")
+        {
+            IReadOnlyList<LoadedPatch>? patches = null;
+            await Assert.That(async () => patches = await loader.LoadAsync(CancellationToken.None)).ThrowsNothing();
+            // A successful LoadAsync returns its non-null patch list.
+            await Assert.That(patches!.Single().Manifest.RepairPredicate.Type).IsEqualTo("parameterLacksStyle");
+        }
+        else
+        {
+            var exception = await Assert.That(async () => _ = await loader.LoadAsync(CancellationToken.None))
+                .Throws<SnapshotRefreshException>();
+            // Throws has established the expected exception instance.
+            await Assert.That(exception!.Message).IsEqualTo("patch manifest '001-test.json' declares an incomplete repair predicate");
+        }
+    }
+
+    private static async Task<MockFileSystem> CreatePatchSetAsync(PatchManifest manifest, string? json = null)
     {
         var fileSystem = new MockFileSystem();
         _ = fileSystem.Directory.CreateDirectory("spec/patches");
-        await fileSystem.File.WriteAllTextAsync("spec/patches/001-test.json", RefreshScenarioData.Serialize(manifest));
+        await fileSystem.File.WriteAllTextAsync("spec/patches/001-test.json", json ?? RefreshScenarioData.Serialize(manifest));
         await fileSystem.File.WriteAllTextAsync("spec/patches/001-test.patch", PatchContent);
         return fileSystem;
     }

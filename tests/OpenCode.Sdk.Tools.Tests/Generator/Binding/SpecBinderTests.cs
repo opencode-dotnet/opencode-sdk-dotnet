@@ -538,6 +538,7 @@ public sealed class SpecBinderTests
     private static readonly string[] ExpectedErrorTypeNames =
     [
         "AgentNotFoundError",
+        "ArtifactNotFoundError",
         "CommandExecutionError",
         "CommandNotFoundError",
         "ConflictError",
@@ -562,6 +563,7 @@ public sealed class SpecBinderTests
         "ProjectNotFoundError",
         "ProviderNotFoundError",
         "ProviderRequestError",
+        "PtyFeatureUnsupportedError",
         "PtyNotFoundError",
         "RpcError",
         "RpcInternalError",
@@ -1633,6 +1635,27 @@ public sealed class SpecBinderTests
         var digest = item.Properties.Single(static property => property.WireName == "digest").Type;
         await Assert.That(digest).IsTypeOf<NamedTypeReferencePlan>();
         await Assert.That(((NamedTypeReferencePlan)digest).Name).IsEqualTo("string");
+    }
+
+    [Test]
+    public async Task Bind_Should_Name_An_Integer_Structural_Union_Arm_WholeNumber()
+    {
+        var document = await IngestAsync(SpecScenario.Define(spec => spec
+            .WithSchema("ItemInfo", schema => schema
+                .Type("object")
+                .Property("buffer", property => property.AnyOf(
+                    branch => branch.Type("string"),
+                    branch => branch.Type("integer")), required: true))
+            .WithOperation("health.get", configure: operation => operation
+                .Response(200, "application/json", schema => schema.Ref("ItemInfo")))));
+
+        var plan = BindHealth(document);
+
+        var carrier = plan.Models.OfType<StructuralUnionModelPlan>().Single();
+        await Assert.That(carrier.Arms.Select(static arm => arm.Name))
+            .IsEquivalentTo(["Text", "WholeNumber"], StringComparer.Ordinal, CollectionOrdering.Matching);
+        await Assert.That(((NamedTypeReferencePlan)carrier.Arms.Single(static arm => arm.Name == "WholeNumber").Type).Name)
+            .IsEqualTo("long");
     }
 
     [Test]

@@ -32,6 +32,8 @@ public sealed class UpstreamClientQueryTypeTests
         ["SessionMessage.ID"] = false,
         // The session list cursor brand; the document names the same string component SessionsCursor.
         ["Session.ListCursor"] = false,
+        // The artifact provider id brand; the document names the same string component Artifact.ProviderIDEncoded.
+        ["Artifact.ProviderID"] = false,
     };
 
     [Test]

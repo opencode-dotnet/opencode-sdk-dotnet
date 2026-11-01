@@ -108,15 +108,21 @@ internal sealed class PatchSetLoader(IFileSystem fileSystem)
             throw new SnapshotRefreshException($"patch manifest '{manifestName}' must declare the files it touches");
         }
 
-        if (!string.Equals(manifest.RepairPredicate.Type, PatchPredicate.ComponentLacksKeyword, StringComparison.Ordinal))
+        var predicate = manifest.RepairPredicate;
+        var complete = predicate.Type switch
         {
-            throw new SnapshotRefreshException(
-                $"patch manifest '{manifestName}' declares unsupported predicate type '{manifest.RepairPredicate.Type}'");
-        }
+            PatchPredicate.ComponentLacksKeyword => predicate.Components is { Count: > 0 }
+                && !predicate.Components.Any(string.IsNullOrWhiteSpace)
+                && !string.IsNullOrWhiteSpace(predicate.Keyword),
+            PatchPredicate.ParameterLacksStyle => predicate.Operations is { Count: > 0 }
+                && !predicate.Operations.Any(string.IsNullOrWhiteSpace)
+                && !string.IsNullOrWhiteSpace(predicate.Parameter)
+                && !string.IsNullOrWhiteSpace(predicate.Style),
+            _ => throw new SnapshotRefreshException(
+                $"patch manifest '{manifestName}' declares unsupported predicate type '{predicate.Type}'"),
+        };
 
-        if (manifest.RepairPredicate.Components.Count is 0
-            || manifest.RepairPredicate.Components.Any(string.IsNullOrWhiteSpace)
-            || string.IsNullOrWhiteSpace(manifest.RepairPredicate.Keyword))
+        if (!complete)
         {
             throw new SnapshotRefreshException($"patch manifest '{manifestName}' declares an incomplete repair predicate");
         }

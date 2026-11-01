@@ -15,7 +15,7 @@ internal static class PersistentPtyFrameData
     /// terminal in each variant below, so the size object is the only part a variant restates.
     /// </summary>
     private const string InfoHead =
-        "{\"id\":\"pty_persistent_7\",\"title\":\"sdk terminal\",\"command\":\"/bin/bash\",\"args\":[\"-l\"],\"cwd\":\"/\",\"status\":\"running\",\"pid\":5150,\"sessionID\":\"ses_1\",\"foregroundProcess\":null,\"size\":";
+        "{\"id\":\"pty_persistent_7\",\"title\":\"sdk terminal\",\"userTitle\":null,\"command\":\"/bin/bash\",\"args\":[\"-l\"],\"cwd\":\"/\",\"status\":\"running\",\"pid\":5150,\"sessionID\":\"ses_1\",\"foregroundProcess\":null,\"size\":";
 
     /// <summary>The info literal after its <c>size</c> member.</summary>
     private const string InfoTail = ",\"output\":{\"head\":0,\"tail\":42}}";

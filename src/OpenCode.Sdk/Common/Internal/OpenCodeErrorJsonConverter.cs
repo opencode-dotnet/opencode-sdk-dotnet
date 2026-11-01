@@ -11,6 +11,7 @@ internal sealed class OpenCodeErrorJsonConverter : JsonConverter<IOpenCodeError>
     private static readonly UnionTagTable<Type> TypesByTag = new Dictionary<string, Type>(StringComparer.Ordinal)
     {
         ["AgentNotFoundError"] = typeof(AgentNotFoundError),
+        ["ArtifactNotFoundError"] = typeof(ArtifactNotFoundError),
         ["CommandExecutionError"] = typeof(CommandExecutionError),
         ["CommandNotFoundError"] = typeof(CommandNotFoundError),
         ["ConflictError"] = typeof(ConflictError),
@@ -35,6 +36,7 @@ internal sealed class OpenCodeErrorJsonConverter : JsonConverter<IOpenCodeError>
         ["ProjectNotFoundError"] = typeof(ProjectNotFoundError),
         ["ProviderNotFoundError"] = typeof(ProviderNotFoundError),
         ["ProviderRequestError"] = typeof(ProviderRequestError),
+        ["PtyFeatureUnsupportedError"] = typeof(PtyFeatureUnsupportedError),
         ["PtyNotFoundError"] = typeof(PtyNotFoundError),
         ["RpcError"] = typeof(RpcError),
         ["RpcInternalError"] = typeof(RpcInternalError),

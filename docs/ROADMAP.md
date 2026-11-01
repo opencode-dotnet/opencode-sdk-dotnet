@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-10-31
+Date: 2026-11-01
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -17,10 +17,10 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 - **Protocol pin** — generation reads an accepted snapshot of upstream's OpenAPI document taken at
   a release tag, never a live branch, and refreshes are receipt-governed (ADR-0020).
   `../spec/SNAPSHOT.md` owns the exact commit and the refresh procedure.
-- **Coverage** — **157 of 162 operations selected** across 27 client families, 2 transport-owned
+- **Coverage** — **164 of 169 operations selected** across 27 client families, 2 transport-owned
   that hand-written WebSocket doors cover, and 3 declined: the experimental client-hosted MCP
   attach and its token, deferred to a hand-written door in `1.1` (#529), and the legacy text
-  generation endpoint, which upstream's own clients omit. So 159 of 162 are usable;
+  generation endpoint, which upstream's own clients omit. So 166 of 169 are usable;
   `src/OpenCode.Sdk/.generation-incomplete` is
   the committed marker and names every one. One-shot calls, server-sent event streams (the global
   bus and the per-session log), PTY and persistent-PTY WebSocket sessions, cursor pagination, typed

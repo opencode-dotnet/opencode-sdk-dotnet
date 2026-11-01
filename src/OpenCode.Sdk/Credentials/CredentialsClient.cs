@@ -44,7 +44,7 @@ public class CredentialsClient
     }
 
     /// <summary>
-    /// Create credential. Store an integration credential. It becomes the integration&apos;s active credential unless activate is false and the integration already has one. Fails with a conflict when the requested ID already exists.
+    /// Create credential. Store an integration credential. It becomes the integration&apos;s active credential unless activate is false and the integration already has one. Fails with a conflict when the requested ID already exists, and with an invalid request when an `integration.connect` policy denies the integration.
     /// </summary>
     /// <param name = "request">The request body.</param>
     /// <param name = "requestOptions">The per-call options.</param>

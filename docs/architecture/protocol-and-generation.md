@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-10-30
+Date: 2026-11-01
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -72,7 +72,9 @@ evidence and may contain superseded positions.
   ordered and hash-pinned under `spec/patches/` with a manifest carrying the upstream report,
   touched files, repair predicate, and retirement condition — run through the exact pinned
   upstream generator after the unpatched baseline run, and prepare refuses a patch whose repair
-  predicate that baseline already satisfies, forcing an empty-patch retirement refresh.
+  predicate that baseline already satisfies, forcing an empty-patch retirement refresh. A
+  predicate is satisfied only when every target carries the repair; a target that carries it
+  beside one that lacks it, or an absent target, refuses the patch for human review.
 - The committed receipt records the exact inputs, hashes, blob-based patch preimages,
   operation-set digest, and operation delta of the accepted snapshot, together with the named
   release tag used to render its identity. Apply renders the date from the injected

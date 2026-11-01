@@ -4,6 +4,13 @@ AgentInfo owner=Agents reached-by=Agents
 AgentInfoMode owner=Agents reached-by=Agents
 AgentNotFoundError owner=Agents reached-by=Agents
 AgentUpdated owner=Agents reached-by=Events
+ArtifactCapability owner=Experimental reached-by=Experimental
+ArtifactContent owner=Experimental reached-by=Experimental
+ArtifactInfo owner=Experimental reached-by=Experimental
+ArtifactNotFoundError owner=Experimental reached-by=Experimental
+ArtifactProvider owner=Experimental reached-by=Experimental
+ArtifactTime owner=Experimental reached-by=Experimental
+ArtifactUpdated owner=Experimental reached-by=Events
 CommandExecutionError owner=Commands reached-by=Sessions
 CommandInfo owner=Commands reached-by=Commands
 CommandNotFoundError owner=Commands reached-by=Sessions
@@ -18,6 +25,8 @@ ConfigFormatterEntry owner=Config reached-by=Config
 ConfigImageGenerateOptions owner=Config reached-by=Config
 ConfigInfo owner=Config reached-by=Config
 ConfigInfoCompaction owner=Config reached-by=Config
+ConfigInfoCompactionBuffer owner=Config reached-by=Config
+ConfigInfoCompactionBufferKind owner=Config reached-by=Config
 ConfigInfoCompactionKeep owner=Config reached-by=Config
 ConfigInfoEnterprise owner=Config reached-by=Config
 ConfigInfoExperimental owner=Config reached-by=Config
@@ -108,6 +117,8 @@ EventLogSynced owner=Events reached-by=Experimental
 EventRpc owner=Events reached-by=Events
 EventServerConnected owner=Events reached-by=Events
 EventType owner=Events reached-by=Events
+ExperimentalArtifactsCreateRequest owner=Experimental reached-by=Experimental
+ExperimentalArtifactsUpdateRequest owner=Experimental reached-by=Experimental
 ExperimentalConfigUpdateRequest owner=Experimental reached-by=Experimental
 ExperimentalFsUnwatchRequest owner=Experimental reached-by=Experimental
 ExperimentalFsWatchRequest owner=Experimental reached-by=Experimental
@@ -218,6 +229,7 @@ IPluginState owner=Plugins reached-by=Plugins
 IPromptFileSource owner=Sessions reached-by=Events,Experimental,Sessions
 IProviderCompaction owner=Providers reached-by=Agents,Config,LanguageModels,Providers
 IReferenceSource owner=References reached-by=References
+IScheduleCondition owner=Experimental reached-by=Experimental
 IScheduleWhen owner=Experimental reached-by=Experimental
 ISessionEventDurable owner=Sessions reached-by=Events,Experimental
 ISessionForkBoundary owner=Sessions reached-by=Events,Experimental,Sessions
@@ -363,6 +375,8 @@ PersistentPtyRemovedData owner=PersistentPtys reached-by=Events
 PersistentPtySnapshot owner=PersistentPtys reached-by=PersistentPtys
 PersistentPtySnapshotCursor owner=PersistentPtys reached-by=PersistentPtys
 PersistentPtyUpdateRequest owner=PersistentPtys reached-by=PersistentPtys
+PersistentPtyUpdated owner=PersistentPtys reached-by=Events
+PersistentPtyUpdatedData owner=PersistentPtys reached-by=Events
 PluginCheckRequest owner=Plugins reached-by=Plugins
 PluginFeatures owner=Plugins reached-by=Plugins
 PluginGuiBundle owner=Plugins reached-by=Plugins
@@ -420,6 +434,7 @@ PtyDeleted owner=Ptys reached-by=Events
 PtyDeletedData owner=Ptys reached-by=Events
 PtyExited owner=Ptys reached-by=Events
 PtyExitedData owner=Ptys reached-by=Events
+PtyFeatureUnsupportedError owner=Ptys reached-by=PersistentPtys
 PtyNotFoundError owner=Ptys reached-by=PersistentPtys,Ptys
 PtySize owner=Ptys reached-by=PersistentPtys,Ptys
 PtyStatus owner=Ptys reached-by=Events,Ptys
@@ -437,7 +452,11 @@ RpcInternalError owner=Rpc reached-by=Rpc
 RpcInternalErrorType owner=Rpc reached-by=Rpc
 RpcOutput owner=Rpc reached-by=Rpc
 ScheduleActionPrompt owner=Experimental reached-by=Experimental
+ScheduleConditionCode owner=Experimental reached-by=Experimental
 ScheduleConditionInput owner=Experimental reached-by=Experimental
+ScheduleConditionInputCode owner=Experimental reached-by=Experimental
+ScheduleConditionInputKind owner=Experimental reached-by=Experimental
+ScheduleConditionInputRun owner=Experimental reached-by=Experimental
 ScheduleConditionShell owner=Experimental reached-by=Experimental
 ScheduleEnds owner=Experimental reached-by=Experimental
 ScheduleInfo owner=Experimental reached-by=Experimental
@@ -791,6 +810,7 @@ UnknownPluginState owner=Plugins reached-by=Plugins
 UnknownPromptFileSource owner=Sessions reached-by=Events,Experimental,Sessions
 UnknownProviderCompaction owner=Providers reached-by=Agents,Config,LanguageModels,Providers
 UnknownReferenceSource owner=References reached-by=References
+UnknownScheduleCondition owner=Experimental reached-by=Experimental
 UnknownScheduleWhen owner=Experimental reached-by=Experimental
 UnknownSessionEventDurable owner=Sessions reached-by=Events,Experimental
 UnknownSessionForkBoundary owner=Sessions reached-by=Events,Experimental,Sessions

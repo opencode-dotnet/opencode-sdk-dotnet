@@ -27,5 +27,5 @@ public sealed record ConfigInfoCompaction
     /// </summary>
     [JsonPropertyName("buffer")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public long? Buffer { get; init; }
+    public ConfigInfoCompactionBuffer? Buffer { get; init; }
 }

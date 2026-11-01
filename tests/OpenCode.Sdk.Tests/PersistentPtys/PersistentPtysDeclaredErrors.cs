@@ -122,6 +122,14 @@ public static class PersistentPtysDeclaredErrors
             typeof(PtyNotFoundError),
             "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}/put/responses/404/content/application~1json/schema"),
         static () => new(
+            "experimental.persistentPty.update:501:PtyFeatureUnsupportedError",
+            UpdateDoor,
+            HttpStatusCode.NotImplemented,
+            WireBodyData.PtyFeatureUnsupportedError,
+            "PtyFeatureUnsupportedError",
+            typeof(PtyFeatureUnsupportedError),
+            "#/paths/~1api~1experimental~1persistent-pty~1{ptyID}/put/responses/501/content/application~1json/schema"),
+        static () => new(
             "experimental.persistentPty.remove:404:PtyNotFoundError",
             RemoveDoor,
             HttpStatusCode.NotFound,
