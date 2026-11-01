@@ -9,6 +9,15 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+## [0.9.0-preview.15] - 2026-11-01
+
+**The SDK speaks opencode 2.2.x.** The pinned server moves from 2.1.4 to 2.2.5. The upgrade moves the
+session log to `ExperimentalClient`, makes open enums generated extensible enums, and changes several
+generated protocol models (listed below), and adds experimental schedules, artifacts, image and
+decision generation, usage limits and file watching, a `types` filter on the event stream, and
+renaming of persistent terminals. The SDK also allocates less on its hot paths: the event stream's
+reader works on bytes, and terminals reuse pooled buffers.
+
 ### 💥 Breaking changes
 
 - **The upstream pin moves to opencode v2.2.5.** The entries below are what the refresh changes in
@@ -125,7 +134,6 @@ Nightly builds of `master` are on
 - **Repeated JSON literals in a `JsonElement` dictionary no longer compare equal by default.**
   Repeated `true`, `false` and `null` values no longer compare equal under `JsonElement`'s default
   equality; compare JSON values with `JsonElement.DeepEquals`, as System.Text.Json recommends.
-
 - **A `PtySession` frame keeps the UTF-8 it was received as.** `PtyOutputFrame.Text` decodes on
   its first read, with the same replacement decoding, and every read returns the same string. A
   queued frame of mostly ASCII output now holds about half what it did; box-drawing and CJK output
@@ -1965,6 +1973,7 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[0.9.0-preview.15]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.15
 [0.9.0-preview.14]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.14
 [0.9.0-preview.13]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.13
 [0.9.0-preview.12]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.12
