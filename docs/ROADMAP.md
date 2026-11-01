@@ -51,7 +51,7 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 - **Packages** — the two packages publish as `OpenCodeDotNet.Sdk` and
   `OpenCodeDotNet.Sdk.Extensions` (the assemblies stay `OpenCode.Sdk`) and pack at the
   single-sourced `VersionPrefix 0.9.0`. Every `master` push publishes a `0.9.0-nightly.*` build to
-  the organization's GitHub Packages feed, and `0.9.0-preview.14` is on NuGet.org, owned by
+  the organization's GitHub Packages feed, and `0.9.0-preview.15` is on NuGet.org, owned by
   `OpenCode.NET` and pushed through the manual lane over Trusted Publishing. The ids carry
   `OpenCodeDotNet` because nuget.org reserves the `OpenCode.` prefix for an unrelated owner. The
   earlier ids, `OpenCodeAI.Sdk` and `OpenCodeAI.Sdk.Extensions`, receive no further versions.
@@ -93,9 +93,8 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    Exit: one triaged finding list.
 4. **API review.** The namespace layout is decided: the public namespaces stay `OpenCode.Sdk` and
    `OpenCode.Sdk.Models`, internal types move to `OpenCode.Sdk.Internal`, and the folders become
-   vertical slices, a placement-only change that runs as a parallel track. Still open: what a
-   `1.x` version promises when an upstream refresh changes generated shapes, the remaining surface
-   questions the baseline pass raises, and the package, test-roster, and Native AOT gates
+   vertical slices, a placement-only change that runs as a parallel track. Still open: the remaining
+   surface questions the baseline pass raises, and the package, test-roster, and Native AOT gates
    ([#51](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/51)). The parked handle
    questions are additive and wait for `1.1`. So does the client-hosted MCP door
    ([#529](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/529)), which closes the
@@ -234,11 +233,10 @@ These do not block `1.0.0` and run beside the road.
   first look to its last signal — the upstream client compares registration fields only — and the
   residual before it is upstream's too. Recorded, not solved; the registration file's write time
   could bound it if it ever matters.
-- **Two allocation follow-ups are queued behind a benchmark gate** — on `net472` and
+- **One allocation follow-up is queued behind a benchmark gate** — on `net472` and
   `netstandard2.0` a response body over 16 MiB gets a newly allocated buffer on every call (bodies
-  of 1-16 MiB are pooled), and each terminal connection allocates one 16 KiB receive buffer, reused
-  across consumer reads. Both are described for consumers in the README's Known Issues; the 1.0
-  performance gate's baseline decides whether either is fixed before `1.0.0`.
+  of 1-16 MiB are pooled). It is described for consumers in the README's Known Issues; the 1.0
+  performance gate's baseline decides whether it is fixed before `1.0.0`.
 - **Durable session-log replay cannot be enabled on any distributed CLI build.** `events.persist`
   is a server-library option: the `opencode` serve command declares no flag for it, bridges no
   environment variable to it, and reads no configuration key for it, so a replay from a CLI-started
