@@ -46,6 +46,8 @@ Nightly builds of `master` are on
 - **`PersistentPtyInfo.UserTitle` is required.** It is the title a user gave the terminal, or
   `null` when none was given; upstream always sends the key, so a terminal from a server that omits
   it no longer deserializes, and an initializer that builds a `PersistentPtyInfo` must set it.
+- **`PersistentPtyUpdateRequest.Size` is optional (`PtySize?`), no longer required.** Code reading
+  it must handle null before accessing its dimensions.
 - **Open enums are generated extensible enums, not `string`.** A string enum beside a free string,
   such as a reasoning field's known names, now binds a generated extensible enum that carries any
   other value too. `ModelCompatibility.ReasoningField` and `ProviderCompatibility.ReasoningField`
@@ -70,6 +72,10 @@ Nightly builds of `master` are on
 
 ### 🔧 Changes
 
+- **Rename persistent terminals through `PersistentPtyClient.UpdateAsync`.** Set `Title` to a non-empty string,
+  or null to clear the user's title; a terminal service that predates renaming answers 501 with
+  `PtyFeatureUnsupportedError`.
+- Deleting a session now removes its persistent terminals.
 - **The operations upstream v2.2.2 adds.** `ExperimentalClient` gains `WatchFileAsync`,
   `UnwatchFileAsync`, `GenerateDecisionsAsync`, `GenerateImagesAsync`, `GetMediaAsync`,
   `GetUsageLimitsAsync`, and the schedule operations `CreateScheduleAsync`, `GetScheduleAsync`,

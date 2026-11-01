@@ -241,6 +241,27 @@ public sealed class PersistentPtysClientContractTests
     }
 
     [Test]
+    [Arguments("build", "{\"title\":\"build\"}")]
+    [Arguments(null, "{\"title\":null}")]
+    public async Task UpdateAsync_Should_Send_The_Title_Body(string? title, string expectedBody) =>
+        await AssertUpdateBodyAsync(new PersistentPtyUpdateRequest { Title = title }, expectedBody);
+
+    [Test]
+    public async Task UpdateAsync_Should_Omit_The_Unset_Title_And_Size() =>
+        await AssertUpdateBodyAsync(new PersistentPtyUpdateRequest(), "{}");
+
+    private static async Task AssertUpdateBodyAsync(PersistentPtyUpdateRequest request, string expectedBody)
+    {
+        var payload = new FixtureLoader().LoadJson("Serialization.known-persistent-pty.json");
+        using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.Envelope(payload));
+
+        _ = await scenario.Client.PersistentPtys.GetPersistentPtyClient(PtyId)
+            .UpdateAsync(request);
+
+        await Assert.That(scenario.Requests.Single().Body).IsEqualTo(expectedBody);
+    }
+
+    [Test]
     public async Task RemoveAsync_Should_Answer_204_On_The_Delete_Route()
     {
         using var scenario = ContractScenario.Responding(static _ => new HttpResponseMessage(HttpStatusCode.NoContent));

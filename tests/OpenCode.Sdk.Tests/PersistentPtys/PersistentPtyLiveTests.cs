@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.PersistentPtys;
 
@@ -64,7 +65,35 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
     [Test]
     [Timeout(120_000)]
     public async Task Terminal_Lifecycle_Should_Round_Trip_Or_Answer_The_Daemon_Absent_Arm(
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken) =>
+        await WithTerminalAsync(AssertRoundTripAsync, cancellationToken);
+
+    /// <summary>
+    /// The submit door against the daemon's own terminal: one line handed over without a
+    /// terminator. Where the daemon exists the shell runs it; where it does not, <c>create</c>
+    /// answers the declared 503 and there is no terminal to submit on. Both arms assert.
+    /// </summary>
+    /// <param name="cancellationToken">The test's own deadline.</param>
+    /// <returns>The running test.</returns>
+    [Test]
+    [Timeout(120_000)]
+    public async Task SubmitAsync_Should_Execute_A_Line_Or_Answer_The_Daemon_Absent_Arm(
+        CancellationToken cancellationToken) =>
+        await WithTerminalAsync(
+            static (client, _, created, token) => AssertSubmittedLineRunsAsync(client, created, token),
+            cancellationToken, AssertSubmitHasNoTerminalAsync);
+
+    [Test]
+    [Timeout(120_000)]
+    public async Task SessionRemoval_Should_Remove_Its_Terminal_Or_Answer_The_Daemon_Absent_Arm(
+        CancellationToken cancellationToken) =>
+        await WithTerminalAsync(AssertSessionRemovalAsync, cancellationToken);
+
+    /// <summary>Creates the shared session and terminal, then asserts the selected daemon arm.</summary>
+    private async Task WithTerminalAsync(
+        Func<OpenCodeClient, string, PersistentPtyCreateResponse, CancellationToken, Task> assertPresent,
+        CancellationToken cancellationToken,
+        Func<PersistentPtyCreateResponse, Task>? assertAbsent = null)
     {
         // No workspace: the terminals this family creates live on the server's own machine, so a
         // Windows path would be meaningless to the Linux server the WSL2 recipe points this test
@@ -79,39 +108,45 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
 
         if (!PersistentPtyDaemonGate.DaemonExpected)
         {
-            await AssertDaemonAbsentArmsAsync(client, session.Session.Id, created, cancellationToken);
+            if (assertAbsent is not null)
+            {
+                await assertAbsent(created);
+            }
+            else
+            {
+                await AssertDaemonAbsentArmsAsync(client, session.Session.Id, created, cancellationToken);
+            }
+
             return;
         }
 
-        await AssertRoundTripAsync(client, session.Session.Id, created, cancellationToken);
+        await assertPresent(client, session.Session.Id, created, cancellationToken);
     }
 
-    /// <summary>
-    /// The submit door against the daemon's own terminal: one line handed over without a
-    /// terminator. Where the daemon exists the shell runs it; where it does not, <c>create</c>
-    /// answers the declared 503 and there is no terminal to submit on. Both arms assert.
-    /// </summary>
-    /// <param name="cancellationToken">The test's own deadline.</param>
-    /// <returns>The running test.</returns>
-    [Test]
-    [Timeout(120_000)]
-    public async Task SubmitAsync_Should_Execute_A_Line_Or_Answer_The_Daemon_Absent_Arm(
+    /// <summary>Observes the asynchronous terminal cleanup queued by removing its session.</summary>
+    private static async Task AssertSessionRemovalAsync(
+        OpenCodeClient client,
+        string sessionId,
+        PersistentPtyCreateResponse created,
         CancellationToken cancellationToken)
     {
-        using var client = server.CreateClient();
-        var session = await client.Sessions.CreateSessionAsync(
-            new SessionCreateRequest { Title = SessionTitle, Location = server.DefaultSessionLocation },
-            cancellationToken: cancellationToken);
-        var created = await client.PersistentPtys.CreatePersistentPtyAsync(
-            session.Session.Id, CreateRequest(), OpenCodeRequestOptions.NoThrow, cancellationToken);
+        await Assert.That(created.IsError).IsFalse();
+        var terminal = client.PersistentPtys.GetPersistentPtyClient(created.PersistentPty.Id);
+        var observed = await terminal.GetAsync(cancellationToken: cancellationToken);
+        await Assert.That(observed.PersistentPty.Id).IsEqualTo(created.PersistentPty.Id);
 
-        if (!PersistentPtyDaemonGate.DaemonExpected)
-        {
-            await AssertSubmitHasNoTerminalAsync(created);
-            return;
-        }
+        _ = await client.Sessions.GetSessionClient(sessionId).RemoveAsync(cancellationToken: cancellationToken);
 
-        await AssertSubmittedLineRunsAsync(client, created, cancellationToken);
+        observed = await LiveReadiness.WaitAsync(
+            ct => terminal.GetAsync(OpenCodeRequestOptions.NoThrow, ct),
+            static response => response.Status != 200,
+            "the session's terminal to be removed", cancellationToken);
+
+        await Assert.That(observed.Status).IsEqualTo(404);
+        await Assert.That(observed.Error).IsTypeOf<PtyNotFoundError>();
+        await Assert.That(((PtyNotFoundError)observed.Error!).PtyId).IsEqualTo(created.PersistentPty.Id);
+        Console.WriteLine("ppty-live: arm=round-trip session-removed=" + sessionId +
+            " terminal=" + created.PersistentPty.Id + " get=" + Number(observed.Status));
     }
 
     /// <summary>
@@ -254,6 +289,19 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
         await Assert.That(listed.PersistentPtys.Select(static pty => pty.Id).ToArray()).Contains(ptyId);
 
         var terminal = client.PersistentPtys.GetPersistentPtyClient(ptyId);
+        var renamed = await terminal.UpdateAsync(
+            new PersistentPtyUpdateRequest { Title = "build" }, cancellationToken: cancellationToken);
+        await Assert.That(renamed.PersistentPty.UserTitle).IsEqualTo("build");
+        await Assert.That(renamed.PersistentPty.Title).IsEqualTo("build");
+        var reread = await terminal.GetAsync(cancellationToken: cancellationToken);
+        await Assert.That(reread.PersistentPty.UserTitle).IsEqualTo("build");
+        var cleared = await terminal.UpdateAsync(
+            new PersistentPtyUpdateRequest { Title = null }, cancellationToken: cancellationToken);
+        await Assert.That(cleared.PersistentPty.UserTitle).IsNull();
+        await Assert.That(cleared.PersistentPty.Title).IsNotEqualTo("build");
+        var afterClear = await terminal.GetAsync(cancellationToken: cancellationToken);
+        await Assert.That(afterClear.PersistentPty.UserTitle).IsNull();
+
         var snapshot = await terminal.GetSnapshotAsync(cancellationToken: cancellationToken);
         await Assert.That(snapshot.Snapshot.Info.Id).IsEqualTo(ptyId);
 
@@ -272,6 +320,7 @@ public sealed class PersistentPtyLiveTests(PinnedOpenCodeServerFixture server)
         Console.WriteLine(
             "ppty-live: arm=round-trip id=" + ptyId +
             " status=" + created.PersistentPty.Status +
+            " renamed=" + renamed.PersistentPty.Title +
             " role=" + drive.Role +
             " inputProtocol=" + Number(drive.InputProtocol) +
             " echo=" + Observed(drive.Echoed, EchoMarker) +

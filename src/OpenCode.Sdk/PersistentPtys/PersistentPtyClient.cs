@@ -53,13 +53,18 @@ public class PersistentPtyClient
         Raw.GetAsync(requestOptions, cancellationToken);
 
     /// <summary>
-    /// Resize one persistent terminal; the resize also selects it as the session's current terminal.
+    /// Resize when Size is present and rename when Title is present; a null Title clears the
+    /// user's title so the shell's title shows again. A resize also selects the terminal as the
+    /// session's current one; renaming alone does not change that selection.
     /// </summary>
     /// <param name="request">The request body.</param>
     /// <param name="requestOptions">The per-call options.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The 'PersistentPtyUpdateResponse' envelope.</returns>
-    /// <exception cref="OpenCodeApiException">The API returned an error status (declared: 400, 401, 404, 503) and NoThrow was not selected.</exception>
+    /// <exception cref="OpenCodeApiException">
+    /// The API returned an error status (declared: 400, 401, 404, 501, 503) and NoThrow was not selected.
+    /// A 501 carries <see cref="PtyFeatureUnsupportedError"/>: the running terminal service predates renaming.
+    /// </exception>
     /// <exception cref="OpenCodeTransportException">The server could not be reached or returned a malformed success body.</exception>
     /// <remarks>
     /// Operation <c>experimental.persistentPty.update</c>: <c>PUT /api/experimental/persistent-pty/{ptyID}</c>.

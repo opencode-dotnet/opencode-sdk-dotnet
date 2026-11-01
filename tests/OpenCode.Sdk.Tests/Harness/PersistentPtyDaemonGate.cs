@@ -5,7 +5,7 @@ namespace OpenCode.Sdk.Tests.Harness;
 /// </summary>
 /// <remarks>
 /// The daemon ships as the npm package <c>@opencode/pty</c>; at the pinned upstream
-/// (<c>@opencode/pty</c> 0.3.3) it carries a win32 binary too, so the daemon is expected on every
+/// (<c>@opencode/pty</c> 0.4.0) it carries a win32 binary too, so the daemon is expected on every
 /// platform. <c>OPENCODE_SDK_TESTS_PTY_DAEMON=0</c> still selects the daemon-absent arm
 /// (<c>create</c> returns 503; the others take their existence-independent arms) for a host whose
 /// server cannot start the daemon, and <c>1</c> forces the daemon-present arm.

@@ -1,6 +1,6 @@
 # 🖥️ Terminals
 
-Date: 2026-10-31
+Date: 2026-11-01
 
 opencode has two terminal families, and they are genuinely different animals:
 
@@ -11,7 +11,7 @@ opencode has two terminal families, and they are genuinely different animals:
 | Survives a server restart | no | yes, through a handoff |
 | Output on the wire | text frames | raw bytes |
 | Input | `SubmitAsync(string)`, or raw `WriteAsync(string)` | `SubmitAsync(string)`, or raw `WriteAsync(ReadOnlyMemory<byte>)` |
-| Resize | `PtyClient.UpdateAsync` with `Size`, over HTTP | `ResizeAsync` on the session, over the socket |
+| Resize | `PtyClient.UpdateAsync` with `Size`, over HTTP | `PersistentPtyClient.UpdateAsync` with `Size`, or `ResizeAsync` on the socket |
 | Available on Windows | ✅ yes | ✅ yes, from opencode 2.1.x — [when the daemon is unavailable](#-when-the-daemon-is-unavailable) |
 
 Both live sessions ride a **WebSocket**, not the HTTP pipeline. They are the only two doors in the
@@ -114,7 +114,7 @@ upstream's web terminal does:
 await pty.UpdateAsync(new PtyUpdateRequest { Size = new PtySize { Cols = 100, Rows = 30 } });
 ```
 
-The persistent family is the other way round: it resizes through `ResizeAsync` on its socket,
+The persistent family also accepts an HTTP resize, or `ResizeAsync` on its socket,
 shown [below](#-persistent-ptys).
 
 Closing:
@@ -158,7 +158,8 @@ degrading into a full replay.
 ## 🧷 Persistent PTYs
 
 These terminals belong to the `opencode-pty` daemon, are keyed to a **session**, and survive a
-server restart. Upstream serves the family as experimental, so it needs an
+server restart. Deleting a session removes its persistent terminals asynchronously.
+Upstream serves the family as experimental, so it needs an
 [opt-in](experimental.md#opencode002) (`OPENCODE002`). Creation is session-keyed; everything
 id-keyed sits on a handle:
 
@@ -181,6 +182,26 @@ var terminal = client.PersistentPtys.GetPersistentPtyClient(created.PersistentPt
 
 A given `Cwd` whose path doesn't exist or isn't a directory is refused with a 400: `Error` is an
 `InvalidRequestError` with the `Kind` `invalid_cwd` and the `Field` `cwd`, and no terminal starts.
+
+**Rename over HTTP with the same `UpdateAsync` door.** `Title` is `Optional<string?>`:
+
+```csharp
+await terminal.UpdateAsync(new PersistentPtyUpdateRequest { Title = "build" });
+await terminal.UpdateAsync(new PersistentPtyUpdateRequest { Title = null });
+```
+
+The implicit conversion sets `Title`; `null` (or `Optional<string?>.Null`) explicitly clears it.
+An empty string clears it too.
+Leaving `Title` unset leaves the title unchanged. `Size` is optional too: send it to resize and
+select this as the session's current terminal; renaming alone does not change that selection.
+`PersistentPtyInfo.UserTitle` holds the user's override, or null to let the shell's title show again;
+`Title` is the effective terminal title. Renaming publishes `PersistentPtyUpdated` on the event bus.
+
+A terminal service that predates renaming answers **501**, `PtyFeatureUnsupportedError`.
+If the same request includes `Size`, that resize has already been applied: the handler resizes
+before it renames.
+By default it is `OpenCodeApiException.Error`; with `OpenCodeRequestOptions.NoThrow`, it is
+`response.Error` on the returned envelope (`Status == 501`).
 
 Then attach and drive it:
 

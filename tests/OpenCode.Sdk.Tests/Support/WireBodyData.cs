@@ -77,6 +77,9 @@ internal static class WireBodyData
 
     public const string PtyNotFoundError = "{\"_tag\":\"PtyNotFoundError\",\"ptyID\":\"pty_9\",\"message\":\"gone\"}";
 
+    public const string PtyFeatureUnsupportedError =
+        "{\"_tag\":\"PtyFeatureUnsupportedError\",\"feature\":\"rename\",\"message\":\"Terminal renaming will be available after OpenCode's terminal service restarts\"}";
+
     public const string ForbiddenError = "{\"_tag\":\"ForbiddenError\",\"message\":\"not allowed\"}";
 
     public const string ServiceUnavailableError =
