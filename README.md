@@ -327,9 +327,11 @@ has the two properties to set.
   bus and filter by session id. Persisted replay needs a host that embeds the opencode server
   library with persistence enabled.
 
-- **On `net472` and `netstandard2.0`, two costs are larger than on modern targets.** A response body
+- **On `net472` and `netstandard2.0`, some costs are larger than on modern targets.** A response body
   over 16 MiB gets a newly allocated buffer on every call. Bodies between 1 and 16 MiB come from a pool
   the SDK keeps, which holds at most about 60 MiB after large responses.
+  On .NET Framework, reading a JSON string over 1 MiB that contains an escape, such as a newline,
+  allocates one extra array of its length each time.
   On Unix (Mono), owner-only files that discovery and `EnsureAsync` write get mode `0600` through a
   `chmod` child process rather than at creation, and a failed `chmod` fails the write. No CI leg runs
   .NET Framework or Mono on Unix.
