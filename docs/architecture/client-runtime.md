@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-10-26
+Date: 2026-11-02
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -951,7 +951,10 @@ reuses a ready compatible daemon, replaces a version-mismatched one according to
 `OpenCodeServerEnsureOptions.VersionPolicy` (Ignore strips the expected version, Replace keeps it in
 the loop, Error discovers twice and throws on a ready mismatch without entering the loop), and
 otherwise spawns at most two detached contenders (`opencode serve --service` by default) until a
-service registers or the 120-second wall-clock bound expires. A daemon whose health protocol is
+service registers or the 120-second wall-clock bound expires. A `--service` boot resumes every
+session the shared data marks as suspended and that has no parent, including one another process is
+still running, so both drive it; `StartAsync`'s `serve --stdio --port 0` doesn't take that path
+(measured on 2.2.5). A daemon whose health protocol is
 incompatible (an authenticated 404 on `/api/info`) fails the call while its version satisfies the
 loop's requirement; only an unmet version requirement replaces it. A registration without a password
 never wins. The first contender failure is held: while it stands no further contender is recruited,

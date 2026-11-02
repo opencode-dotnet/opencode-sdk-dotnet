@@ -1,6 +1,6 @@
 # 🔌 Connection modes
 
-Date: 2026-10-31
+Date: 2026-11-02
 
 There are three ways to get a client bound to a running opencode server: **let the SDK start one**,
 **point it at one you already have**, or **discover the background service the opencode CLI runs
@@ -604,6 +604,11 @@ What it does:
    clients share.
 4. Hands a replaced daemon's persistent terminals over to its successor through the handoff
    sidecar, as the CLI does.
+
+> **⚠️ A service it starts can drive a session twice.** That boot resumes every session the shared
+> data marks as suspended, including one another process is still running, so both processes then
+> drive it. Don't let `EnsureAsync` start a service while another process is running sessions on the
+> same data. Reusing a ready service boots nothing. `StartAsync` doesn't resume.
 
 `OpenCodeServerEnsureOptions` is optional as a whole:
 
