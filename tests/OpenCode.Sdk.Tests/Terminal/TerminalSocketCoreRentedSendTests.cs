@@ -195,7 +195,7 @@ public sealed class TerminalSocketCoreRentedSendTests
             if (array.Length >= TerminalSocketBounds.ReceiveBufferSize)
             {
                 entered.Set();
-                // The product resumes receive on the pool; holding buffer return delays send-ended and forces the behind-gate refusal.
+                // The scripted resume runs the receive path on the pool; holding buffer return delays send-ended and forces the behind-gate refusal.
                 released = release.Wait(HangGuard.Bound);
             }
         });
