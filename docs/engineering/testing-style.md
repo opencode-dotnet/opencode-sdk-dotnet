@@ -1,6 +1,6 @@
 # Testing Style — authoring tests
 
-Date: 2026-10-17
+Date: 2026-11-02
 
 Binding authorship style for every test in this repository. `quality-gates.md` owns the
 current assurance posture and completion gates; operational build-out state belongs in
@@ -126,6 +126,15 @@ serializer registration, and plural membership are checked mechanically through 
 emitted plans, while a small schema-valid runtime corpus exercises framing and deserialization.
 Real observed frames are promoted into that corpus when available. Documentation states the
 observed fixture count rather than projecting structural completeness onto it.
+
+Generated record readers (ADR-0039) are held to a metadata-only reading of the same payloads: a
+separately compiled SDK image whose unions dispatch through source-generated metadata alone and
+share no generated reader with the product path. Every fixture in the typed oracle catalog and
+every minimal and maximal bound-model corpus value is read both ways. Tests compare concrete
+variant identity, ordered serialized member bytes, reader position, and refusal type, path and
+complete message. Permanent negative controls prove the oracle tells a correct reader from one
+that drops a member or dispatches to the wrong variant. Bound corpus coverage supplements, and
+does not replace, observed wire fixtures or mechanical union-membership checks.
 
 Runtime tests assert transport/framing, JSON materialization, required .NET shape, and union
 dispatch. They do not mutate otherwise representable payloads solely to prove that the SDK
