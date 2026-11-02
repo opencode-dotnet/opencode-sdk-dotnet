@@ -459,6 +459,7 @@ public sealed class OpenCodeServerReadinessTests
         _ = treeKill.KillTreeAsync(Arg.Any<int>(), Arg.Any<TimeSpan>()).Returns(call =>
         {
             _ = entered.TrySetResult();
+            // The product resumes failed-start teardown on the pool; moving expiry cannot move this gate.
             if (!release.Wait(HangGuard))
             {
                 throw new TimeoutException("The test did not release the cleanup gate.");
@@ -470,6 +471,7 @@ public sealed class OpenCodeServerReadinessTests
         _ = signals.SignalGroup(Arg.Any<int>(), Arg.Any<ProcessSignal>()).Returns(call =>
         {
             _ = entered.TrySetResult();
+            // The product resumes failed-start teardown on the pool; moving expiry cannot move this gate.
             if (!release.Wait(HangGuard))
             {
                 throw new TimeoutException("The test did not release the cleanup gate.");

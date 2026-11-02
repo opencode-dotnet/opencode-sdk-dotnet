@@ -144,6 +144,7 @@ public sealed class TerminalSocketCoreTests
                 Interlocked.CompareExchange(ref entered, 1, 0) is 0)
             {
                 _ = resumed.TrySetResult(true);
+                // This execution-context re-entry runs where send resumes; moving its start cannot guarantee inline completion.
                 released = release.Wait(HangGuard.Bound);
             }
         });
