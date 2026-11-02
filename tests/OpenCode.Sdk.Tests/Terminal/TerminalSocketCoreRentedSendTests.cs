@@ -69,11 +69,11 @@ public sealed class TerminalSocketCoreRentedSendTests
         using var release = new ManualResetEventSlim();
         var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var released = false;
-        var first = Task.Run(() => SendRented(core, pool, new TerminalSendActions(OnSent: () =>
+        var first = DedicatedThread.Run(() => SendRented(core, pool, new TerminalSendActions(OnSent: () =>
         {
             _ = entered.TrySetResult(true);
             released = release.Wait(HangGuard.Bound);
-        }, PayloadRented: true), CancellationToken.None));
+        }, PayloadRented: true), CancellationToken.None)).Unwrap();
         var disposal = Task.CompletedTask;
         try
         {

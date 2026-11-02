@@ -59,13 +59,13 @@ public sealed class TimedCancellationTests
             // A registration makes the callback's Cancel run work under the lock while Dispose contends for it.
             using var registration = deadline.Token.Register(static () => { });
             using var barrier = new Barrier(2);
-            var firing = Task.Run(() =>
+            var firing = DedicatedThread.Run(() =>
             {
                 var met = barrier.SignalAndWait(HangGuard.Bound);
                 time.Fire();
                 return met;
             });
-            var disposing = Task.Run(() =>
+            var disposing = DedicatedThread.Run(() =>
             {
                 var met = barrier.SignalAndWait(HangGuard.Bound);
                 deadline.Dispose();

@@ -15,6 +15,7 @@ public sealed class CancellationTokenSourceExtensionsTests
         using var registration = source.Token.Register(() =>
         {
             _ = entered.TrySetResult(true);
+            // The product runs this callback on the pool; blocking it proves cancellation returns before callbacks finish.
             release.Wait();
             finished = true;
         });
