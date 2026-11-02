@@ -187,6 +187,9 @@ unsupported OpenAPI constructs and prove the exact required/null-representation 
   The sampling-gap detector gives every test whose window overlaps a gap of its own thread longer
   than the tick plus 2 s a `sampling-gap:` line in its TRX output; a gap never fails a test, but a
   detector that does not end or that faults fails the session.
+- A test does not block a thread-pool thread on a release that another pool item must perform; it
+  holds the blocking side on a dedicated thread, unless the product itself runs that side on the
+  pool.
 - A proof that a launcher path leaves no handle behind counts only the kinds that path creates, and
   compares them exactly: pipe descriptors on Linux and macOS (`HostDescriptors`), and on Windows
   the handles on other processes and their threads, pipe ends and jobs (`LauncherHandleCensus`).
