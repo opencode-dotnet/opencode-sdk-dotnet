@@ -33,13 +33,28 @@ internal static class BenchmarkFixtures
         Check disposal when the server returns headers and then stalls halfway through the body. A canceled read shouldn't be reported as "Accepted" or retried; the caller owns that decision. Please suggest one deterministic test that starts cancellation after the first body chunk, and one that proves a non-success body remains available to the error adapter. Explain which token reaches each awaited operation and whether disposing the response closes the stream. Keep the patch small enough that I can compare the old and new failure paths side by side.
         """;
 
-    /// <summary>Literal prompt request oracles, independent of request serialization.</summary>
+    /// <summary>A long prompt with optional line breaks for writer and escape buffer measurements.</summary>
+    public static string SessionPromptLargeText(bool newlines)
+    {
+        const string sentence = "Review the 512 transport paths, explain the result and keep the public API unchanged. ";
+        var text = new char[524_288];
+        for (var index = 0; index < text.Length; index++)
+        {
+            text[index] = newlines && index % 80 == 79 ? '\n' : sentence[index % sentence.Length];
+        }
+
+        return new string(text);
+    }
+
+    /// <summary>Prompt request oracles, independent of request serialization.</summary>
     public static byte[] SessionPromptRequestBody(string name) => Encoding.UTF8.GetBytes(name switch
     {
         "text-only" => """{"text":"Review the session transport for cancellation bugs. Explain the failure path and suggest a focused fix. Keep the public API unchanged."}""",
         "text-code" => """{"text":"Please review this transport change before I send it for review. It\u0027s meant to preserve the caller\u0027s cancellation token, not create another timeout. The report says \u0022request completed\u0022 even when the response body is still being read. I\u0027d like a focused fix, with no public API changes.\n\nThe failing path is \u0060SendAsync\u0060 -\u003E \u0060ReadAsStreamAsync\u0060 -\u003E \u0060CopyToAsync\u0060. We need to distinguish a caller\u0027s cancellation from a server error, and keep the original exception when the caller cancels. Don\u0027t turn an HTTP 404 into an empty success. If a header contains \u003Ctrace\u003E or a query includes a=1\u0026b=2, keep those values intact in diagnostic output.\n\nHere\u0027s the current sketch, pasted from the branch:\n\u0060\u0060\u0060csharp\npublic async Task\u003Cstring\u003E ReadAsync(HttpClient client, CancellationToken cancellationToken)\n{\n    using var request = new HttpRequestMessage(HttpMethod.Get, \u0022/api/session?from=first\u0026to=last\u0022);\n    request.Headers.Add(\u0022X-Trace\u0022, \u0022review\u003Ctransport\u003E\u002Bbody\u0022);\n    using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);\n    if ((int)response.StatusCode \u003C 200 || (int)response.StatusCode \u003E 299)\n    {\n        throw new InvalidOperationException(\u0022The server didn\u0027t accept this request.\u0022);\n    }\n\n    var text = await response.Content.ReadAsStringAsync(cancellationToken);\n    return text \u002B \u0022\\n\u003Cdone\u003E\u0026accepted=true\u0022;\n}\n\u0060\u0060\u0060\n\nCheck disposal when the server returns headers and then stalls halfway through the body. A canceled read shouldn\u0027t be reported as \u0022Accepted\u0022 or retried; the caller owns that decision. Please suggest one deterministic test that starts cancellation after the first body chunk, and one that proves a non-success body remains available to the error adapter. Explain which token reaches each awaited operation and whether disposing the response closes the stream. Keep the patch small enough that I can compare the old and new failure paths side by side."}""",
         "text-files" => """{"text":"Review the session transport for cancellation bugs. Explain the failure path and suggest a focused fix. Keep the public API unchanged.","files":[{"uri":"file:///repo/src/Transport.cs","name":"Transport.cs","description":"HTTP transport"},{"uri":"file:///repo/tests/TransportTests.cs","name":"TransportTests.cs","description":"Cancellation tests"}]}""",
         "all-set" => """{"id":"msg_bench","text":"Review the session transport for cancellation bugs. Explain the failure path and suggest a focused fix. Keep the public API unchanged.","files":[{"uri":"file:///repo/src/Transport.cs","name":"Transport.cs","description":"HTTP transport"},{"uri":"file:///repo/tests/TransportTests.cs","name":"TransportTests.cs","description":"Cancellation tests"}],"agents":[{"name":"build"}],"skills":[{"id":"review"}],"metadata":{"run":7},"delivery":"queue","resume":true}""",
+        "text-plain-512k" => "{\"text\":\"" + SessionPromptLargeText(newlines: false) + "\"}",
+        "text-newlines-512k" => "{\"text\":\"" + new StringBuilder(SessionPromptLargeText(newlines: true)).Replace("\n", "\\n").ToString() + "\"}",
         _ => throw new ArgumentOutOfRangeException(nameof(name), name, "No such prompt case."),
     });
 

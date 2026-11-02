@@ -10,7 +10,9 @@ namespace OpenCode.Sdk.Performance.Tests.Benchmarks;
 /// <remarks>
 /// Wire figures describe the request body only. The complete row's Alloc/Wire divides by that
 /// body only, as in SessionCreateRequestBenchmarks (#626); read request amplification from the
-/// serialization row. Setup compares against literal expected bodies in BenchmarkFixtures.
+/// serialization row. Setup compares against expected bodies in BenchmarkFixtures, built without the serializer.
+/// The two large-text cases measure the serializer's writer buffer on a long string, and the newline
+/// case its escape buffer too; on net472 those are larger than the shared pool retains.
 /// </remarks>
 [MemoryDiagnoser]
 public class SessionPromptRequestBenchmarks : IDisposable
@@ -30,7 +32,7 @@ public class SessionPromptRequestBenchmarks : IDisposable
 
     public static IEnumerable<WireFixture> Fixtures()
     {
-        foreach (var name in new[] { "text-only", "text-code", "text-files", "all-set" })
+        foreach (var name in new[] { "text-only", "text-code", "text-files", "all-set", "text-plain-512k", "text-newlines-512k" })
         {
             var body = BenchmarkFixtures.SessionPromptRequestBody(name);
             yield return new WireFixture(name, body, items: 1, payloadBytesPerItem: body.Length);
@@ -113,6 +115,8 @@ public class SessionPromptRequestBenchmarks : IDisposable
                 Delivery = SessionInboxDelivery.Queue,
                 Resume = true,
             },
+            "text-plain-512k" => new SessionPromptRequest { Text = BenchmarkFixtures.SessionPromptLargeText(newlines: false) },
+            "text-newlines-512k" => new SessionPromptRequest { Text = BenchmarkFixtures.SessionPromptLargeText(newlines: true) },
             _ => throw new ArgumentOutOfRangeException(nameof(name), name, "No such prompt case."),
         };
     }
