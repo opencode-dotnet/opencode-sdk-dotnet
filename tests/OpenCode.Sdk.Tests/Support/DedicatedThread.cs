@@ -1,6 +1,6 @@
 namespace OpenCode.Sdk.Tests.Support;
 
-/// <summary>Starts synchronous test work that must not hold a thread-pool thread.</summary>
+/// <summary>Starts test work on its own thread; only the code before the body's first incomplete await stays there.</summary>
 internal static class DedicatedThread
 {
     public static Task<T> Run<T>(Func<T> body) =>
