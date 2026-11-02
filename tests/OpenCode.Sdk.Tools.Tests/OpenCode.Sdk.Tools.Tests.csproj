@@ -84,6 +84,11 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Fixtures/**/*.json" />
+    <EmbeddedResource Include="../OpenCode.Sdk.Tests/Fixtures/Serialization/*.json;../OpenCode.Sdk.Tests/Serialization/Fixtures/*.json;../OpenCode.Sdk.Tests/Integrations/Fixtures/known-command-attempt-complete.json;../OpenCode.Sdk.Tests/Sessions/Fixtures/known-*.json;../OpenCode.Sdk.Tests/Sessions/Fixtures/numeric-status-session.json;../OpenCode.Sdk.Tests/McpServers/Fixtures/known-mcp-server.json;../OpenCode.Sdk.Tests/PersistentPtys/Fixtures/known-*.json;../OpenCode.Sdk.Tests/Ptys/Fixtures/known-pty.json;../OpenCode.Sdk.Tests/Websearch/Fixtures/known-websearch-response.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Generator/Emission/Support/Fixtures/ToolFileContentHandReader.cs.txt" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Serialization.ToolFileContentHandReader.cs.txt" WithCulture="false" />
+    <Compile Include="../OpenCode.Sdk.Performance.Tests/Support/AssistantMessageComposer.cs;../OpenCode.Sdk.Performance.Tests/Support/BenchmarkFixtures.cs" LinkBase="Shared" />
+    <EmbeddedResource Include="../OpenCode.Sdk.Performance.Tests/Fixtures/deep-assistant-message.json" LogicalName="OpenCode.Sdk.Performance.Tests.Fixtures.deep-assistant-message.json" />
+    <EmbeddedResource Include="../Shared/MetadataUnionJsonConverter.cs" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Serialization.MetadataUnionJsonConverter.cs" />
     <EmbeddedResource Include="Benchmarks/Fixtures/missing-memory-report-full.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Benchmarks.missing-memory-report-full.json" />
     <EmbeddedResource Include="Benchmarks/Fixtures/na-report-full.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Benchmarks.na-report-full.json" />
     <EmbeddedResource Include="Benchmarks/Fixtures/wire-metrics-report-full.json" LogicalName="OpenCode.Sdk.Tools.Tests.Fixtures.Benchmarks.wire-metrics-report-full.json" />

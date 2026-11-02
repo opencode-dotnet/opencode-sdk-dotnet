@@ -1,0 +1,86 @@
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using OpenCode.Sdk.Models;
+
+namespace OpenCode.Sdk.Internal;
+
+internal static class ToolFileContentHandReader
+{
+    internal static ToolFileContent Read(ref Utf8JsonReader reader, JsonSerializerOptions options)
+    {
+        var start = reader;
+        try
+        {
+            return ReadObject(ref reader);
+        }
+        catch (Exception exception) when (exception is JsonException or InvalidOperationException or FormatException or NotSupportedException)
+        {
+            reader = start;
+            _ = JsonSerializer.Deserialize(ref reader, OpenCodeJsonContext.Default.ToolFileContent);
+            throw;
+        }
+    }
+
+    private static ToolFileContent ReadObject(ref Utf8JsonReader reader)
+    {
+        string? uri = null, mime = null, name = null;
+        var present = 0;
+        if (reader.TokenType != JsonTokenType.StartObject) throw new JsonException();
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndObject)
+            {
+                if (present != 3) throw new JsonException();
+                // Presence and immediate null checks prove both required strings are assigned.
+                return new ToolFileContent { Uri = uri!, Mime = mime!, Name = name };
+            }
+            if (reader.TokenType != JsonTokenType.PropertyName) throw new JsonException();
+            var member = reader.ValueTextEquals("uri"u8) ? 1 : reader.ValueTextEquals("mime"u8) ? 2
+                : reader.ValueTextEquals("name"u8) ? 3 : 0;
+            if (!reader.Read()) throw new JsonException();
+            switch (member)
+            {
+                case 1:
+                    if (reader.TokenType == JsonTokenType.Null) throw new JsonException();
+                    uri = reader.GetString();
+                    present |= 1;
+                    break;
+                case 2:
+                    if (reader.TokenType == JsonTokenType.Null) throw new JsonException();
+                    mime = reader.GetString();
+                    present |= 2;
+                    break;
+                case 3:
+                    name = reader.TokenType == JsonTokenType.Null ? null : reader.GetString();
+                    break;
+                default:
+                    if (!reader.TrySkip()) throw new JsonException();
+                    break;
+            }
+        }
+        throw new JsonException();
+    }
+}
+
+internal sealed class ToolContentJsonConverter : JsonConverter<IToolContent>
+{
+    private static readonly UnionTagTable<string> Tags = new Dictionary<string, string>(StringComparer.Ordinal)
+    { ["file"] = "file", ["text"] = "text" }.ToUnionTagTable();
+
+    public override IToolContent Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (new UnionDiscriminatorReader().TryFindKnown(ref reader, "type", "ToolContent", Tags, out var arm, out var marker))
+        {
+            return (arm == "file" ? (IToolContent?)ToolFileContentHandReader.Read(ref reader, options)
+                : JsonSerializer.Deserialize(ref reader, OpenCodeJsonContext.Default.ToolTextContent))
+                ?? throw new JsonException("The ToolContent payload deserialized to null.");
+        }
+        using var document = JsonDocument.ParseValue(ref reader);
+        return new UnknownToolContent(marker, document.RootElement);
+    }
+
+    public override void Write(Utf8JsonWriter writer, IToolContent value, JsonSerializerOptions options) =>
+        JsonSerializer.Serialize(writer, value, OpenCodeJsonContext.Default.GetTypeInfo(value.GetType())!);
+}
