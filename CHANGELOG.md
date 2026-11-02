@@ -34,6 +34,7 @@ Nightly builds of `master` are on
   session on the shared data, including one another process is still running, so both drive it.
   The [connection modes guide](docs/guide/connection-modes.md#-ensuring-the-background-service) says
   when that matters.
+- A runnable [QuickStart sample](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/QuickStart/README.md) lives in `playground/`.
 
 ## [0.9.0-preview.15] - 2026-11-01
 

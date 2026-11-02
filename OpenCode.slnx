@@ -7,6 +7,9 @@
     <File Path="global.json" />
     <File Path="nuget.config" />
   </Folder>
+  <Folder Name="/playground/">
+    <Project Path="playground/QuickStart/OpenCode.Playground.QuickStart.csproj" />
+  </Folder>
   <Folder Name="/spec/">
     <File Path="spec/SNAPSHOT.md" />
     <File Path="spec/openapi.json" />

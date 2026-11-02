@@ -1192,3 +1192,9 @@ dotnet_diagnostic.MA0045.severity = none
 # exit observation; VSTHRD003 remains enabled for every other file.
 [tests/OpenCode.Sdk.Tests/Support/ChildExitObservation.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
+
+# Playground samples teach the SDK to readers: an await on every line of a Program.cs carries no ConfigureAwait, and a Blazor component needs its context.
+[playground/**.cs]
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.MA0004.severity = none
+dotnet_diagnostic.VSTHRD111.severity = none

@@ -61,7 +61,7 @@ for a pile of static steps.
   CLI framework through its DI registrar. Commands and services receive dependencies
   through constructors — no service locators, no static mutable state, and no behavior on
   static classes beyond the stateless policies above. The executable's static composition-root factory is wiring only: it may
-  construct/register concrete adapters but performs no I/O itself. The shape:
+  construct/register concrete adapters but performs no I/O itself. A console sample under `playground/` is exempt: it shows the shape a consumer writes, with the SDK calls in view. The shape:
 
   ```csharp
   public static class ToolApp
