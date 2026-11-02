@@ -28,21 +28,16 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 - **Assurance** — the suite runs on `net10.0` and `net11.0` across Linux, Windows, and macOS,
   plus `net472` on Windows, the fullest leg; `engineering/quality-gates.md` owns the gate a
   change must pass before it is called done.
-- **Terminal lifetime corrections (D)** — consumer cancellation, send deadlines, local viewport
-  ordering, and shared cleanup are implemented and verified on Windows across the four runnable
-  targets. Linux and macOS live verification also passed on net8/net9/net10, including the persistent daemon
-  round trip and normal PTY reuse after read cancellation. `architecture/client-runtime.md` and
-  ADR-0023 own the contract.
-- **2.1.4 refresh** — the accepted pin follows upstream's release tags, now `v2.1.4`, with no
-  compatibility layer between them. 2.1.4 adds six operations: a heap snapshot, saved-permission
-  updates, and experimental voice models and instructions join the surface, and the experimental
-  client-hosted MCP pair is declined until its door lands. Several generated protocol models change
-  the way upstream changed them, and the CHANGELOG lists each one. Persistent PTYs now work on
-  Windows hosts, and a released CLI's Windows background service defaults to port 28894. The
-  restore patch for SSE payloads still applies, rebased. Every watched input under the
-  hand-written doors was reviewed. Each refresh's CI run qualifies every leg at its pin: Windows on
-  `net472`, `net10.0`, and `net11.0`, Linux and macOS on `net10.0` and `net11.0`, with regeneration
-  and receipt verification passing.
+- **Terminal lifetime** — consumer cancellation, send deadlines, local viewport ordering, and shared
+  cleanup are implemented. `architecture/client-runtime.md` and ADR-0023 own the contract.
+- **Upstream refreshes** — the accepted pin follows upstream's release tags, now `v2.2.5`, with no
+  compatibility layer between them, and the CHANGELOG lists what each refresh changes. Two restore
+  patches apply: SSE payloads
+  ([#56](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/56)) and the artifact
+  `location` query style
+  ([anomalyco/opencode#60960](https://github.com/anomalyco/opencode/issues/60960)). Each refresh's
+  CI run qualifies every leg at its pin: Windows on `net472`, `net10.0`, and `net11.0`, Linux and
+  macOS on `net10.0` and `net11.0`, with regeneration and receipt verification passing.
 - **Upstream 2.x** — the upstream team launched the 2.x line publicly on 2026-09-26. It ships as
   the `@opencode/cli` npm package, the one this SDK pins and its guides install; the 1.x line
   continues beside it as `opencode-ai` (`1.18.33` on 2026-09-28), and upstream's GitHub Releases page
@@ -90,13 +85,12 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    consistency, with the ADR trim
    ([#182](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/182)). The other review
    areas follow `1.0.0` ([#201](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/201)).
-   Exit: one triaged finding list.
-4. **API review.** The namespace layout is decided: the public namespaces stay `OpenCode.Sdk` and
-   `OpenCode.Sdk.Models`, internal types move to `OpenCode.Sdk.Internal`, and the folders become
-   vertical slices, a placement-only change that runs as a parallel track. Still open: the remaining
-   surface questions the baseline pass raises, and the package, test-roster, and Native AOT gates
-   ([#51](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/51)). The parked handle
-   questions are additive and wait for `1.1`. So does the client-hosted MCP door
+   Exit: one triaged finding list. **Complete.**
+4. **API review.** The public namespaces stay `OpenCode.Sdk` and `OpenCode.Sdk.Models`, internal
+   types live in `OpenCode.Sdk.Internal`, and the folders are vertical slices. The package,
+   test-roster, and Native AOT gates are in CI
+   ([#51](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/51)). **Complete.** The
+   parked handle questions are additive and wait for `1.1`. So does the client-hosted MCP door
    ([#529](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/529)), which closes the
    two client-MCP declines: an application hosts its own tools for the server over the experimental
    client-MCP WebSocket. It adds public surface without breaking any, so it lands after `1.0.0`; it
@@ -122,12 +116,17 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    SDK. After `1.0.0-rc.1` only a regression is fixed. A generator baseline and a full run of the
    suite on the release candidate
    close the gate. Exit: a reviewed full run with no unexplained regression.
-7. **Playground.** The Sandbox and the other throwaway test applications leave the repository. A
-   `playground/` of small, runnable consumer samples replaces them, modeled on
-   [dotnet-aspire-for-localstack's playground](https://github.com/localstack-dotnet/dotnet-aspire-for-localstack/tree/master/playground)
-   and polished from the samples the developer-experience rounds wrote. The guides' compile-and-run
-   homes move with them. Exit: no throwaway application left, and every playground sample builds
-   in CI.
+7. **Playground and documentation.** The Sandbox leaves the repository. A `playground/` of four apps
+   replaces it, modeled on
+   [dotnet-aspire-for-localstack's playground](https://github.com/localstack-dotnet/dotnet-aspire-for-localstack/tree/master/playground):
+   `QuickStart`, `Hq` (a small OpenCode HQ on Blazor Server and Aspire, with its screens explaining
+   their own SDK calls), `Worker`, and `AotCli`. They teach the SDK and show that a real product can
+   be built on it, and each runs with only the `opencode` CLI installed. Building `Hq` tests the
+   public API, so its two main screens land before `1.0.0-rc.1`; the rest lands before `1.0.0`
+   ([#503](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/503)). A guard compiles the
+   README's and the guides' C# snippets
+   ([#388](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/388)). Exit: the Sandbox
+   gone, every app building in CI, and the guides linking to the apps.
 8. **`1.0.0`** ([#187](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/187)). Exit:
    `1.0.0` on NuGet.org, the `OpenCodeAI.*` popularity moved to `OpenCodeDotNet.*`, the README's
    rename notice gone, and milestone `1.1` ordered with its first items assigned.
@@ -136,24 +135,20 @@ and the items named below come before `1.0.0`; additive and internal work waits 
 
 These do not block `1.0.0` and run beside the road.
 
-- **Vertical-slice layout**
-  ([#173](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/173)): the folders become
-  vertical slices in pure-rename slices scheduled around the other work. The public namespaces and
-  the public API do not change.
 - **MCP server** in its own repository (ADR-0030), a thin adapter over the published SDK. The
   namespace decision keeps the public namespaces, so code against the SDK can start.
 - **Milestone `1.1`** holds the work deferred from `1.0.0`, one issue each, and a lane takes an
   item early when it is idle and the item conflicts with nothing:
   - the maintainability areas the 1.0 review leaves, test categorization among them
     ([#201](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/201));
-  - references that point one way: about 170 comments in source, tools, tests, and workflows still
+  - references that point one way: a few hundred lines in source, tools, tests, and workflows still
     cite documentation, against `engineering/documentation.md`
     ([#202](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/202));
-  - the dependency trigger: a `Microsoft.OpenApi` release that carries
+  - a dependency bump: `Microsoft.OpenApi` `3.11.0` carries
     [microsoft/OpenAPI.NET#3108](https://github.com/microsoft/OpenAPI.NET/pull/3108), the fix for
     [#3101](https://github.com/microsoft/OpenAPI.NET/issues/3101) that this repository reported,
-    lets the generator drop its own timeout-free components-key rule; the bump first confirms in
-    the shipped assembly that the generated key regex never checks its timeout
+    which lets the generator drop its own timeout-free components-key rule; the bump first confirms
+    in the shipped assembly that the generated key regex never checks its timeout
     ([#211](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/211));
   - operations: automation for the upstream observation lanes and the nightly source-run canary
     ([#205](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/205)), Restore-patch
@@ -183,9 +178,8 @@ These do not block `1.0.0` and run beside the road.
 
 ## Open Questions
 
-- **`session.log` resume guarantees** — the pinned document exposes `after` as an optional
-  string, and the generated surface stays faithful to it; ADR-0013 forbids importing the narrower
-  type upstream's implementation decodes. Replay mechanics and retention are established and
+- **`experimental.session.log` resume guarantees** — the generated surface exposes `after` as a
+  `long?`, following upstream's decode (ADR-0037). Replay mechanics and retention are established and
   carried by canon. What stays open is the wire behaviour nothing upstream pins: no server-level
   test covers this route, so the status a malformed `after` answers, and whether an idle `follow`
   connection survives an intermediary, are settled only by this repository's own live tests.
@@ -239,16 +233,16 @@ These do not block `1.0.0` and run beside the road.
   is a server-library option: the `opencode` serve command declares no flag for it, bridges no
   environment variable to it, and reads no configuration key for it, so a replay from a CLI-started
   server is one `log.synced` marker whose sequence advanced with no durable events before it
-  (confirmed at the pin; observed on `@opencode/cli@2.0.2`). The SDK is faithful to the route — the
+  (confirmed at the pin). The SDK is faithful to the route — the
   gap is upstream capability — and consumers are told in the README's Known Issues and the
   streaming guide. Reversal trigger:
   `tests/OpenCode.Sdk.Tests/Sessions/SessionLogCliProfileLiveTests.cs`; when it fails, upstream
   began persisting by default and the guide, the README, and the canon sentence in
   `docs/architecture/client-runtime.md`'s server-sent-events section all change together.
-- **A half-open session log is not detected.** Once open, `session.log` stays live until caller
+- **A half-open session log is not detected.** Once open, `experimental.session.log` stays live until caller
   cancellation, server completion, or failure, so a follow-mode log whose peer is gone without
   closing hangs a consumer that supplied no cancellation of its own; ordinary resets, server exits,
-  and killed processes already surface at once. Upstream writes no keepalive on `session.log`, whose
+  and killed processes already surface at once. Upstream writes no keepalive on that route, whose
   follow mode is silent by design while a session is idle, so no idle window can tell a quiet log
   from a dead one. The event bus is not affected: it reconnects after its idle window without a
   byte, 45 seconds by default.
@@ -257,9 +251,7 @@ These do not block `1.0.0` and run beside the road.
   at a time. The part of that serial tail a key could shorten measured under 30 s of a Windows
   run, whose critical path is the build, so it is not queued. Bounded parallelism
   (`ParallelLimiter`) would also need the simulated drive controller demultiplexed by session.
-- **Small cleanups queued for their next natural touch** — `envelopePayloadNames` is the one
-  curation section whose rows cannot carry a reason (a mechanical loader change, though authoring
-  fifteen verified reasons is not); the generator still inlines the dot-segment refusal into every
+- **Small cleanups queued for their next natural touch** — the generator still inlines the dot-segment refusal into every
   route builder instead of calling the shared policy (a large but purely mechanical generated
   diff); the `form` group's curation reason is written in the future tense where every sibling
   states present fact; the `MedianNanoseconds` benchmark column breaks the other columns'
