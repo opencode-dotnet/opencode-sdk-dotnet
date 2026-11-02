@@ -328,8 +328,10 @@ has the two properties to set.
   library with persistence enabled.
 
 - **On `net472` and `netstandard2.0`, some costs are larger than on modern targets.** A response body
-  over 16 MiB gets a newly allocated buffer on every call. Bodies between 1 and 16 MiB come from a pool
-  the SDK keeps, which holds at most about 60 MiB after large responses.
+  of 64 MiB or more gets a newly allocated buffer on every call. Smaller bodies over 1 MiB come from
+  a pool the SDK keeps for the life of the process, which holds at most about 250 MiB after large
+  responses. A body with no declared length uses every smaller size on the way up, so one 33 MiB
+  body can leave about 126 MiB held.
   On .NET Framework, reading a JSON string over 1 MiB that contains an escape, such as a newline,
   allocates one extra array of its length each time.
   On Unix (Mono), owner-only files that discovery and `EnsureAsync` write get mode `0600` through a

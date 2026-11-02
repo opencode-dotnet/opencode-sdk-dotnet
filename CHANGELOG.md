@@ -15,6 +15,10 @@ Nightly builds of `master` are on
   is read through its own source-generated converter. On .NET 10, a large message of 2,400 parts
   deserializes in about 12.2 ms instead of about 16.4 ms, a medium one about 27% faster, and a
   prompt's event frames about 17% faster. Allocations are unchanged.
+- On `net472` and `netstandard2.0`, a response body under 64 MiB, up from 16 MiB, reuses a pooled
+  buffer rather than allocating one per call. A 36 MB body on `net472` goes from about 138 MB to
+  about 102 MB per call. As a trade-off, the pool keeps more for the life of the process: at most
+  about 250 MiB, up from about 60 MiB.
 
 ## [0.9.0-preview.15] - 2026-11-01
 

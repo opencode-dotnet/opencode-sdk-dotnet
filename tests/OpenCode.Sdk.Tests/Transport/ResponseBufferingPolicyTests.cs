@@ -50,6 +50,45 @@ public sealed class ResponseBufferingPolicyTests
 
         await Assert.That(second).IsSameReferenceAs(first);
     }
+
+    [Test]
+    public async Task DefaultPool_Should_Retain_Two_Arrays_At_The_64_MiB_Ceiling()
+    {
+        var pool = ResponseBufferingPolicy.DefaultPool;
+        var first = pool.Rent(64 * 1024 * 1024);
+        pool.Return(first);
+        var second = pool.Rent(64 * 1024 * 1024);
+        pool.Return(second);
+
+        await Assert.That(second).IsSameReferenceAs(first);
+
+        var firstAboveCeiling = pool.Rent((64 * 1024 * 1024) + 1);
+        pool.Return(firstAboveCeiling);
+        var secondAboveCeiling = pool.Rent((64 * 1024 * 1024) + 1);
+        pool.Return(secondAboveCeiling);
+
+        await Assert.That(secondAboveCeiling).IsNotSameReferenceAs(firstAboveCeiling);
+
+        var a = pool.Rent(64 * 1024 * 1024);
+        var b = pool.Rent(64 * 1024 * 1024);
+        var c = pool.Rent(64 * 1024 * 1024);
+        pool.Return(c);
+        pool.Return(b);
+        pool.Return(a);
+
+        var x = pool.Rent(64 * 1024 * 1024);
+        var y = pool.Rent(64 * 1024 * 1024);
+        var z = pool.Rent(64 * 1024 * 1024);
+        pool.Return(x);
+        pool.Return(y);
+        pool.Return(z);
+
+        await Assert.That(x).IsSameReferenceAs(b);
+        await Assert.That(y).IsSameReferenceAs(c);
+        await Assert.That(z).IsNotSameReferenceAs(a);
+        await Assert.That(z).IsNotSameReferenceAs(b);
+        await Assert.That(z).IsNotSameReferenceAs(c);
+    }
 #endif
 
     [Test]
