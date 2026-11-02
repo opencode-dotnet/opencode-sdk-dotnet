@@ -110,7 +110,9 @@ public partial class OpenCodeServer
     /// <see cref="OpenCodeServerEnsureOptions.VersionPolicy"/>, and otherwise spawns detached
     /// contenders until one registers or the wall-clock bound expires. The returned handle does
     /// not own the process; disposal is a no-op, and <see cref="StopAsync"/> is the one
-    /// deliberate way to end the shared service.
+    /// deliberate way to end the shared service. A service this call starts resumes every session
+    /// the shared data marks as suspended, including one another process is still running, so both
+    /// then drive it; don't let it start one while another process runs sessions on the same data.
     /// </summary>
     /// <param name="options">The ensure options; null uses every default, including
     /// <c>opencode serve --service</c> and <see cref="OpenCodeServerVersionPolicy.Ignore"/>.</param>

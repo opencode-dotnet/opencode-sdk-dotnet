@@ -20,6 +20,13 @@ Nightly builds of `master` are on
   about 102 MB per call. As a trade-off, the pool keeps more for the life of the process: at most
   about 250 MiB, up from about 60 MiB.
 
+### 📚 Documentation
+
+- **`EnsureAsync` warns about a service boot's resume.** A service it starts resumes every suspended
+  session on the shared data, including one another process is still running, so both drive it.
+  The [connection modes guide](docs/guide/connection-modes.md#-ensuring-the-background-service) says
+  when that matters.
+
 ## [0.9.0-preview.15] - 2026-11-01
 
 **The SDK speaks opencode 2.2.x and allocates much less.** The pinned server moves from 2.1.4 to
