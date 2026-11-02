@@ -8,12 +8,13 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 
 internal static class UnionDispatchEmitter
 {
-    internal static GeneratedSource EmitConverter(UnionPlan union, ModelPlacement placement, GeneratedNamespacePlan namespaces)
+    internal static GeneratedSource EmitConverter(UnionPlan union, ModelPlacement placement, GeneratedNamespacePlan namespaces,
+        IReadOnlyDictionary<string, IReadOnlySet<string>> readerArms)
     {
         var converterName = ConverterNamePolicy.Of(union.ConceptName);
         var declaration = ConverterSyntax.Declaration(converterName, TypeSyntaxEmitter.EmitNamed(union.Name),
             [
-                .. EmitDispatchMaps(union),
+                .. EmitDispatchMaps(union, readerArms),
                 .. EmitPrefixArm(union),
                 EmitDiscriminatorReader(),
                 EmitRead(union),
@@ -36,26 +37,27 @@ internal static class UnionDispatchEmitter
     /// <summary>
     /// The table of the union's declared tags; an impossible tag maps to no arm.
     /// </summary>
-    private static List<MemberDeclarationSyntax> EmitDispatchMaps(UnionPlan union)
+    private static List<MemberDeclarationSyntax> EmitDispatchMaps(UnionPlan union, IReadOnlyDictionary<string, IReadOnlySet<string>> readerArms)
     {
         var armType = ArmType(union);
         var valueType = union.KnownImpossibleTags.Count > 0
             ? (TypeSyntax)SyntaxFactory.NullableType(armType)
             : armType;
-        return [EmitDispatchMap(union, valueType)];
+        return [EmitDispatchMap(union, valueType, readerArms)];
     }
 
     private static GenericNameSyntax ArmType(UnionPlan union) =>
         TypeSyntaxEmitter.Generic("UnionArm", TypeSyntaxEmitter.EmitNamed(union.Name));
 
     /// <summary><c>UnionArm&lt;TUnion&gt;.Of&lt;TArm&gt;()</c>: the arm that reads one variant through its own converter.</summary>
-    private static InvocationExpressionSyntax ArmOf(UnionPlan union, string typeName) =>
+    private static InvocationExpressionSyntax ArmOf(UnionPlan union, string typeName, params ArgumentSyntax[] arguments) =>
         EmissionSyntax.Invocation(SyntaxFactory.MemberAccessExpression(
             SyntaxKind.SimpleMemberAccessExpression,
             ArmType(union),
-            TypeSyntaxEmitter.Generic("Of", TypeSyntaxEmitter.EmitNamed(typeName))));
+            TypeSyntaxEmitter.Generic("Of", TypeSyntaxEmitter.EmitNamed(typeName))), arguments);
 
-    private static FieldDeclarationSyntax EmitDispatchMap(UnionPlan union, TypeSyntax valueType)
+    private static FieldDeclarationSyntax EmitDispatchMap(UnionPlan union, TypeSyntax valueType,
+        IReadOnlyDictionary<string, IReadOnlySet<string>> readerArms)
     {
         var markerType = TypeSyntaxEmitter.EmitMarker(union.MarkerKind);
         var dictionaryType = TypeSyntaxEmitter.Generic("Dictionary", markerType, valueType);
@@ -71,7 +73,7 @@ internal static class UnionDispatchEmitter
                     SyntaxFactory.SingletonSeparatedList(SyntaxFactory.Argument(EmissionSyntax.MarkerLiteral(union.MarkerKind, entry.Key))))),
                 entry.Value is null
                     ? SyntaxFactory.LiteralExpression(SyntaxKind.NullLiteralExpression)
-                    : ArmOf(union, entry.Value)))
+                    : ArmOf(union, entry.Value, ReaderArguments(union, entry.Value, readerArms))))
             .ToArray();
         var initializer = SyntaxFactory
             .ObjectCreationExpression(dictionaryType)
@@ -99,6 +101,11 @@ internal static class UnionDispatchEmitter
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword),
                 SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword)));
     }
+
+    private static ArgumentSyntax[] ReaderArguments(UnionPlan union, string name, IReadOnlyDictionary<string, IReadOnlySet<string>> readerArms) =>
+        readerArms.TryGetValue(union.Name, out var names) && names.Contains(name)
+            ? [SyntaxFactory.Argument(EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(ConverterNamePolicy.Reader(name)), "Read"))]
+            : [];
 
     private static MethodDeclarationSyntax EmitRead(UnionPlan union)
     {

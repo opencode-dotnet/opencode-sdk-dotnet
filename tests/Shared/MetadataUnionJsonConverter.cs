@@ -1,10 +1,9 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 
 namespace OpenCode.Sdk.Internal;
 
-// Compiled into each isolated image: Default and every recursive metadata call stay in that image.
+/// <summary>Reads union arms through the supplied options, including nested union overrides.</summary>
 internal abstract class MetadataUnionJsonConverter<TUnion> : JsonConverter<TUnion>
 {
     private readonly UnionDiscriminatorReader _scanner = new();
@@ -28,13 +27,23 @@ internal abstract class MetadataUnionJsonConverter<TUnion> : JsonConverter<TUnio
             marker = _scanner.ReadBoolean(ref reader, Marker, Concept) ? "true" : "false";
             known = Types.TryGetValue(marker, out target);
         }
-        else known = _scanner.TryFindKnown(ref reader, Marker, Concept, Types, out target, out marker);
+        else
+        {
+            known = _scanner.TryFindKnown(ref reader, Marker, Concept, Types, out target, out marker);
+        }
         if (known && target is null)
+        {
             throw new JsonException($"The {Concept} payload uses a declared marker whose schema admits no JSON value.");
-        if (!known && Prefix is { } prefix && marker!.StartsWith(prefix, StringComparison.Ordinal)) target = PrefixType;
+        }
+        if (!known && Prefix is { } prefix && marker!.StartsWith(prefix, StringComparison.Ordinal))
+        {
+            target = PrefixType;
+        }
         if (target is not null)
-            return (TUnion)(JsonSerializer.Deserialize(ref reader, Info(target))
+        {
+            return (TUnion)(JsonSerializer.Deserialize(ref reader, options.GetTypeInfo(target))
                 ?? throw new JsonException($"The {Concept} payload deserialized to null."));
+        }
         using var document = JsonDocument.ParseValue(ref reader);
         return Unknown(marker!, document.RootElement);
     }
@@ -42,9 +51,6 @@ internal abstract class MetadataUnionJsonConverter<TUnion> : JsonConverter<TUnio
     public override void Write(Utf8JsonWriter writer, TUnion value, JsonSerializerOptions options)
     {
         ArgumentNullException.ThrowIfNull(value);
-        JsonSerializer.Serialize(writer, value, Info(value.GetType()));
+        JsonSerializer.Serialize(writer, value, options.GetTypeInfo(value.GetType()));
     }
-
-    private static JsonTypeInfo Info(Type type) => OpenCodeJsonContext.Default.GetTypeInfo(type)
-        ?? throw new JsonException($"The generated context has no metadata for {type.Name}.");
 }

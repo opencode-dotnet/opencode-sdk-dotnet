@@ -129,7 +129,8 @@ observed fixture count rather than projecting structural completeness onto it.
 
 Generated record readers (ADR-0039) are held to a metadata-only reading of the same payloads: a
 separately compiled SDK image whose unions dispatch through source-generated metadata alone and
-share no generated reader with the product path. Every fixture in the typed oracle catalog and
+share no generated reader with the product path. Every fixture in the typed oracle catalog's covered
+folders (named in `UnionReaderFixtureCatalog`) and
 every minimal and maximal bound-model corpus value is read both ways. Tests compare concrete
 variant identity, ordered serialized member bytes, reader position, and refusal type, path and
 complete message. Permanent negative controls prove the oracle tells a correct reader from one

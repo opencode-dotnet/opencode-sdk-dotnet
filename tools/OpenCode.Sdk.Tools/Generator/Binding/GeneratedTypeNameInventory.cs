@@ -26,11 +26,17 @@ internal sealed class GeneratedTypeNameInventory
 
     public static GeneratedTypeNameInventory Create(OwnershipCandidates candidates, IReadOnlyList<ClientPlan> clients,
         IReadOnlyList<GeneratedTypeNameClaim> hoistedClaims, IReadOnlyDictionary<string, string> schemaNames)
+        => Create(candidates, clients, hoistedClaims, schemaNames, new Dictionary<string, ObjectModelPlan>(StringComparer.Ordinal));
+
+    public static GeneratedTypeNameInventory Create(OwnershipCandidates candidates, IReadOnlyList<ClientPlan> clients,
+        IReadOnlyList<GeneratedTypeNameClaim> hoistedClaims, IReadOnlyDictionary<string, string> schemaNames,
+        IReadOnlyDictionary<string, ObjectModelPlan> readers)
     {
         ArgumentNullException.ThrowIfNull(candidates);
         ArgumentNullException.ThrowIfNull(clients);
         ArgumentNullException.ThrowIfNull(hoistedClaims);
         ArgumentNullException.ThrowIfNull(schemaNames);
+        ArgumentNullException.ThrowIfNull(readers);
         var schemaOwners = schemaNames.ToLookup(static entry => entry.Value, static entry => entry.Key, StringComparer.Ordinal);
         var claims = schemaNames.Select(static entry => new GeneratedTypeNameClaim(entry.Value, entry.Key, ClaimRole.Model)).ToList();
         foreach (var name in candidates.Models.Select(static model => model.Name).Concat(candidates.Unions.Select(static union => union.Name))
@@ -55,6 +61,8 @@ internal sealed class GeneratedTypeNameInventory
             .Select(static operation => new GeneratedTypeNameClaim(operation.Envelope!.EnvelopeDtoTypeName!, operation.OperationId, ClaimRole.EnvelopeDto)));
         claims.AddRange(hoistedClaims);
         claims.AddRange(ConverterClaims(candidates));
+        claims.AddRange(readers.Keys.Order(StringComparer.Ordinal)
+            .Select(static name => new GeneratedTypeNameClaim(ConverterNamePolicy.Reader(name), name, ClaimRole.Derived)));
         claims.AddRange(new[] { ReservedNamePolicy.RoutesType, ReservedNamePolicy.JsonContextType }
             .Select(static name => new GeneratedTypeNameClaim(name, name, ClaimRole.Derived)));
         return new GeneratedTypeNameInventory(claims);

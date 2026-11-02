@@ -48,6 +48,7 @@
     <Compile Include="../Shared/GeneratorPeakMemoryPolicy.cs" LinkBase="Shared" />
     <Compile Include="../Shared/LauncherHandleCensus.cs" LinkBase="Shared" />
     <Compile Include="../Shared/LauncherHandles.cs" LinkBase="Shared" />
+    <Compile Include="../Shared/MetadataUnionJsonConverter.cs" LinkBase="Shared" />
     <Compile Include="../Shared/ProcessMark.cs" LinkBase="Shared" />
     <Compile Include="../Shared/ShippedAssetSurface.cs" LinkBase="Shared" />
     <Compile Include="../Shared/TestCategories.cs" LinkBase="Shared" />

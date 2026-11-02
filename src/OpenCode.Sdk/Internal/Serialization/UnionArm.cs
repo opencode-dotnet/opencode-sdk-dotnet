@@ -5,8 +5,8 @@ using System.Text.Json.Serialization.Metadata;
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// One known arm of a generated union: the type its tag selects, read through that type's
-/// source-generated converter, so a known payload materializes without re-entering the serializer.
+/// One known arm of a generated union: the type its tag selects, read through its generated
+/// reader or source-generated converter without re-entering the serializer on success.
 /// </summary>
 internal abstract class UnionArm<TUnion>
 {
@@ -18,7 +18,10 @@ internal abstract class UnionArm<TUnion>
     public static UnionArm<TUnion> Of<TArm>()
         where TArm : TUnion => new Arm<TArm>();
 
-    private sealed class Arm<TArm> : UnionArm<TUnion>
+    public static UnionArm<TUnion> Of<TArm>(UnionVariantRead<TArm> read)
+        where TArm : TUnion => new Arm<TArm>(read);
+
+    private sealed class Arm<TArm>(UnionVariantRead<TArm>? read = null) : UnionArm<TUnion>
         where TArm : TUnion
     {
         private JsonTypeInfo<TArm>? _typeInfo;
@@ -34,7 +37,9 @@ internal abstract class UnionArm<TUnion>
             var start = reader;
             try
             {
-                return ((JsonConverter<TArm>)typeInfo.Converter).Read(ref reader, typeof(TArm), typeInfo.Options);
+                return read is null
+                    ? ((JsonConverter<TArm>)typeInfo.Converter).Read(ref reader, typeof(TArm), typeInfo.Options)
+                    : read(ref reader, typeInfo.Options);
             }
             catch (Exception exception) when (exception is JsonException or InvalidOperationException or FormatException or NotSupportedException)
             {
@@ -42,7 +47,14 @@ internal abstract class UnionArm<TUnion>
                 // member and turns a token-type failure into a JsonException. Reading the same payload
                 // again through the serializer reports it as the arm's metadata always has.
                 reader = start;
-                return JsonSerializer.Deserialize(ref reader, typeInfo);
+                var replay = JsonSerializer.Deserialize(ref reader, typeInfo);
+                if (read is null)
+                {
+                    return replay;
+                }
+
+                // A successful replay must not conceal a generated reader's false refusal.
+                throw;
             }
         }
     }
