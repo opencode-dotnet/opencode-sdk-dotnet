@@ -8,6 +8,8 @@ internal sealed record EmitPlan
 
     public IReadOnlyDictionary<string, IReadOnlySet<string>> ReaderArms { get; init; } = new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal);
 
+    public IReadOnlyDictionary<string, IReadOnlySet<string>> ReaderCallSites { get; init; } = new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal);
+
     public IReadOnlyDictionary<string, IReadOnlyList<EnumModelPlan>> QueryEnumModels { get; init; } =
         new Dictionary<string, IReadOnlyList<EnumModelPlan>>(StringComparer.Ordinal);
 

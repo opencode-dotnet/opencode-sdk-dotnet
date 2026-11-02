@@ -59,7 +59,7 @@ internal sealed class SpecBinder : ISpecBinder
             Unions = schemaResult.Unions,
             HoistedInterfaces = schemaResult.HoistedInterfaces,
         };
-        var readerClaims = RecordReaderPolicy.Select(candidates.Models, candidates.Unions, out _);
+        var readerClaims = RecordReaderPolicy.Select(candidates.Models, candidates.Unions, out _, callSites: RecordReaderPolicy.NestedCallSites);
         var inventory = GeneratedTypeNameInventory.Create(candidates, clients, schemaResult.HoistedClaims, typeNames, readerClaims);
         var refusedHoists = OperationPlanBinder.CheckTypeNameCollisions(inventory, clients, errors);
         var pending = PendingOperations(document, selected, curation);
@@ -93,8 +93,8 @@ internal sealed class SpecBinder : ISpecBinder
         };
         plan = DescriptionCurationBinder.Apply(WireDocumentationPolicy.Apply(ResolveEmissionData(plan)), curation.Descriptions, errors);
         errors.ThrowIfAny();
-        var readers = RecordReaderPolicy.Select(plan.Models, plan.Unions, out var readerArms);
-        return plan with { ReaderRecords = readers, ReaderArms = readerArms };
+        var readers = RecordReaderPolicy.Select(plan.Models, plan.Unions, out var readerArms, callSites: RecordReaderPolicy.NestedCallSites);
+        return plan with { ReaderRecords = readers, ReaderArms = readerArms, ReaderCallSites = RecordReaderPolicy.NestedCallSites };
     }
 
     public static EmitPlan ResolveEmissionData(EmitPlan plan)

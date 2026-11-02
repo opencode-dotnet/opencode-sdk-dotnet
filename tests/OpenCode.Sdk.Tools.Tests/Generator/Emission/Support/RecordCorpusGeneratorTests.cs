@@ -8,6 +8,24 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 public sealed class RecordCorpusGeneratorTests
 {
     [Test]
+    public async Task GenerateAsync_Should_Cover_Every_Record_And_Containing_Union_Pair()
+    {
+        var plan = RecordReaderPlanFixture.Create();
+        var rows = await RecordCorpusGenerator.GenerateAsync(plan, ["DenseRecord", "SiblingRecord"]);
+        (string, string?)[] expected = [("DenseRecord", "IToolContent"), ("DenseRecord", "IOther"),
+            ("SiblingRecord", "IToolContent"), ("SiblingRecord", "IOther")];
+        await Assert.That(rows.Where(static row => row.IsSeed).Select(static row => (row.RootType, row.UnionType)).Distinct())
+            .IsEquivalentTo(expected, CollectionOrdering.Matching);
+        await Assert.That(rows.Where(static row => row.IsSeed || row.Name.Contains("/tag/", StringComparison.Ordinal)).Select(static row => row.Name))
+            .IsEquivalentTo([
+                "ToolContent/dense/minimal", "ToolContent/dense/maximal", "ToolContent/dense/tag/oracle.future",
+                "Other/dense/minimal", "Other/dense/maximal", "Other/dense/tag/oracle.future",
+                "ToolContent/sibling/minimal", "ToolContent/sibling/maximal", "ToolContent/sibling/tag/oracle.future",
+                "Other/sibling/minimal", "Other/sibling/maximal", "Other/sibling/tag/oracle.future",
+            ], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task GenerateAsync_Should_Populate_Collections_And_Each_Union_Branch()
     {
         var plan = EmitterPlanFixture.Create() with
