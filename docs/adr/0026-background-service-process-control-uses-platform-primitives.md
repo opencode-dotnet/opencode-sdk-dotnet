@@ -57,7 +57,6 @@ reverse-P/Invoke function-pointer expression are the only unsafe code in the shi
 - The `netstandard2.0` asset's Unix arm compiles the `DllImport` form and runs on no CI leg;
   it is a recorded known gap, beside the file-mode gap of the same arm. A musl libc (Alpine) is
   outside the CI matrix as well: the loader falls back to `libc.so` there, unverified here.
-- Reversal: .NET 11 adds `Process.Signal(PosixSignal)` and `SafeProcessHandle.Signal`, whose Unix
-  body is the same `kill(2)`; the net11 light-up ADR-0001 plans replaces the P/Invoke on that
-  target. Its `SafeProcessHandle.Open` and `TryGetProcessById` stay pid-keyed, so the identity
-  token stays the SDK's own there as well.
+- Reversal: `Process.Signal(PosixSignal)`, whose Unix body is the same `kill(2)`, is on every target
+  the packages ship (ADR-0032's rule). `SafeProcessHandle.Open` and `TryGetProcessById` stay
+  pid-keyed, so the identity token stays the SDK's own there as well.
