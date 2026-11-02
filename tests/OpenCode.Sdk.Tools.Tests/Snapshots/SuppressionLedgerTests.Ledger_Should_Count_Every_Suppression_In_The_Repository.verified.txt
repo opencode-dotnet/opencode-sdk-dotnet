@@ -2,7 +2,7 @@
 A change that adds, removes or alters a suppression updates this file in the same commit.
 
 build-switch: 12
-editorconfig: 149
+editorconfig: 150
 globalconfig: 1
 no-warn: 13
 pragma: 26
@@ -169,6 +169,7 @@ editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ScriptedTerminalWeb
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/ServerDiagnosticScenario.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionEventProbe.cs] dotnet_diagnostic.VSTHRD003.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Support/SessionEventProbeTests.cs] dotnet_diagnostic.VSTHRD003.severity = none
+editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Transport/PooledJsonContentSyncReadTests.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [tests/Shared/ProcessMark.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [tools/opencode-tool.cs] dotnet_diagnostic.MA0048.severity = none
 globalconfig .globalconfig dotnet_diagnostic.VSTHRD010.severity = none

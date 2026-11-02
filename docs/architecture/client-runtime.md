@@ -343,18 +343,25 @@ resolves the message's network window from those carried traits.
   them; a client-wide value does not reach them. A hand-written table keyed by operation id names
   them; a Tools test holds its ids to the pinned document, and the source watch pins the upstream
   lines that block. Both members accept a value above zero and at most `int.MaxValue` ms, or
-  `Timeout.InfiniteTimeSpan`, refused when set. A raw-byte request body is the caller's
-  `Stream`: it is read once from its current position to its end, never disposed, rewound, or
-  buffered whole, declares a `Content-Length` only when the stream can seek, refuses a second
-  send, and restarts the window with each chunk written, so the upload is bounded by progress as
-  well. The pipeline owns this timer — the
-  owned transport's `HttpClient.Timeout` is infinite so two mechanisms cannot race, and a
-  caller-supplied client's own timeout bounds only its send. A stalled read no token can reach is
-  interrupted by disposing the content. An error body returned while opening a stream buffers
-  under the same window; a successful SSE body remains live until caller cancellation, server
-  completion, or failure, except `event.subscribe`, which runs under its reconnect windows
-  (Server-sent events, below). Caller cancellation uses the public cancellation contract above;
-  an exhausted progress window maps to `OpenCodeTransportException`.
+  `Timeout.InfiniteTimeSpan`, refused when set. On `net472`, .NET 10 and .NET 11, a JSON request body
+  is serialized into an array from the response pool, with the bytes `SerializeToUtf8Bytes` would
+  produce. The array goes back cleared only when no write can still be reading it: a write that
+  faulted, was still running at disposal, or overlapped another leaves the array to the garbage
+  collector. The `netstandard2.0` asset keeps `SerializeToUtf8Bytes`, because `HttpContent` there has
+  no sync `SerializeToStream` to override. On HTTP/2 and HTTP/3, .NET treats this content as duplex,
+  so `SendAsync` can return on response headers while the body is still writing, and that write gets
+  no caller token; the SDK sends HTTP/1.1, so only a caller's handler that sets the request version
+  reaches this, and an unfinished write leaves its array to the garbage collector. A raw-byte
+  request body is the caller's `Stream`: it is read once from its current position to its end, never
+  disposed, rewound, or buffered whole, declares a `Content-Length` only when the stream can seek,
+  refuses a second send, and restarts the window with each chunk written, so the upload is bounded
+  by progress as well. The pipeline owns this timer — the owned transport's `HttpClient.Timeout`
+  is infinite so two mechanisms cannot race, and a caller-supplied client's own timeout bounds only
+  its send. A stalled read no token can reach is interrupted by disposing the content. An error body
+  returned while opening a stream buffers under the same window; a successful SSE body remains live
+  until caller cancellation, server completion, or failure, except `event.subscribe`, which runs
+  under its reconnect windows (Server-sent events, below). Caller cancellation uses the public
+  cancellation contract above; an exhausted progress window maps to `OpenCodeTransportException`.
   On streams other than `event.subscribe`, a per-call `NetworkTimeout` overrides the client value
   only while opening, including buffering an opening error body; it does not bound reads of the
   successful live body. `event.subscribe` refuses any non-null per-call `NetworkTimeout`, including

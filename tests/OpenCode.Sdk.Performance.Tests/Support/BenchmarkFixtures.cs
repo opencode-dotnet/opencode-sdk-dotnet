@@ -58,6 +58,20 @@ internal static class BenchmarkFixtures
         _ => throw new ArgumentOutOfRangeException(nameof(name), name, "No such prompt case."),
     });
 
+    /// <summary>Large prompt text built from complete 100-character plain or newline-terminated lines.</summary>
+    public static string SessionPromptText(int length, bool newlines)
+    {
+        var line = newlines ? new string('x', 99) + '\n' : new string('x', 100);
+        return string.Concat(Enumerable.Repeat(line, length / 100));
+    }
+
+    /// <summary>A literal text-only request oracle with JSON-escaped newline characters.</summary>
+    public static byte[] SessionPromptTextBody(int length, bool newlines)
+    {
+        var line = newlines ? new string('x', 99) + "\\n" : new string('x', 100);
+        return Encoding.UTF8.GetBytes("{\"text\":\"" + string.Concat(Enumerable.Repeat(line, length / 100)) + "\"}");
+    }
+
     /// <summary>A minimal admitted user input acknowledgement.</summary>
     public static byte[] SessionPromptResponseBody() =>
         """{"data":{"id":"msg_bench","sessionID":"ses_bench0000000000000000001","time":{"created":1},"type":"user","payload":{"text":"Accepted."},"delivery":"queue"}}"""u8.ToArray();

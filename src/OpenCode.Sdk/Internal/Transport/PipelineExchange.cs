@@ -1,5 +1,12 @@
+#if !NETSTANDARD2_0
+using System.Buffers;
+#endif
 using System.Net.Http.Headers;
+#if NETSTANDARD2_0
 using System.Text.Json;
+#else
+using System.Text.Json.Serialization.Metadata;
+#endif
 
 namespace OpenCode.Sdk.Internal;
 
@@ -15,6 +22,12 @@ internal sealed class PipelineExchange(ConnectionSnapshot connection,
     /// </summary>
     private static readonly MediaTypeHeaderValue JsonMediaType = new("application/json");
     private readonly TimeSpan? _clientNetworkTimeout = clientNetworkTimeout;
+#if !NETSTANDARD2_0
+    private JsonBodyWriter? _idleBodyWriter;
+
+    /// <summary>Gets the pool a request body rents from; a test observes it.</summary>
+    internal ArrayPool<byte> BodyPool { get; init; } = ResponseBufferingPolicy.DefaultPool;
+#endif
 
     public PipelineMessage CreateMessage(OperationRequest operation, bool bufferBody, TimeSpan? perCallNetworkTimeout,
         CancellationToken cancellationToken)
@@ -39,7 +52,11 @@ internal sealed class PipelineExchange(ConnectionSnapshot connection,
             }
             else if (operation.BodyTypeInfo is { } bodyTypeInfo)
             {
+#if NETSTANDARD2_0
                 var json = new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(operation.Body, bodyTypeInfo));
+#else
+                var json = WriteBody(operation.Body, bodyTypeInfo);
+#endif
                 json.Headers.ContentType = JsonMediaType;
                 request.Content = json;
             }
@@ -55,4 +72,19 @@ internal sealed class PipelineExchange(ConnectionSnapshot connection,
 
     public ValueTask SendThroughPoliciesAsync(PipelineMessage message) =>
         PipelinePolicy.ProcessNextAsync(message, policies);
+
+#if !NETSTANDARD2_0
+    private PooledJsonContent WriteBody(object? body, JsonTypeInfo typeInfo)
+    {
+        var writer = Interlocked.Exchange(ref _idleBodyWriter, null);
+        if (writer is null || !ReferenceEquals(writer.Options, typeInfo.Options))
+        {
+            writer = JsonBodyWriter.Create(typeInfo.Options);
+        }
+
+        var content = writer.Write(body, typeInfo, BodyPool);
+        Volatile.Write(ref _idleBodyWriter, writer);
+        return content;
+    }
+#endif
 }

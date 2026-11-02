@@ -37,6 +37,18 @@ public class SessionPromptRequestBenchmarks : IDisposable
             var body = BenchmarkFixtures.SessionPromptRequestBody(name);
             yield return new WireFixture(name, body, items: 1, payloadBytesPerItem: body.Length);
         }
+
+        foreach (var (name, length, newlines) in new[]
+        {
+            ("plain-2m", 2 * 1024 * 1024, false),
+            ("newlines-2m", 2 * 1024 * 1024, true),
+            ("plain-8m", 8 * 1024 * 1024, false),
+            ("newlines-8m", 8 * 1024 * 1024, true),
+        })
+        {
+            var body = BenchmarkFixtures.SessionPromptTextBody(length, newlines);
+            yield return new WireFixture(name, body, items: 1, payloadBytesPerItem: body.Length);
+        }
     }
 
     [ParamsSource(nameof(Fixtures))]
@@ -105,6 +117,10 @@ public class SessionPromptRequestBenchmarks : IDisposable
             "text-only" => request,
             "text-code" => new SessionPromptRequest { Text = BenchmarkFixtures.SessionPromptCodeText },
             "text-files" => request with { Files = files },
+            "plain-2m" => new SessionPromptRequest { Text = BenchmarkFixtures.SessionPromptText(2 * 1024 * 1024, newlines: false) },
+            "newlines-2m" => new SessionPromptRequest { Text = BenchmarkFixtures.SessionPromptText(2 * 1024 * 1024, newlines: true) },
+            "plain-8m" => new SessionPromptRequest { Text = BenchmarkFixtures.SessionPromptText(8 * 1024 * 1024, newlines: false) },
+            "newlines-8m" => new SessionPromptRequest { Text = BenchmarkFixtures.SessionPromptText(8 * 1024 * 1024, newlines: true) },
             "all-set" => request with
             {
                 Id = "msg_bench",
