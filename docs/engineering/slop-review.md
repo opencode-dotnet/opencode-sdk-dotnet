@@ -1,6 +1,6 @@
 # Slop Review
 
-Date: 2026-10-25
+Date: 2026-11-02
 
 What slop means in this repository, how to recognize it, and the rubric that every change and
 every review applies. It complements `coding-style.md` and `testing-style.md`: they say how to
@@ -149,7 +149,7 @@ catches. Each item is pass, fail or not applicable, and a fail names its reason.
 - **T3. Assertions state intent and print a useful failure.** A collection assertion reports the
   elements it saw; `Assert.That(x.Any(…)).IsTrue()` reports only `false`.
 - **T4. Arrange goes through builders.** The second copy of a literal grows a builder verb.
-- **T5. Existing assertions are not weakened** in a fix without the lead's verdict and the upstream
+- **T5. Existing assertions are not weakened** in a fix without a recorded decision and the upstream
   evidence that the old expectation was wrong.
 - **T6. Assert the contract,** not implementation detail.
 - **T7. The event decides, never the clock** (`testing-style.md` §6).

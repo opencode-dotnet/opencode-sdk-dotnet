@@ -1,6 +1,6 @@
 # Deviation Protocol
 
-Date: 2026-10-15
+Date: 2026-11-02
 
 > *"No plan survives first contact with the enemy."* — Helmuth von Moltke
 
@@ -22,7 +22,7 @@ private helper's name, test internals, a local refactor). **Decide and move on.*
 PR description only if a reviewer might wonder.
 
 A departure from upstream's first-party behaviour at the pin is never level 0, even where canon is
-silent: whether to diverge is the maintainer's decision (`client-runtime.md`, ADR-0031). Bring it
+silent: whether to diverge is the maintainer's decision (`../architecture/client-runtime.md`, ADR-0031). Bring it
 as level 2 with the evidence, the options, and a recommendation, and wait.
 
 ### Level 1 — Recorded fallback

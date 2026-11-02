@@ -1,6 +1,6 @@
 # Documentation
 
-Date: 2026-10-15
+Date: 2026-11-02
 
 Canonical rules for documentation ownership, authority, lifecycle, references, and lossless
 maintenance.
@@ -61,6 +61,7 @@ the same change as code; documentation is not follow-up work.
 References point one way: documentation may cite code, but code artifacts never cite documentation.
 Comments in source, project files, `.editorconfig`, workflows, and generated files explain the
 status quo locally; they do not point to movable prose or narrate decision history.
+Curation rows cite a canon section with a proven excerpt; other artifacts that cite documentation are open debt (#202).
 
 Canonical documents — architecture, engineering, ADRs, and `CONTEXT.md` — never point at the
 private companion repository's paths or numbering (research-log questions, sessions, document

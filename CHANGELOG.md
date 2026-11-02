@@ -40,7 +40,7 @@ Nightly builds of `master` are on
 (listed below), and adds experimental schedules, artifacts, image and decision generation, usage
 limits and file watching, a `types` filter on the event stream, and renaming of persistent terminals.
 Open enums become generated extensible enums. On .NET 10, a prompt's event stream allocates about a
-third less per frame, a one-shot call about a quarter less, and a 16 KiB terminal paste about 1 KB
+third less per frame, a one-shot call up to about a quarter less, and a 16 KiB terminal paste about 1 KB
 instead of about 17 KB; the Performance section has the figures and the two trade-offs.
 
 ### 💥 Breaking changes
@@ -108,7 +108,7 @@ Figures are approximate, from short benchmark runs on .NET 10 unless stated.
   from about 25 KB to about 400 B per enumeration. A prompt's event stream allocates about 1,430 B per
   frame instead of about 2,210 B, and the largest session-log items about 5,900 B instead of about
   11,300 B.
-- **A one-shot call allocates about a quarter less.** About 2,000 B instead of about 2,600 B on a call
+- **A one-shot call allocates up to about a quarter less.** About 2,000 B instead of about 2,600 B on a call
   that doesn't suspend (`HttpClient` alone takes about 940 B), and about 3,400 B instead of about
   3,900 B on one that does. Part of that comes from pooled state-machine boxes on .NET, a saving that
   shrinks as concurrency grows.

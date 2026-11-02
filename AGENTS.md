@@ -8,7 +8,7 @@ the live work queue is the project board it links.
 ## Purpose
 
 Build a typed .NET SDK for the opencode HTTP API. An MCP server that is a thin adapter over this SDK
-lives in a sibling repository of the `opencode-dotnet` organization (ADR-0030).
+will live in a sibling repository of the `opencode-dotnet` organization (ADR-0030).
 
 ## Universal Rules
 

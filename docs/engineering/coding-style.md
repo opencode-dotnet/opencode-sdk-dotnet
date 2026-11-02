@@ -1,6 +1,6 @@
 # Coding Style — hand-written code
 
-Date: 2026-10-18
+Date: 2026-11-02
 
 Binding authoring style for every hand-written line in this repository — product code,
 `tools/`, and tests. Generated output is governed by the generator's emitters (ADR-0003);
@@ -159,7 +159,9 @@ for a pile of static steps.
 - **A test project mirrors the layout of the project under test**: the folder path of a
   SUT predicts the folder path of its tests (`testing-style.md` owns the rule).
 - File = type (MA0048) is mechanical everywhere; folder = namespace (IDE0130) is
-  mechanical in every project except the SDK, whose namespace-policy test replaces it.
+  mechanical in every project except the SDK, whose namespace-policy test replaces it, and
+  `OpenCodeServiceCollectionExtensions.cs` in Extensions, whose DI extension methods declare
+  `Microsoft.Extensions.DependencyInjection` so consumers get `AddOpenCode` without an extra using.
   This document adds the *placement* discipline analyzers cannot see.
 - **Split before it hurts:** a class approaching a few hundred lines, or a folder
   flattening into dozens of siblings, is a slice asking to be verticalized. Growth is

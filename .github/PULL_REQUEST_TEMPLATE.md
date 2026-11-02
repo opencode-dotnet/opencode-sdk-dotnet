@@ -28,7 +28,7 @@ Provide a clear and concise description of the changes.
 ## 🎯 Protocol & API Surface
 
 - [ ] No change to the public API surface
-- [ ] Public API changed **deliberately**, and `tests/OpenCode.Sdk.Tests/Snapshots/PublicApi.verified.txt` is updated in this PR
+- [ ] Public API changed **deliberately**, and `tests/OpenCode.Sdk.Tests/Snapshots/PublicApi.verified.txt` and `tests/OpenCode.Sdk.Extensions.Tests/Snapshots/PublicApi.verified.txt` are updated in this PR
 - [ ] Generated output changed, and it was produced by the generator — **not** hand-edited
 - [ ] `dotnet run --file tools/opencode-tool.cs -- generate --verify` passes
 - [ ] The pinned snapshot (`spec/`) is untouched, or the refresh follows `spec/SNAPSHOT.md`
@@ -54,11 +54,7 @@ Provide a clear and concise description of the changes.
 
 Run from the repository root — see [`docs/engineering/quality-gates.md`](../docs/engineering/quality-gates.md):
 
-- [ ] `dotnet tool run slopwatch analyze --exclude ".scratchpad/**,external/**" --fail-on warning` — zero findings
-- [ ] `dotnet build --configuration Release`
-- [ ] `dotnet format whitespace --verify-no-changes --no-restore`
-- [ ] `dotnet format style --verify-no-changes --no-restore --severity warn`
-- [ ] The three test passes in `quality-gates.md` (main, `ServiceElection`, `NativeAot`), with the pinned Bun first on `PATH`
+- [ ] The local check in `quality-gates.md` passes
 
 ## 📚 Documentation
 
@@ -80,8 +76,6 @@ Run from the repository root — see [`docs/engineering/quality-gates.md`](../do
 - [ ] Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/) and carry **no AI-attribution trailers**
 
 ## 🔍 Additional Notes
-
-**Provenance:** lane / harness / model that wrote this change (for example: Surface / Claude Code / claude-opus-5-5; harness-drafted parts named).
 
 **Breaking Changes:**
 If this is a breaking change, describe the impact and the migration path for users.
