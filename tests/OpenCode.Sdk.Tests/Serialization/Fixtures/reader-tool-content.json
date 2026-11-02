@@ -1,0 +1,4 @@
+[
+  {"type":"file","uri":"data:λ/fixture","mime":"text/plain","name":"file-name"},
+  {"type":"text","text":"text λ \\\"fixture"}
+]

@@ -8,8 +8,12 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 internal sealed class UnionReaderFixtureCatalog
 {
     /// <summary>Folders linked in full; other entries are individually linked, without folder-wide coverage.</summary>
-    public static IReadOnlyList<string> CoveredFolders { get; } =
-        ["Fixtures/Serialization", "Serialization/Fixtures"];
+    public static IReadOnlyDictionary<string, string> CoveredFolders { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["tests/OpenCode.Sdk.Tests/Fixtures/Serialization"] = Prefix,
+        ["tests/OpenCode.Sdk.Tests/Serialization/Fixtures"] = Prefix,
+        ["tests/OpenCode.Sdk.Tools.Tests/Packaging/Fixtures"] = "OpenCode.Sdk.Tools.Tests.Fixtures.Packaging.",
+    };
 
     private readonly System.Reflection.Assembly _assembly = typeof(UnionReaderFixtureCatalog).Assembly;
     private const string Prefix = "OpenCode.Sdk.Tests.Fixtures.Serialization.";
@@ -62,6 +66,10 @@ internal sealed class UnionReaderFixtureCatalog
         ["null-parent-session"] = "SessionInfo",
         ["numeric-diff-status"] = "FileDiffInfo",
         ["numeric-status-session"] = "SessionInfo",
+        ["Packaging.reader-tool-states"] = "ISessionMessageInfo",
+        ["reader-escaped-members"] = "ISessionMessageToolState",
+        ["reader-tool-content"] = "IToolContent",
+        ["reader-tool-states"] = "ISessionMessageToolState",
         ["retry-status-with-string-attempt"] = "ISessionStatus",
         ["session-create-request-absent"] = "SessionCreateRequest",
         ["session-create-request-cleared"] = "SessionCreateRequest",
@@ -92,16 +100,20 @@ internal sealed class UnionReaderFixtureCatalog
         ["first-match-expected"] = "Expected arm indices annotate first-match-corpus; this is not an independent wire fixture.",
     };
 
-    public static IEnumerable<string> ResourceNames => Roots.Keys.Concat(NonMaterialization.Keys).Select(static name => Prefix + name + ".json");
+    public static IEnumerable<string> ResourceNames => Roots.Keys.Concat(NonMaterialization.Keys).Select(ResourceName);
+
+    private static string ResourceName(string name) => name.StartsWith("Packaging.", StringComparison.Ordinal)
+        ? "OpenCode.Sdk.Tools.Tests.Fixtures." + name + ".json" : Prefix + name + ".json";
 
     public async IAsyncEnumerable<RecordCorpusRow> RowsAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
     {
         foreach (var (name, root) in Roots)
         {
-            await using var stream = _assembly.GetManifestResourceStream(Prefix + name + ".json")
+            await using var stream = _assembly.GetManifestResourceStream(ResourceName(name))
                 ?? throw new InvalidOperationException("Missing catalog resource: " + name);
             using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-            var payload = name == "stream-message-list-page" ? document.RootElement.GetProperty("data") : document.RootElement;
+            var payload = name is "stream-message-list-page" or "Packaging.reader-tool-states"
+                ? document.RootElement.GetProperty("data") : document.RootElement;
             var values = payload.ValueKind == JsonValueKind.Array ? payload.EnumerateArray().ToArray() : [payload];
             for (var index = 0; index < values.Length; index++)
             {
@@ -117,7 +129,8 @@ internal sealed class UnionReaderFixtureCatalog
                 {
                     value = value.GetProperty("value");
                 }
-                yield return new(name + "/" + index.ToString(CultureInfo.InvariantCulture), type, null, Encoding.UTF8.GetBytes(value.GetRawText()));
+                yield return new(name + "/" + index.ToString(CultureInfo.InvariantCulture), type, null,
+                    Encoding.UTF8.GetBytes(value.GetRawText()), name == "Packaging.reader-tool-states");
             }
         }
 

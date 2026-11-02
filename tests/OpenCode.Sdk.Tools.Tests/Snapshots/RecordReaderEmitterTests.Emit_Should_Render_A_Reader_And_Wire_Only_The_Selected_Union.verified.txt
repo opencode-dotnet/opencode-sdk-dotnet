@@ -7,7 +7,7 @@ using OpenCode.Sdk.Models;
 namespace OpenCode.Sdk.Internal;
 internal static class SiblingRecordJsonReader
 {
-    internal static SiblingRecord Read(ref Utf8JsonReader reader, JsonSerializerOptions options)
+    internal static SiblingRecord Read(ref Utf8JsonReader reader, JsonSerializerOptions _)
     {
         if (!(reader.TokenType == JsonTokenType.StartObject))
         {

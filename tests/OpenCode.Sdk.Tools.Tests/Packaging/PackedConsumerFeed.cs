@@ -250,10 +250,12 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
     private static string NativeAotProgram() =>
         $$"""
         using System;
+        using System.Collections.Generic;
         using Microsoft.Extensions.DependencyInjection;
         using OpenCode.Sdk;
+        using OpenCode.Sdk.Models;
 
-        // Construct-only smoke: nothing here sends a request.
+        // Construction checks use an unused endpoint; the message read below uses the loopback server.
         var endpoint = new Uri("http://127.0.0.1:9/", UriKind.Absolute);
 
         using (new OpenCodeClient(new OpenCodeClientOptions { Endpoint = endpoint }))
@@ -267,8 +269,49 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
             _ = services.GetRequiredService<OpenCodeClient>();
         }
 
+        using var wireClient = new OpenCodeClient(new OpenCodeClientOptions { Endpoint = new Uri(args[0]) });
+        var response = await wireClient.Sessions.GetSessionClient("ses_reader").GetMessageAsync("msg_reader");
+        Equal(response.IsError, false);
+        var message = (SessionMessageAssistant)response.Message;
+        Equal(message.Id, "msg_reader");
+        Equal(message.Content.Count, 4);
+        var streaming = (SessionMessageToolStateStreaming)((SessionMessageAssistantTool)message.Content[0]).State;
+        Equal(streaming.Input, "partial input");
+        var running = (SessionMessageToolStateRunning)((SessionMessageAssistantTool)message.Content[1]).State;
+        Equal(running.Input["command"].GetString(), "run");
+        Equal(running.Metadata["phase"].GetString(), "running");
+        var completed = (SessionMessageToolStateCompleted)((SessionMessageAssistantTool)message.Content[2]).State;
+        Equal(completed.Input["command"].GetString(), "complete");
+        Equal(completed.Metadata["exit"].GetInt32(), 0);
+        Equal(completed.Content.Count, 2);
+        var file = (ToolFileContent)completed.Content[0];
+        Equal(file.Uri, "data:reader");
+        Equal(file.Mime, "text/plain");
+        Equal(file.Name, "reader.txt");
+        Equal(((ToolTextContent)completed.Content[1]).Text, "completed text");
+        var error = (SessionMessageToolStateError)((SessionMessageAssistantTool)message.Content[3]).State;
+        Equal(error.Input["command"].GetString(), "error");
+        Equal(error.Error.Type, "failure");
+        Equal(error.Error.Message, "reader failure");
+        Equal(error.Error.Status, 503L);
+        Equal(error.Error.Response.Body, "reader body");
+        Equal(error.Error.RetryAfterMs, 29L);
+        Equal(error.Metadata["phase"].GetString(), "error");
+        Equal(error.Content.Count, 2);
+        Equal(((ToolTextContent)error.Content[0]).Text, "error text");
+        Equal(((ToolFileContent)error.Content[1]).Uri, "error:reader");
+        Equal(((ToolFileContent)error.Content[1]).Mime, "error/mime");
+        Equal(((ToolFileContent)error.Content[1]).Name, "error.txt");
         Console.Out.WriteLine("{{AotConsumerData.Marker}}");
         return 0;
+
+        static void Equal<T>(T actual, T expected)
+        {
+            if (!EqualityComparer<T>.Default.Equals(actual, expected))
+            {
+                throw new InvalidOperationException($"Expected {expected}, received {actual}.");
+            }
+        }
         """;
 
     private async Task<string> DefaultTargetFrameworkAsync(CancellationToken cancellationToken)

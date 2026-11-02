@@ -136,6 +136,8 @@ variant identity, ordered serialized member bytes, reader position, and refusal 
 complete message. Permanent negative controls prove the oracle tells a correct reader from one
 that drops a member or dispatches to the wrong variant. Bound corpus coverage supplements, and
 does not replace, observed wire fixtures or mechanical union-membership checks.
+The converted unions' runtime parity also runs on every SDK test target through the focused
+metadata configuration.
 
 Runtime tests assert transport/framing, JSON materialization, required .NET shape, and union
 dispatch. They do not mutate otherwise representable payloads solely to prove that the SDK

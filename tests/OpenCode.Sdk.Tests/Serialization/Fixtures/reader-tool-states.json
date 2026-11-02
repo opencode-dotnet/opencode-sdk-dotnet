@@ -1,0 +1,6 @@
+[
+  {"status":"streaming","input":"stream λ \\\"partial input"},
+  {"status":"running","input":{"running":17,"nil":null},"metadata":{"phase":"running"}},
+  {"status":"completed","input":{"completed":[1,null,true]},"content":[{"type":"text","text":"nested text λ"},{"type":"file","uri":"data:fixture","mime":"text/plain","name":"nested-file"}],"metadata":{"phase":"completed"}},
+  {"status":"error","input":{"error":23},"error":{"type":"failure","message":"nested-message","status":503,"response":{"body":"nested-body"},"retryAfterMs":29},"content":[{"type":"file","uri":"error:uri","mime":"error/mime","name":"error-file"},{"type":"text","text":"error-text"}],"metadata":{"phase":"error"}}
+]

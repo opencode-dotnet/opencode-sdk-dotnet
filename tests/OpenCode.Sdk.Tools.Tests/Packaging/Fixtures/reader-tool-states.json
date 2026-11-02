@@ -1,0 +1,6 @@
+{"data":{"id":"msg_reader","type":"assistant","agent":"build","model":{"id":"reader-model","providerID":"reader-provider"},"time":{"created":1},"content":[
+  {"type":"tool","id":"stream","name":"reader","time":{"created":1},"state":{"status":"streaming","input":"partial input"}},
+  {"type":"tool","id":"run","name":"reader","time":{"created":2},"state":{"status":"running","input":{"command":"run"},"metadata":{"phase":"running"}}},
+  {"type":"tool","id":"complete","name":"reader","time":{"created":3},"state":{"status":"completed","input":{"command":"complete"},"metadata":{"exit":0},"content":[{"type":"file","uri":"data:reader","mime":"text/plain","name":"reader.txt"},{"type":"text","text":"completed text"}]}},
+  {"type":"tool","id":"error","name":"reader","time":{"created":4},"state":{"status":"error","input":{"command":"error"},"error":{"type":"failure","message":"reader failure","status":503,"response":{"body":"reader body"},"retryAfterMs":29},"metadata":{"phase":"error"},"content":[{"type":"text","text":"error text"},{"type":"file","uri":"error:reader","mime":"error/mime","name":"error.txt"}]}}
+]}}

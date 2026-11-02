@@ -10,6 +10,25 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
 {
     [Test]
+    public async Task Bind_Should_Carry_The_Six_Readers_Into_Normal_Emission()
+    {
+        var sources = Tools.Generator.Emission.SourceEmitter.Emit(pinned.Plan);
+        await Assert.That(pinned.Plan.ReaderRecords.Keys).IsEquivalentTo([
+            "SessionMessageToolStateCompleted", "SessionMessageToolStateError", "SessionMessageToolStateRunning",
+            "SessionMessageToolStateStreaming", "ToolFileContent", "ToolTextContent",
+        ], CollectionOrdering.Matching);
+        await Assert.That(pinned.Plan.ReaderArms.Where(static entry => entry.Value.Count > 0).Select(static entry => entry.Key))
+            .IsEquivalentTo(["ISessionMessageToolState", "IToolContent"], CollectionOrdering.Matching);
+        await Assert.That(sources.Select(static source => source.RelativePath)
+            .Where(static path => path.EndsWith("JsonReader.cs", StringComparison.Ordinal)))
+            .IsEquivalentTo([
+                "Sessions/Internal/SessionMessageToolStateCompletedJsonReader.cs", "Sessions/Internal/SessionMessageToolStateErrorJsonReader.cs",
+                "Sessions/Internal/SessionMessageToolStateRunningJsonReader.cs", "Sessions/Internal/SessionMessageToolStateStreamingJsonReader.cs",
+                "Sessions/Internal/ToolFileContentJsonReader.cs", "Sessions/Internal/ToolTextContentJsonReader.cs",
+            ], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task Select_Should_Select_Exactly_The_Two_Rollout_Unions()
     {
         var selected = RecordReaderPolicy.Select(pinned.Plan.Models, pinned.Plan.Unions, out var arms);

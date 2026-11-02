@@ -10,10 +10,10 @@ internal sealed class SessionMessageToolStateJsonConverter : JsonConverter<ISess
 {
     private static readonly UnionTagTable<UnionArm<ISessionMessageToolState>> ArmsByTag = new Dictionary<string, UnionArm<ISessionMessageToolState>>(StringComparer.Ordinal)
     {
-        ["completed"] = UnionArm<ISessionMessageToolState>.Of<SessionMessageToolStateCompleted>(),
-        ["error"] = UnionArm<ISessionMessageToolState>.Of<SessionMessageToolStateError>(),
-        ["running"] = UnionArm<ISessionMessageToolState>.Of<SessionMessageToolStateRunning>(),
-        ["streaming"] = UnionArm<ISessionMessageToolState>.Of<SessionMessageToolStateStreaming>()
+        ["completed"] = UnionArm<ISessionMessageToolState>.Of(SessionMessageToolStateCompletedJsonReader.Read),
+        ["error"] = UnionArm<ISessionMessageToolState>.Of(SessionMessageToolStateErrorJsonReader.Read),
+        ["running"] = UnionArm<ISessionMessageToolState>.Of(SessionMessageToolStateRunningJsonReader.Read),
+        ["streaming"] = UnionArm<ISessionMessageToolState>.Of(SessionMessageToolStateStreamingJsonReader.Read)
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override ISessionMessageToolState Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
