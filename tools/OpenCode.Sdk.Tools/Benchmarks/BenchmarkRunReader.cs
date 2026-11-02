@@ -9,6 +9,7 @@ internal sealed class BenchmarkRunReader
 {
     private const string ReportPattern = "*-report-full.json";
     private const string BenchmarkTypeSuffix = "Benchmarks";
+    private const string UnknownIdentity = "unknown";
 
     private readonly IFileSystem _fileSystem;
 
@@ -78,10 +79,10 @@ internal sealed class BenchmarkRunReader
             throw new BenchmarkRunException($"Benchmark report '{reportPath}' declares no benchmark cases.");
         }
 
-        return reportCases.Select(reportCase => ProjectCase(reportPath, reportCase));
+        return reportCases.Select(reportCase => ProjectCase(reportPath, document.HostEnvironmentInfo, reportCase));
     }
 
-    private static BenchmarkRunCase ProjectCase(string reportPath, BenchmarkReportCase reportCase)
+    private static BenchmarkRunCase ProjectCase(string reportPath, BenchmarkReportHostEnvironment? host, BenchmarkReportCase reportCase)
     {
         var isNa = reportCase.Statistics is null;
         if (!isNa && reportCase.Memory is not { BytesAllocatedPerOperation: >= 0 })
@@ -97,6 +98,9 @@ internal sealed class BenchmarkRunReader
             Method = reportCase.Method,
             Parameters = reportCase.Parameters,
             Runtime = ExtractRuntime(reportCase.DisplayInfo),
+            Job = ExtractJob(reportCase.DisplayInfo),
+            BenchmarkDotNetVersion = host?.BenchmarkDotNetVersion ?? UnknownIdentity,
+            Host = $"{host?.OsVersion ?? UnknownIdentity}; {host?.ProcessorName ?? UnknownIdentity}; SDK {host?.DotNetCliVersion ?? UnknownIdentity}",
             IsNa = isNa,
             AllocatedBytes = isNa ? null : reportCase.Memory?.BytesAllocatedPerOperation,
             // A constant-folded case measures at the noise floor and can report a zero median; it
@@ -121,6 +125,14 @@ internal sealed class BenchmarkRunReader
         typeName.EndsWith(BenchmarkTypeSuffix, StringComparison.Ordinal) && typeName.Length > BenchmarkTypeSuffix.Length
             ? typeName[..^BenchmarkTypeSuffix.Length]
             : typeName;
+
+    private static string ExtractJob(string displayInfo)
+    {
+        var jobStart = displayInfo.IndexOf(": ", StringComparison.Ordinal);
+        var jobSegment = jobStart < 0 ? displayInfo : displayInfo[(jobStart + 2)..];
+        var parametersStart = jobSegment.IndexOf(" [", StringComparison.Ordinal);
+        return parametersStart < 0 ? jobSegment : jobSegment[..parametersStart];
+    }
 
     private static string ExtractRuntime(string displayInfo)
     {

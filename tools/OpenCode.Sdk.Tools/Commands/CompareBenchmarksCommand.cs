@@ -4,6 +4,7 @@ using System.IO.Abstractions;
 using Microsoft.Extensions.Logging;
 using OpenCode.Sdk.Tools.Benchmarks;
 using OpenCode.Sdk.Tools.Benchmarks.Models;
+using OpenCode.Sdk.Tools.Infrastructure;
 using Spectre.Console;
 using Spectre.Console.Cli;
 
@@ -57,6 +58,9 @@ internal sealed partial class CompareBenchmarksCommand : AsyncCommand<CompareBen
             return 1;
         }
 
+        WriteRunIdentity("before", before);
+        WriteRunIdentity("after", after);
+        WriteFixtureChangeWarnings(before, after);
         var comparison = BenchmarkComparisonComposer.Compose(before, after);
         WriteRuntimeLegMismatchWarning(before, after);
         WriteRows(comparison);
@@ -119,6 +123,31 @@ internal sealed partial class CompareBenchmarksCommand : AsyncCommand<CompareBen
             $"[yellow]warning:[/] the runs carry different runtime legs (before: {Markup.Escape(beforeLabels)}; "
             + $"after: {Markup.Escape(afterLabels)}); every case on a leg only one side has is one-sided.");
     }
+
+    private void WriteRunIdentity(string side, IReadOnlyList<BenchmarkRunCase> cases)
+    {
+        _console.MarkupLineUnwrapped($"[grey]{side} BenchmarkDotNet:[/] {Markup.Escape(DistinctValues(cases, static runCase => runCase.BenchmarkDotNetVersion))}");
+        _console.MarkupLineUnwrapped($"[grey]{side} host:[/] {Markup.Escape(DistinctValues(cases, static runCase => runCase.Host))}");
+        _console.MarkupLineUnwrapped($"[grey]{side} jobs:[/] {Markup.Escape(DistinctValues(cases, static runCase => runCase.Job))}");
+    }
+
+    private void WriteFixtureChangeWarnings(IReadOnlyList<BenchmarkRunCase> before, IReadOnlyList<BenchmarkRunCase> after)
+    {
+        var afterCases = after.ToDictionary(static runCase => (runCase.FullName, runCase.Runtime));
+        foreach (var runCase in before)
+        {
+            if (afterCases.TryGetValue((runCase.FullName, runCase.Runtime), out var match) && runCase.WireFiguresDifferFrom(match))
+            {
+                _console.MarkupLineUnwrapped(
+                    $"[yellow]warning:[/] {Markup.Escape(runCase.CaseLabel)} ({Markup.Escape(runCase.Runtime)}) measured a changed fixture: "
+                    + $"wire {OptionalCount(runCase.WireBytes)} B / {OptionalCount(runCase.WireItems)} items / {OptionalCount(runCase.PayloadBytesPerItem)} B per item before, "
+                    + $"{OptionalCount(match.WireBytes)} B / {OptionalCount(match.WireItems)} items / {OptionalCount(match.PayloadBytesPerItem)} B per item after.");
+            }
+        }
+    }
+
+    private static string DistinctValues(IReadOnlyList<BenchmarkRunCase> cases, Func<BenchmarkRunCase, string> value) =>
+        string.Join(" | ", cases.Select(value).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal));
 
     private static string RuntimeLabels(IReadOnlyList<BenchmarkRunCase> cases) =>
         string.Join(", ", cases
