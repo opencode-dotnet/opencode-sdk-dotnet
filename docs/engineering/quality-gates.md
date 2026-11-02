@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-10-31
+Date: 2026-11-02
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -473,3 +473,6 @@ dotnet run --project tests/OpenCode.Sdk.Performance.Tests -c Release -f net10.0 
 diagnostics. The reader still refuses a case with statistics but no memory diagnostics;
 a zero median remains valid but carries
 no usable timing. Reader refusals take precedence, followed by zero overlap, then NA diagnostics.
+Before its table it prints each run's BenchmarkDotNet version, host and jobs, and it warns when a
+matched case's wire figures differ; a fixture change of equal size goes unseen. It refuses neither:
+a person reading the comparison judges them.

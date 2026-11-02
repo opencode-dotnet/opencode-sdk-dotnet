@@ -13,6 +13,12 @@ internal sealed record BenchmarkRunCase
 
     public required string Runtime { get; init; }
 
+    public required string Job { get; init; }
+
+    public required string BenchmarkDotNetVersion { get; init; }
+
+    public required string Host { get; init; }
+
     /// <summary>Whether BenchmarkDotNet exported the case without statistics: it failed and carries no measurement.</summary>
     public bool IsNa { get; init; }
 
@@ -41,4 +47,8 @@ internal sealed record BenchmarkRunCase
     /// <summary>Whether the run recorded any wire figure for this case; the fixture's figures
     /// travel as one triple, so a single probe decides which leg supplies them.</summary>
     public bool HasWireMetrics => WireBytes is not null || WireItems is not null || PayloadBytesPerItem is not null;
+
+    public bool WireFiguresDifferFrom(BenchmarkRunCase other) =>
+        HasWireMetrics && other.HasWireMetrics
+        && (WireBytes, WireItems, PayloadBytesPerItem) != (other.WireBytes, other.WireItems, other.PayloadBytesPerItem);
 }
