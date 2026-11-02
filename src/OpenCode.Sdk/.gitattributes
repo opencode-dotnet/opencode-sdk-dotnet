@@ -1063,7 +1063,11 @@
 /Sessions/Internal/SessionMessageResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionMessageResponseEnvelope.cs linguist-generated
 /Sessions/Internal/SessionMessageShellStatusJsonConverter.cs linguist-generated
+/Sessions/Internal/SessionMessageToolStateCompletedJsonReader.cs linguist-generated
+/Sessions/Internal/SessionMessageToolStateErrorJsonReader.cs linguist-generated
 /Sessions/Internal/SessionMessageToolStateJsonConverter.cs linguist-generated
+/Sessions/Internal/SessionMessageToolStateRunningJsonReader.cs linguist-generated
+/Sessions/Internal/SessionMessageToolStateStreamingJsonReader.cs linguist-generated
 /Sessions/Internal/SessionMoveResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionPermissionCreateResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionPermissionCreateResponseEnvelope.cs linguist-generated
@@ -1093,6 +1097,8 @@
 /Sessions/Internal/SessionUsageRecordedDataSourceJsonConverter.cs linguist-generated
 /Sessions/Internal/SessionViewResponseAdapter.cs linguist-generated
 /Sessions/Internal/ToolContentJsonConverter.cs linguist-generated
+/Sessions/Internal/ToolFileContentJsonReader.cs linguist-generated
+/Sessions/Internal/ToolTextContentJsonReader.cs linguist-generated
 /Sessions/Internal/UnknownPromptFileSourceJsonConverter.cs linguist-generated
 /Sessions/Internal/UnknownSessionEventDurableJsonConverter.cs linguist-generated
 /Sessions/Internal/UnknownSessionForkBoundaryJsonConverter.cs linguist-generated

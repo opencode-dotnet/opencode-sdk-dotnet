@@ -2,6 +2,7 @@ using System.Buffers;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Support;
@@ -18,7 +19,7 @@ internal sealed class UnionReaderOracle(JsonSerializerContext product, JsonSeria
     {
         ArgumentNullException.ThrowIfNull(plan);
         var product = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(productSources ?? SourceEmitter.Emit(plan));
-        var metadata = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(MetadataUnionOracleEmitter.Emit(plan, productSources ?? SourceEmitter.Emit(plan)));
+        var metadata = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(MetadataUnionOracleEmitter.Emit(plan));
         return new(Context(product), Context(metadata));
     }
 

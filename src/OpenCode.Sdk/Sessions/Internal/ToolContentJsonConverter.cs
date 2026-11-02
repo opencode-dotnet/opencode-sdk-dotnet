@@ -10,8 +10,8 @@ internal sealed class ToolContentJsonConverter : JsonConverter<IToolContent>
 {
     private static readonly UnionTagTable<UnionArm<IToolContent>> ArmsByTag = new Dictionary<string, UnionArm<IToolContent>>(StringComparer.Ordinal)
     {
-        ["file"] = UnionArm<IToolContent>.Of<ToolFileContent>(),
-        ["text"] = UnionArm<IToolContent>.Of<ToolTextContent>()
+        ["file"] = UnionArm<IToolContent>.Of(ToolFileContentJsonReader.Read),
+        ["text"] = UnionArm<IToolContent>.Of(ToolTextContentJsonReader.Read)
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override IToolContent Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

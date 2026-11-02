@@ -12,6 +12,36 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class SpecBinderTests
 {
     [Test]
+    public async Task Bind_Should_Refuse_A_Schema_Named_Like_A_Selected_Reader()
+    {
+        var document = await IngestAsync(SpecScenario.Define(spec => spec
+            .WithObject("ToolTextContent", schema => schema
+                .Property("type", property => property.Type("string").Enum("text"), required: true)
+                .Property("text", property => property.Type("string"), required: true))
+            .WithObject("ToolFileContent", schema => schema
+                .Property("type", property => property.Type("string").Enum("file"), required: true)
+                .Property("uri", property => property.Type("string"), required: true))
+            .WithSchema("ToolContent", schema => schema.AnyOf(text => text.Ref("ToolTextContent"), file => file.Ref("ToolFileContent")))
+            .WithObject("SessionMessageToolStateRunning", schema => schema
+                .Property("status", property => property.Type("string").Enum("running"), required: true))
+            .WithObject("SessionMessageToolStateCompleted", schema => schema
+                .Property("status", property => property.Type("string").Enum("completed"), required: true)
+                .Property("content", property => property.Type("array").Items(item => item.Ref("ToolContent")), required: true))
+            .WithSchema("SessionMessageToolState", schema => schema.AnyOf(
+                running => running.Ref("SessionMessageToolStateRunning"), completed => completed.Ref("SessionMessageToolStateCompleted")))
+            .WithObject("ToolTextContentJsonReader", schema => schema
+                .Property("state", property => property.Ref("SessionMessageToolState"), required: true))
+            .WithJsonOperation("health.get", "/health", schema => schema.Ref("ToolTextContentJsonReader"))));
+
+        var exception = RefuseHealth(document);
+
+        await Assert.That(exception.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Naming, "ToolTextContentJsonReader",
+                "type name 'ToolTextContentJsonReader' collides with another generated type"),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
     [Arguments(false, "JSON-encoded strings are not supported by the emitter")]
     [Arguments(true, "tuple schemas are not supported by the emitter")]
     public async Task Bind_Should_Refuse_Unsupported_Type_Shapes_Without_Milestone_Text(bool tuple, string problem)

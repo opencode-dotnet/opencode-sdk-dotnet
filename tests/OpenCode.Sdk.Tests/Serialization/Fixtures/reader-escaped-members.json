@@ -1,0 +1,7 @@
+[
+  {"status":"error","input":{},"error":{"type":"failure","message":"failure","response":{"body":731}}},
+  {"status":"completed","input":{},"content":[{"type":"text","text":731}]},
+  {"status":"completed"},
+  {"st\u0061tus":"streaming","in\u0070ut":"λ \\"},
+  {"status":"completed","input":{"same":1,"same":2},"content":[{"type":"file","u\u0072i":"after:uri","mime":"after/mime","name":"after-name"}]}
+]

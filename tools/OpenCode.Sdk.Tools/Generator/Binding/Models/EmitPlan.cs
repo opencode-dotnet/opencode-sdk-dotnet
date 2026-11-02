@@ -4,6 +4,10 @@ internal sealed record EmitPlan
 {
     public required GeneratedNamespacePlan Namespaces { get; init; }
 
+    public IReadOnlyDictionary<string, ObjectModelPlan> ReaderRecords { get; init; } = new Dictionary<string, ObjectModelPlan>(StringComparer.Ordinal);
+
+    public IReadOnlyDictionary<string, IReadOnlySet<string>> ReaderArms { get; init; } = new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal);
+
     public IReadOnlyDictionary<string, IReadOnlyList<EnumModelPlan>> QueryEnumModels { get; init; } =
         new Dictionary<string, IReadOnlyList<EnumModelPlan>>(StringComparer.Ordinal);
 

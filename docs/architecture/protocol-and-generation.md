@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-11-01
+Date: 2026-11-02
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -342,16 +342,18 @@ materializable.
   equals a declared literal tag or, where the union carries a prefix-tagged arm, starts with that
   arm's prefix; the carrier refuses a tag the prefix claims. Unknown frame names are not payload
   variants and remain framing failures (ADR-0009).
-- Known tagged-union arms scan a copied UTF-8 reader for the last top-level discriminator and then
-  materialize once through source-generated metadata; the scan remains safe when serializer stream
-  entry points supply a partial reader, and it does not build a JSON DOM. Unknown arms retain
-  the DOM needed by their lossless carrier, including a stream payload recovered after its known
-  arm could not materialize. Direct union deserialization keeps the known-arm failure; only the
-  stream adapter and reader retry through concrete unknown-arm metadata (ADR-0038). Public
-  unknown-carrier construction requires the payload's discriminator (and any fixed outer marker)
-  to agree with the exposed marker properties; serialization remains payload-only replay (ADR-0009).
-  Dispatch order is fixed: declared literal tags, then the single prefix-tagged arm, then the unknown
-  carrier.
+- Known tagged-union arms scan a copied UTF-8 reader for the last top-level discriminator.
+  Every known variant of `ISessionMessageToolState` and `IToolContent` is materialized once by a
+  generated record reader; other known variants use their own source-generated metadata converter.
+  Records nested beneath these six variants retain metadata converters. The scan remains safe when
+  serializer stream entry points supply a partial reader, and known arms do not build a JSON DOM.
+  Unknown arms retain the DOM needed by their lossless carrier, including a stream payload recovered
+  after its known arm could not materialize. Direct union deserialization keeps the known-arm
+  failure; only the stream adapter and reader retry through concrete unknown-arm metadata
+  (ADR-0038). Public unknown-carrier construction requires the payload's discriminator (and any
+  fixed outer marker) to agree with the exposed marker properties; serialization remains
+  payload-only replay (ADR-0009). Dispatch order is fixed: declared literal tags, then the single
+  prefix-tagged arm, then the unknown carrier.
 - Every tagged union dispatches on one marker property. The error union's is `_tag`, which every
   error the pinned contract declares carries. An error response that references a schema without
   exactly one required `_tag` literal refuses by name; one that carries a required `name` literal
@@ -474,3 +476,9 @@ System.Text.Json source generation is mandatory. The generator emits the single 
 registry used by product code; reflection fallback is not a product path. `IsAotCompatible` is
 enabled on every modern target the packages build (`net10.0` and later), where the platform supports
 that contract, as a target-framework range rather than a named target (ADR-0003).
+
+The converted union variants' generated readers preserve the registry's materialization rules.
+Their concrete-record metadata remains registered for writes and canonical failure reporting.
+Prefix-tagged variants, open-model records, unconverted variants and unconverted nested records
+continue to use metadata; generated readers add no reflection fallback or public API.
+A base64 binary member reads a JSON null through its registered converter, as the metadata path does.

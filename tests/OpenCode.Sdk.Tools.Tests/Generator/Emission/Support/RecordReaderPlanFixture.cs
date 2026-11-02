@@ -61,10 +61,7 @@ internal static class RecordReaderPlanFixture
     public static IReadOnlyList<GeneratedSource> Sources(EmitPlan plan)
     {
         var readers = RecordReaderPolicy.Select(plan.Models, plan.Unions, out var readerArms);
-        var replacements = UnionEmitter.Emit(plan.Unions, plan.Placement, plan.Namespaces, readerArms)
-            .ToDictionary(static source => source.RelativePath, StringComparer.Ordinal);
-        return [.. SourceEmitter.Emit(plan).Select(source => replacements.GetValueOrDefault(source.RelativePath, source)),
-            .. RecordReaderEmitter.Emit(plan, readers)];
+        return SourceEmitter.Emit(plan with { ReaderRecords = readers, ReaderArms = readerArms });
     }
 
     public static async Task<IReadOnlyList<RecordCorpusRow>> RowsAsync(EmitPlan plan)

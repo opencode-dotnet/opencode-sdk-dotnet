@@ -1,6 +1,12 @@
+using System.Globalization;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using System.Text.RegularExpressions;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tools.Generator.Refresh;
+using OpenCode.Sdk.Tools.Generator.Refresh.Abstractions;
+using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions;
 
 namespace OpenCode.Sdk.Tools.Tests.Packaging;
@@ -54,16 +60,57 @@ public sealed partial class NativeAotConsumerTests(PackedConsumerFeed feed)
         await Assert.That(publish.Executable).Satisfies(FileSystem.File.Exists)
             .Because("the publish produced no native executable:\n" + publish.Output);
 
-        var run = await _runner.RunAsync(
-            publish.Executable,
-            [],
-            FileSystem.Path.GetDirectoryName(publish.Executable) ?? publish.Executable,
-            cancellationToken);
+        using var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        using var shutdown = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var endpoint = "http://127.0.0.1:" + ((IPEndPoint)listener.LocalEndpoint).Port.ToString(CultureInfo.InvariantCulture);
+        var running = RunAsync();
+        var path = await ServeAsync(listener, new FixtureLoader().Load("Packaging.reader-tool-states.json"), shutdown.Token);
+        var run = await running;
+        await Assert.That(path).IsEqualTo("/api/session/ses_reader/message/msg_reader");
 
         await Assert.That(run.ExitCode).IsEqualTo(0).Because(run.StandardError + run.StandardOutputText);
         await Assert.That(run.StandardOutputText.Replace("\r\n", "\n", StringComparison.Ordinal))
             .IsEqualTo(AotConsumerData.Marker + "\n")
             .Because("standard output was: " + run.StandardOutputText);
+
+        async Task<ProcessResult> RunAsync()
+        {
+            try
+            {
+                return await _runner.RunAsync(publish.Executable, [endpoint],
+                    FileSystem.Path.GetDirectoryName(publish.Executable) ?? publish.Executable, cancellationToken);
+            }
+            finally
+            {
+                await shutdown.CancelAsync();
+            }
+        }
+    }
+
+    private static async Task<string?> ServeAsync(TcpListener listener, string body, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var client = await listener.AcceptTcpClientAsync(cancellationToken);
+            await using var stream = client.GetStream();
+            using var reader = new StreamReader(stream, Encoding.ASCII, leaveOpen: true);
+            var request = await reader.ReadLineAsync(cancellationToken);
+            while (await reader.ReadLineAsync(cancellationToken) is { Length: > 0 })
+            {
+                // Drain the request head; this canned GET response has no request body.
+            }
+            var bytes = Encoding.UTF8.GetBytes(body);
+            var head = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "
+                + bytes.Length.ToString(CultureInfo.InvariantCulture) + "\r\nConnection: close\r\n\r\n";
+            await stream.WriteAsync(Encoding.ASCII.GetBytes(head), cancellationToken);
+            await stream.WriteAsync(bytes, cancellationToken);
+            return request?.Split(' ')[1];
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return null; // Process exit without a request is asserted by the caller, not a hang verdict.
+        }
     }
 
     /// <summary>The warning codes the trim analyzer (<c>IL2xxx</c>) and the AOT compiler (<c>IL3xxx</c>) emit.</summary>

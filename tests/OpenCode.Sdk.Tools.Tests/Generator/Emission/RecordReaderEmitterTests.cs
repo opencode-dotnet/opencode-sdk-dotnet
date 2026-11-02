@@ -16,6 +16,16 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 public sealed class RecordReaderEmitterTests
 {
     [Test]
+    public async Task Emit_Should_Name_Only_An_Unused_Options_Parameter_As_A_Discard()
+    {
+        var sources = RecordReaderPlanFixture.Sources(RecordReaderPlanFixture.Create());
+        await Assert.That(EmitterSnapshot.Content(sources, "Example/Internal/SiblingRecordJsonReader.cs"))
+            .Contains("JsonSerializerOptions _)");
+        await Assert.That(EmitterSnapshot.Content(sources, "Example/Internal/DenseRecordJsonReader.cs"))
+            .Contains("JsonSerializerOptions options)");
+    }
+
+    [Test]
     public async Task Emit_Should_Render_A_Reader_And_Wire_Only_The_Selected_Union()
     {
         var plan = RecordReaderPlanFixture.Create();
@@ -31,7 +41,11 @@ public sealed class RecordReaderEmitterTests
         await Assert.That(EmitterSnapshot.Content(sources, "Example/Internal/DenseRecordJsonReader.cs"))
             .DoesNotContain("ExampleItemJsonReader");
         var normal = SourceEmitter.Emit(plan);
-        await Assert.That(normal.Select(static source => source.RelativePath)).DoesNotContain("Example/Internal/DenseRecordJsonReader.cs");
+        await Assert.That(normal.Select(static source => source.RelativePath).Where(static path => path.EndsWith("JsonReader.cs", StringComparison.Ordinal))).IsEmpty();
+        var readers = RecordReaderPolicy.Select(plan.Models, plan.Unions, out var arms);
+        var selectedPlan = SourceEmitter.Emit(plan with { ReaderRecords = readers, ReaderArms = arms });
+        await Assert.That(selectedPlan.Select(static source => source.RelativePath).Where(static path => path.EndsWith("JsonReader.cs", StringComparison.Ordinal)))
+            .IsEquivalentTo(["Example/Internal/DenseRecordJsonReader.cs", "Example/Internal/SiblingRecordJsonReader.cs"], CollectionOrdering.Matching);
         await Verify(EmitterSnapshot.Content(sources, "Example/Internal/SiblingRecordJsonReader.cs"));
     }
 

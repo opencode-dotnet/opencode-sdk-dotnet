@@ -12,9 +12,8 @@ internal static class SourceEmitter
         sources.AddRange(ModelEmitter.Emit(plan));
         sources.AddRange(OptionalConverterEmitter.Emit(plan.Models, plan.Namespaces));
         sources.AddRange(StructuralUnionEmitter.Emit([.. plan.Models.OfType<StructuralUnionModelPlan>()], plan.Placement, plan.Namespaces));
-        IReadOnlyDictionary<string, ObjectModelPlan> readers = new Dictionary<string, ObjectModelPlan>(StringComparer.Ordinal);
-        sources.AddRange(RecordReaderEmitter.Emit(plan, readers));
-        sources.AddRange(UnionEmitter.Emit(plan.Unions, plan.Placement, plan.Namespaces));
+        sources.AddRange(RecordReaderEmitter.Emit(plan, plan.ReaderRecords));
+        sources.AddRange(UnionEmitter.Emit(plan.Unions, plan.Placement, plan.Namespaces, plan.ReaderArms));
         sources.AddRange(HoistedInterfaceEmitter.Emit(plan.HoistedInterfaces, plan.Placement));
         sources.AddRange(RegistryEmitter.Emit(plan.Registry, plan.Namespaces));
         if (plan.Clients.Count > 0)

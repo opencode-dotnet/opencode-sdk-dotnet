@@ -44,6 +44,11 @@ internal static class RecordReaderEmitter
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.InternalKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)));
         // A record-specific delegate needs no runtime type-to-convert parameter.
         method = method.WithParameterList(method.ParameterList.WithParameters(method.ParameterList.Parameters.RemoveAt(1)));
+        if (!method.DescendantNodes().OfType<IdentifierNameSyntax>().Any(static name => name.Identifier.ValueText == "options"))
+        {
+            var options = method.ParameterList.Parameters[1];
+            method = method.ReplaceNode(options, options.WithIdentifier(SyntaxFactory.Identifier("_")));
+        }
         var name = ConverterNamePolicy.Reader(record.Name);
         var declaration = SyntaxFactory.ClassDeclaration(name)
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.InternalKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)))

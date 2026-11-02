@@ -1,4 +1,5 @@
 using System.Text.Json;
+using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions;
@@ -11,6 +12,59 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 [ParallelLimiter<RoslynCompilationSlots>]
 public sealed class UnionReaderOracleTests(PinnedBinding pinned)
 {
+    [Test]
+    public async Task Oracle_Should_Isolate_Completed_Content_And_Override_Exactly_The_Selected_Unions()
+    {
+        var sources = SourceEmitter.Emit(pinned.Plan).Select(source => source.RelativePath.EndsWith("/ToolFileContentJsonReader.cs", StringComparison.Ordinal)
+            ? MetadataUnionOracleEmitter.Source(source.RelativePath, System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)
+                .Replace("Name = value2", "Name = value2 is null ? null : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal))
+            : source).ToList();
+        var loader = new FixtureLoader();
+        sources.Add(MetadataUnionOracleEmitter.Source("Internal/Serialization/MetadataUnionJsonConverter.cs", loader.Load("Serialization.MetadataUnionJsonConverter.cs")));
+        sources.Add(MetadataUnionOracleEmitter.Source("ToolUnionMetadataOracle.cs", loader.Load("Serialization.ToolUnionMetadataOracle.cs")));
+        var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(sources);
+        var product = UnionReaderOracle.Context(assembly);
+        var factory = assembly.GetType("OpenCode.Sdk.Tests.Serialization.Support.ToolUnionMetadataOracle`1", true)!
+            .MakeGenericType(assembly.GetType("OpenCode.Sdk.Models.IToolContent", true)!);
+        var focused = (System.Text.Json.Serialization.JsonSerializerContext)factory.GetMethod("Create")!.Invoke(null, null)!;
+        var overrides = focused.Options.Converters.Where(converter => converter.GetType().IsGenericType
+            && converter.GetType().GetGenericTypeDefinition() == factory.GetGenericTypeDefinition()).ToArray();
+        await Assert.That(overrides
+            .Select(static converter => converter.GetType().GenericTypeArguments.Single().Name).Order(StringComparer.Ordinal))
+            .IsEquivalentTo(pinned.Plan.ReaderArms.Where(static entry => entry.Value.Count > 0).Select(static entry => entry.Key), CollectionOrdering.Matching);
+        foreach (var converter in overrides)
+        {
+            var union = pinned.Plan.Unions.Single(union => union.Name == converter.GetType().GenericTypeArguments.Single().Name);
+            // The focused converter exposes the map from which its dispatch table is built.
+            var map = (IReadOnlyDictionary<string, Type?>)converter.GetType().GetProperty("Map")!.GetValue(null)!;
+            await Assert.That(map.OrderBy(static entry => entry.Key, StringComparer.Ordinal)
+                .Select(static entry => new KeyValuePair<string, string?>(entry.Key, entry.Value?.Name)))
+                .IsEquivalentTo(union.Variants.OrderBy(static variant => variant.Tag, StringComparer.Ordinal)
+                    .Select(static variant => new KeyValuePair<string, string?>(variant.Tag, variant.TypeName)), CollectionOrdering.Matching);
+        }
+        var row = (await RecordCorpusGenerator.GenerateAsync(pinned.Plan, ["SessionMessageToolStateCompleted"]))
+            .Single(static row => row.Name == "state/completed/maximal");
+        var entered = UnionReaderOracle.Observe(product, "ISessionMessageToolState", row.Json);
+        await Assert.That(entered.Phase).IsEqualTo("read");
+        await Assert.That(entered.Message).Contains("product-reader-entered");
+        var oracle = await UnionReaderOracle.CreateAsync(pinned.Plan);
+        await UnionReaderOracle.AssertEquivalentAsync(UnionReaderOracle.Observe(focused, "ISessionMessageToolState", row.Json),
+            UnionReaderOracle.Observe(oracle.Metadata, "ISessionMessageToolState", row.Json), row.Name);
+    }
+
+    [Test]
+    public async Task Oracle_Should_Not_Mirror_A_Product_Record_Member_Change()
+    {
+        var sources = SourceEmitter.Emit(pinned.Plan).Select(source => source.RelativePath.EndsWith("/ToolFileContent.cs", StringComparison.Ordinal)
+            ? MetadataUnionOracleEmitter.Source(source.RelativePath, System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)
+                .Replace("JsonPropertyName(\"name\")", "JsonPropertyName(\"unused\")", StringComparison.Ordinal)) : source).ToArray();
+        var oracle = await UnionReaderOracle.CreateAsync(pinned.Plan, sources);
+        var row = (await RecordCorpusGenerator.GenerateAsync(pinned.Plan, ["ToolFileContent"]))
+            .Single(static row => row.Name == "tool-content/file/maximal");
+        var failure = await Assert.That(async () => await oracle.CompareAsync(row)).Throws<AssertionException>();
+        await Assert.That(failure!.Message).Contains(row.Name + "/ToolFileContent/members");
+    }
+
     [Test]
     public async Task Oracle_Should_Accept_A_Reader_That_Follows_The_Contract(CancellationToken cancellationToken)
     {
@@ -108,12 +162,12 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
     public async Task Catalog_Should_Name_Every_Linked_Serialization_Resource()
     {
         var fileSystem = new RealFileSystem();
-        var sdkTests = fileSystem.Path.Combine(new RepositoryRoot(fileSystem).Locate(), "tests", "OpenCode.Sdk.Tests");
+        var repository = new RepositoryRoot(fileSystem).Locate();
         var covered = UnionReaderFixtureCatalog.CoveredFolders.SelectMany(folder => fileSystem.Directory.GetFiles(
-                fileSystem.Path.Combine(sdkTests, folder), "*.json"))
-            .Select(file => "OpenCode.Sdk.Tests.Fixtures.Serialization." + fileSystem.Path.GetFileName(file)).Order(StringComparer.Ordinal).ToArray();
+                fileSystem.Path.Combine(repository, folder.Key), "*.json")
+            .Select(file => folder.Value + fileSystem.Path.GetFileName(file))).Order(StringComparer.Ordinal).ToArray();
         var discovered = typeof(UnionReaderOracleTests).Assembly.GetManifestResourceNames()
-            .Where(static name => name.StartsWith("OpenCode.Sdk.Tests.Fixtures.Serialization.", StringComparison.Ordinal))
+            .Where(name => UnionReaderFixtureCatalog.CoveredFolders.Values.Any(prefix => name.StartsWith(prefix, StringComparison.Ordinal)))
             .Order(StringComparer.Ordinal).ToArray();
         await Assert.That(discovered.Where(name => covered.Contains(name, StringComparer.Ordinal)))
             .IsEquivalentTo(covered, CollectionOrdering.Matching);

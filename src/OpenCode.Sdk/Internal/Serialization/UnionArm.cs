@@ -43,6 +43,7 @@ internal abstract class UnionArm<TUnion>
             }
             catch (Exception exception) when (exception is JsonException or InvalidOperationException or FormatException or NotSupportedException)
             {
+                var failure = reader;
                 // A direct converter call skips the serializer's error handling, which names the failing
                 // member and turns a token-type failure into a JsonException. Reading the same payload
                 // again through the serializer reports it as the arm's metadata always has.
@@ -54,6 +55,7 @@ internal abstract class UnionArm<TUnion>
                 }
 
                 // A successful replay must not conceal a generated reader's false refusal.
+                reader = failure;
                 throw;
             }
         }
