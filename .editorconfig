@@ -975,6 +975,12 @@ dotnet_diagnostic.VSTHRD003.severity = none
 [src/OpenCode.Sdk/Internal/Transport/ProgressWindow.cs]
 dotnet_diagnostic.MA0045.severity = none
 
+# These rows prove that a handler's synchronous read of a request body works, so the blocking call is
+# what they exercise, and making them async would stop proving it. Winner: the synchronous-read proof;
+# MA0045 remains enabled for every other file.
+[tests/OpenCode.Sdk.Tests/Transport/PooledJsonContentSyncReadTests.cs]
+dotnet_diagnostic.MA0045.severity = none
+
 # OpenCodeServerContractTests exercises the processless friend-assembly seam
 # (internal OpenCodeServer(Uri, string)) and the bare protected-ctor mock seam exclusively:
 # neither holds a real child process, so DisposeAsync is a no-op and nothing physical leaks when

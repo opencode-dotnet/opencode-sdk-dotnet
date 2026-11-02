@@ -19,6 +19,12 @@ Nightly builds of `master` are on
   buffer rather than allocating one per call. A 36 MB body on `net472` goes from about 138 MB to
   about 102 MB per call. As a trade-off, the pool keeps more for the life of the process: at most
   about 250 MiB, up from about 60 MiB.
+- On `net472`, .NET 10 and .NET 11, a JSON request body is serialized into a pooled buffer, cleared
+  on return, rather than a new array per call. A prompt with 2 MiB of text goes from about 2.1 MB to
+  about 4 KB on .NET 10; on `net472`, from about 8.4 MB to about 7 KB, or from about 34 MB to about
+  25 MB with newlines. As trade-offs, a send holds a larger array than its body while it runs, because
+  the writer reserves about three times the text and the pool rounds up, and on `net472` the SDK's
+  pool can now also keep arrays after large requests, within its existing limit.
 
 ### 📚 Documentation
 

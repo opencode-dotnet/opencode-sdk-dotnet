@@ -330,8 +330,10 @@ has the two properties to set.
 - **On `net472` and `netstandard2.0`, some costs are larger than on modern targets.** A response body
   of 64 MiB or more gets a newly allocated buffer on every call. Smaller bodies over 1 MiB come from
   a pool the SDK keeps for the life of the process, which holds at most about 250 MiB after large
-  responses. A body with no declared length uses every smaller size on the way up, so one 33 MiB
-  body can leave about 126 MiB held.
+  responses or requests. A body with no declared length uses every smaller size on the way up, so
+  one 33 MiB body can leave about 126 MiB held. On .NET Framework, a request with more than about
+  21 MiB of text still allocates its buffer on every call. A request on the `netstandard2.0` asset
+  isn't pooled at all.
   On .NET Framework, reading a JSON string over 1 MiB that contains an escape, such as a newline,
   allocates one extra array of its length each time.
   On Unix (Mono), owner-only files that discovery and `EnsureAsync` write get mode `0600` through a
