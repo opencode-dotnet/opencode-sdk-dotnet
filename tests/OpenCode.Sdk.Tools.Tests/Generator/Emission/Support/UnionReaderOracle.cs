@@ -18,7 +18,7 @@ internal sealed class UnionReaderOracle(JsonSerializerContext product, JsonSeria
     {
         ArgumentNullException.ThrowIfNull(plan);
         var product = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(productSources ?? SourceEmitter.Emit(plan));
-        var metadata = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(MetadataUnionOracleEmitter.Emit(plan));
+        var metadata = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(MetadataUnionOracleEmitter.Emit(plan, productSources ?? SourceEmitter.Emit(plan)));
         return new(Context(product), Context(metadata));
     }
 

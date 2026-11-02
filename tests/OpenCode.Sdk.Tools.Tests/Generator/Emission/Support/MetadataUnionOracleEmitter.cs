@@ -11,18 +11,24 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 internal static class MetadataUnionOracleEmitter
 {
     public static IReadOnlyList<GeneratedSource> Emit(EmitPlan plan)
+        => Emit(plan, SourceEmitter.Emit(plan));
+
+    public static IReadOnlyList<GeneratedSource> Emit(EmitPlan plan, IReadOnlyList<GeneratedSource> sources)
     {
         ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(sources);
+        var readerPaths = RecordReaderPolicy.Select(plan.Models, plan.Unions, out _).Keys.Select(name =>
+            GeneratedPlacement.ConverterPathOf(plan.Placement, name, ConverterNamePolicy.Reader(name))).ToHashSet(StringComparer.Ordinal);
         var replacements = plan.Unions.ToDictionary(union => GeneratedPlacement.ConverterPathOf(plan.Placement,
             union.Name, ConverterNamePolicy.Of(union.ConceptName)), union => Converter(union, plan), StringComparer.Ordinal);
-        return [.. SourceEmitter.Emit(plan).Where(static source => !source.RelativePath.EndsWith("JsonReader.cs", StringComparison.Ordinal))
+        return [.. sources.Where(source => !readerPaths.Contains(source.RelativePath))
             .Select(source => replacements.GetValueOrDefault(source.RelativePath, source)),
             Source("Internal/Serialization/MetadataUnionJsonConverter.cs", new FixtureLoader().Load("Serialization.MetadataUnionJsonConverter.cs"))];
     }
 
-    private static GeneratedSource Converter(UnionPlan union, EmitPlan plan)
+    internal static GeneratedSource Converter(UnionPlan union, EmitPlan plan, string? converterName = null)
     {
-        var name = ConverterNamePolicy.Of(union.ConceptName);
+        var name = converterName ?? ConverterNamePolicy.Of(union.ConceptName);
         var entries = union.Variants.Where(variant => variant.MarkerWireName == union.MarkerWireName)
             .Select(static variant => $"[{Quote(variant.Tag)}] = typeof({variant.TypeName}),")
             .Concat(union.KnownImpossibleTags.Select(static tag => $"[{Quote(tag)}] = null,"));

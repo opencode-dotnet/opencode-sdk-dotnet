@@ -1,7 +1,9 @@
 using System.Text.Json;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Support;
+using Testably.Abstractions;
 using TUnit.Assertions.Enums;
+using TUnit.Assertions.Exceptions;
 
 namespace OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 
@@ -13,6 +15,7 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
     public async Task Oracle_Should_Accept_A_Reader_That_Follows_The_Contract(CancellationToken cancellationToken)
     {
         var oracle = await HandOracleAsync();
+        await Assert.That(oracle.Product.GetType().Assembly.GetType("OpenCode.Sdk.Internal.ToolFileContentHandReader")).IsNotNull();
         foreach (var row in await RecordCorpusGenerator.GenerateAsync(pinned.Plan, ["ToolFileContent"]))
         {
             await oracle.CompareAsync(row);
@@ -67,11 +70,6 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
                 await Assert.That(unknown.Type).IsEqualTo(union.Namespace + "." + union.UnknownTypeName);
                 await Assert.That(unknown.Bytes).IsEquivalentTo(row.Json, CollectionOrdering.Matching);
             }
-            if (row.IsSeed)
-            {
-                await Assert.That(UnionReaderOracle.Observe(oracle.Metadata, row.RootType, row.Json).Phase)
-                    .IsEqualTo("success").Because(row.Name);
-            }
         }
     }
 
@@ -109,9 +107,16 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
     [Test]
     public async Task Catalog_Should_Name_Every_Linked_Serialization_Resource()
     {
+        var fileSystem = new RealFileSystem();
+        var sdkTests = fileSystem.Path.Combine(new RepositoryRoot(fileSystem).Locate(), "tests", "OpenCode.Sdk.Tests");
+        var covered = UnionReaderFixtureCatalog.CoveredFolders.SelectMany(folder => fileSystem.Directory.GetFiles(
+                fileSystem.Path.Combine(sdkTests, folder), "*.json"))
+            .Select(file => "OpenCode.Sdk.Tests.Fixtures.Serialization." + fileSystem.Path.GetFileName(file)).Order(StringComparer.Ordinal).ToArray();
         var discovered = typeof(UnionReaderOracleTests).Assembly.GetManifestResourceNames()
             .Where(static name => name.StartsWith("OpenCode.Sdk.Tests.Fixtures.Serialization.", StringComparison.Ordinal))
-            .Order(StringComparer.Ordinal);
+            .Order(StringComparer.Ordinal).ToArray();
+        await Assert.That(discovered.Where(name => covered.Contains(name, StringComparer.Ordinal)))
+            .IsEquivalentTo(covered, CollectionOrdering.Matching);
         await Assert.That(discovered).IsEquivalentTo(UnionReaderFixtureCatalog.ResourceNames.Order(StringComparer.Ordinal), CollectionOrdering.Matching);
         await Assert.That(UnionReaderFixtureCatalog.NonMaterialization.Keys).IsEquivalentTo(["first-match-expected"], CollectionOrdering.Matching);
         await Assert.That(UnionReaderFixtureCatalog.NonMaterialization["first-match-expected"])
@@ -126,14 +131,16 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
             .Single(static row => row.Name == "tool-content/file/missing/uri");
         var expected = UnionReaderOracle.Observe(oracle.Metadata, "IToolContent", row.Json);
         await Assert.That(expected.Phase).IsEqualTo("read");
-        _ = await Assert.That(async () => await oracle.CompareAsync(row with { IsSeed = true })).Throws<Exception>();
+        var seedFailure = await Assert.That(async () => await oracle.CompareAsync(row with { IsSeed = true })).Throws<AssertionException>();
+        await Assert.That(seedFailure!.Message).Contains(row.Name + "/seed/" + row.RootType);
         foreach (var changed in new[] { expected with { Phase = "write" }, expected with { ExceptionType = "other" },
                      expected with { Path = "other" }, expected with { Message = expected.Message + "other" },
                      expected with { Line = 17 }, expected with { BytePosition = 17 }, expected with { Consumed = 17 },
                      expected with { Token = JsonTokenType.True }, expected with { Depth = 17 },
                      expected with { TokenStart = 17 }, expected with { SequenceOffset = 17 } })
         {
-            _ = await Assert.That(async () => await UnionReaderOracle.AssertEquivalentAsync(changed, expected, row.Name)).Throws<Exception>();
+            var failure = await Assert.That(async () => await UnionReaderOracle.AssertEquivalentAsync(changed, expected, row.Name)).Throws<AssertionException>();
+            await Assert.That(failure!.Message).Contains(row.Name);
         }
     }
 
@@ -144,12 +151,12 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
         await Assert.That(actual.Phase).IsEqualTo("success");
         await Assert.That(expected.Phase).IsEqualTo("success");
         await Assert.That(expected.Type).IsEqualTo("OpenCode.Sdk.Models.ToolFileContent");
-        var failure = await Assert.That(async () => await UnionReaderOracle.AssertEquivalentAsync(actual, expected, row.Name)).Throws<Exception>();
+        var failure = await Assert.That(async () => await UnionReaderOracle.AssertEquivalentAsync(actual, expected, row.Name)).Throws<AssertionException>();
         await Assert.That(failure!.Message).Contains(row.Name + "/" + difference);
         return actual;
     }
 
-    private Task<UnionReaderOracle> HandOracleAsync(string? before = null, string? after = null)
+    private async Task<UnionReaderOracle> HandOracleAsync(string? before = null, string? after = null)
     {
         var fixture = new FixtureLoader().Load("Serialization.ToolFileContentHandReader.cs.txt");
         if (before is not null)
@@ -158,6 +165,8 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
         }
         var sources = SourceEmitter.Emit(pinned.Plan).Select(source => source.RelativePath.EndsWith("/ToolContentJsonConverter.cs", StringComparison.Ordinal)
             ? MetadataUnionOracleEmitter.Source(source.RelativePath, fixture) : source).ToArray();
-        return UnionReaderOracle.CreateAsync(pinned.Plan, sources);
+        await Assert.That(System.Text.Encoding.UTF8.GetString(sources.Single(static source =>
+            source.RelativePath.EndsWith("/ToolContentJsonConverter.cs", StringComparison.Ordinal)).Utf8Source.Span)).IsEqualTo(fixture);
+        return await UnionReaderOracle.CreateAsync(pinned.Plan, sources);
     }
 }

@@ -7,6 +7,10 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 
 internal sealed class UnionReaderFixtureCatalog
 {
+    /// <summary>Folders linked in full; other entries are individually linked, without folder-wide coverage.</summary>
+    public static IReadOnlyList<string> CoveredFolders { get; } =
+        ["Fixtures/Serialization", "Serialization/Fixtures"];
+
     private readonly System.Reflection.Assembly _assembly = typeof(UnionReaderFixtureCatalog).Assembly;
     private const string Prefix = "OpenCode.Sdk.Tests.Fixtures.Serialization.";
     private static readonly IReadOnlyDictionary<string, string> Roots = new Dictionary<string, string>(StringComparer.Ordinal)

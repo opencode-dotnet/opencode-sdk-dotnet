@@ -11,6 +11,9 @@ internal static class ConverterNamePolicy
     /// <summary>Names the converter a union, unknown carrier, structural union or enum declares for itself.</summary>
     public static string Of(string typeName) => $"{typeName}JsonConverter";
 
+    /// <summary>Names the slice-local reader shared by a record's converted union entries.</summary>
+    public static string Reader(string recordName) => $"{recordName}JsonReader";
+
     /// <summary>
     /// Names the closed converter one <c>Optional&lt;T&gt;</c> instantiation needs. The wrapper is a
     /// generic type, and an unbound generic cannot be named in a <c>[JsonConverter]</c> argument, so

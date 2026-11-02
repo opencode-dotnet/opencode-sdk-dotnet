@@ -104,7 +104,7 @@ public sealed class RecordCorpusGeneratorTests
     }
 
     [Test]
-    public async Task Generate_Should_Name_Ordered_Rows_And_Preserve_Builder_Intent()
+    public async Task GenerateAsync_Should_Name_Ordered_Rows_And_Preserve_Builder_Intent()
     {
         var plan = EmitterPlanFixture.Create() with
         {

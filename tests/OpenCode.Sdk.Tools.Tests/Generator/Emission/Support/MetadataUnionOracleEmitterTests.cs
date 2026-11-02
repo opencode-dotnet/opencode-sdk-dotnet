@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Tests.Support;
 using TUnit.Assertions.Enums;
@@ -32,10 +33,6 @@ public sealed class MetadataUnionOracleEmitterTests(PinnedBinding pinned)
             Models = [.. plan.Models, root, box],
             Registry = plan.Registry with { TypeNames = [.. plan.Registry.TypeNames, "Root", "Box"] }
         }).WithSingleSlice();
-        var sources = MetadataUnionOracleEmitter.Emit(plan);
-        var roots = await Task.WhenAll(sources.Select(static source => CSharpSyntaxTree.ParseText(Encoding.UTF8.GetString(source.Utf8Source.Span)).GetRootAsync()));
-        var declarations = roots.SelectMany(static root => root.DescendantNodes().OfType<ClassDeclarationSyntax>()).Select(static type => type.Identifier.ValueText);
-        await Assert.That(declarations.Where(static name => name.EndsWith("JsonReader", StringComparison.Ordinal))).IsEmpty();
         var oracle = await UnionReaderOracle.CreateAsync(plan);
         var rows = await RecordCorpusGenerator.GenerateAsync(plan, ["Root"]);
         foreach (var row in rows)
@@ -54,15 +51,18 @@ public sealed class MetadataUnionOracleEmitterTests(PinnedBinding pinned)
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Emit_Should_Close_Every_Registered_Type_Over_Only_Metadata()
     {
-        var sources = MetadataUnionOracleEmitter.Emit(pinned.Plan);
+        var plan = RecordReaderPlanFixture.Create();
+        var product = RecordReaderPlanFixture.Sources(plan);
+        var readerNames = RecordReaderPolicy.Select(plan.Models, plan.Unions, out _).Keys.Select(ConverterNamePolicy.Reader).ToHashSet(StringComparer.Ordinal);
+        await Assert.That(product.Select(static source => source.RelativePath.Split('/')[^1]))
+            .Contains(ConverterNamePolicy.Reader("DenseRecord") + ".cs");
+        var sources = MetadataUnionOracleEmitter.Emit(plan, product);
         var text = string.Join('\n', sources.Select(static source => Encoding.UTF8.GetString(source.Utf8Source.Span)));
-        await Assert.That(text).DoesNotContain("JsonReader.Read(");
-        await Assert.That(text).DoesNotContain("class ToolFileContentJsonReader");
         var roots = await Task.WhenAll(sources.Select(static source => CSharpSyntaxTree.ParseText(Encoding.UTF8.GetString(source.Utf8Source.Span)).GetRootAsync()));
         await Assert.That(roots.SelectMany(static root => root.DescendantNodes().OfType<TypeDeclarationSyntax>())
-            .Select(static type => type.Identifier.ValueText).Where(static name => name.EndsWith("JsonReader", StringComparison.Ordinal))).IsEmpty();
+            .Select(static type => type.Identifier.ValueText).Where(readerNames.Contains)).IsEmpty();
         await Assert.That(roots.SelectMany(static root => root.DescendantNodes().OfType<MemberAccessExpressionSyntax>())
-            .Where(static member => member.Expression.ToString().EndsWith("JsonReader", StringComparison.Ordinal))).IsEmpty();
+            .Where(member => readerNames.Contains(member.Expression.ToString()))).IsEmpty();
         await Assert.That(text).DoesNotContain("UnionArm<");
         var oracle = await UnionReaderOracle.CreateAsync(pinned.Plan);
         await Assert.That(oracle.Metadata.Options.TypeInfoResolverChain)
