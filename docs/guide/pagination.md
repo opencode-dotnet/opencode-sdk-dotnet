@@ -1,6 +1,6 @@
 # 📑 Pagination
 
-Date: 2026-10-24
+Date: 2026-11-02
 
 Two operations in the API return more than fits in one response, and both use the same opaque
 cursor envelope: **listing a session's messages** and **listing sessions**. Both can be paged by
@@ -253,4 +253,5 @@ Use the message walk above to select a `boundaryMessageId`, then choose a fork o
    implicitly.
 
 For a transcript instead, `client.Experimental.GetSessionExportAsync(sessionId)` returns the session
-and every settled message in `SessionExport`, in ascending order, without paging.
+and every settled message in `SessionExport`, in ascending order, without paging; it needs the
+[`OPENCODE001` opt-in](experimental.md#opencode001).

@@ -1,6 +1,6 @@
 # 🧱 Errors and responses
 
-Date: 2026-10-16
+Date: 2026-11-02
 
 Every one-shot call answers with a **response envelope** that carries the same four members no
 matter which operation produced it, and every failure is either a typed API error you can branch on
@@ -125,7 +125,7 @@ switch (response.Error)
 }
 ```
 
-There are roughly two dozen of them — `SessionNotFoundError`, `MessageNotFoundError`,
+There are 41 declared error types plus `UnknownOpenCodeError` — `SessionNotFoundError`, `MessageNotFoundError`,
 `PtyNotFoundError`, `AgentNotFoundError`, `ProviderNotFoundError`, `InvalidRequestError`,
 `InvalidCursorError`, `ConflictError`, `ForbiddenError`, `UnauthorizedError`, `SessionBusyError`,
 `ServiceUnavailableError`, and friends — each with the members its own failure actually carries
@@ -313,7 +313,7 @@ stop with nothing to stop. Ensure shares the roots cause and adds the ways an el
 without a service: the command cannot be resolved, a contender or the registered service failed to
 start, the registered service speaks an incompatible health protocol at a version the call accepts,
 `VersionPolicy.Error` met a service at another version, or the 120-second bound expired. The
-[connection guide](connection-modes.md#️-discovering-the-background-service) lists the full table.
+[connection guide](connection-modes.md#️-discovering-the-background-service) covers discovery, stop, and ensure.
 
 The launcher has more to say, because a child process ran:
 
@@ -354,7 +354,7 @@ extensions .COM, .EXE, .BAT, .CMD. Pass the executable's full path in
 OpenCodeServerOptions.Command, or install the CLI package @opencode/cli.
 ```
 
-Those two suggestions are the two real fixes: install the CLI (`npm install -g @opencode/cli`), or
+Those two suggestions are the two real fixes: install the pinned CLI (`npm install -g @opencode/cli@2.2.5`), or
 stop depending on the search and name the file — `Command = ["/opt/opencode/bin/opencode", "serve"]`.
 The [resolution rules](connection-modes.md#how-the-command-is-resolved) say exactly what was tried.
 

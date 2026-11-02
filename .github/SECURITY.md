@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-This project is pre-1.0 and has not published a stable release yet. Until the first release ships, the
+This project is pre-1.0 and has not published a stable release yet. Until the first stable release ships, the
 supported version is whatever is current on `master` (and the nightly packages built from it).
 Security patches are prioritized by CVSS v3.0 rating:
 

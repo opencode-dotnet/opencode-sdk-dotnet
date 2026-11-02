@@ -1,6 +1,6 @@
 # 📝 Requests
 
-Date: 2026-11-01
+Date: 2026-11-02
 
 Every operation that sends anything takes one request record. They are plain immutable records you
 fill with an object initializer — with one twist worth knowing before you write your first `PATCH`:
@@ -74,12 +74,11 @@ shell state. A null removes the persisted shell preference; its 204 response has
 
 The rule is keyed on the schema, not on the direction of one call: a schema a request body reaches
 carries the wrapper everywhere it is used. A response-only property is untouched and stays an
-ordinary `string?`, `ModelRef?`, and so on. One schema in the API is shared both ways —
-`ToolFileContent`, which a session import sends and four read operations return — so its `Name`
-carries the wrapper on the read side too and is read through `.Value`:
+ordinary `string?`, `ModelRef?`, and so on. For example, `ToolFileContent.Name` is an ordinary
+`string?`:
 
 ```csharp
-var name = content is ToolFileContent file ? file.Name.Value : null;
+var name = content is ToolFileContent file ? file.Name : null;
 ```
 
 ## 🔎 Reading a member back
@@ -134,7 +133,8 @@ if (rule is { Effect.Value: PermissionEffect.Values.Allow }) { /* … */ }
 
 Some operations put their inputs in the query string rather than the body, and the request record
 carries those members instead. They are ordinary nullable members — a query member that is null is
-simply not written, and the server's own default applies:
+simply not written, and the server's own default applies. This export example needs the
+[`OPENCODE001` opt-in](experimental.md#opencode001):
 
 ```csharp
 var export = await client.Experimental.GetSessionExportAsync("ses_1", new ExperimentalSessionExportRequest
@@ -169,7 +169,7 @@ which one an operation reads is the document's decision, not yours to pick.
 only operations that resolve location from those headers read it:
 
 ```csharp
-var scoped = await client.Sessions.ListSessionsAsync(requestOptions: new OpenCodeRequestOptions
+var scoped = await client.Plugins.ListPluginsAsync(requestOptions: new OpenCodeRequestOptions
 {
     Location = new LocationSelector { Directory = "/repo/service" },
 });
@@ -208,9 +208,9 @@ so one per-call argument selects both it and the header override.
 
 A call fails with `OpenCodeTransportException` when the network makes no progress for a while:
 no response headers, or no new bytes of the body. That window is 100 seconds by default. Change it
-for the whole client, or for one call. On the session log a per-call `NetworkTimeout` overrides the
-client value only while opening it; once open, it stays open until you stop reading, the server
-ends it, or it fails. Automatic cursor traversals apply the window separately to every page request,
+for the whole client, or for one call. On the durable session event stream a per-call
+`NetworkTimeout` overrides the client value only while opening it; once open, it stays open until
+you stop reading, the server ends it, or it fails. Automatic cursor traversals apply the window separately to every page request,
 not to the whole walk. The event bus refuses a per-call `NetworkTimeout`, including
 `Timeout.InfiniteTimeSpan`: it has windows of its own, set apart from this one, and
 [reconnects](streaming.md) instead:
@@ -228,14 +228,16 @@ var sessions = await client.Sessions.ListSessionsAsync(requestOptions: new OpenC
 });
 ```
 
-Five calls answer only when work ends, so they wait with no window at all and your
+Seven calls answer only when work ends, so they wait with no window at all and your
 cancellation token is their deadline:
 
 - `client.Experimental.WaitForSessionAsync`, which waits for a session to go idle;
 - `session.RunShellCommandAsync`, which waits for the shell command to exit;
 - `session.RunCommandAsync`, which waits for the command to finish its work;
 - `session.GenerateTextAsync` and `client.Experimental.GenerateTextAsync`, which wait for the whole
-  generation.
+  text generation;
+- `client.Experimental.GenerateImagesAsync` and `client.Experimental.GenerateDecisionsAsync`, which
+  wait for image and decision generation.
 
 The client-wide value does not reach them; a per-call value does:
 

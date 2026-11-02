@@ -1,6 +1,6 @@
 # 🖥️ Terminals
 
-Date: 2026-11-01
+Date: 2026-11-03
 
 opencode has two terminal families, and they are genuinely different animals:
 
@@ -348,7 +348,7 @@ size coherent with its place in the send order.
 
 ## 🪟 When the daemon is unavailable
 
-**Persistent PTYs work on Windows, macOS and Linux hosts.** From the pinned 2.1.x snapshot on,
+**Persistent PTYs work on Windows, macOS and Linux hosts.** From opencode 2.1.x,
 upstream's `opencode-pty` daemon ships a `win32` binary as well as `darwin` and `linux` ones; an
 older server on Windows has none. The server says up front whether it can run the daemon:
 `Server.GetInfoAsync()` reports `Capabilities.PersistentPty`, and a server that predates the flag

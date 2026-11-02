@@ -61,7 +61,8 @@ that is off by default; without it, both deliver the marker alone.
 _Avoid_: session events (ambiguous with the live stream)
 
 **Live event stream**:
-The instance-wide event stream; the pinned operation has no filter, cursor, replay, or resume
+The instance-wide event stream; `EventSubscribeRequest.Types` filters by event type, with the initial
+`server.connected` Event always included. The operation has no cursor, replay, or resume
 channel, and is volatile by contract — a slow consumer overflows and fails the stream, and Events
 during a disconnection are missed. Every connection opens with a synthetic `server.connected`
 Event. The SDK reconnects the stream itself; a `server.connected` after the first means Events were
@@ -260,7 +261,7 @@ curation, or emission.
 
 **Contract inventory**:
 The complete operation set of the accepted document, each operation carrying its admission state
-(selected, pending, or transport-owned).
+(selected, pending, declined, or transport-owned).
 
 **Target surface**:
 The operations required to be callable; defaults to the complete contract inventory.
@@ -352,8 +353,8 @@ the catch-all).
 
 **Unknown variant carrier**:
 The per-union `Unknown*` variant preserving a tag string and raw payload for an unrecognized
-discriminator. On the event bus and session log, it can also hold a known variant that cannot be
-read; the union's prefix-tagged arm still excludes its markers from the carrier
+discriminator. On the live event stream and durable Session event stream, it can also hold a known
+variant that cannot be read; the union's prefix-tagged arm still excludes its markers from the carrier
 ([stream payload tolerance](docs/architecture/client-runtime.md#server-sent-events)).
 
 **Plugin activation**:

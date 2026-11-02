@@ -30,6 +30,7 @@ Nightly builds of `master` are on
 
 ### 📚 Documentation
 
+- Correct consumer signatures, streaming examples and terminology, provider setup, experimental opt-ins, installation guidance, and contribution routing.
 - **`EnsureAsync` warns about a service boot's resume.** A service it starts resumes every suspended
   session on the shared data, including one another process is still running, so both drive it.
   The [connection modes guide](docs/guide/connection-modes.md#-ensuring-the-background-service) says
