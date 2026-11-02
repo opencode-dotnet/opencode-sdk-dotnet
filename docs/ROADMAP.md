@@ -110,15 +110,17 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    ([#175](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/175)) and the event bus's
    upstream-parity reconnect with its configurable idle window
    ([#176](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/176)) have landed. Exit:
-   no planned capability needs a breaking construction change. The surface then freezes and
-   `1.0.0-rc.1` ships.
+   no planned capability needs a breaking construction change. The surface then freezes.
 6. **1.0 performance gate.** The benchmark coverage reviewed and extended with representative
    scenarios ([#185](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/185)), then a
    baseline run of the full suite, both before the freeze. The baseline's costs split three ways: a
    cost a public signature fixes is decided with the API review, before the surface freezes; an
-   obvious, low-risk avoidable allocation on a shipped hot path is fixed, time-boxed, before
-   `1.0.0-rc.1`; every other cost becomes an issue in milestone `1.1`. After `1.0.0-rc.1` only a
-   regression is fixed. A generator baseline and a full run of the suite on the release candidate
+   internal allocation that changes no public API is fixed before `1.0.0-rc.1`, including the
+   generated union readers of ADR-0039
+   ([#739](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/739)); every other cost
+   becomes an issue in milestone `1.1`. `1.0.0-rc.1` ships once that work ends, on the GA .NET 11
+   SDK. After `1.0.0-rc.1` only a regression is fixed. A generator baseline and a full run of the
+   suite on the release candidate
    close the gate. Exit: a reviewed full run with no unexplained regression.
 7. **Playground.** The Sandbox and the other throwaway test applications leave the repository. A
    `playground/` of small, runnable consumer samples replaces them, modeled on
