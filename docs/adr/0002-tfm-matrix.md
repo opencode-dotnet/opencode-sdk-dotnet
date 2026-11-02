@@ -8,8 +8,9 @@ no later than its end of support; the preview line may drop it earlier. A non-pr
 (`1.0.0-rc.N` or stable) is built only on a GA SDK. For 2026 that means `net11.0` joins on its
 go-live release candidate (RC1, go-live since 2026-09-08) and `net8.0` and `net9.0` leave with it,
 ahead of their end of support on 2026-11-10, giving `netstandard2.0;net472;net10.0;net11.0`.
-net472 exists for Framework-exact compile paths (`#if NET472`: ServicePointManager connection
-limits, process tree-kill). netstandard2.0 rides the same downlevel tax already paid for net472 and is a
+net472 exists for Framework-exact behavior (ServicePointManager connection limits on the downlevel
+transport and process tree-kill through the shared Windows `taskkill /T /F` path). netstandard2.0 rides
+the same downlevel tax already paid for net472 and is a
 compatibility asset, not a supported runtime of its own: consumers on other runtimes (Unity, Mono,
 .NET versions past their support) can install it, but support and testing cover the targeted
 runtimes only. The net472 CI leg is its proxy coverage. The downlevel tax is paid once via Polyfill

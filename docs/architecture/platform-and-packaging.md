@@ -1,6 +1,6 @@
 # Platform and Packaging Architecture
 
-Date: 2026-10-14
+Date: 2026-11-02
 
 Canonical current rules for target frameworks, package boundaries, repository shape, versioning,
 distribution, dependencies, and licensing.
@@ -110,8 +110,8 @@ Two separate API vintages shape the downlevel legs, and conflating them would mi
 
 ## Repository and versioning
 
-The MCP server lives in a sibling repository of the `opencode-dotnet` organization and consumes the
-SDK as a published package; it remains a thin adapter over the SDK (ADR-0030).
+The MCP server will live in a sibling repository of the `opencode-dotnet` organization and consume the
+SDK as a published package; it will remain a thin adapter over the SDK (ADR-0030).
 
 `OpenCode.Sdk` and `OpenCode.Sdk.Extensions` version in lockstep: one version source stamps both
 packages, every release ships both, and Extensions depends on the SDK release it ships with through

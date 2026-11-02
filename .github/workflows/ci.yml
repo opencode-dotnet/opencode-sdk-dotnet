@@ -187,8 +187,8 @@ jobs:
       - name: Verify generated output
         run: dotnet run --file tools/opencode-tool.cs -- generate --verify
 
-      # Hand-written src/ and tools/ may not gain a clone their committed baselines do not hold;
-      # tests and generated output are reported.
+      # Hand-written src/, tools/ and tests/ may not gain a clone their committed baselines do not hold;
+      # generated output is reported.
       - name: Verify clones
         run: dotnet run --file tools/opencode-tool.cs -- verify-clones --report-directory "${{ runner.temp }}/clone-reports"
 

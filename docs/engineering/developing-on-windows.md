@@ -1,6 +1,6 @@
 # Developing on Windows
 
-Date: 2026-10-16
+Date: 2026-10-31
 
 Operational guidance for a Windows workstation. Everything here is about the developer's machine;
 the test suite's own isolation rules live in `testing-style.md` and the gates in `quality-gates.md`.

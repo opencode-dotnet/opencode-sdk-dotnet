@@ -1,6 +1,6 @@
 # Repository Workflow
 
-Date: 2026-10-16
+Date: 2026-10-20
 
 Canonical working agreements for research, implementation, temporary work, verification, and Git
 history.

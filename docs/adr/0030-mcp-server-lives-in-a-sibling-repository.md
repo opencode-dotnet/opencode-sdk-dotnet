@@ -2,7 +2,7 @@
 
 Date: 2026-09-29
 
-The MCP server is developed in its own repository in the `opencode-dotnet` organization, not in
+The MCP server will be developed in its own repository in the `opencode-dotnet` organization, not in
 this one. It stays a thin adapter over the SDK, but it is a different product for a different
 reader — the user of an MCP client rather than a .NET developer — with its own distribution (a
 tool or a container rather than a library) and its own release rhythm. It consumes the SDK as a

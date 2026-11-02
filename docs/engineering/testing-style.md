@@ -46,7 +46,7 @@ sized to need:
   (`SpecScenario` and `SpecDocumentBuilder` live in `tests/OpenCode.Sdk.Tools.Tests/Support/`; the
   promoted class name is illustrative.)
 - **Domain-aware fluent builders.** Scenario state is expressed in domain verbs
-  (`WithSchema(...)`, `WithOperation(...)`, `WithResponse(...)`), not raw file writes
+  (`WithSchema(...)`, `WithOperation(...)`, `Response(...)`), not raw file writes
   scattered through test bodies. Builders compose over the canonical filesystem fake and
   follow coding-style rules (sealed, no tuple returns, no concrete-collection parameters);
   where they live follows the test layout below.

@@ -62,20 +62,16 @@ generator's format pass strips it; structural unions override `ToString()` for t
   ever changes.
 - Every open `AdditionalProperties` bag must be decided by a `redactedOpenMembers` row, and the bind
   refuses an undecided one, as the secret-name wall refuses an undecided member; an open bag has no
-  wire name for the floor or the wall to match. At the pin the open models are `ProviderSettings`,
-  `ConfigProviderSettings`, `ModelSettings`, and `ConfigModelSettings`, and each row is
-  `redact: true`, because upstream reads those rest keys as AI SDK provider options that carry
-  credentials (`apiKey`, `bearerToken`, AWS access keys). A masked bag prints `[REDACTED]` while it
+  wire name for the floor or the wall to match. Bags whose rest keys upstream reads as AI SDK
+  provider options are masked because those options carry credentials (`apiKey`, `bearerToken`,
+  AWS access keys). A masked bag prints `[REDACTED]` while it
   holds an open member and empty while it holds none; a `redact: false` bag prints as the compiler
   would. A record printed the bag's type name before, so the masking rows, like the map rows, keep
   the value out if printing ever changes.
 - A union whose known arms reach a masked member at any depth — through object members, list
   elements, dictionary values, nested unions, and structural-union arms — prints the payload its
   unknown arm preserves as `[REDACTED]` and keeps that arm's marker visible, since an arm the pin
-  does not know may carry the same secret. At the pin that is `UnknownCredentialValue`,
-  `UnknownMcpServerConfig`, and `UnknownConfigEntry` (a configuration document reaches masked maps through its
-  MCP servers, providers, agents, formatters, and LSP servers), and the Unknown arm of the structural unions `McpRemoteConfigOAuth`, `ConfigInfoFormatter`,
-  `ConfigInfoLsp`, and `ConfigLspEntry`.
+  does not know may carry the same secret.
 - Masking is a printing concern only: equality, serialization, and the members' values are
   unchanged.
 - A refresh that adds a secret-shaped member fails generation until a row decides it; the

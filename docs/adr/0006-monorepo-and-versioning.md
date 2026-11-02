@@ -8,8 +8,8 @@ Status: the MCP server's repository placement is ADR-0030's.
 packages, and every release ships both. Extensions is the SDK's dependency-injection door and
 changes with the SDK's surface, so one number tells a consumer which pair belongs together.
 Extensions depends on the SDK through an ordinary NuGet dependency on the release it ships with.
-The MCP server lives in its sibling repository (ADR-0030), consumes the SDK as a published package,
-and versions on its own.
+The MCP server will live in its sibling repository (ADR-0030), consume the SDK as a published package,
+and version on its own.
 
 No package version aligns with upstream opencode versions. Alignment would force the SDK's own
 features onto patch releases; the 2.0 rename wave was absorbed by an explicit breaking major

@@ -11,7 +11,7 @@ of internal research, 2026-08-08, ".NET SDK design decisions: packaging, process
 §1, was overturned by the maintainer on this argument).
 Hand-written remains the identity core: transport pipeline, SSE engine, launcher,
 exception hierarchy, envelope base, options types, DI extensions. One recorded
-family-ownership exception exists: the normal PTY family's public doors are hand-written
+family-ownership exception exists: the normal and persistent PTY families' public doors are hand-written
 over generated internals (ADR-0021).
 
 **Streaming operations are generated on the same rule.** An SSE endpoint is an ordinary

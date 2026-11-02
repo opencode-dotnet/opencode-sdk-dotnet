@@ -4,7 +4,7 @@ Date: 2026-09-12
 
 A generated **marked union** is emitted as an interface, and each wire schema stays one
 `sealed record` implementing every union it belongs to. Membership is not expressible as a base
-class because a schema can belong to more than one union: 41 of the 43 branches of
+class because a schema can belong to more than one union: most branches of
 `Session.Event.Durable` are also direct branches of `V2Event`, so the same leaf must answer to both
 the durable log stream and the live event bus. C# allows one base class, and the binder already
 refuses this by name — *"schema cannot derive from both '…' and '…'"* — which would leave
@@ -15,8 +15,8 @@ wire field the leaf satisfies both contracts with one property.
 
 The interface declares the union's discriminator and every property its members already agree on.
 A union whose members each carry the same shape but no common type forces a consumer to switch over
-concrete types to read it: 43 arms of the durable session log each declare a `durable` envelope of
-`{ aggregateID, seq, version }`, so a generic relay had to name 43 leaves to read a sequence
+concrete types to read it: every arm of the durable session log declares a `durable` envelope of
+`{ aggregateID, seq, version }`, so a generic relay had to name every leaf to read a sequence
 number. Upstream's TypeScript consumers reach the same value structurally (`"durable" in event`);
 the .NET projection loses that unless the interface says it. Hoisting is projection, not invention:
 every member already declares the property, and the wire contract is untouched.
@@ -126,11 +126,11 @@ The `net472` leg compiles here and is exercised by the Windows CI matrix (ADR-00
   emitter, but it pushes an exhaustive concrete-type switch onto every generic consumer, including
   this repository's own test suite, and such a switch goes quietly incomplete at the next refresh
   that adds an arm.
-- **Collapse the identical promoted records into one type** — rejected: it deletes 43 public types
+- **Collapse the identical promoted records into one type** — rejected: it deletes the separate public types
   and breaks one type per wire schema, and it would fuse shapes the pin keeps separate and may
   diverge.
 - **Have the unknown carrier project the hoisted member from its raw payload** — rejected: the
   carrier exists because the payload's meaning is unknown, so reading a typed member out of it
   would invent one (ADR-0003), and a body with no envelope has nothing to read.
 - **Expose a `TryGetDurable`-shaped accessor instead of a nullable property** — rejected: honest
-  for the carrier, but it gives 43 known arms an out-parameter dance for a value they always carry.
+  for the carrier, but it gives every known arm an out-parameter dance for a value they always carry.

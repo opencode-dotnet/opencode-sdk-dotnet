@@ -24,9 +24,8 @@ Enrichment is forbidden: auth behavior, location headers, fixed ticket values, W
 and every other server-only fact stay hand-written runtime behavior and assurance evidence. Identity
 and naming defects are not patched either — they ride reason-bearing operation-identity curation
 rows (ADR-0013). ADR-0013 governs what generation consumes; this record governs how the consumed
-document is produced. Once prepare/verify/apply tooling exists, the standing cadence is a refresh to
-the latest resolved upstream commit (plus active patches) at the start of every working session,
-each through its own receipt; until then refreshes remain deliberate maintainer acts. Observation
+document is produced. The standing cadence is a refresh to the latest resolved upstream release tag
+right before a release (ADR-0034), each through its own receipt. Observation
 lanes never mutate accepted state, run upstream from git source at resolved SHAs through a pinned
 bun toolchain with install scripts disabled, and never install upstream npm artifacts.
 

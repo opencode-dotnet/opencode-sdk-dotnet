@@ -384,7 +384,8 @@ timings are indicative only — never quoted as evidence. The full suite under t
 as milestone evidence when an arc of work completes, from a clean copy outside the repository
 (BenchmarkDotNet locates the project by name from the solution root and refuses duplicate copies
 such as scratch clones). Whatever the tier, before/after runs stay within one environment, and
-allocation is the primary comparison. The performance project adds a net472 target on Windows only;
+allocation is the primary comparison. The performance project adds a net472 target on Windows, where
+it runs; elsewhere `IncludeNet472Tests` adds it for a build that only compiles;
 net472 numbers come from the `--runtimes` net472 leg of the canonical invocation below, never from
 net10 or source-equivalent probes.
 Benchmarks run on the host's own power plan; a host that needs a stable plan for a measurement
