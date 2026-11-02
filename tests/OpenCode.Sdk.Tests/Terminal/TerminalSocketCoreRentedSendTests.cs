@@ -69,11 +69,11 @@ public sealed class TerminalSocketCoreRentedSendTests
         using var release = new ManualResetEventSlim();
         var entered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         var released = false;
-        var first = Task.Run(() => SendRented(core, pool, new TerminalSendActions(OnSent: () =>
+        var first = DedicatedThread.Run(() => SendRented(core, pool, new TerminalSendActions(OnSent: () =>
         {
             _ = entered.TrySetResult(true);
             released = release.Wait(HangGuard.Bound);
-        }, PayloadRented: true), CancellationToken.None));
+        }, PayloadRented: true), CancellationToken.None)).Unwrap();
         var disposal = Task.CompletedTask;
         try
         {
@@ -204,13 +204,13 @@ public sealed class TerminalSocketCoreRentedSendTests
         var outcomeSet = false;
         try
         {
-            var send = core.SendAsync(() =>
+            var send = DedicatedThread.Run(() => core.SendAsync(() =>
             {
                 socket.ReleaseReceives();
                 outcomeSet = entered.Wait(HangGuard.Bound);
                 buffer = pool.Rent(PayloadLength);
                 return new ArraySegment<byte>(buffer, 0, PayloadLength);
-            }, WebSocketMessageType.Text, TerminalSendActions.Rented, CancellationToken.None);
+            }, WebSocketMessageType.Text, TerminalSendActions.Rented, CancellationToken.None)).Unwrap();
             var failure = await Assert.That(send.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
             await Assert.That(outcomeSet).IsTrue();
             await Assert.That(failure!.Message).Contains("1011");

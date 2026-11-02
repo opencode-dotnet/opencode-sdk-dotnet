@@ -59,7 +59,7 @@ public sealed class PipelineExchangeTests
         var typeInfo = JsonMetadataServices.CreateValueInfo<string>(options, new BlockingConverter(entered, release));
         var exchange = CreateExchange([]);
         using var warm = CreateMessage(exchange, "warm", typeInfo);
-        var first = Task.Run(() => CreateMessage(exchange, "first", typeInfo));
+        var first = DedicatedThread.Run(() => CreateMessage(exchange, "first", typeInfo));
         try
         {
             _ = await Task.WhenAny(first, entered.Task);
