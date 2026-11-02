@@ -55,18 +55,19 @@ a different place from upstream, the difference is a recorded divergence.
 
 ## Target frameworks
 
-No target the packages ship today has these primitives in the BCL or in a faithful Polyfill
-backport, so the seams are the SDK's own code on all of them. When `net11.0` joins, each seam is
-checked against its .NET 11 primitive, primitive by primitive. Where the primitive gives upstream's
-result, the `net11.0` build uses it. Where it does not, the own seam stays and the reason is recorded
-here.
+No target the packages ship has all of these primitives in the BCL or in a faithful Polyfill
+backport, so the seams are the SDK's own code on every target. A primitive is adopted when it gives
+upstream's result on every target the packages ship.
 
-On .NET 11 the inherited-handle list and the exit status are equivalent. These are not:
+On `net11.0`:
 
 - `StartDetached` starts the new session, but keeps the child's ignored signals ignored.
 - `Process.Signal` signals a single pid only.
 - The `KillOnParentExit` job lacks the silent-breakaway limit libuv sets, so the descendants the
-  server detaches would die with the owner.
+  server detaches die with the owner.
+- The exit status needs `Process.Start`, which installs a process-wide SIGCHLD handler, and it
+  refuses a process it did not start.
+- The inherited-handle list gives upstream's result, on that target alone, so the own seam stays.
 
 ## Considered options
 
@@ -75,8 +76,8 @@ On .NET 11 the inherited-handle list and the exit status are equivalent. These a
   that ignores end-of-stream running indefinitely. Detached descendants that upstream deliberately
   leaves alone get killed. Every one of these is observable and none has a reason (ADR-0031).
 - **Use .NET 11's `Process` features only.** Rejected for today. The shipped targets do not have
-  them, `net10.0` is supported until November 2028, and three of the five primitives are not
-  equivalent even on .NET 11. They are adopted per primitive once `net11.0` is a target.
+  them, `net10.0` is supported until November 2028, and four of the five primitives do not give
+  upstream's result even on .NET 11. See Target frameworks.
 - **Close stdin first and let the server shut down gracefully.** Rejected as the first rung. A server
   that exits on end-of-stream releases none of its children: the end-of-stream lease reaches only
   the root, so the children are orphaned. On Windows upstream ends its server by force, so the

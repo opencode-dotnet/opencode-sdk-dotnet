@@ -54,8 +54,10 @@ error as the inner exception.
 
 ## Consequences
 
-- Reversal: .NET 11 adds `Process.StartDetached` and `StandardInputHandle` /
-  `StandardOutputHandle` / `StandardErrorHandle`. The light-up must set both `StartDetached`
+- Reversal: `Process.StartDetached` and `StandardInputHandle` / `StandardOutputHandle` /
+  `StandardErrorHandle` reset a child's ignored signals on Unix, and are on every target the
+  packages ship (ADR-0032's rule). On `net11.0` they don't reset them, so the seam stays. A
+  light-up must set both `StartDetached`
   and `CreateNewProcessGroup` on Windows (`StartDetached` alone is only `DETACHED_PROCESS`;
   verified against dotnet/runtime `release/11.0` @ `d5666ccb`), and on Linux the runtime
   detaches with fork + `setsid` in the child rather than `POSIX_SPAWN_SETSID` (the flag
