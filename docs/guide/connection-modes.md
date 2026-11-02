@@ -204,6 +204,7 @@ the roots is state separation, not a guarantee of configuration or tool isolatio
 `client.Experimental.UpdateConfigAsync` writes the global config and schedules a reload only of
 the calling location, after a short debounce. It returns before that reload runs. Other loaded
 locations reload only through their file watchers, which can be disabled or unavailable.
+This experimental call needs the [`OPENCODE001` opt-in](experimental.md#opencode001).
 To make every loaded location see the change, call `client.ReloadLocationsAsync()`: it rebuilds
 them, cancelling pending permissions and forms; running sessions continue with fresh services at
 the next step boundary.
@@ -637,7 +638,8 @@ and `OperationCanceledException` for your own token.
 
 ## 🧩 Registering with dependency injection
 
-`OpenCode.Sdk.Extensions` adds `AddOpenCode` to `IServiceCollection`. It registers **one
+The `OpenCodeDotNet.Sdk.Extensions` package adds `AddOpenCode` to `IServiceCollection` in the
+`Microsoft.Extensions.DependencyInjection` namespace. It registers **one
 `OpenCodeClient` singleton** and **each of the 27 families as its own singleton**, each only when
 the container does not already hold that service type. A consumer's earlier registration of the
 root client or any sub-client wins; repeated calls add no duplicate client registrations. Existing

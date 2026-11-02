@@ -1,20 +1,20 @@
 # 📡 Streaming
 
-Date: 2026-10-31
+Date: 2026-11-02
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
-transport as ordinary calls: the **global event bus** for everything happening in the server
-process, and the **per-session log** for one conversation.
+transport as ordinary calls: the **live event stream** for everything happening in the server
+process, and the **durable session event stream** for one conversation.
 
-- [🔊 The global event bus](#-the-global-event-bus)
+- [🔊 The live event stream](#-the-live-event-stream)
 - [📜 A single session's log](#-a-single-sessions-log)
 - [🧩 Unknown events do not break your consumer](#-unknown-events-do-not-break-your-consumer)
 - [⏹️ Cancellation and lifetime](#️-cancellation-and-lifetime)
 - [💥 Streams always throw](#-streams-always-throw)
 
-## 🔊 The global event bus
+## 🔊 The live event stream
 
-`EventsClient.SubscribeAsync(OpenCodeRequestOptions?, CancellationToken)` yields `IEvent` — the union of every event the
+`EventsClient.SubscribeAsync(EventSubscribeRequest?, OpenCodeRequestOptions?, CancellationToken)` yields `IEvent` — the union of every event the
 pinned snapshot declares. Pattern-match the ones you care about and let the rest fall through:
 
 ```csharp
@@ -81,7 +81,7 @@ form's fields. `IFormField.Key` and other members read through a union interface
 the unknown-arm carrier has no typed values. Fail explicitly for a missing key or an unsupported
 field rather than using `!` or silently omitting it; this recipe handles `FormStringField` only.
 
-Reject settles every pending ask of the session (`packages/core/src/permission.ts:276-295`);
+Reject settles every pending ask of the session;
 without feedback, the turn is interrupted once the step's tools settle. This recipe answers what
 is still pending and treats a sibling its Reject already settled as done, as upstream's client
 does, but tolerates typed not-found only after its own earlier Reject in that session: a
@@ -156,7 +156,8 @@ static async Task<IReadOnlyList<IEvent>> AnswerAsksAsync(
                 catch (OpenCodeApiException error) when (error.Error is PermissionNotFoundError
                     && rejectedSessions.Contains(created.Session.Id))
                 {
-                    // Reject settles every pending ask of the session (permission.ts:276-295); like upstream's client (packages/client/src/solid/data.ts:1809-1815), a sibling it settled answers not found.
+                    // Reject settles every pending ask of the session; like upstream's client,
+                    // a sibling it settled answers not found.
                     replies.Add((ask.Data.Id, "absorbed"));
                 }
                 break;
@@ -282,8 +283,8 @@ while (!turnEnded && await events.MoveNextAsync())
             delivered = true;
             break;
         case SessionTextDelta { Data: var delta } when delivered:
-            var part = (delta.AssistantMessageId, delta.Ordinal);
-            texts[part] = texts.TryGetValue(part, out var sofar) ? sofar + delta.Delta : delta.Delta;
+            var content = (delta.AssistantMessageId, delta.Ordinal);
+            texts[content] = texts.TryGetValue(content, out var sofar) ? sofar + delta.Delta : delta.Delta;
             Console.Write(delta.Delta);
             break;
         case SessionTextEnded { Data: var ended } when delivered:
@@ -309,10 +310,10 @@ while (!turnEnded && await events.MoveNextAsync())
   your prompt from its inbox, `SessionInboxDelivered` arrives with your id as its `InboxId`. Text the
   session streams before that moment belongs to an earlier turn.
 - **`SessionTextDelta` carries the text; `SessionTextEnded` carries the final value.** Append each
-  delta's `Delta` to its part, and when the part ends, replace what you have with `Text`. A part is
-  identified by its `AssistantMessageId` and `Ordinal`, because one answer can hold several text
-  parts. Deltas are live only and are never stored, whereas `SessionTextEnded` is durable and is
-  what the session's messages keep.
+  delta's `Delta` to its assistant content, and when that content ends, replace what you have with
+  `Text`. Content is identified by its `AssistantMessageId` and `Ordinal`, because one answer can hold
+  several text fragments. Deltas are live only and are never stored, whereas `SessionTextEnded` is
+  durable and is what the session's messages keep.
 - **Reasoning is separate.** `SessionReasoningDelta` and `SessionReasoningEnded` have the same shape
   for the model's reasoning; keep them out of the answer.
 - **The turn ends with one of the three execution events.** They report the session going idle, not
@@ -320,10 +321,21 @@ while (!turnEnded && await events.MoveNextAsync())
   them, so the event you stop on covers your prompt and anything delivered with it.
 
 Messages already settled are on the session too: `EnumerateMessagesAsync` returns them, with each
-text part in its final form.
+text content in its final form.
 
-**This bus is live and volatile, by the server's design, not the SDK's.** It has no filter, no
-cursor, no replay, and no resume channel:
+`EventSubscribeRequest.Types` filters by event type; the initial `server.connected` still arrives.
+Omit `Types` to receive every event:
+
+```csharp
+await foreach (var @event in client.Events.SubscribeAsync(
+    new EventSubscribeRequest { Types = [EventType.SessionTextDelta] }, cancellationToken: window.Token))
+{
+    Console.WriteLine(@event.Type);
+}
+```
+
+**This stream is live and volatile, by the server's design, not the SDK's.** It has no cursor,
+no replay, and no resume channel:
 
 - Events published while you were disconnected are **gone**. There is no backfill to ask for.
 - A consumer slower than the producer can overflow and fail the stream.
@@ -406,7 +418,7 @@ await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: can
 }
 ```
 
-The per-session log below is the stream with a cursor, but it delivers events only from a server
+The durable session event stream below has a cursor, but it delivers events only from a server
 started with event persistence — and the CLI you install does not start one that way; the note on
 guarantees below has the whole story.
 
@@ -452,7 +464,7 @@ await foreach (var item in client.Experimental.ReadSessionLogAsync(
 ```
 
 The log is exactly *durable events plus one marker*, with unknown carriers for unreadable items. Every
-durable event — all 43 of them — implements `ISessionEventDurable`, which carries the members they
+durable event — all 47 of them — implements `ISessionEventDurable`, which carries the members they
 all declare: `Id`, `Created`, `Metadata`, `Location`, and the `Durable` envelope with
 `AggregateId`, `Seq`, and `Version`. The marker is not one of them: `log.synced` is a transition
 boundary rather than something committed against the aggregate, so it sits beside the durable union
@@ -518,7 +530,7 @@ them. The marker is a transition boundary, not a durable event to save as the ne
 > persistence enabled; this repository's own simulation host does exactly that for its tests.
 >
 > For live session activity from a CLI-started server, subscribe to the
-> [global event bus](#-the-global-event-bus) and filter by session id —
+> [live event stream](#-the-live-event-stream) and filter by session id —
 > `SessionRenamed.Data.SessionId`, for example. It is a different stream: the instance-wide
 > `IEvent` union rather than one session's `ISessionLogItem`s, with no replay, no cursor, and no
 > sync marker, and recovery after a disconnect is yours.
@@ -542,7 +554,8 @@ case UnknownEvent unknown:
     break;
 ```
 
-The per-session log has the same escape hatch, `UnknownSessionLogItem`, with the same two members.
+The durable session event stream has the same escape hatch, `UnknownSessionLogItem`, with the same
+two members.
 On both streams, a **known** `type` can also arrive as that unknown arm: if normal decoding throws
 a `JsonException` and the existing carrier can preserve the frame, the stream delivers it and its
 neighbours on the same connection or request. The carrier exposes `Type` and raw `Payload`, not the
@@ -556,8 +569,9 @@ interface promises are nullable: a carrier answers `null` for every one of them 
 
 Invalid JSON, a non-object, and a missing, non-string, empty or whitespace-only `type` still fail
 with the original decode failure as the cause. A null payload keeps its own failure. On the bus,
-the carrier refuses `rpc.` markers, so an unreadable RPC event still fails; the session log has no
-prefix rule. These failures reconnect the bus and end the session log, as before. See the
+the carrier refuses `rpc.` markers, so an unreadable RPC event still fails; the durable session event
+stream has no prefix rule. These failures reconnect the live stream and end the durable stream, as
+before. See the
 [canonical stream rules](../architecture/client-runtime.md#server-sent-events).
 
 ## ⏹️ Cancellation and lifetime
@@ -581,7 +595,7 @@ prefix rule. These failures reconnect the bus and end the session log, as before
 - On the event bus, a connection that receives nothing for its idle window (45 seconds unless you
   set `EventStreamIdleTimeout`) is replaced, as above. It refuses a per-call `NetworkTimeout`,
   including `Timeout.InfiniteTimeSpan`; its connection and idle windows apply instead. On the
-  session log, a per-call `NetworkTimeout` overrides the client value only while opening:
+  durable session event stream, a per-call `NetworkTimeout` overrides the client value only while opening:
   once open, a silent log stays open until you cancel,
   the server ends it, or it fails.
 
@@ -591,7 +605,7 @@ Streaming operations take `requestOptions`, but return a stream, not a response 
 [`NoThrow`](errors-and-responses.md#-ask-for-the-failure-as-data-instead) is refused with
 `ArgumentException` naming `requestOptions` at the call, before enumeration; an undefined
 `ErrorBehavior` is also refused. Per-call `Location` is sent on every connection attempt, including
-reconnects; it does not filter the global event bus or change a session's directory. There is no
+reconnects; it does not filter the live event stream or change a session's directory. There is no
 envelope to put an error on, so every failure is an exception:
 
 ```csharp

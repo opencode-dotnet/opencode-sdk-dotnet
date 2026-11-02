@@ -1,6 +1,6 @@
 # 🚀 Getting started
 
-Date: 2026-10-23
+Date: 2026-11-02
 
 Install the package, point a client at a server, and make three calls. Ten minutes, and the last
 one talks to a model.
@@ -48,6 +48,8 @@ template's implicit usings need C# 10. Set both properties in the project file:
 
 Nothing else is needed — no extra package and no polyfill; the packages' `net472` dependencies
 arrive with them. A project without implicit usings can use `9.0`.
+The guides' snippets use newer syntax, including collection expressions: set `LangVersion` to
+`12.0` to use them. That is a snippet requirement, not the packages' minimum.
 
 ## 🔌 Construct a client
 
@@ -67,7 +69,8 @@ using var client = new OpenCodeClient(new OpenCodeClientOptions
 });
 ```
 
-`OpenCodeClientOptions` has four members, and only the first is normally yours to think about:
+`OpenCodeClientOptions` has six members. Set `Endpoint` and, for a CLI-started server, `Password`;
+the rest have defaults:
 
 | Member | Type | Meaning |
 |---|---|---|
@@ -75,6 +78,8 @@ using var client = new OpenCodeClient(new OpenCodeClientOptions
 | `Password` | `string?` | The HTTP Basic password. Required for any server the `opencode` CLI started — it always runs with one, generated and printed as `server password <pw>` when you set none. `null` sends no credential at all, which only a server embedded without authentication accepts; any other value is sent exactly as written. |
 | `Username` | `string` | The Basic username. Defaults to `opencode` — the only username the pinned server accepts — so leave it alone unless upstream changes. |
 | `Location` | `LocationSelector?` | The ambient directory header values, overridable per call; only operations that resolve location from those headers use them. |
+| `NetworkTimeout` | `TimeSpan?` | The ordinary call's no-progress window; `null` means 100 seconds. See [call windows](requests.md#️-how-long-a-call-may-wait) for exceptions and per-call overrides. |
+| `EventStreamIdleTimeout` | `TimeSpan?` | The live event stream's idle window; `null` means 45 seconds. Keep it above the server's 15-second keepalive; see [reconnection](streaming.md#-a-live-bus-that-reconnects). |
 
 Session creation selects its location from `SessionCreateRequest.Location`; leaving it unset uses
 the server's working directory. Session listing filters with `SessionListRequest.Directory` or
@@ -101,7 +106,7 @@ var info = await client.Server.GetInfoAsync();
 Console.WriteLine($"opencode {info.ServerInfo.Version} (pid {info.ServerInfo.Pid})");
 ```
 
-`GetLocationAsync` is the only operation directly on the root client. Status lives on `Server`.
+`GetLocationAsync` and `ReloadLocationsAsync` live directly on the root client. Status lives on `Server`.
 
 ### Create a session and send a prompt
 
@@ -141,8 +146,7 @@ await session.PromptAsync(new SessionPromptRequest { Text = "Summarize this repo
 
 while (await events.MoveNextAsync())
 {
-    if (events.Current is SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted
-        && events.Current is ISessionScopedEvent { SessionId: var id } && id == created.Session.Id)
+    if (EndsTurn(events.Current, created.Session.Id))
     {
         break;
     }
@@ -160,8 +164,9 @@ await foreach (var message in session.EnumerateMessagesAsync(new SessionMessageL
 }
 ```
 
-The server publishes exactly one of the three ending events each time the session goes from
-working to idle, and the deadline is yours to set. [Streaming](streaming.md#-waiting-for-a-turn-to-end)
+Use the `EndsTurn` and `SessionOf` helpers from [Streaming](streaming.md#-waiting-for-a-turn-to-end)
+with this snippet. The server publishes exactly one of the three ending events each time the
+session goes from working to idle, and the deadline is yours to set. [Streaming](streaming.md#-waiting-for-a-turn-to-end)
 explains the order and why `SessionIdle` is not the event to wait for.
 
 `client.Experimental.WaitForSessionAsync(created.Session.Id)` waits for the same moment in one
@@ -169,6 +174,15 @@ call, without the bus. Upstream serves it as an experimental route, so it needs 
 [opt-in](experimental.md#opencode001) and may still move.
 
 ### Choosing a model
+
+Free `opencode/*` models work out of the box, with no login. Their list changes, and they have
+limits: a turn can fail with `provider.free-limit`. What your agent sends, including prompts, goes
+to that model's third-party provider.
+
+To connect your own provider, use the CLI's `opencode auth login [<target>]`. The optional target
+is an integration ID, name, or well-known provider URL; the command connects that integration,
+which the server then picks up. `opencode auth list` lists integrations and credentials.
+`client.Providers` and `client.LanguageModels` show what is available, as below.
 
 Leave `Model` unset on the session to let the server choose at turn time. A session
 with no model prefers the selected agent's configured model and variant when that model is
@@ -246,9 +260,9 @@ another. Creating a session is different: its directory comes from the request b
 [per-call location](requests.md#-per-call-location).
 
 And **provider inventory is the machine's ambient opencode configuration**, not something the SDK
-or the launcher supplies. A host with no provider credentials configured lists nothing, and
-`OpenCodeServer.StartAsync` does not change that — it starts a fresh process, not a fresh machine.
-`GetDefaultAsync()` can legitimately return a null `Default` on such a host.
+or the launcher supplies. With no login, the catalog still holds the free `opencode/*` models.
+`OpenCodeServer.StartAsync` starts a fresh process, not a fresh machine; `GetDefaultAsync()` can
+legitimately return a null `Default`.
 
 To change an existing session's model, use `SessionClient.SwitchModelAsync` through `client.Sessions.GetSessionClient(id)`; it affects later turns, and an unavailable model is reported only when a turn runs.
 
@@ -256,7 +270,7 @@ To change an existing session's model, use `SessionClient.SwitchModelAsync` thro
 
 `Experimental.GetSessionExportAsync` hands back the session plus every settled message in one `SessionTransferData`,
 and `Experimental.ImportSessionAsync` takes that same shape back at a location (answering 409 for an id that
-already exists):
+already exists); both need the [`OPENCODE001` opt-in](experimental.md#opencode001):
 
 ```csharp
 var export = await client.Experimental.GetSessionExportAsync(created.Session.Id, new ExperimentalSessionExportRequest { Sanitize = true });

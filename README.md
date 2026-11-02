@@ -70,8 +70,9 @@ The HTTP API has no file-content search: `FileSystemClient.FindEntriesAsync` ran
 
 | Area | Entry point | Guide |
 |---|---|---|
-| Sessions, messages, prompts, session logs | `client.Sessions` | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md), [Pagination](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/pagination.md) |
-| The global event bus | `client.Events` | [Streaming](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md) |
+| Sessions, messages, prompts | `client.Sessions` | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md), [Pagination](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/pagination.md) |
+| Durable session event streams | `client.Experimental.ReadSessionLogAsync` | [Streaming](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md) |
+| The live event stream | `client.Events` | [Streaming](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md) |
 | Terminals and persistent terminals | `client.Ptys`, `client.PersistentPtys` | [Terminals](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/terminals.md) |
 | Shell commands | `client.Shells` | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md) |
 | Files and version control | `client.FileSystem`, `client.Vcs`, `client.Worktrees` | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md) |
@@ -228,8 +229,9 @@ has every option, `EnsureAsync`, `StopAsync`, launcher output capture, and pairi
 
 ### Dependency injection
 
-`OpenCode.Sdk.Extensions` registers one `OpenCodeClient` singleton and every sub-client, each only
-when that service type is not already registered. A consumer's earlier root-client or sub-client
+The `OpenCodeDotNet.Sdk.Extensions` package provides `AddOpenCode` in the
+`Microsoft.Extensions.DependencyInjection` namespace. It registers one `OpenCodeClient` singleton
+and every sub-client, each only when that service type is not already registered. A consumer's earlier root-client or sub-client
 registration wins, and repeated `AddOpenCode` calls add no duplicate client registrations. The
 default root is thread-safe and owns its transport for the container's lifetime; default
 sub-clients resolve from the registered root, so you can inject `SessionsClient`, `EventsClient`,
@@ -266,7 +268,7 @@ binding uses reflection, so that overload is annotated `[RequiresDynamicCode]` a
 | [**The guide**](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/README.md) | Index of every page below, in reading order |
 | [Getting started](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/getting-started.md) | Install, first call, and the shape of the client family |
 | [Connection modes](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/connection-modes.md) | The standalone launcher, an external server, the background service, pairing, and DI registration |
-| [Streaming](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md) | The global event bus and per-session server-sent event streams |
+| [Streaming](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md) | The live event stream and durable session event streams |
 | [Terminals](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/terminals.md) | PTY and persistent-PTY sessions over the WebSocket doors |
 | [Errors and responses](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/errors-and-responses.md) | Throwing versus `NoThrow`, and the typed error model |
 | [Pagination](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/pagination.md) | Cursor-carrying list envelopes, `Enumerate*Async`, and its `Pages` |
@@ -318,13 +320,13 @@ has the two properties to set.
   fail the stream. This is the server's contract, not an SDK limitation. See the
   [streaming guide](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md).
 
-- **A CLI-started server's session log holds only the sync marker.** The per-session log reads from
+- **A CLI-started server's durable session event stream holds only the sync marker.** It reads from
   the server's event store, and the distributed `opencode` CLI starts its server without event
   persistence. No flag, environment variable, or configuration key turns it on (confirmed at the
   pin; observed on `@opencode/cli@2.0.15`). `ExperimentalClient.ReadSessionLogAsync` does not
   fail: with or without `Follow`, it delivers one `log.synced` frame, normally materialized as
-  `EventLogSynced`, and no durable events. For live session activity, subscribe to the global event
-  bus and filter by session id. Persisted replay needs a host that embeds the opencode server
+  `EventLogSynced`, and no durable events. For live session activity, subscribe to the live event
+  stream and filter by session id. Persisted replay needs a host that embeds the opencode server
   library with persistence enabled.
 
 - **On `net472` and `netstandard2.0`, some costs are larger than on modern targets.** A response body
@@ -368,8 +370,9 @@ is a committed playground that drives the SDK against a real `opencode serve` un
 
 Got questions or wild feature ideas?
 
-👉 Open an [issue](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues) — bug reports,
-questions, and proposals all land there for now.
+👉 Blank issues are disabled. Use the [missing-operation form](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new?template=operation_gap.yml)
+for a missing operation; use the [bug form](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new?template=bug_report.yml)
+for anything else, including questions and ideas, and say when it is an idea. A vulnerability goes through a private advisory instead, as [SECURITY.md](.github/SECURITY.md) says.
 
 ## Changelog
 
