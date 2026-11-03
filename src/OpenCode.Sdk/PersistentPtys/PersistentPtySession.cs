@@ -91,7 +91,7 @@ public class PersistentPtySession : IAsyncDisposable
         var core = Core;
         // Copy caller-owned input synchronously before the first wait; fill the viewport behind the send gate.
         return core.SendAsync(
-            () => PersistentPtyInputFrame.Encode(PersistentPtyInputFrame.InputType, 1, 1, input.Span, core.SendPool),
+            static state => PersistentPtyInputFrame.Encode(PersistentPtyInputFrame.InputType, 1, 1, state.Input.Span, state.Pool), (Input: input, Pool: core.SendPool),
             WebSocketMessageType.Binary, _inputActions, cancellationToken);
     }
 
@@ -116,7 +116,7 @@ public class PersistentPtySession : IAsyncDisposable
 
         var submitted = TerminalSubmission.Compose(line, nameof(line));
         var core = Core;
-        return core.SendAsync(() => PersistentPtyInputFrame.Encode(submitted, core.SendPool),
+        return core.SendAsync(static state => PersistentPtyInputFrame.Encode(state.Input, state.Pool), (Input: submitted, Pool: core.SendPool),
             WebSocketMessageType.Binary, _inputActions, cancellationToken);
     }
 
@@ -267,7 +267,7 @@ public class PersistentPtySession : IAsyncDisposable
         var viewport = new PersistentPtyInfoSize { Cols = cols, Rows = rows };
         var actions = new TerminalSendActions(OnSent: () => _viewport = viewport, PayloadRented: true);
         return core.SendAsync(
-            () => PersistentPtyInputFrame.Encode(PersistentPtyInputFrame.ControlType, cols, rows, [], core.SendPool),
+            static state => PersistentPtyInputFrame.Encode(PersistentPtyInputFrame.ControlType, state.Cols, state.Rows, [], state.Pool), (Cols: cols, Rows: rows, Pool: core.SendPool),
             WebSocketMessageType.Binary, actions, cancellationToken);
     }
 }

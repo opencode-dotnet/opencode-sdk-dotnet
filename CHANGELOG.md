@@ -31,6 +31,8 @@ Nightly builds of `master` are on
   25 MB with newlines. As trade-offs, a send holds a larger array than its body while it runs, because
   the writer reserves about three times the text and the pool rounds up, and on `net472` the SDK's
   pool can now also keep arrays after large requests, within its existing limit.
+- **A terminal write allocates less.** A keystroke on a PTY or a persistent PTY allocates about
+  792 B instead of about 1,048 B on .NET 10, and about 1,733 B instead of about 1,910 B on `net472`.
 
 ### 📚 Documentation
 

@@ -30,7 +30,7 @@ public sealed class TerminalSocketCoreRentedSendTests
         var actions = new TerminalSendActions(
             Prepare: path is "prepare" ? _ => throw injected : null,
             OnSent: path is "sent" ? () => throw injected : null, PayloadRented: true);
-        var send = core.SendAsync(() => new ArraySegment<byte>(buffer, 0, PayloadLength), WebSocketMessageType.Text, actions, CancellationToken.None);
+        var send = core.SendAsync(static state => new ArraySegment<byte>(state, 0, PayloadLength), buffer, WebSocketMessageType.Text, actions, CancellationToken.None);
         if (path is "success")
         {
             await send;
@@ -79,11 +79,11 @@ public sealed class TerminalSocketCoreRentedSendTests
         {
             await entered.Task.WaitAsync(HangGuard.Bound);
             byte[] buffer = [];
-            var queued = core.SendAsync(() =>
+            var queued = core.SendAsync(sendPool =>
             {
-                buffer = pool.Rent(PayloadLength);
+                buffer = sendPool.Rent(PayloadLength);
                 return new ArraySegment<byte>(buffer, 0, PayloadLength);
-            }, WebSocketMessageType.Text, TerminalSendActions.Rented, cancellation.Token);
+            }, pool, WebSocketMessageType.Text, TerminalSendActions.Rented, cancellation.Token);
             if (path is "timeout")
             {
                 await time.WaitForArmedAsync(core.SendTimeout, HangGuard.Bound, count: 2);
@@ -170,15 +170,15 @@ public sealed class TerminalSocketCoreRentedSendTests
         await using var core = CreateCore(socket, pool, new ManualTimeProvider());
         var payload = new ArraySegment<byte>([0x61]);
         await core.SendAsync(payload, WebSocketMessageType.Text, CancellationToken.None);
-        await core.SendAsync(() => payload, WebSocketMessageType.Text, null, CancellationToken.None);
+        await core.SendAsync(static state => state, payload, WebSocketMessageType.Text, null, CancellationToken.None);
         await AssertCountsAsync(pool, 1, 0, 1);
         await core.DisposeAsync();
         var called = false;
-        _ = await Assert.That(async () => await core.SendAsync(() =>
+        _ = await Assert.That(async () => await core.SendAsync(sendPool =>
         {
             called = true;
-            return new ArraySegment<byte>(pool.Rent(PayloadLength), 0, PayloadLength);
-        }, WebSocketMessageType.Text, TerminalSendActions.Rented, CancellationToken.None)).Throws<ObjectDisposedException>();
+            return new ArraySegment<byte>(sendPool.Rent(PayloadLength), 0, PayloadLength);
+        }, pool, WebSocketMessageType.Text, TerminalSendActions.Rented, CancellationToken.None)).Throws<ObjectDisposedException>();
         await Assert.That(called).IsFalse();
         await Assert.That(pool.RequestedLengths).IsEquivalentTo([TerminalSocketBounds.ReceiveBufferSize], CollectionOrdering.Matching);
         await AssertCountsAsync(pool, 1, 1, 0);
@@ -205,13 +205,13 @@ public sealed class TerminalSocketCoreRentedSendTests
         var outcomeSet = false;
         try
         {
-            var send = DedicatedThread.Run(() => core.SendAsync(() =>
+            var send = DedicatedThread.Run(() => core.SendAsync(sendPool =>
             {
                 socket.ReleaseReceives();
                 outcomeSet = entered.Wait(HangGuard.Bound);
-                buffer = pool.Rent(PayloadLength);
+                buffer = sendPool.Rent(PayloadLength);
                 return new ArraySegment<byte>(buffer, 0, PayloadLength);
-            }, WebSocketMessageType.Text, TerminalSendActions.Rented, CancellationToken.None)).Unwrap();
+            }, pool, WebSocketMessageType.Text, TerminalSendActions.Rented, CancellationToken.None)).Unwrap();
             var failure = await Assert.That(send.WaitAsync(HangGuard.Bound)).Throws<OpenCodeTransportException>();
             await Assert.That(outcomeSet).IsTrue();
             await Assert.That(failure!.Message).Contains("1011");
@@ -233,7 +233,7 @@ public sealed class TerminalSocketCoreRentedSendTests
         new(socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), time, pool);
 
     private static Task SendRented(TerminalSocketCore<PtyFrame> core, TrackingByteArrayPool pool, TerminalSendActions actions, CancellationToken token) =>
-        core.SendAsync(() => new ArraySegment<byte>(pool.Rent(PayloadLength), 0, PayloadLength), WebSocketMessageType.Text, actions, token);
+        core.SendAsync(static sendPool => new ArraySegment<byte>(sendPool.Rent(PayloadLength), 0, PayloadLength), pool, WebSocketMessageType.Text, actions, token);
 
     private static async Task AssertCountsAsync(TrackingByteArrayPool pool, int rents, int returns, int outstanding)
     {

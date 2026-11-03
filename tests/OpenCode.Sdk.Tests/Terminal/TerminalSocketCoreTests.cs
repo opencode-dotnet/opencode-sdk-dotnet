@@ -449,6 +449,54 @@ public sealed class TerminalSocketCoreTests
     }
 
     [Test]
+    public async Task DisposeAsync_Should_Join_An_Active_Send()
+    {
+        var time = new ManualTimeProvider();
+        using var receiver = new ScriptedTerminalWebSocket().Parking();
+        using var socket = Substitute.For<ITerminalWebSocket>();
+        var physical = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var joined = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _ = socket.ReceiveAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<CancellationToken>())
+            .Returns(call => receiver.ReceiveAsync(call.Arg<ArraySegment<byte>>(), call.Arg<CancellationToken>()));
+        _ = socket.SendAsync(Arg.Any<ArraySegment<byte>>(), Arg.Any<WebSocketMessageType>(), Arg.Any<CancellationToken>())
+            .Returns(physical.Task);
+        socket.When(value => value.Dispose()).Do(_ => receiver.Dispose());
+        await using var core = new TerminalSocketCore<PtyFrame>(
+            socket, PtyFrameDecoder.Instance, PtyClosePolicy.Instance, typeof(PtySession), time,
+            onSendJoin: drain => joined.SetResult(drain));
+        var send = core.SendAsync(new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, CancellationToken.None);
+        var disposal = core.DisposeAsync().AsTask();
+        try
+        {
+            await time.WaitForArmedAsync(TerminalSocketBounds.GracefulCloseTimeout, HangGuard.Bound);
+            time.Advance(TerminalSocketBounds.GracefulCloseTimeout);
+            var drain = await joined.Task.WaitAsync(HangGuard.Bound);
+
+            await Assert.That(drain.IsCompleted).IsFalse();
+            await Assert.That(send.IsCompleted).IsFalse();
+            await Assert.That(disposal.IsCompleted).IsFalse();
+        }
+        finally
+        {
+            _ = physical.TrySetResult(true);
+        }
+
+        Exception? joinFailure = null;
+        try
+        {
+            await Task.WhenAll(send, disposal).WaitAsync(HangGuard.Bound);
+        }
+        catch (Exception exception)
+        {
+            joinFailure = exception;
+        }
+
+        await Assert.That(send.Status).IsEqualTo(TaskStatus.RanToCompletion);
+        await Assert.That(disposal.Status).IsEqualTo(TaskStatus.RanToCompletion);
+        await Assert.That(joinFailure).IsNull();
+    }
+
+    [Test]
     public async Task DisposeAsync_Should_Share_In_Progress_Cleanup()
     {
         using var socket = new ScriptedTerminalWebSocket().GatingSends();
@@ -504,7 +552,7 @@ public sealed class TerminalSocketCoreTests
             _ = resumed.TrySetResult(true);
             released = release.Wait(HangGuard.Bound);
         });
-        var first = core.SendAsync(() => new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, holdAfterSend, CancellationToken.None);
+        var first = core.SendAsync(static payload => payload, new ArraySegment<byte>([0x61]), WebSocketMessageType.Text, holdAfterSend, CancellationToken.None);
 
         await socket.SendEntered;
         var queued = core.SendAsync(new ArraySegment<byte>([0x62]), WebSocketMessageType.Text, CancellationToken.None);
