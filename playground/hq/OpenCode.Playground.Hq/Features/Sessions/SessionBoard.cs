@@ -30,8 +30,10 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
         LastError = null;
         try
         {
+            #region panel: reply
             _ = await client.Sessions.GetSessionClient(item.SessionId).ReplyToPermissionAsync(
                 item.Id, new SessionPermissionReplyRequest { Decision = decision }, cancellationToken: cancellationToken);
+            #endregion
             _ = _needsYou.TryRemove(item.Id, out _);
         }
         catch (OpenCodeApiException exception) when (exception.Error is PermissionNotFoundError)
@@ -47,13 +49,38 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
+    public async Task AnswerFormAsync(FormInfo form, SessionFormReplyRequest reply, CancellationToken cancellationToken)
+    {
+        LastError = null;
+        try
+        {
+            #region panel: form-reply
+            _ = await client.Sessions.GetSessionClient(form.SessionId).ReplyToFormAsync(form.Id, reply, cancellationToken: cancellationToken);
+            #endregion
+            _ = _needsYou.TryRemove(form.Id, out _);
+        }
+        catch (OpenCodeApiException exception) when (exception.Error is FormNotFoundError or FormAlreadySettledError)
+        {
+            _ = _needsYou.TryRemove(form.Id, out _);
+        }
+        catch (OpenCodeException exception)
+        {
+            logger.LogWarning(exception, "Could not answer form {FormId}.", form.Id);
+            LastError = $"Could not answer the question: {exception.Message}";
+        }
+
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
+                #region panel: subscribe
                 await using var events = client.Events.SubscribeAsync(cancellationToken: stoppingToken).GetAsyncEnumerator(stoppingToken);
+                #endregion
                 // Subscribe before seeding so events cannot fall in the gap between them.
                 if (await events.MoveNextAsync())
                 {
@@ -158,9 +185,11 @@ internal sealed class SessionBoard(OpenCodeClient client, ILogger<SessionBoard> 
             case SessionExecutionSucceeded or SessionExecutionFailed or SessionExecutionInterrupted:
                 _ = _running.TryRemove(((ISessionScopedEvent)item).SessionId, out _);
                 break;
+            #region panel: asks
             case PermissionAsked asked:
                 _needsYou[asked.Data.Id] = NeedsYouItem.FromAsked(asked.Data);
                 break;
+            #endregion
             case PermissionReplied replied:
                 _ = _needsYou.TryRemove(replied.Data.RequestId, out _);
                 break;

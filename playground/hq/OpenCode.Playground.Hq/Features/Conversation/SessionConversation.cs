@@ -21,6 +21,7 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
     public async Task FollowAsync(string sessionId, CancellationToken cancellationToken)
     {
         SessionId = sessionId;
+        #region panel: follow
         await foreach (var item in client.Events.SubscribeAsync(cancellationToken: cancellationToken))
         {
             if (item is EventServerConnected)
@@ -35,6 +36,7 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
 
             Changed?.Invoke(this, EventArgs.Empty);
         }
+        #endregion
     }
 
     /// <summary>Sends a prompt with an id of HQ's own.</summary>
@@ -43,8 +45,10 @@ internal sealed class SessionConversation(OpenCodeClient client, ILogger<Session
         LastError = null;
         try
         {
+            #region panel: prompt
             _ = await client.Sessions.GetSessionClient(SessionId).PromptAsync(
                 new SessionPromptRequest { Id = $"msg_{Guid.NewGuid():N}", Text = text }, cancellationToken: cancellationToken);
+            #endregion
             _lines.Add(new ConversationLine("you", text));
         }
         catch (OpenCodeException exception)
