@@ -43,4 +43,15 @@ internal sealed class RepositoryGateScenario
 
     public RepositoryGateScenario WithPhysicalLines(string path, int count, string newline, bool finalNewline) =>
         WithFile(path, string.Join(newline, Enumerable.Repeat("// Assert.That(xs.Any()).IsTrue();", count)) + (finalNewline ? newline : string.Empty));
+
+    public RepositoryGateScenario WithSnippet(string page, string source, string info = "csharp") =>
+        Append(page, $"```{info}\n{source}\n```\n");
+
+    public RepositoryGateScenario WithSnippetMarker(string page) => Append(page, "<!-- snippet: fragment -->\n");
+
+    private RepositoryGateScenario Append(string path, string text)
+    {
+        _files.TryGetValue(path, out var existing);
+        return WithFile(path, existing + text);
+    }
 }

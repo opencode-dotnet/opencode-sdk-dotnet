@@ -1,6 +1,6 @@
 # 📚 The opencode SDK guide
 
-Date: 2026-11-02
+Date: 2026-11-03
 
 Eight pages for people **calling** the SDK. Read them in order the first time: install the package
 and make a call, decide how you reach a server, then how you shape what you send, then the three
@@ -8,8 +8,8 @@ subsystems that behave differently from ordinary request/response calls — even
 and cursor lists — plus the error model that runs underneath all of them, and the experimental APIs
 you opt into.
 
-The C# snippets on these pages are written against the public surface. A mechanical compilation
-check is coming; the snippets are not yet checked automatically.
+Every C# snippet on these pages compiles in CI against the SDK, except the few marked as fragments in
+the page source, so a member a snippet uses exists.
 
 | Page | What it covers |
 |---|---|

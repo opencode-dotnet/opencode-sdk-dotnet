@@ -292,12 +292,15 @@ internal static class GeneratedSourceCompiler
 
     private static PortableExecutableReference[] CreateReferences()
     {
+        var fileSystem = new RealFileSystem();
         var trustedAssemblies = AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string
                                 ?? throw new InvalidOperationException("The runtime did not expose trusted platform assemblies.");
         return
         [
             .. trustedAssemblies
                 .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+                // These probes build their own SDK; shipped types must not fill gaps in that source.
+                .Where(path => fileSystem.Path.GetFileName(path) is not ("OpenCode.Sdk.dll" or "OpenCode.Sdk.Extensions.dll"))
                 .Select(static path => MetadataReference.CreateFromFile(path)),
         ];
     }
