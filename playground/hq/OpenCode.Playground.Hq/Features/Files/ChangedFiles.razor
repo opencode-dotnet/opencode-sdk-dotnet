@@ -1,0 +1,63 @@
+@inject OpenCodeClient Client
+@inject ILogger<ChangedFiles> Logger
+
+@if (_error is { } error)
+{
+    <p role="alert">Changed files are unavailable: @error</p>
+}
+else if (_loaded)
+{
+    <section>
+        <h3>Changed in the last turn (@_diffs.Count)</h3>
+        @foreach (var diff in _diffs)
+        {
+            <details>
+                <summary>@diff.File +@diff.Additions -@diff.Deletions</summary>
+                <pre>@diff.Patch</pre>
+            </details>
+        }
+    </section>
+}
+
+@code {
+    private IReadOnlyList<FileDiffInfo> _diffs = [];
+    private bool _loaded;
+    private int _endedTurns;
+    private bool? _runningAtOpen;
+    private string? _error;
+
+    /// <summary>Gets or sets the session whose changes are shown.</summary>
+    [Parameter]
+    public string SessionId { get; set; } = "";
+
+    /// <summary>Gets or sets the ended-turn count; each change reloads the list.</summary>
+    [Parameter]
+    public int Refresh { get; set; }
+
+    /// <summary>Gets or sets whether the session is running.</summary>
+    [Parameter]
+    public bool Running { get; set; }
+
+    /// <inheritdoc />
+    protected override async Task OnParametersSetAsync()
+    {
+        _runningAtOpen ??= Running;
+        if ((!_runningAtOpen.Value && Refresh == 0) || (_loaded && _endedTurns == Refresh))
+        {
+            return;
+        }
+
+        _loaded = true;
+        _endedTurns = Refresh;
+        try
+        {
+            _diffs = (await Client.Sessions.GetSessionClient(SessionId).GetDiffAsync()).Diffs;
+            _error = null;
+        }
+        catch (OpenCodeException exception)
+        {
+            _error = exception.Message;
+            Logger.LogWarning(exception, "Could not load changed files for session {SessionId}.", SessionId);
+        }
+    }
+}
