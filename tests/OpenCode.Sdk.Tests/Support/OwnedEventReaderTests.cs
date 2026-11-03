@@ -91,10 +91,10 @@ public sealed class OwnedEventReaderTests
             pending.SetException(readerFailure);
             var report = owner.LateFailures;
             await Assert.That(report).IsNotNull();
-            var observed = await report.WaitForFailureAsync(CancellationToken.None);
+            var observed = await report.WaitForFailureAsync(CancellationToken.None).WaitAsync(HangGuard.Bound);
             await Assert.That(observed.Value).IsSameReferenceAs(readerFailure);
             release.Set();
-            await report.WaitForAllAsync(CancellationToken.None);
+            await report.WaitForAllAsync(CancellationToken.None).WaitAsync(HangGuard.Bound);
             // Late failure completion order is not part of this assertion's contract.
             await Assert.That(attached.Select(entry => entry.Value)).IsEquivalentTo(new Exception[] { readerFailure, callbackFailure }, CollectionOrdering.Any);
             // Late failure completion order is not part of this assertion's contract.
@@ -107,7 +107,7 @@ public sealed class OwnedEventReaderTests
             await scenario.DrainAsync(completing);
             if (owner.LateFailures is { } report)
             {
-                await report.WaitForAllAsync(CancellationToken.None);
+                await report.WaitForAllAsync(CancellationToken.None).WaitAsync(HangGuard.Bound);
             }
         }
     }
@@ -193,7 +193,7 @@ public sealed class OwnedEventReaderTests
             await Assert.That(report).IsNotNull();
 
             pending.SetCanceled(token);
-            await report.WaitForAllAsync(CancellationToken.None);
+            await report.WaitForAllAsync(CancellationToken.None).WaitAsync(HangGuard.Bound);
 
             await Assert.That(report.Failures).IsEmpty();
         }
@@ -203,7 +203,7 @@ public sealed class OwnedEventReaderTests
             await scenario.DrainAsync(completing);
             if (owner.LateFailures is { } report)
             {
-                await report.WaitForAllAsync(CancellationToken.None);
+                await report.WaitForAllAsync(CancellationToken.None).WaitAsync(HangGuard.Bound);
             }
         }
     }
