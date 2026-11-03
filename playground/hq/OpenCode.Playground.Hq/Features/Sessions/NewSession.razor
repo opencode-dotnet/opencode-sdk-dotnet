@@ -1,0 +1,47 @@
+@page "/sessions/new"
+@inject OpenCodeClient Client
+@inject NavigationManager Navigation
+
+<PageTitle>New session</PageTitle>
+<p><a href="/">All sessions</a></p>
+
+<p>
+    The session runs in the directory you choose: the agent loads that folder's instructions and
+    configuration, can read its files, and sends what it reads to the model's provider. A free model's
+    provider is a third party.
+</p>
+
+@if (_error is { } error)
+{
+    <p role="alert">@error</p>
+}
+
+<form @onsubmit="CreateAsync" @onsubmit:preventDefault>
+    <input @bind="_directory" @bind:event="oninput" placeholder="Full path of a project directory" />
+    <button type="submit" disabled="@string.IsNullOrWhiteSpace(_directory)">Create</button>
+</form>
+
+@code {
+    private string _directory = "";
+    private string? _error;
+
+    private async Task CreateAsync()
+    {
+        _error = null;
+        if (!Directory.Exists(_directory))
+        {
+            _error = "That directory does not exist on this machine.";
+            return;
+        }
+
+        try
+        {
+            var created = await Client.Sessions.CreateSessionAsync(new SessionCreateRequest { Location = new LocationPublicRef { Directory = _directory } });
+            Navigation.NavigateTo($"/sessions/{created.Session.Id}");
+        }
+        catch (OpenCodeException exception)
+        {
+            _error = $"The session was not created: {exception.Message}";
+        }
+    }
+}

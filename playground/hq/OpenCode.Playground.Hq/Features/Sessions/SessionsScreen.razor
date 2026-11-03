@@ -30,11 +30,12 @@ else
 
 <section>
     <h2>Sessions</h2>
+    <p><a href="/sessions/new">New session</a></p>
     @foreach (var row in Board.Sessions)
     {
         <div class="session">
             <span>@row.Status</span>
-            <span>@row.Session.Title</span>
+            <a href="/sessions/@row.Session.Id">@row.Session.Title</a>
             <span>@row.Session.Location.Directory</span>
         </div>
     }

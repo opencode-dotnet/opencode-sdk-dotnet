@@ -1,0 +1,52 @@
+@page "/sessions/{SessionId}"
+@inject SessionConversation Conversation
+@inject SessionBoard Board
+@inject ILogger<SessionScreen> Logger
+
+<PageTitle>Session</PageTitle>
+<p><a href="/">All sessions</a></p>
+
+@if (Conversation.LastError is { } error)
+{
+    <p role="alert">@error</p>
+}
+@if (Board.LastError is { } boardError)
+{
+    <p role="alert">@boardError</p>
+}
+@if (_followLost)
+{
+    <p role="alert">Lost the connection to HQ's server. Reload the page to follow this session again.</p>
+}
+
+<section>
+    @foreach (var line in Conversation.Lines)
+    {
+        <div class="line @line.Author"><strong>@line.Author</strong> @line.Text</div>
+    }
+    @if (Conversation.Running)
+    {
+        <p>Working...</p>
+    }
+</section>
+
+<section>
+    @foreach (var item in Board.NeedsYou.Where(item => item.SessionId == SessionId && !item.IsForm))
+    {
+        <div class="ask">
+            <span>@item.Title</span>
+            <button @onclick="() => AnswerAsync(item, PermissionReply.Once)">Allow once</button>
+            <button @onclick="() => AnswerAsync(item, PermissionReply.Reject)">Reject</button>
+        </div>
+    }
+</section>
+
+<form @onsubmit="SendAsync" @onsubmit:preventDefault>
+    <textarea @bind="_prompt" @bind:event="oninput" disabled="@Conversation.Running"></textarea>
+    <button type="submit" disabled="@(!Conversation.Ready || Conversation.Running || string.IsNullOrWhiteSpace(_prompt))">Send</button>
+</form>
+
+@if (Conversation.Ready)
+{
+    <ChangedFiles SessionId="@SessionId" Running="@Conversation.Running" Refresh="@Conversation.EndedTurns" />
+}
