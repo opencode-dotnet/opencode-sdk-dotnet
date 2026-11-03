@@ -1,6 +1,6 @@
 # Coding Style — hand-written code
 
-Date: 2026-11-02
+Date: 2026-11-03
 
 Binding authoring style for every hand-written line in this repository — product code,
 `tools/`, and tests. Generated output is governed by the generator's emitters (ADR-0003);
@@ -61,7 +61,7 @@ for a pile of static steps.
   CLI framework through its DI registrar. Commands and services receive dependencies
   through constructors — no service locators, no static mutable state, and no behavior on
   static classes beyond the stateless policies above. The executable's static composition-root factory is wiring only: it may
-  construct/register concrete adapters but performs no I/O itself. A console sample under `playground/` is exempt: it shows the shape a consumer writes, with the SDK calls in view. The shape:
+  construct/register concrete adapters but performs no I/O itself. A `playground/` app shows the shape a consumer writes, with the SDK calls in view: a console sample is exempt from this composition rule, and an app keeps its host's DI but need not extract policies for readability's sake. The shape:
 
   ```csharp
   public static class ToolApp

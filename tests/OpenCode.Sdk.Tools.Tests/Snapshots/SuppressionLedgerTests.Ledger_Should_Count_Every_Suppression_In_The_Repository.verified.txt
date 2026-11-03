@@ -4,9 +4,9 @@ A change that adds, removes or alters a suppression updates this file in the sam
 build-switch: 12
 editorconfig: 153
 globalconfig: 1
-no-warn: 13
+no-warn: 14
 pragma: 26
-slopwatch-ignore: 7
+slopwatch-ignore: 8
 slopwatch-suppress: 32
 suppress-message: 1
 
@@ -176,6 +176,7 @@ editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/Transport/PooledJsonContent
 editorconfig .editorconfig [tests/Shared/ProcessMark.cs] dotnet_diagnostic.MA0045.severity = none
 editorconfig .editorconfig [tools/opencode-tool.cs] dotnet_diagnostic.MA0048.severity = none
 globalconfig .globalconfig dotnet_diagnostic.VSTHRD010.severity = none
+no-warn playground/hq/OpenCode.Playground.Hq.AppHost/OpenCode.Playground.Hq.AppHost.csproj ASPIRE010
 no-warn src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj OPENCODE001
 no-warn src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj OPENCODE002
 no-warn src/OpenCode.Sdk/OpenCode.Sdk.csproj OPENCODE001
@@ -213,6 +214,7 @@ pragma tests/OpenCode.Sdk.Tests/Support/LoopbackHttpServer.cs VSTHRD003
 pragma tests/OpenCode.Sdk.Tests/Transport/OwnedTransportTests.cs VSTHRD003
 pragma tools/OpenCode.Sdk.Tools/Generator/Emission/ExperimentalAttributeSyntax.cs S1075
 pragma tools/OpenCode.Sdk.Tools/Generator/Ingestion/Projection/AllOfWrapperKeywords.cs CS0618
+slopwatch-ignore playground/hq/OpenCode.Playground.Hq.AppHost/OpenCode.Playground.Hq.AppHost.csproj SW005
 slopwatch-ignore src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj SW005
 slopwatch-ignore src/OpenCode.Sdk/OpenCode.Sdk.csproj SW005
 slopwatch-ignore tests/OpenCode.Sdk.Extensions.Tests/OpenCode.Sdk.Extensions.Tests.csproj SW005

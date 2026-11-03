@@ -95,7 +95,7 @@ body:
       label: Which part of the SDK?
       options:
         - A generated operation
-        - Event streaming (SubscribeAsync / GetLogAsync)
+        - Event streaming (SubscribeAsync / ReadSessionLogAsync)
         - A terminal session (PtySession / PersistentPtySession)
         - The launcher (OpenCodeServer)
         - Dependency injection (AddOpenCode)

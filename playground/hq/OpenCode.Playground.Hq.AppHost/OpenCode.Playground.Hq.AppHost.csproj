@@ -1,0 +1,12 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.4">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(LatestTargetFramework)</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <!-- slopwatch-ignore: SW005 Aspire CLI arbitration: the CLI bundle would need an Aspire CLI on the path or dnx; everything HQ uses runs without it. -->
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../OpenCode.Playground.Hq/OpenCode.Playground.Hq.csproj" />
+  </ItemGroup>
+</Project>

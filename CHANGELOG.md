@@ -36,6 +36,7 @@ Nightly builds of `master` are on
   The [connection modes guide](docs/guide/connection-modes.md#-ensuring-the-background-service) says
   when that matters.
 - A runnable [QuickStart sample](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/QuickStart/README.md) lives in `playground/`.
+- [HQ](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/hq/README.md) shows live sessions and permission answers in Blazor Server with an Aspire AppHost.
 
 ## [0.9.0-preview.15] - 2026-11-01
 

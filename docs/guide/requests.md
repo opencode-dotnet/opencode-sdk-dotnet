@@ -1,6 +1,6 @@
 # 📝 Requests
 
-Date: 2026-11-02
+Date: 2026-11-03
 
 Every operation that sends anything takes one request record. They are plain immutable records you
 fill with an object initializer — with one twist worth knowing before you write your first `PATCH`:
@@ -300,6 +300,8 @@ if (asked.Permission.Effect == PermissionEffect.Ask)
     });
 }
 ```
+
+Listing permission requests or forms for a directory boots that location, including its plugins.
 
 How the server evaluates, as upstream implements it at the pin:
 
