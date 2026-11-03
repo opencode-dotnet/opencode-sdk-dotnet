@@ -30,6 +30,7 @@ Nightly builds of `master` are on
 
 ### 📚 Documentation
 
+- Every complete C# snippet in the README and guides is now compiled against the SDK in CI.
 - Correct consumer signatures, streaming examples and terminology, provider setup, experimental opt-ins, installation guidance, and contribution routing.
 - **`EnsureAsync` warns about a service boot's resume.** A service it starts resumes every suspended
   session on the shared data, including one another process is still running, so both drive it.

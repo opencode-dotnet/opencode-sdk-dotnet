@@ -238,12 +238,15 @@ sub-clients resolve from the registered root, so you can inject `SessionsClient`
 or `PtysClient` directly. See the [DI registration guide](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/connection-modes.md#-registering-with-dependency-injection).
 
 ```csharp
+var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddOpenCode(options =>
 {
     options.Endpoint = new Uri("http://127.0.0.1:4096");
     options.Password = Environment.GetEnvironmentVariable("OPENCODE_PASSWORD");
 });
+```
 
+```csharp
 internal sealed class SessionWorker(SessionsClient sessions) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

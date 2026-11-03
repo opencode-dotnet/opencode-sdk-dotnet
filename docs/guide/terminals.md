@@ -33,14 +33,14 @@ Create → take a handle → connect → read frames while you write input:
 var created = await client.Ptys.CreatePtyAsync(new PtyCreateRequest { Title = "sdk demo" });
 var pty = client.Ptys.GetPtyClient(created.Pty.Id);
 
-await using var terminal = await pty.ConnectAsync();
+await using var ptySession = await pty.ConnectAsync();
 
 // SubmitAsync runs one command: it adds the carriage return a terminal's Enter key sends.
-await terminal.SubmitAsync("echo hello");
+await ptySession.SubmitAsync("echo hello");
 
 long? cursor = null;
 
-await foreach (var frame in terminal.ReadAsync(cancellationToken))
+await foreach (var frame in ptySession.ReadAsync(cancellationToken))
 {
     switch (frame)
     {
@@ -277,14 +277,14 @@ contract is owned by [the client runtime architecture](../architecture/client-ru
 **Canceling a read ends the read, not the connection.** A connection-owned receiver assembles
 frames independently of your enumeration, so the token you hand `ReadAsync` bounds *your* wait and
 nothing else. Stop reading, send input, start a new enumeration on the same session — it still
-works:
+works. Here `ptySession` is an already connected `PtySession`:
 
 ```csharp
 using (var window = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
 {
     try
     {
-        await foreach (var frame in terminal.ReadAsync(window.Token))
+        await foreach (var frame in ptySession.ReadAsync(window.Token))
         {
             // …stop once you have seen enough
         }
@@ -295,9 +295,9 @@ using (var window = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
     }
 }
 
-await terminal.SubmitAsync("echo again");
+await ptySession.SubmitAsync("echo again");
 
-await foreach (var frame in terminal.ReadAsync(cancellationToken))
+await foreach (var frame in ptySession.ReadAsync(cancellationToken))
 {
     // same connection, still healthy
 }

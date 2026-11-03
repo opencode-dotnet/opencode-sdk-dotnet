@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-11-02
+Date: 2026-11-03
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **live event stream** for everything happening in the server
@@ -201,9 +201,7 @@ session comes from the raw payload. These two helpers do both, and the samples b
 
 ```csharp
 using System.Text.Json;
-```
 
-```csharp
 static bool EndsTurn(IEvent @event, string sessionId) =>
     @event.Type is "session.execution.succeeded" or "session.execution.failed" or "session.execution.interrupted"
     && SessionOf(@event) == sessionId;
@@ -430,9 +428,7 @@ route, so it needs an [opt-in](experimental.md#opencode001) (`OPENCODE001`).
 
 ```csharp
 using System.Text.Json;
-```
 
-```csharp
 await foreach (var item in client.Experimental.ReadSessionLogAsync(
     sessionId,
     new ExperimentalSessionLogRequest { Follow = true },
@@ -548,6 +544,7 @@ talking to may be newer. When a frame arrives with a `type` this build has never
 stream does not fail and does not skip it — it hands you `UnknownEvent`, carrying the raw `Type`
 string and the untouched JSON body as a `JsonElement`:
 
+<!-- snippet: fragment -->
 ```csharp
 case UnknownEvent unknown:
     Console.WriteLine($"unknown event {unknown.Type}: {unknown.Payload.GetRawText()}");
