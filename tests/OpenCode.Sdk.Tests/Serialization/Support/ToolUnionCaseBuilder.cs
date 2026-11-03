@@ -24,6 +24,8 @@ internal static class ToolUnionCaseBuilder
         "error" => ["input", "error"],
         "file" => ["uri", "mime"],
         "text" => ["text"],
+        "session.text.delta" or "session.reasoning.delta" or "session.tool.input.delta" => ["id", "created", "data"],
+        "session.text.ended" => ["id", "created", "durable", "data"],
         _ => throw new InvalidOperationException("Unknown fixture arm."),
     };
 
@@ -75,7 +77,14 @@ internal static class ToolUnionCaseBuilder
                 }
                 else
                 {
-                    writer.WriteNumberValue(731);
+                    if (property.Value.ValueKind == JsonValueKind.Number)
+                    {
+                        writer.WriteStringValue("wrong-token");
+                    }
+                    else
+                    {
+                        writer.WriteNumberValue(731);
+                    }
                 }
             }
             else
@@ -105,6 +114,7 @@ internal static class ToolUnionCaseBuilder
         switch (value.ValueKind)
         {
             case JsonValueKind.String: writer.WriteStringValue("different-first"); break;
+            case JsonValueKind.Number: writer.WriteNumberValue(997); break;
             case JsonValueKind.Array: writer.WriteStartArray(); writer.WriteEndArray(); break;
             case JsonValueKind.Object:
                 writer.WriteStartObject();

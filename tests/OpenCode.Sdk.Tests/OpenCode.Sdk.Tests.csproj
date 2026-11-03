@@ -53,6 +53,7 @@
     <Compile Include="../Shared/ShippedAssetSurface.cs" LinkBase="Shared" />
     <Compile Include="../Shared/TestCategories.cs" LinkBase="Shared" />
     <Compile Include="../Shared/UnionReaderObservation.cs" LinkBase="Shared" />
+    <Compile Include="../OpenCode.Sdk.Performance.Tests/Support/BenchmarkFixtures.cs" LinkBase="Shared" />
   </ItemGroup>
 
   <!-- .NET Framework ships HttpClient in this framework assembly; no NuGet HTTP stack is added. -->

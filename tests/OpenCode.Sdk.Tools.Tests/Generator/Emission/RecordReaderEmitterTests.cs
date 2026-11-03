@@ -103,7 +103,7 @@ public sealed class RecordReaderEmitterTests
         var source = sources.Single(source => source.RelativePath.EndsWith("/" + name + ".cs", StringComparison.Ordinal));
         var syntax = await CSharpSyntaxTree.ParseText(Encoding.UTF8.GetString(source.Utf8Source.Span)).GetRootAsync();
         var declaration = syntax.DescendantNodes().OfType<ClassDeclarationSyntax>().Single();
-        var method = declaration.Members.OfType<MethodDeclarationSyntax>().Single();
+        var method = declaration.Members.OfType<MethodDeclarationSyntax>().Single(static method => method.Identifier.ValueText == "Read");
         sources[sources.IndexOf(source)] = MetadataUnionOracleEmitter.Source(source.RelativePath,
             syntax.ReplaceNode(declaration, declaration.WithMembers(SyntaxFactory.SingletonList<MemberDeclarationSyntax>(
                 method.WithBody(SyntaxFactory.Block(SyntaxFactory.ParseStatement("throw new JsonException(\"product-reader-entered\");")))))).ToFullString());

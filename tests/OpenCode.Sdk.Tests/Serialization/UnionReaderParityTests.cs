@@ -131,7 +131,7 @@ public sealed class UnionReaderParityTests
         await Assert.That(actual with { Bytes = expected.Bytes }).IsEqualTo(expected).Because(row + "/type-position-refusal");
     }
 
-    internal static UnionReaderObservation Observe(byte[] bytes, bool state, JsonSerializerContext context, int? split = null, int maxDepth = 0)
+    internal static UnionReaderObservation Observe(byte[] bytes, bool state, JsonSerializerContext context, int? split = null, int maxDepth = 0, Type? root = null)
     {
         byte[] framed = [.. "["u8, .. bytes, .. ",731]"u8];
         var sequence = split is { } at ? BufferSegment.Split(framed, at) : new ReadOnlySequence<byte>(framed);
@@ -144,7 +144,7 @@ public sealed class UnionReaderParityTests
         {
             _ = reader.Read();
             _ = reader.Read();
-            value = JsonSerializer.Deserialize(ref reader, context.GetTypeInfo(state ? typeof(ISessionMessageToolState) : typeof(IToolContent))!);
+            value = JsonSerializer.Deserialize(ref reader, context.GetTypeInfo(root ?? (state ? typeof(ISessionMessageToolState) : typeof(IToolContent)))!);
         }
         catch (Exception exception) when (exception is JsonException or InvalidOperationException or FormatException or NotSupportedException or ArgumentException)
         {

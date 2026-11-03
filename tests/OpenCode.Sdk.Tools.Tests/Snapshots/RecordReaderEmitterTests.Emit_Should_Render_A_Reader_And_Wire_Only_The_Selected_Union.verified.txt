@@ -7,7 +7,7 @@ using OpenCode.Sdk.Models;
 namespace OpenCode.Sdk.Internal;
 internal static class SiblingRecordJsonReader
 {
-    internal static SiblingRecord Read(ref Utf8JsonReader reader, JsonSerializerOptions _)
+    internal static SiblingRecord Read(ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
         if (!(reader.TokenType == JsonTokenType.StartObject))
         {
@@ -48,16 +48,11 @@ internal static class SiblingRecordJsonReader
             switch (member)
             {
                 case 0:
-                    if (reader.TokenType == JsonTokenType.Null)
-                    {
-                        throw new JsonException("A non-nullable member was null.");
-                    }
-
-                    value0 = reader.GetString();
+                    ReadText(ref reader, ref value0, options);
                     present0 |= 1UL;
                     break;
                 case 1:
-                    value1 = reader.TokenType == JsonTokenType.Null ? default(string?) : reader.GetString();
+                    ReadNote(ref reader, ref value1, options);
                     break;
                 default:
                     if (!(reader.TrySkip()))
@@ -70,5 +65,20 @@ internal static class SiblingRecordJsonReader
         }
 
         throw new JsonException("The record ended before its closing object token.");
+    }
+
+    private static void ReadText(ref Utf8JsonReader reader, ref string? value0, JsonSerializerOptions _)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            throw new JsonException("A non-nullable member was null.");
+        }
+
+        value0 = reader.GetString();
+    }
+
+    private static void ReadNote(ref Utf8JsonReader reader, ref string? value1, JsonSerializerOptions _)
+    {
+        value1 = reader.TokenType == JsonTokenType.Null ? default(string?) : reader.GetString();
     }
 }

@@ -30,7 +30,7 @@ internal static class RecordReaderEmitter
             statements.Add(Declare(Mask(word), SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ULongKeyword)), Number(0)));
         }
 
-        var cases = properties.Select((property, index) => MemberCase(property, index, Array.IndexOf(required, property), plan.ReaderCallSites.GetValueOrDefault(record.Name)))
+        var cases = properties.Select((property, index) => MemberCase(property, index, Array.IndexOf(required, property)))
             .Append(SyntaxFactory.SwitchSection(SyntaxFactory.SingletonList<SwitchLabelSyntax>(SyntaxFactory.DefaultSwitchLabel()),
                 SyntaxFactory.List<StatementSyntax>([Require(Call("TrySkip")), SyntaxFactory.BreakStatement()])));
         var loop = SyntaxFactory.Block(
@@ -52,7 +52,9 @@ internal static class RecordReaderEmitter
         var name = ConverterNamePolicy.Reader(record.Name);
         var declaration = SyntaxFactory.ClassDeclaration(name)
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.InternalKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
-            .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([.. RecordMemberReaderEmitter.Fields(properties), method]));
+            .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>([.. RecordMemberReaderEmitter.Fields(properties), method,
+                .. properties.Select((property, index) => RecordMemberReaderEmitter.Reader(property, Local(plan, property, index).Declaration.Type,
+                    Value(index), plan.ReaderCallSites.GetValueOrDefault(record.Name)))]));
         var usings = new HashSet<string>(StringComparer.Ordinal) { plan.Namespaces.Models, "System", "System.Text.Json" };
         foreach (var property in properties)
         {
@@ -112,9 +114,12 @@ internal static class RecordReaderEmitter
         return EmissionSyntax.Local("member", selection);
     }
 
-    private static SwitchSectionSyntax MemberCase(ModelPropertyPlan property, int index, int requiredIndex, IReadOnlySet<string>? callSites)
+    private static SwitchSectionSyntax MemberCase(ModelPropertyPlan property, int index, int requiredIndex)
     {
-        var statements = RecordMemberReaderEmitter.Assignment(property, Value(index), callSites).ToList();
+        var statements = new List<StatementSyntax> { SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(SyntaxFactory.IdentifierName("Read" + property.Name),
+            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("reader")).WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword)),
+            SyntaxFactory.Argument(SyntaxFactory.IdentifierName(Value(index))).WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword)),
+            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("options")))) };
         if (requiredIndex >= 0)
         {
             statements.Add(SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(SyntaxKind.OrAssignmentExpression,

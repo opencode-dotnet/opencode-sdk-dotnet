@@ -1,5 +1,6 @@
 using System.Text.Json;
 using OpenCode.Sdk.Tests.Harness;
+using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
 using OpenCode.Sdk.Tools.Tests.Support;
 using Testably.Abstractions;
@@ -15,10 +16,16 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
     [Test]
     public async Task Oracle_Should_Isolate_Completed_Content_And_Override_Exactly_The_Selected_Unions()
     {
-        var sources = SourceEmitter.Emit(pinned.Plan).Select(source => source.RelativePath.EndsWith("/ToolFileContentJsonReader.cs", StringComparison.Ordinal)
-            ? MetadataUnionOracleEmitter.Source(source.RelativePath, System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)
-                .Replace("Name = value2", "Name = value2 is null ? null : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal))
-            : source).ToList();
+        var sources = SourceEmitter.Emit(pinned.Plan).Select(source => source.RelativePath switch
+        {
+            "Sessions/Internal/ToolFileContentJsonReader.cs" => MetadataUnionOracleEmitter.Source(source.RelativePath,
+                System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)
+                    .Replace("Name = value2", "Name = value2 is null ? null : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
+            "Sessions/Internal/SessionTextDeltaDataJsonReader.cs" => MetadataUnionOracleEmitter.Source(source.RelativePath,
+                System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)
+                    .Replace("Delta = value3!", "Delta = value3 is null ? string.Empty : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
+            _ => source,
+        }).ToList();
         var loader = new FixtureLoader();
         sources.Add(MetadataUnionOracleEmitter.Source("Internal/Serialization/MetadataUnionJsonConverter.cs", loader.Load("Serialization.MetadataUnionJsonConverter.cs")));
         sources.Add(MetadataUnionOracleEmitter.Source("ToolUnionMetadataOracle.cs", loader.Load("Serialization.ToolUnionMetadataOracle.cs")));
@@ -41,15 +48,22 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
                 .Select(static entry => new KeyValuePair<string, string?>(entry.Key, entry.Value?.Name)))
                 .IsEquivalentTo(union.Variants.OrderBy(static variant => variant.Tag, StringComparer.Ordinal)
                     .Select(static variant => new KeyValuePair<string, string?>(variant.Tag, variant.TypeName)), CollectionOrdering.Matching);
+            var prefix = (string?)converter.GetType().GetProperty("PrefixValue")!.GetValue(null);
+            var prefixType = (Type?)converter.GetType().GetProperty("PrefixTypeValue")!.GetValue(null);
+            await Assert.That(prefix).IsEqualTo(union.PrefixVariant?.Prefix);
+            await Assert.That(prefixType?.Name).IsEqualTo(union.PrefixVariant?.TypeName);
         }
-        var row = (await RecordCorpusGenerator.GenerateAsync(pinned.Plan, ["SessionMessageToolStateCompleted"]))
-            .Single(static row => row.Name == "SessionMessageToolState/completed/maximal");
-        var entered = UnionReaderOracle.Observe(product, "ISessionMessageToolState", row.Json);
-        await Assert.That(entered.Phase).IsEqualTo("read");
-        await Assert.That(entered.Message).Contains("product-reader-entered");
         var oracle = await UnionReaderOracle.CreateAsync(pinned.Plan);
-        await UnionReaderOracle.AssertEquivalentAsync(UnionReaderOracle.Observe(focused, "ISessionMessageToolState", row.Json),
-            UnionReaderOracle.Observe(oracle.Metadata, "ISessionMessageToolState", row.Json), row.Name);
+        var rows = await RecordCorpusGenerator.GenerateAsync(pinned.Plan, ["SessionMessageToolStateCompleted", "SessionTextDelta"]);
+        foreach (var name in new[] { "SessionMessageToolState/completed/maximal", "Event/session.text.delta/maximal" })
+        {
+            var row = rows.Single(row => row.Name == name);
+            var entered = UnionReaderOracle.Observe(product, row.UnionType!, row.Json);
+            await Assert.That(entered.Phase).IsEqualTo("read").Because(row.Name);
+            await Assert.That(entered.Message).Contains("product-reader-entered").Because(row.Name);
+            await UnionReaderOracle.AssertEquivalentAsync(UnionReaderOracle.Observe(focused, row.UnionType!, row.Json),
+                UnionReaderOracle.Observe(oracle.Metadata, row.UnionType!, row.Json), row.Name);
+        }
     }
 
     [Test]
@@ -110,10 +124,7 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
     {
         var names = pinned.Plan.ReaderRecords.Keys.ToArray();
         var rows = await RecordCorpusGenerator.GenerateAsync(pinned.Plan, names);
-        await Assert.That(rows.Where(static row => row.IsSeed).Select(static row => row.RootType + "/" + row.UnionType)
-                .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
-            .IsEquivalentTo(pinned.Plan.Unions.SelectMany(union => union.Variants.Where(arm => names.Contains(arm.TypeName, StringComparer.Ordinal))
-                .Select(arm => arm.TypeName + "/" + union.Name)).Order(StringComparer.Ordinal), CollectionOrdering.Matching);
+        await AssertCorpusRoutesAsync(pinned.Plan, rows);
         var oracle = await UnionReaderOracle.CreateAsync(pinned.Plan);
         foreach (var row in rows)
         {
@@ -126,6 +137,23 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
                 await Assert.That(unknown.Bytes).IsEquivalentTo(row.Json, CollectionOrdering.Matching);
             }
         }
+    }
+
+    [Test]
+    public async Task Oracle_Should_Cover_Every_Synthetic_Arm_Route_Without_Expecting_A_Nested_Union_Route()
+    {
+        var plan = RecordReaderPlanFixture.CreateNested();
+        var rows = await RecordCorpusGenerator.GenerateAsync(plan, [.. plan.ReaderRecords.Keys]);
+        await AssertCorpusRoutesAsync(plan, rows);
+    }
+
+    private static async Task AssertCorpusRoutesAsync(EmitPlan plan, IReadOnlyList<RecordCorpusRow> rows)
+    {
+        var names = plan.ReaderArms.Values.SelectMany(static arms => arms).ToHashSet(StringComparer.Ordinal);
+        await Assert.That(rows.Where(row => row.IsSeed && names.Contains(row.RootType)).Select(static row => row.RootType + "/" + row.UnionType)
+                .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
+            .IsEquivalentTo(plan.Unions.SelectMany(union => union.Variants.Where(arm => names.Contains(arm.TypeName, StringComparer.Ordinal))
+                .Select(arm => arm.TypeName + "/" + union.Name)).Order(StringComparer.Ordinal), CollectionOrdering.Matching);
     }
 
     [Test]

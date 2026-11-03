@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Internal;
 
 internal static class ToolTextContentJsonReader
 {
-    internal static ToolTextContent Read(ref Utf8JsonReader reader, JsonSerializerOptions _)
+    internal static ToolTextContent Read(ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
         if (!(reader.TokenType == JsonTokenType.StartObject))
         {
@@ -46,12 +46,7 @@ internal static class ToolTextContentJsonReader
             switch (member)
             {
                 case 0:
-                    if (reader.TokenType == JsonTokenType.Null)
-                    {
-                        throw new JsonException("A non-nullable member was null.");
-                    }
-
-                    value0 = reader.GetString();
+                    ReadText(ref reader, ref value0, options);
                     present0 |= 1UL;
                     break;
                 default:
@@ -65,5 +60,15 @@ internal static class ToolTextContentJsonReader
         }
 
         throw new JsonException("The record ended before its closing object token.");
+    }
+
+    private static void ReadText(ref Utf8JsonReader reader, ref string? value0, JsonSerializerOptions _)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            throw new JsonException("A non-nullable member was null.");
+        }
+
+        value0 = reader.GetString();
     }
 }

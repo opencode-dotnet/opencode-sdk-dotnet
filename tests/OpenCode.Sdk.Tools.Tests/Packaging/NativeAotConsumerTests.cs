@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using OpenCode.Sdk.Tests.Harness;
 using OpenCode.Sdk.Tools.Generator.Refresh;
@@ -64,10 +65,19 @@ public sealed partial class NativeAotConsumerTests(PackedConsumerFeed feed)
         listener.Start();
         using var shutdown = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var endpoint = "http://127.0.0.1:" + ((IPEndPoint)listener.LocalEndpoint).Port.ToString(CultureInfo.InvariantCulture);
+        await using var framesSource = typeof(NativeAotConsumerTests).Assembly
+            .GetManifestResourceStream("OpenCode.Sdk.Tests.Fixtures.Serialization.reader-prompt-events.json")
+            ?? throw new InvalidOperationException("Missing prompt-event fixture.");
+        using var frames = await JsonDocument.ParseAsync(framesSource, cancellationToken: cancellationToken);
         var running = RunAsync();
-        var path = await ServeAsync(listener, new FixtureLoader().Load("Packaging.reader-tool-states.json"), shutdown.Token);
+        var path = await ServeAsync(listener, new FixtureLoader().Load("Packaging.reader-tool-states.json"), "application/json", shutdown.Token);
+        var eventPath = await ServeAsync(listener,
+            "data: " + Encoding.UTF8.GetString(Performance.Tests.Support.BenchmarkFixtures.ConnectedEventBody()) + "\n\n"
+            + string.Concat(frames.RootElement.EnumerateArray().Select(static frame => "data: " + JsonSerializer.Serialize(frame) + "\n\n")),
+            "text/event-stream", shutdown.Token);
         var run = await running;
         await Assert.That(path).IsEqualTo("/api/session/ses_reader/message/msg_reader");
+        await Assert.That(eventPath).IsEqualTo("/api/event");
 
         await Assert.That(run.ExitCode).IsEqualTo(0).Because(run.StandardError + run.StandardOutputText);
         await Assert.That(run.StandardOutputText.Replace("\r\n", "\n", StringComparison.Ordinal))
@@ -88,7 +98,7 @@ public sealed partial class NativeAotConsumerTests(PackedConsumerFeed feed)
         }
     }
 
-    private static async Task<string?> ServeAsync(TcpListener listener, string body, CancellationToken cancellationToken)
+    private static async Task<string?> ServeAsync(TcpListener listener, string body, string contentType, CancellationToken cancellationToken)
     {
         try
         {
@@ -101,7 +111,7 @@ public sealed partial class NativeAotConsumerTests(PackedConsumerFeed feed)
                 // Drain the request head; this canned GET response has no request body.
             }
             var bytes = Encoding.UTF8.GetBytes(body);
-            var head = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "
+            var head = "HTTP/1.1 200 OK\r\nContent-Type: " + contentType + "\r\nContent-Length: "
                 + bytes.Length.ToString(CultureInfo.InvariantCulture) + "\r\nConnection: close\r\n\r\n";
             await stream.WriteAsync(Encoding.ASCII.GetBytes(head), cancellationToken);
             await stream.WriteAsync(bytes, cancellationToken);

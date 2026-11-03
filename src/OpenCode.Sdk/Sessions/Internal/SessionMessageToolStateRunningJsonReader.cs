@@ -48,21 +48,11 @@ internal static class SessionMessageToolStateRunningJsonReader
             switch (member)
             {
                 case 0:
-                    if (reader.TokenType == JsonTokenType.Null)
-                    {
-                        throw new JsonException("A non-nullable member was null.");
-                    }
-
-                    value0 = UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>>(ref reader, options);
+                    ReadInput(ref reader, ref value0, options);
                     present0 |= 1UL;
                     break;
                 case 1:
-                    if (reader.TokenType == JsonTokenType.Null)
-                    {
-                        throw new JsonException("A non-nullable member was null.");
-                    }
-
-                    value1 = UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>>(ref reader, options);
+                    ReadMetadata(ref reader, ref value1, options);
                     present0 |= 2UL;
                     break;
                 default:
@@ -76,5 +66,25 @@ internal static class SessionMessageToolStateRunningJsonReader
         }
 
         throw new JsonException("The record ended before its closing object token.");
+    }
+
+    private static void ReadInput(ref Utf8JsonReader reader, ref IReadOnlyDictionary<string, JsonElement>? value0, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            throw new JsonException("A non-nullable member was null.");
+        }
+
+        value0 = UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>>(ref reader, options);
+    }
+
+    private static void ReadMetadata(ref Utf8JsonReader reader, ref IReadOnlyDictionary<string, JsonElement>? value1, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            throw new JsonException("A non-nullable member was null.");
+        }
+
+        value1 = UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>>(ref reader, options);
     }
 }

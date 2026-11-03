@@ -7,7 +7,7 @@ namespace OpenCode.Sdk.Internal;
 
 internal static class ToolFileContentJsonReader
 {
-    internal static ToolFileContent Read(ref Utf8JsonReader reader, JsonSerializerOptions _)
+    internal static ToolFileContent Read(ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
         if (!(reader.TokenType == JsonTokenType.StartObject))
         {
@@ -50,25 +50,15 @@ internal static class ToolFileContentJsonReader
             switch (member)
             {
                 case 0:
-                    if (reader.TokenType == JsonTokenType.Null)
-                    {
-                        throw new JsonException("A non-nullable member was null.");
-                    }
-
-                    value0 = reader.GetString();
+                    ReadUri(ref reader, ref value0, options);
                     present0 |= 1UL;
                     break;
                 case 1:
-                    if (reader.TokenType == JsonTokenType.Null)
-                    {
-                        throw new JsonException("A non-nullable member was null.");
-                    }
-
-                    value1 = reader.GetString();
+                    ReadMime(ref reader, ref value1, options);
                     present0 |= 2UL;
                     break;
                 case 2:
-                    value2 = reader.TokenType == JsonTokenType.Null ? default : reader.GetString();
+                    ReadName(ref reader, ref value2, options);
                     break;
                 default:
                     if (!reader.TrySkip())
@@ -81,5 +71,30 @@ internal static class ToolFileContentJsonReader
         }
 
         throw new JsonException("The record ended before its closing object token.");
+    }
+
+    private static void ReadUri(ref Utf8JsonReader reader, ref string? value0, JsonSerializerOptions _)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            throw new JsonException("A non-nullable member was null.");
+        }
+
+        value0 = reader.GetString();
+    }
+
+    private static void ReadMime(ref Utf8JsonReader reader, ref string? value1, JsonSerializerOptions _)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            throw new JsonException("A non-nullable member was null.");
+        }
+
+        value1 = reader.GetString();
+    }
+
+    private static void ReadName(ref Utf8JsonReader reader, ref string? value2, JsonSerializerOptions _)
+    {
+        value2 = reader.TokenType == JsonTokenType.Null ? default : reader.GetString();
     }
 }

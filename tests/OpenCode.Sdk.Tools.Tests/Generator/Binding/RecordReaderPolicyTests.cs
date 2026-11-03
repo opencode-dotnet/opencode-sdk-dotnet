@@ -11,6 +11,79 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
 {
     [Test]
+    public async Task Select_Should_Validate_Every_Production_Call_Site_Against_The_Full_Pin()
+    {
+        var armNames = pinned.Plan.ReaderArms.Values.SelectMany(static names => names).ToHashSet(StringComparer.Ordinal);
+        foreach (var record in RecordReaderPolicy.NestedCallSites.Keys)
+        {
+            await Assert.That(armNames).Contains(record);
+        }
+        var selected = RecordReaderPolicy.Select(pinned.Plan.Models, pinned.Plan.Unions, out _,
+            callSites: RecordReaderPolicy.NestedCallSites);
+        await Assert.That(selected.Keys.Where(name => !armNames.Contains(name))).IsEquivalentTo([
+            "SessionReasoningDeltaData", "SessionTextDeltaData", "SessionTextEndedData", "SessionTextEndedDurable", "SessionToolInputDeltaData",
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Bind_Should_Report_A_Production_Call_Site_Refusal_Alongside_A_Selection_Error()
+    {
+        var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
+            .WithObject("SessionTextDelta", schema => schema
+                .Property("type", property => property.Type("string").Enum("session.text.delta"), required: true))
+            .WithObject("OtherEvent", schema => schema
+                .Property("type", property => property.Type("string").Enum("other"), required: true))
+            .WithSchema("Event", schema => schema.AnyOf(delta => delta.Ref("SessionTextDelta"), other => other.Ref("OtherEvent")))
+            .WithJsonOperation("health.get", "/health", schema => schema.Ref("Event"))));
+        var exception = await Assert.That(() => new BindingTestHost().Bind(document,
+                BindingScenarioData.Selection("health.get", "missing.get"),
+                BindingScenarioData.Curation(BindingScenarioData.Groups("health", BindingScenarioData.RootGroup()))))
+            .Throws<BindingException>();
+        await Assert.That(exception!.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Selection, "missing.get", "selected operation does not exist in the ingested spec"),
+            new BindingError(BindingErrorCategory.Naming, "SessionTextDelta", "Nested reader call site 'SessionTextDelta.Data' must name a direct closed-record member of a selected record."),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Select_Should_Collect_Call_Site_Refusals_Alongside_Other_Binding_Errors()
+    {
+        var plan = RecordReaderPlanFixture.CreateNested();
+        var errors = new BindingErrorCollector();
+        errors.Add(BindingErrorCategory.Selection, "other", "another binding error");
+        var sites = new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal)
+        {
+            ["NestedRecord"] = new HashSet<string>(StringComparer.Ordinal) { "Missing" },
+        };
+        _ = RecordReaderPolicy.Select(plan.Models, plan.Unions, out _, RecordReaderPlanFixture.Rollout, sites, errors);
+        await Assert.That(errors.Snapshot()).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Selection, "other", "another binding error"),
+            new BindingError(BindingErrorCategory.Naming, "NestedRecord", "Nested reader call site 'NestedRecord.Missing' must name a direct closed-record member of a selected record."),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Select_Should_Refuse_A_Call_Site_On_A_Nested_Record_In_Either_Order(bool reverse)
+    {
+        var plan = RecordReaderPlanFixture.CreateNested();
+        var entries = new KeyValuePair<string, IReadOnlySet<string>>[]
+        {
+            new("NestedRecord", new HashSet<string>(StringComparer.Ordinal) { "Child" }),
+            new("NestedValue", new HashSet<string>(StringComparer.Ordinal) { "Note" }),
+        };
+        var sites = (reverse ? entries.Reverse() : entries).ToDictionary(static entry => entry.Key, static entry => entry.Value, StringComparer.Ordinal);
+        var models = plan.Models.Select(model => model is ObjectModelPlan { Name: "NestedValue" } record
+            ? record with { Properties = [Property("note", Named("NestedValue", true), false)] } : model).ToArray();
+        var exception = await Assert.That(() => RecordReaderPolicy.Select(models, plan.Unions, out _, RecordReaderPlanFixture.Rollout, sites))
+            .Throws<BindingException>();
+        await Assert.That(exception!.Errors).IsEquivalentTo([
+            new BindingError(BindingErrorCategory.Naming, "NestedValue", "Nested reader call site 'NestedValue.Note' must name a direct closed-record member of a selected record."),
+        ], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task Select_Should_Claim_Nested_Readers_Without_Adding_Union_Arms()
     {
         var plan = RecordReaderPlanFixture.CreateNested();
@@ -30,6 +103,7 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
     [Arguments("open")]
     [Arguments("list")]
     [Arguments("dictionary")]
+    [Arguments("optional")]
     public async Task Select_Should_Refuse_An_Invalid_Nested_Call_Site(string shape)
     {
         var plan = RecordReaderPlanFixture.CreateNested();
@@ -46,7 +120,7 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
         var models = plan.Models.Select(model => model switch
         {
             ObjectModelPlan { Name: "NestedRecord" } record => record with
-            { Properties = [.. record.Properties.Select(property => property.Name == "Child" ? property with { Type = type } : property)] },
+            { Properties = [.. record.Properties.Select(property => property.Name == "Child" ? property with { Type = type, EmitsOptionalWrapper = shape == "optional" } : property)] },
             ObjectModelPlan { Name: "NestedValue" } value when shape == "open" => value with { EmitsExtensionData = true },
             _ => model,
         }).ToArray();
@@ -71,34 +145,55 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
     }
 
     [Test]
-    public async Task Bind_Should_Carry_The_Six_Readers_Into_Normal_Emission()
+    public async Task Bind_Should_Carry_The_Selected_Readers_Into_Normal_Emission()
     {
         var sources = Tools.Generator.Emission.SourceEmitter.Emit(pinned.Plan);
         await Assert.That(pinned.Plan.ReaderRecords.Keys).IsEquivalentTo([
             "SessionMessageToolStateCompleted", "SessionMessageToolStateError", "SessionMessageToolStateRunning",
-            "SessionMessageToolStateStreaming", "ToolFileContent", "ToolTextContent",
+            "SessionMessageToolStateStreaming",
+            "SessionReasoningDelta", "SessionReasoningDeltaData", "SessionTextDelta", "SessionTextDeltaData",
+            "SessionTextEnded", "SessionTextEndedData", "SessionTextEndedDurable", "SessionToolInputDelta", "SessionToolInputDeltaData",
+            "ToolFileContent", "ToolTextContent",
         ], CollectionOrdering.Matching);
         await Assert.That(pinned.Plan.ReaderArms.Where(static entry => entry.Value.Count > 0).Select(static entry => entry.Key))
-            .IsEquivalentTo(["ISessionMessageToolState", "IToolContent"], CollectionOrdering.Matching);
+            .IsEquivalentTo(["IEvent", "ISessionMessageToolState", "IToolContent"], CollectionOrdering.Matching);
         await Assert.That(sources.Select(static source => source.RelativePath)
             .Where(static path => path.EndsWith("JsonReader.cs", StringComparison.Ordinal)))
             .IsEquivalentTo([
                 "Sessions/Internal/SessionMessageToolStateCompletedJsonReader.cs", "Sessions/Internal/SessionMessageToolStateErrorJsonReader.cs",
                 "Sessions/Internal/SessionMessageToolStateRunningJsonReader.cs", "Sessions/Internal/SessionMessageToolStateStreamingJsonReader.cs",
+                "Sessions/Internal/SessionReasoningDeltaDataJsonReader.cs", "Sessions/Internal/SessionReasoningDeltaJsonReader.cs",
+                "Sessions/Internal/SessionTextDeltaDataJsonReader.cs", "Sessions/Internal/SessionTextDeltaJsonReader.cs",
+                "Sessions/Internal/SessionTextEndedDataJsonReader.cs", "Sessions/Internal/SessionTextEndedDurableJsonReader.cs",
+                "Sessions/Internal/SessionTextEndedJsonReader.cs", "Sessions/Internal/SessionToolInputDeltaDataJsonReader.cs",
+                "Sessions/Internal/SessionToolInputDeltaJsonReader.cs",
                 "Sessions/Internal/ToolFileContentJsonReader.cs", "Sessions/Internal/ToolTextContentJsonReader.cs",
             ], CollectionOrdering.Matching);
+        await Assert.That(pinned.Plan.ReaderCallSites.OrderBy(static site => site.Key, StringComparer.Ordinal)
+            .SelectMany(static site => site.Value.Order(StringComparer.Ordinal).Select(member => site.Key + "." + member)))
+            .IsEquivalentTo(["SessionReasoningDelta.Data", "SessionTextDelta.Data", "SessionTextEnded.Data", "SessionTextEnded.Durable", "SessionToolInputDelta.Data"], CollectionOrdering.Matching);
+        foreach (var name in new[] { "SessionEventDurable", "SessionLogItem" })
+        {
+            await Assert.That(EmitterSnapshot.Content(sources, "Sessions/Internal/" + name + "JsonConverter.cs"))
+                .Contains(".Of<SessionTextEnded>()");
+            await Assert.That(pinned.Plan.ReaderArms["I" + name]).DoesNotContain("SessionTextEnded");
+        }
     }
 
     [Test]
-    public async Task Select_Should_Select_Exactly_The_Two_Rollout_Unions()
+    public async Task Select_Should_Select_Exactly_The_Rollout_Arms_And_Nested_Records()
     {
         var selected = RecordReaderPolicy.Select(pinned.Plan.Models, pinned.Plan.Unions, out var arms);
         await Assert.That(selected.Keys).IsEquivalentTo([
             "SessionMessageToolStateCompleted", "SessionMessageToolStateError", "SessionMessageToolStateRunning",
-            "SessionMessageToolStateStreaming", "ToolFileContent", "ToolTextContent",
+            "SessionMessageToolStateStreaming",
+            "SessionReasoningDelta", "SessionReasoningDeltaData", "SessionTextDelta", "SessionTextDeltaData",
+            "SessionTextEnded", "SessionTextEndedData", "SessionTextEndedDurable", "SessionToolInputDelta", "SessionToolInputDeltaData",
+            "ToolFileContent", "ToolTextContent",
         ], CollectionOrdering.Matching);
         await Assert.That(arms.Where(static entry => entry.Value.Count > 0).Select(static entry => entry.Key))
-            .IsEquivalentTo(["ISessionMessageToolState", "IToolContent"], CollectionOrdering.Matching);
+            .IsEquivalentTo(["IEvent", "ISessionMessageToolState", "IToolContent"], CollectionOrdering.Matching);
+        await Assert.That(arms["IEvent"]).IsEquivalentTo(["SessionReasoningDelta", "SessionTextDelta", "SessionTextEnded", "SessionToolInputDelta"], CollectionOrdering.Matching);
         await Assert.That(arms["ISessionMessageToolState"]).IsEquivalentTo([
             "SessionMessageToolStateCompleted", "SessionMessageToolStateError", "SessionMessageToolStateRunning",
             "SessionMessageToolStateStreaming",
