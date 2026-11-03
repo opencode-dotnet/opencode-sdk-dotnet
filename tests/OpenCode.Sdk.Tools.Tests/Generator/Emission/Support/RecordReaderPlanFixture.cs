@@ -85,6 +85,33 @@ internal static class RecordReaderPlanFixture
         }).WithSingleSlice()));
     }
 
+    public static EmitPlan CreateWide()
+    {
+        var plan = Create();
+        var dense = plan.Models.OfType<ObjectModelPlan>().Single(static model => model.Name == "DenseRecord");
+        var names = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "type", "kind", "text", "note", "flag", "strict", "nullableNumber", "special", "specialList",
+            "specialMap", "items", "map", "nullableMap", "child", "nullableChild", "mode", "literal",
+        };
+        var wide = dense with
+        {
+            Name = "WideRecord",
+            Properties = [.. dense.Properties.Where(property => names.Contains(property.WireName))
+                .Select(static property => property.WireName == "kind" ? StringLiteral("kind", "wide") : property)],
+        };
+        plan = UnionChainBuilder.Resolve((plan with
+        {
+            Models = [.. plan.Models, wide],
+            Unions = [.. plan.Unions.Select(union => union.Name is "IToolContent" or "IOther"
+                ? union with { Variants = [.. union.Variants, Arm("WideRecord") with { Tag = "wide", MarkerWireName = "kind" }] } : union)],
+            Registry = plan.Registry with { TypeNames = [.. plan.Registry.TypeNames, "WideRecord"] },
+        }).WithSingleSlice());
+        var rollout = Rollout.Append(("IToolContent", "WideRecord")).ToHashSet();
+        var readers = RecordReaderPolicy.Select(plan.Models, plan.Unions, out var arms, rollout);
+        return plan with { ReaderRecords = readers, ReaderArms = arms };
+    }
+
     public static EmitPlan SelectReaders(EmitPlan plan)
     {
         var readers = RecordReaderPolicy.Select(plan.Models, plan.Unions, out var readerArms, Rollout, plan.ReaderCallSites);

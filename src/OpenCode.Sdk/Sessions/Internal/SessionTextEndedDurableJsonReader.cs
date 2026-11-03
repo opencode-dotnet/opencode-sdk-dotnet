@@ -7,6 +7,14 @@ namespace OpenCode.Sdk.Internal;
 
 internal static class SessionTextEndedDurableJsonReader
 {
+    private struct State
+    {
+        public string? value0;
+        public long value1;
+        public double value2;
+        public ulong present0;
+    }
+
     internal static SessionTextEndedDurable Read(ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
         if (!(reader.TokenType == JsonTokenType.StartObject))
@@ -14,26 +22,17 @@ internal static class SessionTextEndedDurableJsonReader
             throw new JsonException("The record cannot be materialized.");
         }
 
-        string? value0 = default;
-        long value1 = default;
-        double value2 = default;
-        ulong present0 = 0;
+        State state = default;
         while (reader.Read())
         {
             if (reader.TokenType == JsonTokenType.EndObject)
             {
-                if (!(present0 == 7UL))
+                if (!(state.present0 == 7UL))
                 {
                     throw new JsonException("The record cannot be materialized.");
                 }
 
-                // The presence mask and immediate null checks prove required reference members are assigned.
-                return new SessionTextEndedDurable
-                {
-                    AggregateId = value0!,
-                    Seq = value1,
-                    Version = value2
-                };
+                return Construct(ref state);
             }
 
             if (!(reader.TokenType == JsonTokenType.PropertyName))
@@ -41,66 +40,96 @@ internal static class SessionTextEndedDurableJsonReader
                 throw new JsonException("The record cannot be materialized.");
             }
 
-            var member = reader.ValueTextEquals("aggregateID"u8) ? 0 : reader.ValueTextEquals("seq"u8) ? 1 : reader.ValueTextEquals("version"u8) ? 2 : -1;
-            if (!reader.Read())
+            if (TryReadGroup0(ref reader, ref state, options))
             {
-                throw new JsonException("The record cannot be materialized.");
+                continue;
             }
 
-            switch (member)
+            AdvanceToValue(ref reader);
+            if (!reader.TrySkip())
             {
-                case 0:
-                    ReadAggregateId(ref reader, ref value0, options);
-                    present0 |= 1UL;
-                    break;
-                case 1:
-                    ReadSeq(ref reader, ref value1, options);
-                    present0 |= 2UL;
-                    break;
-                case 2:
-                    ReadVersion(ref reader, ref value2, options);
-                    present0 |= 4UL;
-                    break;
-                default:
-                    if (!reader.TrySkip())
-                    {
-                        throw new JsonException("The record cannot be materialized.");
-                    }
-
-                    break;
+                throw new JsonException("The record cannot be materialized.");
             }
         }
 
         throw new JsonException("The record ended before its closing object token.");
     }
 
-    private static void ReadAggregateId(ref Utf8JsonReader reader, ref string? value0, JsonSerializerOptions _)
+    private static bool TryReadGroup0(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
-        if (reader.TokenType == JsonTokenType.Null)
+        if (reader.ValueTextEquals("aggregateID"u8))
         {
-            throw new JsonException("A non-nullable member was null.");
+            return ReadAggregateId(ref reader, ref state, options);
         }
 
-        value0 = reader.GetString();
+        if (reader.ValueTextEquals("seq"u8))
+        {
+            return ReadSeq(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("version"u8))
+        {
+            return ReadVersion(ref reader, ref state, options);
+        }
+
+        return false;
     }
 
-    private static void ReadSeq(ref Utf8JsonReader reader, ref long value1, JsonSerializerOptions _)
+    private static void AdvanceToValue(ref Utf8JsonReader reader)
     {
-        if (reader.TokenType == JsonTokenType.Null)
+        if (!reader.Read())
         {
-            throw new JsonException("A non-nullable member was null.");
+            throw new JsonException("The record cannot be materialized.");
         }
-
-        value1 = reader.GetInt64();
     }
 
-    private static void ReadVersion(ref Utf8JsonReader reader, ref double value2, JsonSerializerOptions _)
+    private static SessionTextEndedDurable Construct(ref State state)
     {
+        // The presence mask and immediate null checks prove required reference members are assigned.
+        return new SessionTextEndedDurable
+        {
+            AggregateId = state.value0!,
+            Seq = state.value1,
+            Version = state.value2
+        };
+    }
+
+    private static bool ReadAggregateId(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
+    {
+        AdvanceToValue(ref reader);
         if (reader.TokenType == JsonTokenType.Null)
         {
             throw new JsonException("A non-nullable member was null.");
         }
 
-        value2 = reader.GetDouble();
+        state.value0 = reader.GetString();
+        state.present0 |= 1UL;
+        return true;
+    }
+
+    private static bool ReadSeq(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
+    {
+        AdvanceToValue(ref reader);
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            throw new JsonException("A non-nullable member was null.");
+        }
+
+        state.value1 = reader.GetInt64();
+        state.present0 |= 2UL;
+        return true;
+    }
+
+    private static bool ReadVersion(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
+    {
+        AdvanceToValue(ref reader);
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            throw new JsonException("A non-nullable member was null.");
+        }
+
+        state.value2 = reader.GetDouble();
+        state.present0 |= 4UL;
+        return true;
     }
 }

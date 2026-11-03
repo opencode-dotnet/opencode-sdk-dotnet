@@ -7,6 +7,14 @@ namespace OpenCode.Sdk.Internal;
 
 internal static class ToolFileContentJsonReader
 {
+    private struct State
+    {
+        public string? value0;
+        public string? value1;
+        public string? value2;
+        public ulong present0;
+    }
+
     internal static ToolFileContent Read(ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
         if (!(reader.TokenType == JsonTokenType.StartObject))
@@ -14,26 +22,17 @@ internal static class ToolFileContentJsonReader
             throw new JsonException("The record cannot be materialized.");
         }
 
-        string? value0 = default;
-        string? value1 = default;
-        string? value2 = default;
-        ulong present0 = 0;
+        State state = default;
         while (reader.Read())
         {
             if (reader.TokenType == JsonTokenType.EndObject)
             {
-                if (!(present0 == 3UL))
+                if (!(state.present0 == 3UL))
                 {
                     throw new JsonException("The record cannot be materialized.");
                 }
 
-                // The presence mask and immediate null checks prove required reference members are assigned.
-                return new ToolFileContent
-                {
-                    Uri = value0!,
-                    Mime = value1!,
-                    Name = value2
-                };
+                return Construct(ref state);
             }
 
             if (!(reader.TokenType == JsonTokenType.PropertyName))
@@ -41,60 +40,90 @@ internal static class ToolFileContentJsonReader
                 throw new JsonException("The record cannot be materialized.");
             }
 
-            var member = reader.ValueTextEquals("uri"u8) ? 0 : reader.ValueTextEquals("mime"u8) ? 1 : reader.ValueTextEquals("name"u8) ? 2 : -1;
-            if (!reader.Read())
+            if (TryReadGroup0(ref reader, ref state, options))
             {
-                throw new JsonException("The record cannot be materialized.");
+                continue;
             }
 
-            switch (member)
+            AdvanceToValue(ref reader);
+            if (!reader.TrySkip())
             {
-                case 0:
-                    ReadUri(ref reader, ref value0, options);
-                    present0 |= 1UL;
-                    break;
-                case 1:
-                    ReadMime(ref reader, ref value1, options);
-                    present0 |= 2UL;
-                    break;
-                case 2:
-                    ReadName(ref reader, ref value2, options);
-                    break;
-                default:
-                    if (!reader.TrySkip())
-                    {
-                        throw new JsonException("The record cannot be materialized.");
-                    }
-
-                    break;
+                throw new JsonException("The record cannot be materialized.");
             }
         }
 
         throw new JsonException("The record ended before its closing object token.");
     }
 
-    private static void ReadUri(ref Utf8JsonReader reader, ref string? value0, JsonSerializerOptions _)
+    private static bool TryReadGroup0(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
+        if (reader.ValueTextEquals("uri"u8))
+        {
+            return ReadUri(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("mime"u8))
+        {
+            return ReadMime(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("name"u8))
+        {
+            return ReadName(ref reader, ref state, options);
+        }
+
+        return false;
+    }
+
+    private static void AdvanceToValue(ref Utf8JsonReader reader)
+    {
+        if (!reader.Read())
+        {
+            throw new JsonException("The record cannot be materialized.");
+        }
+    }
+
+    private static ToolFileContent Construct(ref State state)
+    {
+        // The presence mask and immediate null checks prove required reference members are assigned.
+        return new ToolFileContent
+        {
+            Uri = state.value0!,
+            Mime = state.value1!,
+            Name = state.value2
+        };
+    }
+
+    private static bool ReadUri(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
+    {
+        AdvanceToValue(ref reader);
         if (reader.TokenType == JsonTokenType.Null)
         {
             throw new JsonException("A non-nullable member was null.");
         }
 
-        value0 = reader.GetString();
+        state.value0 = reader.GetString();
+        state.present0 |= 1UL;
+        return true;
     }
 
-    private static void ReadMime(ref Utf8JsonReader reader, ref string? value1, JsonSerializerOptions _)
+    private static bool ReadMime(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
     {
+        AdvanceToValue(ref reader);
         if (reader.TokenType == JsonTokenType.Null)
         {
             throw new JsonException("A non-nullable member was null.");
         }
 
-        value1 = reader.GetString();
+        state.value1 = reader.GetString();
+        state.present0 |= 2UL;
+        return true;
     }
 
-    private static void ReadName(ref Utf8JsonReader reader, ref string? value2, JsonSerializerOptions _)
+    private static bool ReadName(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
     {
-        value2 = reader.TokenType == JsonTokenType.Null ? default : reader.GetString();
+        AdvanceToValue(ref reader);
+        state.value2 = reader.TokenType == JsonTokenType.Null ? default : reader.GetString();
+        return true;
     }
 }

@@ -7,6 +7,15 @@ namespace OpenCode.Sdk.Internal;
 
 internal static class SessionReasoningDeltaDataJsonReader
 {
+    private struct State
+    {
+        public string? value0;
+        public string? value1;
+        public long value2;
+        public string? value3;
+        public ulong present0;
+    }
+
     internal static SessionReasoningDeltaData Read(ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
         if (!(reader.TokenType == JsonTokenType.StartObject))
@@ -14,28 +23,17 @@ internal static class SessionReasoningDeltaDataJsonReader
             throw new JsonException("The record cannot be materialized.");
         }
 
-        string? value0 = default;
-        string? value1 = default;
-        long value2 = default;
-        string? value3 = default;
-        ulong present0 = 0;
+        State state = default;
         while (reader.Read())
         {
             if (reader.TokenType == JsonTokenType.EndObject)
             {
-                if (!(present0 == 15UL))
+                if (!(state.present0 == 15UL))
                 {
                     throw new JsonException("The record cannot be materialized.");
                 }
 
-                // The presence mask and immediate null checks prove required reference members are assigned.
-                return new SessionReasoningDeltaData
-                {
-                    SessionId = value0!,
-                    AssistantMessageId = value1!,
-                    Ordinal = value2,
-                    Delta = value3!
-                };
+                return Construct(ref state);
             }
 
             if (!(reader.TokenType == JsonTokenType.PropertyName))
@@ -43,80 +41,115 @@ internal static class SessionReasoningDeltaDataJsonReader
                 throw new JsonException("The record cannot be materialized.");
             }
 
-            var member = reader.ValueTextEquals("sessionID"u8) ? 0 : reader.ValueTextEquals("assistantMessageID"u8) ? 1 : reader.ValueTextEquals("ordinal"u8) ? 2 : reader.ValueTextEquals("delta"u8) ? 3 : -1;
-            if (!reader.Read())
+            if (TryReadGroup0(ref reader, ref state, options))
             {
-                throw new JsonException("The record cannot be materialized.");
+                continue;
             }
 
-            switch (member)
+            AdvanceToValue(ref reader);
+            if (!reader.TrySkip())
             {
-                case 0:
-                    ReadSessionId(ref reader, ref value0, options);
-                    present0 |= 1UL;
-                    break;
-                case 1:
-                    ReadAssistantMessageId(ref reader, ref value1, options);
-                    present0 |= 2UL;
-                    break;
-                case 2:
-                    ReadOrdinal(ref reader, ref value2, options);
-                    present0 |= 4UL;
-                    break;
-                case 3:
-                    ReadDelta(ref reader, ref value3, options);
-                    present0 |= 8UL;
-                    break;
-                default:
-                    if (!reader.TrySkip())
-                    {
-                        throw new JsonException("The record cannot be materialized.");
-                    }
-
-                    break;
+                throw new JsonException("The record cannot be materialized.");
             }
         }
 
         throw new JsonException("The record ended before its closing object token.");
     }
 
-    private static void ReadSessionId(ref Utf8JsonReader reader, ref string? value0, JsonSerializerOptions _)
+    private static bool TryReadGroup0(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
-        if (reader.TokenType == JsonTokenType.Null)
+        if (reader.ValueTextEquals("sessionID"u8))
         {
-            throw new JsonException("A non-nullable member was null.");
+            return ReadSessionId(ref reader, ref state, options);
         }
 
-        value0 = reader.GetString();
+        if (reader.ValueTextEquals("assistantMessageID"u8))
+        {
+            return ReadAssistantMessageId(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("ordinal"u8))
+        {
+            return ReadOrdinal(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("delta"u8))
+        {
+            return ReadDelta(ref reader, ref state, options);
+        }
+
+        return false;
     }
 
-    private static void ReadAssistantMessageId(ref Utf8JsonReader reader, ref string? value1, JsonSerializerOptions _)
+    private static void AdvanceToValue(ref Utf8JsonReader reader)
     {
-        if (reader.TokenType == JsonTokenType.Null)
+        if (!reader.Read())
         {
-            throw new JsonException("A non-nullable member was null.");
+            throw new JsonException("The record cannot be materialized.");
         }
-
-        value1 = reader.GetString();
     }
 
-    private static void ReadOrdinal(ref Utf8JsonReader reader, ref long value2, JsonSerializerOptions _)
+    private static SessionReasoningDeltaData Construct(ref State state)
     {
-        if (reader.TokenType == JsonTokenType.Null)
+        // The presence mask and immediate null checks prove required reference members are assigned.
+        return new SessionReasoningDeltaData
         {
-            throw new JsonException("A non-nullable member was null.");
-        }
-
-        value2 = reader.GetInt64();
+            SessionId = state.value0!,
+            AssistantMessageId = state.value1!,
+            Ordinal = state.value2,
+            Delta = state.value3!
+        };
     }
 
-    private static void ReadDelta(ref Utf8JsonReader reader, ref string? value3, JsonSerializerOptions _)
+    private static bool ReadSessionId(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
     {
+        AdvanceToValue(ref reader);
         if (reader.TokenType == JsonTokenType.Null)
         {
             throw new JsonException("A non-nullable member was null.");
         }
 
-        value3 = reader.GetString();
+        state.value0 = reader.GetString();
+        state.present0 |= 1UL;
+        return true;
+    }
+
+    private static bool ReadAssistantMessageId(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
+    {
+        AdvanceToValue(ref reader);
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            throw new JsonException("A non-nullable member was null.");
+        }
+
+        state.value1 = reader.GetString();
+        state.present0 |= 2UL;
+        return true;
+    }
+
+    private static bool ReadOrdinal(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
+    {
+        AdvanceToValue(ref reader);
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            throw new JsonException("A non-nullable member was null.");
+        }
+
+        state.value2 = reader.GetInt64();
+        state.present0 |= 4UL;
+        return true;
+    }
+
+    private static bool ReadDelta(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
+    {
+        AdvanceToValue(ref reader);
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            throw new JsonException("A non-nullable member was null.");
+        }
+
+        state.value3 = reader.GetString();
+        state.present0 |= 8UL;
+        return true;
     }
 }

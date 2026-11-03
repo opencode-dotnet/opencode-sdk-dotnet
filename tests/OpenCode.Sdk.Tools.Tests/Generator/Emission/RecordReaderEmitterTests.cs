@@ -16,6 +16,33 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 public sealed class RecordReaderEmitterTests
 {
     [Test]
+    public async Task Emit_Should_Dispatch_A_Wide_Record_Through_Fixed_Groups()
+    {
+        var sources = SourceEmitter.Emit(RecordReaderPlanFixture.CreateWide());
+        var source = EmitterSnapshot.Content(sources, "Example/Internal/WideRecordJsonReader.cs");
+        var root = await CSharpSyntaxTree.ParseText(source).GetRootAsync();
+        var groups = root.DescendantNodes().OfType<MethodDeclarationSyntax>()
+            .Where(static method => method.Identifier.ValueText.StartsWith("TryReadGroup", StringComparison.Ordinal)).ToArray();
+        await Assert.That(groups.Select(static method => method.Identifier.ValueText))
+            .IsEquivalentTo(["TryReadGroup0", "TryReadGroup1"], CollectionOrdering.Matching);
+        await Assert.That(groups.Select(static method => method.DescendantNodes().OfType<IfStatementSyntax>().Count()))
+            .IsEquivalentTo([12, 3], CollectionOrdering.Matching);
+        await Assert.That(source).Contains("TryReadGroup0(ref reader, ref state, options) || TryReadGroup1(ref reader, ref state, options)");
+        await Assert.That(await GeneratedSourceCompiler.CompileWithSdkCoreAsync(sources)).IsEmpty();
+    }
+
+    [Test]
+    public async Task Read_Should_Match_Metadata_For_The_Wide_Record()
+    {
+        var plan = RecordReaderPlanFixture.CreateWide();
+        var oracle = await UnionReaderOracle.CreateAsync(plan);
+        foreach (var row in await RecordCorpusGenerator.GenerateAsync(plan, ["WideRecord"]))
+        {
+            await oracle.CompareAsync(row);
+        }
+    }
+
+    [Test]
     [Arguments("ToolContent/nested/minimal", "success")]
     [Arguments("ToolContent/nested/maximal", "success")]
     [Arguments("nested/nullable-omit", "success")]
@@ -41,11 +68,11 @@ public sealed class RecordReaderEmitterTests
         var source = EmitterSnapshot.Content(sources, "Example/Internal/NestedRecordJsonReader.cs");
         var root = await CSharpSyntaxTree.ParseText(source).GetRootAsync();
         await Assert.That(root.DescendantNodes().OfType<AssignmentExpressionSyntax>()
-            .Where(static assignment => assignment.Left.ToString().StartsWith("value", StringComparison.Ordinal))
+            .Where(static assignment => assignment.Left.ToString().StartsWith("state.value", StringComparison.Ordinal))
             .Select(static assignment => assignment.ToString())).IsEquivalentTo([
-                "value0 = NestedValueJsonReader.Read(ref reader, options)",
-                "value1 = reader.TokenType == JsonTokenType.Null ? default(NestedValue?) : NestedValueJsonReader.Read(ref reader, options)",
-                "value2 = UnionMemberReader.Read<NestedValue>(ref reader, options)",
+                "state.value0 = NestedValueJsonReader.Read(ref reader, options)",
+                "state.value1 = reader.TokenType == JsonTokenType.Null ? default(NestedValue?) : NestedValueJsonReader.Read(ref reader, options)",
+                "state.value2 = UnionMemberReader.Read<NestedValue>(ref reader, options)",
             ], CollectionOrdering.Matching);
     }
 
