@@ -1078,6 +1078,8 @@
 /Sessions/Internal/SessionPermissionResponseEnvelope.cs linguist-generated
 /Sessions/Internal/SessionPromptResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionPromptResponseEnvelope.cs linguist-generated
+/Sessions/Internal/SessionReasoningDeltaDataJsonReader.cs linguist-generated
+/Sessions/Internal/SessionReasoningDeltaJsonReader.cs linguist-generated
 /Sessions/Internal/SessionRemoveResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionResponseEnvelope.cs linguist-generated
@@ -1093,6 +1095,13 @@
 /Sessions/Internal/SessionSwitchModelResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionSyntheticResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionSyntheticResponseEnvelope.cs linguist-generated
+/Sessions/Internal/SessionTextDeltaDataJsonReader.cs linguist-generated
+/Sessions/Internal/SessionTextDeltaJsonReader.cs linguist-generated
+/Sessions/Internal/SessionTextEndedDataJsonReader.cs linguist-generated
+/Sessions/Internal/SessionTextEndedDurableJsonReader.cs linguist-generated
+/Sessions/Internal/SessionTextEndedJsonReader.cs linguist-generated
+/Sessions/Internal/SessionToolInputDeltaDataJsonReader.cs linguist-generated
+/Sessions/Internal/SessionToolInputDeltaJsonReader.cs linguist-generated
 /Sessions/Internal/SessionUpdateResponseAdapter.cs linguist-generated
 /Sessions/Internal/SessionUsageRecordedDataSourceJsonConverter.cs linguist-generated
 /Sessions/Internal/SessionViewResponseAdapter.cs linguist-generated

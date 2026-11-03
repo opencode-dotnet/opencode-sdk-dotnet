@@ -8,6 +8,20 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 /// <summary>Emits the property's conversion, including the null handling a direct converter bypasses.</summary>
 internal static class RecordMemberReaderEmitter
 {
+    internal static MethodDeclarationSyntax Reader(ModelPropertyPlan property, TypeSyntax type, string local, IReadOnlySet<string>? callSites)
+    {
+        var body = SyntaxFactory.Block(Assignment(property, local, callSites));
+        var options = body.DescendantNodes().OfType<IdentifierNameSyntax>().Any(static name => name.Identifier.ValueText == "options") ? "options" : "_";
+        var method = ConverterSyntax.Read(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), body, [])
+            .WithIdentifier(SyntaxFactory.Identifier("Read" + property.Name))
+            .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PrivateKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)));
+        var parameters = method.ParameterList.Parameters;
+        parameters = parameters.Replace(parameters[1], SyntaxFactory.Parameter(SyntaxFactory.Identifier(local)).WithType(type)
+            .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword))));
+        return method.WithParameterList(method.ParameterList.WithParameters(parameters
+            .Replace(parameters[2], parameters[2].WithIdentifier(SyntaxFactory.Identifier(options)))));
+    }
+
     internal static TypeSyntax PropertyType(ModelPropertyPlan property) => property.EmitsOptionalWrapper
         ? TypeSyntaxEmitter.Generic("Optional", TypeSyntaxEmitter.Emit(property.Type)) : TypeSyntaxEmitter.Emit(property.Type);
 

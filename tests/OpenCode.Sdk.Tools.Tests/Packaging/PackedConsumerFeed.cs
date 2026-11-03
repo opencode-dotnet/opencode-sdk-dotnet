@@ -255,7 +255,7 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
         using OpenCode.Sdk;
         using OpenCode.Sdk.Models;
 
-        // Construction checks use an unused endpoint; the message read below uses the loopback server.
+        // Construction checks use an unused endpoint; the reads below use the loopback server.
         var endpoint = new Uri("http://127.0.0.1:9/", UriKind.Absolute);
 
         using (new OpenCodeClient(new OpenCodeClientOptions { Endpoint = endpoint }))
@@ -302,6 +302,7 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
         Equal(((ToolFileContent)error.Content[1]).Uri, "error:reader");
         Equal(((ToolFileContent)error.Content[1]).Mime, "error/mime");
         Equal(((ToolFileContent)error.Content[1]).Name, "error.txt");
+        {{PromptEventsProgram}}
         Console.Out.WriteLine("{{AotConsumerData.Marker}}");
         return 0;
 
@@ -311,6 +312,59 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
             {
                 throw new InvalidOperationException($"Expected {expected}, received {actual}.");
             }
+        }
+        """;
+
+    private const string PromptEventsProgram =
+        """
+        await using (var events = wireClient.Events.SubscribeAsync().GetAsyncEnumerator())
+        {
+            Equal(await events.MoveNextAsync(), true);
+            Equal(events.Current.Type, "server.connected");
+            Equal(await events.MoveNextAsync(), true);
+            var text = (SessionTextDelta)events.Current;
+            Equal(text.Id, "evt_text");
+            Equal(text.Created, 17.5);
+            Equal(text.Metadata["phase"].GetString(), "text");
+            Equal(text.Location.Directory, "/text");
+            Equal(text.Data.SessionId, "ses_text");
+            Equal(text.Data.AssistantMessageId, "msg_text");
+            Equal(text.Data.Ordinal, 23L);
+            Equal(text.Data.Delta, "text λ \"fragment\"");
+            Equal(await events.MoveNextAsync(), true);
+            var reasoning = (SessionReasoningDelta)events.Current;
+            Equal(reasoning.Id, "evt_reason");
+            Equal(reasoning.Created, 29.5);
+            Equal(reasoning.Metadata["phase"].GetString(), "reason");
+            Equal(reasoning.Location.WorkspaceId, "wrk_reason");
+            Equal(reasoning.Data.SessionId, "ses_reason");
+            Equal(reasoning.Data.AssistantMessageId, "msg_reason");
+            Equal(reasoning.Data.Ordinal, 31L);
+            Equal(reasoning.Data.Delta, "reason λ fragment");
+            Equal(await events.MoveNextAsync(), true);
+            var input = (SessionToolInputDelta)events.Current;
+            Equal(input.Id, "evt_tool");
+            Equal(input.Created, 37.5);
+            Equal(input.Metadata["phase"].GetString(), "tool");
+            Equal(input.Location.Directory, "/tool");
+            Equal(input.Data.SessionId, "ses_tool");
+            Equal(input.Data.AssistantMessageId, "msg_tool");
+            Equal(input.Data.Id, "tool_input");
+            Equal(input.Data.Delta, "tool λ fragment");
+            Equal(await events.MoveNextAsync(), true);
+            var ended = (SessionTextEnded)events.Current;
+            Equal(ended.Id, "evt_ended");
+            Equal(ended.Created, 41.5);
+            Equal(ended.Metadata["phase"].GetString(), "ended");
+            Equal(ended.Location.WorkspaceId, "wrk_ended");
+            Equal(ended.Durable.AggregateId, "agg_ended");
+            Equal(ended.Durable.Seq, 43L);
+            Equal(ended.Durable.Version, 47.5);
+            Equal(ended.Data.SessionId, "ses_ended");
+            Equal(ended.Data.AssistantMessageId, "msg_ended");
+            Equal(ended.Data.Ordinal, 53L);
+            Equal(ended.Data.Text, "ended λ text");
+            Equal(ended.Data.Native["state"][0].GetInt32(), 59);
         }
         """;
 

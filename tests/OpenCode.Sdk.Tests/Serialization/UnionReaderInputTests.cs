@@ -106,6 +106,16 @@ public sealed class UnionReaderInputTests
             }
             await CompareStreamsAsync(bytes, true, false, OpenCodeJsonContext.Default, metadata, cancellationToken);
         }
+        foreach (var row in new[] { "text-delta", "reasoning-delta", "tool-input-delta", "text-ended" })
+        {
+            var key = row == "tool-input-delta" ? "delta" : "ordinal";
+            var bytes = await PromptEventReaderParityTests.ChangeAsync(PromptEventReaderParityTests.Seed(row), "data", key, "wrong");
+            await PromptEventReaderParityTests.CompareAsync(bytes, row + "/nested-failure");
+            var expected = UnionReaderParityTests.Observe(bytes, false, metadata, root: typeof(IEvent));
+            await Assert.That(expected.Path).IsEqualTo("$.data." + key);
+            await Assert.That(await StreamAsync(bytes, false, OpenCodeJsonContext.Default.IEvent, cancellationToken))
+                .IsEquivalentTo(await StreamAsync(bytes, false, metadata.IEvent, cancellationToken), CollectionOrdering.Matching);
+        }
     }
 
     [Test]
@@ -146,7 +156,7 @@ public sealed class UnionReaderInputTests
         ? StreamAsync(bytes, array, context.ISessionMessageToolState, cancellationToken)
         : StreamAsync(bytes, array, context.IToolContent, cancellationToken);
 
-    private static async Task<IReadOnlyList<string>> StreamAsync<T>(byte[] bytes, bool array, JsonTypeInfo<T> info, CancellationToken cancellationToken)
+    internal static async Task<IReadOnlyList<string>> StreamAsync<T>(byte[] bytes, bool array, JsonTypeInfo<T> info, CancellationToken cancellationToken)
     {
         using var stream = ChunkedStream.OfBytes([.. bytes.Select(static value => new[] { value })]);
         var result = new List<string>();

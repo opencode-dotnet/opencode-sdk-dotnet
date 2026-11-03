@@ -28,12 +28,15 @@ public sealed class UnionArmTests
     }
 
     [Test]
-    public async Task Read_Should_Not_Repair_A_False_Reader_Refusal()
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task Read_Should_Not_Repair_A_False_Reader_Refusal(bool nested)
     {
         var original = new FormatException("reader-refusal");
         long[] expected = [];
         long[] actual = [];
         var arm = UnionArm<ISessionMessageToolState>.Of(Refuse);
+        var prompt = UnionArm<IEvent>.Of(RefuseNested);
         var failure = await Assert.That(ReadAndCapture)
             .Throws<FormatException>();
         await Assert.That(failure).IsSameReferenceAs(original);
@@ -47,13 +50,38 @@ public sealed class UnionArmTests
             throw original;
         }
 
+        SessionTextEnded RefuseNested(ref Utf8JsonReader reader, JsonSerializerOptions options)
+        {
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.PropertyName && reader.ValueTextEquals("data"u8))
+                {
+                    _ = reader.Read();
+                    _ = reader.Read();
+                    _ = reader.Read();
+                    expected = Position(ref reader);
+                    throw original;
+                }
+            }
+            throw new InvalidOperationException("Fixture has no data member.");
+        }
+
         void ReadAndCapture()
         {
-            var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(new FixtureLoader().LoadJson("Serialization.json-element-dictionary-empty-object.json")));
+            var reader = new Utf8JsonReader(nested
+                ? Support.ToolUnionCaseBuilder.Bytes(PromptEventReaderParityTests.Seed("text-ended"))
+                : Encoding.UTF8.GetBytes(new FixtureLoader().LoadJson("Serialization.json-element-dictionary-empty-object.json")));
             _ = reader.Read();
             try
             {
-                _ = arm.Read(ref reader);
+                if (nested)
+                {
+                    _ = prompt.Read(ref reader);
+                }
+                else
+                {
+                    _ = arm.Read(ref reader);
+                }
             }
             finally
             {

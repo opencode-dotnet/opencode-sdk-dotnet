@@ -73,7 +73,8 @@ internal static class RecordReaderPlanFixture
         { ImplementedUnionNames = ["IToolContent", "IOther"] };
         return SelectReaders(UnionChainBuilder.Resolve((plan with
         {
-            Models = [.. plan.Models, record, Record("NestedValue", Property("value", Named("long"), true), Property("note", Named("string", true), false))],
+            Models = [.. plan.Models, record, Record("NestedValue", Property("value", Named("long"), true),
+                Property("text", Named("string"), true), Property("note", Named("string", true), false))],
             Unions = [.. plan.Unions.Select(union => union.Name is "IToolContent" or "IOther"
                 ? union with { Variants = [.. union.Variants, Arm("NestedRecord") with { Tag = "nested", MarkerWireName = "kind" }] } : union)],
             Registry = plan.Registry with { TypeNames = [.. plan.Registry.TypeNames, "NestedRecord", "NestedValue"] },
@@ -110,7 +111,7 @@ internal static class RecordReaderPlanFixture
         var child = System.Text.Encoding.UTF8.GetBytes(document.RootElement.GetProperty("child").GetRawText());
         foreach (var change in new[] { "omit", "wrong-token", "null-then-valid" })
         {
-            using var nested = JsonDocument.Parse(await RecordCorpusGenerator.VaryAsync(child, "value", change,
+            using var nested = JsonDocument.Parse(await RecordCorpusGenerator.VaryAsync(child, change == "null-then-valid" ? "text" : "value", change,
                 await RecordCorpusGenerator.ElementAsync(writer =>
                 {
                     if (change == "wrong-token")

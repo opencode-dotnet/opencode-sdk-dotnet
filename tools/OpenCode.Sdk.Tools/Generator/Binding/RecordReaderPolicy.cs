@@ -2,7 +2,7 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Binding;
 
-/// <summary>Selects literal, closed record arms in the current union-reader rollout.</summary>
+/// <summary>Selects closed record arms and their explicitly listed nested reader call sites.</summary>
 internal static class RecordReaderPolicy
 {
     private static readonly IReadOnlySet<(string Union, string Variant)> Rollout = new HashSet<(string, string)>
@@ -10,14 +10,22 @@ internal static class RecordReaderPolicy
         ("ISessionMessageToolState", "SessionMessageToolStateCompleted"), ("ISessionMessageToolState", "SessionMessageToolStateError"),
         ("ISessionMessageToolState", "SessionMessageToolStateRunning"), ("ISessionMessageToolState", "SessionMessageToolStateStreaming"),
         ("IToolContent", "ToolFileContent"), ("IToolContent", "ToolTextContent"),
+        ("IEvent", "SessionTextDelta"), ("IEvent", "SessionReasoningDelta"),
+        ("IEvent", "SessionToolInputDelta"), ("IEvent", "SessionTextEnded"),
     };
 
     public static IReadOnlyDictionary<string, IReadOnlySet<string>> NestedCallSites { get; } =
-        new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal);
+        new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal)
+        {
+            ["SessionTextDelta"] = new HashSet<string>(StringComparer.Ordinal) { "Data" },
+            ["SessionReasoningDelta"] = new HashSet<string>(StringComparer.Ordinal) { "Data" },
+            ["SessionToolInputDelta"] = new HashSet<string>(StringComparer.Ordinal) { "Data" },
+            ["SessionTextEnded"] = new HashSet<string>(StringComparer.Ordinal) { "Durable", "Data" },
+        };
 
     public static IReadOnlyDictionary<string, ObjectModelPlan> Select(IReadOnlyList<ModelPlan> models, IReadOnlyList<UnionPlan> unions,
         out IReadOnlyDictionary<string, IReadOnlySet<string>> readerArms, IReadOnlySet<(string Union, string Variant)>? rollout = null,
-        IReadOnlyDictionary<string, IReadOnlySet<string>>? callSites = null)
+        IReadOnlyDictionary<string, IReadOnlySet<string>>? callSites = null, BindingErrorCollector? errors = null)
     {
         ArgumentNullException.ThrowIfNull(models);
         ArgumentNullException.ThrowIfNull(unions);
@@ -46,21 +54,27 @@ internal static class RecordReaderPolicy
             }
         }
 
-        SelectNested(objects, selected, callSites ?? NestedCallSites);
+        var collected = errors ?? new BindingErrorCollector();
+        SelectNested(objects, selected, callSites ?? NestedCallSites.Where(site => selected.ContainsKey(site.Key))
+            .ToDictionary(static site => site.Key, static site => site.Value, StringComparer.Ordinal), collected);
+        if (errors is null)
+        {
+            collected.ThrowIfAny();
+        }
         readerArms = arms;
         return selected;
     }
 
     private static void SelectNested(Dictionary<string, ObjectModelPlan> objects,
-        SortedDictionary<string, ObjectModelPlan> selected, IReadOnlyDictionary<string, IReadOnlySet<string>> callSites)
+        SortedDictionary<string, ObjectModelPlan> selected, IReadOnlyDictionary<string, IReadOnlySet<string>> callSites, BindingErrorCollector errors)
     {
-        var errors = new BindingErrorCollector();
+        var armRecords = selected.Keys.ToHashSet(StringComparer.Ordinal);
         foreach (var (record, members) in callSites)
         {
             foreach (var member in members)
             {
                 var property = objects.GetValueOrDefault(record)?.Properties.SingleOrDefault(property => property.Name == member);
-                if (!selected.ContainsKey(record) || property?.Type is not NamedTypeReferencePlan named
+                if (!armRecords.Contains(record) || property?.Type is not NamedTypeReferencePlan named || property.EmitsOptionalWrapper
                     || !objects.TryGetValue(named.Name, out var nested) || nested.EmitsExtensionData)
                 {
                     errors.Add(BindingErrorCategory.Naming, record,
@@ -71,6 +85,5 @@ internal static class RecordReaderPolicy
                 selected[nested.Name] = nested;
             }
         }
-        errors.ThrowIfAny();
     }
 }

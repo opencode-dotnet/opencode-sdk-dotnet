@@ -1,0 +1,23 @@
+[
+  {
+    "id":"evt_text","created":17.5,"metadata":{"phase":"text"},"type":"session.text.delta",
+    "location":{"directory":"/text","workspaceID":"wrk_text"},
+    "data":{"sessionID":"ses_text","assistantMessageID":"msg_text","ordinal":23,"delta":"text λ \"fragment\""}
+  },
+  {
+    "id":"evt_reason","created":29.5,"metadata":{"phase":"reason"},"type":"session.reasoning.delta",
+    "location":{"directory":"/reason","workspaceID":"wrk_reason"},
+    "data":{"sessionID":"ses_reason","assistantMessageID":"msg_reason","ordinal":31,"delta":"reason λ fragment"}
+  },
+  {
+    "id":"evt_tool","created":37.5,"metadata":{"phase":"tool"},"type":"session.tool.input.delta",
+    "location":{"directory":"/tool","workspaceID":"wrk_tool"},
+    "data":{"sessionID":"ses_tool","assistantMessageID":"msg_tool","id":"tool_input","delta":"tool λ fragment"}
+  },
+  {
+    "id":"evt_ended","created":41.5,"metadata":{"phase":"ended"},"type":"session.text.ended",
+    "durable":{"aggregateID":"agg_ended","seq":43,"version":47.5},
+    "location":{"directory":"/ended","workspaceID":"wrk_ended"},
+    "data":{"sessionID":"ses_ended","assistantMessageID":"msg_ended","ordinal":53,"text":"ended λ text","native":{"state":[59,null,true]}}
+  }
+]

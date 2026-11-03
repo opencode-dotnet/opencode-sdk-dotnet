@@ -52,28 +52,18 @@ internal static class SessionMessageToolStateErrorJsonReader
             switch (member)
             {
                 case 0:
-                    if (reader.TokenType == JsonTokenType.Null)
-                    {
-                        throw new JsonException("A non-nullable member was null.");
-                    }
-
-                    value0 = UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>>(ref reader, options);
+                    ReadInput(ref reader, ref value0, options);
                     present0 |= 1UL;
                     break;
                 case 1:
-                    if (reader.TokenType == JsonTokenType.Null)
-                    {
-                        throw new JsonException("A non-nullable member was null.");
-                    }
-
-                    value1 = UnionMemberReader.Read<SessionStructuredError>(ref reader, options);
+                    ReadError(ref reader, ref value1, options);
                     present0 |= 2UL;
                     break;
                 case 2:
-                    value2 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<IReadOnlyList<IToolContent>?>(ref reader, options);
+                    ReadContent(ref reader, ref value2, options);
                     break;
                 case 3:
-                    value3 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>?>(ref reader, options);
+                    ReadMetadata(ref reader, ref value3, options);
                     break;
                 default:
                     if (!reader.TrySkip())
@@ -86,5 +76,35 @@ internal static class SessionMessageToolStateErrorJsonReader
         }
 
         throw new JsonException("The record ended before its closing object token.");
+    }
+
+    private static void ReadInput(ref Utf8JsonReader reader, ref IReadOnlyDictionary<string, JsonElement>? value0, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            throw new JsonException("A non-nullable member was null.");
+        }
+
+        value0 = UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>>(ref reader, options);
+    }
+
+    private static void ReadError(ref Utf8JsonReader reader, ref SessionStructuredError? value1, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            throw new JsonException("A non-nullable member was null.");
+        }
+
+        value1 = UnionMemberReader.Read<SessionStructuredError>(ref reader, options);
+    }
+
+    private static void ReadContent(ref Utf8JsonReader reader, ref IReadOnlyList<IToolContent>? value2, JsonSerializerOptions options)
+    {
+        value2 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<IReadOnlyList<IToolContent>?>(ref reader, options);
+    }
+
+    private static void ReadMetadata(ref Utf8JsonReader reader, ref IReadOnlyDictionary<string, JsonElement>? value3, JsonSerializerOptions options)
+    {
+        value3 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>?>(ref reader, options);
     }
 }
