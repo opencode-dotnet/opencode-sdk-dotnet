@@ -22,9 +22,9 @@ internal static class RecordMemberReaderEmitter
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword), SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword))));
 
-    internal static IReadOnlyList<StatementSyntax> Assignment(ModelPropertyPlan property, string local)
+    internal static IReadOnlyList<StatementSyntax> Assignment(ModelPropertyPlan property, string local, IReadOnlySet<string>? callSites)
     {
-        var read = Value(property);
+        var read = Value(property, callSites);
         var nullToken = SyntaxFactory.BinaryExpression(SyntaxKind.EqualsExpression,
             EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("reader"), "TokenType"),
             EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonTokenType"), "Null"));
@@ -48,8 +48,14 @@ internal static class RecordMemberReaderEmitter
         return statements;
     }
 
-    private static ExpressionSyntax Value(ModelPropertyPlan property)
+    private static ExpressionSyntax Value(ModelPropertyPlan property, IReadOnlySet<string>? callSites)
     {
+        if (callSites?.Contains(property.Name) == true && property.Type is NamedTypeReferencePlan nested)
+        {
+            return EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(ConverterNamePolicy.Reader(nested.Name)), "Read"),
+                ReaderArgument(), SyntaxFactory.Argument(SyntaxFactory.IdentifierName("options")));
+        }
+
         if (property.EmitsOptionalWrapper)
         {
             return EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(

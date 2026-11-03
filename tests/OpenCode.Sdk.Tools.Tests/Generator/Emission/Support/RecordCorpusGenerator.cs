@@ -38,59 +38,62 @@ internal sealed class RecordCorpusGenerator
         var rows = new List<RecordCorpusRow>();
         foreach (var name in names)
         {
-            var model = (ObjectModelPlan)_models[name];
-            var route = _plan.Unions.FirstOrDefault(union => union.Variants.Any(arm => arm.TypeName == name) || union.PrefixVariant?.TypeName == name);
-            var label = route is null ? name : Label(route, name);
-            _sites.Clear();
-            _choices = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (var maximal in new[] { false, true })
+            UnionPlan?[] routes = [.. _plan.Unions.Where(union => union.Variants.Any(arm => arm.TypeName == name) || union.PrefixVariant?.TypeName == name)];
+            foreach (var route in routes.Length == 0 ? [null] : routes)
             {
-                _maximal = maximal;
-                var seed = await BuildAsync(writer => WriteRecord(writer, model, name, []));
-                rows.Add(new($"{label}/{(maximal ? "maximal" : "minimal")}", name, route?.Name, seed, true));
-            }
-
-            // Discover descendants as their ancestor arms are visited, without combining siblings.
-            for (var index = 0; index < _sites.Count; index++)
-            {
-                var site = _sites.ElementAt(index);
-                _choices = site.Value;
-                foreach (var maximal in new[] { false, true })
-                {
-                    _maximal = maximal;
-                    rows.Add(new($"{label}/branch/{site.Key}/{(maximal ? "maximal" : "minimal")}", name, route?.Name,
-                        await BuildAsync(writer => WriteRecord(writer, model, name, [])), true));
-                }
-            }
-
-            _choices = new Dictionary<string, string>(StringComparer.Ordinal);
-            var maximalRow = rows.Single(row => row.Name == label + "/maximal");
-            await AddVariationsAsync(rows, maximalRow, model, label);
-            if (route is not null)
-            {
-                var unknown = route.MarkerKind == LiteralKind.Boolean
-                    ? BooleanTags.Except(route.Variants.Select(static arm => arm.Tag).Concat(route.KnownImpossibleTags), StringComparer.Ordinal) : ["oracle.future"];
-                foreach (var tag in route.KnownImpossibleTags.Concat(unknown))
-                {
-                    rows.Add(new($"{label}/tag/{tag}", name, route.Name,
-                        await VaryAsync(maximalRow.Json, route.MarkerWireName, "replace", await ElementAsync(writer => WriteMarker(writer, route.MarkerKind, tag)))));
-                }
+                await AddRouteRowsAsync(rows, name, route);
             }
         }
 
         return rows;
     }
 
+    private async Task AddRouteRowsAsync(List<RecordCorpusRow> rows, string name, UnionPlan? route)
+    {
+        var model = (ObjectModelPlan)_models[name];
+        var label = route is null ? name : Label(route, name);
+        _sites.Clear();
+        _choices = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var maximal in new[] { false, true })
+        {
+            _maximal = maximal;
+            var seed = await BuildAsync(writer => WriteRecord(writer, model, name, []));
+            rows.Add(new($"{label}/{(maximal ? "maximal" : "minimal")}", name, route?.Name, seed, true));
+        }
+
+        // Discover descendants as their ancestor arms are visited, without combining siblings.
+        for (var index = 0; index < _sites.Count; index++)
+        {
+            var site = _sites.ElementAt(index);
+            _choices = site.Value;
+            foreach (var maximal in new[] { false, true })
+            {
+                _maximal = maximal;
+                rows.Add(new($"{label}/branch/{site.Key}/{(maximal ? "maximal" : "minimal")}", name, route?.Name,
+                    await BuildAsync(writer => WriteRecord(writer, model, name, [])), true));
+            }
+        }
+
+        _choices = new Dictionary<string, string>(StringComparer.Ordinal);
+        var maximalRow = rows.Single(row => row.Name == label + "/maximal");
+        await AddVariationsAsync(rows, maximalRow, model, label);
+        if (route is not null)
+        {
+            var unknown = route.MarkerKind == LiteralKind.Boolean
+                ? BooleanTags.Except(route.Variants.Select(static arm => arm.Tag).Concat(route.KnownImpossibleTags), StringComparer.Ordinal) : ["oracle.future"];
+            foreach (var tag in route.KnownImpossibleTags.Concat(unknown))
+            {
+                rows.Add(new($"{label}/tag/{tag}", name, route.Name,
+                    await VaryAsync(maximalRow.Json, route.MarkerWireName, "replace", await ElementAsync(writer => WriteMarker(writer, route.MarkerKind, tag)))));
+            }
+        }
+    }
+
     private static string Label(UnionPlan union, string name)
     {
         var tag = union.PrefixVariant is { } prefix && prefix.TypeName == name
             ? prefix.Prefix + "oracle" : union.Variants.Single(arm => arm.TypeName == name).Tag;
-        return union.Name switch
-        {
-            "IToolContent" => "tool-content/" + tag,
-            "ISessionMessageToolState" => "state/" + tag,
-            _ => union.ConceptName + "/" + tag,
-        };
+        return union.ConceptName + "/" + tag;
     }
 
     private static async Task AddVariationsAsync(List<RecordCorpusRow> rows, RecordCorpusRow seed, ObjectModelPlan model, string label)

@@ -43,7 +43,7 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
                     .Select(static variant => new KeyValuePair<string, string?>(variant.Tag, variant.TypeName)), CollectionOrdering.Matching);
         }
         var row = (await RecordCorpusGenerator.GenerateAsync(pinned.Plan, ["SessionMessageToolStateCompleted"]))
-            .Single(static row => row.Name == "state/completed/maximal");
+            .Single(static row => row.Name == "SessionMessageToolState/completed/maximal");
         var entered = UnionReaderOracle.Observe(product, "ISessionMessageToolState", row.Json);
         await Assert.That(entered.Phase).IsEqualTo("read");
         await Assert.That(entered.Message).Contains("product-reader-entered");
@@ -60,7 +60,7 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
                 .Replace("JsonPropertyName(\"name\")", "JsonPropertyName(\"unused\")", StringComparison.Ordinal)) : source).ToArray();
         var oracle = await UnionReaderOracle.CreateAsync(pinned.Plan, sources);
         var row = (await RecordCorpusGenerator.GenerateAsync(pinned.Plan, ["ToolFileContent"]))
-            .Single(static row => row.Name == "tool-content/file/maximal");
+            .Single(static row => row.Name == "ToolContent/file/maximal");
         var failure = await Assert.That(async () => await oracle.CompareAsync(row)).Throws<AssertionException>();
         await Assert.That(failure!.Message).Contains(row.Name + "/ToolFileContent/members");
     }
@@ -85,7 +85,7 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
     {
         var oracle = await HandOracleAsync("Name = name", "Name = null");
         var row = (await RecordCorpusGenerator.GenerateAsync(pinned.Plan, ["ToolFileContent"]))
-            .Single(static row => row.Name == "tool-content/file/maximal");
+            .Single(static row => row.Name == "ToolContent/file/maximal");
         var actual = await AssertDifferenceAsync(oracle, row, "members");
         using var members = JsonDocument.Parse(actual.Bytes);
         await Assert.That(members.RootElement.EnumerateObject().Select(static member => member.Name))
@@ -98,7 +98,7 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
         var oracle = await HandOracleAsync("ToolFileContentHandReader.Read(ref reader, options)",
             "JsonSerializer.Deserialize(ref reader, OpenCodeJsonContext.Default.ToolTextContent)");
         var row = (await RecordCorpusGenerator.GenerateAsync(pinned.Plan, ["ToolFileContent"]))
-            .Single(static row => row.Name == "tool-content/file/maximal");
+            .Single(static row => row.Name == "ToolContent/file/maximal");
         var extra = await RecordCorpusGenerator.ElementAsync(static writer => writer.WriteStringValue("wrong-arm-text"));
         row = row with { Json = await RecordCorpusGenerator.VaryAsync(row.Json, "text", "append", extra) };
         var actual = await AssertDifferenceAsync(oracle, row, "type");
@@ -108,11 +108,12 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
     [Test]
     public async Task Oracle_Should_Compare_Every_Selected_Corpus_Row_And_Accept_Every_Seed()
     {
-        var names = pinned.Plan.Unions.Where(static union => union.Name is "IToolContent" or "ISessionMessageToolState")
-            .SelectMany(static union => union.Variants).Select(static arm => arm.TypeName).Order(StringComparer.Ordinal).ToArray();
+        var names = pinned.Plan.ReaderRecords.Keys.ToArray();
         var rows = await RecordCorpusGenerator.GenerateAsync(pinned.Plan, names);
-        await Assert.That(rows.Select(static row => row.RootType).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
-            .IsEquivalentTo(names, CollectionOrdering.Matching);
+        await Assert.That(rows.Where(static row => row.IsSeed).Select(static row => row.RootType + "/" + row.UnionType)
+                .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
+            .IsEquivalentTo(pinned.Plan.Unions.SelectMany(union => union.Variants.Where(arm => names.Contains(arm.TypeName, StringComparer.Ordinal))
+                .Select(arm => arm.TypeName + "/" + union.Name)).Order(StringComparer.Ordinal), CollectionOrdering.Matching);
         var oracle = await UnionReaderOracle.CreateAsync(pinned.Plan);
         foreach (var row in rows)
         {
@@ -182,7 +183,7 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
     {
         var oracle = await UnionReaderOracle.CreateAsync(pinned.Plan);
         var row = (await RecordCorpusGenerator.GenerateAsync(pinned.Plan, ["ToolFileContent"]))
-            .Single(static row => row.Name == "tool-content/file/missing/uri");
+            .Single(static row => row.Name == "ToolContent/file/missing/uri");
         var expected = UnionReaderOracle.Observe(oracle.Metadata, "IToolContent", row.Json);
         await Assert.That(expected.Phase).IsEqualTo("read");
         var seedFailure = await Assert.That(async () => await oracle.CompareAsync(row with { IsSeed = true })).Throws<AssertionException>();

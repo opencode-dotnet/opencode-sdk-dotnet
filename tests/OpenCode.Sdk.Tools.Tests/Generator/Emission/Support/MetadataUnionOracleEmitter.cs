@@ -17,7 +17,7 @@ internal static class MetadataUnionOracleEmitter
     {
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(sources);
-        var readerPaths = RecordReaderPolicy.Select(plan.Models, plan.Unions, out _).Keys.Select(name =>
+        var readerPaths = plan.ReaderRecords.Keys.Select(name =>
             GeneratedPlacement.ConverterPathOf(plan.Placement, name, ConverterNamePolicy.Reader(name))).ToHashSet(StringComparer.Ordinal);
         var replacements = plan.Unions.ToDictionary(union => GeneratedPlacement.ConverterPathOf(plan.Placement,
             union.Name, ConverterNamePolicy.Of(union.ConceptName)), union => Converter(union, plan), StringComparer.Ordinal);

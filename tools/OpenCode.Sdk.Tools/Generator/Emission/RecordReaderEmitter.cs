@@ -30,7 +30,7 @@ internal static class RecordReaderEmitter
             statements.Add(Declare(Mask(word), SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ULongKeyword)), Number(0)));
         }
 
-        var cases = properties.Select((property, index) => MemberCase(property, index, Array.IndexOf(required, property)))
+        var cases = properties.Select((property, index) => MemberCase(property, index, Array.IndexOf(required, property), plan.ReaderCallSites.GetValueOrDefault(record.Name)))
             .Append(SyntaxFactory.SwitchSection(SyntaxFactory.SingletonList<SwitchLabelSyntax>(SyntaxFactory.DefaultSwitchLabel()),
                 SyntaxFactory.List<StatementSyntax>([Require(Call("TrySkip")), SyntaxFactory.BreakStatement()])));
         var loop = SyntaxFactory.Block(
@@ -112,9 +112,9 @@ internal static class RecordReaderEmitter
         return EmissionSyntax.Local("member", selection);
     }
 
-    private static SwitchSectionSyntax MemberCase(ModelPropertyPlan property, int index, int requiredIndex)
+    private static SwitchSectionSyntax MemberCase(ModelPropertyPlan property, int index, int requiredIndex, IReadOnlySet<string>? callSites)
     {
-        var statements = RecordMemberReaderEmitter.Assignment(property, Value(index)).ToList();
+        var statements = RecordMemberReaderEmitter.Assignment(property, Value(index), callSites).ToList();
         if (requiredIndex >= 0)
         {
             statements.Add(SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(SyntaxKind.OrAssignmentExpression,

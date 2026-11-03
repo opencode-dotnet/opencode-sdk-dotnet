@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using OpenCode.Sdk.Tools.Generator.Binding;
 using OpenCode.Sdk.Tools.Generator.Binding.Models;
 using OpenCode.Sdk.Tools.Generator.Emission;
@@ -9,6 +10,11 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 
 internal static class RecordReaderPlanFixture
 {
+    public static IReadOnlySet<(string Union, string Variant)> Rollout { get; } = new HashSet<(string, string)>
+    {
+        ("IToolContent", "DenseRecord"), ("IToolContent", "SiblingRecord"), ("IToolContent", "NestedRecord"),
+    };
+
     public static EmitPlan Create()
     {
         var plan = EmitterPlanFixture.Create();
@@ -58,16 +64,78 @@ internal static class RecordReaderPlanFixture
         }).WithSingleSlice());
     }
 
-    public static IReadOnlyList<GeneratedSource> Sources(EmitPlan plan)
+    public static EmitPlan CreateNested()
     {
-        var readers = RecordReaderPolicy.Select(plan.Models, plan.Unions, out var readerArms);
-        return SourceEmitter.Emit(plan with { ReaderRecords = readers, ReaderArms = readerArms });
+        var plan = Create();
+        var record = Record("NestedRecord", StringLiteral("type", "tool"), StringLiteral("kind", "nested"),
+            Property("child", Named("NestedValue"), true), Property("nullableChild", Named("NestedValue", true), false),
+            Property("metadataChild", Named("NestedValue"), true)) with
+        { ImplementedUnionNames = ["IToolContent", "IOther"] };
+        return SelectReaders(UnionChainBuilder.Resolve((plan with
+        {
+            Models = [.. plan.Models, record, Record("NestedValue", Property("value", Named("long"), true), Property("note", Named("string", true), false))],
+            Unions = [.. plan.Unions.Select(union => union.Name is "IToolContent" or "IOther"
+                ? union with { Variants = [.. union.Variants, Arm("NestedRecord") with { Tag = "nested", MarkerWireName = "kind" }] } : union)],
+            Registry = plan.Registry with { TypeNames = [.. plan.Registry.TypeNames, "NestedRecord", "NestedValue"] },
+            ReaderCallSites = new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal)
+            {
+                ["NestedRecord"] = new HashSet<string>(StringComparer.Ordinal) { "Child", "NullableChild" },
+            },
+        }).WithSingleSlice()));
+    }
+
+    public static EmitPlan SelectReaders(EmitPlan plan)
+    {
+        var readers = RecordReaderPolicy.Select(plan.Models, plan.Unions, out var readerArms, Rollout, plan.ReaderCallSites);
+        return plan with { ReaderRecords = readers, ReaderArms = readerArms };
+    }
+
+    public static IReadOnlyList<GeneratedSource> Sources(EmitPlan plan) => SourceEmitter.Emit(SelectReaders(plan));
+
+    public static async Task<IReadOnlyList<RecordCorpusRow>> NestedRowsAsync(EmitPlan plan)
+    {
+        var seeds = (await RecordCorpusGenerator.GenerateAsync(plan, ["NestedRecord"]))
+            .Where(static row => row.IsSeed && row.UnionType == "IToolContent").ToList();
+        var maximal = seeds.Single(static row => row.Name.EndsWith("/maximal", StringComparison.Ordinal));
+        foreach (var change in new[] { "omit", "null" })
+        {
+            seeds.Add(maximal with
+            {
+                Name = "nested/nullable-" + change,
+                Json = await RecordCorpusGenerator.VaryAsync(
+                maximal.Json, "nullableChild", change, await RecordCorpusGenerator.ElementAsync(static writer => writer.WriteNullValue()))
+            });
+        }
+        using var document = JsonDocument.Parse(maximal.Json);
+        var child = System.Text.Encoding.UTF8.GetBytes(document.RootElement.GetProperty("child").GetRawText());
+        foreach (var change in new[] { "omit", "wrong-token", "null-then-valid" })
+        {
+            using var nested = JsonDocument.Parse(await RecordCorpusGenerator.VaryAsync(child, "value", change,
+                await RecordCorpusGenerator.ElementAsync(writer =>
+                {
+                    if (change == "wrong-token")
+                    {
+                        writer.WriteStringValue("wrong-token");
+                    }
+                    else
+                    {
+                        writer.WriteNullValue();
+                    }
+                })));
+            seeds.Add(maximal with
+            {
+                Name = "nested/required-" + change,
+                IsSeed = false,
+                Json = await RecordCorpusGenerator.VaryAsync(maximal.Json, "child", "replace", nested.RootElement)
+            });
+        }
+        return seeds;
     }
 
     public static async Task<IReadOnlyList<RecordCorpusRow>> RowsAsync(EmitPlan plan)
     {
         var rows = (await RecordCorpusGenerator.GenerateAsync(plan, ["DenseRecord", "SiblingRecord"])).ToList();
-        var seed = rows.Single(static row => row.Name == "tool-content/dense/maximal");
+        var seed = rows.Single(static row => row.Name == "ToolContent/dense/maximal");
         foreach (var key in new[] { "binary", "note", "nullableNumber", "nullableSpecial", "nullableItems", "nullableMap", "nullableChild", "patch", "patchMap" })
         {
             rows.Add(seed with

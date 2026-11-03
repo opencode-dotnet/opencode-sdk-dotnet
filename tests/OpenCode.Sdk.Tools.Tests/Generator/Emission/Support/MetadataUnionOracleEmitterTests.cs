@@ -51,9 +51,9 @@ public sealed class MetadataUnionOracleEmitterTests(PinnedBinding pinned)
     [ParallelLimiter<RoslynCompilationSlots>]
     public async Task Emit_Should_Close_Every_Registered_Type_Over_Only_Metadata()
     {
-        var plan = RecordReaderPlanFixture.Create();
+        var plan = RecordReaderPlanFixture.CreateNested();
         var product = RecordReaderPlanFixture.Sources(plan);
-        var readerNames = RecordReaderPolicy.Select(plan.Models, plan.Unions, out _).Keys.Select(ConverterNamePolicy.Reader).ToHashSet(StringComparer.Ordinal);
+        var readerNames = plan.ReaderRecords.Keys.Select(ConverterNamePolicy.Reader).ToHashSet(StringComparer.Ordinal);
         await Assert.That(product.Select(static source => source.RelativePath.Split('/')[^1]))
             .Contains(ConverterNamePolicy.Reader("DenseRecord") + ".cs");
         var sources = MetadataUnionOracleEmitter.Emit(plan, product);

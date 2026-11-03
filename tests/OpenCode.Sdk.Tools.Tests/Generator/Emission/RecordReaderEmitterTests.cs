@@ -16,6 +16,40 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 public sealed class RecordReaderEmitterTests
 {
     [Test]
+    [Arguments("ToolContent/nested/minimal", "success")]
+    [Arguments("ToolContent/nested/maximal", "success")]
+    [Arguments("nested/nullable-omit", "success")]
+    [Arguments("nested/nullable-null", "success")]
+    [Arguments("nested/required-omit", "read")]
+    [Arguments("nested/required-wrong-token", "read")]
+    [Arguments("nested/required-null-then-valid", "read")]
+    public async Task Read_Should_Match_Metadata_For_Nested_Records(string name, string phase)
+    {
+        var plan = RecordReaderPlanFixture.CreateNested();
+        var oracle = await UnionReaderOracle.CreateAsync(plan);
+        var row = (await RecordReaderPlanFixture.NestedRowsAsync(plan)).Single(row => row.Name == name);
+        var expected = UnionReaderOracle.Observe(oracle.Metadata, "IToolContent", row.Json);
+        await Assert.That(expected.Phase).IsEqualTo(phase).Because(name);
+        await oracle.CompareAsync(row);
+    }
+
+    [Test]
+    public async Task Emit_Should_Call_Nested_Readers_Only_At_Listed_Members()
+    {
+        var sources = SourceEmitter.Emit(RecordReaderPlanFixture.CreateNested());
+        await Assert.That(await GeneratedSourceCompiler.CompileWithSdkCoreAsync(sources)).IsEmpty();
+        var source = EmitterSnapshot.Content(sources, "Example/Internal/NestedRecordJsonReader.cs");
+        var root = await CSharpSyntaxTree.ParseText(source).GetRootAsync();
+        await Assert.That(root.DescendantNodes().OfType<AssignmentExpressionSyntax>()
+            .Where(static assignment => assignment.Left.ToString().StartsWith("value", StringComparison.Ordinal))
+            .Select(static assignment => assignment.ToString())).IsEquivalentTo([
+                "value0 = NestedValueJsonReader.Read(ref reader, options)",
+                "value1 = reader.TokenType == JsonTokenType.Null ? default(NestedValue?) : NestedValueJsonReader.Read(ref reader, options)",
+                "value2 = UnionMemberReader.Read<NestedValue>(ref reader, options)",
+            ], CollectionOrdering.Matching);
+    }
+
+    [Test]
     public async Task Emit_Should_Name_Only_An_Unused_Options_Parameter_As_A_Discard()
     {
         var sources = RecordReaderPlanFixture.Sources(RecordReaderPlanFixture.Create());
@@ -42,7 +76,7 @@ public sealed class RecordReaderEmitterTests
             .DoesNotContain("ExampleItemJsonReader");
         var normal = SourceEmitter.Emit(plan);
         await Assert.That(normal.Select(static source => source.RelativePath).Where(static path => path.EndsWith("JsonReader.cs", StringComparison.Ordinal))).IsEmpty();
-        var readers = RecordReaderPolicy.Select(plan.Models, plan.Unions, out var arms);
+        var readers = RecordReaderPolicy.Select(plan.Models, plan.Unions, out var arms, RecordReaderPlanFixture.Rollout);
         var selectedPlan = SourceEmitter.Emit(plan with { ReaderRecords = readers, ReaderArms = arms });
         await Assert.That(selectedPlan.Select(static source => source.RelativePath).Where(static path => path.EndsWith("JsonReader.cs", StringComparison.Ordinal)))
             .IsEquivalentTo(["Example/Internal/DenseRecordJsonReader.cs", "Example/Internal/SiblingRecordJsonReader.cs"], CollectionOrdering.Matching);
@@ -53,7 +87,7 @@ public sealed class RecordReaderEmitterTests
     public async Task Read_Should_Match_Metadata_For_The_Synthetic_Corpus()
     {
         var plan = RecordReaderPlanFixture.Create();
-        var oracle = await UnionReaderOracle.CreateAsync(plan, RecordReaderPlanFixture.Sources(plan));
+        var oracle = await UnionReaderOracle.CreateAsync(RecordReaderPlanFixture.SelectReaders(plan), RecordReaderPlanFixture.Sources(plan));
         foreach (var row in await RecordReaderPlanFixture.RowsAsync(plan))
         {
             await oracle.CompareAsync(row);
@@ -97,7 +131,7 @@ public sealed class RecordReaderEmitterTests
     public async Task Read_Should_Keep_Strict_Numbers_Strict()
     {
         var plan = RecordReaderPlanFixture.Create();
-        var oracle = await UnionReaderOracle.CreateAsync(plan, RecordReaderPlanFixture.Sources(plan));
+        var oracle = await UnionReaderOracle.CreateAsync(RecordReaderPlanFixture.SelectReaders(plan), RecordReaderPlanFixture.Sources(plan));
         var seed = (await RecordCorpusGenerator.GenerateAsync(plan, ["DenseRecord"]))[1];
         var numericString = await RecordCorpusGenerator.ElementAsync(static writer => writer.WriteStringValue("17"));
         var row = seed with
@@ -114,9 +148,9 @@ public sealed class RecordReaderEmitterTests
     public async Task Read_Should_Refuse_A_Nonbinary_Null_Before_A_Valid_Duplicate()
     {
         var plan = RecordReaderPlanFixture.Create();
-        var oracle = await UnionReaderOracle.CreateAsync(plan, RecordReaderPlanFixture.Sources(plan));
+        var oracle = await UnionReaderOracle.CreateAsync(RecordReaderPlanFixture.SelectReaders(plan), RecordReaderPlanFixture.Sources(plan));
         var row = (await RecordCorpusGenerator.GenerateAsync(plan, ["DenseRecord"]))
-            .Single(static row => row.Name == "tool-content/dense/null-then-valid/text");
+            .Single(static row => row.Name == "ToolContent/dense/null-then-valid/text");
         await Assert.That(UnionReaderOracle.Observe(oracle.Metadata, "IToolContent", row.Json).Phase).IsEqualTo("read");
         await oracle.CompareAsync(row);
     }
