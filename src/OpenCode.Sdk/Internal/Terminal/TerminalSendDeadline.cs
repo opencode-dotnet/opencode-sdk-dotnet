@@ -30,7 +30,8 @@ internal sealed class TerminalSendDeadline : IDisposable
         _operation = CancellationTokenSource.CreateLinkedTokenSource(caller, _deadline.Token);
         // Cancellation callbacks run in LIFO order: latch before the link interrupts physical I/O.
         // A deadline already canceled during construction has no admitted operation to interrupt.
-        _interruption = _deadline.Token.Register(Interrupt);
+        // The registration always supplies this deadline as state.
+        _interruption = _deadline.Token.UnsafeRegister(static state => ((TerminalSendDeadline)state!).Interrupt(), this);
     }
 
     /// <summary>Gets the combined physical-send cancellation token.</summary>

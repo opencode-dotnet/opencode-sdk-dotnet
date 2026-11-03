@@ -23,6 +23,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
     private readonly TerminalSendQueue _sendGate;
     private readonly ITerminalWebSocket _socket;
     private readonly TimeProvider _time;
+    private readonly Action<Task>? _onSendJoin;
     private int _disposed;
     private int _reading;
     private int _socketDisposed;
@@ -30,13 +31,22 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
     private TaskCompletionSource<bool>? _sendsDrained;
     private int _activeSends;
 
+    /// <summary>Initializes the shared lifecycle over an owned socket.</summary>
+    /// <param name="socket">The socket the core owns.</param>
+    /// <param name="decoder">The family's frame decoder.</param>
+    /// <param name="closePolicy">The family's close outcome mapping.</param>
+    /// <param name="owner">The session type named in refusals.</param>
+    /// <param name="time">The clock for send and close deadlines.</param>
+    /// <param name="pool">The buffer pool; null uses the shared pool.</param>
+    /// <param name="onSendJoin">An optional observer of disposal's join task for active sends.</param>
     public TerminalSocketCore(
         ITerminalWebSocket socket,
         ITerminalFrameDecoder<TFrame> decoder,
         ITerminalClosePolicy closePolicy,
         Type owner,
         TimeProvider time,
-        ArrayPool<byte>? pool = null)
+        ArrayPool<byte>? pool = null,
+        Action<Task>? onSendJoin = null)
     {
         ArgumentNullException.ThrowIfNull(socket);
         ArgumentNullException.ThrowIfNull(decoder);
@@ -45,6 +55,7 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
 
         _socket = socket;
         _time = time;
+        _onSendJoin = onSendJoin;
         _sendGate = new TerminalSendQueue(socket, time);
         _owner = owner;
         _sendEndedToken = _sendEnded.Token;
@@ -85,16 +96,19 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
     public Task SendAsync(
         ArraySegment<byte> payload,
         WebSocketMessageType messageType,
-        CancellationToken cancellationToken) => SendAsync(() => payload, messageType, null, cancellationToken);
+        CancellationToken cancellationToken) => SendAsync(static segment => segment, payload, messageType, null, cancellationToken);
 
     /// <summary>Sends a message with family-owned preparation and publication under the same gate.</summary>
+    /// <typeparam name="TState">The payload producer's state, passed without boxing.</typeparam>
     /// <param name="createPayload">Copies or encodes the owned message before the first asynchronous wait.</param>
+    /// <param name="state">The state passed to the payload producer.</param>
     /// <param name="messageType">The message's wire type.</param>
     /// <param name="actions">The work that shares the message's send order.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that completes after the send and its successful publication.</returns>
-    public async Task SendAsync(
-        Func<ArraySegment<byte>> createPayload,
+    public async Task SendAsync<TState>(
+        Func<TState, ArraySegment<byte>> createPayload,
+        TState state,
         WebSocketMessageType messageType,
         TerminalSendActions? actions,
         CancellationToken cancellationToken)
@@ -103,15 +117,12 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
         {
             ObjectDisposedException.ThrowIf(IsDisposed, _owner);
             ThrowIfSendFailed();
-            if (_activeSends++ is 0)
-            {
-                _sendsDrained = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            }
+            _activeSends++;
         }
 
         try
         {
-            await SendCoreAsync(createPayload, messageType, actions, cancellationToken).ConfigureAwait(false);
+            await SendCoreAsync(createPayload, state, messageType, actions, cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -119,21 +130,22 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
             {
                 if (--_activeSends is 0)
                 {
-                    _ = _sendsDrained!.TrySetResult(true);
+                    _ = _sendsDrained?.TrySetResult(true);
                 }
             }
         }
     }
 
-    private async Task SendCoreAsync(
-        Func<ArraySegment<byte>> createPayload,
+    private async Task SendCoreAsync<TState>(
+        Func<TState, ArraySegment<byte>> createPayload,
+        TState state,
         WebSocketMessageType messageType,
         TerminalSendActions? actions,
         CancellationToken cancellationToken)
     {
 
         using var deadline = new TerminalSendDeadline(_owner, SendTimeout, _time, _getOutcome, cancellationToken);
-        var payload = createPayload();
+        var payload = createPayload(state);
         try
         {
             using var admission = CancellationTokenSource.CreateLinkedTokenSource(deadline.Token, _sendEndedToken);
@@ -242,7 +254,9 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
                 }
                 finally
                 {
-                    await AwaitSendsAsync().ConfigureAwait(false);
+                    var drain = AwaitSendsAsync();
+                    _onSendJoin?.Invoke(drain);
+                    await drain.ConfigureAwait(false);
                     _sendGate.Dispose();
                     _sendEnded.Dispose();
                 }
@@ -255,6 +269,11 @@ internal sealed class TerminalSocketCore<TFrame> : IAsyncDisposable
     {
         lock (_lifecycle)
         {
+            if (_activeSends is not 0)
+            {
+                _sendsDrained ??= new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+
             return _sendsDrained?.Task ?? Task.CompletedTask;
         }
     }

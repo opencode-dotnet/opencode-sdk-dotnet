@@ -107,13 +107,13 @@ public class PtySession : IAsyncDisposable
     private Task SendInputAsync(string input, CancellationToken cancellationToken)
     {
         var core = Core;
-        return core.SendAsync(() =>
+        return core.SendAsync(static state =>
         {
-            var length = Encoding.UTF8.GetByteCount(input);
-            var payload = core.SendPool.Rent(length);
-            _ = Encoding.UTF8.GetBytes(input, 0, input.Length, payload, 0);
+            var length = Encoding.UTF8.GetByteCount(state.Input);
+            var payload = state.Pool.Rent(length);
+            _ = Encoding.UTF8.GetBytes(state.Input, 0, state.Input.Length, payload, 0);
             return new ArraySegment<byte>(payload, 0, length);
-        }, WebSocketMessageType.Text, TerminalSendActions.Rented, cancellationToken);
+        }, (Input: input, Pool: core.SendPool), WebSocketMessageType.Text, TerminalSendActions.Rented, cancellationToken);
     }
 
     /// <summary>
