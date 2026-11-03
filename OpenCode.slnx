@@ -9,6 +9,8 @@
   </Folder>
   <Folder Name="/playground/">
     <Project Path="playground/QuickStart/OpenCode.Playground.QuickStart.csproj" />
+    <Project Path="playground/hq/OpenCode.Playground.Hq/OpenCode.Playground.Hq.csproj" />
+    <Project Path="playground/hq/OpenCode.Playground.Hq.AppHost/OpenCode.Playground.Hq.AppHost.csproj" />
   </Folder>
   <Folder Name="/spec/">
     <File Path="spec/SNAPSHOT.md" />
@@ -19,6 +21,7 @@
     <Project Path="src/OpenCode.Sdk/OpenCode.Sdk.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/OpenCode.Playground.Hq.Tests/OpenCode.Playground.Hq.Tests.csproj" />
     <Project Path="tests/OpenCode.Sdk.Extensions.Tests/OpenCode.Sdk.Extensions.Tests.csproj" />
     <Project Path="tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj" />
     <Project Path="tests/OpenCode.Sdk.Sandbox/OpenCode.Sdk.Sandbox.csproj" />

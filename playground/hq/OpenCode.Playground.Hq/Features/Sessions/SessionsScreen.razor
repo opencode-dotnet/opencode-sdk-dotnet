@@ -1,0 +1,42 @@
+@page "/"
+@inject SessionBoard Board
+
+<PageTitle>OpenCode HQ</PageTitle>
+
+@if (Board.LastError is { } error)
+{
+    <p role="alert">@error</p>
+}
+@if (!Board.Connected)
+{
+    <p>Not connected to HQ's opencode server. Waiting to reconnect.</p>
+}
+else
+{
+<section>
+    <h2>Needs you (@Board.NeedsYou.Count)</h2>
+    @foreach (var item in Board.NeedsYou)
+    {
+        <div class="ask">
+            <span>@item.Title</span>
+            @if (!item.IsForm)
+            {
+                <button @onclick="() => AnswerAsync(item, PermissionReply.Once)">Allow once</button>
+                <button @onclick="() => AnswerAsync(item, PermissionReply.Reject)">Reject</button>
+            }
+        </div>
+    }
+</section>
+
+<section>
+    <h2>Sessions</h2>
+    @foreach (var row in Board.Sessions)
+    {
+        <div class="session">
+            <span>@row.Status</span>
+            <span>@row.Session.Title</span>
+            <span>@row.Session.Location.Directory</span>
+        </div>
+    }
+</section>
+}
