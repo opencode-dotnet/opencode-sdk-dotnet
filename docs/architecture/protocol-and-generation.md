@@ -484,4 +484,7 @@ The converted union variants' generated readers preserve the registry's material
 Their concrete-record metadata remains registered for writes and canonical failure reporting.
 Prefix-tagged variants, open-model records, unconverted variants and unconverted nested records
 continue to use metadata; generated readers add no reflection fallback or public API.
+Each reader dispatches its members through fixed groups of twelve over a state struct, so no method
+grows with a record's width except the construction: the object initializer that sets every
+required member keeps a reader within the analyzer wall up to 65 members.
 A base64 binary member reads a JSON null through its registered converter, as the metadata path does.

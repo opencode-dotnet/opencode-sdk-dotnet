@@ -20,10 +20,10 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
         {
             "Sessions/Internal/ToolFileContentJsonReader.cs" => MetadataUnionOracleEmitter.Source(source.RelativePath,
                 System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)
-                    .Replace("Name = value2", "Name = value2 is null ? null : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
+                    .Replace("Name = state.value2", "Name = state.value2 is null ? null : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
             "Sessions/Internal/SessionTextDeltaDataJsonReader.cs" => MetadataUnionOracleEmitter.Source(source.RelativePath,
                 System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)
-                    .Replace("Delta = value3!", "Delta = value3 is null ? string.Empty : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
+                    .Replace("Delta = state.value3!", "Delta = state.value3 is null ? string.Empty : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
             _ => source,
         }).ToList();
         var loader = new FixtureLoader();

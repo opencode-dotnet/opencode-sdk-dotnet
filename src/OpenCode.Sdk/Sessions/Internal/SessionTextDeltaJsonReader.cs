@@ -7,6 +7,16 @@ namespace OpenCode.Sdk.Internal;
 
 internal static class SessionTextDeltaJsonReader
 {
+    private struct State
+    {
+        public string? value0;
+        public double value1;
+        public IReadOnlyDictionary<string, JsonElement>? value2;
+        public LocationRef? value3;
+        public SessionTextDeltaData? value4;
+        public ulong present0;
+    }
+
     internal static SessionTextDelta Read(ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
         if (!(reader.TokenType == JsonTokenType.StartObject))
@@ -14,30 +24,17 @@ internal static class SessionTextDeltaJsonReader
             throw new JsonException("The record cannot be materialized.");
         }
 
-        string? value0 = default;
-        double value1 = default;
-        IReadOnlyDictionary<string, JsonElement>? value2 = default;
-        LocationRef? value3 = default;
-        SessionTextDeltaData? value4 = default;
-        ulong present0 = 0;
+        State state = default;
         while (reader.Read())
         {
             if (reader.TokenType == JsonTokenType.EndObject)
             {
-                if (!(present0 == 7UL))
+                if (!(state.present0 == 7UL))
                 {
                     throw new JsonException("The record cannot be materialized.");
                 }
 
-                // The presence mask and immediate null checks prove required reference members are assigned.
-                return new SessionTextDelta
-                {
-                    Id = value0!,
-                    Created = value1,
-                    Metadata = value2,
-                    Location = value3,
-                    Data = value4!
-                };
+                return Construct(ref state);
             }
 
             if (!(reader.TokenType == JsonTokenType.PropertyName))
@@ -45,82 +42,122 @@ internal static class SessionTextDeltaJsonReader
                 throw new JsonException("The record cannot be materialized.");
             }
 
-            var member = reader.ValueTextEquals("id"u8) ? 0 : reader.ValueTextEquals("created"u8) ? 1 : reader.ValueTextEquals("metadata"u8) ? 2 : reader.ValueTextEquals("location"u8) ? 3 : reader.ValueTextEquals("data"u8) ? 4 : -1;
-            if (!reader.Read())
+            if (TryReadGroup0(ref reader, ref state, options))
             {
-                throw new JsonException("The record cannot be materialized.");
+                continue;
             }
 
-            switch (member)
+            AdvanceToValue(ref reader);
+            if (!reader.TrySkip())
             {
-                case 0:
-                    ReadId(ref reader, ref value0, options);
-                    present0 |= 1UL;
-                    break;
-                case 1:
-                    ReadCreated(ref reader, ref value1, options);
-                    present0 |= 2UL;
-                    break;
-                case 2:
-                    ReadMetadata(ref reader, ref value2, options);
-                    break;
-                case 3:
-                    ReadLocation(ref reader, ref value3, options);
-                    break;
-                case 4:
-                    ReadData(ref reader, ref value4, options);
-                    present0 |= 4UL;
-                    break;
-                default:
-                    if (!reader.TrySkip())
-                    {
-                        throw new JsonException("The record cannot be materialized.");
-                    }
-
-                    break;
+                throw new JsonException("The record cannot be materialized.");
             }
         }
 
         throw new JsonException("The record ended before its closing object token.");
     }
 
-    private static void ReadId(ref Utf8JsonReader reader, ref string? value0, JsonSerializerOptions _)
+    private static bool TryReadGroup0(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
+        if (reader.ValueTextEquals("id"u8))
+        {
+            return ReadId(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("created"u8))
+        {
+            return ReadCreated(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("metadata"u8))
+        {
+            return ReadMetadata(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("location"u8))
+        {
+            return ReadLocation(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("data"u8))
+        {
+            return ReadData(ref reader, ref state, options);
+        }
+
+        return false;
+    }
+
+    private static void AdvanceToValue(ref Utf8JsonReader reader)
+    {
+        if (!reader.Read())
+        {
+            throw new JsonException("The record cannot be materialized.");
+        }
+    }
+
+    private static SessionTextDelta Construct(ref State state)
+    {
+        // The presence mask and immediate null checks prove required reference members are assigned.
+        return new SessionTextDelta
+        {
+            Id = state.value0!,
+            Created = state.value1,
+            Metadata = state.value2,
+            Location = state.value3,
+            Data = state.value4!
+        };
+    }
+
+    private static bool ReadId(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
+    {
+        AdvanceToValue(ref reader);
         if (reader.TokenType == JsonTokenType.Null)
         {
             throw new JsonException("A non-nullable member was null.");
         }
 
-        value0 = reader.GetString();
+        state.value0 = reader.GetString();
+        state.present0 |= 1UL;
+        return true;
     }
 
-    private static void ReadCreated(ref Utf8JsonReader reader, ref double value1, JsonSerializerOptions _)
+    private static bool ReadCreated(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
     {
+        AdvanceToValue(ref reader);
         if (reader.TokenType == JsonTokenType.Null)
         {
             throw new JsonException("A non-nullable member was null.");
         }
 
-        value1 = reader.GetDouble();
+        state.value1 = reader.GetDouble();
+        state.present0 |= 2UL;
+        return true;
     }
 
-    private static void ReadMetadata(ref Utf8JsonReader reader, ref IReadOnlyDictionary<string, JsonElement>? value2, JsonSerializerOptions options)
+    private static bool ReadMetadata(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
-        value2 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>?>(ref reader, options);
+        AdvanceToValue(ref reader);
+        state.value2 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>?>(ref reader, options);
+        return true;
     }
 
-    private static void ReadLocation(ref Utf8JsonReader reader, ref LocationRef? value3, JsonSerializerOptions options)
+    private static bool ReadLocation(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
-        value3 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<LocationRef?>(ref reader, options);
+        AdvanceToValue(ref reader);
+        state.value3 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<LocationRef?>(ref reader, options);
+        return true;
     }
 
-    private static void ReadData(ref Utf8JsonReader reader, ref SessionTextDeltaData? value4, JsonSerializerOptions options)
+    private static bool ReadData(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
+        AdvanceToValue(ref reader);
         if (reader.TokenType == JsonTokenType.Null)
         {
             throw new JsonException("A non-nullable member was null.");
         }
 
-        value4 = SessionTextDeltaDataJsonReader.Read(ref reader, options);
+        state.value4 = SessionTextDeltaDataJsonReader.Read(ref reader, options);
+        state.present0 |= 4UL;
+        return true;
     }
 }

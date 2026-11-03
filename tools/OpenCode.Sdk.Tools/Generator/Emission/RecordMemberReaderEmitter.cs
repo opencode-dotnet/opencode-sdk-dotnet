@@ -8,15 +8,23 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 /// <summary>Emits the property's conversion, including the null handling a direct converter bypasses.</summary>
 internal static class RecordMemberReaderEmitter
 {
-    internal static MethodDeclarationSyntax Reader(ModelPropertyPlan property, TypeSyntax type, string local, IReadOnlySet<string>? callSites)
+    internal static MethodDeclarationSyntax Reader(ModelPropertyPlan property, string local, StatementSyntax? presence, IReadOnlySet<string>? callSites)
     {
-        var body = SyntaxFactory.Block(Assignment(property, local, callSites));
+        var statements = new List<StatementSyntax> { SyntaxFactory.ExpressionStatement(
+            EmissionSyntax.Invocation(SyntaxFactory.IdentifierName("AdvanceToValue"), ReaderArgument())) };
+        statements.AddRange(Assignment(property, local, callSites));
+        if (presence is not null)
+        {
+            statements.Add(presence);
+        }
+        statements.Add(SyntaxFactory.ReturnStatement(SyntaxFactory.LiteralExpression(SyntaxKind.TrueLiteralExpression)));
+        var body = SyntaxFactory.Block(statements);
         var options = body.DescendantNodes().OfType<IdentifierNameSyntax>().Any(static name => name.Identifier.ValueText == "options") ? "options" : "_";
-        var method = ConverterSyntax.Read(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), body, [])
+        var method = ConverterSyntax.Read(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)), body, [])
             .WithIdentifier(SyntaxFactory.Identifier("Read" + property.Name))
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PrivateKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)));
         var parameters = method.ParameterList.Parameters;
-        parameters = parameters.Replace(parameters[1], SyntaxFactory.Parameter(SyntaxFactory.Identifier(local)).WithType(type)
+        parameters = parameters.Replace(parameters[1], SyntaxFactory.Parameter(SyntaxFactory.Identifier("state")).WithType(SyntaxFactory.IdentifierName("State"))
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword))));
         return method.WithParameterList(method.ParameterList.WithParameters(parameters
             .Replace(parameters[2], parameters[2].WithIdentifier(SyntaxFactory.Identifier(options)))));
@@ -58,7 +66,7 @@ internal static class RecordMemberReaderEmitter
         }
 
         statements.Add(SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
-            SyntaxFactory.IdentifierName(local), read)));
+            RecordReaderEmitter.StateMember(local), read)));
         return statements;
     }
 

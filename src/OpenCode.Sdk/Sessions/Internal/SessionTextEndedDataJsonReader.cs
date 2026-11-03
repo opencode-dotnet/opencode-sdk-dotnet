@@ -7,6 +7,16 @@ namespace OpenCode.Sdk.Internal;
 
 internal static class SessionTextEndedDataJsonReader
 {
+    private struct State
+    {
+        public string? value0;
+        public string? value1;
+        public long value2;
+        public string? value3;
+        public IReadOnlyDictionary<string, JsonElement>? value4;
+        public ulong present0;
+    }
+
     internal static SessionTextEndedData Read(ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
         if (!(reader.TokenType == JsonTokenType.StartObject))
@@ -14,30 +24,17 @@ internal static class SessionTextEndedDataJsonReader
             throw new JsonException("The record cannot be materialized.");
         }
 
-        string? value0 = default;
-        string? value1 = default;
-        long value2 = default;
-        string? value3 = default;
-        IReadOnlyDictionary<string, JsonElement>? value4 = default;
-        ulong present0 = 0;
+        State state = default;
         while (reader.Read())
         {
             if (reader.TokenType == JsonTokenType.EndObject)
             {
-                if (!(present0 == 15UL))
+                if (!(state.present0 == 15UL))
                 {
                     throw new JsonException("The record cannot be materialized.");
                 }
 
-                // The presence mask and immediate null checks prove required reference members are assigned.
-                return new SessionTextEndedData
-                {
-                    SessionId = value0!,
-                    AssistantMessageId = value1!,
-                    Ordinal = value2,
-                    Text = value3!,
-                    Native = value4
-                };
+                return Construct(ref state);
             }
 
             if (!(reader.TokenType == JsonTokenType.PropertyName))
@@ -45,88 +42,128 @@ internal static class SessionTextEndedDataJsonReader
                 throw new JsonException("The record cannot be materialized.");
             }
 
-            var member = reader.ValueTextEquals("sessionID"u8) ? 0 : reader.ValueTextEquals("assistantMessageID"u8) ? 1 : reader.ValueTextEquals("ordinal"u8) ? 2 : reader.ValueTextEquals("text"u8) ? 3 : reader.ValueTextEquals("native"u8) ? 4 : -1;
-            if (!reader.Read())
+            if (TryReadGroup0(ref reader, ref state, options))
             {
-                throw new JsonException("The record cannot be materialized.");
+                continue;
             }
 
-            switch (member)
+            AdvanceToValue(ref reader);
+            if (!reader.TrySkip())
             {
-                case 0:
-                    ReadSessionId(ref reader, ref value0, options);
-                    present0 |= 1UL;
-                    break;
-                case 1:
-                    ReadAssistantMessageId(ref reader, ref value1, options);
-                    present0 |= 2UL;
-                    break;
-                case 2:
-                    ReadOrdinal(ref reader, ref value2, options);
-                    present0 |= 4UL;
-                    break;
-                case 3:
-                    ReadText(ref reader, ref value3, options);
-                    present0 |= 8UL;
-                    break;
-                case 4:
-                    ReadNative(ref reader, ref value4, options);
-                    break;
-                default:
-                    if (!reader.TrySkip())
-                    {
-                        throw new JsonException("The record cannot be materialized.");
-                    }
-
-                    break;
+                throw new JsonException("The record cannot be materialized.");
             }
         }
 
         throw new JsonException("The record ended before its closing object token.");
     }
 
-    private static void ReadSessionId(ref Utf8JsonReader reader, ref string? value0, JsonSerializerOptions _)
+    private static bool TryReadGroup0(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
+        if (reader.ValueTextEquals("sessionID"u8))
+        {
+            return ReadSessionId(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("assistantMessageID"u8))
+        {
+            return ReadAssistantMessageId(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("ordinal"u8))
+        {
+            return ReadOrdinal(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("text"u8))
+        {
+            return ReadText(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("native"u8))
+        {
+            return ReadNative(ref reader, ref state, options);
+        }
+
+        return false;
+    }
+
+    private static void AdvanceToValue(ref Utf8JsonReader reader)
+    {
+        if (!reader.Read())
+        {
+            throw new JsonException("The record cannot be materialized.");
+        }
+    }
+
+    private static SessionTextEndedData Construct(ref State state)
+    {
+        // The presence mask and immediate null checks prove required reference members are assigned.
+        return new SessionTextEndedData
+        {
+            SessionId = state.value0!,
+            AssistantMessageId = state.value1!,
+            Ordinal = state.value2,
+            Text = state.value3!,
+            Native = state.value4
+        };
+    }
+
+    private static bool ReadSessionId(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
+    {
+        AdvanceToValue(ref reader);
         if (reader.TokenType == JsonTokenType.Null)
         {
             throw new JsonException("A non-nullable member was null.");
         }
 
-        value0 = reader.GetString();
+        state.value0 = reader.GetString();
+        state.present0 |= 1UL;
+        return true;
     }
 
-    private static void ReadAssistantMessageId(ref Utf8JsonReader reader, ref string? value1, JsonSerializerOptions _)
+    private static bool ReadAssistantMessageId(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
     {
+        AdvanceToValue(ref reader);
         if (reader.TokenType == JsonTokenType.Null)
         {
             throw new JsonException("A non-nullable member was null.");
         }
 
-        value1 = reader.GetString();
+        state.value1 = reader.GetString();
+        state.present0 |= 2UL;
+        return true;
     }
 
-    private static void ReadOrdinal(ref Utf8JsonReader reader, ref long value2, JsonSerializerOptions _)
+    private static bool ReadOrdinal(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
     {
+        AdvanceToValue(ref reader);
         if (reader.TokenType == JsonTokenType.Null)
         {
             throw new JsonException("A non-nullable member was null.");
         }
 
-        value2 = reader.GetInt64();
+        state.value2 = reader.GetInt64();
+        state.present0 |= 4UL;
+        return true;
     }
 
-    private static void ReadText(ref Utf8JsonReader reader, ref string? value3, JsonSerializerOptions _)
+    private static bool ReadText(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions _)
     {
+        AdvanceToValue(ref reader);
         if (reader.TokenType == JsonTokenType.Null)
         {
             throw new JsonException("A non-nullable member was null.");
         }
 
-        value3 = reader.GetString();
+        state.value3 = reader.GetString();
+        state.present0 |= 8UL;
+        return true;
     }
 
-    private static void ReadNative(ref Utf8JsonReader reader, ref IReadOnlyDictionary<string, JsonElement>? value4, JsonSerializerOptions options)
+    private static bool ReadNative(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
-        value4 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>?>(ref reader, options);
+        AdvanceToValue(ref reader);
+        state.value4 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>?>(ref reader, options);
+        return true;
     }
 }

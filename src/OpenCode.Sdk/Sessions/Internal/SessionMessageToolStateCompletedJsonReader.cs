@@ -7,6 +7,14 @@ namespace OpenCode.Sdk.Internal;
 
 internal static class SessionMessageToolStateCompletedJsonReader
 {
+    private struct State
+    {
+        public IReadOnlyDictionary<string, JsonElement>? value0;
+        public IReadOnlyList<IToolContent>? value1;
+        public IReadOnlyDictionary<string, JsonElement>? value2;
+        public ulong present0;
+    }
+
     internal static SessionMessageToolStateCompleted Read(ref Utf8JsonReader reader, JsonSerializerOptions options)
     {
         if (!(reader.TokenType == JsonTokenType.StartObject))
@@ -14,26 +22,17 @@ internal static class SessionMessageToolStateCompletedJsonReader
             throw new JsonException("The record cannot be materialized.");
         }
 
-        IReadOnlyDictionary<string, JsonElement>? value0 = default;
-        IReadOnlyList<IToolContent>? value1 = default;
-        IReadOnlyDictionary<string, JsonElement>? value2 = default;
-        ulong present0 = 0;
+        State state = default;
         while (reader.Read())
         {
             if (reader.TokenType == JsonTokenType.EndObject)
             {
-                if (!(present0 == 3UL))
+                if (!(state.present0 == 3UL))
                 {
                     throw new JsonException("The record cannot be materialized.");
                 }
 
-                // The presence mask and immediate null checks prove required reference members are assigned.
-                return new SessionMessageToolStateCompleted
-                {
-                    Input = value0!,
-                    Content = value1!,
-                    Metadata = value2
-                };
+                return Construct(ref state);
             }
 
             if (!(reader.TokenType == JsonTokenType.PropertyName))
@@ -41,60 +40,90 @@ internal static class SessionMessageToolStateCompletedJsonReader
                 throw new JsonException("The record cannot be materialized.");
             }
 
-            var member = reader.ValueTextEquals("input"u8) ? 0 : reader.ValueTextEquals("content"u8) ? 1 : reader.ValueTextEquals("metadata"u8) ? 2 : -1;
-            if (!reader.Read())
+            if (TryReadGroup0(ref reader, ref state, options))
             {
-                throw new JsonException("The record cannot be materialized.");
+                continue;
             }
 
-            switch (member)
+            AdvanceToValue(ref reader);
+            if (!reader.TrySkip())
             {
-                case 0:
-                    ReadInput(ref reader, ref value0, options);
-                    present0 |= 1UL;
-                    break;
-                case 1:
-                    ReadContent(ref reader, ref value1, options);
-                    present0 |= 2UL;
-                    break;
-                case 2:
-                    ReadMetadata(ref reader, ref value2, options);
-                    break;
-                default:
-                    if (!reader.TrySkip())
-                    {
-                        throw new JsonException("The record cannot be materialized.");
-                    }
-
-                    break;
+                throw new JsonException("The record cannot be materialized.");
             }
         }
 
         throw new JsonException("The record ended before its closing object token.");
     }
 
-    private static void ReadInput(ref Utf8JsonReader reader, ref IReadOnlyDictionary<string, JsonElement>? value0, JsonSerializerOptions options)
+    private static bool TryReadGroup0(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
+        if (reader.ValueTextEquals("input"u8))
+        {
+            return ReadInput(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("content"u8))
+        {
+            return ReadContent(ref reader, ref state, options);
+        }
+
+        if (reader.ValueTextEquals("metadata"u8))
+        {
+            return ReadMetadata(ref reader, ref state, options);
+        }
+
+        return false;
+    }
+
+    private static void AdvanceToValue(ref Utf8JsonReader reader)
+    {
+        if (!reader.Read())
+        {
+            throw new JsonException("The record cannot be materialized.");
+        }
+    }
+
+    private static SessionMessageToolStateCompleted Construct(ref State state)
+    {
+        // The presence mask and immediate null checks prove required reference members are assigned.
+        return new SessionMessageToolStateCompleted
+        {
+            Input = state.value0!,
+            Content = state.value1!,
+            Metadata = state.value2
+        };
+    }
+
+    private static bool ReadInput(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
+    {
+        AdvanceToValue(ref reader);
         if (reader.TokenType == JsonTokenType.Null)
         {
             throw new JsonException("A non-nullable member was null.");
         }
 
-        value0 = UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>>(ref reader, options);
+        state.value0 = UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>>(ref reader, options);
+        state.present0 |= 1UL;
+        return true;
     }
 
-    private static void ReadContent(ref Utf8JsonReader reader, ref IReadOnlyList<IToolContent>? value1, JsonSerializerOptions options)
+    private static bool ReadContent(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
+        AdvanceToValue(ref reader);
         if (reader.TokenType == JsonTokenType.Null)
         {
             throw new JsonException("A non-nullable member was null.");
         }
 
-        value1 = UnionMemberReader.Read<IReadOnlyList<IToolContent>>(ref reader, options);
+        state.value1 = UnionMemberReader.Read<IReadOnlyList<IToolContent>>(ref reader, options);
+        state.present0 |= 2UL;
+        return true;
     }
 
-    private static void ReadMetadata(ref Utf8JsonReader reader, ref IReadOnlyDictionary<string, JsonElement>? value2, JsonSerializerOptions options)
+    private static bool ReadMetadata(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
-        value2 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>?>(ref reader, options);
+        AdvanceToValue(ref reader);
+        state.value2 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<IReadOnlyDictionary<string, JsonElement>?>(ref reader, options);
+        return true;
     }
 }
