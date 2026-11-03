@@ -144,6 +144,7 @@ public sealed class TerminalSocketCoreTests
                 Interlocked.CompareExchange(ref entered, 1, 0) is 0)
             {
                 _ = resumed.TrySetResult(true);
+                // Send resumes on the pool, and inlining its completion on a dedicated thread is only best effort, so no form guarantees this hold leaves the pool.
                 released = release.Wait(HangGuard.Bound);
             }
         });

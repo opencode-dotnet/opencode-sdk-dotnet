@@ -70,6 +70,7 @@ public sealed class OwnedServerChildTests
                 if (!readyLine.TrySetResult(line))
                 {
                     _ = bodyHeld.TrySetResult();
+                    // The product's pipe reader invokes this callback on the pool; the hold delays line delivery until exit.
                     _ = deliverBody.Wait(ladderObservationBound, cancellationToken);
                 }
 
@@ -355,6 +356,7 @@ public sealed class OwnedServerChildTests
         var pump = PipeOutputPump.Start(stdout, null, line =>
         {
             _ = entered.TrySetResult();
+            // The product starts PipeLineReader with Task.Run; moving the test start cannot move this callback.
             readerGate.Wait();
         }, IgnoreLine);
         var exited = new TaskCompletionSource<ChildExitStatus>(TaskCreationOptions.RunContinuationsAsynchronously);

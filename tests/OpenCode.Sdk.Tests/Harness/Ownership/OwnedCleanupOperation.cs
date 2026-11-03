@@ -1,3 +1,5 @@
+using OpenCode.Sdk.Tests.Support;
+
 namespace OpenCode.Sdk.Tests.Harness.Ownership;
 
 internal sealed class OwnedCleanupOperation
@@ -27,5 +29,5 @@ internal sealed class OwnedCleanupOperation
     public Func<OperationCanceledException, bool>? ExpectedCancellation { get; }
 
     public Task StartAsync(CancellationToken cancellationToken) =>
-        _pending ?? Task.Run(() => _operation!(cancellationToken), CancellationToken.None);
+        _pending ?? DedicatedThread.Run(() => _operation!(cancellationToken)).Unwrap();
 }

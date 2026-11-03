@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.ExceptionServices;
 using OpenCode.Sdk.Tests.Harness.Ownership.Abstractions;
+using OpenCode.Sdk.Tests.Support;
 
 namespace OpenCode.Sdk.Tests.Harness.Ownership;
 
@@ -98,7 +99,7 @@ internal sealed class OwnedCleanup(TimeSpan timeout, IOwnedOperationDeadline dea
             }
 
             // The owned worker captures callback faults without a nested downlevel CancelAsync work item.
-            var cancellation = Task.Run(budget.Cancel, CancellationToken.None);
+            var cancellation = DedicatedThread.Run(budget.Cancel);
             _ = await ObserveAsync(operation.Name + " cancellation", cancellation, stepTimeout, failures);
             DisposeBudgetAfterCompletion(budget, pending, cancellation);
             budget = null;

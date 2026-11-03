@@ -91,7 +91,7 @@ public sealed class OpenCodeServerReadinessTests
             await time.WaitForArmedAsync(ReadinessBound, HangGuard);
             await WaitForChildAsync(output, cancellationToken);
             // The expiry must finish even after the caller cancels; the finally joins it.
-            expiry = Task.Run(() => time.Advance(ReadinessBound), CancellationToken.None);
+            expiry = DedicatedThread.Run(() => time.Advance(ReadinessBound));
             await entered.Task.WaitAsync(HangGuard, cancellationToken);
             await caller.CancelOnWorkerAsync();
             release.Set();
