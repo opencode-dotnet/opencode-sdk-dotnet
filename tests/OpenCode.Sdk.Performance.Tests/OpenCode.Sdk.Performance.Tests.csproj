@@ -51,6 +51,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Fixtures/**/*.json" />
+    <EmbeddedResource Include="Fixtures/**/*.jsonl" />
   </ItemGroup>
 
 </Project>

@@ -309,6 +309,22 @@ internal static class BenchmarkFixtures
         return buffer.ToArray();
     }
 
+    internal static IReadOnlyList<byte[]> JsonLines(string name)
+    {
+        var stream = typeof(BenchmarkFixtures).Assembly
+                         .GetManifestResourceStream($"OpenCode.Sdk.Performance.Tests.Fixtures.{name}")
+                     ?? throw new InvalidOperationException($"Embedded fixture '{name}' is missing.");
+        using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: false);
+        var lines = Encoding.UTF8.GetString(reader.ReadBytes(checked((int)stream.Length))).Split('\n');
+        var count = lines.Length;
+        if (lines[count - 1].Length == 0)
+        {
+            count--;
+        }
+
+        return [.. lines.Take(count).Select(line => WireShaped(Encoding.UTF8.GetBytes(line), name))];
+    }
+
     private static byte[] Read(string name)
     {
         var stream = typeof(BenchmarkFixtures).Assembly
