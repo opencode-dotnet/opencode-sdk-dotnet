@@ -10,17 +10,17 @@ internal sealed class SessionMessageInfoJsonConverter : JsonConverter<ISessionMe
 {
     private static readonly UnionTagTable<UnionArm<ISessionMessageInfo>> ArmsByTag = new Dictionary<string, UnionArm<ISessionMessageInfo>>(StringComparer.Ordinal)
     {
-        ["agent-switched"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageAgentSelected>(),
-        ["assistant"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageAssistant>(),
+        ["agent-switched"] = UnionArm<ISessionMessageInfo>.Of(SessionMessageAgentSelectedJsonReader.Read),
+        ["assistant"] = UnionArm<ISessionMessageInfo>.Of(SessionMessageAssistantJsonReader.Read),
         ["compaction"] = UnionArm<ISessionMessageInfo>.Of<ISessionMessageCompaction>(),
-        ["idle"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageIdle>(),
-        ["location-switched"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageLocationSwitched>(),
-        ["model-switched"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageModelSelected>(),
-        ["shell"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageShell>(),
-        ["skill"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageSkill>(),
-        ["synthetic"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageSynthetic>(),
-        ["system"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageSystem>(),
-        ["user"] = UnionArm<ISessionMessageInfo>.Of<SessionMessageUser>()
+        ["idle"] = UnionArm<ISessionMessageInfo>.Of(SessionMessageIdleJsonReader.Read),
+        ["location-switched"] = UnionArm<ISessionMessageInfo>.Of(SessionMessageLocationSwitchedJsonReader.Read),
+        ["model-switched"] = UnionArm<ISessionMessageInfo>.Of(SessionMessageModelSelectedJsonReader.Read),
+        ["shell"] = UnionArm<ISessionMessageInfo>.Of(SessionMessageShellJsonReader.Read),
+        ["skill"] = UnionArm<ISessionMessageInfo>.Of(SessionMessageSkillJsonReader.Read),
+        ["synthetic"] = UnionArm<ISessionMessageInfo>.Of(SessionMessageSyntheticJsonReader.Read),
+        ["system"] = UnionArm<ISessionMessageInfo>.Of(SessionMessageSystemJsonReader.Read),
+        ["user"] = UnionArm<ISessionMessageInfo>.Of(SessionMessageUserJsonReader.Read)
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override ISessionMessageInfo Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

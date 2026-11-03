@@ -1,0 +1,55 @@
+[
+  {
+    "id":"msg_agent","type":"agent-switched","metadata":{"row":"agent"},"time":{"created":11},
+    "agent":"build","previous":"plan"
+  },
+  {
+    "id":"msg_assistant","type":"assistant","metadata":{"row":"assistant"},"time":{"created":13,"completed":17},
+    "agent":"build","model":{"id":"model","providerID":"provider","variant":"max"},
+    "content":[
+      {"type":"reasoning","text":"reason λ \"fragment\"","native":{"reason":19},"time":{"created":23,"completed":29}},
+      {"type":"text","text":"text λ fragment","native":{"text":31}},
+      {"type":"tool","id":"tool_message","name":"bash","executed":true,"native":{"tool":37},
+       "state":{"status":"completed","input":{"command":"pwd"},"content":[{"type":"text","text":"output"}]},
+       "time":{"created":41,"ran":43,"completed":47}}
+    ],
+    "snapshot":{"start":"start","end":"end","files":["file"]},"finish":"stop","rawFinish":"raw-stop",
+    "native":{"assistant":53},"cost":59.5,"tokens":{"input":61,"output":67,"reasoning":71,"cache":{"read":73,"write":79}},
+    "error":{"type":"fixture","message":"assistant-error"},
+    "retry":{"attempt":83,"at":89,"error":{"type":"retry","message":"retry-error"}}
+  },
+  {
+    "id":"msg_idle","type":"idle","metadata":{"row":"idle"},"time":{"created":97},
+    "outcome":"interrupted","error":{"type":"fixture","message":"idle-error"}
+  },
+  {
+    "id":"msg_location","type":"location-switched","metadata":{"row":"location"},"time":{"created":101},
+    "projectID":"project","subpath":"src","location":{"directory":"/current"},
+    "previous":{"location":{"directory":"/previous"},"projectID":"old-project","subpath":"old-src"}
+  },
+  {
+    "id":"msg_model","type":"model-switched","metadata":{"row":"model"},"time":{"created":103},
+    "model":{"id":"new-model","providerID":"provider"},"previous":{"id":"old-model","providerID":"old-provider"}
+  },
+  {
+    "id":"msg_shell","type":"shell","metadata":{"row":"shell"},"time":{"created":107,"completed":109},
+    "shellID":"shell_message","command":"pwd","status":"exited","exit":113.5,
+    "output":{"output":"shell-output","cursor":127,"size":131,"truncated":true}
+  },
+  {
+    "id":"msg_skill","type":"skill","metadata":{"row":"skill"},"time":{"created":137},
+    "skill":"skill-id","name":"skill-name","text":"skill text λ"
+  },
+  {
+    "id":"msg_synthetic","type":"synthetic","metadata":{"row":"synthetic"},"time":{"created":139},
+    "text":"synthetic text λ","description":"synthetic description"
+  },
+  {
+    "id":"msg_system","type":"system","metadata":{"row":"system"},"time":{"created":149},
+    "text":"system text λ","description":"system description"
+  },
+  {
+    "id":"msg_user","type":"user","metadata":{"row":"user"},"time":{"created":151},
+    "text":"user text λ","files":[],"agents":[],"skills":[]
+  }
+]

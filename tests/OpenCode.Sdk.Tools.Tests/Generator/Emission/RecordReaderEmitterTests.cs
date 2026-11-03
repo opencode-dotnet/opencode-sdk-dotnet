@@ -16,13 +16,30 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission;
 public sealed class RecordReaderEmitterTests
 {
     [Test]
+    public async Task Emit_Should_Give_A_Marker_Only_Record_One_Empty_Group()
+    {
+        var plan = RecordReaderPlanFixture.Create();
+        plan = RecordReaderPlanFixture.SelectReaders(plan with
+        {
+            Models = [.. plan.Models.Select(model => model is Tools.Generator.Binding.Models.ObjectModelPlan { Name: "SiblingRecord" } record
+                ? record with { Properties = [.. record.Properties.Where(static property => property.IsLiteral)] } : model)],
+        });
+        var sources = SourceEmitter.Emit(plan);
+        var source = EmitterSnapshot.Content(sources, "Example/Internal/SiblingRecordJsonReader.cs");
+        var groups = await GroupsAsync(source);
+        await Assert.That(groups.Select(static method => method.Identifier.ValueText))
+            .IsEquivalentTo(["TryReadGroup0"], CollectionOrdering.Matching);
+        await Assert.That(groups.Single().Body!.Statements.Select(static statement => statement.ToString()))
+            .IsEquivalentTo(["return false;"], CollectionOrdering.Matching);
+        await Assert.That(await GeneratedSourceCompiler.CompileWithSdkCoreAsync(sources)).IsEmpty();
+    }
+
+    [Test]
     public async Task Emit_Should_Dispatch_A_Wide_Record_Through_Fixed_Groups()
     {
         var sources = SourceEmitter.Emit(RecordReaderPlanFixture.CreateWide());
         var source = EmitterSnapshot.Content(sources, "Example/Internal/WideRecordJsonReader.cs");
-        var root = await CSharpSyntaxTree.ParseText(source).GetRootAsync();
-        var groups = root.DescendantNodes().OfType<MethodDeclarationSyntax>()
-            .Where(static method => method.Identifier.ValueText.StartsWith("TryReadGroup", StringComparison.Ordinal)).ToArray();
+        var groups = await GroupsAsync(source);
         await Assert.That(groups.Select(static method => method.Identifier.ValueText))
             .IsEquivalentTo(["TryReadGroup0", "TryReadGroup1"], CollectionOrdering.Matching);
         await Assert.That(groups.Select(static method => method.DescendantNodes().OfType<IfStatementSyntax>().Count()))
@@ -35,6 +52,8 @@ public sealed class RecordReaderEmitterTests
     public async Task Read_Should_Match_Metadata_For_The_Wide_Record()
     {
         var plan = RecordReaderPlanFixture.CreateWide();
+        await Assert.That(plan.ReaderArms["IToolContent"].Order(StringComparer.Ordinal))
+            .IsEquivalentTo(["DenseRecord", "SiblingRecord", "WideRecord"], CollectionOrdering.Matching);
         var oracle = await UnionReaderOracle.CreateAsync(plan);
         foreach (var row in await RecordCorpusGenerator.GenerateAsync(plan, ["WideRecord"]))
         {
@@ -180,5 +199,12 @@ public sealed class RecordReaderEmitterTests
             .Single(static row => row.Name == "ToolContent/dense/null-then-valid/text");
         await Assert.That(UnionReaderOracle.Observe(oracle.Metadata, "IToolContent", row.Json).Phase).IsEqualTo("read");
         await oracle.CompareAsync(row);
+    }
+
+    private static async Task<MethodDeclarationSyntax[]> GroupsAsync(string source)
+    {
+        var root = await CSharpSyntaxTree.ParseText(source).GetRootAsync();
+        return [.. root.DescendantNodes().OfType<MethodDeclarationSyntax>()
+            .Where(static method => method.Identifier.ValueText.StartsWith("TryReadGroup", StringComparison.Ordinal))];
     }
 }

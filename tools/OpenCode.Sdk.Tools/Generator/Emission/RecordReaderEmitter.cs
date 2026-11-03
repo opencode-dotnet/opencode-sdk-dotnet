@@ -25,7 +25,7 @@ internal static class RecordReaderEmitter
         var statements = new List<StatementSyntax> { Require(TokenIs("StartObject")),
             Declare(RecordMemberReaderEmitter.StateName, SyntaxFactory.IdentifierName(RecordMemberReaderEmitter.StateTypeName), SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression)) };
         var required = properties.Where(static property => property.IsRequired).ToArray();
-        var groups = properties.Chunk(12).ToArray();
+        var groups = properties.Chunk(12).DefaultIfEmpty([]).ToArray();
         var matches = Enumerable.Range(0, groups.Length).Select(index => (ExpressionSyntax)GroupCall("TryReadGroup" + index.ToString(CultureInfo.InvariantCulture)))
             .Aggregate(static (left, right) => SyntaxFactory.BinaryExpression(SyntaxKind.LogicalOrExpression, left, right));
         var loop = SyntaxFactory.Block(

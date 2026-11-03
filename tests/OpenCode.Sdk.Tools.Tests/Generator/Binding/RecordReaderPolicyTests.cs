@@ -21,6 +21,7 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
         var selected = RecordReaderPolicy.Select(pinned.Plan.Models, pinned.Plan.Unions, out _,
             callSites: RecordReaderPolicy.NestedCallSites);
         await Assert.That(selected.Keys.Where(name => !armNames.Contains(name))).IsEquivalentTo([
+            "SessionMessageAssistantReasoningTime", "SessionMessageAssistantToolTime",
             "SessionReasoningDeltaData", "SessionTextDeltaData", "SessionTextEndedData", "SessionTextEndedDurable", "SessionToolInputDeltaData",
         ], CollectionOrdering.Matching);
     }
@@ -148,30 +149,16 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
     public async Task Bind_Should_Carry_The_Selected_Readers_Into_Normal_Emission()
     {
         var sources = Tools.Generator.Emission.SourceEmitter.Emit(pinned.Plan);
-        await Assert.That(pinned.Plan.ReaderRecords.Keys).IsEquivalentTo([
-            "SessionMessageToolStateCompleted", "SessionMessageToolStateError", "SessionMessageToolStateRunning",
-            "SessionMessageToolStateStreaming",
-            "SessionReasoningDelta", "SessionReasoningDeltaData", "SessionTextDelta", "SessionTextDeltaData",
-            "SessionTextEnded", "SessionTextEndedData", "SessionTextEndedDurable", "SessionToolInputDelta", "SessionToolInputDeltaData",
-            "ToolFileContent", "ToolTextContent",
-        ], CollectionOrdering.Matching);
+        await Assert.That(pinned.Plan.ReaderRecords.Keys).IsEquivalentTo(ExpectedReaders(), CollectionOrdering.Matching);
         await Assert.That(pinned.Plan.ReaderArms.Where(static entry => entry.Value.Count > 0).Select(static entry => entry.Key))
-            .IsEquivalentTo(["IEvent", "ISessionMessageToolState", "IToolContent"], CollectionOrdering.Matching);
+            .IsEquivalentTo(["IEvent", "ISessionMessageAssistantContent", "ISessionMessageInfo", "ISessionMessageToolState", "IToolContent"], CollectionOrdering.Matching);
         await Assert.That(sources.Select(static source => source.RelativePath)
             .Where(static path => path.EndsWith("JsonReader.cs", StringComparison.Ordinal)))
-            .IsEquivalentTo([
-                "Sessions/Internal/SessionMessageToolStateCompletedJsonReader.cs", "Sessions/Internal/SessionMessageToolStateErrorJsonReader.cs",
-                "Sessions/Internal/SessionMessageToolStateRunningJsonReader.cs", "Sessions/Internal/SessionMessageToolStateStreamingJsonReader.cs",
-                "Sessions/Internal/SessionReasoningDeltaDataJsonReader.cs", "Sessions/Internal/SessionReasoningDeltaJsonReader.cs",
-                "Sessions/Internal/SessionTextDeltaDataJsonReader.cs", "Sessions/Internal/SessionTextDeltaJsonReader.cs",
-                "Sessions/Internal/SessionTextEndedDataJsonReader.cs", "Sessions/Internal/SessionTextEndedDurableJsonReader.cs",
-                "Sessions/Internal/SessionTextEndedJsonReader.cs", "Sessions/Internal/SessionToolInputDeltaDataJsonReader.cs",
-                "Sessions/Internal/SessionToolInputDeltaJsonReader.cs",
-                "Sessions/Internal/ToolFileContentJsonReader.cs", "Sessions/Internal/ToolTextContentJsonReader.cs",
-            ], CollectionOrdering.Matching);
+            .IsEquivalentTo(ExpectedReaders().Select(static name => "Sessions/Internal/" + name + "JsonReader.cs").Order(StringComparer.Ordinal), CollectionOrdering.Matching);
         await Assert.That(pinned.Plan.ReaderCallSites.OrderBy(static site => site.Key, StringComparer.Ordinal)
             .SelectMany(static site => site.Value.Order(StringComparer.Ordinal).Select(member => site.Key + "." + member)))
-            .IsEquivalentTo(["SessionReasoningDelta.Data", "SessionTextDelta.Data", "SessionTextEnded.Data", "SessionTextEnded.Durable", "SessionToolInputDelta.Data"], CollectionOrdering.Matching);
+            .IsEquivalentTo(["SessionMessageAssistantReasoning.Time", "SessionMessageAssistantTool.Time", "SessionReasoningDelta.Data",
+                "SessionTextDelta.Data", "SessionTextEnded.Data", "SessionTextEnded.Durable", "SessionToolInputDelta.Data"], CollectionOrdering.Matching);
         foreach (var name in new[] { "SessionEventDurable", "SessionLogItem" })
         {
             await Assert.That(EmitterSnapshot.Content(sources, "Sessions/Internal/" + name + "JsonConverter.cs"))
@@ -184,15 +171,16 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
     public async Task Select_Should_Select_Exactly_The_Rollout_Arms_And_Nested_Records()
     {
         var selected = RecordReaderPolicy.Select(pinned.Plan.Models, pinned.Plan.Unions, out var arms);
-        await Assert.That(selected.Keys).IsEquivalentTo([
-            "SessionMessageToolStateCompleted", "SessionMessageToolStateError", "SessionMessageToolStateRunning",
-            "SessionMessageToolStateStreaming",
-            "SessionReasoningDelta", "SessionReasoningDeltaData", "SessionTextDelta", "SessionTextDeltaData",
-            "SessionTextEnded", "SessionTextEndedData", "SessionTextEndedDurable", "SessionToolInputDelta", "SessionToolInputDeltaData",
-            "ToolFileContent", "ToolTextContent",
-        ], CollectionOrdering.Matching);
+        await Assert.That(selected.Keys).IsEquivalentTo(ExpectedReaders(), CollectionOrdering.Matching);
         await Assert.That(arms.Where(static entry => entry.Value.Count > 0).Select(static entry => entry.Key))
-            .IsEquivalentTo(["IEvent", "ISessionMessageToolState", "IToolContent"], CollectionOrdering.Matching);
+            .IsEquivalentTo(["IEvent", "ISessionMessageAssistantContent", "ISessionMessageInfo", "ISessionMessageToolState", "IToolContent"], CollectionOrdering.Matching);
+        await Assert.That(arms["ISessionMessageInfo"]).IsEquivalentTo([
+            "SessionMessageAgentSelected", "SessionMessageAssistant", "SessionMessageIdle", "SessionMessageLocationSwitched",
+            "SessionMessageModelSelected", "SessionMessageShell", "SessionMessageSkill", "SessionMessageSynthetic", "SessionMessageSystem", "SessionMessageUser",
+        ], CollectionOrdering.Matching);
+        await Assert.That(arms["ISessionMessageAssistantContent"]).IsEquivalentTo([
+            "SessionMessageAssistantReasoning", "SessionMessageAssistantText", "SessionMessageAssistantTool",
+        ], CollectionOrdering.Matching);
         await Assert.That(arms["IEvent"]).IsEquivalentTo(["SessionReasoningDelta", "SessionTextDelta", "SessionTextEnded", "SessionToolInputDelta"], CollectionOrdering.Matching);
         await Assert.That(arms["ISessionMessageToolState"]).IsEquivalentTo([
             "SessionMessageToolStateCompleted", "SessionMessageToolStateError", "SessionMessageToolStateRunning",
@@ -260,4 +248,13 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
             new BindingError(BindingErrorCategory.Naming, "ValueJsonReader", "type name 'ValueJsonReader' collides with another generated type"),
         ], CollectionOrdering.Matching);
     }
+
+    private static string[] ExpectedReaders() => [
+        "SessionMessageAgentSelected", "SessionMessageAssistant", "SessionMessageAssistantReasoning", "SessionMessageAssistantReasoningTime",
+        "SessionMessageAssistantText", "SessionMessageAssistantTool", "SessionMessageAssistantToolTime", "SessionMessageIdle", "SessionMessageLocationSwitched",
+        "SessionMessageModelSelected", "SessionMessageShell", "SessionMessageSkill", "SessionMessageSynthetic", "SessionMessageSystem",
+        "SessionMessageToolStateCompleted", "SessionMessageToolStateError", "SessionMessageToolStateRunning", "SessionMessageToolStateStreaming", "SessionMessageUser",
+        "SessionReasoningDelta", "SessionReasoningDeltaData", "SessionTextDelta", "SessionTextDeltaData", "SessionTextEnded", "SessionTextEndedData",
+        "SessionTextEndedDurable", "SessionToolInputDelta", "SessionToolInputDeltaData", "ToolFileContent", "ToolTextContent",
+    ];
 }

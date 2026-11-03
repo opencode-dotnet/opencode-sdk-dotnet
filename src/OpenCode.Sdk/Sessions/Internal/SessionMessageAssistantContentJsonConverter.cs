@@ -10,9 +10,9 @@ internal sealed class SessionMessageAssistantContentJsonConverter : JsonConverte
 {
     private static readonly UnionTagTable<UnionArm<ISessionMessageAssistantContent>> ArmsByTag = new Dictionary<string, UnionArm<ISessionMessageAssistantContent>>(StringComparer.Ordinal)
     {
-        ["reasoning"] = UnionArm<ISessionMessageAssistantContent>.Of<SessionMessageAssistantReasoning>(),
-        ["text"] = UnionArm<ISessionMessageAssistantContent>.Of<SessionMessageAssistantText>(),
-        ["tool"] = UnionArm<ISessionMessageAssistantContent>.Of<SessionMessageAssistantTool>()
+        ["reasoning"] = UnionArm<ISessionMessageAssistantContent>.Of(SessionMessageAssistantReasoningJsonReader.Read),
+        ["text"] = UnionArm<ISessionMessageAssistantContent>.Of(SessionMessageAssistantTextJsonReader.Read),
+        ["tool"] = UnionArm<ISessionMessageAssistantContent>.Of(SessionMessageAssistantToolJsonReader.Read)
     }.ToUnionTagTable();
     private static readonly UnionDiscriminatorReader DiscriminatorReader = new();
     public override ISessionMessageAssistantContent Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)

@@ -71,12 +71,14 @@ public sealed partial class NativeAotConsumerTests(PackedConsumerFeed feed)
         using var frames = await JsonDocument.ParseAsync(framesSource, cancellationToken: cancellationToken);
         var running = RunAsync();
         var path = await ServeAsync(listener, new FixtureLoader().Load("Packaging.reader-tool-states.json"), "application/json", shutdown.Token);
+        var listPath = await ServeAsync(listener, await MessageListResponseAsync(cancellationToken), "application/json", shutdown.Token);
         var eventPath = await ServeAsync(listener,
             "data: " + Encoding.UTF8.GetString(Performance.Tests.Support.BenchmarkFixtures.ConnectedEventBody()) + "\n\n"
             + string.Concat(frames.RootElement.EnumerateArray().Select(static frame => "data: " + JsonSerializer.Serialize(frame) + "\n\n")),
             "text/event-stream", shutdown.Token);
         var run = await running;
         await Assert.That(path).IsEqualTo("/api/session/ses_reader/message/msg_reader");
+        await Assert.That(listPath).IsEqualTo("/api/session/ses_reader/message");
         await Assert.That(eventPath).IsEqualTo("/api/event");
 
         await Assert.That(run.ExitCode).IsEqualTo(0).Because(run.StandardError + run.StandardOutputText);
@@ -96,6 +98,18 @@ public sealed partial class NativeAotConsumerTests(PackedConsumerFeed feed)
                 await shutdown.CancelAsync();
             }
         }
+    }
+
+    private static async Task<string> MessageListResponseAsync(CancellationToken cancellationToken)
+    {
+        await using var source = typeof(NativeAotConsumerTests).Assembly.GetManifestResourceStream("OpenCode.Sdk.Tests.Fixtures.Serialization.reader-message-arms.json")
+            ?? throw new InvalidOperationException("Missing message fixture.");
+        using var document = await JsonDocument.ParseAsync(source, cancellationToken: cancellationToken);
+        return JsonSerializer.Serialize(new
+        {
+            data = document.RootElement.EnumerateArray().Where(static message => message.GetProperty("type").GetString() != "assistant").ToArray(),
+            cursor = new { },
+        });
     }
 
     private static async Task<string?> ServeAsync(TcpListener listener, string body, string contentType, CancellationToken cancellationToken)

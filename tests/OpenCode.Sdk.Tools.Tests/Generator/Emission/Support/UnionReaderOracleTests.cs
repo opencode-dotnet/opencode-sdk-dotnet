@@ -23,7 +23,10 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
                     .Replace("Name = state.value2", "Name = state.value2 is null ? null : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
             "Sessions/Internal/SessionTextDeltaDataJsonReader.cs" => MetadataUnionOracleEmitter.Source(source.RelativePath,
                 System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)
-                    .Replace("Delta = state.value3!", "Delta = state.value3 is null ? string.Empty : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
+                     .Replace("Delta = state.value3!", "Delta = state.value3 is null ? string.Empty : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
+            "Sessions/Internal/SessionMessageAssistantToolJsonReader.cs" => MetadataUnionOracleEmitter.Source(source.RelativePath,
+                System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)
+                    .Replace("Name = state.value1!", "Name = state.value1 is null ? string.Empty : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
             _ => source,
         }).ToList();
         var loader = new FixtureLoader();
@@ -54,8 +57,8 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
             await Assert.That(prefixType?.Name).IsEqualTo(union.PrefixVariant?.TypeName);
         }
         var oracle = await UnionReaderOracle.CreateAsync(pinned.Plan);
-        var rows = await RecordCorpusGenerator.GenerateAsync(pinned.Plan, ["SessionMessageToolStateCompleted", "SessionTextDelta"]);
-        foreach (var name in new[] { "SessionMessageToolState/completed/maximal", "Event/session.text.delta/maximal" })
+        var rows = await RecordCorpusGenerator.GenerateAsync(pinned.Plan, ["SessionMessageToolStateCompleted", "SessionTextDelta", "SessionMessageAssistant"]);
+        foreach (var name in new[] { "SessionMessageToolState/completed/maximal", "Event/session.text.delta/maximal", "SessionMessageInfo/assistant/maximal" })
         {
             var row = rows.Single(row => row.Name == name);
             var entered = UnionReaderOracle.Observe(product, row.UnionType!, row.Json);

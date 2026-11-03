@@ -12,11 +12,20 @@ internal static class RecordReaderPolicy
         ("IToolContent", "ToolFileContent"), ("IToolContent", "ToolTextContent"),
         ("IEvent", "SessionTextDelta"), ("IEvent", "SessionReasoningDelta"),
         ("IEvent", "SessionToolInputDelta"), ("IEvent", "SessionTextEnded"),
+        ("ISessionMessageInfo", "SessionMessageAgentSelected"), ("ISessionMessageInfo", "SessionMessageAssistant"),
+        ("ISessionMessageInfo", "SessionMessageIdle"), ("ISessionMessageInfo", "SessionMessageLocationSwitched"),
+        ("ISessionMessageInfo", "SessionMessageModelSelected"), ("ISessionMessageInfo", "SessionMessageShell"),
+        ("ISessionMessageInfo", "SessionMessageSkill"), ("ISessionMessageInfo", "SessionMessageSynthetic"),
+        ("ISessionMessageInfo", "SessionMessageSystem"), ("ISessionMessageInfo", "SessionMessageUser"),
+        ("ISessionMessageAssistantContent", "SessionMessageAssistantReasoning"), ("ISessionMessageAssistantContent", "SessionMessageAssistantText"),
+        ("ISessionMessageAssistantContent", "SessionMessageAssistantTool"),
     };
 
     public static IReadOnlyDictionary<string, IReadOnlySet<string>> NestedCallSites { get; } =
         new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal)
         {
+            ["SessionMessageAssistantTool"] = new HashSet<string>(StringComparer.Ordinal) { "Time" },
+            ["SessionMessageAssistantReasoning"] = new HashSet<string>(StringComparer.Ordinal) { "Time" },
             ["SessionTextDelta"] = new HashSet<string>(StringComparer.Ordinal) { "Data" },
             ["SessionReasoningDelta"] = new HashSet<string>(StringComparer.Ordinal) { "Data" },
             ["SessionToolInputDelta"] = new HashSet<string>(StringComparer.Ordinal) { "Data" },
