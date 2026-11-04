@@ -60,6 +60,7 @@ can take about a minute before an exception surfaces; `Connected` may stay true 
 A stopped server stays stopped until you press Start on its resource in the dashboard.
 `/health` separately probes the server under a short timeout instead of reporting a stale 200.
 Each open session page holds its own event stream, cancelled when the page closes.
+Pages don't prerender: a prerendered button shows before its handler is attached, so an early click is dropped (#775). The page appears once its connection is up.
 
 The dashboard shows HttpClient and ASP.NET Core traces and host logs, not SDK spans: the SDK's own
 telemetry arrives in 1.1. The four OpenTelemetry packages export only when the AppHost supplies OTLP.
