@@ -36,6 +36,7 @@ Nightly builds of `master` are on
 
 ### 📚 Documentation
 
+- HQ's pages no longer prerender, so a click right after a page loads is no longer dropped.
 - HQ answers text and choice questions in place, styles both screens, and shows its real SDK calls in a hideable source panel.
 - Every complete C# snippet in the README and guides is now compiled against the SDK in CI.
 - Correct consumer signatures, streaming examples and terminology, provider setup, experimental opt-ins, installation guidance, and contribution routing.
