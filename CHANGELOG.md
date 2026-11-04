@@ -21,6 +21,9 @@ Nightly builds of `master` are on
   allocates 704,850 B instead of 1,491,796 B on .NET 10, and 704,778 B instead of 1,491,724 B on
   .NET 11. Materializing the frames alone allocates 663,424 B instead of 1,450,368 B on both
   runtimes. Values, failure behavior and serialization are unchanged.
+- **Real-turn event subscriptions allocate less.** Reading a captured coding turn allocates 41,808 B
+  instead of 75,280 B on .NET 10, and 41,736 B instead of 75,208 B on .NET 11. Values, failure
+  behavior and serialization are unchanged.
 - On `net472` and `netstandard2.0`, a response body under 64 MiB, up from 16 MiB, reuses a pooled
   buffer rather than allocating one per call. A 36 MB body on `net472` goes from about 138 MB to
   about 102 MB per call. As a trade-off, the pool keeps more for the life of the process: at most
