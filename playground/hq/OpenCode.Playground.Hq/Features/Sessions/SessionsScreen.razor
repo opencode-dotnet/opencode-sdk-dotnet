@@ -3,6 +3,8 @@
 
 <PageTitle>OpenCode HQ</PageTitle>
 
+<div class="screen">
+<main>
 @if (Board.LastError is { } error)
 {
     <p role="alert">@error</p>
@@ -13,31 +15,42 @@
 }
 else
 {
-<section>
-    <h2>Needs you (@Board.NeedsYou.Count)</h2>
+<section class="needs-you">
+    <h1>Needs you · @Board.NeedsYou.Count</h1>
     @foreach (var item in Board.NeedsYou)
     {
-        <div class="ask">
-            <span>@item.Title</span>
-            @if (!item.IsForm)
-            {
-                <button @onclick="() => AnswerAsync(item, PermissionReply.Once)">Allow once</button>
+        @if (item.Form is not null)
+        {
+            <FormCard @key="item.Id" Form="item.Form" />
+        }
+        else
+        {
+            <div class="ask">
+                <div class="ask-text"><div class="ask-kind">Permission</div><div class="mono">@item.Title</div></div>
+                <button class="primary" @onclick="() => AnswerAsync(item, PermissionReply.Once)">Allow once</button>
                 <button @onclick="() => AnswerAsync(item, PermissionReply.Reject)">Reject</button>
-            }
-        </div>
+            </div>
+        }
     }
 </section>
 
 <section>
     <h2>Sessions</h2>
-    <p><a href="/sessions/new">New session</a></p>
-    @foreach (var row in Board.Sessions)
-    {
-        <div class="session">
-            <span>@row.Status</span>
-            <a href="/sessions/@row.Session.Id">@row.Session.Title</a>
-            <span>@row.Session.Location.Directory</span>
-        </div>
-    }
+    <table class="sessions">
+        <thead><tr><th>Session</th><th>Folder</th><th>Status</th></tr></thead>
+        <tbody>
+        @foreach (var row in Board.Sessions)
+        {
+            <tr>
+                <td><a href="/sessions/@row.Session.Id">@row.Session.Title</a></td>
+                <td class="mono">@row.Session.Location.Directory</td>
+                <td class="status-@row.Status.Split(' ')[0]">@row.Status</td>
+            </tr>
+        }
+        </tbody>
+    </table>
 </section>
 }
+</main>
+<SdkPanel Entries="PanelEntry.FirstScreen" Guide="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md" />
+</div>

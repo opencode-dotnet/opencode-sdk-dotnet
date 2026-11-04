@@ -51,7 +51,9 @@ else if (_loaded)
         _endedTurns = Refresh;
         try
         {
+            #region panel: diff
             _diffs = (await Client.Sessions.GetSessionClient(SessionId).GetDiffAsync()).Diffs;
+            #endregion
             _error = null;
         }
         catch (OpenCodeException exception)

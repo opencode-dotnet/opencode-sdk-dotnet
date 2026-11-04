@@ -1,0 +1,44 @@
+@inject SessionBoard Board
+
+<div class="ask">
+    <div class="ask-text">
+        <div class="ask-kind">Question</div>
+        <div>@_draft.Form.Title</div>
+    </div>
+    @if (!_draft.Answerable)
+    {
+        <p>Answer this form in opencode: HQ answers text and choice questions only.</p>
+    }
+    else
+    {
+        @foreach (var field in _draft.Form.Fields)
+        {
+            @switch (field)
+            {
+                case FormStringField text:
+                    <div class="field">
+                        <span>@(text.Title ?? text.Key)</span>
+                        @foreach (var option in text.Options ?? [])
+                        {
+                            <button class="@_draft.TextClass(text.Key, option.Value)" @onclick="() => _draft.SetText(text.Key, option.Value)">@option.Label</button>
+                        }
+                        @if (FormDraft.ShowsTextBox(text))
+                        {
+                            <input value="@_draft.TextOf(text.Key)" @oninput="args => _draft.SetText(text.Key, args.Value?.ToString())" />
+                        }
+                    </div>
+                    break;
+                case FormMultiselectField multi:
+                    <div class="field">
+                        <span>@(multi.Title ?? multi.Key)</span>
+                        @foreach (var option in multi.Options)
+                        {
+                            <label><input type="checkbox" checked="@_draft.IsChosen(multi.Key, option.Value)" @onchange="() => _draft.Toggle(multi.Key, option.Value)" /> @option.Label</label>
+                        }
+                    </div>
+                    break;
+            }
+        }
+        <button class="primary" @onclick="AnswerAsync">Answer</button>
+    }
+</div>

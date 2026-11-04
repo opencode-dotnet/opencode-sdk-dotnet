@@ -4,7 +4,9 @@
 @inject ILogger<SessionScreen> Logger
 
 <PageTitle>Session</PageTitle>
-<p><a href="/">All sessions</a></p>
+<div class="screen">
+<main>
+<p><a href="/">Back to HQ</a></p>
 
 @if (Conversation.LastError is { } error)
 {
@@ -19,34 +21,42 @@
     <p role="alert">Lost the connection to HQ's server. Reload the page to follow this session again.</p>
 }
 
-<section>
     @foreach (var line in Conversation.Lines)
     {
-        <div class="line @line.Author"><strong>@line.Author</strong> @line.Text</div>
+        <div class="line @line.Author"><span class="who">@line.Author</span>@line.Text</div>
     }
     @if (Conversation.Running)
     {
         <p>Working...</p>
     }
-</section>
 
-<section>
-    @foreach (var item in Board.NeedsYou.Where(item => item.SessionId == SessionId && !item.IsForm))
+    @foreach (var item in Board.NeedsYou.Where(item => item.SessionId == SessionId))
     {
-        <div class="ask">
-            <span>@item.Title</span>
-            <button @onclick="() => AnswerAsync(item, PermissionReply.Once)">Allow once</button>
-            <button @onclick="() => AnswerAsync(item, PermissionReply.Reject)">Reject</button>
-        </div>
+        @if (item.Form is not null)
+        {
+            <FormCard @key="item.Id" Form="item.Form" />
+        }
+        else
+        {
+            <div class="ask">
+                <div class="ask-text"><div class="ask-kind">Permission</div><div class="mono">@item.Title</div></div>
+                <button class="primary" @onclick="() => AnswerAsync(item, PermissionReply.Once)">Allow once</button>
+                <button @onclick="() => AnswerAsync(item, PermissionReply.Reject)">Reject</button>
+            </div>
+        }
     }
-</section>
 
-<form @onsubmit="SendAsync" @onsubmit:preventDefault>
+<form class="prompt" @onsubmit="SendAsync" @onsubmit:preventDefault>
     <textarea @bind="_prompt" @bind:event="oninput" disabled="@Conversation.Running"></textarea>
-    <button type="submit" disabled="@(!Conversation.Ready || Conversation.Running || string.IsNullOrWhiteSpace(_prompt))">Send</button>
+    <button class="primary" type="submit" disabled="@(!Conversation.Ready || Conversation.Running || string.IsNullOrWhiteSpace(_prompt))">Send</button>
 </form>
 
+</main>
+<section class="side" aria-label="Changed files">
 @if (Conversation.Ready)
 {
     <ChangedFiles SessionId="@SessionId" Running="@Conversation.Running" Refresh="@Conversation.EndedTurns" />
 }
+</section>
+<SdkPanel Entries="PanelEntry.SessionScreen" Guide="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md#-streaming-an-answer-as-it-arrives" />
+</div>

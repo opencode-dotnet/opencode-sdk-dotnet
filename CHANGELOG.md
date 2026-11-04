@@ -36,6 +36,7 @@ Nightly builds of `master` are on
 
 ### 📚 Documentation
 
+- HQ answers text and choice questions in place, styles both screens, and shows its real SDK calls in a hideable source panel.
 - Every complete C# snippet in the README and guides is now compiled against the SDK in CI.
 - Correct consumer signatures, streaming examples and terminology, provider setup, experimental opt-ins, installation guidance, and contribution routing.
 - **`EnsureAsync` warns about a service boot's resume.** A service it starts resumes every suspended

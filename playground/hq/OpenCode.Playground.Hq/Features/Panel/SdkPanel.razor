@@ -1,0 +1,42 @@
+@inject SourceSnippets Source
+
+<aside class="panel" aria-label="How this screen uses the SDK">
+    <div class="panel-head">
+        <h2>How this screen works</h2>
+        <button @onclick="() => _hidden = !_hidden">@(_hidden ? "Show" : "Hide")</button>
+    </div>
+    @if (!_hidden)
+    {
+        @foreach (var (entry, snippet) in _items)
+        {
+            <div class="panel-item">
+                <h3>@entry.Title</h3>
+                <pre>@snippet</pre>
+                <a href="@SourceSnippets.Link(entry.File)">@entry.File</a>
+            </div>
+        }
+        <a href="@Guide">Read the guide</a>
+    }
+</aside>
+
+@code {
+    private bool _hidden;
+    private readonly List<(PanelEntry Entry, string Code)> _items = [];
+
+    /// <summary>Gets or sets the code this screen shows.</summary>
+    [Parameter]
+    public IReadOnlyList<PanelEntry> Entries { get; set; } = [];
+
+    /// <summary>Gets or sets the guide this screen teaches.</summary>
+    [Parameter]
+    public string Guide { get; set; } = "";
+
+    /// <inheritdoc />
+    protected override async Task OnInitializedAsync()
+    {
+        foreach (var entry in Entries)
+        {
+            _items.Add((entry, await Source.ReadAsync(entry.File, entry.Region)));
+        }
+    }
+}

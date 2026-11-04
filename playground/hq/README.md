@@ -1,9 +1,17 @@
 # OpenCode HQ
 
 HQ's first screen lists sessions with live status and a **Needs you** list. Permission asks have
-Allow once and Reject buttons; forms are listed but cannot be answered yet. A session's page shows
+Allow once and Reject buttons; question forms can be answered in place on both screens. HQ answers
+text questions (option buttons and custom text) and multiselect questions (checkboxes); other field
+kinds direct you to opencode. A session's page shows
 its conversation, streamed answer, prompt box, asks and changed files; New session picks a directory.
-Styling and the "How this screen works" panel come later. There is no login, database or settings UI.
+There is no login, database or settings UI.
+
+Each screen has a hideable **How this screen works** panel: SDK calls for that screen, links to
+their source files and a guide. It reads HQ's own source at run time, embedded at build time, so
+snippets cannot drift from the code running. To add an entry, mark the code with a
+`#region panel: name` block and its `#endregion`, then add a `PanelEntry` with that file and region
+to the screen's list in `Features/Panel/PanelEntry.cs`.
 
 ## Run
 
@@ -64,3 +72,5 @@ The projects use a ProjectReference here; a consumer uses `<PackageReference Inc
 | Typed not-found and other reply failures | `Features/Sessions/`: `SessionBoard.cs`, with `ReplyToPermissionAsync` | [Errors](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/errors-and-responses.md) |
 | Stored conversations, streamed answers and prompts | `Features/Conversation/`: `SessionConversation.cs`, with `Events.SubscribeAsync`, `EnumerateMessagesAsync` and `PromptAsync` | [Streaming](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md) |
 | Changed files and patches | `Features/Files/`: `ChangedFiles.razor`, with `GetDiffAsync` | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md) |
+| Answering text and choice questions | `Features/Forms/`: `FormDraft.cs` and `FormCard.razor`, with SDK `ReplyToFormAsync` via `SessionBoard` | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md) |
+| Code behind each screen | `Features/Panel/`: `SourceSnippets.cs` and `PanelEntry.cs` read HQ's embedded regions | The panel links each entry to its source file and a guide |

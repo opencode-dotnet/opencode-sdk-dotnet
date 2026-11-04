@@ -117,6 +117,54 @@ public sealed class SessionBoardTests
         await Assert.That(scenario.Board.Sessions.Select(static row => row.Session.Id)).IsEquivalentTo(expected, CollectionOrdering.Matching);
     }
 
+    [Test]
+    public async Task NeedsYou_Should_Keep_The_Seeded_Form()
+    {
+        await using var scenario = new BoardScenario();
+        await scenario.StartAsync();
+
+        var form = scenario.Board.NeedsYou.Single(static item => item.Id == "form_first").Form;
+        await Assert.That(form?.Fields.Single()).IsSameReferenceAs(Pick);
+    }
+
+    [Test]
+    [Arguments(null, true, null)]
+    [Arguments(nameof(FormNotFoundError), true, null)]
+    [Arguments(nameof(FormAlreadySettledError), true, null)]
+    [Arguments(nameof(UnauthorizedError), false, "Could not answer the question: unauthorized")]
+    [Arguments(nameof(OpenCodeTransportException), false, "Could not answer the question: connection lost")]
+    public async Task AnswerFormAsync_Should_Apply_The_Expected_Outcome_And_Raise_Changed(string? failure, bool removed, string? error)
+    {
+        await using var scenario = new BoardScenario();
+        var changed = await scenario.AnswerFormAsync(failure);
+        var expected = removed ? new[] { "ask_first", "ask_gone", "ask_last", "form_gone", "form_last" }
+            : ["ask_first", "ask_gone", "ask_last", "form_first", "form_gone", "form_last"];
+
+        await Assert.That(scenario.Board.NeedsYou.Select(static item => item.Id)).IsEquivalentTo(expected, CollectionOrdering.Matching);
+        await Assert.That(scenario.Board.LastError).IsEqualTo(error);
+        await Assert.That(changed).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task AnswerFormAsync_Should_Propagate_Cancellation_Without_Changing_The_Board()
+    {
+        await using var scenario = new BoardScenario();
+        await scenario.StartAsync();
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+        var changed = 0;
+        scenario.Board.Changed += (_, _) => changed++;
+        await Assert.That(() => scenario.Board.AnswerFormAsync(Form(), Reply(), cancellation.Token)).Throws<OperationCanceledException>();
+
+        await Assert.That(scenario.Board.NeedsYou.Select(static item => item.Id))
+            .IsEquivalentTo(["ask_first", "ask_gone", "ask_last", "form_first", "form_gone", "form_last"], CollectionOrdering.Matching);
+        await Assert.That(changed).IsEqualTo(0);
+    }
+
+    private static readonly FormStringField Pick = new() { Key = "pick", Options = [new FormOption { Label = "A", Value = "a" }] };
+
+    private static FormInfo Form() => new() { Id = "form_first", SessionId = "ses_0", Title = "question", Fields = [Pick] };
+    private static SessionFormReplyRequest Reply() => new() { Answer = new Dictionary<string, FormValue>(StringComparer.Ordinal) };
     private static OpenCodeApiException Unauthorized() => new("unauthorized", 401, new UnauthorizedError { Message = "unauthorized" }, null);
     private static EventServerConnected Connected() => new() { Id = "connected", Data = new Dictionary<string, System.Text.Json.JsonElement>(StringComparer.Ordinal) };
     private static SessionInfo Session(int index, string directory) => new()
@@ -142,6 +190,24 @@ public sealed class SessionBoardTests
         public override PermissionsClient Permissions => PermissionCalls;
         public override FormsClient Forms => FormCalls;
         public override EventsClient Events => EventCalls;
+
+        public async Task<int> AnswerFormAsync(string? failure)
+        {
+            await StartAsync();
+            SessionCalls.FormFailure = failure switch
+            {
+                null => null,
+                nameof(FormNotFoundError) => new OpenCodeApiException("gone", 404, new FormNotFoundError { Id = "form_first", Message = "gone" }, null),
+                nameof(FormAlreadySettledError) => new OpenCodeApiException("settled", 409, new FormAlreadySettledError { Id = "form_first", Message = "settled" }, null),
+                nameof(UnauthorizedError) => Unauthorized(),
+                nameof(OpenCodeTransportException) => new OpenCodeTransportException("connection lost"),
+                _ => throw new ArgumentOutOfRangeException(nameof(failure)),
+            };
+            var changed = 0;
+            Board.Changed += (_, _) => changed++;
+            await Board.AnswerFormAsync(Form(), Reply(), CancellationToken.None);
+            return changed;
+        }
 
         public async Task StartAsync()
         {
@@ -191,6 +257,7 @@ public sealed class SessionBoardTests
         public IReadOnlyList<SessionInfo> Items { get; set; } = [Session(0, "first"), Session(1, "gone"), Session(2, "last")];
         public IReadOnlySet<string> Active { get; set; } = new HashSet<string>(["ses_0", "ses_1", "ses_2"], StringComparer.Ordinal);
         public OpenCodeApiException? ReplyFailure { get; set; }
+        public OpenCodeException? FormFailure { get; set; }
         public TaskCompletionSource ListingStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource? ListingRelease { get; set; }
         public override SessionClient GetSessionClient(string sessionId) => new BoardSession(this);
@@ -227,6 +294,14 @@ public sealed class SessionBoardTests
 
     private sealed class BoardSession(BoardSessions owner) : SessionClient
     {
+        public override Task<SessionFormReplyResponse> ReplyToFormAsync(string formId, SessionFormReplyRequest request,
+            OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return owner.FormFailure is { } failure ? Task.FromException<SessionFormReplyResponse>(failure)
+                : Task.FromResult(new SessionFormReplyResponse { Status = 204 });
+        }
+
         public override Task<SessionPermissionReplyResponse> ReplyToPermissionAsync(string requestId, SessionPermissionReplyRequest request,
             OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default) =>
             owner.ReplyFailure is { } failure ? Task.FromException<SessionPermissionReplyResponse>(failure) : Task.FromResult(new SessionPermissionReplyResponse { Status = 204 });
@@ -267,7 +342,7 @@ public sealed class SessionBoardTests
                 Location = new LocationPublicRef { Directory = request?.Location?.Directory ?? string.Empty },
                 Forms = [new FormInfo
             {
-                Id = "form_" + request?.Location?.Directory, SessionId = "ses_0", Title = "question", Fields = [],
+                Id = "form_" + request?.Location?.Directory, SessionId = "ses_0", Title = "question", Fields = [Pick],
             }]
             });
         }

@@ -6,6 +6,8 @@
   <ItemGroup>
     <ProjectReference Include="../../../src/OpenCode.Sdk/OpenCode.Sdk.csproj" />
     <InternalsVisibleTo Include="OpenCode.Playground.Hq.Tests" />
+    <!-- The panel shows marked regions of these files, read back at run time. -->
+    <EmbeddedResource Include="Features/**/*.cs;Features/**/*.razor" LogicalName="hq/Features/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />

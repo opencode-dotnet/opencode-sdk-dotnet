@@ -1,0 +1,9 @@
+@inherits LayoutComponentBase
+@inject SessionBoard Board
+
+<header class="top">
+    <div class="title">OpenCode HQ</div>
+    <div class="status mono">@(Board.Connected ? "connected" : "not connected")</div>
+    <a class="button primary" href="/sessions/new">New session</a>
+</header>
+@Body
