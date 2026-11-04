@@ -11,12 +11,12 @@ Nightly builds of `master` are on
 
 ### ⚡ Performance
 
-- **Messages deserialize faster, and messages with tool parts allocate less.** On .NET 10, a
-  message of 2,400 parts deserializes in about 12.2 ms instead of about 16.4 ms, a medium one
-  about 27% faster, and a prompt's event frames about 17% faster. Reading that message also
-  allocates 4,527,576 B instead of 5,098,776 B on .NET 10, and 4,484,304 B instead of 5,055,504 B
-  on .NET 11. Tool states and tool contents keep the same values and failure behavior;
-  serialization is unchanged.
+- **Messages deserialize faster and allocate less.** On .NET 10, a message of 2,400 parts
+  deserializes in about 8.7 ms instead of about 16.6 ms, a medium one about 47% faster, and a
+  prompt's event frames about 54% faster. Reading that message also allocates 3,087,408 B instead
+  of 5,098,776 B on .NET 10, and 3,087,384 B instead of 5,055,504 B on .NET 11. Messages, their
+  content parts and tool states keep the same values and failure behavior; serialization is
+  unchanged.
 - **A prompt's event stream allocates less.** Reading 1,024 delta frames and 16 text-ended frames
   allocates 704,850 B instead of 1,491,796 B on .NET 10, and 704,778 B instead of 1,491,724 B on
   .NET 11. Materializing the frames alone allocates 663,424 B instead of 1,450,368 B on both
