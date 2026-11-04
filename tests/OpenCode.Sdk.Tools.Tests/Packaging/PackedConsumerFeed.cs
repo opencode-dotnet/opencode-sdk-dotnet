@@ -274,7 +274,7 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
         Equal(response.IsError, false);
         var message = (SessionMessageAssistant)response.Message;
         Equal(message.Id, "msg_reader");
-        Equal(message.Content.Count, 4);
+        Equal(message.Content.Count, 6);
         var streaming = (SessionMessageToolStateStreaming)((SessionMessageAssistantTool)message.Content[0]).State;
         Equal(streaming.Input, "partial input");
         var running = (SessionMessageToolStateRunning)((SessionMessageAssistantTool)message.Content[1]).State;
@@ -302,6 +302,7 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
         Equal(((ToolFileContent)error.Content[1]).Uri, "error:reader");
         Equal(((ToolFileContent)error.Content[1]).Mime, "error/mime");
         Equal(((ToolFileContent)error.Content[1]).Name, "error.txt");
+        {{MessageArmsProgram}}
         {{PromptEventsProgram}}
         Console.Out.WriteLine("{{AotConsumerData.Marker}}");
         return 0;
@@ -313,6 +314,30 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
                 throw new InvalidOperationException($"Expected {expected}, received {actual}.");
             }
         }
+        """;
+
+    private const string MessageArmsProgram =
+        """
+        var reasoningPart = (SessionMessageAssistantReasoning)message.Content[4];
+        Equal(reasoningPart.Text, "reader reasoning");
+        Equal(reasoningPart.Native["reason"].GetInt32(), 7);
+        Equal(reasoningPart.Time.Created, 11);
+        Equal(reasoningPart.Time.Completed, 13);
+        var textPart = (SessionMessageAssistantText)message.Content[5];
+        Equal(textPart.Text, "reader text");
+        Equal(textPart.Native["text"].GetInt32(), 17);
+        var list = await wireClient.Sessions.GetSessionClient("ses_reader").ListMessagesAsync();
+        Equal(list.IsError, false);
+        Equal(list.Messages.Count, 9);
+        Equal(list.Messages[0].GetType(), typeof(SessionMessageAgentSelected));
+        Equal(list.Messages[1].GetType(), typeof(SessionMessageIdle));
+        Equal(list.Messages[2].GetType(), typeof(SessionMessageLocationSwitched));
+        Equal(list.Messages[3].GetType(), typeof(SessionMessageModelSelected));
+        Equal(list.Messages[4].GetType(), typeof(SessionMessageShell));
+        Equal(list.Messages[5].GetType(), typeof(SessionMessageSkill));
+        Equal(list.Messages[6].GetType(), typeof(SessionMessageSynthetic));
+        Equal(list.Messages[7].GetType(), typeof(SessionMessageSystem));
+        Equal(list.Messages[8].GetType(), typeof(SessionMessageUser));
         """;
 
     private const string PromptEventsProgram =

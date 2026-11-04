@@ -8,11 +8,23 @@ namespace OpenCode.Sdk.Tools.Generator.Emission;
 /// <summary>Emits the property's conversion, including the null handling a direct converter bypasses.</summary>
 internal static class RecordMemberReaderEmitter
 {
-    internal static MethodDeclarationSyntax Reader(ModelPropertyPlan property, string local, StatementSyntax? presence, IReadOnlySet<string>? callSites)
+    internal const string StateName = "state";
+    internal const string StateTypeName = "State";
+    internal const string AdvanceToValueName = "AdvanceToValue";
+
+    internal static MemberAccessExpressionSyntax StateMember(string name) => EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(StateName), name);
+    internal static ArgumentSyntax StateArgument() => SyntaxFactory.Argument(SyntaxFactory.IdentifierName(StateName))
+        .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword));
+    internal static ParameterSyntax StateParameter() => SyntaxFactory.Parameter(SyntaxFactory.Identifier(StateName))
+        .WithType(SyntaxFactory.IdentifierName(StateTypeName)).WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword)));
+    internal static ArgumentSyntax ReaderArgument() => SyntaxFactory.Argument(SyntaxFactory.IdentifierName("reader"))
+        .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword));
+
+    internal static MethodDeclarationSyntax Reader(ModelPropertyPlan property, string field, StatementSyntax? presence, IReadOnlySet<string>? callSites)
     {
         var statements = new List<StatementSyntax> { SyntaxFactory.ExpressionStatement(
-            EmissionSyntax.Invocation(SyntaxFactory.IdentifierName("AdvanceToValue"), ReaderArgument())) };
-        statements.AddRange(Assignment(property, local, callSites));
+            EmissionSyntax.Invocation(SyntaxFactory.IdentifierName(AdvanceToValueName), ReaderArgument())) };
+        statements.AddRange(Assignment(property, field, callSites));
         if (presence is not null)
         {
             statements.Add(presence);
@@ -24,8 +36,7 @@ internal static class RecordMemberReaderEmitter
             .WithIdentifier(SyntaxFactory.Identifier("Read" + property.Name))
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PrivateKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)));
         var parameters = method.ParameterList.Parameters;
-        parameters = parameters.Replace(parameters[1], SyntaxFactory.Parameter(SyntaxFactory.Identifier("state")).WithType(SyntaxFactory.IdentifierName("State"))
-            .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword))));
+        parameters = parameters.Replace(parameters[1], StateParameter());
         return method.WithParameterList(method.ParameterList.WithParameters(parameters
             .Replace(parameters[2], parameters[2].WithIdentifier(SyntaxFactory.Identifier(options)))));
     }
@@ -44,7 +55,7 @@ internal static class RecordMemberReaderEmitter
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PrivateKeyword),
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword), SyntaxFactory.Token(SyntaxKind.ReadOnlyKeyword))));
 
-    internal static IReadOnlyList<StatementSyntax> Assignment(ModelPropertyPlan property, string local, IReadOnlySet<string>? callSites)
+    internal static IReadOnlyList<StatementSyntax> Assignment(ModelPropertyPlan property, string field, IReadOnlySet<string>? callSites)
     {
         var read = Value(property, callSites);
         var nullToken = SyntaxFactory.BinaryExpression(SyntaxKind.EqualsExpression,
@@ -66,7 +77,7 @@ internal static class RecordMemberReaderEmitter
         }
 
         statements.Add(SyntaxFactory.ExpressionStatement(SyntaxFactory.AssignmentExpression(SyntaxKind.SimpleAssignmentExpression,
-            RecordReaderEmitter.StateMember(local), read)));
+            StateMember(field), read)));
         return statements;
     }
 
@@ -125,9 +136,6 @@ internal static class RecordMemberReaderEmitter
                 EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("JsonTokenType"), "String")), named,
             EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("reader"), "GetDouble")));
     }
-
-    private static ArgumentSyntax ReaderArgument() => SyntaxFactory.Argument(SyntaxFactory.IdentifierName("reader"))
-        .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword));
 
     private static bool ContainsSpecialNumber(TypeReferencePlan type) => type switch
     {

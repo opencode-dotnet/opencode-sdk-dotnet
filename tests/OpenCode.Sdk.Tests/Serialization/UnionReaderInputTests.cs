@@ -116,6 +116,12 @@ public sealed class UnionReaderInputTests
             await Assert.That(await StreamAsync(bytes, false, OpenCodeJsonContext.Default.IEvent, cancellationToken))
                 .IsEquivalentTo(await StreamAsync(bytes, false, metadata.IEvent, cancellationToken), CollectionOrdering.Matching);
         }
+        var message = await MessageReaderParityTests.DeepFailureAsync();
+        await UnionReaderParityTests.CompareAsync(message, false, "assistant/tool/state/failure", typeof(ISessionMessageInfo));
+        var failure = UnionReaderParityTests.Observe(message, false, metadata, root: typeof(ISessionMessageInfo));
+        await Assert.That(failure.Path).IsEqualTo("$.input");
+        await Assert.That(await StreamAsync(message, false, OpenCodeJsonContext.Default.ISessionMessageInfo, cancellationToken))
+            .IsEquivalentTo(await StreamAsync(message, false, metadata.ISessionMessageInfo, cancellationToken), CollectionOrdering.Matching);
     }
 
     [Test]

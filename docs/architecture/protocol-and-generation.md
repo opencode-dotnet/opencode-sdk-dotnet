@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-11-03
+Date: 2026-11-04
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -343,13 +343,16 @@ materializable.
   arm's prefix; the carrier refuses a tag the prefix claims. Unknown frame names are not payload
   variants and remain framing failures (ADR-0009).
 - Known tagged-union arms scan a copied UTF-8 reader for the last top-level discriminator.
-  Every known variant of `ISessionMessageToolState` and `IToolContent`, and `IEvent`'s
-  `SessionTextDelta`, `SessionReasoningDelta`, `SessionToolInputDelta` and `SessionTextEnded`
-  variants, is materialized once by a generated record reader; other known variants, and these
-  records where another union lists them, use their own source-generated metadata converter. Beneath
-  the four `IEvent` variants, their `Data` and `Durable` records are read by generated readers too;
-  every other nested record retains its metadata converter. The scan remains safe when
-  serializer stream entry points supply a partial reader, and known arms do not build a JSON DOM.
+  Generated record readers materialize, once each, every known variant of
+  `ISessionMessageToolState`, `IToolContent` and `ISessionMessageAssistantContent`; the ten record
+  variants of `ISessionMessageInfo`; and `IEvent`'s `SessionTextDelta`, `SessionReasoningDelta`,
+  `SessionToolInputDelta` and `SessionTextEnded` variants. `ISessionMessageInfo`'s `compaction`
+  variant, which is itself a union, the other known variants, and these records where another union
+  lists them use their own source-generated metadata converter. Beneath the four `IEvent` variants,
+  their `Data` and `Durable` records, and beneath the assistant's tool and reasoning parts, their
+  `Time` records, are read by generated readers too; every other nested record retains its metadata
+  converter. The scan remains safe when serializer stream entry points supply a partial reader, and
+  known arms do not build a JSON DOM.
   Unknown arms retain the DOM needed by their lossless carrier, including a stream payload recovered
   after its known arm could not materialize. Direct union deserialization keeps the known-arm
   failure; only the stream adapter and reader retry through concrete unknown-arm metadata

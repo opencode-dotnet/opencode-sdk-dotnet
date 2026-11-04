@@ -28,15 +28,17 @@ public sealed class UnionArmTests
     }
 
     [Test]
-    [Arguments(false)]
-    [Arguments(true)]
-    public async Task Read_Should_Not_Repair_A_False_Reader_Refusal(bool nested)
+    [Arguments("state")]
+    [Arguments("prompt")]
+    [Arguments("message")]
+    public async Task Read_Should_Not_Repair_A_False_Reader_Refusal(string row)
     {
         var original = new FormatException("reader-refusal");
         long[] expected = [];
         long[] actual = [];
         var arm = UnionArm<ISessionMessageToolState>.Of(Refuse);
         var prompt = UnionArm<IEvent>.Of(RefuseNested);
+        var message = UnionArm<ISessionMessageInfo>.Of(RefuseMessage);
         var failure = await Assert.That(ReadAndCapture)
             .Throws<FormatException>();
         await Assert.That(failure).IsSameReferenceAs(original);
@@ -52,9 +54,21 @@ public sealed class UnionArmTests
 
         SessionTextEnded RefuseNested(ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
+            RefuseAt(ref reader, "data");
+            throw new InvalidOperationException("Fixture has no data member.");
+        }
+
+        SessionMessageAssistant RefuseMessage(ref Utf8JsonReader reader, JsonSerializerOptions options)
+        {
+            RefuseAt(ref reader, "state");
+            throw new InvalidOperationException("Fixture has no tool state member.");
+        }
+
+        void RefuseAt(ref Utf8JsonReader reader, string member)
+        {
             while (reader.Read())
             {
-                if (reader.TokenType == JsonTokenType.PropertyName && reader.ValueTextEquals("data"u8))
+                if (reader.TokenType == JsonTokenType.PropertyName && reader.ValueTextEquals(member))
                 {
                     _ = reader.Read();
                     _ = reader.Read();
@@ -63,18 +77,25 @@ public sealed class UnionArmTests
                     throw original;
                 }
             }
-            throw new InvalidOperationException("Fixture has no data member.");
         }
 
         void ReadAndCapture()
         {
-            var reader = new Utf8JsonReader(nested
-                ? Support.ToolUnionCaseBuilder.Bytes(PromptEventReaderParityTests.Seed("text-ended"))
-                : Encoding.UTF8.GetBytes(new FixtureLoader().LoadJson("Serialization.json-element-dictionary-empty-object.json")));
+            var bytes = row switch
+            {
+                "prompt" => Support.ToolUnionCaseBuilder.Bytes(PromptEventReaderParityTests.Seed("text-ended")),
+                "message" => Support.ToolUnionCaseBuilder.Bytes(MessageReaderParityTests.Seed("assistant")),
+                _ => Encoding.UTF8.GetBytes(new FixtureLoader().LoadJson("Serialization.json-element-dictionary-empty-object.json")),
+            };
+            var reader = new Utf8JsonReader(bytes);
             _ = reader.Read();
             try
             {
-                if (nested)
+                if (row == "message")
+                {
+                    _ = message.Read(ref reader);
+                }
+                else if (row == "prompt")
                 {
                     _ = prompt.Read(ref reader);
                 }

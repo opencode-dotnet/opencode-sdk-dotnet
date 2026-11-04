@@ -9,7 +9,14 @@ internal sealed class ToolUnionMetadataOracle<TUnion> : MetadataUnionJsonConvert
 {
     private static readonly bool State = typeof(TUnion) == typeof(ISessionMessageToolState);
     private static readonly bool Event = typeof(TUnion) == typeof(IEvent);
-    protected override string Concept => (Event, State) switch { (true, _) => "Event", (_, true) => "SessionMessageToolState", _ => "ToolContent" };
+    protected override string Concept => typeof(TUnion).Name switch
+    {
+        nameof(IEvent) => "Event",
+        nameof(ISessionMessageToolState) => "SessionMessageToolState",
+        nameof(ISessionMessageInfo) => "SessionMessageInfo",
+        nameof(ISessionMessageAssistantContent) => "SessionMessageAssistantContent",
+        _ => "ToolContent",
+    };
     protected override string Marker => State ? "status" : "type";
     protected override UnionTagTable<Type?> Types => Table;
     protected override string? Prefix => PrefixValue;
@@ -22,6 +29,32 @@ internal sealed class ToolUnionMetadataOracle<TUnion> : MetadataUnionJsonConvert
         if (Event)
         {
             return EventTypes().Concat(SessionEventTypes()).ToDictionary(static entry => entry.Key, static entry => entry.Value, StringComparer.Ordinal);
+        }
+        if (typeof(TUnion) == typeof(ISessionMessageInfo))
+        {
+            return new Dictionary<string, Type?>(StringComparer.Ordinal)
+            {
+                ["agent-switched"] = typeof(SessionMessageAgentSelected),
+                ["assistant"] = typeof(SessionMessageAssistant),
+                ["compaction"] = typeof(ISessionMessageCompaction),
+                ["idle"] = typeof(SessionMessageIdle),
+                ["location-switched"] = typeof(SessionMessageLocationSwitched),
+                ["model-switched"] = typeof(SessionMessageModelSelected),
+                ["shell"] = typeof(SessionMessageShell),
+                ["skill"] = typeof(SessionMessageSkill),
+                ["synthetic"] = typeof(SessionMessageSynthetic),
+                ["system"] = typeof(SessionMessageSystem),
+                ["user"] = typeof(SessionMessageUser),
+            };
+        }
+        if (typeof(TUnion) == typeof(ISessionMessageAssistantContent))
+        {
+            return new Dictionary<string, Type?>(StringComparer.Ordinal)
+            {
+                ["reasoning"] = typeof(SessionMessageAssistantReasoning),
+                ["text"] = typeof(SessionMessageAssistantText),
+                ["tool"] = typeof(SessionMessageAssistantTool),
+            };
         }
         return State
         ? new Dictionary<string, Type?>(StringComparer.Ordinal)
@@ -40,10 +73,12 @@ internal sealed class ToolUnionMetadataOracle<TUnion> : MetadataUnionJsonConvert
     private static readonly UnionTagTable<Type?> Table = Map.ToUnionTagTable();
 
     protected override TUnion Unknown(string marker, JsonElement payload) =>
-        (TUnion)((Event, State) switch
+        (TUnion)(typeof(TUnion).Name switch
         {
-            (true, _) => (object)new UnknownEvent(marker, payload),
-            (_, true) => new UnknownSessionMessageToolState(marker, payload),
+            nameof(IEvent) => (object)new UnknownEvent(marker, payload),
+            nameof(ISessionMessageToolState) => new UnknownSessionMessageToolState(marker, payload),
+            nameof(ISessionMessageInfo) => new UnknownSessionMessageInfo(marker, payload),
+            nameof(ISessionMessageAssistantContent) => new UnknownSessionMessageAssistantContent(marker, payload),
             _ => new UnknownToolContent(marker, payload),
         });
 
@@ -53,6 +88,8 @@ internal sealed class ToolUnionMetadataOracle<TUnion> : MetadataUnionJsonConvert
         options.Converters.Insert(0, new ToolUnionMetadataOracle<ISessionMessageToolState>());
         options.Converters.Insert(0, new ToolUnionMetadataOracle<IToolContent>());
         options.Converters.Insert(0, new ToolUnionMetadataOracle<IEvent>());
+        options.Converters.Insert(0, new ToolUnionMetadataOracle<ISessionMessageInfo>());
+        options.Converters.Insert(0, new ToolUnionMetadataOracle<ISessionMessageAssistantContent>());
         return new OpenCodeJsonContext(options);
     }
 

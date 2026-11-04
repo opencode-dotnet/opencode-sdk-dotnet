@@ -166,13 +166,7 @@ public sealed class PromptEventReaderParityTests
             }
             await Assert.That(expected.Phase).IsEqualTo(ReferenceEquals(bytes, malformed) || ReferenceEquals(bytes, truncated) ? "read" : "success");
         }
-        var reader = new Utf8JsonReader(BufferSegment.Split(original, Array.IndexOf(original, (byte)'"') + 2));
-        _ = reader.Read();
-        _ = reader.Read();
-        var segmented = reader.HasValueSequence;
-        var name = reader.GetString();
-        await Assert.That(segmented).IsTrue();
-        await Assert.That(name).IsEqualTo("id");
+        await AssertSplitPropertyNameAsync(original, "id");
     }
 
     [Test]
@@ -239,6 +233,17 @@ public sealed class PromptEventReaderParityTests
     {
         using var document = JsonDocument.Parse(new FixtureLoader().LoadJson("Serialization.reader-prompt-events.json"));
         return document.RootElement.EnumerateArray().Single(seed => seed.GetProperty("id").GetString() == "evt_" + Suffix(row)).Clone();
+    }
+
+    internal static async Task AssertSplitPropertyNameAsync(byte[] bytes, string expected)
+    {
+        var reader = new Utf8JsonReader(BufferSegment.Split(bytes, Array.IndexOf(bytes, (byte)'"') + 2));
+        _ = reader.Read();
+        _ = reader.Read();
+        var segmented = reader.HasValueSequence;
+        var name = reader.GetString();
+        await Assert.That(segmented).IsTrue();
+        await Assert.That(name).IsEqualTo(expected);
     }
 
     internal static Task<byte[]> ChangeAsync(JsonElement seed, string parent, string member, string change) => parent.Length == 0

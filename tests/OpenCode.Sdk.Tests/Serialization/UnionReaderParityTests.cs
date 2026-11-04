@@ -123,10 +123,11 @@ public sealed class UnionReaderParityTests
         await Assert.That(error.Metadata!["phase"].GetString()).IsEqualTo("error");
     }
 
-    internal static async Task CompareAsync(byte[] bytes, bool state, string row)
+    internal static async Task CompareAsync(byte[] bytes, bool state, string row, Type? root = null, int? split = null)
     {
-        var expected = Observe(bytes, state, ToolUnionMetadataOracle<IToolContent>.Create());
-        var actual = Observe(bytes, state, OpenCodeJsonContext.Default);
+        var expected = Observe(bytes, state, ToolUnionMetadataOracle<IToolContent>.Create(), split, root: root);
+        var actual = Observe(bytes, state, OpenCodeJsonContext.Default, split, root: root);
+        await Assert.That(actual.Type).IsEqualTo(expected.Type).Because(row + "/type");
         await Assert.That(actual.Bytes).IsEquivalentTo(expected.Bytes, CollectionOrdering.Matching).Because(row + "/members");
         await Assert.That(actual with { Bytes = expected.Bytes }).IsEqualTo(expected).Because(row + "/type-position-refusal");
     }

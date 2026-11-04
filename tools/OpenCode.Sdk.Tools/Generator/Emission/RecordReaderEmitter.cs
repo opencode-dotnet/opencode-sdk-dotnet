@@ -23,17 +23,17 @@ internal static class RecordReaderEmitter
         var properties = record.Properties.Where(property => !record.ChainMarkers.Any(marker =>
             marker.WireName == property.WireName && marker.Prefix is null && property.IsLiteral)).ToArray();
         var statements = new List<StatementSyntax> { Require(TokenIs("StartObject")),
-            Declare("state", SyntaxFactory.IdentifierName("State"), SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression)) };
+            Declare(RecordMemberReaderEmitter.StateName, SyntaxFactory.IdentifierName(RecordMemberReaderEmitter.StateTypeName), SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression)) };
         var required = properties.Where(static property => property.IsRequired).ToArray();
-        var groups = properties.Chunk(12).ToArray();
+        var groups = properties.Chunk(12).DefaultIfEmpty([]).ToArray();
         var matches = Enumerable.Range(0, groups.Length).Select(index => (ExpressionSyntax)GroupCall("TryReadGroup" + index.ToString(CultureInfo.InvariantCulture)))
             .Aggregate(static (left, right) => SyntaxFactory.BinaryExpression(SyntaxKind.LogicalOrExpression, left, right));
         var loop = SyntaxFactory.Block(
             SyntaxFactory.IfStatement(TokenIs("EndObject"), SyntaxFactory.Block(SyntaxFactory.List(
-                [.. PresenceChecks(required.Length), SyntaxFactory.ReturnStatement(EmissionSyntax.Invocation(SyntaxFactory.IdentifierName("Construct"), StateArgument()))]))),
+                [.. PresenceChecks(required.Length), SyntaxFactory.ReturnStatement(EmissionSyntax.Invocation(SyntaxFactory.IdentifierName("Construct"), RecordMemberReaderEmitter.StateArgument()))]))),
             Require(TokenIs("PropertyName")), SyntaxFactory.IfStatement(matches, SyntaxFactory.Block(SyntaxFactory.ContinueStatement())),
-            SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(SyntaxFactory.IdentifierName("AdvanceToValue"),
-                SyntaxFactory.Argument(SyntaxFactory.IdentifierName("reader")).WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword)))), Require(Call("TrySkip")));
+            SyntaxFactory.ExpressionStatement(EmissionSyntax.Invocation(SyntaxFactory.IdentifierName(RecordMemberReaderEmitter.AdvanceToValueName),
+                RecordMemberReaderEmitter.ReaderArgument())), Require(Call("TrySkip")));
         statements.Add(SyntaxFactory.WhileStatement(Call("Read"), loop));
         statements.Add(ConverterSyntax.ThrowJson("The record ended before its closing object token."));
         var method = ConverterSyntax.Read(SyntaxFactory.IdentifierName(record.Name), SyntaxFactory.Block(statements), [])
@@ -52,7 +52,7 @@ internal static class RecordReaderEmitter
                 .. groups.Select(Group), AdvanceToValue(),
                 SyntaxFactory.MethodDeclaration(SyntaxFactory.IdentifierName(record.Name), "Construct")
                     .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PrivateKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
-                    .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList(StateParameter())))
+                    .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList(RecordMemberReaderEmitter.StateParameter())))
                     .WithBody(SyntaxFactory.Block(Construct(plan, record, properties))),
                 .. properties.Select((property, index) => RecordMemberReaderEmitter.Reader(property, Value(index),
                     PresenceSet(Array.IndexOf(required, property)), plan.ReaderCallSites.GetValueOrDefault(record.Name)))]));
@@ -74,25 +74,26 @@ internal static class RecordReaderEmitter
         };
     }
 
-    private static LocalDeclarationStatementSyntax Local(EmitPlan plan, ModelPropertyPlan property, int index)
+    private static VariableDeclarationSyntax Field(EmitPlan plan, ModelPropertyPlan property, int index)
     {
         var type = RecordMemberReaderEmitter.PropertyType(property);
-        // Reference locals can remain null until the presence mask and immediate null checks prove construction safe.
+        // Reference fields can remain null until the presence mask and immediate null checks prove construction safe.
         if (!property.EmitsOptionalWrapper && !property.Type.IsNullable && IsReference(plan, property.Type))
         {
             type = SyntaxFactory.NullableType(type);
         }
-        return Declare(Value(index), type, SyntaxFactory.LiteralExpression(SyntaxKind.DefaultLiteralExpression));
+        return SyntaxFactory.VariableDeclaration(type, SyntaxFactory.SingletonSeparatedList(SyntaxFactory.VariableDeclarator(Value(index))));
     }
 
     private static StructDeclarationSyntax State(EmitPlan plan, ModelPropertyPlan[] properties, int requiredCount)
     {
-        var declarations = properties.Select((property, index) => Local(plan, property, index).Declaration)
+        var declarations = properties.Select((property, index) => Field(plan, property, index))
             .Concat(Enumerable.Range(0, (requiredCount + 63) / 64).Select(word =>
-                Declare(Mask(word), SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ULongKeyword)), Number(0)).Declaration));
-        return SyntaxFactory.StructDeclaration("State").WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PrivateKeyword)))
+                SyntaxFactory.VariableDeclaration(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ULongKeyword)),
+                    SyntaxFactory.SingletonSeparatedList(SyntaxFactory.VariableDeclarator(Mask(word))))));
+        return SyntaxFactory.StructDeclaration(RecordMemberReaderEmitter.StateTypeName).WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PrivateKeyword)))
             .WithMembers(SyntaxFactory.List<MemberDeclarationSyntax>(declarations.Select(declaration =>
-                SyntaxFactory.FieldDeclaration(declaration.WithVariables(SyntaxFactory.SingletonSeparatedList(declaration.Variables[0].WithInitializer(null))))
+                SyntaxFactory.FieldDeclaration(declaration)
                     .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword))))));
     }
 
@@ -100,7 +101,7 @@ internal static class RecordReaderEmitter
     {
         var assignments = properties.Select((property, index) =>
         {
-            ExpressionSyntax value = StateMember(Value(index));
+            ExpressionSyntax value = RecordMemberReaderEmitter.StateMember(Value(index));
             if (!property.EmitsOptionalWrapper && !property.Type.IsNullable && IsReference(plan, property.Type))
             {
                 value = SyntaxFactory.PostfixUnaryExpression(SyntaxKind.SuppressNullableWarningExpression, value);
@@ -128,35 +129,29 @@ internal static class RecordReaderEmitter
         var method = ConverterSyntax.Read(SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.BoolKeyword)), SyntaxFactory.Block(statements), [])
             .WithIdentifier(SyntaxFactory.Identifier("TryReadGroup" + index.ToString(CultureInfo.InvariantCulture)))
             .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PrivateKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)));
-        return method.WithParameterList(method.ParameterList.WithParameters(method.ParameterList.Parameters.Replace(method.ParameterList.Parameters[1], StateParameter())));
+        return method.WithParameterList(method.ParameterList.WithParameters(method.ParameterList.Parameters.Replace(method.ParameterList.Parameters[1], RecordMemberReaderEmitter.StateParameter())));
     }
 
     private static MethodDeclarationSyntax AdvanceToValue() => SyntaxFactory.MethodDeclaration(
-            SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), "AdvanceToValue")
+            SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.VoidKeyword)), RecordMemberReaderEmitter.AdvanceToValueName)
         .WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PrivateKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)))
         .WithParameterList(SyntaxFactory.ParameterList(SyntaxFactory.SingletonSeparatedList(SyntaxFactory.Parameter(SyntaxFactory.Identifier("reader"))
             .WithType(SyntaxFactory.IdentifierName("Utf8JsonReader")).WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword))))))
         .WithBody(SyntaxFactory.Block(Require(Call("Read"))));
 
     private static ExpressionStatementSyntax? PresenceSet(int index) => index < 0 ? null : SyntaxFactory.ExpressionStatement(
-        SyntaxFactory.AssignmentExpression(SyntaxKind.OrAssignmentExpression, StateMember(Mask(index / 64)), Unsigned(1UL << (index % 64))));
+        SyntaxFactory.AssignmentExpression(SyntaxKind.OrAssignmentExpression, RecordMemberReaderEmitter.StateMember(Mask(index / 64)), Unsigned(1UL << (index % 64))));
 
     private static InvocationExpressionSyntax GroupCall(string name) => EmissionSyntax.Invocation(SyntaxFactory.IdentifierName(name),
-        SyntaxFactory.Argument(SyntaxFactory.IdentifierName("reader")).WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword)),
-        StateArgument(), SyntaxFactory.Argument(SyntaxFactory.IdentifierName("options")));
-
-    internal static MemberAccessExpressionSyntax StateMember(string name) => EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("state"), name);
-    private static ArgumentSyntax StateArgument() => SyntaxFactory.Argument(SyntaxFactory.IdentifierName("state"))
-        .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword));
-    private static ParameterSyntax StateParameter() => SyntaxFactory.Parameter(SyntaxFactory.Identifier("state"))
-        .WithType(SyntaxFactory.IdentifierName("State")).WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword)));
+        RecordMemberReaderEmitter.ReaderArgument(),
+        RecordMemberReaderEmitter.StateArgument(), SyntaxFactory.Argument(SyntaxFactory.IdentifierName("options")));
 
     private static IEnumerable<StatementSyntax> PresenceChecks(int count)
     {
         for (var word = 0; word < (count + 63) / 64; word++)
         {
             var bits = Math.Min(64, count - (word * 64));
-            yield return Require(SyntaxFactory.BinaryExpression(SyntaxKind.EqualsExpression, StateMember(Mask(word)),
+            yield return Require(SyntaxFactory.BinaryExpression(SyntaxKind.EqualsExpression, RecordMemberReaderEmitter.StateMember(Mask(word)),
                 Unsigned(bits == 64 ? ulong.MaxValue : (1UL << bits) - 1)));
         }
     }
@@ -181,7 +176,6 @@ internal static class RecordReaderEmitter
     private static InvocationExpressionSyntax Call(string method, params ArgumentSyntax[] arguments) =>
         EmissionSyntax.Invocation(EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName("reader"), method), arguments);
 
-    private static LiteralExpressionSyntax Number(int value) => SyntaxFactory.LiteralExpression(SyntaxKind.NumericLiteralExpression, SyntaxFactory.Literal(value));
     private static LocalDeclarationStatementSyntax Declare(string name, TypeSyntax type, ExpressionSyntax value) =>
         SyntaxFactory.LocalDeclarationStatement(SyntaxFactory.VariableDeclaration(type,
             SyntaxFactory.SingletonSeparatedList(SyntaxFactory.VariableDeclarator(name).WithInitializer(SyntaxFactory.EqualsValueClause(value)))));
