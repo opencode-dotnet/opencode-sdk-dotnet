@@ -18,9 +18,8 @@ public class RealTurnEventBenchmarks : IDisposable
         Password = "benchmark",
     };
 
-    private readonly CannedResponseHandler?[] _handlers = new CannedResponseHandler?[2];
-    private readonly HttpClient?[] _httpClients = new HttpClient?[2];
     private readonly OpenCodeClient?[] _clients = new OpenCodeClient?[2];
+    private readonly EventBenchmarkSetup?[] _connections = new EventBenchmarkSetup?[2];
     private byte[][] _frames = [];
     private JsonTypeInfo[] _metadata = [];
     private byte[][] _expected = [];
@@ -38,14 +37,7 @@ public class RealTurnEventBenchmarks : IDisposable
     [GlobalSetup]
     public async Task SetupAsync()
     {
-        var frames = new List<byte[]>();
-        using (var stream = new MemoryStream(Fixture.Bytes))
-        {
-            await foreach (var frame in new ServerSentEventReader().ReadAsync(stream, CancellationToken.None).ConfigureAwait(false))
-            {
-                frames.Add(frame.Data.ToArray());
-            }
-        }
+        var frames = await EventBenchmarkSetup.DecodeFramesAsync(Fixture.Bytes).ConfigureAwait(false);
 
         if (frames.Count != Fixture.Items + 1)
         {
@@ -63,16 +55,14 @@ public class RealTurnEventBenchmarks : IDisposable
 
         for (var index = 0; index < _clients.Length; index++)
         {
-            var handler = new CannedResponseHandler(Fixture.Bytes, "text/event-stream", suspendingChunkBytes: index == 0 ? null : 1460);
-            _handlers[index] = handler;
-            var httpClient = new HttpClient(handler);
-            _httpClients[index] = httpClient;
-            var client = new OpenCodeClient(httpClient, Options);
+            var connection = new EventBenchmarkSetup(Fixture.Bytes, Options, suspendingChunkBytes: index == 0 ? null : 1460);
+            _connections[index] = connection;
+            var client = connection.Client;
             _clients[index] = client;
             await RequireConnectionAsync(client).ConfigureAwait(false);
         }
 
-        if (_handlers[1]?.LastBody is not { } body || body.SuspendedReads < body.MinimumReads)
+        if (_connections[1]?.Handler.LastBody is not { } body || body.SuspendedReads < body.MinimumReads)
         {
             throw new InvalidOperationException("The suspending subscription's reads did not suspend.");
         }
@@ -97,8 +87,6 @@ public class RealTurnEventBenchmarks : IDisposable
     }
 
     [GlobalCleanup]
-    public void Cleanup() => Dispose();
-
     public void Dispose()
     {
         Dispose(disposing: true);
@@ -107,14 +95,9 @@ public class RealTurnEventBenchmarks : IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
-        if (disposing)
+        foreach (var connection in _connections)
         {
-            for (var index = 0; index < _clients.Length; index++)
-            {
-                _clients[index]?.Dispose();
-                _httpClients[index]?.Dispose();
-                _handlers[index]?.Dispose();
-            }
+            connection?.Dispose(disposing);
         }
     }
 

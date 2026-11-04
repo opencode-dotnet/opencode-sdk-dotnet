@@ -1,0 +1,68 @@
+[
+  {
+    "id":"evt_permission", "created":11, "type":"permission.asked", "metadata":{"outer":13}, "location":{"directory":"/permission","workspaceID":"wrk_permission"},
+    "data":{"id":"per_asked","sessionID":"ses_permission","action":"edit","resources":["a","b"],"save":["c","d"],"metadata":{"inner":17},"source":{"type":"tool","messageID":"msg_permission","id":"call_permission"},"message":"permission message"}
+  },
+  {
+    "id":"evt_project", "created":19, "type":"project.updated", "metadata":{"outer":23}, "location":{"directory":"/project","workspaceID":"wrk_project"},
+    "data":{"id":"project_id","canonical":"/canonical","vcs":"git","name":"project name","icon":{"url":"icon:url","override":"icon override","color":"blue"},"commands":{"start":"start command"},"time":{"created":29,"updated":31,"active":37,"archived":41},"sandboxes":["/sandbox-a","/sandbox-b"]}
+  },
+  {
+    "id":"evt_step", "created":43, "type":"session.step.ended", "metadata":{"outer":47}, "location":{"directory":"/step","workspaceID":"wrk_step"}, "durable":{"aggregateID":"agg_step","seq":53,"version":59.5},
+    "data":{"sessionID":"ses_step","assistantMessageID":"msg_step","finish":"stop","rawFinish":"raw stop","native":{"step":61},"cost":67.5,"tokens":{"input":71,"output":73,"reasoning":79,"cache":{"read":83,"write":89}},"snapshot":"snapshot_step","files":["first.cs","last.cs"]}
+  },
+  {
+    "id":"evt_called", "created":97, "type":"session.tool.called", "metadata":{"outer":101}, "location":{"directory":"/called","workspaceID":"wrk_called"}, "durable":{"aggregateID":"agg_called","seq":103,"version":107.5},
+    "data":{"sessionID":"ses_called","assistantMessageID":"msg_called","id":"call_called","input":{"argument":109},"executed":true,"native":{"called":113}}
+  },
+  {
+    "id":"evt_success", "created":127, "type":"session.tool.success", "metadata":{"outer":131}, "location":{"directory":"/success","workspaceID":"wrk_success"}, "durable":{"aggregateID":"agg_success","seq":137,"version":139.5},
+    "data":{"sessionID":"ses_success","assistantMessageID":"msg_success","id":"call_success","content":[{"type":"text","text":"success text"},{"type":"file","uri":"success:uri","mime":"success/mime","name":"success file"}],"metadata":{"inner":149},"executed":true,"native":{"success":151}}
+  },
+  {
+    "id":"evt_instructions", "created":157, "type":"session.instructions.updated", "metadata":{"outer":163}, "location":{"directory":"/instructions","workspaceID":"wrk_instructions"}, "durable":{"aggregateID":"agg_instructions","seq":167,"version":173.5},
+    "data":{"sessionID":"ses_instructions","delta":{"removed-entry":"removed","changed-entry":"changed-hash"},"text":"instruction text"}
+  },
+  {
+    "id":"evt_created", "created":179, "type":"session.created", "metadata":{"outer":181}, "location":{"directory":"/created","workspaceID":"wrk_created"}, "durable":{"aggregateID":"agg_created","seq":191,"version":193.5},
+    "data":{"sessionID":"ses_created","projectID":"project_created","location":{"directory":"/data-created","workspaceID":"wrk_data"},"subpath":"sub/path","parentID":"ses_parent","slug":"created-slug","title":"created title","agent":"build","model":{"id":"model_created","providerID":"provider_created","variant":"variant_created"},"metadata":{"inner":197},"permissions":[{"action":"edit","resource":"*.cs","effect":"allow"}],"version":"2.2.5"}
+  },
+  {
+    "id":"evt_model", "created":199, "type":"model.updated", "metadata":{"outer":211}, "location":{"directory":"/model","workspaceID":"wrk_model"},
+    "data":{"first":{"model":"one"},"last":[223,null,true]}
+  },
+  {
+    "id":"evt_connected", "type":"server.connected", "metadata":{"outer":227}, "location":{"directory":"/connected"}, "data":{"connected":229}
+  },
+  {
+    "id":"evt_agent", "created":233, "type":"agent.updated", "metadata":{"outer":239}, "location":{"directory":"/agent","workspaceID":"wrk_agent"}, "data":{"agent":"build"}
+  },
+  {
+    "id":"evt_command", "created":241, "type":"command.updated", "metadata":{"outer":251}, "location":{"directory":"/command","workspaceID":"wrk_command"}, "data":{"command":"build"}
+  },
+  {
+    "id":"evt_resources", "created":257, "type":"mcp.resources.changed", "metadata":{"outer":263}, "location":{"directory":"/resources","workspaceID":"wrk_resources"}, "data":{"server":"resource-server"}
+  },
+  {
+    "id":"evt_status", "created":269, "type":"mcp.status.changed", "metadata":{"outer":271}, "location":{"directory":"/status","workspaceID":"wrk_status"}, "data":{"server":"status-server"}
+  },
+  {
+    "id":"evt_plugin", "created":277, "type":"plugin.updated", "metadata":{"outer":281}, "location":{"directory":"/plugin","workspaceID":"wrk_plugin"}, "data":{"plugin":"plugin-value"}
+  },
+  {
+    "id":"evt_reference", "created":283, "type":"reference.updated", "metadata":{"outer":293}, "location":{"directory":"/reference","workspaceID":"wrk_reference"}, "data":{"reference":"reference-value"}
+  },
+  {
+    "id":"evt_skill", "created":307, "type":"skill.updated", "metadata":{"outer":311}, "location":{"directory":"/skill","workspaceID":"wrk_skill"}, "data":{"skill":"skill-value"}
+  },
+  {
+    "id":"evt_branch", "created":313, "type":"vcs.branch.updated", "metadata":{"outer":317}, "location":{"directory":"/branch","workspaceID":"wrk_branch"}, "data":{"branch":"branch-value"}
+  },
+  {
+    "id":"evt_websearch", "created":331, "type":"websearch.updated", "metadata":{"outer":337}, "location":{"directory":"/websearch","workspaceID":"wrk_websearch"}, "data":{"websearch":"websearch-value"}
+  },
+  {
+    "id":"evt_started", "created":347, "type":"session.step.started", "metadata":{"outer":349}, "location":{"directory":"/started","workspaceID":"wrk_started"}, "durable":{"aggregateID":"agg_started","seq":353,"version":359.5},
+    "data":{"sessionID":"ses_started","agent":"build","model":{"id":"model_started","providerID":"provider_started","variant":"variant_started"},"assistantMessageID":"msg_started","snapshot":"snapshot_started","started":367}
+  }
+]

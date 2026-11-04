@@ -20,18 +20,17 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
         }
         var selected = RecordReaderPolicy.Select(pinned.Plan.Models, pinned.Plan.Unions, out _,
             callSites: RecordReaderPolicy.NestedCallSites);
-        await Assert.That(selected.Keys.Where(name => !armNames.Contains(name))).IsEquivalentTo([
-            "SessionMessageAssistantReasoningTime", "SessionMessageAssistantToolTime",
-            "SessionReasoningDeltaData", "SessionTextDeltaData", "SessionTextEndedData", "SessionTextEndedDurable", "SessionToolInputDeltaData",
-        ], CollectionOrdering.Matching);
+        await Assert.That(selected.Keys.Where(name => !armNames.Contains(name))).IsEquivalentTo(ExpectedNestedReaders(), CollectionOrdering.Matching);
     }
 
     [Test]
     public async Task Bind_Should_Report_A_Production_Call_Site_Refusal_Alongside_A_Selection_Error()
     {
         var document = await BindingTestHost.IngestAsync(SpecScenario.Define(spec => spec
+            .WithObject("LocationRef", schema => schema.Property("directory", property => property.Type("string"), required: true))
             .WithObject("SessionTextDelta", schema => schema
-                .Property("type", property => property.Type("string").Enum("session.text.delta"), required: true))
+                .Property("type", property => property.Type("string").Enum("session.text.delta"), required: true)
+                .Property("location", property => property.Ref("LocationRef")))
             .WithObject("OtherEvent", schema => schema
                 .Property("type", property => property.Type("string").Enum("other"), required: true))
             .WithSchema("Event", schema => schema.AnyOf(delta => delta.Ref("SessionTextDelta"), other => other.Ref("OtherEvent")))
@@ -154,16 +153,18 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
             .IsEquivalentTo(["IEvent", "ISessionMessageAssistantContent", "ISessionMessageInfo", "ISessionMessageToolState", "IToolContent"], CollectionOrdering.Matching);
         await Assert.That(sources.Select(static source => source.RelativePath)
             .Where(static path => path.EndsWith("JsonReader.cs", StringComparison.Ordinal)))
-            .IsEquivalentTo(ExpectedReaders().Select(static name => "Sessions/Internal/" + name + "JsonReader.cs").Order(StringComparer.Ordinal), CollectionOrdering.Matching);
+            .IsEquivalentTo(ExpectedReaders().Select(name => pinned.Plan.Placement.HomeOf(name).Slice + "/Internal/" + name + "JsonReader.cs").Order(StringComparer.Ordinal), CollectionOrdering.Matching);
         await Assert.That(pinned.Plan.ReaderCallSites.OrderBy(static site => site.Key, StringComparer.Ordinal)
             .SelectMany(static site => site.Value.Order(StringComparer.Ordinal).Select(member => site.Key + "." + member)))
-            .IsEquivalentTo(["SessionMessageAssistantReasoning.Time", "SessionMessageAssistantTool.Time", "SessionReasoningDelta.Data",
-                "SessionTextDelta.Data", "SessionTextEnded.Data", "SessionTextEnded.Durable", "SessionToolInputDelta.Data"], CollectionOrdering.Matching);
+            .IsEquivalentTo(ExpectedCallSites(), CollectionOrdering.Matching);
         foreach (var name in new[] { "SessionEventDurable", "SessionLogItem" })
         {
-            await Assert.That(EmitterSnapshot.Content(sources, "Sessions/Internal/" + name + "JsonConverter.cs"))
-                .Contains(".Of<SessionTextEnded>()");
-            await Assert.That(pinned.Plan.ReaderArms["I" + name]).DoesNotContain("SessionTextEnded");
+            foreach (var arm in SharedArms())
+            {
+                await Assert.That(EmitterSnapshot.Content(sources, "Sessions/Internal/" + name + "JsonConverter.cs"))
+                    .Contains(".Of<" + arm + ">()");
+                await Assert.That(pinned.Plan.ReaderArms["I" + name]).DoesNotContain(arm);
+            }
         }
     }
 
@@ -181,7 +182,7 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
         await Assert.That(arms["ISessionMessageAssistantContent"]).IsEquivalentTo([
             "SessionMessageAssistantReasoning", "SessionMessageAssistantText", "SessionMessageAssistantTool",
         ], CollectionOrdering.Matching);
-        await Assert.That(arms["IEvent"]).IsEquivalentTo(["SessionReasoningDelta", "SessionTextDelta", "SessionTextEnded", "SessionToolInputDelta"], CollectionOrdering.Matching);
+        await Assert.That(arms["IEvent"]).IsEquivalentTo(ExpectedEventArms(), CollectionOrdering.Matching);
         await Assert.That(arms["ISessionMessageToolState"]).IsEquivalentTo([
             "SessionMessageToolStateCompleted", "SessionMessageToolStateError", "SessionMessageToolStateRunning",
             "SessionMessageToolStateStreaming",
@@ -249,12 +250,70 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
         ], CollectionOrdering.Matching);
     }
 
-    private static string[] ExpectedReaders() => [
+    private static readonly string[] ExistingArmReaders = [
         "SessionMessageAgentSelected", "SessionMessageAssistant", "SessionMessageAssistantReasoning", "SessionMessageAssistantReasoningTime",
         "SessionMessageAssistantText", "SessionMessageAssistantTool", "SessionMessageAssistantToolTime", "SessionMessageIdle", "SessionMessageLocationSwitched",
         "SessionMessageModelSelected", "SessionMessageShell", "SessionMessageSkill", "SessionMessageSynthetic", "SessionMessageSystem",
         "SessionMessageToolStateCompleted", "SessionMessageToolStateError", "SessionMessageToolStateRunning", "SessionMessageToolStateStreaming", "SessionMessageUser",
-        "SessionReasoningDelta", "SessionReasoningDeltaData", "SessionTextDelta", "SessionTextDeltaData", "SessionTextEnded", "SessionTextEndedData",
-        "SessionTextEndedDurable", "SessionToolInputDelta", "SessionToolInputDeltaData", "ToolFileContent", "ToolTextContent",
+        "ToolFileContent", "ToolTextContent",
     ];
+
+    private static IEnumerable<string> ExpectedReaders() => ExistingArmReaders.Concat(ExpectedEventArms()).Concat(ExpectedNestedReaders())
+        .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+
+    private static string[] ExpectedEventArms() => [
+        "AgentUpdated", "CommandUpdated", "EventServerConnected", "IntegrationUpdated", "McpResourcesChanged", "McpStatusChanged",
+        "ModelUpdated", "ModelsDevRefreshed", "PermissionAsked", "PermissionReplied", "PluginUpdated", "ProjectUpdated", "ProviderUpdated",
+        "ReferenceUpdated", "SessionCreated", "SessionExecutionStarted", "SessionExecutionSucceeded", "SessionInboxDelivered", "SessionInboxEnqueued",
+        "SessionInstructionsUpdated", "SessionReasoningDelta", "SessionReasoningEnded", "SessionReasoningStarted", "SessionStepEnded", "SessionStepStarted",
+        "SessionStepStreamed", "SessionTextDelta", "SessionTextEnded", "SessionTextStarted", "SessionToolCalled", "SessionToolInputDelta",
+        "SessionToolInputEnded", "SessionToolInputStarted", "SessionToolSuccess", "SessionUsageUpdated", "SkillUpdated", "VcsBranchUpdated", "WebsearchUpdated",
+    ];
+
+    private static string[] SharedArms() => [
+        "SessionCreated", "SessionExecutionStarted", "SessionExecutionSucceeded", "SessionInboxDelivered", "SessionInboxEnqueued",
+        "SessionInstructionsUpdated", "SessionReasoningEnded", "SessionReasoningStarted", "SessionStepEnded", "SessionStepStarted", "SessionStepStreamed",
+        "SessionTextEnded", "SessionTextStarted", "SessionToolCalled", "SessionToolInputEnded", "SessionToolInputStarted", "SessionToolSuccess",
+    ];
+
+    private static string[] ExpectedNestedReaders() => [
+        "LocationPublicRef", "LocationRef", "McpResourcesChangedData", "McpStatusChangedData", "PermissionAskedData", "PermissionRepliedData", "ProjectUpdatedData",
+        "SessionCreatedData", "SessionCreatedDurable", "SessionExecutionStartedData", "SessionExecutionStartedDurable",
+        "SessionExecutionSucceededData", "SessionExecutionSucceededDurable", "SessionInboxDeliveredData", "SessionInboxDeliveredDurable",
+        "SessionInboxEnqueuedData", "SessionInboxEnqueuedDurable", "SessionInstructionsUpdatedData", "SessionInstructionsUpdatedDurable",
+        "SessionMessageAssistantReasoningTime", "SessionMessageAssistantToolTime", "SessionReasoningDeltaData", "SessionReasoningEndedData",
+        "SessionReasoningEndedDurable", "SessionReasoningStartedData", "SessionReasoningStartedDurable", "SessionStepEndedData", "SessionStepEndedDurable",
+        "SessionStepStartedData", "SessionStepStartedDurable", "SessionStepStreamedData", "SessionStepStreamedDurable", "SessionTextDeltaData",
+        "SessionTextEndedData", "SessionTextEndedDurable", "SessionTextStartedData", "SessionTextStartedDurable", "SessionToolCalledData", "SessionToolCalledDurable",
+        "SessionToolInputDeltaData", "SessionToolInputEndedData", "SessionToolInputEndedDurable", "SessionToolInputStartedData", "SessionToolInputStartedDurable",
+        "SessionToolSuccessData", "SessionToolSuccessDurable", "SessionUsageUpdatedData", "VcsBranchUpdatedData",
+    ];
+
+    private static readonly string[] CallSites = [
+        "AgentUpdated.Location", "CommandUpdated.Location", "EventServerConnected.Location", "IntegrationUpdated.Location",
+        "McpResourcesChanged.Data", "McpResourcesChanged.Location", "McpStatusChanged.Data", "McpStatusChanged.Location",
+        "ModelUpdated.Location", "ModelsDevRefreshed.Location", "PermissionAsked.Data", "PermissionAsked.Location",
+        "PermissionReplied.Data", "PermissionReplied.Location", "PluginUpdated.Location", "ProjectUpdated.Data", "ProjectUpdated.Location",
+        "ProviderUpdated.Location", "ReferenceUpdated.Location", "SessionCreated.Data", "SessionCreated.Durable", "SessionCreated.Location",
+        "SessionExecutionStarted.Data", "SessionExecutionStarted.Durable", "SessionExecutionStarted.Location",
+        "SessionExecutionSucceeded.Data", "SessionExecutionSucceeded.Durable", "SessionExecutionSucceeded.Location",
+        "SessionInboxDelivered.Data", "SessionInboxDelivered.Durable", "SessionInboxDelivered.Location",
+        "SessionInboxEnqueued.Data", "SessionInboxEnqueued.Durable", "SessionInboxEnqueued.Location",
+        "SessionInstructionsUpdated.Data", "SessionInstructionsUpdated.Durable", "SessionInstructionsUpdated.Location",
+        "SessionMessageAssistantReasoning.Time", "SessionMessageAssistantTool.Time", "SessionReasoningDelta.Data", "SessionReasoningDelta.Location",
+        "SessionReasoningEnded.Data", "SessionReasoningEnded.Durable", "SessionReasoningEnded.Location",
+        "SessionReasoningStarted.Data", "SessionReasoningStarted.Durable", "SessionReasoningStarted.Location",
+        "SessionStepEnded.Data", "SessionStepEnded.Durable", "SessionStepEnded.Location",
+        "SessionStepStarted.Data", "SessionStepStarted.Durable", "SessionStepStarted.Location",
+        "SessionStepStreamed.Data", "SessionStepStreamed.Durable", "SessionStepStreamed.Location", "SessionTextDelta.Data", "SessionTextDelta.Location",
+        "SessionTextEnded.Data", "SessionTextEnded.Durable", "SessionTextEnded.Location",
+        "SessionTextStarted.Data", "SessionTextStarted.Durable", "SessionTextStarted.Location",
+        "SessionToolCalled.Data", "SessionToolCalled.Durable", "SessionToolCalled.Location", "SessionToolInputDelta.Data", "SessionToolInputDelta.Location",
+        "SessionToolInputEnded.Data", "SessionToolInputEnded.Durable", "SessionToolInputEnded.Location",
+        "SessionToolInputStarted.Data", "SessionToolInputStarted.Durable", "SessionToolInputStarted.Location",
+        "SessionToolSuccess.Data", "SessionToolSuccess.Durable", "SessionToolSuccess.Location", "SessionUsageUpdated.Data", "SessionUsageUpdated.Location",
+        "SkillUpdated.Location", "VcsBranchUpdated.Data", "VcsBranchUpdated.Location", "WebsearchUpdated.Location",
+    ];
+
+    private static IEnumerable<string> ExpectedCallSites() => CallSites.Order(StringComparer.Ordinal);
 }

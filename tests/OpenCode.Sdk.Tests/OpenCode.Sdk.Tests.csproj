@@ -77,6 +77,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Serialization/Fixtures/reader-*.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Serialization.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../OpenCode.Sdk.Performance.Tests/Fixtures/deep-assistant-message.json" Link="Fixtures/Benchmarks/deep-assistant-message.json" LogicalName="OpenCode.Sdk.Performance.Tests.Fixtures.deep-assistant-message.json" />
+    <EmbeddedResource Include="../OpenCode.Sdk.Performance.Tests/Fixtures/turn-1-short-question.jsonl" Link="Fixtures/Benchmarks/turn-1-short-question.jsonl" LogicalName="OpenCode.Sdk.Performance.Tests.Fixtures.turn-1-short-question.jsonl" />
+    <EmbeddedResource Include="../OpenCode.Sdk.Performance.Tests/Fixtures/turn-2-coding-read-write.jsonl" Link="Fixtures/Benchmarks/turn-2-coding-read-write.jsonl" LogicalName="OpenCode.Sdk.Performance.Tests.Fixtures.turn-2-coding-read-write.jsonl" />
+    <EmbeddedResource Include="../OpenCode.Sdk.Performance.Tests/Fixtures/turn-3-multi-step.jsonl" Link="Fixtures/Benchmarks/turn-3-multi-step.jsonl" LogicalName="OpenCode.Sdk.Performance.Tests.Fixtures.turn-3-multi-step.jsonl" />
     <EmbeddedResource Include="../../spec/openapi.json" Link="Fixtures/Pinned/openapi.json" LogicalName="OpenCode.Sdk.Tests.Fixtures.Pinned.openapi.json" />
     <EmbeddedResource Include="Fixtures/**/*.json" />
     <EmbeddedResource Include="Fixtures/**/*.js" />

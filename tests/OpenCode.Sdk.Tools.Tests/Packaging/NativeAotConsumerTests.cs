@@ -27,6 +27,7 @@ namespace OpenCode.Sdk.Tools.Tests.Packaging;
 public sealed partial class NativeAotConsumerTests(PackedConsumerFeed feed)
 {
     private static readonly RealFileSystem FileSystem = new();
+    private static readonly string[] EventTags = ["session.step.started", "permission.asked", "session.created"];
 
     private readonly CliWrapProcessRunner _runner = new();
 
@@ -74,7 +75,8 @@ public sealed partial class NativeAotConsumerTests(PackedConsumerFeed feed)
         var listPath = await ServeAsync(listener, await MessageListResponseAsync(cancellationToken), "application/json", shutdown.Token);
         var eventPath = await ServeAsync(listener,
             "data: " + Encoding.UTF8.GetString(Performance.Tests.Support.BenchmarkFixtures.ConnectedEventBody()) + "\n\n"
-            + string.Concat(frames.RootElement.EnumerateArray().Select(static frame => "data: " + JsonSerializer.Serialize(frame) + "\n\n")),
+            + string.Concat(frames.RootElement.EnumerateArray().Select(static frame => "data: " + JsonSerializer.Serialize(frame) + "\n\n"))
+            + await EventFramesAsync(cancellationToken),
             "text/event-stream", shutdown.Token);
         var run = await running;
         await Assert.That(path).IsEqualTo("/api/session/ses_reader/message/msg_reader");
@@ -98,6 +100,16 @@ public sealed partial class NativeAotConsumerTests(PackedConsumerFeed feed)
                 await shutdown.CancelAsync();
             }
         }
+    }
+
+    private static async Task<string> EventFramesAsync(CancellationToken cancellationToken)
+    {
+        await using var source = typeof(NativeAotConsumerTests).Assembly
+            .GetManifestResourceStream("OpenCode.Sdk.Tests.Fixtures.Serialization.reader-event-arms.json")
+            ?? throw new InvalidOperationException("Missing event fixture.");
+        using var document = await JsonDocument.ParseAsync(source, cancellationToken: cancellationToken);
+        return string.Concat(EventTags.Select(tag =>
+            "data: " + JsonSerializer.Serialize(document.RootElement.EnumerateArray().Single(frame => frame.GetProperty("type").GetString() == tag)) + "\n\n"));
     }
 
     private static async Task<string> MessageListResponseAsync(CancellationToken cancellationToken)

@@ -28,11 +28,14 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
             "Sessions/Internal/SessionMessageAssistantToolJsonReader.cs" => MetadataUnionOracleEmitter.Source(source.RelativePath,
                 System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)
                     .Replace("Name = state.value1!", "Name = state.value1 is null ? string.Empty : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
+            "Permissions/Internal/PermissionAskedDataJsonReader.cs" => MetadataUnionOracleEmitter.Source(source.RelativePath,
+                System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)
+                    .Replace("Id = state.value0!", "Id = state.value0 is null ? string.Empty : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
             _ => source,
         }).ToList();
-        foreach (var name in new[] { "ToolFileContent", "SessionTextDeltaData", "SessionMessageAssistantTool" })
+        foreach (var name in new[] { "ToolFileContent", "SessionTextDeltaData", "SessionMessageAssistantTool", "PermissionAskedData" })
         {
-            var relativePath = "Sessions/Internal/" + name + "JsonReader.cs";
+            var relativePath = pinned.Plan.Placement.HomeOf(name).Slice + "/Internal/" + name + "JsonReader.cs";
             await Assert.That(System.Text.Encoding.UTF8.GetString(sources.Single(source => source.RelativePath == relativePath).Utf8Source.Span))
                 .IsNotEqualTo(System.Text.Encoding.UTF8.GetString(emitted.Single(source => source.RelativePath == relativePath).Utf8Source.Span)).Because(relativePath);
         }
@@ -64,8 +67,8 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
             await Assert.That(prefixType?.Name).IsEqualTo(union.PrefixVariant?.TypeName);
         }
         var oracle = await UnionReaderOracle.CreateAsync(pinned.Plan);
-        var rows = await RecordCorpusGenerator.GenerateAsync(pinned.Plan, ["SessionMessageToolStateCompleted", "SessionTextDelta", "SessionMessageAssistant"]);
-        foreach (var name in new[] { "SessionMessageToolState/completed/maximal", "Event/session.text.delta/maximal", "SessionMessageInfo/assistant/maximal" })
+        var rows = await RecordCorpusGenerator.GenerateAsync(pinned.Plan, ["SessionMessageToolStateCompleted", "SessionTextDelta", "SessionMessageAssistant", "PermissionAsked"]);
+        foreach (var name in new[] { "SessionMessageToolState/completed/maximal", "Event/session.text.delta/maximal", "SessionMessageInfo/assistant/maximal", "Event/permission.asked/maximal" })
         {
             var row = rows.Single(row => row.Name == name);
             var entered = UnionReaderOracle.Observe(product, row.UnionType!, row.Json);

@@ -68,6 +68,7 @@ internal sealed class UnionReaderFixtureCatalog
         ["numeric-status-session"] = "SessionInfo",
         ["Packaging.reader-tool-states"] = "ISessionMessageInfo",
         ["reader-escaped-members"] = "ISessionMessageToolState",
+        ["reader-event-arms"] = "IEvent",
         ["reader-message-arms"] = "ISessionMessageInfo",
         ["reader-prompt-events"] = "IEvent",
         ["reader-tool-content"] = "IToolContent",

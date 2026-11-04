@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
@@ -255,20 +254,8 @@ public sealed class PromptEventReaderParityTests
         return await ReplaceAsync(seed, parent, replacement.RootElement);
     }
 
-    private static async Task<byte[]> ReplaceAsync(JsonElement seed, string key, JsonElement replacement)
-    {
-        var buffer = new ArrayBufferWriter<byte>();
-        await using var writer = new Utf8JsonWriter(buffer);
-        writer.WriteStartObject();
-        foreach (var member in seed.EnumerateObject())
-        {
-            writer.WritePropertyName(member.Name);
-            (member.Name == key ? replacement : member.Value).WriteTo(writer);
-        }
-        writer.WriteEndObject();
-        await writer.FlushAsync();
-        return buffer.WrittenSpan.ToArray();
-    }
+    private static Task<byte[]> ReplaceAsync(JsonElement seed, string key, JsonElement replacement) =>
+        ToolUnionCaseBuilder.ReplaceAsync(seed, key, replacement.WriteTo);
 
     private static IEnumerable<string> Nested(JsonElement seed) => seed.TryGetProperty("durable", out _) ? ["data", "durable"] : ["data"];
     private static string Suffix(string row) => row switch { "text-delta" => "text", "reasoning-delta" => "reason", "tool-input-delta" => "tool", _ => "ended" };

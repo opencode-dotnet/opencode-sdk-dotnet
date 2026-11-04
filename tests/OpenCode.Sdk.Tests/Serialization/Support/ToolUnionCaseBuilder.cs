@@ -109,12 +109,36 @@ internal static class ToolUnionCaseBuilder
         return buffer.WrittenSpan.ToArray();
     }
 
+    internal static async Task<byte[]> ReplaceAsync(JsonElement seed, string key, Action<Utf8JsonWriter> write)
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+        await using var writer = new Utf8JsonWriter(buffer);
+        writer.WriteStartObject();
+        foreach (var member in seed.EnumerateObject())
+        {
+            writer.WritePropertyName(member.Name);
+            if (member.Name == key)
+            {
+                write(writer);
+            }
+            else
+            {
+                member.Value.WriteTo(writer);
+            }
+        }
+        writer.WriteEndObject();
+        await writer.FlushAsync();
+        return buffer.WrittenSpan.ToArray();
+    }
+
     private static void Different(Utf8JsonWriter writer, JsonElement value)
     {
         switch (value.ValueKind)
         {
             case JsonValueKind.String: writer.WriteStringValue("different-first"); break;
             case JsonValueKind.Number: writer.WriteNumberValue(997); break;
+            case JsonValueKind.True: writer.WriteBooleanValue(false); break;
+            case JsonValueKind.False: writer.WriteBooleanValue(true); break;
             case JsonValueKind.Array: writer.WriteStartArray(); writer.WriteEndArray(); break;
             case JsonValueKind.Object:
                 writer.WriteStartObject();
