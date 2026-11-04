@@ -1,6 +1,6 @@
 # Known union variants are read by generated readers, with source-generated metadata as their oracle
 
-Date: 2026-11-02
+Date: 2026-11-04
 
 A known variant of a generated union, and a record nested beneath a variant of the message, event and
 session-log unions, is materialized by a reader the generator emits for that record, not by
@@ -55,6 +55,12 @@ do.
 - **Open-model records,** which retain additional members (`[JsonExtensionData]`).
 - **Nested records beneath the other unions' variants:** about 2,700 lines on paths no benchmark
   measures.
+- **Unions and variants that real use doesn't reach keep metadata, by measurement:**
+  `ISessionEventDurable`, which no SDK read path deserializes; the 31 other unions, such as the
+  configuration and error-channel unions, whose real-use rows fall below the conversion bar;
+  `ISessionLogItem`, below the bar on the default CLI profile, measured again if durable logs become
+  the default; and the `IEvent` variants that no captured traffic carries, measured again if one
+  starts to appear in real use.
 
 The decision takes effect variant by variant. Until the change that converts a variant merges, that
 variant keeps metadata, and canon describes it so.

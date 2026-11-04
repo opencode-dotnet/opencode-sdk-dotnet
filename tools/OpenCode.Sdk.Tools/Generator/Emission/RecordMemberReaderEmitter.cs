@@ -5,20 +5,12 @@ using OpenCode.Sdk.Tools.Generator.Binding.Models;
 
 namespace OpenCode.Sdk.Tools.Generator.Emission;
 
-/// <summary>Emits the property's conversion, including the null handling a direct converter bypasses.</summary>
+/// <summary>Owns reader-state names and emits property conversion, including null handling a direct converter bypasses.</summary>
 internal static class RecordMemberReaderEmitter
 {
     internal const string StateName = "state";
     internal const string StateTypeName = "State";
     internal const string AdvanceToValueName = "AdvanceToValue";
-
-    internal static MemberAccessExpressionSyntax StateMember(string name) => EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(StateName), name);
-    internal static ArgumentSyntax StateArgument() => SyntaxFactory.Argument(SyntaxFactory.IdentifierName(StateName))
-        .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword));
-    internal static ParameterSyntax StateParameter() => SyntaxFactory.Parameter(SyntaxFactory.Identifier(StateName))
-        .WithType(SyntaxFactory.IdentifierName(StateTypeName)).WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword)));
-    internal static ArgumentSyntax ReaderArgument() => SyntaxFactory.Argument(SyntaxFactory.IdentifierName("reader"))
-        .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword));
 
     internal static MethodDeclarationSyntax Reader(ModelPropertyPlan property, string field, StatementSyntax? presence, IReadOnlySet<string>? callSites)
     {
@@ -40,6 +32,11 @@ internal static class RecordMemberReaderEmitter
         return method.WithParameterList(method.ParameterList.WithParameters(parameters
             .Replace(parameters[2], parameters[2].WithIdentifier(SyntaxFactory.Identifier(options)))));
     }
+
+    internal static ArgumentSyntax ReaderArgument() => SyntaxFactory.Argument(SyntaxFactory.IdentifierName("reader"))
+        .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword));
+    internal static ParameterSyntax StateParameter() => SyntaxFactory.Parameter(SyntaxFactory.Identifier(StateName))
+        .WithType(SyntaxFactory.IdentifierName(StateTypeName)).WithModifiers(SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.RefKeyword)));
 
     internal static TypeSyntax PropertyType(ModelPropertyPlan property) => property.EmitsOptionalWrapper
         ? TypeSyntaxEmitter.Generic("Optional", TypeSyntaxEmitter.Emit(property.Type)) : TypeSyntaxEmitter.Emit(property.Type);
@@ -80,6 +77,10 @@ internal static class RecordMemberReaderEmitter
             StateMember(field), read)));
         return statements;
     }
+
+    internal static MemberAccessExpressionSyntax StateMember(string name) => EmissionSyntax.MemberAccess(SyntaxFactory.IdentifierName(StateName), name);
+    internal static ArgumentSyntax StateArgument() => SyntaxFactory.Argument(SyntaxFactory.IdentifierName(StateName))
+        .WithRefKindKeyword(SyntaxFactory.Token(SyntaxKind.RefKeyword));
 
     private static ExpressionSyntax Value(ModelPropertyPlan property, IReadOnlySet<string>? callSites)
     {

@@ -31,6 +31,7 @@ public sealed class UnionArmTests
     [Arguments("state")]
     [Arguments("prompt")]
     [Arguments("message")]
+    [Arguments("event")]
     public async Task Read_Should_Not_Repair_A_False_Reader_Refusal(string row)
     {
         var original = new FormatException("reader-refusal");
@@ -39,6 +40,7 @@ public sealed class UnionArmTests
         var arm = UnionArm<ISessionMessageToolState>.Of(Refuse);
         var prompt = UnionArm<IEvent>.Of(RefuseNested);
         var message = UnionArm<ISessionMessageInfo>.Of(RefuseMessage);
+        var eventArm = UnionArm<IEvent>.Of(RefuseEvent);
         var failure = await Assert.That(ReadAndCapture)
             .Throws<FormatException>();
         await Assert.That(failure).IsSameReferenceAs(original);
@@ -54,29 +56,20 @@ public sealed class UnionArmTests
 
         SessionTextEnded RefuseNested(ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
-            RefuseAt(ref reader, "data");
-            throw new InvalidOperationException("Fixture has no data member.");
+            expected = AdvanceTo(ref reader, "data");
+            throw original;
         }
 
         SessionMessageAssistant RefuseMessage(ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
-            RefuseAt(ref reader, "state");
-            throw new InvalidOperationException("Fixture has no tool state member.");
+            expected = AdvanceTo(ref reader, "state");
+            throw original;
         }
 
-        void RefuseAt(ref Utf8JsonReader reader, string member)
+        SessionStepEnded RefuseEvent(ref Utf8JsonReader reader, JsonSerializerOptions options)
         {
-            while (reader.Read())
-            {
-                if (reader.TokenType == JsonTokenType.PropertyName && reader.ValueTextEquals(member))
-                {
-                    _ = reader.Read();
-                    _ = reader.Read();
-                    _ = reader.Read();
-                    expected = Position(ref reader);
-                    throw original;
-                }
-            }
+            expected = AdvanceTo(ref reader, "tokens");
+            throw original;
         }
 
         void ReadAndCapture()
@@ -85,13 +78,18 @@ public sealed class UnionArmTests
             {
                 "prompt" => Support.ToolUnionCaseBuilder.Bytes(PromptEventReaderParityTests.Seed("text-ended")),
                 "message" => Support.ToolUnionCaseBuilder.Bytes(MessageReaderParityTests.Seed("assistant")),
+                "event" => Support.ToolUnionCaseBuilder.Bytes(EventReaderParityTests.Seed("session.step.ended")),
                 _ => Encoding.UTF8.GetBytes(new FixtureLoader().LoadJson("Serialization.json-element-dictionary-empty-object.json")),
             };
             var reader = new Utf8JsonReader(bytes);
             _ = reader.Read();
             try
             {
-                if (row == "message")
+                if (row == "event")
+                {
+                    _ = eventArm.Read(ref reader);
+                }
+                else if (row == "message")
                 {
                     _ = message.Read(ref reader);
                 }
@@ -109,6 +107,21 @@ public sealed class UnionArmTests
                 actual = Position(ref reader);
             }
         }
+    }
+
+    private static long[] AdvanceTo(ref Utf8JsonReader reader, string member)
+    {
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.PropertyName && reader.ValueTextEquals(member))
+            {
+                _ = reader.Read();
+                _ = reader.Read();
+                _ = reader.Read();
+                return Position(ref reader);
+            }
+        }
+        throw new InvalidOperationException("Fixture has no " + member + " member.");
     }
 
     [Test]

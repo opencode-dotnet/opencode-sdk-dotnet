@@ -26,9 +26,8 @@ public class PromptEventStreamBenchmarks : IDisposable
 
     private byte[][] _frames = [];
     private JsonTypeInfo[] _concreteTypes = [];
-    private CannedResponseHandler? _handler;
-    private HttpClient? _httpClient;
     private OpenCodeClient? _client;
+    private EventBenchmarkSetup? _connection;
 
     public static IEnumerable<WireFixture> Fixtures()
     {
@@ -83,15 +82,14 @@ public class PromptEventStreamBenchmarks : IDisposable
             throw new InvalidOperationException("The prompt fixture did not contain its opener and 1040 turn frames.");
         }
 
-        _handler = new CannedResponseHandler(Fixture.Bytes, "text/event-stream", suspendingChunkBytes: SocketChunkBytes);
-        _httpClient = new HttpClient(_handler);
-        _client = new OpenCodeClient(_httpClient, new OpenCodeClientOptions
+        _connection = new EventBenchmarkSetup(Fixture.Bytes, new OpenCodeClientOptions
         {
             Endpoint = new Uri("https://benchmark.invalid"),
             Password = "benchmark",
-        });
+        }, suspendingChunkBytes: SocketChunkBytes);
+        _client = _connection.Client;
         await RequireConnectionAsync().ConfigureAwait(false);
-        if (_handler.LastBody is not { } body || body.SuspendedReads < body.MinimumReads)
+        if (_connection.Handler.LastBody is not { } body || body.SuspendedReads < body.MinimumReads)
         {
             throw new InvalidOperationException("The prompt subscription's socket-sized reads did not suspend.");
         }
@@ -142,23 +140,13 @@ public class PromptEventStreamBenchmarks : IDisposable
     }
 
     [GlobalCleanup]
-    public void Cleanup() => Dispose();
-
     public void Dispose()
     {
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            _client?.Dispose();
-            _httpClient?.Dispose();
-            _handler?.Dispose();
-        }
-    }
+    protected virtual void Dispose(bool disposing) => _connection?.Dispose(disposing);
 
     private async Task RequireConnectionAsync()
     {

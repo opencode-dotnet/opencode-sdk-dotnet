@@ -52,6 +52,7 @@ public class SessionLogStreamBenchmarks : IDisposable
 
     public static IEnumerable<WireFixture> Fixtures()
     {
+        yield return Frames("synced-x1", BenchmarkFixtures.SessionLogSyncedBody(), 1);
         yield return Frames("synced-x1024", BenchmarkFixtures.SessionLogSyncedBody(), SmallFrameCount);
         yield return Frames("created-2048-x64", BenchmarkFixtures.LargeSessionCreatedBody(LargeTitleCharacters), LargeFrameCount);
         yield return Frames("tool-success-16-x64", BenchmarkFixtures.SessionToolSuccessBody(StructuredContentParts), LargeFrameCount);

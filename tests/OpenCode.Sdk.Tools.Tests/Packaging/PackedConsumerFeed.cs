@@ -390,6 +390,33 @@ public sealed class PackedConsumerFeed : IAsyncInitializer, IAsyncDisposable
             Equal(ended.Data.Ordinal, 53L);
             Equal(ended.Data.Text, "ended λ text");
             Equal(ended.Data.Native["state"][0].GetInt32(), 59);
+            Equal(await events.MoveNextAsync(), true);
+            var started = (SessionStepStarted)events.Current;
+            Equal(started.Id, "evt_started");
+            Equal(started.Location.Directory, "/started");
+            Equal(started.Durable.Seq, 353L);
+            Equal(started.Data.SessionId, "ses_started");
+            Equal(started.Data.Agent, "build");
+            Equal(started.Data.Model.Id, "model_started");
+            Equal(started.Data.Started, 367);
+            Equal(await events.MoveNextAsync(), true);
+            var asked = (PermissionAsked)events.Current;
+            Equal(asked.Id, "evt_permission");
+            Equal(asked.Data.Id, "per_asked");
+            Equal(asked.Data.Resources.Count, 2);
+            Equal(asked.Data.Resources[0], "a");
+            Equal(asked.Data.Resources[1], "b");
+            Equal(asked.Data.Message, "permission message");
+            Equal(await events.MoveNextAsync(), true);
+            var created = (SessionCreated)events.Current;
+            Equal(created.Id, "evt_created");
+            Equal(created.Location.WorkspaceId, "wrk_created");
+            Equal(created.Durable.Version, 193.5);
+            Equal(created.Data.SessionId, "ses_created");
+            Equal(created.Data.Location.Directory, "/data-created");
+            Equal(created.Data.Permissions.Count, 1);
+            Equal(created.Data.Permissions[0].Resource, "*.cs");
+            Equal(created.Data.Model.ProviderId, "provider_created");
         }
         """;
 

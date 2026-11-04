@@ -144,7 +144,7 @@ internal static class SessionTextDeltaJsonReader
     private static bool ReadLocation(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
         AdvanceToValue(ref reader);
-        state.value3 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<LocationRef?>(ref reader, options);
+        state.value3 = reader.TokenType == JsonTokenType.Null ? default : LocationRefJsonReader.Read(ref reader, options);
         return true;
     }
 
