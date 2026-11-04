@@ -9,6 +9,7 @@
   </Folder>
   <Folder Name="/playground/">
     <Project Path="playground/QuickStart/OpenCode.Playground.QuickStart.csproj" />
+    <Project Path="playground/Worker/OpenCode.Playground.Worker.csproj" />
     <Project Path="playground/hq/OpenCode.Playground.Hq/OpenCode.Playground.Hq.csproj" />
     <Project Path="playground/hq/OpenCode.Playground.Hq.AppHost/OpenCode.Playground.Hq.AppHost.csproj" />
   </Folder>

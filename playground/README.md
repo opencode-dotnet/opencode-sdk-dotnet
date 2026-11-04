@@ -9,6 +9,7 @@ Each app has its own README explaining what it shows and how to run it.
 |---|---|---|
 | Start in five minutes without an API key | [QuickStart](QuickStart/) | Console app |
 | See live sessions and answer permission asks | [HQ](hq/) | Blazor Server with Aspire |
+| Run the SDK in a hosted service | [Worker](Worker/) | Generic Host console app |
 
 ## Prerequisites
 
@@ -19,6 +20,7 @@ Each app has its own README explaining what it shows and how to run it.
 
 QuickStart shows the server launcher, server info, model readiness and catalog selection,
 session creation, prompting, text deltas, and session-scoped execution outcomes.
+Worker shows a hosted event-bus subscription and an owned server's exit.
 HQ shows paginated sessions, active status, event-bus reconnects, per-directory permission and form lists,
 permission replies, typed errors, and server health.
 The [guides](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/README.md)
