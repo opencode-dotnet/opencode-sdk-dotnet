@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(LatestTargetFramework)</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Native AOT publish on the .NET 11 rc.3 SDK expects the build's XML doc in the RID output, where it is never copied (MSB3030, dotnet/sdk#56618). -->
+    <!-- Remove once the pinned SDK carries the fix. -->
+    <PublishDocumentationFile>false</PublishDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/OpenCode.Sdk/OpenCode.Sdk.csproj" />
+  </ItemGroup>
+
+</Project>
