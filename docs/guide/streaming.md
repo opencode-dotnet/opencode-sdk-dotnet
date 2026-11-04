@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-11-03
+Date: 2026-11-04
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **live event stream** for everything happening in the server
@@ -357,6 +357,8 @@ The SDK **reconnects** the bus the way upstream's own client does, and it tells 
 - The stream never ends on its own. Your cancellation token or disposing the client releases its
   live connection at once; a consumer holding an event sees the exception on its next pull.
   One minute in which every attempt failed also ends it.
+  Before disposing a subscription's enumerator while a `MoveNextAsync` may still be pending, cancel
+  its token and let that call settle, because disposing it then throws `NotSupportedException`.
 - That minute applies to the first subscribe too. **A wrong address or a refused password surfaces
   after one minute, not at once**, as the error the server last answered
   (`OpenCodeApiException`, `OpenCodeTransportException` or `OpenCodeStreamFailureException`).
