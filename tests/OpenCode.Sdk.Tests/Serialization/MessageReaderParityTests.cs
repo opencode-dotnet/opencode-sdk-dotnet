@@ -1,8 +1,6 @@
 using System.Buffers;
 using System.Globalization;
-using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Unicode;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
@@ -51,12 +49,15 @@ public sealed class MessageReaderParityTests
         byte[] bytes;
         if (parts[1] == "exit")
         {
-            var value = await ElementAsync(writer => WriteExit(writer, change));
-            bytes = await ReplaceAsync(seed, parts[1], value);
+            bytes = await ReplaceAsync(seed, parts[1], writer => WriteExit(writer, change));
         }
         else
         {
             bytes = await ToolUnionCaseBuilder.ChangeAsync(seed, parts[1], change);
+        }
+        if (row == "shell/exit/escaped-nan")
+        {
+            await Assert.That(System.Text.Encoding.UTF8.GetString(bytes)).Contains("\\u004E").Because(row);
         }
         await CompareAsync(bytes, parts[0], row);
         var refused = parts[2] is "null-required" or "null-then-valid" or "wrong" or "bad"
@@ -279,37 +280,44 @@ public sealed class MessageReaderParityTests
         {
             writer.WriteNumberValue(123.75);
         }
+        else if (change == "escaped-nan")
+        {
+            writer.WriteRawValue("\"\\u004EaN\"");
+        }
         else
         {
-            var value = change switch { "nan" or "escaped-nan" => "NaN", "infinity" => "Infinity", "negative-infinity" => "-Infinity", _ => "bad" };
-            writer.WriteStringValue(change == "escaped-nan" ? JsonEncodedText.Encode(value, JavaScriptEncoder.Create(UnicodeRanges.None)) : JsonEncodedText.Encode(value));
+            var value = change switch { "nan" => "NaN", "infinity" => "Infinity", "negative-infinity" => "-Infinity", _ => "bad" };
+            writer.WriteStringValue(value);
         }
     }
 
-    private static async Task<byte[]> ReplaceAsync(JsonElement seed, string key, JsonElement value, string duplicate = "")
+    private static Task<byte[]> ReplaceAsync(JsonElement seed, string key, JsonElement value, string duplicate = "") =>
+        ReplaceAsync(seed, key, value.WriteTo, duplicate);
+
+    private static async Task<byte[]> ReplaceAsync(JsonElement seed, string key, Action<Utf8JsonWriter> write, string duplicate = "")
     {
-        var element = await ElementAsync(writer =>
+        var buffer = new ArrayBufferWriter<byte>();
+        await using var writer = new Utf8JsonWriter(buffer);
+        writer.WriteStartObject();
+        foreach (var member in seed.EnumerateObject())
         {
-            writer.WriteStartObject();
-            foreach (var member in seed.EnumerateObject())
+            if (member.Name != key || duplicate == "last")
             {
-                if (member.Name != key || duplicate == "last")
+                member.WriteTo(writer);
+            }
+            if (member.Name == key)
+            {
+                writer.WritePropertyName(key);
+                write(writer);
+                if (duplicate == "first")
                 {
                     member.WriteTo(writer);
                 }
-                if (member.Name == key)
-                {
-                    writer.WritePropertyName(key);
-                    value.WriteTo(writer);
-                    if (duplicate == "first")
-                    {
-                        member.WriteTo(writer);
-                    }
-                }
             }
-            writer.WriteEndObject();
-        });
-        return ToolUnionCaseBuilder.Bytes(element);
+        }
+        writer.WriteEndObject();
+        await writer.FlushAsync();
+        return buffer.WrittenSpan.ToArray();
     }
 
     private static async Task<JsonElement> ElementAsync(Action<Utf8JsonWriter> write)

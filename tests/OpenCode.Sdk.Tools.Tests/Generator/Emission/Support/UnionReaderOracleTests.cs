@@ -16,19 +16,26 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
     [Test]
     public async Task Oracle_Should_Isolate_Completed_Content_And_Override_Exactly_The_Selected_Unions()
     {
-        var sources = SourceEmitter.Emit(pinned.Plan).Select(source => source.RelativePath switch
+        var emitted = SourceEmitter.Emit(pinned.Plan);
+        var sources = emitted.Select(source => source.RelativePath switch
         {
             "Sessions/Internal/ToolFileContentJsonReader.cs" => MetadataUnionOracleEmitter.Source(source.RelativePath,
                 System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)
                     .Replace("Name = state.value2", "Name = state.value2 is null ? null : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
             "Sessions/Internal/SessionTextDeltaDataJsonReader.cs" => MetadataUnionOracleEmitter.Source(source.RelativePath,
                 System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)
-                     .Replace("Delta = state.value3!", "Delta = state.value3 is null ? string.Empty : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
+                    .Replace("Delta = state.value3!", "Delta = state.value3 is null ? string.Empty : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
             "Sessions/Internal/SessionMessageAssistantToolJsonReader.cs" => MetadataUnionOracleEmitter.Source(source.RelativePath,
                 System.Text.Encoding.UTF8.GetString(source.Utf8Source.Span)
                     .Replace("Name = state.value1!", "Name = state.value1 is null ? string.Empty : throw new JsonException(\"product-reader-entered\")", StringComparison.Ordinal)),
             _ => source,
         }).ToList();
+        foreach (var name in new[] { "ToolFileContent", "SessionTextDeltaData", "SessionMessageAssistantTool" })
+        {
+            var relativePath = "Sessions/Internal/" + name + "JsonReader.cs";
+            await Assert.That(System.Text.Encoding.UTF8.GetString(sources.Single(source => source.RelativePath == relativePath).Utf8Source.Span))
+                .IsNotEqualTo(System.Text.Encoding.UTF8.GetString(emitted.Single(source => source.RelativePath == relativePath).Utf8Source.Span)).Because(relativePath);
+        }
         var loader = new FixtureLoader();
         sources.Add(MetadataUnionOracleEmitter.Source("Internal/Serialization/MetadataUnionJsonConverter.cs", loader.Load("Serialization.MetadataUnionJsonConverter.cs")));
         sources.Add(MetadataUnionOracleEmitter.Source("ToolUnionMetadataOracle.cs", loader.Load("Serialization.ToolUnionMetadataOracle.cs")));

@@ -351,8 +351,8 @@ materializable.
   lists them use their own source-generated metadata converter. Beneath the four `IEvent` variants,
   their `Data` and `Durable` records, and beneath the assistant's tool and reasoning parts, their
   `Time` records, are read by generated readers too; every other nested record retains its metadata
-  converter. The scan remains safe when
-  serializer stream entry points supply a partial reader, and known arms do not build a JSON DOM.
+  converter. The scan remains safe when serializer stream entry points supply a partial reader, and
+  known arms do not build a JSON DOM.
   Unknown arms retain the DOM needed by their lossless carrier, including a stream payload recovered
   after its known arm could not materialize. Direct union deserialization keeps the known-arm
   failure; only the stream adapter and reader retry through concrete unknown-arm metadata
