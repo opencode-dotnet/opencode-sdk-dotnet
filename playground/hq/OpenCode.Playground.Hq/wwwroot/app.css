@@ -36,5 +36,7 @@ table.sessions td { padding: 12px 16px; border-top: 1px solid #2A3138; }
 .panel { flex: 1 1 360px; padding: 24px; background: #171C21; border-left: 1px solid #2A3138; display: flex; flex-direction: column; gap: 18px; }
 .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .panel pre { margin: 0; padding: 12px; background: #101417; border: 1px solid #2A3138; border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.terminal { display: flex; flex-direction: column; gap: 8px; margin-top: 24px; }
+.terminal pre.output { margin: 0; max-height: 360px; overflow: auto; padding: 12px; background: #0B0F12; border: 1px solid #2A3138; border-radius: 6px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .panel-item { display: flex; flex-direction: column; gap: 8px; }
 details pre { white-space: pre; overflow-x: auto; padding: 12px; background: #171C21; border-radius: 6px; }

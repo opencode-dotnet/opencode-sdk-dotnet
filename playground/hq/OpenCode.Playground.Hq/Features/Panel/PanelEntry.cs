@@ -21,5 +21,6 @@ public sealed record PanelEntry(string Title, string File, string Region)
         new("History, then the live answer", "Features/Conversation/SessionConversation.cs", "follow"),
         new("Sending a prompt", "Features/Conversation/SessionConversation.cs", "prompt"),
         new("Changed files", "Features/Files/ChangedFiles.razor", "diff"),
+        new("A terminal in the session's folder", "Features/Terminal/SessionTerminal.cs", "terminal"),
     ];
 }

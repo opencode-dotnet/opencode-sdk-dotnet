@@ -1,0 +1,21 @@
+@inject SessionTerminal Terminal
+
+<section class="terminal" aria-label="Terminal">
+    <h3>Terminal</h3>
+    @if (Terminal.LastError is { } error)
+    {
+        <p role="alert">@error</p>
+    }
+    @if (!Terminal.IsOpen)
+    {
+        <button @onclick="OpenAsync" disabled="@Terminal.IsOpening">Open a terminal in this session's folder</button>
+    }
+    else
+    {
+        <pre class="output">@Terminal.Output</pre>
+        <form class="prompt" @onsubmit="SendAsync" @onsubmit:preventDefault>
+            <input @bind="_line" @bind:event="oninput" aria-label="Command" />
+            <button type="submit">Run</button>
+        </form>
+    }
+</section>

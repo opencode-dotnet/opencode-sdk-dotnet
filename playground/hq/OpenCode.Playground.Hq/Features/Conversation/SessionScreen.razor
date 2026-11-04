@@ -52,11 +52,12 @@
 </form>
 
 </main>
-<section class="side" aria-label="Changed files">
+<section class="side" aria-label="Changed files and terminal">
 @if (Conversation.Ready)
 {
     <ChangedFiles SessionId="@SessionId" Running="@Conversation.Running" Refresh="@Conversation.EndedTurns" />
 }
+<TerminalPanel SessionId="@SessionId" />
 </section>
 <SdkPanel Entries="PanelEntry.SessionScreen" Guide="https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md#-streaming-an-answer-as-it-arrives" />
 </div>
