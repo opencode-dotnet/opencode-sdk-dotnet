@@ -346,13 +346,14 @@ materializable.
   Generated record readers materialize, once each, every known variant of
   `ISessionMessageToolState`, `IToolContent` and `ISessionMessageAssistantContent`; the ten record
   variants of `ISessionMessageInfo`; and 38 of `IEvent`'s literal variants: the four prompt-stream
-  variants (`SessionTextDelta`, `SessionReasoningDelta`, `SessionToolInputDelta` and `SessionTextEnded`)
-  and the 34 that captured real traffic carries, which the generator's record-reader rollout lists.
-  `ISessionMessageInfo`'s `compaction` variant, which is itself a union, the other known variants, and
-  these records where another union lists them use their own source-generated metadata converter.
-  Beneath those `IEvent` variants, their `Data`, `Durable` and `Location` records, and beneath the
-  assistant's tool and reasoning parts, their `Time` records, are read by generated readers too; every
-  other nested record retains its metadata converter. The scan remains safe when serializer stream
+  variants (`SessionTextDelta`, `SessionReasoningDelta`, `SessionToolInputDelta` and
+  `SessionTextEnded`) and the 34 that captured real traffic carries, which the generator's
+  record-reader rollout lists. `ISessionMessageInfo`'s `compaction` variant, which is itself a
+  union, the other known variants, and these records where another union lists them use their own
+  source-generated metadata converter. Beneath those `IEvent` variants, their `Data`, `Durable` and
+  `Location` records, and beneath the assistant's tool and reasoning parts, their `Time` records,
+  are read by generated readers too; every other nested record retains its metadata converter. The
+  scan remains safe when serializer stream
   entry points supply a partial reader, and known arms do not build a JSON DOM.
   Unknown arms retain the DOM needed by their lossless carrier, including a stream payload recovered
   after its known arm could not materialize. Direct union deserialization keeps the known-arm
