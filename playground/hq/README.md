@@ -7,6 +7,15 @@ kinds direct you to opencode. A session's page shows
 its conversation, streamed answer, prompt box, asks and changed files; New session picks a directory.
 There is no login, database or settings UI.
 
+A session's page can open a **terminal** in the session's folder: one shell, its output as plain
+text, and one line at a time. It leaves out resizing, reattaching and resuming from a cursor; the
+SDK has all three ([Terminals](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/terminals.md)).
+Leaving the page removes the terminal from the server, and closing the tab does so once the page's
+connection times out. A terminal left by HQ being killed outright lives until the opencode server stops.
+
+> **The terminal is a shell on the machine running opencode, for anyone who can open HQ's page.** HQ
+> has no login and listens only on `127.0.0.1`, so keep it that way: run it on your own machine only.
+
 Each screen has a hideable **How this screen works** panel: SDK calls for that screen, links to
 their source files and a guide. It reads HQ's own source at run time, embedded at build time, so
 snippets cannot drift from the code running. To add an entry, mark the code with a
@@ -74,4 +83,5 @@ The projects use a ProjectReference here; a consumer uses `<PackageReference Inc
 | Stored conversations, streamed answers and prompts | `Features/Conversation/`: `SessionConversation.cs`, with `Events.SubscribeAsync`, `EnumerateMessagesAsync` and `PromptAsync` | [Streaming](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/streaming.md) |
 | Changed files and patches | `Features/Files/`: `ChangedFiles.razor`, with `GetDiffAsync` | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md) |
 | Answering text and choice questions | `Features/Forms/`: `FormDraft.cs` and `FormCard.razor`, with SDK `ReplyToFormAsync` via `SessionBoard` | [Requests](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/requests.md) |
+| A terminal in a session's folder | `Features/Terminal/`: `SessionTerminal.cs`, with `CreatePtyAsync`, `ConnectAsync` and `RemoveAsync` | [Terminals](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/terminals.md) |
 | Code behind each screen | `Features/Panel/`: `SourceSnippets.cs` and `PanelEntry.cs` read HQ's embedded regions | The panel links each entry to its source file and a guide |

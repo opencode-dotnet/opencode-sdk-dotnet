@@ -4,6 +4,7 @@ using OpenCode.Playground.Hq.Features.Connection;
 using OpenCode.Playground.Hq.Features.Conversation;
 using OpenCode.Playground.Hq.Features.Panel;
 using OpenCode.Playground.Hq.Features.Sessions;
+using OpenCode.Playground.Hq.Features.Terminal;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddTelemetry();
@@ -13,6 +14,7 @@ builder.Services.AddSingleton(static services => OpenCodeConnection.Connect(serv
 builder.Services.AddSingleton<SessionBoard>();
 builder.Services.AddSingleton<SourceSnippets>();
 builder.Services.AddTransient<SessionConversation>();
+builder.Services.AddTransient<SessionTerminal>();
 builder.Services.AddHostedService(static services => services.GetRequiredService<SessionBoard>());
 
 var app = builder.Build();
