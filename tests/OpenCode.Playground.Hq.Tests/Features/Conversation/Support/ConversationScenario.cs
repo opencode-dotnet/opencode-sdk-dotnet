@@ -46,7 +46,7 @@ internal sealed class ConversationScenario : OpenCodeClient
         Time = new() { Created = 2 },
         State = new SessionMessageToolStateCompleted { Input = new Dictionary<string, JsonElement>(StringComparer.Ordinal), Content = [] },
     };
-    public static SessionMessageUser User() => new() { Id = "msg_1", Text = "question", Time = new() { Created = 1 } };
+    public static SessionMessageUser User(string id = "msg_1", string text = "question") => new() { Id = id, Text = text, Time = new() { Created = 1 } };
     public static SessionMessageSystem SystemMessage() => new() { Id = "msg_2", Text = "system", Time = new() { Created = 2 } };
     public static SessionMessageAssistant Assistant(params ISessionMessageAssistantContent[] content) => new()
     {
@@ -68,6 +68,18 @@ internal sealed class ConversationScenario : OpenCodeClient
         Created = 5,
         Durable = new() { AggregateId = sessionId, Seq = 1, Version = 1 },
         Data = new() { SessionId = sessionId, AssistantMessageId = "msg_3", Ordinal = ordinal, Text = text },
+    };
+    public static SessionInboxEnqueued Enqueued(string inboxId, string sessionId = SessionId) => new()
+    {
+        Id = "enqueued",
+        Created = 4,
+        Durable = new() { AggregateId = sessionId, Seq = 3, Version = 1 },
+        Data = new()
+        {
+            SessionId = sessionId,
+            InboxId = inboxId,
+            Item = new SessionInboxItemUser { Payload = new() { Text = "prompt" }, Delivery = SessionInboxDelivery.Queue },
+        },
     };
     public static SessionExecutionStarted Started(string sessionId = SessionId) => new()
     {
@@ -159,15 +171,21 @@ internal sealed class ConversationScenario : OpenCodeClient
             return new() { Status = 200, Messages = [.. ordered.Skip(offset).Take(1)], Cursor = new() { Next = offset + 1 < Messages.Count ? (offset + 1).ToString(CultureInfo.InvariantCulture) : null } };
         }
 
-        public override Task<SessionPromptResponse> PromptAsync(SessionPromptRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
+        public TaskCompletionSource? PromptRelease { get; set; }
+        public override async Task<SessionPromptResponse> PromptAsync(SessionPromptRequest request, OpenCodeRequestOptions? requestOptions = null, CancellationToken cancellationToken = default)
         {
             Prompt = request;
-            return FailPrompt ? Task.FromException<SessionPromptResponse>(new OpenCodeApiException("unauthorized", 401, new UnauthorizedError { Message = "unauthorized" }, null))
-                : Task.FromResult(new SessionPromptResponse
+            if (PromptRelease is { } release)
+            {
+                await release.Task.WaitAsync(cancellationToken);
+            }
+
+            return FailPrompt ? throw new OpenCodeApiException("unauthorized", 401, new UnauthorizedError { Message = "unauthorized" }, null)
+                : new SessionPromptResponse
                 {
                     Status = 200,
                     Prompt = new() { Id = request.Id.Value ?? "msg_server", SessionId = SessionId, Time = new() { Created = 4 }, Payload = new() { Text = request.Text }, Delivery = SessionInboxDelivery.Queue },
-                });
+                };
         }
     }
 }

@@ -51,7 +51,11 @@ public sealed partial class SessionScreen : IDisposable
     {
         var text = _prompt;
         _prompt = "";
-        await Conversation.SendAsync(text, _lifetime.Token);
+        if (!await Conversation.SendAsync(text, _lifetime.Token) && _prompt.Length == 0)
+        {
+            // As in upstream's app, a refused prompt goes back into the box, unless something else was typed there.
+            _prompt = text;
+        }
     }
 
     private Task AnswerAsync(NeedsYouItem item, PermissionReply decision) => Board.AnswerAsync(item, decision, _lifetime.Token);
