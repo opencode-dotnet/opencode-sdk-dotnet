@@ -398,20 +398,14 @@ public sealed class OpenCodeServerProcessGroupTests
         for (var round = 0; round < rounds; round++)
         {
             var output = new OpenCodeServerOutput();
-            OpenCodeServer? server = null;
             try
             {
-                server = await OpenCodeServer.StartAsync(LadderTree.Options(output, Grace, "exit-at-ready=0"), cancellationToken);
+                var server = await OpenCodeServer.StartAsync(LadderTree.Options(output, Grace, "exit-at-ready=0"), cancellationToken);
                 await server.DisposeAsync();
                 outcomes.Add("started");
             }
             finally
             {
-                if (server is not null)
-                {
-                    await server.DisposeAsync();
-                }
-
                 await AssertEveryReportedProcessEndedAsync(output);
             }
         }
