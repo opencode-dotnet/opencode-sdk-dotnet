@@ -7,10 +7,10 @@ Each app has its own README explaining what it shows and how to run it.
 
 | I want to | App | Shape |
 |---|---|---|
-| Start in five minutes without an API key | [QuickStart](QuickStart/) | Console app |
+| Start in five minutes without an API key | [QuickStart](quickstart/) | Console app |
 | See live sessions and answer permission asks | [HQ](hq/) | Blazor Server with Aspire |
-| Run the SDK in a hosted service | [Worker](Worker/) | Generic Host console app |
-| Ship a Native AOT tool | [AotCli](AotCli/) | Native AOT console app |
+| Run the SDK in a hosted service | [Worker](worker/) | Generic Host console app |
+| Ship a Native AOT tool | [AotCli](aotcli/) | Native AOT console app |
 
 ## Prerequisites
 

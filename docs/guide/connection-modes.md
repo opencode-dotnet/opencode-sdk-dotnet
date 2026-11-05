@@ -249,8 +249,8 @@ cancellation that arrives after readiness returns a running server, which you di
 See the [launcher contract](../architecture/client-runtime.md#launcher) for readiness arbitration
 and bounded cleanup.
 
-See it running: [Worker](../../playground/Worker/README.md) and
-[AotCli](../../playground/AotCli/README.md) each start their own server this way.
+See it running: [Worker](../../playground/worker/README.md) and
+[AotCli](../../playground/aotcli/README.md) each start their own server this way.
 
 ## 🔗 A server you already run
 

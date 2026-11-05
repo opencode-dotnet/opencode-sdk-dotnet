@@ -6,7 +6,7 @@ and logs each event. Stop it with Ctrl+C: the host stops with exit code 0, and t
 From any folder with nothing private in it, with the [playground prerequisites](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/README.md#prerequisites):
 
 ```sh
-dotnet run --project "<path-to-clone>/playground/Worker"
+dotnet run --project "<path-to-clone>/playground/worker/OpenCode.Playground.Worker"
 ```
 
 The sample uses a project reference. In your own app, install the SDK instead:

@@ -58,10 +58,10 @@ Nightly builds of `master` are on
   session on the shared data, including one another process is still running, so both drive it.
   The [connection modes guide](docs/guide/connection-modes.md#-ensuring-the-background-service) says
   when that matters.
-- A runnable [QuickStart sample](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/QuickStart/README.md) lives in `playground/`.
+- A runnable [QuickStart sample](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/quickstart/README.md) lives in `playground/`.
 - [HQ](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/hq/README.md) shows live sessions, streamed conversations, prompts, permission answers, changed files and new sessions in a chosen directory in Blazor Server with an Aspire AppHost.
-- [Worker](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/Worker/README.md) shows a hosted event-bus subscription and an owned server's failure exit in a Generic Host.
-- [AotCli](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/AotCli/README.md) inspects a repository's branch, changed files, top-level entries and config sources as a Native AOT console tool.
+- [Worker](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/worker/README.md) shows a hosted event-bus subscription and an owned server's failure exit in a Generic Host.
+- [AotCli](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/aotcli/README.md) inspects a repository's branch, changed files, top-level entries and config sources as a Native AOT console tool.
 
 ## [0.9.0-preview.15] - 2026-11-01
 

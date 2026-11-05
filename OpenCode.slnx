@@ -8,9 +8,9 @@
     <File Path="nuget.config" />
   </Folder>
   <Folder Name="/playground/">
-    <Project Path="playground/AotCli/OpenCode.Playground.AotCli.csproj" />
-    <Project Path="playground/QuickStart/OpenCode.Playground.QuickStart.csproj" />
-    <Project Path="playground/Worker/OpenCode.Playground.Worker.csproj" />
+    <Project Path="playground/aotcli/OpenCode.Playground.AotCli/OpenCode.Playground.AotCli.csproj" />
+    <Project Path="playground/quickstart/OpenCode.Playground.QuickStart/OpenCode.Playground.QuickStart.csproj" />
+    <Project Path="playground/worker/OpenCode.Playground.Worker/OpenCode.Playground.Worker.csproj" />
     <Project Path="playground/hq/OpenCode.Playground.Hq/OpenCode.Playground.Hq.csproj" />
     <Project Path="playground/hq/OpenCode.Playground.Hq.AppHost/OpenCode.Playground.Hq.AppHost.csproj" />
   </Folder>
