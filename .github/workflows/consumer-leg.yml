@@ -5,13 +5,14 @@
 # between "built from the pinned commit" and "tested against the distributed build", and it is the
 # only lane that would notice upstream removing an operation from a published build on its own.
 #
-# There is no server management here, by design. `OPENCODE_SDK_TESTS_SERVER_COMMAND` points the
+# The suite's own steps manage no server, by design. `OPENCODE_SDK_TESTS_SERVER_COMMAND` points the
 # exact-pin fixture (tests/OpenCode.Sdk.Tests/Harness/PinnedOpenCodeServerFixture.cs) at the
 # installed command, and the
 # fixture keeps doing what it always does: isolated XDG roots, the repository-owned RPC plugin
 # seeded through OPENCODE_CONFIG_CONTENT, a generated password, readiness and teardown through the
 # SDK's own launcher, logs retained on request. A workflow that re-implemented any of that would be
-# testing itself rather than the SDK.
+# testing itself rather than the SDK. The HQ step starts and stops its own isolated
+# `opencode serve`.
 #
 # It stays human-triggered plus weekly rather than joining CI: it downloads a platform CLI build per
 # run, and it depends on the npm registry being reachable, which no pull-request gate should.
