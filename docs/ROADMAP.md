@@ -66,17 +66,18 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    ([#51](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/51)). **Complete.**
 2. **Target-framework transition.** `net11.0` joins now on its go-live release candidate and
    `net8.0` and `net9.0` leave now, ahead of their end of support on 2026-11-10, across packages,
-   tests, CI legs, the public API check, and the docs; no non-preview package is built on a
-   pre-GA SDK. A consumer whose target falls back to the `netstandard2.0` asset on an unsupported
-   runtime gets a build warning. It ships in `0.9.0-preview.10`. Launcher parity work rides the same
-   workstream (ADR-0032): on Linux and macOS the launcher places its server in a session of its own
-   and ends it on upstream's ladder (a SIGTERM to the process group before the SIGKILL); on Windows
-   it places its server in a kill-on-close job, passes it only its standard handles, reads its
-   output through overlapped pipes, and ends it on upstream's taskkill ladder.
-   `OpenCodeServer.Exited` ([#174](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/174))
-   reports how a standalone server ended — exit code, signal, or unknown, as upstream's `exited`
-   does — on every target and OS. **Landed.** Exit: every leg runs `netstandard2.0`,
-   `net472`, `net10.0`, and `net11.0` as its platform allows.
+   tests, CI legs, the public API check, and the docs; no non-preview package is built on a pre-GA
+   SDK (one exception, `1.0.0`: step 8). A consumer whose target falls back to the `netstandard2.0`
+   asset on an unsupported runtime gets a build warning. It ships in `0.9.0-preview.10`. Launcher
+   parity work rides the same workstream (ADR-0032): on Linux and macOS the launcher places its
+   server in a session of its own and ends it on upstream's ladder (a SIGTERM to the process group
+   before the SIGKILL); on Windows it places its server in a kill-on-close job, passes it only its
+   standard handles, reads its output through overlapped pipes, and ends it on upstream's taskkill
+   ladder. `OpenCodeServer.Exited`
+   ([#174](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/174)) reports how a
+   standalone server ended — exit code, signal, or unknown, as upstream's `exited` does — on every
+   target and OS. **Landed.** Exit: every leg runs `netstandard2.0`, `net472`, `net10.0`, and
+   `net11.0` as its platform allows.
 3. **Maintainability review.** A time-boxed, read-only review limited to what feeds the freeze:
    a pass over the public API baseline
    ([#183](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/183)), the terminal receive
@@ -109,13 +110,14 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    scenarios ([#185](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/185)), then a
    baseline run of the full suite, both before the freeze. The baseline's costs split three ways: a
    cost a public signature fixes is decided with the API review, before the surface freezes; an
-   internal allocation that changes no public API is fixed before `1.0.0-rc.1`, including the
-   generated union readers of ADR-0039
+   internal allocation that changes no public API is fixed before the release candidate, including
+   the generated union readers of ADR-0039
    ([#739](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/739)); every other cost
-   becomes an issue in milestone `1.1`. `1.0.0-rc.1` ships once that work ends, on the GA .NET 11
-   SDK. After `1.0.0-rc.1` only a regression is fixed. A generator baseline and a full run of the
-   suite on the release candidate
-   close the gate. Exit: a reviewed full run with no unexplained regression.
+   becomes an issue in milestone `1.1`. The release candidate is the commit `1.0.0` is built from;
+   no `1.0.0-rc.N` package is published. A generator baseline and a full run of the suite on that
+   commit close the gate, together with a release rehearsal: the exact `1.0.0` packages built
+   locally, inspected, and run by the playground apps from a local feed. Exit: a reviewed full run
+   with no unexplained regression, and a clean rehearsal.
 7. **Playground and documentation.** Done. `playground/` holds four apps modeled on
    [dotnet-aspire-for-localstack's playground](https://github.com/localstack-dotnet/dotnet-aspire-for-localstack/tree/master/playground):
    `QuickStart`, `Hq` (a small OpenCode HQ on Blazor Server and Aspire, with its screens explaining
@@ -125,9 +127,12 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    installed, the consumer leg runs them, and the guides link to them. The Sandbox is gone. A guard
    compiles the README's and the guides' C# snippets
    ([#388](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/388)).
-8. **`1.0.0`** ([#187](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/187)). Exit:
-   `1.0.0` on NuGet.org, the `OpenCodeAI.*` popularity moved to `OpenCodeDotNet.*`, the README's
-   rename notice gone, and milestone `1.1` ordered with its first items assigned.
+8. **`1.0.0`** ([#187](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/187)). `1.0.0`
+   is built on the go-live .NET 11 release-candidate SDK, a one-time exception the maintainer made
+   to ADR-0002's GA-SDK rule; `1.0.1` rebuilds it on the GA SDK
+   ([#172](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/172)) with no API change.
+   Exit: `1.0.0` on NuGet.org, the `OpenCodeAI.*` popularity moved to `OpenCodeDotNet.*`, the
+   README's rename notice gone, and milestone `1.1` ordered with its first items assigned.
 
 ## Parallel tracks
 
