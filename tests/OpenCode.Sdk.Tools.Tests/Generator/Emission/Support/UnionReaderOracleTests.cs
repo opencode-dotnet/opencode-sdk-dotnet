@@ -155,6 +155,7 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
     [Test]
     public async Task Oracle_Should_Compare_Every_Selected_Corpus_Row_And_Accept_Every_Seed()
     {
+        await Assert.That(pinned.Plan.Unions.SelectMany(static union => union.KnownImpossibleTags)).IsNotEmpty();
         var names = pinned.Plan.ReaderRecords.Keys.ToArray();
         var rows = await RecordCorpusGenerator.GenerateAsync(pinned.Plan, names);
         await AssertCorpusRoutesAsync(pinned.Plan, rows);
@@ -220,7 +221,9 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
             }
             await Assert.That(UnionReaderOracle.Observe(oracle.Metadata, row.UnionType!, row.Json).Phase).IsEqualTo("success");
         }
-        foreach (var union in unions.Where(static union => union.MarkerKind == Tools.Generator.Ingestion.Models.LiteralKind.Boolean))
+        var booleanUnions = unions.Where(static union => union.MarkerKind == Tools.Generator.Ingestion.Models.LiteralKind.Boolean).ToArray();
+        await Assert.That(booleanUnions).IsNotEmpty();
+        foreach (var union in booleanUnions)
         {
             await AssertUnknownBooleanAsync(union);
         }

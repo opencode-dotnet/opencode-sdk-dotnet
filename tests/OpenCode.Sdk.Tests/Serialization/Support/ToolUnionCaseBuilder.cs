@@ -147,6 +147,43 @@ internal static class ToolUnionCaseBuilder
             .SelectMany(static member => NestedChanges
                 .Select(change => member + "/" + change));
 
+    internal static async Task AssertDistinctDuplicatesAsync(byte[] bytes, string row)
+    {
+        if (row.Contains("/different-", StringComparison.Ordinal) || row.Contains("/duplicate/", StringComparison.Ordinal))
+        {
+            using var document = JsonDocument.Parse(bytes);
+            await Assert.That(await AssertDistinctDuplicatesAsync(document.RootElement, row)).IsGreaterThan(0).Because(row);
+        }
+    }
+
+    private static async Task<int> AssertDistinctDuplicatesAsync(JsonElement value, string row)
+    {
+        var count = 0;
+        if (value.ValueKind == JsonValueKind.Object)
+        {
+            foreach (var group in value.EnumerateObject().GroupBy(static member => member.Name, StringComparer.Ordinal))
+            {
+                if (group.Count() > 1)
+                {
+                    await Assert.That(group.First().Value.GetRawText()).IsNotEqualTo(group.Last().Value.GetRawText()).Because(row + "/distinct/" + group.Key);
+                    count++;
+                }
+                foreach (var member in group)
+                {
+                    count += await AssertDistinctDuplicatesAsync(member.Value, row);
+                }
+            }
+        }
+        else if (value.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in value.EnumerateArray())
+            {
+                count += await AssertDistinctDuplicatesAsync(item, row);
+            }
+        }
+        return count;
+    }
+
     private static void WriteAt(Utf8JsonWriter writer, JsonElement seed, IReadOnlyList<string> keys, int index, Action<Utf8JsonWriter> write)
     {
         writer.WriteStartObject();
@@ -176,28 +213,36 @@ internal static class ToolUnionCaseBuilder
     {
         switch (value.ValueKind)
         {
-            case JsonValueKind.String: writer.WriteStringValue("different-first"); break;
-            case JsonValueKind.Number: writer.WriteNumberValue(997); break;
+            case JsonValueKind.String: writer.WriteStringValue(value.GetString() + "-different"); break;
+            case JsonValueKind.Number: writer.WriteNumberValue(value.GetDouble() + 1009); break;
             case JsonValueKind.True: writer.WriteBooleanValue(false); break;
             case JsonValueKind.False: writer.WriteBooleanValue(true); break;
-            case JsonValueKind.Array: writer.WriteStartArray(); writer.WriteEndArray(); break;
+            case JsonValueKind.Array:
+                writer.WriteStartArray();
+                foreach (var item in value.EnumerateArray())
+                {
+                    Different(writer, item);
+                }
+                if (value.GetArrayLength() == 0)
+                {
+                    writer.WriteNullValue();
+                }
+                writer.WriteEndArray();
+                break;
             case JsonValueKind.Object:
                 writer.WriteStartObject();
                 foreach (var member in value.EnumerateObject())
                 {
                     writer.WritePropertyName(member.Name);
-                    if (member.Value.ValueKind == JsonValueKind.String)
-                    {
-                        writer.WriteStringValue("different-first");
-                    }
-                    else
-                    {
-                        member.Value.WriteTo(writer);
-                    }
+                    Different(writer, member.Value);
                 }
-                writer.WriteNumber("first", 37);
+                if (!value.EnumerateObject().Any())
+                {
+                    writer.WriteNull("first");
+                }
                 writer.WriteEndObject();
                 break;
+            case JsonValueKind.Null: writer.WriteNullValue(); break;
             default: throw new InvalidOperationException("Unsupported fixture duplicate.");
         }
     }

@@ -248,11 +248,8 @@ public sealed class PromptEventReaderParityTests
     internal static Task<byte[]> ChangeAsync(JsonElement seed, string parent, string member, string change) => parent.Length == 0
         ? ToolUnionCaseBuilder.ChangeAsync(seed, member, change) : ChangeNestedAsync(seed, parent, member, change);
 
-    private static async Task<byte[]> ChangeNestedAsync(JsonElement seed, string parent, string member, string change)
-    {
-        using var replacement = JsonDocument.Parse(await ToolUnionCaseBuilder.ChangeAsync(seed.GetProperty(parent), member, change));
-        return await ReplaceAsync(seed, parent, replacement.RootElement);
-    }
+    private static Task<byte[]> ChangeNestedAsync(JsonElement seed, string parent, string member, string change) =>
+        ToolUnionCaseBuilder.ChangeAtAsync(seed, parent + "/" + member, change);
 
     private static Task<byte[]> ReplaceAsync(JsonElement seed, string key, JsonElement replacement) =>
         ToolUnionCaseBuilder.ReplaceAsync(seed, key, replacement.WriteTo);
@@ -271,6 +268,7 @@ public sealed class PromptEventReaderParityTests
 
     internal static async Task CompareAsync(byte[] bytes, string row, int? split = null, int maxDepth = 0)
     {
+        await ToolUnionCaseBuilder.AssertDistinctDuplicatesAsync(bytes, row);
         var expected = Observe(bytes, ToolUnionMetadataOracle<IEvent>.Create(), split, maxDepth);
         var actual = Observe(bytes, OpenCodeJsonContext.Default, split, maxDepth);
         await Assert.That(actual.Type).IsEqualTo(expected.Type).Because(row + "/type");

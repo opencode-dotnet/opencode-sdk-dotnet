@@ -339,5 +339,4 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
         "SessionToolSuccess.Data", "SessionToolSuccess.Durable", "SessionToolSuccess.Location", "SessionUsageUpdated.Data", "SessionUsageUpdated.Location",
         "SessionUsageUpdatedData.Tokens", "SkillUpdated.Location", "TokenUsageInfo.Cache", "VcsBranchUpdated.Data", "VcsBranchUpdated.Location", "WebsearchUpdated.Location",
     ];
-
 }

@@ -125,6 +125,7 @@ public sealed class UnionReaderParityTests
 
     internal static async Task CompareAsync(byte[] bytes, bool state, string row, Type? root = null, int? split = null)
     {
+        await ToolUnionCaseBuilder.AssertDistinctDuplicatesAsync(bytes, row);
         var expected = Observe(bytes, state, ToolUnionMetadataOracle<IToolContent>.Create(), split, root: root);
         var actual = Observe(bytes, state, OpenCodeJsonContext.Default, split, root: root);
         await Assert.That(actual.Type).IsEqualTo(expected.Type).Because(row + "/type");
