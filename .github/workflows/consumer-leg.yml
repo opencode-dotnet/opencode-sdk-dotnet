@@ -217,7 +217,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $rid = if ($IsWindows) { "win-x64" } else { "linux-x64" }
           $out = Join-Path $env:RUNNER_TEMP "aotcli"
-          & dotnet publish playground/AotCli --configuration Release --runtime $rid --output $out
+          & dotnet publish playground/aotcli/OpenCode.Playground.AotCli --configuration Release --runtime $rid --output $out
           if ($LASTEXITCODE -ne 0) { throw "The AotCli publish exited with $LASTEXITCODE." }
 
           # A scratch repository with one commit and one change, so the branch and the change are known.
@@ -253,7 +253,7 @@ jobs:
           $work = Join-Path $env:RUNNER_TEMP "worker-cwd"
           $null = New-Item -ItemType Directory -Force -Path $work
           $log = Join-Path $env:GITHUB_WORKSPACE "TestResults/consumer-leg/worker.log"
-          $worker = Start-Process -FilePath "dotnet" -ArgumentList "run", "--project", (Join-Path $env:GITHUB_WORKSPACE "playground/Worker"), "--configuration", "Release" -WorkingDirectory $work -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err"
+          $worker = Start-Process -FilePath "dotnet" -ArgumentList "run", "--project", (Join-Path $env:GITHUB_WORKSPACE "playground/worker/OpenCode.Playground.Worker"), "--configuration", "Release" -WorkingDirectory $work -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err"
           $null = $worker.Handle # keeps the exit code readable after the process ends
           try {
             $started = $null

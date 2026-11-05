@@ -7,7 +7,7 @@ On a first read, skip `FreeModel.cs`: it waits out the server's startup.
 From any folder with nothing private in it, with the [playground prerequisites](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/README.md#prerequisites):
 
 ```sh
-dotnet run --project "<path-to-clone>/playground/QuickStart"
+dotnet run --project "<path-to-clone>/playground/quickstart/OpenCode.Playground.QuickStart"
 ```
 
 The sample uses a project reference. In your own app, install the SDK instead:

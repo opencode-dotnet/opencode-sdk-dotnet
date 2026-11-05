@@ -7,7 +7,7 @@ Publish it as a native executable, then run it on a folder, the current one by d
 [playground prerequisites](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/README.md#prerequisites):
 
 ```sh
-dotnet publish "<path-to-clone>/playground/AotCli" -c Release -r <rid> -o aotcli
+dotnet publish "<path-to-clone>/playground/aotcli/OpenCode.Playground.AotCli" -c Release -r <rid> -o aotcli
 ./aotcli/OpenCode.Playground.AotCli <repository>
 ```
 
@@ -15,7 +15,7 @@ dotnet publish "<path-to-clone>/playground/AotCli" -c Release -r <rid> -o aotcli
 without the native build:
 
 ```sh
-dotnet run --project "<path-to-clone>/playground/AotCli" -- <repository>
+dotnet run --project "<path-to-clone>/playground/aotcli/OpenCode.Playground.AotCli" -- <repository>
 ```
 
 The sample uses a project reference. In your own app, install the SDK instead:

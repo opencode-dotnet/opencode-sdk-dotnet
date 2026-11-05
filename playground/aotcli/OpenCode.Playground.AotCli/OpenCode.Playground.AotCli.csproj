@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../src/OpenCode.Sdk/OpenCode.Sdk.csproj" />
+    <ProjectReference Include="../../../src/OpenCode.Sdk/OpenCode.Sdk.csproj" />
   </ItemGroup>
 
 </Project>
