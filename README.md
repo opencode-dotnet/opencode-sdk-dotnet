@@ -375,7 +375,7 @@ Got questions or wild feature ideas?
 
 👉 Blank issues are disabled. Use the [missing-operation form](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new?template=operation_gap.yml)
 for a missing operation; use the [bug form](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/new?template=bug_report.yml)
-for anything else, including questions and ideas, and say when it is an idea. A vulnerability goes through a private advisory instead, as [SECURITY.md](.github/SECURITY.md) says.
+for anything else, including questions and ideas, and say when it is an idea. A vulnerability goes through a private advisory instead, as [SECURITY.md](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/.github/SECURITY.md) says.
 
 ## Changelog
 
