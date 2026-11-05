@@ -128,7 +128,7 @@ internal static class SessionUsageUpdatedDataJsonReader
             throw new JsonException("A non-nullable member was null.");
         }
 
-        state.value2 = UnionMemberReader.Read<TokenUsageInfo>(ref reader, options);
+        state.value2 = TokenUsageInfoJsonReader.Read(ref reader, options);
         state.present0 |= 4UL;
         return true;
     }

@@ -1,6 +1,6 @@
 # Known union variants are read by generated readers, with source-generated metadata as their oracle
 
-Date: 2026-11-04
+Date: 2026-11-05
 
 A known variant of a generated union, and a record nested beneath a variant of the message, event and
 session-log unions, is materialized by a reader the generator emits for that record, not by
@@ -60,7 +60,8 @@ do.
   configuration and error-channel unions, whose real-use rows fall below the conversion bar;
   `ISessionLogItem`, below the bar on the default CLI profile, measured again if durable logs become
   the default; and the `IEvent` variants that no captured traffic carries, measured again if one
-  starts to appear in real use.
+  starts to appear in real use; and the records nested beneath converted variants that real use
+  doesn't carry, measured again if a real-use row starts to hold them.
 
 The decision takes effect variant by variant. Until the change that converts a variant merges, that
 variant keeps metadata, and canon describes it so.

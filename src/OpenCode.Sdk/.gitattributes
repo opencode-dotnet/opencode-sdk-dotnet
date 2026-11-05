@@ -671,6 +671,7 @@
 /LanguageModels/Internal/ModelMaxTokensFieldJsonConverter.cs linguist-generated
 /LanguageModels/Internal/ModelMediaInputJsonConverter.cs linguist-generated
 /LanguageModels/Internal/ModelReasoningFieldJsonConverter.cs linguist-generated
+/LanguageModels/Internal/ModelRefJsonReader.cs linguist-generated
 /LanguageModels/Internal/ModelTypeJsonConverter.cs linguist-generated
 /LanguageModels/Internal/ModelUpdatedJsonReader.cs linguist-generated
 /LanguageModels/Internal/ModelsDevRefreshedJsonReader.cs linguist-generated
@@ -777,6 +778,7 @@
 /Permissions/Internal/PermissionSavedRemoveResponseAdapter.cs linguist-generated
 /Permissions/Internal/PermissionSavedUpdateResponseAdapter.cs linguist-generated
 /Permissions/Internal/PermissionSavedUpdateResponseEnvelope.cs linguist-generated
+/Permissions/Internal/PermissionSourceToolJsonReader.cs linguist-generated
 /Permissions/Models/PermissionAsked.cs linguist-generated
 /Permissions/Models/PermissionAskedData.cs linguist-generated
 /Permissions/Models/PermissionEffect.cs linguist-generated
@@ -1095,6 +1097,7 @@
 /Sessions/Internal/SessionMessageAssistantReasoningJsonReader.cs linguist-generated
 /Sessions/Internal/SessionMessageAssistantReasoningTimeJsonReader.cs linguist-generated
 /Sessions/Internal/SessionMessageAssistantTextJsonReader.cs linguist-generated
+/Sessions/Internal/SessionMessageAssistantTimeJsonReader.cs linguist-generated
 /Sessions/Internal/SessionMessageAssistantToolJsonReader.cs linguist-generated
 /Sessions/Internal/SessionMessageAssistantToolTimeJsonReader.cs linguist-generated
 /Sessions/Internal/SessionMessageCompactionCompletedReasonJsonConverter.cs linguist-generated
@@ -1191,6 +1194,8 @@
 /Sessions/Internal/SessionUsageUpdatedDataJsonReader.cs linguist-generated
 /Sessions/Internal/SessionUsageUpdatedJsonReader.cs linguist-generated
 /Sessions/Internal/SessionViewResponseAdapter.cs linguist-generated
+/Sessions/Internal/TokenUsageInfoCacheJsonReader.cs linguist-generated
+/Sessions/Internal/TokenUsageInfoJsonReader.cs linguist-generated
 /Sessions/Internal/ToolContentJsonConverter.cs linguist-generated
 /Sessions/Internal/ToolFileContentJsonReader.cs linguist-generated
 /Sessions/Internal/ToolTextContentJsonReader.cs linguist-generated

@@ -23,6 +23,34 @@ public sealed class EventReaderParityTests
 
     public static IEnumerable<string> Turns() => ["turn-1-short-question.jsonl", "turn-2-coding-read-write.jsonl", "turn-3-multi-step.jsonl"];
 
+    public static IEnumerable<string> NestedRecords()
+    {
+        foreach (var site in new[] { "session.step.started/data/model", "session.step.ended/data/tokens",
+                     "session.step.ended/data/tokens/cache", "permission.asked/data/source" })
+        {
+            var parts = site.Split('/');
+            foreach (var row in ToolUnionCaseBuilder.NestedRows(Seed(parts[0]), string.Join('/', parts.Skip(1))))
+            {
+                yield return parts[0] + "/" + row;
+            }
+        }
+    }
+
+    [Test]
+    [MethodDataSource(nameof(NestedRecords))]
+    public async Task Read_Should_Match_Metadata_For_Nested_Event_Records(string row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        var parts = row.Split('/');
+        var bytes = await ToolUnionCaseBuilder.ChangeAtAsync(Seed(parts[0]), string.Join('/', parts.Skip(1).Take(parts.Length - 2)), parts[^1]);
+        await PromptEventReaderParityTests.CompareAsync(bytes, row);
+        if (row == "session.step.ended/data/tokens/cache/write/omit")
+        {
+            await Assert.That(UnionReaderParityTests.Observe(bytes, false, OpenCodeJsonContext.Default, root: typeof(IEvent)).Phase)
+                .IsEqualTo("read").Because(row);
+        }
+    }
+
     public static IEnumerable<string> Gaps() => Arms().SelectMany(static arm => new[] { arm + "/id/null-required",
         arm + "/id/null-then-valid", arm + "/metadata/null-optional", arm + "/location/null-optional" });
 
@@ -271,23 +299,5 @@ public sealed class EventReaderParityTests
     }
 
     private static Task<byte[]> ReplaceDataAsync(JsonElement seed, string key, Action<Utf8JsonWriter> write) =>
-        ToolUnionCaseBuilder.ReplaceAsync(seed, "data", writer => WriteData(writer, seed.GetProperty("data"), key, write));
-
-    private static void WriteData(Utf8JsonWriter writer, JsonElement data, string key, Action<Utf8JsonWriter> write)
-    {
-        writer.WriteStartObject();
-        foreach (var child in data.EnumerateObject())
-        {
-            writer.WritePropertyName(child.Name);
-            if (child.Name == key)
-            {
-                write(writer);
-            }
-            else
-            {
-                child.Value.WriteTo(writer);
-            }
-        }
-        writer.WriteEndObject();
-    }
+        ToolUnionCaseBuilder.ReplaceAsync(seed, "data/" + key, write);
 }

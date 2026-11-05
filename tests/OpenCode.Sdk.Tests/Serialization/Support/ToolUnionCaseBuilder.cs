@@ -9,6 +9,8 @@ namespace OpenCode.Sdk.Tests.Serialization.Support;
 
 internal static class ToolUnionCaseBuilder
 {
+    private static readonly string[] NestedChanges = ["omit", "null", "wrong", "null-first", "different-first", "different-last"];
+
     internal static IReadOnlyList<JsonElement> Seeds(bool state)
     {
         using var document = JsonDocument.Parse(new FixtureLoader().LoadJson(
@@ -113,13 +115,54 @@ internal static class ToolUnionCaseBuilder
     {
         var buffer = new ArrayBufferWriter<byte>();
         await using var writer = new Utf8JsonWriter(buffer);
+        WriteAt(writer, seed, key.Split('/'), 0, write);
+        await writer.FlushAsync();
+        return buffer.WrittenSpan.ToArray();
+    }
+
+    internal static async Task<byte[]> ChangeAtAsync(JsonElement seed, string path, string change)
+    {
+        var keys = path.Split('/');
+        var parent = seed;
+        foreach (var key in keys.Take(keys.Length - 1))
+        {
+            parent = parent.GetProperty(key);
+        }
+        using var changed = JsonDocument.Parse(await ChangeAsync(parent, keys[^1], change));
+        return keys.Length == 1 ? Bytes(changed.RootElement)
+            : await ReplaceAsync(seed, string.Join('/', keys.Take(keys.Length - 1)), changed.RootElement.WriteTo);
+    }
+
+    internal static IEnumerable<JsonProperty> MembersAt(JsonElement seed, string path)
+    {
+        foreach (var key in path.Split('/'))
+        {
+            seed = seed.GetProperty(key);
+        }
+        return seed.EnumerateObject();
+    }
+
+    internal static IEnumerable<string> NestedRows(JsonElement seed, string path) =>
+        new[] { path }.Concat(MembersAt(seed, path).Select(member => path + "/" + member.Name))
+            .SelectMany(static member => NestedChanges
+                .Select(change => member + "/" + change));
+
+    private static void WriteAt(Utf8JsonWriter writer, JsonElement seed, IReadOnlyList<string> keys, int index, Action<Utf8JsonWriter> write)
+    {
         writer.WriteStartObject();
         foreach (var member in seed.EnumerateObject())
         {
             writer.WritePropertyName(member.Name);
-            if (member.Name == key)
+            if (member.Name == keys[index])
             {
-                write(writer);
+                if (index == keys.Count - 1)
+                {
+                    write(writer);
+                }
+                else
+                {
+                    WriteAt(writer, member.Value, keys, index + 1, write);
+                }
             }
             else
             {
@@ -127,8 +170,6 @@ internal static class ToolUnionCaseBuilder
             }
         }
         writer.WriteEndObject();
-        await writer.FlushAsync();
-        return buffer.WrittenSpan.ToArray();
     }
 
     private static void Different(Utf8JsonWriter writer, JsonElement value)

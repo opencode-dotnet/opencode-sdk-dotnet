@@ -76,7 +76,7 @@ internal sealed class RecordCorpusGenerator
 
         _choices = new Dictionary<string, string>(StringComparer.Ordinal);
         var maximalRow = rows.Single(row => row.Name == label + "/maximal");
-        await AddVariationsAsync(rows, maximalRow, model, label);
+        await AddVariationsAsync(rows, maximalRow, model, label, []);
         if (route is not null)
         {
             var unknown = route.MarkerKind == LiteralKind.Boolean
@@ -96,21 +96,26 @@ internal sealed class RecordCorpusGenerator
         return union.ConceptName + "/" + tag;
     }
 
-    private static async Task AddVariationsAsync(List<RecordCorpusRow> rows, RecordCorpusRow seed, ObjectModelPlan model, string label)
+    private async Task AddVariationsAsync(List<RecordCorpusRow> rows, RecordCorpusRow seed, ObjectModelPlan model, string label, string[] path)
     {
         using var document = JsonDocument.Parse(seed.Json);
+        var current = document.RootElement;
+        foreach (var key in path)
+        {
+            current = current.GetProperty(key);
+        }
         foreach (var member in model.Properties.Where(property =>
                      !model.ChainMarkers.Any(marker => marker.WireName == property.WireName && marker.Prefix is null)))
         {
             var key = member.WireName;
-            if (!document.RootElement.TryGetProperty(key, out var value))
+            if (!current.TryGetProperty(key, out var value))
             {
                 continue; // A recursive optional edge's finite exit is absence.
             }
 
             if (member.IsRequired)
             {
-                rows.Add(seed with { Name = $"{label}/missing/{key}", Json = await VaryAsync(seed.Json, key, "omit", default), IsSeed = false });
+                rows.Add(seed with { Name = $"{label}/missing/{key}", Json = await VaryAsync(seed.Json, string.Join('/', path.Append(key)), "omit", default), IsSeed = false });
             }
 
             foreach (var change in new[] { "null", "wrong-token", "duplicate", "null-then-valid" })
@@ -132,22 +137,39 @@ internal sealed class RecordCorpusGenerator
                             writer.WriteStringValue("wrong-token");
                         }
                     }
-                    else if (value.ValueKind == JsonValueKind.String)
-                    {
-                        writer.WriteStringValue("first." + key);
-                    }
                     else
                     {
-                        value.WriteTo(writer);
+                        WriteElement(writer, value, different: true);
                     }
                 });
-                rows.Add(seed with { Name = $"{label}/{change}/{key}", Json = await VaryAsync(seed.Json, key, change, replacement), IsSeed = false });
+                rows.Add(seed with { Name = $"{label}/{change}/{key}", Json = await VaryAsync(seed.Json, string.Join('/', path.Append(key)), change, replacement), IsSeed = false });
             }
         }
 
         foreach (var order in new[] { "reordered", "escaped" })
         {
-            rows.Add(seed with { Name = $"{label}/{order}", Json = await VaryAsync(seed.Json, "", order, default), IsSeed = false });
+            rows.Add(seed with { Name = $"{label}/{order}", Json = await VaryAsync(seed.Json, string.Join('/', path), order, default), IsSeed = false });
+        }
+        foreach (var marker in model.ChainMarkers.Where(static marker => marker.Prefix is null).Select(static marker => marker.WireName))
+        {
+            foreach (var change in new[] { "omit", "null" })
+            {
+                rows.Add(seed with
+                {
+                    Name = $"{label}/{change}-marker/{marker}",
+                    IsSeed = false,
+                    Json = await VaryAsync(seed.Json, string.Join('/', path.Append(marker)), change,
+                        await ElementAsync(static writer => writer.WriteNullValue()))
+                });
+            }
+        }
+        foreach (var member in model.Properties)
+        {
+            if (member.Type is NamedTypeReferencePlan named && _models.GetValueOrDefault(named.Name) is ObjectModelPlan nested
+                && current.TryGetProperty(member.WireName, out var value) && value.ValueKind == JsonValueKind.Object)
+            {
+                await AddVariationsAsync(rows, seed, nested, label + "/" + member.WireName, [.. path, member.WireName]);
+            }
         }
     }
 
@@ -263,7 +285,7 @@ internal sealed class RecordCorpusGenerator
             switch (model)
             {
                 case ObjectModelPlan record: WriteRecord(writer, record, path, stack); break;
-                case EnumModelPlan enumeration: writer.WriteStringValue(enumeration.Values[0].WireValue); break;
+                case EnumModelPlan enumeration: writer.WriteStringValue(enumeration.Values[_maximal ? enumeration.Values.Count - 1 : 0].WireValue); break;
                 case StructuralUnionModelPlan structural:
                     var choice = Choose(path, [.. structural.Arms.Select(static arm => arm.Name)]);
                     var arm = structural.Arms.Single(arm => arm.Name == choice);
@@ -276,7 +298,7 @@ internal sealed class RecordCorpusGenerator
         switch (name)
         {
             case "string": case "Uri": writer.WriteStringValue(path); break;
-            case "bool": writer.WriteBooleanValue(true); break;
+            case "bool": writer.WriteBooleanValue(_maximal); break;
             case "long":
             case "int":
             case "double":
@@ -296,7 +318,7 @@ internal sealed class RecordCorpusGenerator
 
     private int Number(string path)
     {
-        _ = _numbers.TryAdd(path, _numbers.Count + 1);
+        _ = _numbers.TryAdd(path, 1009 + (_numbers.Count * 17));
         return _numbers[path];
     }
 
@@ -337,47 +359,94 @@ internal sealed class RecordCorpusGenerator
     internal static async Task<byte[]> VaryAsync(byte[] json, string key, string change, JsonElement replacement)
     {
         using var document = JsonDocument.Parse(json);
-        return await BuildAsync(writer =>
+        var keys = key.Length == 0 ? [] : key.Split('/');
+        return await BuildAsync(writer => WriteVariation(writer, document.RootElement, keys, change, replacement));
+    }
+
+    private static void WriteVariation(Utf8JsonWriter writer, JsonElement value, string[] path, string change, JsonElement replacement)
+    {
+        var key = path.Length == 0 ? "" : path[0];
+        var atObject = path.Length == 0;
+        writer.WriteStartObject();
+        var members = value.EnumerateObject().ToArray();
+        foreach (var member in atObject && change == "reordered" ? members.Reverse() : members)
         {
-            writer.WriteStartObject();
-            var members = document.RootElement.EnumerateObject().ToArray();
-            foreach (var member in change == "reordered" ? members.Reverse() : members)
+            if (member.Name == key && (path.Length > 1 || change is "reordered" or "escaped"))
             {
-                if (member.Name == key && change == "omit")
-                {
-                    continue;
-                }
-
-                if (member.Name == key && change is "duplicate" or "null-then-valid")
-                {
-                    writer.WritePropertyName(key);
-                    replacement.WriteTo(writer);
-                }
-                if (change == "escaped")
-                {
-                    writer.WritePropertyName(JsonEncodedText.Encode(member.Name, JavaScriptEncoder.Create(UnicodeRanges.None)));
-                }
-                else
-                {
-                    writer.WritePropertyName(member.Name);
-                }
-
-                if (member.Name == key && change is "null" or "wrong-token" or "replace")
-                {
-                    replacement.WriteTo(writer);
-                }
-                else
-                {
-                    member.Value.WriteTo(writer);
-                }
+                writer.WritePropertyName(member.Name);
+                WriteVariation(writer, member.Value, [.. path.Skip(1)], change, replacement);
+                continue;
             }
-            if (change == "append")
+            if (member.Name == key && change == "omit")
+            {
+                continue;
+            }
+            if (member.Name == key && change is "duplicate" or "null-then-valid")
             {
                 writer.WritePropertyName(key);
-                replacement.WriteTo(writer);
+                WriteElement(writer, replacement);
             }
-            writer.WriteEndObject();
-        });
+            writer.WritePropertyName(atObject && change == "escaped"
+                ? JsonEncodedText.Encode(member.Name, JavaScriptEncoder.Create(UnicodeRanges.None)) : JsonEncodedText.Encode(member.Name));
+            WriteElement(writer, member.Name == key && change is "null" or "wrong-token" or "replace" ? replacement : member.Value,
+                escaped: atObject && change == "escaped");
+        }
+        if (change == "append" && path.Length <= 1)
+        {
+            writer.WritePropertyName(key);
+            WriteElement(writer, replacement);
+        }
+        writer.WriteEndObject();
+    }
+
+    private static void WriteElement(Utf8JsonWriter writer, JsonElement value, bool escaped = false, bool different = false)
+    {
+        switch (value.ValueKind)
+        {
+            case JsonValueKind.Object:
+                writer.WriteStartObject();
+                foreach (var member in value.EnumerateObject())
+                {
+                    writer.WritePropertyName(escaped ? JsonEncodedText.Encode(member.Name, JavaScriptEncoder.Create(UnicodeRanges.None)) : JsonEncodedText.Encode(member.Name));
+                    WriteElement(writer, member.Value, escaped, different);
+                }
+                if (different && !value.EnumerateObject().Any())
+                {
+                    writer.WriteNull("first");
+                }
+                writer.WriteEndObject();
+                break;
+            case JsonValueKind.Array:
+                writer.WriteStartArray();
+                foreach (var item in value.EnumerateArray())
+                {
+                    WriteElement(writer, item, escaped, different);
+                }
+                if (different && value.GetArrayLength() == 0)
+                {
+                    writer.WriteNullValue();
+                }
+                writer.WriteEndArray();
+                break;
+            case JsonValueKind.String:
+                // String tokens always carry a non-null string value.
+                var text = different ? "Zmlyc3Q=" : value.GetString()!;
+                writer.WriteStringValue(escaped ? JsonEncodedText.Encode(text, JavaScriptEncoder.Create(UnicodeRanges.None)) : JsonEncodedText.Encode(text));
+                break;
+            case JsonValueKind.Number:
+                if (value.TryGetInt64(out var integer))
+                {
+                    writer.WriteNumberValue(different ? integer + 1009 : integer);
+                }
+                else
+                {
+                    writer.WriteNumberValue(value.GetDouble() + (different ? 1009.375 : 0));
+                }
+                break;
+            case JsonValueKind.True: case JsonValueKind.False: writer.WriteBooleanValue(value.GetBoolean() != different); break;
+            case JsonValueKind.Null: writer.WriteNullValue(); break;
+            default: throw new InvalidOperationException("No corpus value for " + value.ValueKind);
+        }
     }
 
     internal static async Task<JsonElement> ElementAsync(Action<Utf8JsonWriter> write)

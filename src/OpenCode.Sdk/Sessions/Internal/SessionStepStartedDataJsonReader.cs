@@ -162,7 +162,7 @@ internal static class SessionStepStartedDataJsonReader
             throw new JsonException("A non-nullable member was null.");
         }
 
-        state.value3 = UnionMemberReader.Read<ModelRef>(ref reader, options);
+        state.value3 = ModelRefJsonReader.Read(ref reader, options);
         state.present0 |= 8UL;
         return true;
     }

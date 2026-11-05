@@ -1,6 +1,6 @@
 # Protocol and Generation Architecture
 
-Date: 2026-11-04
+Date: 2026-11-05
 
 Canonical current rules for the protocol surface, generator, generated models, and runtime
 materialization boundary. ADRs record why these decisions were made; dated research records the
@@ -352,8 +352,10 @@ materializable.
   union, the other known variants, and these records where another union lists them use their own
   source-generated metadata converter. Beneath those `IEvent` variants, their `Data`, `Durable` and
   `Location` records, and beneath the assistant's tool and reasoning parts, their `Time` records,
-  are read by generated readers too; every other nested record retains its metadata converter. The
-  scan remains safe when serializer stream
+  are read by generated readers too, and so are records one level deeper: the event data's
+  `ModelRef`, `LocationRef`, `TokenUsageInfo` (with its `Cache`) and `PermissionSourceTool`, and
+  the assistant message's `Time`, `ModelRef` and `TokenUsageInfo`. Every other nested record
+  retains its metadata converter. The scan remains safe when serializer stream
   entry points supply a partial reader, and known arms do not build a JSON DOM.
   Unknown arms retain the DOM needed by their lossless carrier, including a stream payload recovered
   after its known arm could not materialize. Direct union deserialization keeps the known-arm

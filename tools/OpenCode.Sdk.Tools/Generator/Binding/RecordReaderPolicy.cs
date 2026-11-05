@@ -41,6 +41,13 @@ internal static class RecordReaderPolicy
     public static IReadOnlyDictionary<string, IReadOnlySet<string>> NestedCallSites { get; } =
         new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal)
         {
+            ["SessionMessageAssistant"] = new HashSet<string>(StringComparer.Ordinal) { "Time", "Model", "Tokens" },
+            ["SessionStepStartedData"] = new HashSet<string>(StringComparer.Ordinal) { "Model" },
+            ["SessionCreatedData"] = new HashSet<string>(StringComparer.Ordinal) { "Model", "Location" },
+            ["SessionStepEndedData"] = new HashSet<string>(StringComparer.Ordinal) { "Tokens" },
+            ["SessionUsageUpdatedData"] = new HashSet<string>(StringComparer.Ordinal) { "Tokens" },
+            ["PermissionAskedData"] = new HashSet<string>(StringComparer.Ordinal) { "Source" },
+            ["TokenUsageInfo"] = new HashSet<string>(StringComparer.Ordinal) { "Cache" },
             ["SessionMessageAssistantTool"] = new HashSet<string>(StringComparer.Ordinal) { "Time" },
             ["SessionMessageAssistantReasoning"] = new HashSet<string>(StringComparer.Ordinal) { "Time" },
             ["SessionTextDelta"] = new HashSet<string>(StringComparer.Ordinal) { "Data", "Location" },
@@ -115,8 +122,14 @@ internal static class RecordReaderPolicy
         }
 
         var collected = errors ?? new BindingErrorCollector();
-        SelectNested(objects, selected, callSites ?? NestedCallSites.Where(site => selected.ContainsKey(site.Key))
-            .ToDictionary(static site => site.Key, static site => site.Value, StringComparer.Ordinal), collected);
+        SelectNested(objects, selected, callSites ?? NestedCallSites, collected);
+        foreach (var (record, members) in callSites?.Where(site => !selected.ContainsKey(site.Key)) ?? [])
+        {
+            foreach (var member in members)
+            {
+                AddNestedError(collected, record, member);
+            }
+        }
         if (errors is null)
         {
             collected.ThrowIfAny();
@@ -128,22 +141,31 @@ internal static class RecordReaderPolicy
     private static void SelectNested(Dictionary<string, ObjectModelPlan> objects,
         SortedDictionary<string, ObjectModelPlan> selected, IReadOnlyDictionary<string, IReadOnlySet<string>> callSites, BindingErrorCollector errors)
     {
-        var armRecords = selected.Keys.ToHashSet(StringComparer.Ordinal);
-        foreach (var (record, members) in callSites)
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        int previousCount;
+        do
         {
-            foreach (var member in members)
+            previousCount = selected.Count;
+            foreach (var (record, members) in callSites.Where(site => selected.ContainsKey(site.Key) && visited.Add(site.Key)))
             {
-                var property = objects.GetValueOrDefault(record)?.Properties.SingleOrDefault(property => property.Name == member);
-                if (!armRecords.Contains(record) || property?.Type is not NamedTypeReferencePlan named || property.EmitsOptionalWrapper
-                    || !objects.TryGetValue(named.Name, out var nested) || nested.EmitsExtensionData)
+                foreach (var member in members)
                 {
-                    errors.Add(BindingErrorCategory.Naming, record,
-                        $"Nested reader call site '{record}.{member}' must name a direct closed-record member of a selected record.");
-                    continue;
-                }
+                    var property = objects[record].Properties.SingleOrDefault(property => property.Name == member);
+                    if (property?.Type is not NamedTypeReferencePlan named || property.EmitsOptionalWrapper
+                        || !objects.TryGetValue(named.Name, out var nested) || nested.EmitsExtensionData)
+                    {
+                        AddNestedError(errors, record, member);
+                        continue;
+                    }
 
-                selected[nested.Name] = nested;
+                    selected[nested.Name] = nested;
+                }
             }
         }
+        while (selected.Count != previousCount);
     }
+
+    private static void AddNestedError(BindingErrorCollector errors, string record, string member) =>
+        errors.Add(BindingErrorCategory.Naming, record,
+            $"Nested reader call site '{record}.{member}' must name a direct closed-record member of a selected record.");
 }

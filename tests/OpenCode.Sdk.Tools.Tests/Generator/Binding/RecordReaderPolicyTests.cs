@@ -24,7 +24,7 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
         var armNames = pinned.Plan.ReaderArms.Values.SelectMany(static names => names).ToHashSet(StringComparer.Ordinal);
         foreach (var record in RecordReaderPolicy.NestedCallSites.Keys)
         {
-            await Assert.That(armNames).Contains(record);
+            await Assert.That(pinned.Plan.ReaderRecords.Keys).Contains(record);
         }
         var selected = RecordReaderPolicy.Select(pinned.Plan.Models, pinned.Plan.Unions, out _,
             callSites: RecordReaderPolicy.NestedCallSites);
@@ -73,7 +73,7 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
     [Test]
     [Arguments(false)]
     [Arguments(true)]
-    public async Task Select_Should_Refuse_A_Call_Site_On_A_Nested_Record_In_Either_Order(bool reverse)
+    public async Task Select_Should_Reach_A_Depth_Two_Call_Site_In_Either_Order(bool reverse)
     {
         var plan = RecordReaderPlanFixture.CreateNested();
         var entries = new KeyValuePair<string, IReadOnlySet<string>>[]
@@ -83,12 +83,32 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
         };
         var sites = (reverse ? entries.Reverse() : entries).ToDictionary(static entry => entry.Key, static entry => entry.Value, StringComparer.Ordinal);
         var models = plan.Models.Select(model => model is ObjectModelPlan { Name: "NestedValue" } record
-            ? record with { Properties = [Property("note", Named("NestedValue", true), false)] } : model).ToArray();
-        var exception = await Assert.That(() => RecordReaderPolicy.Select(models, plan.Unions, out _, RecordReaderPlanFixture.Rollout, sites))
+            ? record with { Properties = [Property("note", Named("ExampleItem", true), false)] } : model).ToArray();
+        var selected = RecordReaderPolicy.Select(models, plan.Unions, out _, RecordReaderPlanFixture.Rollout, sites);
+        await Assert.That(selected.Keys).IsEquivalentTo(["DenseRecord", "ExampleItem", "NestedRecord", "NestedValue", "SiblingRecord"], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Select_Should_Refuse_An_Explicit_Unreached_Key()
+    {
+        var plan = RecordReaderPlanFixture.CreateNested();
+        var sites = new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal)
+        {
+            ["NestedValue"] = new HashSet<string>(StringComparer.Ordinal) { "Note" },
+        };
+        var exception = await Assert.That(() => RecordReaderPolicy.Select(plan.Models, plan.Unions, out _, RecordReaderPlanFixture.Rollout, sites))
             .Throws<BindingException>();
         await Assert.That(exception!.Errors).IsEquivalentTo([
             new BindingError(BindingErrorCategory.Naming, "NestedValue", "Nested reader call site 'NestedValue.Note' must name a direct closed-record member of a selected record."),
         ], CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Select_Should_Drop_An_Unreached_Default_Key()
+    {
+        var plan = RecordReaderPlanFixture.CreateNested();
+        var selected = RecordReaderPolicy.Select(plan.Models, plan.Unions, out _, RecordReaderPlanFixture.Rollout);
+        await Assert.That(selected.Keys).IsEquivalentTo(["DenseRecord", "NestedRecord", "SiblingRecord"], CollectionOrdering.Matching);
     }
 
     [Test]
@@ -277,34 +297,39 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
     ];
 
     private static string[] ExpectedNestedReaders() => [
-        "LocationPublicRef", "LocationRef", "McpResourcesChangedData", "McpStatusChangedData", "PermissionAskedData", "PermissionRepliedData", "ProjectUpdatedData",
+        "LocationPublicRef", "LocationRef", "McpResourcesChangedData", "McpStatusChangedData", "ModelRef", "PermissionAskedData", "PermissionRepliedData", "PermissionSourceTool", "ProjectUpdatedData",
         "SessionCreatedData", "SessionCreatedDurable", "SessionExecutionStartedData", "SessionExecutionStartedDurable",
         "SessionExecutionSucceededData", "SessionExecutionSucceededDurable", "SessionInboxDeliveredData", "SessionInboxDeliveredDurable",
         "SessionInboxEnqueuedData", "SessionInboxEnqueuedDurable", "SessionInstructionsUpdatedData", "SessionInstructionsUpdatedDurable",
-        "SessionMessageAssistantReasoningTime", "SessionMessageAssistantToolTime", "SessionReasoningDeltaData", "SessionReasoningEndedData",
+        "SessionMessageAssistantReasoningTime", "SessionMessageAssistantTime", "SessionMessageAssistantToolTime", "SessionReasoningDeltaData", "SessionReasoningEndedData",
         "SessionReasoningEndedDurable", "SessionReasoningStartedData", "SessionReasoningStartedDurable", "SessionStepEndedData", "SessionStepEndedDurable",
         "SessionStepStartedData", "SessionStepStartedDurable", "SessionStepStreamedData", "SessionStepStreamedDurable", "SessionTextDeltaData",
         "SessionTextEndedData", "SessionTextEndedDurable", "SessionTextStartedData", "SessionTextStartedDurable", "SessionToolCalledData", "SessionToolCalledDurable",
         "SessionToolInputDeltaData", "SessionToolInputEndedData", "SessionToolInputEndedDurable", "SessionToolInputStartedData", "SessionToolInputStartedDurable",
-        "SessionToolSuccessData", "SessionToolSuccessDurable", "SessionUsageUpdatedData", "VcsBranchUpdatedData",
+        "SessionToolSuccessData", "SessionToolSuccessDurable", "SessionUsageUpdatedData", "TokenUsageInfo", "TokenUsageInfoCache", "VcsBranchUpdatedData",
     ];
 
     private static string[] ExpectedCallSites() => [
         "AgentUpdated.Location", "CommandUpdated.Location", "EventServerConnected.Location", "IntegrationUpdated.Location",
         "McpResourcesChanged.Data", "McpResourcesChanged.Location", "McpStatusChanged.Data", "McpStatusChanged.Location",
         "ModelUpdated.Location", "ModelsDevRefreshed.Location", "PermissionAsked.Data", "PermissionAsked.Location",
+        "PermissionAskedData.Source",
         "PermissionReplied.Data", "PermissionReplied.Location", "PluginUpdated.Location", "ProjectUpdated.Data", "ProjectUpdated.Location",
         "ProviderUpdated.Location", "ReferenceUpdated.Location", "SessionCreated.Data", "SessionCreated.Durable", "SessionCreated.Location",
+        "SessionCreatedData.Location", "SessionCreatedData.Model",
         "SessionExecutionStarted.Data", "SessionExecutionStarted.Durable", "SessionExecutionStarted.Location",
         "SessionExecutionSucceeded.Data", "SessionExecutionSucceeded.Durable", "SessionExecutionSucceeded.Location",
         "SessionInboxDelivered.Data", "SessionInboxDelivered.Durable", "SessionInboxDelivered.Location",
         "SessionInboxEnqueued.Data", "SessionInboxEnqueued.Durable", "SessionInboxEnqueued.Location",
         "SessionInstructionsUpdated.Data", "SessionInstructionsUpdated.Durable", "SessionInstructionsUpdated.Location",
+        "SessionMessageAssistant.Model", "SessionMessageAssistant.Time", "SessionMessageAssistant.Tokens",
         "SessionMessageAssistantReasoning.Time", "SessionMessageAssistantTool.Time", "SessionReasoningDelta.Data", "SessionReasoningDelta.Location",
         "SessionReasoningEnded.Data", "SessionReasoningEnded.Durable", "SessionReasoningEnded.Location",
         "SessionReasoningStarted.Data", "SessionReasoningStarted.Durable", "SessionReasoningStarted.Location",
         "SessionStepEnded.Data", "SessionStepEnded.Durable", "SessionStepEnded.Location",
+        "SessionStepEndedData.Tokens",
         "SessionStepStarted.Data", "SessionStepStarted.Durable", "SessionStepStarted.Location",
+        "SessionStepStartedData.Model",
         "SessionStepStreamed.Data", "SessionStepStreamed.Durable", "SessionStepStreamed.Location", "SessionTextDelta.Data", "SessionTextDelta.Location",
         "SessionTextEnded.Data", "SessionTextEnded.Durable", "SessionTextEnded.Location",
         "SessionTextStarted.Data", "SessionTextStarted.Durable", "SessionTextStarted.Location",
@@ -312,7 +337,7 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
         "SessionToolInputEnded.Data", "SessionToolInputEnded.Durable", "SessionToolInputEnded.Location",
         "SessionToolInputStarted.Data", "SessionToolInputStarted.Durable", "SessionToolInputStarted.Location",
         "SessionToolSuccess.Data", "SessionToolSuccess.Durable", "SessionToolSuccess.Location", "SessionUsageUpdated.Data", "SessionUsageUpdated.Location",
-        "SkillUpdated.Location", "VcsBranchUpdated.Data", "VcsBranchUpdated.Location", "WebsearchUpdated.Location",
+        "SessionUsageUpdatedData.Tokens", "SkillUpdated.Location", "TokenUsageInfo.Cache", "VcsBranchUpdated.Data", "VcsBranchUpdated.Location", "WebsearchUpdated.Location",
     ];
 
 }

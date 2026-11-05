@@ -198,7 +198,7 @@ internal static class PermissionAskedDataJsonReader
     private static bool ReadSource(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
         AdvanceToValue(ref reader);
-        state.value6 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<PermissionSourceTool?>(ref reader, options);
+        state.value6 = reader.TokenType == JsonTokenType.Null ? default : PermissionSourceToolJsonReader.Read(ref reader, options);
         return true;
     }
 

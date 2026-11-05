@@ -8,6 +8,63 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Emission.Support;
 public sealed class RecordCorpusGeneratorTests
 {
     [Test]
+    public async Task GenerateAsync_Should_Vary_Nested_Members_Through_An_Arm_Route()
+    {
+        var rows = await RecordCorpusGenerator.GenerateAsync(RecordReaderPlanFixture.CreateNested(), ["NestedRecord"]);
+        await Assert.That(rows.Where(static row => row.Name.StartsWith("ToolContent/nested/child/", StringComparison.Ordinal)).Select(static row => row.Name))
+            .IsEquivalentTo([
+                "ToolContent/nested/child/missing/value", "ToolContent/nested/child/null/value", "ToolContent/nested/child/wrong-token/value",
+                "ToolContent/nested/child/duplicate/value", "ToolContent/nested/child/null-then-valid/value",
+                "ToolContent/nested/child/missing/text", "ToolContent/nested/child/null/text", "ToolContent/nested/child/wrong-token/text",
+                "ToolContent/nested/child/duplicate/text", "ToolContent/nested/child/null-then-valid/text",
+                "ToolContent/nested/child/null/note", "ToolContent/nested/child/wrong-token/note",
+                "ToolContent/nested/child/duplicate/note", "ToolContent/nested/child/null-then-valid/note",
+                "ToolContent/nested/child/reordered", "ToolContent/nested/child/escaped",
+            ], CollectionOrdering.Matching);
+        using var duplicate = JsonDocument.Parse(rows.Single(static row => row.Name == "ToolContent/nested/child/duplicate/value").Json);
+        await Assert.That(duplicate.RootElement.GetProperty("child").EnumerateObject().Where(static member => member.Name == "value")
+            .Select(static member => member.Value.GetInt64()).Distinct()).Count().IsEqualTo(2);
+        var escaped = System.Text.Encoding.UTF8.GetString(rows.Single(static row => row.Name == "ToolContent/nested/child/escaped").Json);
+        await Assert.That(escaped).Contains("\\u0076");
+        await Assert.That(escaped).Contains("\\u004E");
+    }
+
+    [Test]
+    public async Task GenerateAsync_Should_Use_Distinct_Duplicates_And_Strong_Sentinels()
+    {
+        var rows = await RecordCorpusGenerator.GenerateAsync(RecordReaderPlanFixture.Create(), ["DenseRecord"]);
+        var seeds = rows.Where(static row => row.Name is "ToolContent/dense/minimal" or "ToolContent/dense/maximal")
+            .Select(static row => JsonDocument.Parse(row.Json)).ToArray();
+        try
+        {
+            await Assert.That(seeds.Select(static seed => seed.RootElement.GetProperty("flag").GetBoolean()))
+                .IsEquivalentTo([false, true], CollectionOrdering.Matching);
+            await Assert.That(seeds.Select(static seed => seed.RootElement.GetProperty("mode").GetString()))
+                .IsEquivalentTo((string?[])["fast-mode", "safe"], CollectionOrdering.Matching);
+            await Assert.That(seeds[1].RootElement.GetProperty("strict").GetDouble()).IsGreaterThan(1000);
+        }
+        finally
+        {
+            foreach (var seed in seeds)
+            {
+                seed.Dispose();
+            }
+        }
+        foreach (var row in rows.Where(static row => row.Name.StartsWith("ToolContent/dense/duplicate/", StringComparison.Ordinal)))
+        {
+            using var document = JsonDocument.Parse(row.Json);
+            var key = row.Name.Split('/')[^1];
+            var values = document.RootElement.EnumerateObject().Where(member => member.Name == key).ToArray();
+            await Assert.That(values.Length).IsEqualTo(2).Because(row.Name);
+            await Assert.That(values[0].Value.GetRawText()).IsNotEqualTo(values[1].Value.GetRawText()).Because(row.Name);
+        }
+        using var missing = JsonDocument.Parse(rows.Single(static row => row.Name == "ToolContent/dense/omit-marker/kind").Json);
+        await Assert.That(missing.RootElement.EnumerateObject().Select(static member => member.Name)).DoesNotContain("kind");
+        using var nullMarker = JsonDocument.Parse(rows.Single(static row => row.Name == "ToolContent/dense/null-marker/kind").Json);
+        await Assert.That(nullMarker.RootElement.GetProperty("kind").ValueKind).IsEqualTo(JsonValueKind.Null);
+    }
+
+    [Test]
     public async Task GenerateAsync_Should_Cover_Every_Record_And_Containing_Union_Pair()
     {
         var plan = RecordReaderPlanFixture.Create();
@@ -134,6 +191,8 @@ public sealed class RecordCorpusGeneratorTests
         await Assert.That(rows.Select(static row => row.Name)).IsEquivalentTo([
             "Root/minimal", "Root/maximal", "Root/missing/child", "Root/null/child", "Root/wrong-token/child",
             "Root/duplicate/child", "Root/null-then-valid/child", "Root/reordered", "Root/escaped",
+            "Root/child/missing/value", "Root/child/null/value", "Root/child/wrong-token/value", "Root/child/duplicate/value",
+            "Root/child/null-then-valid/value", "Root/child/reordered", "Root/child/escaped",
         ], CollectionOrdering.Matching);
         using var minimal = JsonDocument.Parse(rows[0].Json);
         await Assert.That(minimal.RootElement.EnumerateObject().Select(static property => property.Name))
