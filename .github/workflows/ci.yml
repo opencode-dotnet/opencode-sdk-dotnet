@@ -685,7 +685,9 @@ jobs:
         run: echo "suffix=nightly.$(date -u +%Y%m%d).g${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Pack
-        run: dotnet pack --configuration Release --version-suffix "${{ steps.version.outputs.suffix }}" --output packages
+        run: |
+          dotnet pack src/OpenCode.Sdk/OpenCode.Sdk.csproj --configuration Release --version-suffix "${{ steps.version.outputs.suffix }}" --output packages
+          dotnet pack src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj --configuration Release --version-suffix "${{ steps.version.outputs.suffix }}" --output packages
 
       # dotnet nuget push implements its own glob expansion; the path is quoted so the shell does
       # not expand it first (two packable projects produce two .nupkg files here).

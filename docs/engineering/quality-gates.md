@@ -53,6 +53,10 @@ kind follows the suppression policy in `slop-review.md`.
 - Repository-wide analyzer packages inherit into every project, and global warning escalation has
   no `WarningsNotAsErrors` escape. The few project `NoWarn` rows apply equally to build and format,
   so build mechanically owns enabled warning/error diagnostics from every third-party analyzer.
+- MSBuild task warnings escalate too (`MSBuildTreatWarningsAsErrors`): `TreatWarningsAsErrors`
+  reaches only the compiler, so a warning a target or task raises, such as SourceLink's missing
+  commit, would otherwise pass. Pack steps name the two package projects, because a whole-solution
+  pack reaches the web playground's non-packable warning.
 - Product code uses `ConfigureAwait(false)`, triple-enforced by CA2007, MA0004 in `Always` mode,
   and VSTHRD111. Tests are exempt from all three rules.
 - `CA1502` attributes local functions declared in top-level statements to the compiler-generated

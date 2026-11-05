@@ -123,7 +123,9 @@ jobs:
       - name: Pack
         env:
           PACKAGE_VERSION: ${{ inputs.version }}
-        run: dotnet pack --configuration Release -p:Version="$PACKAGE_VERSION" --output packages
+        run: |
+          dotnet pack src/OpenCode.Sdk/OpenCode.Sdk.csproj --configuration Release -p:Version="$PACKAGE_VERSION" --output packages
+          dotnet pack src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj --configuration Release -p:Version="$PACKAGE_VERSION" --output packages
 
       # Nothing under another id may leave this lane: the two package ids, and the Extensions
       # package's dependency on the core package, are read back from the nuspecs before any push.
