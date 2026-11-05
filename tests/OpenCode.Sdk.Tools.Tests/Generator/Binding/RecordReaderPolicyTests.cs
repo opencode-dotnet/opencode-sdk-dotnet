@@ -10,6 +10,14 @@ namespace OpenCode.Sdk.Tools.Tests.Generator.Binding;
 [ClassDataSource<PinnedBinding>(Shared = SharedType.PerTestSession)]
 public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
 {
+    private static readonly string[] ExistingArmReaders = [
+        "SessionMessageAgentSelected", "SessionMessageAssistant", "SessionMessageAssistantReasoning",
+        "SessionMessageAssistantText", "SessionMessageAssistantTool", "SessionMessageIdle", "SessionMessageLocationSwitched",
+        "SessionMessageModelSelected", "SessionMessageShell", "SessionMessageSkill", "SessionMessageSynthetic", "SessionMessageSystem",
+        "SessionMessageToolStateCompleted", "SessionMessageToolStateError", "SessionMessageToolStateRunning", "SessionMessageToolStateStreaming", "SessionMessageUser",
+        "ToolFileContent", "ToolTextContent",
+    ];
+
     [Test]
     public async Task Select_Should_Validate_Every_Production_Call_Site_Against_The_Full_Pin()
     {
@@ -250,16 +258,8 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
         ], CollectionOrdering.Matching);
     }
 
-    private static readonly string[] ExistingArmReaders = [
-        "SessionMessageAgentSelected", "SessionMessageAssistant", "SessionMessageAssistantReasoning", "SessionMessageAssistantReasoningTime",
-        "SessionMessageAssistantText", "SessionMessageAssistantTool", "SessionMessageAssistantToolTime", "SessionMessageIdle", "SessionMessageLocationSwitched",
-        "SessionMessageModelSelected", "SessionMessageShell", "SessionMessageSkill", "SessionMessageSynthetic", "SessionMessageSystem",
-        "SessionMessageToolStateCompleted", "SessionMessageToolStateError", "SessionMessageToolStateRunning", "SessionMessageToolStateStreaming", "SessionMessageUser",
-        "ToolFileContent", "ToolTextContent",
-    ];
-
     private static IEnumerable<string> ExpectedReaders() => ExistingArmReaders.Concat(ExpectedEventArms()).Concat(ExpectedNestedReaders())
-        .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+        .Order(StringComparer.Ordinal);
 
     private static string[] ExpectedEventArms() => [
         "AgentUpdated", "CommandUpdated", "EventServerConnected", "IntegrationUpdated", "McpResourcesChanged", "McpStatusChanged",
@@ -289,7 +289,7 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
         "SessionToolSuccessData", "SessionToolSuccessDurable", "SessionUsageUpdatedData", "VcsBranchUpdatedData",
     ];
 
-    private static readonly string[] CallSites = [
+    private static string[] ExpectedCallSites() => [
         "AgentUpdated.Location", "CommandUpdated.Location", "EventServerConnected.Location", "IntegrationUpdated.Location",
         "McpResourcesChanged.Data", "McpResourcesChanged.Location", "McpStatusChanged.Data", "McpStatusChanged.Location",
         "ModelUpdated.Location", "ModelsDevRefreshed.Location", "PermissionAsked.Data", "PermissionAsked.Location",
@@ -315,5 +315,4 @@ public sealed class RecordReaderPolicyTests(PinnedBinding pinned)
         "SkillUpdated.Location", "VcsBranchUpdated.Data", "VcsBranchUpdated.Location", "WebsearchUpdated.Location",
     ];
 
-    private static IEnumerable<string> ExpectedCallSites() => CallSites.Order(StringComparer.Ordinal);
 }

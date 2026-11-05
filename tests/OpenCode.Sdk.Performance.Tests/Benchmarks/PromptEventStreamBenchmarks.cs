@@ -27,7 +27,7 @@ public class PromptEventStreamBenchmarks : IDisposable
     private byte[][] _frames = [];
     private JsonTypeInfo[] _concreteTypes = [];
     private OpenCodeClient? _client;
-    private EventBenchmarkSetup? _connection;
+    private EventBenchmarkConnection? _connection;
 
     public static IEnumerable<WireFixture> Fixtures()
     {
@@ -82,7 +82,7 @@ public class PromptEventStreamBenchmarks : IDisposable
             throw new InvalidOperationException("The prompt fixture did not contain its opener and 1040 turn frames.");
         }
 
-        _connection = new EventBenchmarkSetup(Fixture.Bytes, new OpenCodeClientOptions
+        _connection = new EventBenchmarkConnection(Fixture.Bytes, new OpenCodeClientOptions
         {
             Endpoint = new Uri("https://benchmark.invalid"),
             Password = "benchmark",

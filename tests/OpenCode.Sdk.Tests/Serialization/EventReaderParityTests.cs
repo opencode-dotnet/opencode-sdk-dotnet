@@ -177,7 +177,7 @@ public sealed class EventReaderParityTests
     [Test]
     [Arguments("session.created")]
     [Arguments("session.step.ended")]
-    public async Task Read_Should_Keep_Shared_Event_Records_On_Metadata(string row)
+    public async Task Read_Should_Match_Metadata_For_Shared_Event_Records(string row)
     {
         var bytes = ToolUnionCaseBuilder.Bytes(Seed(row));
         var actual = JsonSerializer.Deserialize(bytes, OpenCodeJsonContext.Default.ISessionLogItem)!;

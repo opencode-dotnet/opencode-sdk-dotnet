@@ -78,7 +78,7 @@ public class EventStreamBenchmarks : IDisposable
         _suspendingClient = new OpenCodeClient(_suspendingHttpClient, Options);
         _suspendingRaw = new CannedExchange(_suspendingHttpClient, HttpMethod.Get, Options.Endpoint!);
 
-        var frames = await EventBenchmarkSetup.DecodeFramesAsync(Fixture.Bytes).ConfigureAwait(false);
+        var frames = await EventBenchmarkConnection.DecodeFramesAsync(Fixture.Bytes).ConfigureAwait(false);
 
         // The materialization rows read the idle events, not the connection's opening frame.
         _frames = [.. frames.Skip(1)];
