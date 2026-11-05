@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-11-02
+Date: 2026-11-04
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -310,7 +310,12 @@ resolves the message's network window from those carried traits.
 - API failures throw through `OpenCodeException` -> `OpenCodeApiException` by default. Tagged
   protocol error payloads remain generated, typed data on the exception (ADR-0007).
 - A one-shot call may select per-call `NoThrow`, returning the same typed error data on its response
-  spine. There is no client-level error-behavior switch (ADR-0007).
+  spine. There is no client-level error-behavior switch (ADR-0007). Streams, cursor traversals and
+  `LanguageModels.WaitForDefaultAsync` refuse it at the call.
+- `LanguageModels.WaitForDefaultAsync` follows upstream's app boot-time catalog sync: on a
+  `ServiceUnavailableError` it asks again, up to twelve attempts, waiting one second after the first
+  and doubling to at most five seconds, then surfaces the last answer. It is the one one-shot door
+  that asks again; it is a method the consumer calls, not a pipeline policy.
 - Throwing API errors retain the raw response body. `NoThrow` responses retain it on the shared
   response spine, including when typed error parsing fails (ADR-0007). A response's printed form
   (`ToString`) leaves the raw body out, because a server can echo request data into it; the status,

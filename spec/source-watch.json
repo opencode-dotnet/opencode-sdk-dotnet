@@ -272,6 +272,24 @@
       }
     },
     {
+      "path": "packages/app/src/providers/catalog/providers.ts",
+      "sha256": "6f78a5f83b3af9dd68929eb66bfdaf315db617fe0a210059b5f49d83e45796cd",
+      "behavior": "The app's boot-time catalog sync retries a location's provider and model loads on any ServiceUnavailableError, at most 12 attempts, with a 1 s first delay capped at 5 s, because a cold location's plugin activation can outlast the server's 5 s wait. LanguageModels.WaitForDefaultAsync follows this schedule.",
+      "anchor": {
+        "type": "contains",
+        "text": "attempts: 12, delay: 1000, maxDelay: 5000, retryIf: isServiceUnavailableError"
+      }
+    },
+    {
+      "path": "packages/util/src/retry.ts",
+      "sha256": "43c39eb47b626309449a863b9fc842f4cdfd09669e93f7045246093c9380f3e4",
+      "behavior": "retry waits min(delay * factor^attempt, maxDelay) after each failed attempt the predicate accepts, with factor 2 by default, and rethrows the last error once the attempts run out or the predicate refuses it. WaitForDefaultAsync's delays between attempts follow this formula.",
+      "anchor": {
+        "type": "contains",
+        "text": "Math.min(delay * Math.pow(factor, attempt), maxDelay)"
+      }
+    },
+    {
       "path": "packages/server/src/middleware/session-location.ts",
       "sha256": "b8aef884bbe46d3e5d24967d570dd5473a424b66e05d870f1d4669353121d887",
       "behavior": "Session-scoped routes take their location from the session row that the sessionID route parameter names, so the request\u0027s location[directory] query and x-opencode-directory header do not select the location there; an invalid session ID is InvalidRequestError, a missing session is SessionNotFoundError, and a session whose directory no longer exists is LocationNotFoundError (404).",

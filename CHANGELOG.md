@@ -9,6 +9,14 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
 `0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### ✨ Added
+
+- `client.LanguageModels.WaitForDefaultAsync` returns the default model once the location's plugins
+  have activated. On a `503` `ServiceUnavailableError` it asks again as opencode's own app does
+  while a location boots: up to twelve attempts, waiting one second after the first and doubling to
+  at most five seconds. Every other failure surfaces at once. It refuses `NoThrow` at the call, as
+  streams and cursor traversals do.
+
 ### ⚡ Performance
 
 - **Messages deserialize faster and allocate less.** On .NET 10, a message of 2,400 parts
