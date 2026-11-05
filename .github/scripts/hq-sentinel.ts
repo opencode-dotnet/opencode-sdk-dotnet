@@ -20,17 +20,17 @@ await new Promise((resolve, reject) => {
   socket.onopen = resolve
   socket.onerror = reject
 })
+// One command is in flight at a time, so a reply is matched to it by id; events carry no id.
 let next = 0
-const pending = new Map<number, (message: any) => void>()
+let awaiting: { id: number; resolve: (message: any) => void } | undefined
 socket.onmessage = (event) => {
   const message = JSON.parse(String(event.data))
-  pending.get(message.id)?.(message)
-  pending.delete(message.id)
+  if (awaiting && message.id === awaiting.id) awaiting.resolve(message)
 }
 const send = (method: string, params: object = {}) =>
   new Promise<any>((resolve) => {
     const id = ++next
-    pending.set(id, resolve)
+    awaiting = { id, resolve }
     socket.send(JSON.stringify({ id, method, params }))
   })
 
