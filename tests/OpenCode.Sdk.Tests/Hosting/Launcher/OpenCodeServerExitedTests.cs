@@ -140,7 +140,7 @@ public sealed class OpenCodeServerExitedTests
             // The bound starts while stderr is held; a close that ignored stderr completes instead.
             _ = await Task.WhenAny(time.WaitForArmedAsync(CloseBound, HangGuard), server.Exited).WaitAsync(HangGuard, cancellationToken);
             var completedWhileHeld = server.Exited.IsCompleted;
-            ProcessObservation.KillIfRunning(LadderTree.Pid(output, LadderTree.StderrHolder));
+            ProcessObservation.KillIfRunning(await LadderTree.WaitForPidAsync(output, LadderTree.StderrHolder, HangGuard));
             var exit = await server.Exited.WaitAsync(HangGuard, cancellationToken);
 
             await Assert.That(completedWhileHeld).IsFalse();

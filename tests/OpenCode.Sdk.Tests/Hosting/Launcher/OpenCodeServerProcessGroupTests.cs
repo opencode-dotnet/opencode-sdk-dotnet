@@ -118,8 +118,8 @@ public sealed class OpenCodeServerProcessGroupTests
             cancellationToken);
         try
         {
-            var groupChild = LadderTree.Pid(output, LadderTree.GroupChild);
-            var detached = LadderTree.Pid(output, LadderTree.Detached);
+            var groupChild = await LadderTree.WaitForPidAsync(output, LadderTree.GroupChild, ObservationBound);
+            var detached = await LadderTree.WaitForPidAsync(output, LadderTree.Detached, ObservationBound);
             var disposal = Stopwatch.StartNew();
             await server.DisposeAsync();
             var elapsed = disposal.Elapsed;
@@ -150,6 +150,7 @@ public sealed class OpenCodeServerProcessGroupTests
         }
         finally
         {
+            await server.DisposeAsync();
             await AssertEveryReportedProcessEndedAsync(output);
         }
     }
@@ -197,6 +198,7 @@ public sealed class OpenCodeServerProcessGroupTests
         }
         finally
         {
+            await server.DisposeAsync();
             await AssertEveryReportedProcessEndedAsync(output);
         }
     }
@@ -218,7 +220,7 @@ public sealed class OpenCodeServerProcessGroupTests
             LadderTree.Options(output, OperatingSystem.IsWindows() ? UnwaitedGrace : ShortGrace, "group-child-ignores-term"), cancellationToken);
         try
         {
-            var groupChild = LadderTree.Pid(output, LadderTree.GroupChild);
+            var groupChild = await LadderTree.WaitForPidAsync(output, LadderTree.GroupChild, ObservationBound);
             var disposal = Stopwatch.StartNew();
             await server.DisposeAsync();
             var elapsed = disposal.Elapsed;
@@ -241,6 +243,7 @@ public sealed class OpenCodeServerProcessGroupTests
         }
         finally
         {
+            await server.DisposeAsync();
             await AssertEveryReportedProcessEndedAsync(output);
         }
     }
@@ -266,7 +269,7 @@ public sealed class OpenCodeServerProcessGroupTests
             cancellationToken);
         try
         {
-            var groupChild = LadderTree.Pid(output, LadderTree.GroupChild);
+            var groupChild = await LadderTree.WaitForPidAsync(output, LadderTree.GroupChild, ObservationBound);
             var exit = await ChildExitObservation.WithinAsync(server, ObservationBound);
             await server.DisposeAsync();
             var survivorEnded = await ProcessObservation.ObserveExitWithinAsync(groupChild, ObservationBound, cancellationToken);
@@ -287,6 +290,7 @@ public sealed class OpenCodeServerProcessGroupTests
         }
         finally
         {
+            await server.DisposeAsync();
             await AssertEveryReportedProcessEndedAsync(output);
         }
     }
@@ -430,7 +434,7 @@ public sealed class OpenCodeServerProcessGroupTests
             cancellationToken);
         try
         {
-            var groupChild = LadderTree.Pid(output, LadderTree.GroupChild);
+            var groupChild = await LadderTree.WaitForPidAsync(output, LadderTree.GroupChild, ObservationBound);
             await server.DisposeAsync();
             var exit = await ChildExitObservation.WithinAsync(server, ObservationBound);
             var groupChildEnded = await ProcessObservation.ObserveExitWithinAsync(groupChild, ObservationBound, cancellationToken);
@@ -442,6 +446,7 @@ public sealed class OpenCodeServerProcessGroupTests
         }
         finally
         {
+            await server.DisposeAsync();
             await AssertEveryReportedProcessEndedAsync(output);
         }
     }

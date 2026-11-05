@@ -156,8 +156,8 @@ public sealed class OpenCodeServerJobTests
         {
             var job = KillOnCloseJob.ForCurrentProcess.Current!;
             using var root = Hold(server.ProcessId);
-            using var groupChild = Hold(LadderTree.Pid(output, LadderTree.GroupChild));
-            using var detached = Hold(LadderTree.Pid(output, LadderTree.Detached));
+            using var groupChild = Hold(await LadderTree.WaitForPidAsync(output, LadderTree.GroupChild, ObservationBound));
+            using var detached = Hold(await LadderTree.WaitForPidAsync(output, LadderTree.Detached, ObservationBound));
 
             await Assert.That(WindowsProcessProbe.IsInJob(root.SafeHandle, job)).IsTrue();
             await Assert.That(WindowsProcessProbe.IsInJob(groupChild.SafeHandle, job)).IsTrue();
