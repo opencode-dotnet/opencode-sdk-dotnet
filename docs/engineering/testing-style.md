@@ -1,6 +1,6 @@
 # Testing Style — authoring tests
 
-Date: 2026-11-02
+Date: 2026-11-05
 
 Binding authorship style for every test in this repository. `quality-gates.md` owns the
 current assurance posture and completion gates; operational build-out state belongs in
@@ -328,6 +328,30 @@ true; the fixture hands the boundary to the child process it starts.
   steps before it and how long each took.
 - **Fail fast, never skip.** A missing submodule, a missing install, or a contaminated run-root
   chain is an instructive error, not a skipped test.
+- **Another build of the server, the same boundary.** `OPENCODE_SDK_TESTS_SERVER_COMMAND` replaces
+  the command the exact-pin fixture starts and changes nothing else: the same isolation map, the
+  same seeded repository-owned RPC plugin, the same launcher-owned readiness and teardown, the same
+  retained logs. So every test on that fixture runs against a different build of the same server,
+  while the simulated-server fixtures still run the pinned source:
+
+  ```powershell
+  $env:OPENCODE_SDK_TESTS_SERVER_COMMAND = "opencode|serve"
+  dotnet test tests/OpenCode.Sdk.Tests --configuration Release --no-build --framework net10.0
+  ```
+
+  The value is `|`-separated, so a path with spaces stays one token. The SDK's own launcher resolves
+  the first token from `PATH`, `PATHEXT` included, so a bare `opencode` starts an npm `.cmd` shim,
+  and the fixture prints which command it started. The distributed-build consumer leg
+  (`quality-gates.md`) is its standing user.
+- **Plugin tests own their server.** Plugin check and update tests use
+  `OwnedPinnedOpenCodeServerFixture`, which owns its server even when an external endpoint is
+  configured, so their configuration is package-free by construction. It still honors
+  `OPENCODE_SDK_TESTS_SERVER_COMMAND`, so the distributed-build lane exercises these operations.
+  Plugin listing asserts on both branches: an owned server carries its builtins plus the seeded RPC
+  plugin, and an external endpoint cannot carry that plugin. RPC tests prove `rpc.unavailable`
+  through a real call, whose upstream handler awaits activation, before checking absence from
+  inventory. Owned event and inventory tests wait for the exact seeded RPC plugin and assert its
+  local path and active state.
 
 ## 7. Anti-patterns (never)
 

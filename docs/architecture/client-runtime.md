@@ -291,9 +291,9 @@ resolves the message's network window from those carried traits.
   server restart through `handoff`. At the accepted pin the daemon ships darwin, linux and win32
   platform packages. Where it can't start, `create` — the one route that starts it — answers the
   declared 503 whose `service` is `opencode-pty`, while the rest take their daemon-absent arms:
-  `list` an empty list, `read` a null payload, the id-keyed reads and writes a 404 they share with
-  an unknown id, `shutdown` a 204, and `connect` a 4404 close. `ShutdownAsync` ends every terminal
-  the daemon owns, not one.
+  `list` an empty list, `read` and `handoff` a null payload, the id-keyed reads and writes a 404
+  they share with an unknown id, `shutdown` a 204, and `connect` a 4404 close. `ShutdownAsync`
+  ends every terminal the daemon owns, not one.
 - **Shared core.** Both families' sessions run on the internal, family-neutral
   `TerminalSocketCore<TFrame>` — a connection-owned receiver with fragment reassembly, an
   unbounded consumer queue, serialized sends with per-call deadlines, bounded graceful close, idempotent disposal,
@@ -869,8 +869,7 @@ total deadline, as upstream's `AbortSignal.timeout(5_000)` is, where `NetworkTim
 the time between progress — and compare the returned `ServerInfo.Version` against the caller's own
 expectation. The SDK carries no version comparand of its own — the accepted snapshot
 (`spec/SNAPSHOT.md`) is a protocol identity, not a runtime version — so a dedicated helper would
-need a comparand the SDK does not have. The sandbox's `StandaloneServerWalkthrough` demonstrates
-the recipe, running the same tail without `StartAsync` once a caller already holds an endpoint.
+need a comparand the SDK does not have.
 
 **Background service** (`Service.discover/ensure/stop`, public export `@opencode/client/service`)
 → the registration-file mode. The first-party CLI's `opencode serve --service` publishes `url`,

@@ -954,10 +954,6 @@ dotnet_diagnostic.VSTHRD003.severity = none
 [tests/OpenCode.Sdk.Tests/Support/ServerDiagnosticScenario.cs]
 dotnet_diagnostic.VSTHRD003.severity = none
 
-# Sandbox application's purpose is primarily for testing
-[tests/OpenCode.Sdk.Sandbox/**.cs]
-dotnet_diagnostic.MA0076.severity = none
-
 # StartAsync's readyLine TaskCompletionSource is completed only by this same method's own stdout
 # line handler, wired to the very child process this method spawns — there is no
 # externally-owned task lifetime for VSTHRD003 to protect against, the same shape already

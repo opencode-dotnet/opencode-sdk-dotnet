@@ -1,6 +1,6 @@
 # Developing on Windows
 
-Date: 2026-10-31
+Date: 2026-11-05
 
 Operational guidance for a Windows workstation. Everything here is about the developer's machine;
 the test suite's own isolation rules live in `testing-style.md` and the gates in `quality-gates.md`.
@@ -77,10 +77,6 @@ initialization by name rather than reaching the server.
 
 The exact-pin discipline is the operator's: the WSL2 server must be built from the same submodule
 commit; the fixture prints both so a mismatch is visible, it cannot verify a source run's version.
-
-The sandbox (`tests/OpenCode.Sdk.Sandbox`) can be pointed at the same endpoint with `--endpoint`,
-but it is not the proof: its earlier session legs answer 500 on a provider-less isolated server, so the walkthrough
-never reaches the persistent PTY leg there. `PersistentPtyLiveTests` is what proves the round trip.
 
 ## Driving WSL from a Windows shell
 

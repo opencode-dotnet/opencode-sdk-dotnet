@@ -329,7 +329,3 @@ Two shapes repeat everywhere, and once you have seen them the rest of the surfac
 | Branch on a failure instead of catching it | [Errors and responses](errors-and-responses.md) |
 | Walk a long message or session history | [Pagination](pagination.md) |
 | See it in small apps you can run | [Playground](../../playground/README.md) |
-
-For a full runnable program that exercises most of the surface against a live server, the
-in-repo sandbox is committed and documented:
-[`tests/OpenCode.Sdk.Sandbox`](../../tests/OpenCode.Sdk.Sandbox/README.md).
