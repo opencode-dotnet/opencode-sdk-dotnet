@@ -1,6 +1,6 @@
 # 🔌 Connection modes
 
-Date: 2026-11-02
+Date: 2026-11-05
 
 There are three ways to get a client bound to a running opencode server: **let the SDK start one**,
 **point it at one you already have**, or **discover the background service the opencode CLI runs
@@ -249,6 +249,9 @@ cancellation that arrives after readiness returns a running server, which you di
 See the [launcher contract](../architecture/client-runtime.md#launcher) for readiness arbitration
 and bounded cleanup.
 
+See it running: [Worker](../../playground/Worker/README.md) and
+[AotCli](../../playground/AotCli/README.md) each start their own server this way.
+
 ## 🔗 A server you already run
 
 If you already know an endpoint, construct the client directly. There is no separate verb for this
@@ -360,6 +363,9 @@ using var paired = new OpenCodeClient(new OpenCodeClientOptions
 - **The token is a credential.** The server signs it with a key derived from its password, so it
   lasts 30 days and ends when the password changes. Treat it like the password.
   `PairingSession.ToString()` and `PairingCode.ToString()` mask both values.
+
+See it running: [HQ](../../playground/hq/README.md) connects to the endpoint and password its
+AppHost gives it.
 
 ## 🛰️ Discovering the background service
 

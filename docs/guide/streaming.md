@@ -1,6 +1,6 @@
 # 📡 Streaming
 
-Date: 2026-11-04
+Date: 2026-11-05
 
 Two server-sent event streams, both surfaced as `IAsyncEnumerable<T>` and both riding the same
 transport as ordinary calls: the **live event stream** for everything happening in the server
@@ -421,6 +421,9 @@ await foreach (var @event in client.Events.SubscribeAsync(cancellationToken: can
 The durable session event stream below has a cursor, but it delivers events only from a server
 started with event persistence — and the CLI you install does not start one that way; the note on
 guarantees below has the whole story.
+
+See it running: [Worker](../../playground/Worker/README.md) logs this bus as a hosted service, and
+[HQ](../../playground/hq/README.md) builds its live session board on it.
 
 ## 📜 A single session's log
 

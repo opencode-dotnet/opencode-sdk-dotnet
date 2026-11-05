@@ -1,6 +1,6 @@
 # 🚀 Getting started
 
-Date: 2026-11-02
+Date: 2026-11-05
 
 Install the package, point a client at a server, and make three calls. Ten minutes, and the last
 one talks to a model.
@@ -330,6 +330,7 @@ Two shapes repeat everywhere, and once you have seen them the rest of the surfac
 | Drive a real terminal | [Terminals](terminals.md) |
 | Branch on a failure instead of catching it | [Errors and responses](errors-and-responses.md) |
 | Walk a long message or session history | [Pagination](pagination.md) |
+| See it in small apps you can run | [Playground](../../playground/README.md) |
 
 For a full runnable program that exercises most of the surface against a live server, the
 in-repo sandbox is committed and documented:
