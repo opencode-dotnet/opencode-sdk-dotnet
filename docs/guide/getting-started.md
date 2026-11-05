@@ -14,8 +14,8 @@ one talks to a model.
 ## 📦 Install
 
 ```bash
-dotnet add package OpenCodeDotNet.Sdk --prerelease
-dotnet add package OpenCodeDotNet.Sdk.Extensions --prerelease   # dependency injection, optional
+dotnet add package OpenCodeDotNet.Sdk
+dotnet add package OpenCodeDotNet.Sdk.Extensions   # dependency injection, optional
 ```
 
 > **The package id is not the namespace.** You install `OpenCodeDotNet.Sdk` and you write

@@ -28,8 +28,9 @@ snapshot are callable — 164 as generated HTTP calls, and the two terminal WebS
 through hand-written transports. All three connection modes work: a private server the SDK
 starts, a server you already run, and the background service that the opencode CLI registers.
 
-- 🚧 Releases are `0.9.0-preview.N`. A reviewed baseline locks the public surface, but it can still
-  change before `1.0.0`. See [CHANGELOG.md](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/CHANGELOG.md).
+- ✅ `1.0.0` is stable. From here, a version's parts say where a change comes from: a patch fixes,
+  a minor moves the pinned opencode release, and only a major breaks the hand-written surface.
+  See [CHANGELOG.md](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/CHANGELOG.md).
 - 📌 The SDK builds against a snapshot of an upstream release tag, never a live branch.
   [`spec/SNAPSHOT.md`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/spec/SNAPSHOT.md)
   owns the exact pin and the refresh procedure.
@@ -90,8 +91,8 @@ is the machine-readable map that the build reads.
 ## 📦 Installation
 
 ```bash
-dotnet add package OpenCodeDotNet.Sdk --prerelease
-dotnet add package OpenCodeDotNet.Sdk.Extensions --prerelease   # dependency injection, optional
+dotnet add package OpenCodeDotNet.Sdk
+dotnet add package OpenCodeDotNet.Sdk.Extensions   # dependency injection, optional
 ```
 
 > **The package id is not the namespace.** You install `OpenCodeDotNet.Sdk`, and you write
