@@ -88,6 +88,13 @@ internal static class WireBodyData
     public const string PluginActivationUnavailableError =
         "{\"_tag\":\"ServiceUnavailableError\",\"message\":\"Location plugins did not finish activating\",\"service\":\"plugin\"}";
 
+    public static string ServiceUnavailable(string message) => new JsonObject
+    {
+        ["_tag"] = "ServiceUnavailableError",
+        ["message"] = message,
+        ["service"] = "plugin",
+    }.ToJsonString();
+
     public const string PersistentPtyConnectTokenBody = "{\"ticket\":\"tkt_p1\",\"expires_in\":60}";
 
     public const string AgentNotFoundError = "{\"_tag\":\"AgentNotFoundError\",\"agentID\":\"missing\",\"message\":\"gone\"}";

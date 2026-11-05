@@ -3,7 +3,7 @@ using OpenCode.Sdk.Models;
 namespace OpenCode.Sdk.Internal;
 
 /// <summary>
-/// Asks for the default model until the location's plugins have activated, on the schedule upstream's
+/// Asks for the default model again on unavailable answers, on the schedule opencode's
 /// app uses for its boot-time catalog sync: up to twelve attempts, waiting one second after the first
 /// unavailable answer and doubling to at most five seconds.
 /// </summary>

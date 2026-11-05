@@ -6,7 +6,7 @@ namespace OpenCode.Sdk;
 /// <summary>Waits on the language-model family.</summary>
 public static class LanguageModelsClientExtensions
 {
-    /// <summary>Gets the default model once the location's plugins have activated.</summary>
+    /// <summary>Gets the default model, asking again while the location's plugins activate.</summary>
     /// <param name="client">The language-model family.</param>
     /// <param name="request">The query; the server default applies when null.</param>
     /// <param name="requestOptions">Options for each request.</param>
@@ -14,10 +14,11 @@ public static class LanguageModelsClientExtensions
     /// <returns>The default-model response; its <c>Default</c> is null when the server has no default model.</returns>
     /// <remarks>
     /// While the location's plugins activate, the server holds the request and then answers
-    /// <see cref="ServiceUnavailableError"/>. On that answer this method asks again, as upstream's app
-    /// does while a location boots: up to twelve attempts, waiting one second after the first and
+    /// <see cref="ServiceUnavailableError"/>. On that answer this method asks again on the schedule
+    /// opencode's app uses for its boot-time catalog sync: up to twelve attempts, waiting one second after the first and
     /// doubling to at most five seconds. The last unavailable answer surfaces, and so does every other
-    /// failure.
+    /// failure. As described by Plugin activation, this method does not make activation complete;
+    /// it outlasts unavailable answers, and a catalog can still grow after it returns.
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="client"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="requestOptions"/> selects NoThrow, which the wait refuses.</exception>

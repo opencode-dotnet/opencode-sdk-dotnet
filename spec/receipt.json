@@ -190,6 +190,11 @@
       "anchorMatched": true
     },
     {
+      "path": "packages/server/src/handlers/model.ts",
+      "sha256": "5eefbe521882d44a66f405c1418ca3a7329fc9620f5d8b5d80bafdb4fca6c400",
+      "anchorMatched": true
+    },
+    {
       "path": "packages/app/src/providers/catalog/providers.ts",
       "sha256": "6f78a5f83b3af9dd68929eb66bfdaf315db617fe0a210059b5f49d83e45796cd",
       "anchorMatched": true

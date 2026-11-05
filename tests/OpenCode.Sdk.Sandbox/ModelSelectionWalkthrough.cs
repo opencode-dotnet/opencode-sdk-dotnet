@@ -56,10 +56,9 @@ internal static class ModelSelectionWalkthrough
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"cleanup: status={removed.Status}"));
     }
 
-    /// <summary>The guide's one readiness step: once the default model answers, the model calls are ready.</summary>
+    /// <summary>The guide's startup step: waits out the default model's unavailable answers.</summary>
     private static async Task WaitForPluginsAsync(OpenCodeClient client)
     {
-        using var startup = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-        _ = await client.LanguageModels.WaitForDefaultAsync(cancellationToken: startup.Token).ConfigureAwait(false);
+        _ = await client.LanguageModels.WaitForDefaultAsync().ConfigureAwait(false);
     }
 }

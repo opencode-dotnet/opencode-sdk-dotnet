@@ -13,6 +13,7 @@ internal sealed class FreeModel(OpenCodeClient client)
     public async Task<ModelInfo?> FindAsync(CancellationToken cancellationToken)
     {
         using var startup = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        // This budget can end the default-model wait before its attempts run out, ending the search with no model.
         startup.CancelAfter(TimeSpan.FromSeconds(30));
         try
         {

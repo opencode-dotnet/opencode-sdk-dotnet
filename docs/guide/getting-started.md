@@ -218,21 +218,25 @@ if (model is not null)
   does not make them complete, and the server exposes no activation barrier: when your application
   expects a particular provider or model, wait for that identity under a caller-owned cancellation
   deadline (`CONTEXT.md`, Plugin activation).
-- **Catalog and model calls wait for the location's plugins; take that wait once, at startup.**
-  Calls that read the location's models, providers or agents, query web search or usage limits, or
-  reach experimental generation, voice and artifacts wait up to five seconds for the location's
-  plugins to load. On the first request to a location, after a config or plugin change, or on the
+- **Some catalog and model calls wait for plugins; wait out unavailable answers at startup.**
+  Listing the location's models, providers and agents; the default model; a web search query;
+  usage limits; and experimental generation, voice and artifacts wait up to five seconds for plugins
+  to load. Experimental generation and voice use the global config's location, not the request's;
+  a default-model wait on one location does not establish their activation.
+  On the first request to a location, after a config or plugin change, or on the
   server's periodic plugin refresh, they can answer `503` with a `ServiceUnavailableError`, which
-  means "plugins still loading". Make one readiness step before anything model-related:
+  means "plugins still loading". Before anything model-related,
   `WaitForDefaultAsync` asks for the default model and, on a `ServiceUnavailableError`, asks again
-  as opencode's own app does while a location boots, up to twelve attempts with waits from one to
+  on the schedule opencode's app uses for its boot-time catalog sync, up to twelve attempts with waits from one to
   five seconds. Any other failure surfaces at once, and the last unavailable answer surfaces when
   the attempts run out. If a later config or plugin change brings the answer back, call it again
-  before the next model call.
+  before the next model call. It does not complete plugin activation; a catalog can still grow after
+  it returns. The wait ends by itself after its twelfth attempt: its eleven delays total 47 seconds,
+  and with each attempt held up to five seconds by the server it can run about 107 seconds plus
+  request time, so a caller's deadline should exceed about two minutes, or be left out.
 
   ```csharp
-  using var startup = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-  await client.LanguageModels.WaitForDefaultAsync(cancellationToken: startup.Token);
+  await client.LanguageModels.WaitForDefaultAsync(cancellationToken: cancellationToken);
   ```
 - **The VCS summary can start empty, per location.** Right after start,
   `client.Vcs.GetVcsAsync()` can return a null `Provider` and null branches until the location's
