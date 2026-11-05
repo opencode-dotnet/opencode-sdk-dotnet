@@ -85,6 +85,15 @@ internal static class WireBodyData
     public const string ServiceUnavailableError =
         "{\"_tag\":\"ServiceUnavailableError\",\"message\":\"opencode-pty could not be started\",\"service\":\"opencode-pty\"}";
 
+    public static readonly string PluginActivationUnavailableError = PluginUnavailable("Location plugins did not finish activating");
+
+    public static string PluginUnavailable(string message) => new JsonObject
+    {
+        ["_tag"] = "ServiceUnavailableError",
+        ["message"] = message,
+        ["service"] = "plugin",
+    }.ToJsonString();
+
     public const string PersistentPtyConnectTokenBody = "{\"ticket\":\"tkt_p1\",\"expires_in\":60}";
 
     public const string AgentNotFoundError = "{\"_tag\":\"AgentNotFoundError\",\"agentID\":\"missing\",\"message\":\"gone\"}";

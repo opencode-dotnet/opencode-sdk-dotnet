@@ -54,6 +54,17 @@ internal sealed class ManualTimeProvider : TimeProvider
     /// <returns>A task that completes once the timer exists.</returns>
     public Task WaitForTimerAsync(TimeSpan hangGuard) => _created.Reader.ReadAsync().AsTask().WaitAsync(hangGuard);
 
+    /// <summary>
+    /// Completes as the overload without a token does, or ends with <paramref name="cancellationToken"/>'s
+    /// cancellation, so a test that races this wait can end the loser once the race is decided.
+    /// </summary>
+    /// <param name="hangGuard">Bounds a timer that is never created; it decides nothing else.</param>
+    /// <param name="cancellationToken">Ends the wait once the race is decided.</param>
+    /// <returns>A task that completes once the timer exists, or is canceled.</returns>
+    public Task WaitForTimerAsync(TimeSpan hangGuard, CancellationToken cancellationToken) =>
+        // The read observes cancellation; the outer wait only bounds a hang, so cancellation cannot follow taking a creation.
+        _created.Reader.ReadAsync(cancellationToken).AsTask().WaitAsync(hangGuard, CancellationToken.None);
+
     /// <summary>Counts timers armed to run exactly <paramref name="dueIn"/> from the clock's current time.</summary>
     /// <param name="dueIn">How far from now the timers must be due.</param>
     /// <returns>How many timers are armed for that instant.</returns>

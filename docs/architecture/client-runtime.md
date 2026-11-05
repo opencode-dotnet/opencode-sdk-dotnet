@@ -1,6 +1,6 @@
 # Client Runtime Architecture
 
-Date: 2026-11-02
+Date: 2026-11-05
 
 Canonical current rules for client construction, transport ownership, API errors, streams, and the
 local server launcher. Protocol and generated-model rules live in
@@ -55,12 +55,13 @@ upstream's behaviour. Each one is listed, with its reason, in the section it con
 - No consumer transport-composition seam is public today. Adding one requires a concrete consumer
   need and a deliberate design; omission is reversible because a future public seam is additive
   (ADR-0010).
-- Retry, telemetry and hooks are not part of `1.0.0`; each can land later as an addition through
-  the policy roster (ADR-0018) under two rules. A new capability is off by default, so an existing
-  call behaves as before until the consumer opts in; retry in particular never starts retrying a
-  call that did not ask for it. `OpenCodeClient(OpenCodeClientOptions)` stays the only public
-  construction path, with today's transport and server ownership, so a capability arrives as a new
-  option or a new type and never as a changed constructor.
+- Pipeline retry, telemetry and hooks are not part of `1.0.0`; each can land later as an addition
+  through the policy roster (ADR-0018) under two rules. A new capability is off by default, so an
+  existing call behaves as before until the consumer opts in; retry in particular never starts
+  retrying a call that did not ask for it. `OpenCodeClient(OpenCodeClientOptions)` stays the only
+  public construction path, with today's transport and server ownership, so a capability arrives
+  as a new option or a new type and never as a changed constructor. The one door that asks again,
+  `LanguageModels.WaitForDefaultAsync`, is described under [Error channels](#error-channels).
 - Client options are snapshotted at construction. Explicit-endpoint construction reads no process
   environment variable; consumers resolve their own configuration. `OpenCodeServer.DiscoverAsync`
   and `OpenCodeServer.StopAsync` are the doors that read the environment, and they read exactly
@@ -310,7 +311,12 @@ resolves the message's network window from those carried traits.
 - API failures throw through `OpenCodeException` -> `OpenCodeApiException` by default. Tagged
   protocol error payloads remain generated, typed data on the exception (ADR-0007).
 - A one-shot call may select per-call `NoThrow`, returning the same typed error data on its response
-  spine. There is no client-level error-behavior switch (ADR-0007).
+  spine. There is no client-level error-behavior switch (ADR-0007). Streams, cursor traversals and
+  `LanguageModels.WaitForDefaultAsync` refuse it at the call.
+- `LanguageModels.WaitForDefaultAsync` follows upstream's app boot-time catalog sync: on a
+  `ServiceUnavailableError` it asks again, up to twelve attempts, waiting one second after the first
+  and doubling to at most five seconds, then surfaces the last answer. It is the one one-shot door
+  that asks again; it is a method the consumer calls, not a pipeline policy.
 - Throwing API errors retain the raw response body. `NoThrow` responses retain it on the shared
   response spine, including when typed error parsing fails (ADR-0007). A response's printed form
   (`ToString`) leaves the raw body out, because a server can echo request data into it; the status,

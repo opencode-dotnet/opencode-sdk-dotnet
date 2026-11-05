@@ -265,10 +265,37 @@
     {
       "path": "packages/server/src/location.ts",
       "sha256": "8f8cac178efa51059b79a6ce1bd13da334b7cd1d0d4a4a0fbc2211e80ff484ea",
-      "behavior": "The request directory is resolved from location[directory] first, then the percent-decoded x-opencode-directory header, then the server working directory. The server no longer reads the workspace query or header, which defines the hand-written directory-only LocationSelector contract. A directory that does not exist answers 404 LocationNotFoundError (locationErrors) instead of failing the request as a defect.",
+      "behavior": "The request directory is resolved from location[directory] first, then the percent-decoded x-opencode-directory header, then the server working directory. The server no longer reads the workspace query or header, which defines the hand-written directory-only LocationSelector contract. A directory that does not exist answers 404 LocationNotFoundError (locationErrors) instead of failing the request as a defect. awaitPlugins waits up to 5 s for plugin activation, then fails with ServiceUnavailableError whose service is plugin.",
       "anchor": {
         "type": "contains",
         "text": "request.headers[\u0022x-opencode-directory\u0022]"
+      }
+    },
+    {
+      "path": "packages/server/src/handlers/model.ts",
+      "sha256": "5eefbe521882d44a66f405c1418ca3a7329fc9620f5d8b5d80bafdb4fca6c400",
+      "behavior": "The model list and default-model handlers wait for the location's plugins (awaitPlugins) before they answer, which WaitForDefaultAsync relies on.",
+      "anchor": {
+        "type": "contains",
+        "text": "yield* awaitPlugins"
+      }
+    },
+    {
+      "path": "packages/app/src/providers/catalog/providers.ts",
+      "sha256": "6f78a5f83b3af9dd68929eb66bfdaf315db617fe0a210059b5f49d83e45796cd",
+      "behavior": "The app's boot-time catalog sync retries a location's provider and model loads on any ServiceUnavailableError, at most 12 attempts, with a 1 s first delay capped at 5 s, because a cold location's plugin activation can outlast the server's 5 s wait. LanguageModels.WaitForDefaultAsync follows this schedule.",
+      "anchor": {
+        "type": "contains",
+        "text": "attempts: 12, delay: 1000, maxDelay: 5000, retryIf: isServiceUnavailableError"
+      }
+    },
+    {
+      "path": "packages/util/src/retry.ts",
+      "sha256": "43c39eb47b626309449a863b9fc842f4cdfd09669e93f7045246093c9380f3e4",
+      "behavior": "retry waits min(delay * factor^attempt, maxDelay) after each failed attempt but the last that the predicate accepts, with factor 2 by default, and rethrows the last error once the attempts run out or the predicate refuses it. WaitForDefaultAsync's delays between attempts follow this formula.",
+      "anchor": {
+        "type": "contains",
+        "text": "Math.min(delay * Math.pow(factor, attempt), maxDelay)"
       }
     },
     {

@@ -777,6 +777,10 @@ namespace OpenCode.Sdk
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ModelDefaultResponse> GetDefaultAsync(OpenCode.Sdk.ModelDefaultRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
         public virtual System.Threading.Tasks.Task<OpenCode.Sdk.ModelListResponse> ListModelsAsync(OpenCode.Sdk.ModelListRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
     }
+    public static class LanguageModelsClientExtensions
+    {
+        public static System.Threading.Tasks.Task<OpenCode.Sdk.ModelDefaultResponse> WaitForDefaultAsync(this OpenCode.Sdk.LanguageModelsClient client, OpenCode.Sdk.ModelDefaultRequest? request = null, OpenCode.Sdk.OpenCodeRequestOptions? requestOptions = null, System.Threading.CancellationToken cancellationToken = default) { }
+    }
     public sealed class ListCursor : System.IEquatable<OpenCode.Sdk.ListCursor>
     {
         public ListCursor() { }

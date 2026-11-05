@@ -1,6 +1,6 @@
 # 🧱 Errors and responses
 
-Date: 2026-11-02
+Date: 2026-11-04
 
 Every one-shot call answers with a **response envelope** that carries the same four members no
 matter which operation produced it, and every failure is either a typed API error you can branch on
@@ -84,12 +84,14 @@ instance, and `new OpenCodeRequestOptions { ErrorBehavior = ErrorBehavior.NoThro
 thing spelled out. There is deliberately no client-level switch: whether a failure is exceptional
 depends on the call, not on the client.
 
-Two limits worth internalising:
+Three limits worth internalising:
 
 - **`NoThrow` covers declared API errors only.** It never suppresses a transport failure.
 - **Streams and automatic cursor traversals refuse `NoThrow` at the call, before enumeration.**
   They take `requestOptions`, but their API errors always throw. A stream has no response envelope
   to carry an error. See [streaming](streaming.md#-streams-always-throw) and [pagination](pagination.md).
+- **`LanguageModels.WaitForDefaultAsync` refuses `NoThrow` at the call,** because it decides on each
+  unavailable answer whether to ask again, so an error response would end it with nothing to read.
 
 `OpenCodeRequestOptions` also carries `Location`, the per-call directory override, which merges over
 the client's ambient location member by member — a set member wins, an unset one inherits.

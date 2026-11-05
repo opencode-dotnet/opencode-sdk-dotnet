@@ -45,7 +45,8 @@ internal static class GeneratedSourceCompiler
     /// persistent family's raw twin: all three of its partial files, because a class compiles only
     /// whole. The handoff sidecar requests its ticket raw through the
     /// pipeline on the persistent family's route, which the route table carries only when that
-    /// family is emitted, so it rides the same raw twin.
+    /// family is emitted, so it rides the same raw twin. The default-model wait sits above the
+    /// generated <c>LanguageModelsClient</c>, so it rides that client's emission.
     /// </summary>
     internal static readonly (string Consumer, string RequiredEmission)[] GeneratedSurfaceConsumers =
     [
@@ -54,6 +55,8 @@ internal static class GeneratedSourceCompiler
         ("Hosting/BackgroundService/OpenCodeServer.BackgroundService.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/Launcher/OpenCodeServer.Launcher.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
         ("Hosting/OpenCodeServer.cs", "PersistentPtys/Internal/PersistentPtysRawClient.cs"),
+        ("LanguageModels/Internal/DefaultModelWait.cs", "LanguageModels/LanguageModelsClient.cs"),
+        ("LanguageModels/LanguageModelsClientExtensions.cs", "LanguageModels/LanguageModelsClient.cs"),
         ("PersistentPtys/Internal/PersistentPtyFrameDecoder.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
         ("PersistentPtys/PersistentPtyAttachedFrame.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),
         ("PersistentPtys/PersistentPtyAttachment.cs", "PersistentPtys/Models/PersistentPtyInfo.cs"),

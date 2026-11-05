@@ -34,6 +34,8 @@ public sealed class CancellationIdentityTests
             static (client, token) => client.Server.GetInfoAsync(cancellationToken: token), caller));
         yield return new("http", "buffered-body", caller => AtBodyAsync(upload: false, caller));
         yield return new("http", "raw-upload", caller => AtBodyAsync(upload: true, caller));
+        yield return new("default-wait", "headers", caller => AtHeadersAsync(
+            static (client, token) => client.LanguageModels.WaitForDefaultAsync(cancellationToken: token), caller));
         yield return new("pty-resize-http", "headers", caller => AtHeadersAsync(
             static (client, token) => client.Ptys.GetPtyClient(PtyId).UpdateAsync(
                 new PtyUpdateRequest { Size = new PtySize { Cols = 100, Rows = 30 } }, cancellationToken: token), caller));
@@ -635,7 +637,7 @@ public sealed class CancellationIdentityTests
 
         public bool Is(Type owner, string name, Type result, params Type[] parameters) =>
             DeclaringType == owner && Name == name && ReturnType == result &&
-            IsStatic == (owner == typeof(OpenCodeServer)) && Parameters.SequenceEqual(parameters);
+            IsStatic == (owner == typeof(OpenCodeServer) || owner == typeof(LanguageModelsClientExtensions)) && Parameters.SequenceEqual(parameters);
 
         public override string ToString() =>
             $"{ReturnType} {DeclaringType}.{Name}({string.Join(", ", Parameters.Select(static type => type.ToString()))})";
@@ -699,6 +701,8 @@ public sealed class CancellationIdentityTests
             _ when member.Is(typeof(EventsClient), nameof(EventsClient.SubscribeAsync), typeof(IAsyncEnumerable<IEvent>),
                 typeof(EventSubscribeRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "events",
             _ when ClientFamilies.Contains(member.DeclaringType) && IsGeneric(member.ReturnType, typeof(IAsyncEnumerable<>)) => "other-sse",
+            _ when member.Is(typeof(LanguageModelsClientExtensions), nameof(LanguageModelsClientExtensions.WaitForDefaultAsync), typeof(Task<ModelDefaultResponse>),
+                typeof(LanguageModelsClient), typeof(ModelDefaultRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "default-wait",
             _ when member.Is(typeof(PtyClient), nameof(PtyClient.UpdateAsync), typeof(Task<PtyUpdateResponse>),
                 typeof(PtyUpdateRequest), typeof(OpenCodeRequestOptions), typeof(CancellationToken)) => "pty-resize-http",
             _ when ClientFamilies.Contains(member.DeclaringType) && IsGeneric(member.ReturnType, typeof(Task<>)) &&
