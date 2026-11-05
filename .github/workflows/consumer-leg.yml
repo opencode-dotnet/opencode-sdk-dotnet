@@ -228,6 +228,127 @@ jobs:
             throw "The sandbox standalone demo exited with $LASTEXITCODE."
           }
 
+      # The playground apps, as a consumer builds and runs them, against the distributed build. Each
+      # starts or reaches its own isolated server and needs no model.
+      - name: Playground AotCli publishes natively and inspects a repository
+        shell: pwsh
+        env:
+          XDG_CONFIG_HOME: ${{ runner.temp }}/consumer-leg-aotcli/config
+          XDG_DATA_HOME: ${{ runner.temp }}/consumer-leg-aotcli/data
+          XDG_STATE_HOME: ${{ runner.temp }}/consumer-leg-aotcli/state
+          XDG_CACHE_HOME: ${{ runner.temp }}/consumer-leg-aotcli/cache
+          OPENCODE_DISABLE_MODELS_FETCH: "1"
+        run: |
+          $ErrorActionPreference = "Stop"
+          $rid = if ($IsWindows) { "win-x64" } else { "linux-x64" }
+          $out = Join-Path $env:RUNNER_TEMP "aotcli"
+          & dotnet publish playground/AotCli --configuration Release --runtime $rid --output $out
+          if ($LASTEXITCODE -ne 0) { throw "The AotCli publish exited with $LASTEXITCODE." }
+
+          # A scratch repository with one commit and one change, so the branch and the change are known.
+          $repo = Join-Path $env:RUNNER_TEMP "aotcli-repo"
+          $null = New-Item -ItemType Directory -Force -Path $repo
+          git -C $repo init --quiet --initial-branch main
+          Set-Content -LiteralPath (Join-Path $repo "notes.txt") -Value "one"
+          git -C $repo add notes.txt
+          git -C $repo -c user.name=ci -c user.email=ci@example.invalid commit --quiet --message first
+          Set-Content -LiteralPath (Join-Path $repo "notes.txt") -Value "two"
+
+          $exe = Join-Path $out ("OpenCode.Playground.AotCli" + $(if ($IsWindows) { ".exe" } else { "" }))
+          $log = Join-Path $env:GITHUB_WORKSPACE "TestResults/consumer-leg/aotcli.log"
+          $lines = @(& $exe $repo 2>&1 | Tee-Object -FilePath $log)
+          if ($LASTEXITCODE -ne 0) { throw "AotCli exited with $LASTEXITCODE." }
+          if ($lines[-1] -cne "AotCli: inspected") { throw "AotCli's last line was '$($lines[-1])', not 'AotCli: inspected'." }
+          if (-not ($lines -ceq "branch: main")) { throw "AotCli printed no 'branch: main' line." }
+
+      # The worker's contract with a service manager: when the server it started ends under it, it
+      # stops with exit code 1 rather than restarting the server itself. The step kills the server's
+      # whole process tree, since on Windows the reported PID is npm's shim (`cmd.exe`). Trees are
+      # killed through .NET, so no native exit code is left for the runner's closing `exit`.
+      - name: Playground Worker stops with 1 when its server ends
+        shell: pwsh
+        env:
+          XDG_CONFIG_HOME: ${{ runner.temp }}/consumer-leg-worker/config
+          XDG_DATA_HOME: ${{ runner.temp }}/consumer-leg-worker/data
+          XDG_STATE_HOME: ${{ runner.temp }}/consumer-leg-worker/state
+          XDG_CACHE_HOME: ${{ runner.temp }}/consumer-leg-worker/cache
+          OPENCODE_DISABLE_MODELS_FETCH: "1"
+        run: |
+          $ErrorActionPreference = "Stop"
+          $work = Join-Path $env:RUNNER_TEMP "worker-cwd"
+          $null = New-Item -ItemType Directory -Force -Path $work
+          $log = Join-Path $env:GITHUB_WORKSPACE "TestResults/consumer-leg/worker.log"
+          $worker = Start-Process -FilePath "dotnet" -ArgumentList "run", "--project", (Join-Path $env:GITHUB_WORKSPACE "playground/Worker"), "--configuration", "Release" -WorkingDirectory $work -PassThru -RedirectStandardOutput $log -RedirectStandardError "$log.err"
+          $null = $worker.Handle # keeps the exit code readable after the process ends
+          try {
+            $started = $null
+            for ($i = 0; $i -lt 600 -and -not $started -and -not $worker.HasExited; $i++) {
+              Start-Sleep -Milliseconds 500
+              $started = Select-String -LiteralPath $log -Pattern 'worker: server (\S+) started, pid (\d+)' -ErrorAction SilentlyContinue | Select-Object -First 1
+            }
+            if (-not $started) { throw "The worker never reported its server started." }
+            $serverPid = [int]$started.Matches[0].Groups[2].Value
+            (Get-Process -Id $serverPid).Kill($true)
+            if (-not $worker.WaitForExit(60000)) { throw "The worker did not stop within 60 s of its server ending." }
+          }
+          finally {
+            if (-not $worker.HasExited) { $worker.Kill($true) }
+          }
+          if ($worker.ExitCode -ne 1) { throw "The worker exited with $($worker.ExitCode), not 1." }
+          if (-not (Select-String -LiteralPath $log -SimpleMatch "; stopping with exit code 1")) { throw "The worker logged no stop with exit code 1." }
+
+      # HQ connects to an explicit endpoint, so the step starts an isolated server, seeds a session
+      # whose title only this run knows, and boots HQ against it. Seeing that title on HQ's board
+      # proves HQ reached the isolated server and not some other one. HQ renders over its live
+      # connection only, so the page is read through the runner's own headless Chrome.
+      - name: Playground HQ boots against an explicit endpoint
+        shell: pwsh
+        env:
+          XDG_CONFIG_HOME: ${{ runner.temp }}/consumer-leg-hq/config
+          XDG_DATA_HOME: ${{ runner.temp }}/consumer-leg-hq/data
+          XDG_STATE_HOME: ${{ runner.temp }}/consumer-leg-hq/state
+          XDG_CACHE_HOME: ${{ runner.temp }}/consumer-leg-hq/cache
+          OPENCODE_DISABLE_MODELS_FETCH: "1"
+        run: |
+          $ErrorActionPreference = "Stop"
+          $logs = Join-Path $env:GITHUB_WORKSPACE "TestResults/consumer-leg"
+          $port = 4196
+          $password = [guid]::NewGuid().ToString("N")
+          $sentinel = "sentinel-" + [guid]::NewGuid().ToString("N")
+          $cred = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("opencode:$password"))
+          $headers = @{ Authorization = "Basic $cred" }
+          $env:OPENCODE_PASSWORD = $password
+          $server = Start-Process -FilePath (Get-Command opencode -CommandType Application | Select-Object -First 1).Source -ArgumentList "serve", "--hostname", "127.0.0.1", "--port", "$port" -PassThru -RedirectStandardOutput (Join-Path $logs "hq-server.out") -RedirectStandardError (Join-Path $logs "hq-server.err")
+          Remove-Item Env:OPENCODE_PASSWORD
+          $hq = $null
+          $chrome = $null
+          try {
+            for ($i = 0; $i -lt 120; $i++) { try { $null = Invoke-RestMethod "http://127.0.0.1:$port/api/info" -Headers $headers -TimeoutSec 2; break } catch { Start-Sleep -Milliseconds 500 } }
+            $directory = Join-Path $env:RUNNER_TEMP "hq-sentinel"
+            $null = New-Item -ItemType Directory -Force -Path $directory
+            $body = @{ title = $sentinel; location = @{ directory = $directory } } | ConvertTo-Json -Compress
+            $null = Invoke-RestMethod "http://127.0.0.1:$port/api/session" -Method Post -Headers $headers -ContentType "application/json" -Body $body -TimeoutSec 30
+
+            # HQ's launch profile binds 127.0.0.1:5199 in Development, as a developer runs it.
+            $env:OpenCode__Endpoint = "http://127.0.0.1:$port"
+            $env:OpenCode__Password = $password
+            $hq = Start-Process -FilePath "dotnet" -ArgumentList "run", "--project", "playground/hq/OpenCode.Playground.Hq", "--configuration", "Release" -PassThru -RedirectStandardOutput (Join-Path $logs "hq.out") -RedirectStandardError (Join-Path $logs "hq.err")
+            $healthy = $false
+            for ($i = 0; $i -lt 240 -and -not $healthy; $i++) { try { $healthy = (Invoke-WebRequest "http://127.0.0.1:5199/health" -TimeoutSec 2).StatusCode -eq 200 } catch { $healthy = $false } finally { if (-not $healthy) { Start-Sleep -Milliseconds 500 } } }
+            if (-not $healthy) { throw "HQ never answered /health." }
+
+            $browser = if ($IsWindows) { "C:\Program Files\Google\Chrome\Application\chrome.exe" } else { (Get-Command google-chrome).Source }
+            $flags = @("--headless=new", "--disable-gpu", "--no-first-run", "--user-data-dir=$(Join-Path $env:RUNNER_TEMP 'hq-chrome')", "--remote-debugging-port=9222", "--remote-allow-origins=*")
+            if ($IsLinux) { $flags += "--no-sandbox" } # AppArmor blocks Chrome's sandbox on ubuntu-24.04; this browser loads only HQ's loopback page.
+            $chrome = Start-Process -FilePath $browser -ArgumentList ($flags + "about:blank") -PassThru
+            for ($i = 0; $i -lt 60; $i++) { try { $null = Invoke-RestMethod "http://127.0.0.1:9222/json/version" -TimeoutSec 2; break } catch { Start-Sleep -Milliseconds 500 } }
+            & bun .github/scripts/hq-sentinel.ts 9222 "http://127.0.0.1:5199/" $sentinel 60000
+            if ($LASTEXITCODE -ne 0) { throw "HQ's board never showed the seeded session." }
+          }
+          finally {
+            foreach ($process in $chrome, $hq, $server) { if ($process -and -not $process.HasExited) { $process.Kill($true) } }
+          }
+
       - name: Upload consumer leg artifacts
         if: always()
         continue-on-error: true

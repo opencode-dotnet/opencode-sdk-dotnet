@@ -39,6 +39,7 @@ Nightly builds of `master` are on
 
 ### 📚 Documentation
 
+- The guides link to the playground apps that show their features running.
 - HQ's session page opens a terminal in the session's folder, removed from the server when the page ends.
 - HQ's pages no longer prerender, so a click right after a page loads is no longer dropped.
 - HQ answers text and choice questions in place, styles both screens, and shows its real SDK calls in a hideable source panel.

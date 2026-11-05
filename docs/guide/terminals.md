@@ -1,6 +1,6 @@
 # 🖥️ Terminals
 
-Date: 2026-11-03
+Date: 2026-11-05
 
 opencode has two terminal families, and they are genuinely different animals:
 
@@ -135,6 +135,9 @@ Connecting again to an exited PTY still succeeds **while the server retains it**
 recent exited PTYs. The first read then throws `OpenCodeTransportException` (close 4404,
 "session exited"). Once that PTY is evicted or removed, `ConnectAsync` itself throws
 `OpenCodeTransportException` (HTTP 404 on the upgrade).
+
+See it running: [HQ](../../playground/hq/README.md)'s session page opens a normal PTY in the
+session's folder.
 
 ## ♻️ Resuming with a cursor
 
