@@ -11,11 +11,11 @@ Nightly builds of `master` are on
 
 ### ✨ Added
 
-- `client.LanguageModels.WaitForDefaultAsync` returns the default model, asking again while the location's plugins
-  activate. On a `503` `ServiceUnavailableError` it asks again on the schedule opencode's app uses for
-  its boot-time catalog sync: up to twelve attempts, waiting one second after the first and doubling to
-  at most five seconds. Every other failure surfaces at once. It refuses `NoThrow` at the call, as
-  streams and cursor traversals do.
+- `client.LanguageModels.WaitForDefaultAsync` returns the default model, asking again while the
+  location's plugins activate. On a `503` `ServiceUnavailableError` it asks again on the schedule
+  opencode's app uses for its boot-time catalog sync: up to twelve attempts, waiting one second
+  after the first and doubling to at most five seconds. Every other failure surfaces at once. It
+  refuses `NoThrow` at the call, as streams and cursor traversals do.
 
 ### ⚡ Performance
 
