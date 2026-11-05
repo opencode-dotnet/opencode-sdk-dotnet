@@ -99,18 +99,21 @@ public sealed class LanguageModelsClientContractTests
         var time = new ManualTimeProvider();
         using var caller = new CancellationTokenSource();
         var requests = 0;
-        using var scenario = ContractScenario.Responding(_ => Answer(HttpStatusCode.ServiceUnavailable, WireBodyData.ServiceUnavailable(string.Format(CultureInfo.InvariantCulture, "attempt {0}", ++requests))));
+        using var scenario = ContractScenario.Responding(_ => Answer(HttpStatusCode.ServiceUnavailable, WireBodyData.PluginUnavailable(string.Format(CultureInfo.InvariantCulture, "attempt {0}", ++requests))));
 
-        var wait = await PassWaitsAsync(
-            time, token => new DefaultModelWait(scenario.Client.LanguageModels, time).WaitAsync(null, null, token), EveryWait, caller).WaitAsync(HangGuard.Bound);
         using var decided = new CancellationTokenSource();
-        var anotherWait = time.WaitForArmedOrCanceledAsync(EveryWait[^1], HangGuard.Bound, decided.Token);
-        Task first;
+        Task<ModelDefaultResponse>? wait = null;
+        Task? passing = null, anotherWait = null;
         try
         {
-            first = await Task.WhenAny(wait, anotherWait).WaitAsync(HangGuard.Bound);
-            await Assert.That(first).IsSameReferenceAs(wait);
-            var failure = await Assert.That(wait.WaitAsync(HangGuard.Bound)).Throws<OpenCodeApiException>();
+            passing = PassWaitsAsync(time, () => wait = new DefaultModelWait(scenario.Client.LanguageModels, time).WaitAsync(null, null, caller.Token), EveryWait);
+            // This check has no cancellation token; its owner cancels the operation during cleanup.
+            await passing.WaitAsync(HangGuard.Bound, CancellationToken.None);
+            var operation = wait!;
+            anotherWait = time.WaitForArmedOrCanceledAsync(EveryWait[^1], HangGuard.Bound, decided.Token);
+            var first = await Task.WhenAny(operation, anotherWait).WaitAsync(HangGuard.Bound);
+            await Assert.That(first).IsSameReferenceAs(operation);
+            var failure = await Assert.That(operation.WaitAsync(HangGuard.Bound)).Throws<OpenCodeApiException>();
             var error = await Assert.That(failure!.Error).IsTypeOf<ServiceUnavailableError>();
             await Assert.That(error!.Message).IsEqualTo("attempt 12");
             await Assert.That(time.ArmedIn(EveryWait[^1])).IsEqualTo(0);
@@ -118,13 +121,10 @@ public sealed class LanguageModelsClientContractTests
         }
         finally
         {
-            // Cleanup observes both tasks even after their owners have cancelled.
+            // Cleanup observes every started task even after its owner has cancelled.
             await decided.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
             await caller.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
-            _ = await Task.WhenAny(anotherWait).WaitAsync(HangGuard.Bound, CancellationToken.None);
-            _ = anotherWait.Exception;
-            _ = await Task.WhenAny(wait).WaitAsync(HangGuard.Bound, CancellationToken.None);
-            _ = wait.Exception;
+            await ObserveAsync(passing, anotherWait, wait);
         }
     }
 
@@ -198,8 +198,7 @@ public sealed class LanguageModelsClientContractTests
             ? Answer(HttpStatusCode.ServiceUnavailable, WireBodyData.PluginActivationUnavailableError)
             : Answer(HttpStatusCode.OK, WireBodyData.LocationEnvelope(KnownModel)));
         var response = await ConsumeWaitsAsync(time, token => new DefaultModelWait(scenario.Client.LanguageModels, time).WaitAsync(
-            new ModelDefaultRequest { Location = new LocationSelector { Directory = "/query/dir" } },
-            new OpenCodeRequestOptions { Location = new LocationSelector { Directory = "/header/ç" } }, token), [EveryWait[0]], caller);
+            ForwardedRequest(), ForwardedOptions(), token), [EveryWait[0]], caller);
         await Assert.That(response.Default!.Id).IsEqualTo("anthropic/claude-3-5-sonnet");
         await Assert.That(scenario.Requests.Count).IsEqualTo(2);
         foreach (var request in scenario.Requests)
@@ -214,43 +213,58 @@ public sealed class LanguageModelsClientContractTests
         using var caller = new CancellationTokenSource();
         using var scenario = ContractScenario.Responding(HttpStatusCode.OK, WireBodyData.LocationEnvelope(KnownModel));
         var response = await scenario.Client.LanguageModels.WaitForDefaultAsync(
-            new ModelDefaultRequest { Location = new LocationSelector { Directory = "/query/dir" } },
-            new OpenCodeRequestOptions { Location = new LocationSelector { Directory = "/header/ç" } }, caller.Token).WaitAsync(HangGuard.Bound);
+            ForwardedRequest(), ForwardedOptions(), caller.Token).WaitAsync(HangGuard.Bound);
         await Assert.That(response.Default!.Id).IsEqualTo("anthropic/claude-3-5-sonnet");
         await AssertLocationAsync(scenario.Requests.Single());
     }
 
+    private static ModelDefaultRequest ForwardedRequest() => new() { Location = new LocationSelector { Directory = "/query/dir" } };
+
+    private static OpenCodeRequestOptions ForwardedOptions() => new() { Location = new LocationSelector { Directory = "/header/ç" } };
+
     private static async Task AssertLocationAsync(RecordedRequest request)
     {
-        await Assert.That(request.RequestUri!.Query).IsEqualTo("?location[directory]=%2Fquery%2Fdir");
+        await Assert.That(request.RequestUri!.Query).IsEqualTo("?location[directory]=" + Uri.EscapeDataString(ForwardedRequest().Location!.Directory!));
         await Assert.That(request.Headers).ContainsKey("x-opencode-directory");
-        await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo("%2Fheader%2F%C3%A7");
+        await Assert.That(request.Headers["x-opencode-directory"]).IsEqualTo(Uri.EscapeDataString(ForwardedOptions().Location!.Directory!));
     }
 
     private static async Task<ModelDefaultResponse> ConsumeWaitsAsync(ManualTimeProvider time, Func<CancellationToken, Task<ModelDefaultResponse>> start, TimeSpan[] waits, CancellationTokenSource caller)
     {
-        var wait = await PassWaitsAsync(time, start, waits, caller).WaitAsync(HangGuard.Bound, caller.Token);
+        Task<ModelDefaultResponse>? wait = null;
+        Task? passing = null;
         try
         {
-            return await wait.WaitAsync(HangGuard.Bound, caller.Token);
+            passing = PassWaitsAsync(time, () => wait = start(caller.Token), waits);
+            // This check has no cancellation token; its owner cancels the operation during cleanup.
+            await passing.WaitAsync(HangGuard.Bound, CancellationToken.None);
+            return await wait!.WaitAsync(HangGuard.Bound, caller.Token);
         }
         finally
         {
-            // Cleanup observes the operation even after its owner has cancelled.
+            // Cleanup observes both tasks even after their owner has cancelled.
             await caller.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
-            _ = await Task.WhenAny(wait).WaitAsync(HangGuard.Bound, CancellationToken.None);
-            _ = wait.Exception;
+            await ObserveAsync(passing, wait);
         }
+    }
+
+    private static async Task ObserveAsync(params Task?[] tasks)
+    {
+        var all = Task.WhenAll(tasks.OfType<Task>());
+        // The owners have cancelled; this cleanup has no cancellation token of its own.
+        _ = await Task.WhenAny(all).WaitAsync(HangGuard.Bound, CancellationToken.None);
+        _ = all.Exception;
     }
 
     /// <summary>
     /// Starts the operation and passes each wait between its attempts: waits in real time until the
     /// next wait is created or the operation ends, requires the wait, checks its length, and only then
-    /// moves the clock. The losing waiter is cancelled and observed.
+    /// moves the clock. The losing waiter is cancelled and observed. On a failed check, the caller
+    /// cancels the operation and observes both it and this helper before the failure propagates.
     /// </summary>
-    private static async Task<Task<ModelDefaultResponse>> PassWaitsAsync(ManualTimeProvider time, Func<CancellationToken, Task<ModelDefaultResponse>> start, TimeSpan[] waits, CancellationTokenSource caller)
+    private static async Task PassWaitsAsync(ManualTimeProvider time, Func<Task<ModelDefaultResponse>> start, TimeSpan[] waits)
     {
-        var operation = start(caller.Token);
+        var operation = start();
         using (var decided = new CancellationTokenSource())
         {
             Task? created = null;
@@ -261,17 +275,10 @@ public sealed class LanguageModelsClientContractTests
                     created = time.WaitForTimerAsync(HangGuard.Bound, decided.Token);
                     var first = await Task.WhenAny(operation, created).WaitAsync(HangGuard.Bound, decided.Token);
                     await Assert.That(first).IsSameReferenceAs(created);
+                    await created;
                     await Assert.That(time.ArmedIn(expected)).IsEqualTo(1);
                     time.Advance(expected);
                 }
-            }
-            catch
-            {
-                // Cleanup must observe the operation even after its owner has cancelled.
-                await caller.CancelOnWorkerAsync().WaitAsync(HangGuard.Bound, CancellationToken.None);
-                _ = await Task.WhenAny(operation).WaitAsync(HangGuard.Bound, CancellationToken.None);
-                _ = operation.Exception;
-                throw;
             }
             finally
             {
@@ -284,8 +291,6 @@ public sealed class LanguageModelsClientContractTests
                 }
             }
         }
-
-        return operation;
     }
 
     private static HttpResponseMessage Answer(HttpStatusCode status, string body) => new(status) { Content = new StringContent(body) };

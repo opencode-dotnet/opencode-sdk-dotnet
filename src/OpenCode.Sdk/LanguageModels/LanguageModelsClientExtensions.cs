@@ -13,12 +13,12 @@ public static class LanguageModelsClientExtensions
     /// <param name="cancellationToken">Ends the wait early.</param>
     /// <returns>The default-model response; its <c>Default</c> is null when the server has no default model.</returns>
     /// <remarks>
-    /// While the location's plugins activate, the server holds the request and then answers
-    /// <see cref="ServiceUnavailableError"/>. On that answer this method asks again on the schedule
-    /// opencode's app uses for its boot-time catalog sync: up to twelve attempts, waiting one second after the first and
-    /// doubling to at most five seconds. The last unavailable answer surfaces, and so does every other
-    /// failure. As described by Plugin activation, this method does not make activation complete;
-    /// it outlasts unavailable answers, and a catalog can still grow after it returns.
+    /// While the location's plugins activate, the server holds the request up to five seconds and,
+    /// if activation has not finished, answers <see cref="ServiceUnavailableError"/>. On that answer
+    /// this method asks again on the schedule opencode's app uses for its boot-time catalog sync:
+    /// up to twelve attempts, waiting one second after the first and doubling to at most five seconds.
+    /// The last unavailable answer surfaces, and so does every other failure. Plugin activation has
+    /// no completion barrier, and a catalog can still grow after this method returns.
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="client"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="requestOptions"/> selects NoThrow, which the wait refuses.</exception>

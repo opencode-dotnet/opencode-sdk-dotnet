@@ -85,10 +85,9 @@ internal static class WireBodyData
     public const string ServiceUnavailableError =
         "{\"_tag\":\"ServiceUnavailableError\",\"message\":\"opencode-pty could not be started\",\"service\":\"opencode-pty\"}";
 
-    public const string PluginActivationUnavailableError =
-        "{\"_tag\":\"ServiceUnavailableError\",\"message\":\"Location plugins did not finish activating\",\"service\":\"plugin\"}";
+    public static readonly string PluginActivationUnavailableError = PluginUnavailable("Location plugins did not finish activating");
 
-    public static string ServiceUnavailable(string message) => new JsonObject
+    public static string PluginUnavailable(string message) => new JsonObject
     {
         ["_tag"] = "ServiceUnavailableError",
         ["message"] = message,

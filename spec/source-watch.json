@@ -277,7 +277,7 @@
       "behavior": "The model list and default-model handlers wait for the location's plugins (awaitPlugins) before they answer, which WaitForDefaultAsync relies on.",
       "anchor": {
         "type": "contains",
-        "text": "\u0022model.default\u0022"
+        "text": "yield* awaitPlugins"
       }
     },
     {
