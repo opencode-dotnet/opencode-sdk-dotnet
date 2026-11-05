@@ -62,7 +62,7 @@ kind follows the suppression policy in `slop-review.md`.
 - `CA1502` attributes local functions declared in top-level statements to the compiler-generated
   `Main`, so a top-level `Program.cs` accumulates every mode's dispatch complexity onto one
   method. Split the dispatch into a named class instead of arbitrating the rule;
-  `tests/OpenCode.Sdk.Sandbox/SandboxRunner.cs` records the precedent.
+  `tests/OpenCode.Sdk.ServiceFixture/ServiceFixtureRunner.cs` records the precedent.
 
 Internal research, 2026-08-08, "Analyzer & .editorconfig policy: claim verification + community
 survey", records the claim verification, community comparison, and rule arbitration behind
@@ -328,11 +328,11 @@ repository-owned RPC plugin, the same launcher-owned readiness and teardown, the
 logs. The executable is resolved by the
 shipped launcher from `PATH` (with `PATHEXT`, which is what starts an npm `.cmd` shim), so the lane
 also re-proves that resolution on every run. The job therefore installs the build, asserts
-`opencode --version`, and runs the whole `OpenCode.Sdk.Tests` project on `net10.0`, the sandbox's
-standalone launcher demo, and the playground apps as a consumer runs them: AotCli publishes natively
-and inspects a scratch repository, Worker stops with exit code 1 when its server ends, and HQ's
-board, read through headless Chrome, shows a session seeded on an isolated server. A run whose
-summary is missing, or whose executed-test count
+`opencode --version`, and runs the whole `OpenCode.Sdk.Tests` project on `net10.0` and the
+playground apps as a consumer runs them: AotCli publishes natively and inspects a scratch
+repository, Worker starts its server through the launcher's default command and stops with exit
+code 1 when it ends, and HQ's board, read through headless Chrome, shows a session seeded on an
+isolated server. A run whose summary is missing, or whose executed-test count
 falls under the job's floor, fails on the count, because an empty run must not read as a pass.
 
 Bun, the pinned ripgrep, and the pinned server's dependencies come from the shared composite action

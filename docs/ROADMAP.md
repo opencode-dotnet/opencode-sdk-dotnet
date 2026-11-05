@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-11-02
+Date: 2026-11-05
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -116,17 +116,15 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    SDK. After `1.0.0-rc.1` only a regression is fixed. A generator baseline and a full run of the
    suite on the release candidate
    close the gate. Exit: a reviewed full run with no unexplained regression.
-7. **Playground and documentation.** The Sandbox leaves the repository. A `playground/` of four apps
-   replaces it, modeled on
+7. **Playground and documentation.** Done. `playground/` holds four apps modeled on
    [dotnet-aspire-for-localstack's playground](https://github.com/localstack-dotnet/dotnet-aspire-for-localstack/tree/master/playground):
    `QuickStart`, `Hq` (a small OpenCode HQ on Blazor Server and Aspire, with its screens explaining
-   their own SDK calls), `Worker`, and `AotCli`. They teach the SDK and show that a real product can
-   be built on it, and each runs with only the `opencode` CLI installed. Building `Hq` tests the
-   public API, so its two main screens land before `1.0.0-rc.1`; the rest lands before `1.0.0`
-   ([#503](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/503)). A guard compiles the
-   README's and the guides' C# snippets
-   ([#388](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/388)). Exit: the Sandbox
-   gone, every app building in CI, and the guides linking to the apps.
+   their own SDK calls), `Worker`, and `AotCli`
+   ([#503](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/503)). They teach the SDK
+   and show that a real product can be built on it; each runs with only the `opencode` CLI
+   installed, the consumer leg runs them, and the guides link to them. The Sandbox is gone. A guard
+   compiles the README's and the guides' C# snippets
+   ([#388](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/388)).
 8. **`1.0.0`** ([#187](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/187)). Exit:
    `1.0.0` on NuGet.org, the `OpenCodeAI.*` popularity moved to `OpenCodeDotNet.*`, the README's
    rename notice gone, and milestone `1.1` ordered with its first items assigned.
@@ -255,8 +253,8 @@ These do not block `1.0.0` and run beside the road.
   route builder instead of calling the shared policy (a large but purely mechanical generated
   diff); the `form` group's curation reason is written in the future tense where every sibling
   states present fact; the `MedianNanoseconds` benchmark column breaks the other columns'
-  abbreviation convention; the committed sandbox's `--paginate` mode exits nonzero on an empty
-  enumeration; and the public API baseline renders `typeof(X)` attribute arguments as `typeof(X?)`
+  abbreviation convention; and the public API baseline renders `typeof(X)` attribute arguments as
+  `typeof(X?)`
   on interfaces whose members are mostly nullable — a PublicApiGenerator artifact of the
   compiler's nullable-context compression, harmless and stable, to be normalized in the baseline
   test and reported upstream

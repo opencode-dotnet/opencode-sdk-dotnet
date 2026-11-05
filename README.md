@@ -366,8 +366,8 @@ fixture-backed tests run. Those tests also need Bun, the pinned server's depende
 ripgrep; [`docs/engineering/quality-gates.md`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/engineering/quality-gates.md)
 has the versions and the full completion gate.
 
-[`tests/OpenCode.Sdk.Sandbox`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/tests/OpenCode.Sdk.Sandbox/README.md)
-is a committed playground that drives the SDK against a real `opencode serve` under a debugger.
+[`playground/`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/README.md)
+holds small apps that drive the SDK against a real `opencode serve`.
 
 ## Community
 

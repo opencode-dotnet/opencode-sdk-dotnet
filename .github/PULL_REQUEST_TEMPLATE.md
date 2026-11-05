@@ -42,7 +42,7 @@ Provide a clear and concise description of the changes.
 - [ ] Integration tests added or updated
 - [ ] Verified against a real `opencode serve` (say which version below)
 - [ ] Verified on the downlevel targets (`net472` / `netstandard2.0`)
-- [ ] Sandbox walkthrough run (`tests/OpenCode.Sdk.Sandbox`)
+- [ ] Playground app run (`playground/`)
 
 **Test Environment:**
 

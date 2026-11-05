@@ -203,32 +203,6 @@ jobs:
             throw "Only $total tests ran; at least $minimum were expected on this framework."
           }
 
-      # The launcher demo is the one leg the fixture cannot cover: it owns its server, needs no
-      # endpoint, and resolves the shipped default command (`opencode serve`) from PATH the way a
-      # consumer's own process would - the npm shim included. Its XDG roots are isolated in this
-      # step's environment, which the launcher-started server inherits, so it touches no ambient
-      # opencode profile; upstream creates those roots itself on startup.
-      - name: Sandbox standalone launcher demo
-        shell: pwsh
-        env:
-          XDG_CONFIG_HOME: ${{ runner.temp }}/consumer-leg-standalone/config
-          XDG_DATA_HOME: ${{ runner.temp }}/consumer-leg-standalone/data
-          XDG_STATE_HOME: ${{ runner.temp }}/consumer-leg-standalone/state
-          XDG_CACHE_HOME: ${{ runner.temp }}/consumer-leg-standalone/cache
-          # The models catalog fetch is the one outbound call the server makes unprompted, and the
-          # suite's posture is to keep it off (ADR-0022;
-          # tests/OpenCode.Sdk.Tests/Harness/ServerIsolation.cs sets the
-          # same variable for the owned server).
-          OPENCODE_DISABLE_MODELS_FETCH: "1"
-        run: |
-          $ErrorActionPreference = "Stop"
-          $log = Join-Path $env:GITHUB_WORKSPACE "TestResults/consumer-leg/sandbox-standalone.log"
-          & dotnet run --project tests/OpenCode.Sdk.Sandbox --configuration Release --no-launch-profile `
-            -- --standalone 2>&1 | Tee-Object -FilePath $log
-          if ($LASTEXITCODE -ne 0) {
-            throw "The sandbox standalone demo exited with $LASTEXITCODE."
-          }
-
       # The playground apps, as a consumer builds and runs them, against the distributed build. Each
       # starts or reaches its own isolated server and needs no model.
       - name: Playground AotCli publishes natively and inspects a repository

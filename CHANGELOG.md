@@ -47,6 +47,7 @@ Nightly builds of `master` are on
 
 ### 📚 Documentation
 
+- The in-repo Sandbox is gone; the [playground](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/README.md) apps replace it.
 - The guides link to the playground apps that show their features running.
 - HQ's session page opens a terminal in the session's folder, removed from the server when the page ends.
 - HQ's pages no longer prerender, so a click right after a page loads is no longer dropped.

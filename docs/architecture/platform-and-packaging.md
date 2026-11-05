@@ -1,6 +1,6 @@
 # Platform and Packaging Architecture
 
-Date: 2026-11-02
+Date: 2026-11-05
 
 Canonical current rules for target frameworks, package boundaries, repository shape, versioning,
 distribution, dependencies, and licensing.
@@ -17,8 +17,8 @@ netstandard2.0;net472;net10.0;net11.0
 A version joins at its first go-live release candidate and leaves no later than its end of
 support; a non-preview package is built only on a GA SDK. `global.json` pins the .NET 11 release
 candidate SDK until its GA. `Directory.Build.props` holds every target-framework literal:
-`DefaultTargetFramework` (the LTS release, on which the tools, the service fixture, the sandbox, and
-the performance project build), `LatestTargetFramework`, `AllTargetFrameworks` for the packages,
+`DefaultTargetFramework` (the LTS release, on which the tools, the service fixture and the
+performance project build), `LatestTargetFramework`, `AllTargetFrameworks` for the packages,
 and `TestTargetFrameworks` for the test projects, which add `net472` on Windows.
 
 A consumer whose target framework resolves to the `netstandard2.0` asset on a runtime the packages

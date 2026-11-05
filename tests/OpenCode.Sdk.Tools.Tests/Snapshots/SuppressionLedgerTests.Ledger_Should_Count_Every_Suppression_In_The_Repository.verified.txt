@@ -2,11 +2,11 @@
 A change that adds, removes or alters a suppression updates this file in the same commit.
 
 build-switch: 12
-editorconfig: 153
+editorconfig: 152
 globalconfig: 1
-no-warn: 14
+no-warn: 12
 pragma: 27
-slopwatch-ignore: 8
+slopwatch-ignore: 7
 slopwatch-suppress: 31
 suppress-message: 1
 
@@ -123,7 +123,6 @@ editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.CS1591.severity = n
 editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.MA0004.severity = none
 editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.MA0042.severity = none
 editorconfig .editorconfig [tests/**/*.cs] dotnet_diagnostic.VSTHRD111.severity = none
-editorconfig .editorconfig [tests/OpenCode.Sdk.Sandbox/**.cs] dotnet_diagnostic.MA0076.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/BestEffortDeleteTests.cs] dotnet_diagnostic.CA1849.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/BestEffortDeleteTests.cs] dotnet_diagnostic.S6966.severity = none
 editorconfig .editorconfig [tests/OpenCode.Sdk.Tests/BestEffortDeleteTests.cs] dotnet_diagnostic.VSTHRD103.severity = none
@@ -186,8 +185,6 @@ no-warn tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.cspr
 no-warn tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj OPENCODE002
 no-warn tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj S1075
 no-warn tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj S2068
-no-warn tests/OpenCode.Sdk.Sandbox/OpenCode.Sdk.Sandbox.csproj OPENCODE001
-no-warn tests/OpenCode.Sdk.Sandbox/OpenCode.Sdk.Sandbox.csproj OPENCODE002
 no-warn tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj OPENCODE001
 no-warn tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj OPENCODE002
 pragma src/OpenCode.Sdk/Common/Internal/ExperimentalDiagnostics.cs S1075
@@ -220,7 +217,6 @@ slopwatch-ignore src/OpenCode.Sdk.Extensions/OpenCode.Sdk.Extensions.csproj SW00
 slopwatch-ignore src/OpenCode.Sdk/OpenCode.Sdk.csproj SW005
 slopwatch-ignore tests/OpenCode.Sdk.Extensions.Tests/OpenCode.Sdk.Extensions.Tests.csproj SW005
 slopwatch-ignore tests/OpenCode.Sdk.Performance.Tests/OpenCode.Sdk.Performance.Tests.csproj SW005 x2
-slopwatch-ignore tests/OpenCode.Sdk.Sandbox/OpenCode.Sdk.Sandbox.csproj SW005
 slopwatch-ignore tests/OpenCode.Sdk.Tests/OpenCode.Sdk.Tests.csproj SW005
 slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Ensure/ServiceElection.cs SW003
 slopwatch-suppress src/OpenCode.Sdk/Hosting/BackgroundService/Internal/Handoff/ServicePtyHandoff.cs SW003 x3

@@ -2,8 +2,7 @@
 <Project>
   <PropertyGroup>
     <!-- Every target-framework literal of the repository lives here (ADR-0002). The tools, the
-         service fixture, the sandbox, and the performance project build on the default, the LTS
-         release; the newest supported release joins at its first go-live release candidate. -->
+         service fixture and the performance project build on the default, the LTS release; the newest supported release joins at its first go-live release candidate. -->
     <DefaultTargetFramework>net10.0</DefaultTargetFramework>
     <LatestTargetFramework>net11.0</LatestTargetFramework>
     <AllTargetFrameworks>netstandard2.0;net472;$(DefaultTargetFramework);$(LatestTargetFramework)</AllTargetFrameworks>
