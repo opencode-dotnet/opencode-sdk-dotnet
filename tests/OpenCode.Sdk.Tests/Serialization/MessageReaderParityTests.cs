@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using OpenCode.Sdk.Internal;
 using OpenCode.Sdk.Models;
 using OpenCode.Sdk.Tests.Harness;
@@ -11,8 +12,27 @@ namespace OpenCode.Sdk.Tests.Serialization;
 
 public sealed class MessageReaderParityTests
 {
+    private static readonly string[] NestedPaths = ["time", "model", "tokens", "tokens/cache"];
+
     public static IEnumerable<string> Arms() => ["agent-switched", "assistant", "idle", "location-switched", "model-switched",
         "shell", "skill", "synthetic", "system", "user", "reasoning", "text", "tool"];
+
+    public static IEnumerable<string> NestedRecords() => NestedPaths
+        .SelectMany(static path => ToolUnionCaseBuilder.NestedRows(AssistantSeed(), path));
+
+    [Test]
+    [MethodDataSource(nameof(NestedRecords))]
+    public async Task Read_Should_Match_Metadata_For_Nested_Assistant_Records(string row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        var parts = row.Split('/');
+        var bytes = await ToolUnionCaseBuilder.ChangeAtAsync(AssistantSeed(), string.Join('/', parts.Take(parts.Length - 1)), parts[^1]);
+        await CompareAsync(bytes, "assistant", "assistant/" + row);
+        if (row == "time/streamed/null")
+        {
+            await Assert.That(Observe(bytes, "assistant", OpenCodeJsonContext.Default).Phase).IsEqualTo("success").Because(row);
+        }
+    }
 
     public static IEnumerable<string> Gaps()
     {
@@ -192,6 +212,15 @@ public sealed class MessageReaderParityTests
             writer.WriteEndArray();
         });
         return await ReplaceAsync(assistant, "content", content);
+    }
+
+    private static JsonElement AssistantSeed()
+    {
+        // The assistant fixture and its time object are both present.
+        var value = JsonNode.Parse(Seed("assistant").GetRawText())!;
+        value["time"]!["streamed"] = 19.5;
+        using var document = JsonDocument.Parse(value.ToJsonString());
+        return document.RootElement.Clone();
     }
 
     private static Type ArmType(string row) => row switch

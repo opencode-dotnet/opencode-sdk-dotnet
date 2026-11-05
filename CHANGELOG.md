@@ -20,17 +20,17 @@ Nightly builds of `master` are on
 ### ⚡ Performance
 
 - **Messages deserialize faster and allocate less.** On .NET 10, a message of 2,400 parts
-  deserializes in about 8.7 ms instead of about 16.6 ms, a medium one about 47% faster, and a
-  prompt's event frames about 54% faster. Reading that message also allocates 3,087,408 B instead
-  of 5,098,776 B on .NET 10, and 3,087,384 B instead of 5,055,504 B on .NET 11. Messages, their
+  deserializes in about 8.5 ms instead of about 16.8 ms, a medium one about 47% faster, and a
+  prompt's event frames about 54% faster. Reading that message also allocates 3,086,288 B instead
+  of 5,098,776 B on .NET 10, and 3,086,288 B instead of 5,055,504 B on .NET 11. Messages, their
   content parts and tool states keep the same values and failure behavior; serialization is
   unchanged.
 - **A prompt's event stream allocates less.** Reading 1,024 delta frames and 16 text-ended frames
   allocates 704,850 B instead of 1,491,796 B on .NET 10, and 704,778 B instead of 1,491,724 B on
   .NET 11. Materializing the frames alone allocates 663,424 B instead of 1,450,368 B on both
   runtimes. Values, failure behavior and serialization are unchanged.
-- **Real-turn event subscriptions allocate less.** Reading a captured coding turn allocates 41,808 B
-  instead of 75,280 B on .NET 10, and 41,736 B instead of 75,208 B on .NET 11. Values, failure
+- **Real-turn event subscriptions allocate less.** Reading a captured coding turn allocates 36,096 B
+  instead of 75,280 B on .NET 10, and 36,024 B instead of 75,208 B on .NET 11. Values, failure
   behavior and serialization are unchanged.
 - On `net472` and `netstandard2.0`, a response body under 64 MiB, up from 16 MiB, reuses a pooled
   buffer rather than allocating one per call. A 36 MB body on `net472` goes from about 138 MB to

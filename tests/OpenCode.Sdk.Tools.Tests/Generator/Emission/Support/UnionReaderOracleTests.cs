@@ -39,16 +39,12 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
             await Assert.That(System.Text.Encoding.UTF8.GetString(sources.Single(source => source.RelativePath == relativePath).Utf8Source.Span))
                 .IsNotEqualTo(System.Text.Encoding.UTF8.GetString(emitted.Single(source => source.RelativePath == relativePath).Utf8Source.Span)).Because(relativePath);
         }
-        var loader = new FixtureLoader();
-        sources.Add(MetadataUnionOracleEmitter.Source("Internal/Serialization/MetadataUnionJsonConverter.cs", loader.Load("Serialization.MetadataUnionJsonConverter.cs")));
-        sources.Add(MetadataUnionOracleEmitter.Source("ToolUnionMetadataOracle.cs", loader.Load("Serialization.ToolUnionMetadataOracle.cs")));
+        AddFocusedSources(sources);
         var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(sources);
         var product = UnionReaderOracle.Context(assembly);
-        var factory = assembly.GetType("OpenCode.Sdk.Tests.Serialization.Support.ToolUnionMetadataOracle`1", true)!
-            .MakeGenericType(assembly.GetType("OpenCode.Sdk.Models.IToolContent", true)!);
-        var focused = (System.Text.Json.Serialization.JsonSerializerContext)factory.GetMethod("Create")!.Invoke(null, null)!;
+        var focused = Focused(assembly);
         var overrides = focused.Options.Converters.Where(converter => converter.GetType().IsGenericType
-            && converter.GetType().GetGenericTypeDefinition() == factory.GetGenericTypeDefinition()).ToArray();
+            && converter.GetType().GetGenericTypeDefinition() == assembly.GetType("OpenCode.Sdk.Tests.Serialization.Support.ToolUnionMetadataOracle`1", true)).ToArray();
         await Assert.That(overrides
             .Select(static converter => converter.GetType().GenericTypeArguments.Single().Name).Order(StringComparer.Ordinal))
             .IsEquivalentTo(pinned.Plan.ReaderArms.Where(static entry => entry.Value.Count > 0).Select(static entry => entry.Key), CollectionOrdering.Matching);
@@ -90,6 +86,30 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
             .Single(static row => row.Name == "ToolContent/file/maximal");
         var failure = await Assert.That(async () => await oracle.CompareAsync(row)).Throws<AssertionException>();
         await Assert.That(failure!.Message).Contains(row.Name + "/ToolFileContent/members");
+    }
+
+    [Test]
+    [Arguments("TokenUsageInfoCache", "Read = state.value0", "Read = state.value0 == 0 ? 0 : throw new JsonException(\"product-reader-entered\")", "SessionStepEnded", "Event/session.step.ended/maximal")]
+    [Arguments("ModelRef", "Id = state.value0!", "Id = state.value0 is null ? string.Empty : throw new JsonException(\"product-reader-entered\")", "SessionMessageAssistant", "SessionMessageInfo/assistant/maximal")]
+    public async Task Oracle_Should_Isolate_A_Deep_Nested_Reader(string name, string before, string after, string root, string rowName)
+    {
+        var emitted = SourceEmitter.Emit(pinned.Plan);
+        var path = pinned.Plan.Placement.HomeOf(name).Slice + "/Internal/" + name + "JsonReader.cs";
+        var original = System.Text.Encoding.UTF8.GetString(emitted.Single(source => source.RelativePath == path).Utf8Source.Span);
+        var trapped = original.Replace(before, after, StringComparison.Ordinal);
+        await Assert.That(trapped).IsNotEqualTo(original).Because(path);
+        var sources = emitted.Select(source => source.RelativePath == path ? MetadataUnionOracleEmitter.Source(path, trapped) : source).ToList();
+        AddFocusedSources(sources);
+        var assembly = await GeneratedSourceCompiler.CompileAndLoadWithSdkCoreAsync(sources);
+        var product = UnionReaderOracle.Context(assembly);
+        var focused = Focused(assembly);
+        var row = (await RecordCorpusGenerator.GenerateAsync(pinned.Plan, [root])).Single(row => row.Name == rowName);
+        var entered = UnionReaderOracle.Observe(product, row.UnionType!, row.Json);
+        await Assert.That(entered.Phase).IsEqualTo("read").Because(rowName);
+        await Assert.That(entered.Message).Contains("product-reader-entered").Because(rowName);
+        var oracle = await UnionReaderOracle.CreateAsync(pinned.Plan);
+        await UnionReaderOracle.AssertEquivalentAsync(UnionReaderOracle.Observe(focused, row.UnionType!, row.Json),
+            UnionReaderOracle.Observe(oracle.Metadata, row.UnionType!, row.Json), rowName);
     }
 
     [Test]
@@ -135,6 +155,7 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
     [Test]
     public async Task Oracle_Should_Compare_Every_Selected_Corpus_Row_And_Accept_Every_Seed()
     {
+        await Assert.That(pinned.Plan.Unions.SelectMany(static union => union.KnownImpossibleTags)).IsNotEmpty();
         var names = pinned.Plan.ReaderRecords.Keys.ToArray();
         var rows = await RecordCorpusGenerator.GenerateAsync(pinned.Plan, names);
         await AssertCorpusRoutesAsync(pinned.Plan, rows);
@@ -142,12 +163,10 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
         foreach (var row in rows)
         {
             await oracle.CompareAsync(row);
-            if (row.Name.EndsWith("/tag/oracle.future", StringComparison.Ordinal))
+            if (row.Name.Contains("/tag/", StringComparison.Ordinal))
             {
                 var union = pinned.Plan.Unions.Single(union => union.Name == row.UnionType);
-                var unknown = UnionReaderOracle.Observe(oracle.Metadata, union.Name, row.Json);
-                await Assert.That(unknown.Type).IsEqualTo(union.Namespace + "." + union.UnknownTypeName);
-                await Assert.That(unknown.Bytes).IsEquivalentTo(row.Json, CollectionOrdering.Matching);
+                await AssertTagAsync(oracle, union, row);
             }
         }
     }
@@ -180,6 +199,10 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
         foreach (var row in rows)
         {
             await oracle.CompareAsync(row);
+            if (row.Name.Contains("/tag/", StringComparison.Ordinal))
+            {
+                await AssertTagAsync(oracle, unions.Single(union => union.Name == row.UnionType), row);
+            }
             if (!row.IsSeed)
             {
                 continue;
@@ -197,6 +220,12 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
                     .IsEqualTo(bool.Parse(union.Variants.Single(arm => arm.TypeName == row.RootType).Tag));
             }
             await Assert.That(UnionReaderOracle.Observe(oracle.Metadata, row.UnionType!, row.Json).Phase).IsEqualTo("success");
+        }
+        var booleanUnions = unions.Where(static union => union.MarkerKind == Tools.Generator.Ingestion.Models.LiteralKind.Boolean).ToArray();
+        await Assert.That(booleanUnions).IsNotEmpty();
+        foreach (var union in booleanUnions)
+        {
+            await AssertUnknownBooleanAsync(union);
         }
     }
 
@@ -238,6 +267,54 @@ public sealed class UnionReaderOracleTests(PinnedBinding pinned)
             var failure = await Assert.That(async () => await UnionReaderOracle.AssertEquivalentAsync(changed, expected, row.Name)).Throws<AssertionException>();
             await Assert.That(failure!.Message).Contains(row.Name);
         }
+    }
+
+    private static void AddFocusedSources(List<GeneratedSource> sources)
+    {
+        var loader = new FixtureLoader();
+        sources.Add(MetadataUnionOracleEmitter.Source("Internal/Serialization/MetadataUnionJsonConverter.cs", loader.Load("Serialization.MetadataUnionJsonConverter.cs")));
+        sources.Add(MetadataUnionOracleEmitter.Source("ToolUnionMetadataOracle.cs", loader.Load("Serialization.ToolUnionMetadataOracle.cs")));
+    }
+
+    private static System.Text.Json.Serialization.JsonSerializerContext Focused(System.Reflection.Assembly assembly)
+    {
+        // These types and members are emitted into every focused-oracle image.
+        var factory = assembly.GetType("OpenCode.Sdk.Tests.Serialization.Support.ToolUnionMetadataOracle`1", true)!
+            .MakeGenericType(assembly.GetType("OpenCode.Sdk.Models.IToolContent", true)!);
+        return (System.Text.Json.Serialization.JsonSerializerContext)factory.GetMethod("Create")!.Invoke(null, null)!;
+    }
+
+    private static async Task AssertTagAsync(UnionReaderOracle oracle, UnionPlan union, RecordCorpusRow row)
+    {
+        using var document = JsonDocument.Parse(row.Json);
+        var marker = document.RootElement.GetProperty(union.MarkerWireName);
+        // A string marker token always carries a non-null string value.
+        var tag = marker.ValueKind == JsonValueKind.String ? marker.GetString()! : marker.GetRawText();
+        var observed = UnionReaderOracle.Observe(oracle.Metadata, union.Name, row.Json);
+        if (union.KnownImpossibleTags.Contains(tag, StringComparer.Ordinal))
+        {
+            await Assert.That(observed.Phase).IsEqualTo("read").Because(row.Name);
+            await Assert.That(observed.ExceptionType).IsEqualTo(typeof(JsonException).FullName).Because(row.Name);
+            await Assert.That(observed.Message).Contains("impossible").Because(row.Name);
+        }
+        else
+        {
+            await Assert.That(observed.Type).IsEqualTo(union.Namespace + "." + union.UnknownTypeName).Because(row.Name);
+            await Assert.That(observed.Bytes).IsEquivalentTo(row.Json, CollectionOrdering.Matching).Because(row.Name);
+        }
+    }
+
+    private async Task AssertUnknownBooleanAsync(UnionPlan original)
+    {
+        // The pin claims both boolean tokens; omitting one claim makes the unknown route reachable.
+        var omitted = original.Variants[^1];
+        var union = original with { Variants = [.. original.Variants.Where(arm => arm.TypeName != omitted.TypeName)] };
+        var plan = pinned.Plan with { Unions = [.. pinned.Plan.Unions.Select(candidate => candidate.Name == union.Name ? union : candidate)] };
+        var rows = await RecordCorpusGenerator.GenerateAsync(plan, [union.Variants[0].TypeName]);
+        var row = rows.Single(row => row.Name.EndsWith("/tag/" + omitted.Tag, StringComparison.Ordinal));
+        var oracle = await UnionReaderOracle.CreateAsync(plan);
+        await oracle.CompareAsync(row);
+        await AssertTagAsync(oracle, union, row);
     }
 
     private static async Task<UnionReaderObservation> AssertDifferenceAsync(UnionReaderOracle oracle, RecordCorpusRow row, string difference)

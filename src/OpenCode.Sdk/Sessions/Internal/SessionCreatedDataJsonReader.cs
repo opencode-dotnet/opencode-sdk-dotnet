@@ -191,7 +191,7 @@ internal static class SessionCreatedDataJsonReader
             throw new JsonException("A non-nullable member was null.");
         }
 
-        state.value2 = UnionMemberReader.Read<LocationRef>(ref reader, options);
+        state.value2 = LocationRefJsonReader.Read(ref reader, options);
         state.present0 |= 4UL;
         return true;
     }
@@ -240,7 +240,7 @@ internal static class SessionCreatedDataJsonReader
     private static bool ReadModel(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
         AdvanceToValue(ref reader);
-        state.value8 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<ModelRef?>(ref reader, options);
+        state.value8 = reader.TokenType == JsonTokenType.Null ? default : ModelRefJsonReader.Read(ref reader, options);
         return true;
     }
 

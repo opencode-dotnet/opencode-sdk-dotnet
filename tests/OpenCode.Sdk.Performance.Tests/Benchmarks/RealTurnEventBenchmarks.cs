@@ -19,7 +19,7 @@ public class RealTurnEventBenchmarks : IDisposable
     };
 
     private readonly OpenCodeClient?[] _clients = new OpenCodeClient?[2];
-    private readonly EventBenchmarkSetup?[] _connections = new EventBenchmarkSetup?[2];
+    private readonly EventBenchmarkConnection?[] _connections = new EventBenchmarkConnection?[2];
     private byte[][] _frames = [];
     private JsonTypeInfo[] _metadata = [];
     private byte[][] _expected = [];
@@ -37,7 +37,7 @@ public class RealTurnEventBenchmarks : IDisposable
     [GlobalSetup]
     public async Task SetupAsync()
     {
-        var frames = await EventBenchmarkSetup.DecodeFramesAsync(Fixture.Bytes).ConfigureAwait(false);
+        var frames = await EventBenchmarkConnection.DecodeFramesAsync(Fixture.Bytes).ConfigureAwait(false);
 
         if (frames.Count != Fixture.Items + 1)
         {
@@ -55,7 +55,7 @@ public class RealTurnEventBenchmarks : IDisposable
 
         for (var index = 0; index < _clients.Length; index++)
         {
-            var connection = new EventBenchmarkSetup(Fixture.Bytes, Options, suspendingChunkBytes: index == 0 ? null : 1460);
+            var connection = new EventBenchmarkConnection(Fixture.Bytes, Options, suspendingChunkBytes: index == 0 ? null : 1460);
             _connections[index] = connection;
             var client = connection.Client;
             _clients[index] = client;

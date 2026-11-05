@@ -204,7 +204,7 @@ internal static class SessionMessageAssistantJsonReader
             throw new JsonException("A non-nullable member was null.");
         }
 
-        state.value2 = UnionMemberReader.Read<SessionMessageAssistantTime>(ref reader, options);
+        state.value2 = SessionMessageAssistantTimeJsonReader.Read(ref reader, options);
         state.present0 |= 2UL;
         return true;
     }
@@ -230,7 +230,7 @@ internal static class SessionMessageAssistantJsonReader
             throw new JsonException("A non-nullable member was null.");
         }
 
-        state.value4 = UnionMemberReader.Read<ModelRef>(ref reader, options);
+        state.value4 = ModelRefJsonReader.Read(ref reader, options);
         state.present0 |= 8UL;
         return true;
     }
@@ -286,7 +286,7 @@ internal static class SessionMessageAssistantJsonReader
     private static bool ReadTokens(ref Utf8JsonReader reader, ref State state, JsonSerializerOptions options)
     {
         AdvanceToValue(ref reader);
-        state.value11 = reader.TokenType == JsonTokenType.Null ? default : UnionMemberReader.Read<TokenUsageInfo?>(ref reader, options);
+        state.value11 = reader.TokenType == JsonTokenType.Null ? default : TokenUsageInfoJsonReader.Read(ref reader, options);
         return true;
     }
 

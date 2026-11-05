@@ -3,17 +3,20 @@ using OpenCode.Sdk.Internal;
 namespace OpenCode.Sdk.Performance.Tests.Support;
 
 /// <summary>Owns setup and cleanup of a canned event connection and decodes setup frames.</summary>
-internal sealed class EventBenchmarkSetup : IDisposable
+internal sealed class EventBenchmarkConnection : IDisposable
 {
+    private readonly HttpClient _httpClient;
+
+    public void Dispose() => Dispose(disposing: true);
+
     internal CannedResponseHandler Handler { get; }
-    internal HttpClient HttpClient { get; }
     internal OpenCodeClient Client { get; }
 
-    internal EventBenchmarkSetup(byte[] bytes, OpenCodeClientOptions options, int? suspendingChunkBytes)
+    internal EventBenchmarkConnection(byte[] bytes, OpenCodeClientOptions options, int? suspendingChunkBytes)
     {
         Handler = new CannedResponseHandler(bytes, "text/event-stream", suspendingChunkBytes: suspendingChunkBytes);
-        HttpClient = new HttpClient(Handler);
-        Client = new OpenCodeClient(HttpClient, options);
+        _httpClient = new HttpClient(Handler);
+        Client = new OpenCodeClient(_httpClient, options);
     }
 
     internal static async Task<IReadOnlyList<byte[]>> DecodeFramesAsync(byte[] bytes)
@@ -27,8 +30,6 @@ internal sealed class EventBenchmarkSetup : IDisposable
         return frames;
     }
 
-    public void Dispose() => Dispose(disposing: true);
-
     internal void Dispose(bool disposing)
     {
         if (!disposing)
@@ -36,7 +37,7 @@ internal sealed class EventBenchmarkSetup : IDisposable
             return;
         }
         Client.Dispose();
-        HttpClient.Dispose();
+        _httpClient.Dispose();
         Handler.Dispose();
     }
 }
