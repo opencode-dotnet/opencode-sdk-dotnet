@@ -114,10 +114,12 @@ and the items named below come before `1.0.0`; additive and internal work waits 
    the generated union readers of ADR-0039
    ([#739](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/739)); every other cost
    becomes an issue in milestone `1.1`. The release candidate is the commit `1.0.0` is built from;
-   no `1.0.0-rc.N` package is published. A generator baseline and a full run of the suite on that
-   commit close the gate, together with a release rehearsal: the exact `1.0.0` packages built
-   locally, inspected, and run by the playground apps from a local feed. Exit: a reviewed full run
-   with no unexplained regression, and a clean rehearsal.
+   no `1.0.0-rc.N` package is published. A generator baseline and the suite's allocation sweep on
+   that commit close the gate, together with a release rehearsal: the exact `1.0.0` packages built
+   locally, inspected, and run by the playground apps from a local feed. The suite's full run follows
+   on the same commit before any `1.1` work merges
+   ([#796](https://github.com/opencode-dotnet/opencode-sdk-dotnet/issues/796)). Exit: a reviewed
+   sweep with no unexplained regression in the shipped packages, and a clean rehearsal.
 7. **Playground and documentation.** Done. `playground/` holds four apps modeled on
    [dotnet-aspire-for-localstack's playground](https://github.com/localstack-dotnet/dotnet-aspire-for-localstack/tree/master/playground):
    `QuickStart`, `Hq` (a small OpenCode HQ on Blazor Server and Aspire, with its screens explaining
