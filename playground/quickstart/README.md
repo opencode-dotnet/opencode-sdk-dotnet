@@ -13,7 +13,7 @@ dotnet run --project "<path-to-clone>/playground/quickstart/OpenCode.Playground.
 The sample uses a project reference. In your own app, install the SDK instead:
 
 ```sh
-dotnet add package OpenCodeDotNet.Sdk --prerelease
+dotnet add package OpenCodeDotNet.Sdk
 ```
 
 The server uses your normal opencode data: this session lands in your opencode history.

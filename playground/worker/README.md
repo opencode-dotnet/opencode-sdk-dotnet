@@ -12,7 +12,7 @@ dotnet run --project "<path-to-clone>/playground/worker/OpenCode.Playground.Work
 The sample uses a project reference. In your own app, install the SDK instead:
 
 ```sh
-dotnet add package OpenCodeDotNet.Sdk --prerelease
+dotnet add package OpenCodeDotNet.Sdk
 ```
 
 **When the server ends under it,** the worker logs how it ended and stops with exit code 1,

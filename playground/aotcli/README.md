@@ -21,7 +21,7 @@ dotnet run --project "<path-to-clone>/playground/aotcli/OpenCode.Playground.AotC
 The sample uses a project reference. In your own app, install the SDK instead:
 
 ```sh
-dotnet add package OpenCodeDotNet.Sdk --prerelease
+dotnet add package OpenCodeDotNet.Sdk
 ```
 
 The SDK declares `IsAotCompatible`. A measured Native AOT publish of this app reports no trim or AOT warnings.

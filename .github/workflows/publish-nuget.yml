@@ -98,6 +98,19 @@ jobs:
           fi
           echo "Packing commit \`$COMMIT\`." >> "$GITHUB_STEP_SUMMARY"
 
+      # The stamped version's core must be the commit's VersionPrefix: package validation classifies
+      # its version step from VersionPrefix, so a release stamped otherwise would be checked as another.
+      - name: Verify version against VersionPrefix
+        env:
+          PACKAGE_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          prefix="$(sed -n 's:.*<VersionPrefix>\(.*\)</VersionPrefix>.*:\1:p' Directory.Build.props)"
+          if [ -z "$prefix" ] || [ "${PACKAGE_VERSION%%-*}" != "$prefix" ]; then
+            echo "::error::The version input $PACKAGE_VERSION does not match VersionPrefix '$prefix' at this commit."
+            exit 1
+          fi
+
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:

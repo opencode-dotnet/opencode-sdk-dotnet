@@ -7,7 +7,17 @@ Each released version links straight to its GitHub Release tag.
 
 Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as
-`0.9.0-nightly.{yyyyMMdd}.g{shortSha}`.
+`1.0.0-nightly.{yyyyMMdd}.g{shortSha}`.
+
+## [1.0.0] - 2026-11-06
+
+**`1.0.0`: the public surface is stable.** From this release, a version's parts say where a change
+comes from; the Important Notes below explain them. Since `0.9.0-preview.15`,
+`LanguageModels.WaitForDefaultAsync` waits out a location's plugin activation, and the SDK reads the
+messages, events and tool states that real use carries through generated readers: on .NET 10, a
+message of 2,400 parts deserializes about twice as fast and allocates about 40% less, and a captured
+coding turn's subscription allocates about half as much. The playground shows the SDK running in
+four apps.
 
 ### ✨ Added
 
@@ -55,6 +65,8 @@ Nightly builds of `master` are on
 - HQ answers text and choice questions in place, styles both screens, and shows its real SDK calls in a hideable source panel.
 - Every complete C# snippet in the README and guides is now compiled against the SDK in CI.
 - Correct consumer signatures, streaming examples and terminology, provider setup, experimental opt-ins, installation guidance, and contribution routing.
+- The Known Issues name a .NET Framework cost: reading a JSON string over 1 MiB that contains an
+  escape, such as a newline, allocates one extra array of its length each time.
 - **`EnsureAsync` warns about a service boot's resume.** A service it starts resumes every suspended
   session on the shared data, including one another process is still running, so both drive it.
   The [connection modes guide](docs/guide/connection-modes.md#-ensuring-the-background-service) says
@@ -63,6 +75,16 @@ Nightly builds of `master` are on
 - [HQ](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/hq/README.md) shows live sessions, streamed conversations, prompts, permission answers, changed files and new sessions in a chosen directory in Blazor Server with an Aspire AppHost.
 - [Worker](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/worker/README.md) shows a hosted event-bus subscription and an owned server's failure exit in a Generic Host.
 - [AotCli](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/playground/aotcli/README.md) inspects a repository's branch, changed files, top-level entries and config sources as a Native AOT console tool.
+
+### 📋 Important Notes
+
+- **From `1.0.0`, a version's parts say where a change comes from.** A patch (`1.0.x`) carries fixes
+  and additive changes of the SDK's own. A minor (`1.x.0`) moves the pinned opencode release and may
+  change the generated protocol models the way upstream changed them; its section here lists each
+  such change. Only a major (`2.0.0`) breaks the hand-written surface. A family upstream marks
+  experimental carries `[Experimental]` and may change in any minor.
+- `1.0.0` is built on the go-live .NET 11 release-candidate SDK, a one-time exception to the GA-SDK
+  rule; `1.0.1` rebuilds it on the GA SDK with no API change.
 
 ## [0.9.0-preview.15] - 2026-11-01
 
@@ -2063,6 +2085,7 @@ migration to perform, because no earlier version was ever published.
 - **Pre-1.0 API.** The public surface is locked by a reviewed baseline, but it may still move
   before `1.0.0`. Breaking changes will be called out here with impact and migration path.
 
+[1.0.0]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v1.0.0
 [0.9.0-preview.15]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.15
 [0.9.0-preview.14]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.14
 [0.9.0-preview.13]: https://github.com/opencode-dotnet/opencode-sdk-dotnet/releases/tag/v0.9.0-preview.13
