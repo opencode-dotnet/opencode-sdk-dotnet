@@ -233,6 +233,17 @@ jobs:
         with:
           submodules: true
 
+      # The package-compatibility test reads the generated manifest at the validation baseline's tag
+      # (PackageCompatibilityRepositoryReader), and a default checkout carries no tags.
+      - name: Fetch the package-validation baseline tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          baseline="$(sed -n 's:.*<PackageValidationBaselineVersion>\(.*\)</PackageValidationBaselineVersion>.*:\1:p' Directory.Build.props)"
+          if [ -n "$baseline" ]; then
+            git fetch --no-tags --depth=1 origin "refs/tags/v${baseline}:refs/tags/v${baseline}"
+          fi
+
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v6
         with:

@@ -6,8 +6,8 @@ Each released version links straight to its GitHub Release tag.
 ## [Unreleased]
 
 Nightly builds of `master` are on
-[GitHub Packages](README.md#nightly-builds-github-packages) as
-`1.0.0-nightly.{yyyyMMdd}.g{shortSha}`.
+[GitHub Packages](README.md#nightly-builds-github-packages) as nightlies of the next version,
+`{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
 ## [1.0.0] - 2026-11-06
 

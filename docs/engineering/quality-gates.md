@@ -1,6 +1,6 @@
 # Engineering Quality Gates
 
-Date: 2026-11-05
+Date: 2026-11-06
 
 Canonical quality policy for product code, generated output, repository tooling, tests, analyzers,
 performance evidence, and completion claims.
@@ -304,9 +304,9 @@ remove it. A shrinking baseline needs no reason.
 
 The lint job packs both packages with validation on for every code pull request, and the release
 workflow's pack is the final check. Cross-asset validation checks compatible target frameworks even
-without a baseline. From `1.0.0-rc.2`, the same packs also compare against the previous published
-release, named by `PackageValidationBaselineVersion` in `Directory.Build.props`; previews and
-`1.0.0-rc.1` have no baseline. The Tools suppression test enforces ADR-0034: patch steps accept no
+without a baseline. From `1.0.1`, the same packs also compare against the previous published
+release, named by `PackageValidationBaselineVersion` in `Directory.Build.props`; the previews and
+`1.0.0` had no baseline. The Tools suppression test enforces ADR-0034: patch steps accept no
 breaks, minor steps accept only generated-type breaks, and major steps may break the hand-written
 surface; cross-asset suppressions are never accepted. The local gate does not pack with validation:
 the packed-consumer fixture turns it off, so this check never needs nuget.org locally.
