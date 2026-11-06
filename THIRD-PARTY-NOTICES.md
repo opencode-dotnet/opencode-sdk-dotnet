@@ -11,7 +11,7 @@ Upstream project: [anomalyco/opencode](https://github.com/anomalyco/opencode)
 Derived content in this repository:
 
 - `spec/openapi.json` — the accepted snapshot of upstream's `packages/protocol/openapi.json`, at
-  the exact commit [`spec/SNAPSHOT.md`](spec/SNAPSHOT.md) pins. It is produced from upstream's own
+  the exact commit [`spec/SNAPSHOT.md`](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/spec/SNAPSHOT.md) pins. It is produced from upstream's own
   generator, so it is a derived copy rather than an independent description.
 - `spec/patches/` — snapshot-production patches whose context lines quote upstream TypeScript
   source. The patches themselves are this repository's work; the quoted context is upstream's.

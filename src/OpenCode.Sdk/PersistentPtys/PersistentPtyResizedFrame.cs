@@ -7,8 +7,9 @@ namespace OpenCode.Sdk;
 /// The terminal was resized — by this connection, by another controller, or by the HTTP update
 /// door. Knowledge source: upstream-observed — the checkpoint is the terminal-escape byte stream
 /// that repaints the screen at the new size, prefixed with <c>ESC c</c>; a caller driving an
-/// emulator resizes it to the new viewport and writes those bytes. The session tracks the new
-/// viewport itself, so later writes carry it without the caller repeating the resize.
+/// emulator resizes it to the new viewport and writes those bytes. A server resize reports rendering
+/// size only; it does not change the local viewport that later writes carry, which only a successful
+/// <see cref="PersistentPtySession.ResizeAsync(int, int, CancellationToken)"/> changes.
 /// </summary>
 [Experimental(ExperimentalDiagnostics.PersistentPty, UrlFormat = ExperimentalDiagnostics.PersistentPtyUrl)]
 public sealed class PersistentPtyResizedFrame : PersistentPtyFrame
