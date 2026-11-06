@@ -2,19 +2,15 @@
 
 ## Supported Versions
 
-This project is pre-1.0 and has not published a stable release yet. Until the first stable release ships, the
-supported version is whatever is current on `master` (and the nightly packages built from it).
-Security patches are prioritized by CVSS v3.0 rating:
+The supported line is the latest release on NuGet.org; nightly packages from `master` get fixes as they land. Security patches are prioritized by CVSS v3.0 rating:
 
 ### Security Patch Policy
 
-| CVSS v3.0 | 0.x (Current) |
+| CVSS v3.0 | Latest release |
 | --------- | ------------- |
 | 9.0-10.0  | ✅ Fixed and released as soon as a fix exists |
 | 4.0-8.9   | ✅ Most recent release |
 | < 4.0     | ⚠️ Best effort |
-
-Once a stable line exists, this table is updated to name it explicitly.
 
 ## Reporting a Vulnerability
 

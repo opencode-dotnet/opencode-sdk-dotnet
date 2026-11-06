@@ -14,12 +14,12 @@ Each app has its own README explaining what it shows and how to run it.
 
 ## Prerequisites
 
-- The .NET SDK pinned by [global.json](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/global.json).
+- The .NET SDK band that [global.json](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/global.json) pins (check with `dotnet --version` inside the clone).
 - The opencode CLI on `PATH`, installed as [Installation](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/README.md#-installation) says.
 
 ## SDK areas shown
 
-QuickStart shows the server launcher, server info, model readiness and catalog selection,
+QuickStart shows the server launcher, model readiness and catalog selection,
 session creation, prompting, text deltas, and session-scoped execution outcomes.
 HQ shows paginated sessions, active status, event-bus reconnects, per-directory permission and form lists,
 permission replies, typed errors, and server health.

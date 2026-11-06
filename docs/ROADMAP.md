@@ -1,6 +1,6 @@
 # Roadmap
 
-Date: 2026-11-05
+Date: 2026-11-06
 
 Operational state: what ships today, what is queued next, what is still open, and what is known to
 be incomplete. This file is a summary and shrinks as work lands. `../AGENTS.md` routes to the
@@ -53,9 +53,8 @@ accepted OpenAPI snapshot and rides one hand-written transport runtime.
 
 ## Road to 1.0
 
-`1.0.0` is the first stable release; the public surface freezes before it. Releases stay
-`0.9.0-preview.N` until the freeze, then ship as `1.0.0-rc.N`, then `1.0.0`; between those points a
-pin refresh or a fix round ships as the next preview or release candidate. Each workstream has a
+Releases stayed `0.9.0-preview.N` until the freeze; `1.0.0` ships from the release-candidate commit,
+with no `-rc` package. Each workstream has a
 short plan in the private companion repository when it starts, and its issues sit in milestone
 `1.0` on the project board. Only work that breaks or decides the public surface, the gates that enforce the freeze,
 and the items named below come before `1.0.0`; additive and internal work waits in milestone

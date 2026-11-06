@@ -1,6 +1,6 @@
 # 🧱 Errors and responses
 
-Date: 2026-11-04
+Date: 2026-11-06
 
 Every one-shot call answers with a **response envelope** that carries the same four members no
 matter which operation produced it, and every failure is either a typed API error you can branch on
@@ -337,12 +337,12 @@ is usually the answer. The causes that reach a running child are an exit before 
 the exit code), a readiness timeout (naming the bound you configured), and a first stdout line that
 was not the readiness contract (quoting it).
 
-One exit before readiness is worth knowing by sight. `opencode` is also the command the 1.x line
-installs (npm `opencode-ai`), and a 1.x binary does not accept the `--stdio` flag the launcher
+One exit before readiness is worth knowing by sight. `opencode` is also the command the older npm
+package `opencode-ai` installs, and that binary does not accept the `--stdio` flag the launcher
 appends: it exits with code 1 at once and prints its own `serve` usage text to stderr, an option
 list with no `--stdio` in it. When the stderr tail in the message is that usage text, the `opencode`
-on your `PATH` is a 1.x install, which this SDK does not drive — install `@opencode/cli`, or point
-`Command` at that install's executable. Measured on `opencode-ai@1.18.30`.
+on your `PATH` is from `opencode-ai`, which this SDK does not drive — install `@opencode/cli`, or point
+`Command` at that install's executable.
 
 The rest are decided before anything is spawned, so they carry no stderr — there is nothing to
 report — but they name exactly what went wrong instead.

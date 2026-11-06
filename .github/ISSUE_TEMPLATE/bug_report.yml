@@ -37,7 +37,7 @@ body:
     attributes:
       label: Package version
       description: The version of `OpenCodeDotNet.Sdk` you are running.
-      placeholder: 0.8.0-preview.1
+      placeholder: 1.0.0
     validations:
       required: true
 

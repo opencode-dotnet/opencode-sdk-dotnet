@@ -6,7 +6,7 @@
          prefix for another owner, so the shipped assembly and every public namespace stay
          OpenCode.Sdk while the artifact is published under the package id prefix. -->
     <PackageId>OpenCodeDotNet.Sdk</PackageId>
-    <Description>Unofficial .NET SDK for OpenCode: a typed client for the OpenCode 2.x server HTTP API (OpenCode 1.x servers are not supported), with server-sent event streams, PTY and persistent-PTY terminals over WebSockets, cursor pagination, typed errors, and a local server launcher. The package id is $(PackageId); the assembly and every namespace are OpenCode.Sdk.</Description>
+    <Description>Unofficial .NET SDK for OpenCode: a typed client for the OpenCode 2.x server HTTP API, with server-sent event streams, PTY terminals over WebSockets, cursor pagination, typed errors, and a local server launcher.</Description>
     <PackageTags>opencode;sdk;client;http-client;openapi;ai;agent;llm;sse;streaming;pty;terminal;dotnet;csharp</PackageTags>
     <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
     <!-- The LibraryImport generator emits its P/Invoke stubs as unsafe code and refuses to run
