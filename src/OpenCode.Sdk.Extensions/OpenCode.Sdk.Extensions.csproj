@@ -4,7 +4,7 @@
     <TargetFrameworks>$(AllTargetFrameworks)</TargetFrameworks>
     <!-- See OpenCode.Sdk.csproj: the package id differs from the assembly name on purpose. -->
     <PackageId>OpenCodeDotNet.Sdk.Extensions</PackageId>
-    <Description>Dependency injection integration for the unofficial OpenCode .NET SDK, a typed client for the OpenCode 2.x server HTTP API (OpenCode 1.x servers are not supported): registers one singleton client and every sub-client from it. The package id is $(PackageId); the assembly is OpenCode.Sdk.Extensions, and AddOpenCode is in the Microsoft.Extensions.DependencyInjection namespace.</Description>
+    <Description>Dependency injection for the unofficial OpenCode .NET SDK: AddOpenCode registers one client for the OpenCode 2.x server HTTP API and every sub-client resolved from it.</Description>
     <PackageTags>opencode;sdk;dependency-injection;di;options;hosting;dotnet;csharp</PackageTags>
     <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">true</IsAotCompatible>
     <!-- slopwatch-ignore: SW005 experimental-family arbitration: the package registers the SDK's experimental clients (OPENCODE001 and OPENCODE002) without exposing them; the consumer who resolves one opts in -->

@@ -65,7 +65,7 @@ four apps.
 - HQ answers text and choice questions in place, styles both screens, and shows its real SDK calls in a hideable source panel.
 - Every complete C# snippet in the README and guides is now compiled against the SDK in CI.
 - Correct consumer signatures, streaming examples and terminology, provider setup, experimental opt-ins, installation guidance, and contribution routing. The README has a Playground section and a Versions and support section that states what a version's parts mean.
-- The package descriptions name the assemblies and namespaces, `PersistentPtyResizedFrame`'s summary says that only `ResizeAsync` changes the viewport later writes carry, and the security policy names the latest release as the supported line.
+- The package descriptions state what each package provides, `PersistentPtyResizedFrame`'s summary says that only `ResizeAsync` changes the viewport later writes carry, and the security policy names the latest release as the supported line.
 - The Known Issues name a .NET Framework cost: reading a JSON string over 1 MiB that contains an
   escape, such as a newline, allocates one extra array of its length each time.
 - **`EnsureAsync` warns about a service boot's resume.** A service it starts resumes every suspended

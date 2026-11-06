@@ -1,6 +1,6 @@
 # opencode SDK for .NET
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/LICENSE) [![NuGet](https://img.shields.io/nuget/v/OpenCodeDotNet.Sdk)](https://www.nuget.org/packages/OpenCodeDotNet.Sdk) [![CI](https://github.com/opencode-dotnet/opencode-sdk-dotnet/actions/workflows/ci.yml/badge.svg)](https://github.com/opencode-dotnet/opencode-sdk-dotnet/actions/workflows/ci.yml) [![Linux Tests](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Ftests%2Flinux%2Fopencode-dotnet%2Fopencode-sdk-dotnet%2Fmaster)](https://api.localstackfor.net/redirect/test-results/linux/opencode-dotnet/opencode-sdk-dotnet/master)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/LICENSE) [![NuGet](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Fpackages%2Fnuget%2FOpenCodeDotNet.Sdk)](https://www.nuget.org/packages/OpenCodeDotNet.Sdk) [![CI](https://github.com/opencode-dotnet/opencode-sdk-dotnet/actions/workflows/ci.yml/badge.svg)](https://github.com/opencode-dotnet/opencode-sdk-dotnet/actions/workflows/ci.yml) [![Linux Tests](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Ftests%2Flinux%2Fopencode-dotnet%2Fopencode-sdk-dotnet%2Fmaster)](https://api.localstackfor.net/redirect/test-results/linux/opencode-dotnet/opencode-sdk-dotnet/master)
 
 > **🚀 Quick Start**: [Install](#-installation) | [Quick start](#-quick-start) | [Playground](#-playground) | [Guide](https://github.com/opencode-dotnet/opencode-sdk-dotnet/blob/master/docs/guide/getting-started.md) | [API coverage](#-api-coverage)
 
@@ -9,7 +9,7 @@
 
 A strongly typed .NET client for the [opencode](https://github.com/anomalyco/opencode) server — the
 HTTP API that every opencode front-end (TUI, desktop, web UI, plugins) uses. The SDK speaks the
-OpenCode 2.x API; the 1.x server API is not supported.
+OpenCode 2.x API.
 
 ```csharp
 using OpenCode.Sdk;
@@ -381,8 +381,8 @@ has the two properties to set.
 
 | Package | NuGet.org | GitHub Packages |
 |---------|-----------|-----------------|
-| **OpenCodeDotNet.Sdk** | [![NuGet](https://img.shields.io/nuget/v/OpenCodeDotNet.Sdk)](https://www.nuget.org/packages/OpenCodeDotNet.Sdk) | [![GitHub Packages](https://img.shields.io/badge/GitHub%20Packages-nightly-blue)](https://github.com/opencode-dotnet/opencode-sdk-dotnet/pkgs/nuget/OpenCodeDotNet.Sdk) |
-| **OpenCodeDotNet.Sdk.Extensions** | [![NuGet](https://img.shields.io/nuget/v/OpenCodeDotNet.Sdk.Extensions)](https://www.nuget.org/packages/OpenCodeDotNet.Sdk.Extensions) | [![GitHub Packages](https://img.shields.io/badge/GitHub%20Packages-nightly-blue)](https://github.com/opencode-dotnet/opencode-sdk-dotnet/pkgs/nuget/OpenCodeDotNet.Sdk.Extensions) |
+| **OpenCodeDotNet.Sdk** | [![NuGet](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Fpackages%2Fnuget%2FOpenCodeDotNet.Sdk)](https://www.nuget.org/packages/OpenCodeDotNet.Sdk) | [![GitHub Packages](https://img.shields.io/badge/GitHub%20Packages-nightly-blue)](https://github.com/opencode-dotnet/opencode-sdk-dotnet/pkgs/nuget/OpenCodeDotNet.Sdk) |
+| **OpenCodeDotNet.Sdk.Extensions** | [![NuGet](https://img.shields.io/endpoint?url=https%3A%2F%2Fapi.localstackfor.net%2Fbadges%2Fpackages%2Fnuget%2FOpenCodeDotNet.Sdk.Extensions)](https://www.nuget.org/packages/OpenCodeDotNet.Sdk.Extensions) | [![GitHub Packages](https://img.shields.io/badge/GitHub%20Packages-nightly-blue)](https://github.com/opencode-dotnet/opencode-sdk-dotnet/pkgs/nuget/OpenCodeDotNet.Sdk.Extensions) |
 
 ## Known Issues
 
@@ -445,6 +445,7 @@ for anything else, including questions and ideas, and say when it is an idea. A 
 ## Related Projects
 
 - [opencode-mcp](https://github.com/opencode-dotnet/opencode-mcp): a Model Context Protocol (MCP) server project for opencode.
+- [opencode-agents-ai](https://github.com/opencode-dotnet/opencode-agents-ai): a Microsoft Agent Framework provider project for opencode.
 
 ## Changelog
 
