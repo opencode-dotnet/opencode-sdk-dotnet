@@ -63,7 +63,7 @@ positions.
 | Reviewing a change, or recognizing slop and suppressions | `docs/engineering/slop-review.md` |
 | Documentation, research, ADRs or repository workflow | `docs/engineering/documentation.md`, `docs/engineering/workflow.md`, and `docs/adr/README.md` as applicable |
 | Consumer guides, README or CHANGELOG | `docs/engineering/documentation.md` (Consumer documentation) |
-| Domain terminology | `CONTEXT.md` |
+| Domain terminology | `GLOSSARY.md` |
 | Current status, queue, open questions or known gaps | `docs/ROADMAP.md`, whose linked project board is the live queue; recording a finding follows `docs/engineering/workflow.md`; any active session handoff lives in the private companion repository |
 | Pinned protocol identity or refresh | `spec/SNAPSHOT.md` |
 
@@ -72,7 +72,7 @@ positions.
 - `docs/architecture/` and `docs/engineering/` own current normative project rules.
 - `docs/adr/` records accepted decision context, trade-offs, consequences, and reversal triggers.
 - `docs/ROADMAP.md` is operational and expected to change and shrink as work lands.
-- `CONTEXT.md` owns current domain vocabulary.
+- `GLOSSARY.md` owns current domain vocabulary.
 - `spec/SNAPSHOT.md` owns the exact OpenAPI pin and refresh procedure.
 - Dated research evidence, plans and specs, and session handovers live in the private companion
   repository `opencode-dotnet/opencode-sdk-dotnet-internal`. That material is non-normative history

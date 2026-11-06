@@ -3381,7 +3381,7 @@
       "owner": "ISessionEventDurable",
       "property": "durable",
       "dotnetName": "IDurableEnvelope",
-      "reason": "The mechanical name for the carrier hoisted from the durable session events' inline envelopes would be ISessionEventDurableDurable; the domain already calls this shape the durable envelope (CONTEXT.md)."
+      "reason": "The mechanical name for the carrier hoisted from the durable session events' inline envelopes would be ISessionEventDurableDurable; the domain already calls this shape the durable envelope (GLOSSARY.md)."
     }
   ],
   "transportOwned": [

@@ -13,7 +13,7 @@ maintenance.
 | Current architecture | `docs/architecture/` | Normative current technical decisions |
 | Current engineering practice | `docs/engineering/` | Normative current authoring, quality, workflow, and documentation rules |
 | Decision rationale | `docs/adr/` | Accepted decision context, trade-offs, consequences, and reversal triggers |
-| Domain vocabulary | `CONTEXT.md` | Current terms and explicitly avoided synonyms |
+| Domain vocabulary | `GLOSSARY.md` | Current terms and explicitly avoided synonyms |
 | Operational state | `docs/ROADMAP.md` | What is done, next, open, and known to be incomplete; shrinks as work lands |
 | Protocol provenance | `spec/SNAPSHOT.md` | Exact upstream pin and refresh procedure |
 | Consumer documentation | `README.md`, `docs/guide/`, `CHANGELOG.md` | How to use the shipped packages, complete on its own (Consumer documentation, below) |
@@ -63,7 +63,7 @@ Comments in source, project files, `.editorconfig`, workflows, and generated fil
 status quo locally; they do not point to movable prose or narrate decision history.
 Curation rows cite a canon section with a proven excerpt; other artifacts that cite documentation are open debt (#202).
 
-Canonical documents — architecture, engineering, ADRs, and `CONTEXT.md` — never point at the
+Canonical documents — architecture, engineering, ADRs, and `GLOSSARY.md` — never point at the
 private companion repository's paths or numbering (research-log questions, sessions, document
 numbers) or at `docs/ROADMAP.md` content, which moves as work lands. Dated evidence is cited inline
 by date and title, for example: internal research, 2026-08-24, "Runtime pipeline architecture

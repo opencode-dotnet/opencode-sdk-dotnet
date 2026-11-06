@@ -9,6 +9,10 @@ Nightly builds of `master` are on
 [GitHub Packages](README.md#nightly-builds-github-packages) as nightlies of the next version,
 `{version}-nightly.{yyyyMMdd}.g{shortSha}`.
 
+### 📚 Documentation
+
+- The domain glossary is `GLOSSARY.md` (previously `CONTEXT.md`), and the getting-started guide points there.
+
 ## [1.0.0] - 2026-11-06
 
 **`1.0.0`: the public surface is stable.** From this release, a version's parts say where a change
